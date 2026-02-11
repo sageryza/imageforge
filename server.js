@@ -23,6 +23,12 @@ const MODELS = {
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
+    { id: 'dall-e-3-watercolor', name: 'Soft Watercolor', stylePrompt: 'Soft watercolor illustration with gentle washes, muted pastel palette, minimal background, hand-painted feel.' },
+    { id: 'dall-e-3-lineart', name: 'Ink & Line Art', stylePrompt: 'Delicate ink line drawing with fine pen strokes, minimal color accents, white background, editorial illustration style.' },
+    { id: 'dall-e-3-woodblock', name: 'Woodblock Print', stylePrompt: 'Japanese woodblock print style with bold outlines, flat color areas, limited palette, ukiyo-e influenced.' },
+    { id: 'dall-e-3-risograph', name: 'Risograph', stylePrompt: 'Risograph print style with halftone dots, limited 2-3 color palette, slight misregistration, textured grain.' },
+    { id: 'dall-e-3-botanical', name: 'Botanical', stylePrompt: 'Scientific botanical illustration style with precise detail, soft natural colors, cream paper background, vintage naturalist feel.' },
+    { id: 'dall-e-3-cutout', name: 'Paper Cutout', stylePrompt: 'Paper cut-out collage style with layered colored paper shapes, subtle shadows, handcraft aesthetic, flat design.' },
   ],
 };
 
@@ -92,17 +98,23 @@ app.post('/api/generate/moments', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        temperature: 0.9,
+        temperature: 0.7,
         messages: [
           {
             role: 'system',
-            content: `You help illustrate a dating memoir. Given a date description, extract exactly 6 small, specific, visual moments that would make good simple watercolor-style drawings. Each should be a concrete detail — an object, a scene, a gesture — not an abstract feeling.
+            content: `You help illustrate a dating memoir. Given a date description, extract small, specific, visual moments that would make good simple watercolor-style drawings.
+
+CRITICAL RULES:
+- ONLY extract moments that are explicitly described in the text. Never invent or assume details.
+- Each moment should be a concrete detail — an object, a scene, a gesture — not an abstract feeling.
+- If the text only contains 2-3 clear visual moments, return only 2-3. Do NOT pad to 6 with invented scenes.
+- Return UP TO 6 moments, but fewer is fine if the text is short.
 
 For each moment, provide:
 - "moment": a short 3-5 word label
 - "prompt": a detailed image generation prompt for a soft watercolor illustration, under 40 words. Always start with "Soft watercolor illustration of" and include "minimal background, gentle muted palette"
 
-Return valid JSON only, no markdown fences. The JSON should be an array of 6 objects with "moment" and "prompt" fields.`,
+Return valid JSON only, no markdown fences. The JSON should be an array of objects with "moment" and "prompt" fields.`,
           },
           {
             role: 'user',
