@@ -16,10 +16,10 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 // ─── Available models ───────────────────────────────────────────────
 const MODELS = {
   replicate: [
-    { id: 'sageryza/gosh', name: 'Gouache', trigger: 'gosh' },
-    { id: 'sageryza/paint', name: 'Painterly', trigger: 'pnt' },
-    { id: 'sageryza/special', name: 'Sketchy', trigger: 'special' },
-    { id: 'sageryza/victorianstyle', name: 'Book Illustrations', trigger: 'vict' },
+    { id: 'sageryza/gosh', version: 'd337796af9f1cc9566f378d2f78deff7864bd5439247935a9f651e5762cdfb39', name: 'Gouache', trigger: 'gosh' },
+    { id: 'sageryza/paint', version: '89efc7b98503ea158b5f848a5edbfd8d9bd24d589ccf34986eeee6b3d87fadcd', name: 'Painterly', trigger: 'pnt' },
+    { id: 'sageryza/special', version: '82d7dd7806bf8fb62fb4e36d67ed361d088e10743c56737e0f08904ec8a5a920', name: 'Sketchy', trigger: 'special' },
+    { id: 'sageryza/victorianstyle', version: '50684448f55b69edd2ca835099ed927f24690d79bfcc90a1334962c591a78cce', name: 'Book Illustrations', trigger: 'vict' },
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
@@ -97,17 +97,34 @@ app.post('/api/generate/replicate', async (req, res) => {
   try {
     const { prompt, model = 'sageryza/gosh' } = req.body;
 
-    // Look up trigger word if it's one of our known models
+    // Look up trigger word and version if it's one of our known models
     const known = MODELS.replicate.find(m => m.id === model);
     const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
+    const version = known ? `${known.id}:${known.version}` : model;
 
-    const createRes = await fetch('https://api.replicate.com/v1/models/' + model + '/predictions', {
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input: { prompt: fullPrompt } }),
+      body: JSON.stringify({
+        version,
+        input: {
+          prompt: fullPrompt,
+          model: 'dev',
+          go_fast: false,
+          lora_scale: 1,
+          megapixels: '1',
+          num_outputs: 1,
+          aspect_ratio: '1:1',
+          output_format: 'webp',
+          guidance_scale: 3,
+          output_quality: 80,
+          prompt_strength: 0.8,
+          num_inference_steps: 28,
+        },
+      }),
     });
     let prediction = await createRes.json();
     if (!createRes.ok || prediction.error) {
