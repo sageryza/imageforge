@@ -126,7 +126,7 @@
       display: block;
     }
 
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 10px 14px;
       background: var(--surface);
@@ -137,6 +137,9 @@
       font-family: inherit;
       outline: none;
     }
+
+    select { cursor: pointer; }
+    select option { background: var(--surface); color: var(--text); }
 
     textarea { min-height: 80px; resize: vertical; }
 
@@ -177,6 +180,25 @@
     }
 
     .btn-secondary:hover { border-color: var(--text-dim); }
+
+    .btn-small {
+      padding: 5px 14px;
+      font-size: 11px;
+    }
+
+    .btn-danger {
+      padding: 10px 24px;
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
 
     .moment-row {
       margin-bottom: 8px;
@@ -237,7 +259,6 @@
     }
 
     .error-bar.show { display: flex; align-items: center; gap: 12px; }
-
     .error-bar span { color: var(--danger); font-size: 13px; }
 
     .error-dismiss {
@@ -299,6 +320,94 @@
       color: var(--text-dim);
     }
 
+    /* ── Deck Gallery ──────────────────────── */
+    .deck-gallery {
+      margin-bottom: 24px;
+    }
+
+    .deck-gallery-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .deck-gallery-header label { margin-bottom: 0; }
+
+    .deck-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .deck-gallery-card {
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .deck-gallery-card:hover { border-color: var(--text-dim); }
+
+    .deck-gallery-card.active-deck {
+      border-color: var(--accent);
+      background: #1a1714;
+    }
+
+    .deck-gallery-theme {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .deck-gallery-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .deck-gallery-delete {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .deck-gallery-card:hover .deck-gallery-delete { opacity: 1; }
+    .deck-gallery-delete:hover { color: var(--danger); }
+
+    .deck-gallery-new {
+      padding: 14px 16px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--text-dim);
+      font-family: inherit;
+      transition: all 0.15s ease;
+      min-height: 80px;
+    }
+
+    .deck-gallery-new:hover { border-color: var(--text-dim); color: var(--text); }
+
     /* ── Deck Flow Steps ─────────────────── */
     .deck-steps {
       display: flex;
@@ -315,20 +424,121 @@
       color: var(--text-dim);
       border-bottom: 2px solid var(--border);
       text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
     }
+
+    .deck-step:hover { color: var(--text); }
 
     .deck-step.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
     }
 
-    .deck-step.done {
+    .deck-step.has-data {
       color: var(--green);
       border-bottom-color: var(--green);
     }
 
+    .deck-step.active.has-data {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
     .deck-phase { display: none; }
     .deck-phase.active { display: block; }
+
+    /* ── Input Row ───────────────────────── */
+    .deck-input-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .deck-input-row .field-theme { flex: 1 1 250px; }
+    .deck-input-row .field-back { flex: 0 0 200px; }
+
+    /* ── Source Toggle (AI / Manual) ─────── */
+    .source-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .source-toggle-btn {
+      padding: 5px 14px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s ease;
+    }
+
+    .source-toggle-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    /* ── Manual Entry ──────────────────────── */
+    .manual-entry {
+      margin-top: 16px;
+    }
+
+    .manual-entry-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .manual-entry-row input:first-child { flex: 0 0 200px; }
+    .manual-entry-row input:last-of-type { flex: 1; }
+
+    .manual-add-btn {
+      padding: 10px 14px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+
+    /* ── View Toggle ──────────────────────── */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .view-toggle-btn {
+      padding: 5px 14px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s ease;
+    }
+
+    .view-toggle-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
 
     /* ── Swipe Card ──────────────────────── */
     .swipe-area {
@@ -366,7 +576,7 @@
       color: var(--text);
     }
 
-    .swipe-card-fact {
+    .swipe-card-back {
       font-size: 13px;
       color: var(--text-dim);
       line-height: 1.5;
@@ -418,7 +628,68 @@
     .tally-rejected { color: var(--danger); }
     .tally-starred { color: var(--star); }
 
-    /* ── Style Picker ────────────────────── */
+    /* ── List View ────────────────────────── */
+    .list-view {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .list-item-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .list-item-subject {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .list-item-back {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-item-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .list-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .list-action-btn.reject { color: var(--danger); }
+    .list-action-btn.accept { color: var(--green); }
+    .list-action-btn.star-btn { color: var(--text-dim); }
+    .list-action-btn.active-accept { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .list-action-btn.active-reject { background: #2a1515; border-color: var(--danger); color: var(--danger); }
+    .list-action-btn.active-star { background: #2a2415; border-color: var(--star); color: var(--star); }
+
+    /* ── Style Picker ──────────────────────── */
     .style-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -469,38 +740,19 @@
       border: 1px solid var(--border);
     }
 
-    /* ── Batch Generation ────────────────── */
+    /* ── Batch Generation ──────────────────── */
     .batch-info {
       font-size: 13px;
       color: var(--text-dim);
       margin-bottom: 16px;
     }
 
-    .batch-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    /* ── Accepted List ────────────────────── */
-    .accepted-list {
-      margin-top: 16px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .accepted-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
+    /* ── Empty State ──────────────────────── */
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
       font-size: 13px;
-    }
-
-    .accepted-item .star-mark {
-      color: var(--star);
-      font-size: 12px;
     }
 
     @media (max-width: 600px) {
@@ -510,6 +762,10 @@
       .header-left { gap: 12px; }
       .swipe-card { width: 280px; }
       .style-test-img { width: 140px; }
+      .deck-input-row .field-back { flex: 1 1 200px; }
+      .manual-entry-row { flex-wrap: wrap; }
+      .manual-entry-row input:first-child { flex: 1 1 100%; }
+      .deck-gallery-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -564,85 +820,162 @@
 
   <!-- ═══ Deck Section ═══ -->
   <div class="section" id="section-deck">
-    <div class="deck-steps">
-      <div class="deck-step active" data-step="1">1 · Subjects</div>
-      <div class="deck-step" data-step="2">2 · Style</div>
-      <div class="deck-step" data-step="3">3 · Generate</div>
+
+    <!-- Deck Gallery -->
+    <div class="deck-gallery" id="deck-gallery">
+      <div class="deck-gallery-header">
+        <label style="margin-bottom:0;">Your Decks</label>
+      </div>
+      <div class="deck-gallery-grid" id="deck-gallery-grid"></div>
     </div>
 
-    <!-- Phase 1: Theme + Subject Curation -->
-    <div class="deck-phase active" id="deck-phase-1">
-      <div id="deck-input-area">
-        <label>Deck Theme</label>
-        <input type="text" id="deck-theme" placeholder='e.g. "insects", "mythical creatures", "dog breeds"'>
-        <div style="margin-top: 16px;">
-          <button class="btn" id="subjects-btn" onclick="generateSubjects()">Generate Subjects</button>
-        </div>
+    <!-- Deck Editor (hidden until a deck is selected/created) -->
+    <div id="deck-editor" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
+        <button class="btn-secondary btn-small" onclick="backToGallery()">← All Decks</button>
+        <span id="deck-editor-title" style="font-size:14px; color:var(--text); font-weight:500;"></span>
+        <button class="btn-danger btn-small" onclick="deleteCurrentDeck()">Delete</button>
       </div>
 
-      <div id="deck-swipe-area" style="display:none;">
-        <div class="swipe-area">
-          <div class="swipe-counter" id="swipe-counter">1 / 60</div>
-          <div class="swipe-card" id="swipe-card">
-            <div class="swipe-card-subject" id="swipe-subject"></div>
-            <div class="swipe-card-fact" id="swipe-fact"></div>
+      <div class="deck-steps" id="deck-steps">
+        <div class="deck-step active" data-step="1">1 · Subjects</div>
+        <div class="deck-step" data-step="2">2 · Style</div>
+        <div class="deck-step" data-step="3">3 · Generate</div>
+      </div>
+
+      <!-- Phase 1: Subjects -->
+      <div class="deck-phase active" id="deck-phase-1">
+        <div id="deck-input-area">
+          <div class="deck-input-row">
+            <div class="field-theme">
+              <label>Deck Theme</label>
+              <input type="text" id="deck-theme" placeholder='e.g. "insects", "mythical creatures", "dog breeds"'>
+            </div>
+            <div class="field-back">
+              <label>Card Back</label>
+              <select id="deck-back-type">
+                <option value="facts">Facts</option>
+                <option value="recipes">Recipes</option>
+                <option value="descriptions">Descriptions</option>
+                <option value="quotes">Quotes</option>
+              </select>
+            </div>
           </div>
-          <div class="swipe-buttons">
-            <button class="swipe-btn reject" onclick="swipe('reject')" title="Reject">✕</button>
-            <button class="swipe-btn star" onclick="swipe('star')" title="Accept + Star">★</button>
-            <button class="swipe-btn accept" onclick="swipe('accept')" title="Accept">✓</button>
+
+          <div class="source-toggle" style="margin-top: 16px;">
+            <button class="source-toggle-btn active" data-source="ai" onclick="setSource('ai')">AI Generate</button>
+            <button class="source-toggle-btn" data-source="manual" onclick="setSource('manual')">Add Manually</button>
           </div>
-          <div class="swipe-tally">
+
+          <!-- AI Generate -->
+          <div id="source-ai">
+            <button class="btn" id="subjects-btn" onclick="generateSubjects()">Generate Subjects</button>
+          </div>
+
+          <!-- Manual Entry -->
+          <div id="source-manual" style="display:none;">
+            <div class="manual-entry">
+              <div class="manual-entry-row">
+                <input type="text" id="manual-subject" placeholder="Subject (card front)">
+                <input type="text" id="manual-back" placeholder="Back text (fact, description, etc.)">
+                <button class="manual-add-btn" onclick="addManualCard()">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="deck-curate-area" style="display:none;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+            <div class="view-toggle" style="margin-bottom:0;">
+              <button class="view-toggle-btn active" data-view="swipe" onclick="setView('swipe')">Swipe</button>
+              <button class="view-toggle-btn" data-view="list" onclick="setView('list')">List</button>
+            </div>
+            <div class="source-toggle" style="margin-bottom:0; margin-left: auto;">
+              <button class="source-toggle-btn" data-source="manual-inline" onclick="showInlineManual()">+ Add Card</button>
+            </div>
+          </div>
+
+          <!-- Inline manual add (toggled) -->
+          <div id="inline-manual" style="display:none; margin-bottom: 16px;">
+            <div class="manual-entry-row">
+              <input type="text" id="inline-manual-subject" placeholder="Subject">
+              <input type="text" id="inline-manual-back" placeholder="Back text">
+              <button class="manual-add-btn" onclick="addInlineCard()">Add</button>
+            </div>
+          </div>
+
+          <div class="swipe-tally" style="margin-bottom: 12px;">
             <span>Accepted: <span class="tally-accepted" id="tally-accepted">0</span></span>
             <span>Starred: <span class="tally-starred" id="tally-starred">0</span></span>
             <span>Rejected: <span class="tally-rejected" id="tally-rejected">0</span></span>
+            <span>Remaining: <span id="tally-remaining">0</span></span>
+          </div>
+
+          <!-- Swipe View -->
+          <div id="swipe-view">
+            <div class="swipe-area">
+              <div class="swipe-counter" id="swipe-counter">1 / 60</div>
+              <div class="swipe-card" id="swipe-card">
+                <div class="swipe-card-subject" id="swipe-subject"></div>
+                <div class="swipe-card-back" id="swipe-back"></div>
+              </div>
+              <div class="swipe-buttons">
+                <button class="swipe-btn reject" onclick="swipe('reject')" title="Reject">✕</button>
+                <button class="swipe-btn star" onclick="swipe('star')" title="Accept + Star">★</button>
+                <button class="swipe-btn accept" onclick="swipe('accept')" title="Accept">✔</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- List View -->
+          <div id="list-view" style="display:none;">
+            <div class="list-view" id="subject-list"></div>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;" id="curate-actions">
+            <button class="btn-secondary" id="gen-more-btn" onclick="generateMoreSubjects()">Generate More</button>
           </div>
         </div>
+      </div>
 
-        <div id="swipe-done" style="display:none; margin-top: 24px; text-align: center;">
-          <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px;" id="swipe-summary"></p>
-          <div style="display: flex; gap: 10px; justify-content: center;">
-            <button class="btn" id="to-style-btn" onclick="goToStyle()">Choose Style →</button>
-            <button class="btn-secondary" onclick="generateMoreSubjects()">Generate More</button>
+      <!-- Phase 2: Style Selection -->
+      <div class="deck-phase" id="deck-phase-2">
+        <label>Pick a Style</label>
+        <div class="style-grid" id="style-grid"></div>
+
+        <div style="margin-top: 20px;">
+          <button class="btn" id="test-style-btn" onclick="testStyle()">Test Style</button>
+        </div>
+
+        <div id="style-test-area" style="display: none; margin-top: 20px;">
+          <label>Style Preview</label>
+          <div class="style-test-results" id="style-test-results"></div>
+          <div style="margin-top: 16px;">
+            <button class="btn-secondary" onclick="clearStyleTest()">Try Another</button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Phase 2: Style Selection -->
-    <div class="deck-phase" id="deck-phase-2">
-      <label>Pick a Style</label>
-      <div class="style-grid" id="style-grid"></div>
-
-      <div style="margin-top: 20px;">
-        <button class="btn" id="test-style-btn" onclick="testStyle()">Test Style</button>
-        <button class="btn-secondary" style="margin-left: 8px;" onclick="goToGenerate()">Skip Test →</button>
-      </div>
-
-      <div id="style-test-area" style="display: none; margin-top: 20px;">
-        <label>Style Preview</label>
-        <div class="style-test-results" id="style-test-results"></div>
-        <div style="margin-top: 16px; display: flex; gap: 10px;">
-          <button class="btn" onclick="goToGenerate()">Use This Style →</button>
-          <button class="btn-secondary" onclick="clearStyleTest()">Try Another</button>
+      <!-- Phase 3: Batch Generation -->
+      <div class="deck-phase" id="deck-phase-3">
+        <div id="batch-prereqs" style="display:none;">
+          <div class="empty-state" id="batch-prereqs-text"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Phase 3: Batch Generation -->
-    <div class="deck-phase" id="deck-phase-3">
-      <div class="batch-info" id="batch-info"></div>
-      <button class="btn" id="batch-btn" onclick="generateBatch()">Generate Next 10</button>
-      <div class="progress-bar" id="batch-progress" style="display:none;">
-        <div class="progress-fill" id="batch-progress-fill"></div>
-      </div>
-      <div class="deck-count" id="batch-count-label" style="display:none;"></div>
-      <div class="card-grid" id="batch-grid"></div>
-      <div id="batch-done-area" style="display:none; margin-top: 20px;">
-        <button class="btn" id="batch-next-btn" onclick="generateBatch()">Generate Next 10</button>
-      </div>
-      <div id="deck-complete" style="display:none; margin-top: 20px;">
-        <p style="color: var(--green); font-size: 14px;">All cards generated.</p>
+        <div id="batch-ready">
+          <div class="batch-info" id="batch-info"></div>
+          <button class="btn" id="batch-btn" onclick="generateBatch()">Generate Next 10</button>
+          <div class="progress-bar" id="batch-progress" style="display:none;">
+            <div class="progress-fill" id="batch-progress-fill"></div>
+          </div>
+          <div class="deck-count" id="batch-count-label" style="display:none;"></div>
+          <div class="card-grid" id="batch-grid"></div>
+          <div id="batch-done-area" style="display:none; margin-top: 20px;">
+            <button class="btn" id="batch-next-btn" onclick="generateBatch()">Generate Next 10</button>
+          </div>
+          <div id="deck-complete" style="display:none; margin-top: 20px;">
+            <p style="color: var(--green); font-size: 14px;">All cards generated.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -662,15 +995,16 @@
     let currentProvider = 'dalle';
 
     // ── Deck state ──────────────────────
-    let allSubjects = [];        // all generated subjects
-    let swipeIndex = 0;          // current position in swipe stack
-    let acceptedCards = [];      // { subject, fact, starred }
-    let rejectedCount = 0;
-    let selectedModel = null;    // chosen style model id
+    let currentDeckId = null;
+    let allSubjects = [];
+    let swipeIndex = 0;
+    let selectedModel = null;
     let selectedStylePrompt = '';
-    let batchIndex = 0;          // how many cards generated so far
+    let batchIndex = 0;
+    let generatedImages = [];
     const BATCH_SIZE = 10;
     const TARGET_CARDS = 50;
+    let currentView = 'swipe';
 
     // ── Tabs ────────────────────────────
     document.querySelectorAll('.tab').forEach(tab => {
@@ -680,6 +1014,7 @@
         currentMode = tab.dataset.mode;
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('section-' + currentMode).classList.add('active');
+        if (currentMode === 'deck') renderGallery();
       });
     });
 
@@ -727,6 +1062,31 @@
       document.getElementById('add-moment-btn').style.display = '';
     }
 
+    // ── Safe fetch helpers ──────────────
+    async function safeFetchJson(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text.slice(0, 200)}`);
+      }
+      return res.json();
+    }
+
+    async function safeFetchStream(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text.slice(0, 200)}`);
+      }
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('text/event-stream')) {
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        throw new Error('Expected event stream but got: ' + ct);
+      }
+      return res;
+    }
+
     // ── Sticker Generation ──────────────
     async function generateStickers() {
       const inputs = document.querySelectorAll('#moments-list input');
@@ -740,12 +1100,11 @@
       document.getElementById('sticker-result').innerHTML = '';
 
       try {
-        const res = await fetch('/api/generate/sticker-sheet', {
+        const data = await safeFetchJson('/api/generate/sticker-sheet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ moments, provider: currentProvider }),
         });
-        const data = await res.json();
         if (data.error) throw new Error(data.error);
         document.getElementById('sticker-result').innerHTML = `
           <img class="result-img" src="${data.url}" alt="Sticker sheet">
@@ -759,19 +1118,368 @@
       btn.textContent = 'Generate Sticker Sheet';
     }
 
-    // ══════════════════════════════════════
-    //  DECK FLOW
-    // ══════════════════════════════════════
+    // ═══════════════════════════════════════
+    //  DECK GALLERY (multi-deck localStorage)
+    // ═══════════════════════════════════════
+
+    function getAllDecks() {
+      try {
+        const raw = localStorage.getItem('imageforge_decks');
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+
+    function saveAllDecks(decks) {
+      localStorage.setItem('imageforge_decks', JSON.stringify(decks));
+    }
+
+    function getDeck(id) {
+      return getAllDecks().find(d => d.id === id) || null;
+    }
+
+    function saveDeckState() {
+      if (!currentDeckId) return;
+      const decks = getAllDecks();
+      const idx = decks.findIndex(d => d.id === currentDeckId);
+      const state = {
+        id: currentDeckId,
+        theme: document.getElementById('deck-theme').value,
+        backType: document.getElementById('deck-back-type').value,
+        allSubjects,
+        swipeIndex,
+        selectedModel,
+        selectedStylePrompt,
+        batchIndex,
+        generatedImages,
+        currentStep: getCurrentStep(),
+        provider: currentProvider,
+        updatedAt: Date.now(),
+      };
+      if (idx >= 0) {
+        decks[idx] = state;
+      } else {
+        state.createdAt = Date.now();
+        decks.push(state);
+      }
+      saveAllDecks(decks);
+    }
+
+    function deleteDeck(id) {
+      const decks = getAllDecks().filter(d => d.id !== id);
+      saveAllDecks(decks);
+    }
+
+    // ── Migrate old single-deck format ──
+    function migrateOldDeck() {
+      try {
+        const old = localStorage.getItem('imageforge_deck');
+        if (!old) return;
+        const parsed = JSON.parse(old);
+        if (parsed && parsed.allSubjects && parsed.allSubjects.length > 0) {
+          const decks = getAllDecks();
+          const migrated = {
+            ...parsed,
+            id: 'deck_' + Date.now(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          decks.push(migrated);
+          saveAllDecks(decks);
+        }
+        localStorage.removeItem('imageforge_deck');
+      } catch {}
+    }
+
+    function renderGallery() {
+      const decks = getAllDecks();
+      const grid = document.getElementById('deck-gallery-grid');
+      grid.innerHTML = '';
+
+      decks.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      decks.forEach(d => {
+        const accepted = (d.allSubjects || []).filter(s => s.status === 'accepted').length;
+        const generated = (d.generatedImages || []).length;
+        const total = (d.allSubjects || []).length;
+
+        const card = document.createElement('div');
+        card.className = 'deck-gallery-card' + (d.id === currentDeckId ? ' active-deck' : '');
+        card.innerHTML = `
+          <div class="deck-gallery-theme">${d.theme || 'Untitled Deck'}</div>
+          <div class="deck-gallery-meta">
+            ${total} subjects · ${accepted} accepted · ${generated} images
+          </div>
+          <button class="deck-gallery-delete" onclick="event.stopPropagation(); confirmDeleteDeck('${d.id}')" title="Delete">×</button>
+        `;
+        card.addEventListener('click', () => openDeck(d.id));
+        grid.appendChild(card);
+      });
+
+      // New deck button
+      const newBtn = document.createElement('button');
+      newBtn.className = 'deck-gallery-new';
+      newBtn.textContent = '+ New Deck';
+      newBtn.addEventListener('click', createNewDeck);
+      grid.appendChild(newBtn);
+
+      // Show gallery, hide editor
+      document.getElementById('deck-gallery').style.display = '';
+      document.getElementById('deck-editor').style.display = 'none';
+    }
+
+    function createNewDeck() {
+      currentDeckId = 'deck_' + Date.now();
+      resetDeckState();
+      document.getElementById('deck-gallery').style.display = 'none';
+      document.getElementById('deck-editor').style.display = '';
+      document.getElementById('deck-editor-title').textContent = 'New Deck';
+      setDeckStep(1);
+      // Save empty deck so it appears in gallery
+      saveDeckState();
+    }
+
+    function openDeck(id) {
+      const deck = getDeck(id);
+      if (!deck) return;
+
+      currentDeckId = id;
+      document.getElementById('deck-theme').value = deck.theme || '';
+      document.getElementById('deck-back-type').value = deck.backType || 'facts';
+      allSubjects = deck.allSubjects || [];
+      swipeIndex = deck.swipeIndex || 0;
+      selectedModel = deck.selectedModel || null;
+      selectedStylePrompt = deck.selectedStylePrompt || '';
+      batchIndex = deck.batchIndex || 0;
+      generatedImages = deck.generatedImages || [];
+      currentProvider = deck.provider || 'dalle';
+
+      document.querySelectorAll('.provider-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.provider === currentProvider);
+      });
+
+      document.getElementById('deck-gallery').style.display = 'none';
+      document.getElementById('deck-editor').style.display = '';
+      document.getElementById('deck-editor-title').textContent = deck.theme || 'Untitled Deck';
+
+      const step = deck.currentStep || 1;
+
+      // Restore subject curation area if we have subjects
+      if (allSubjects.length > 0) {
+        document.getElementById('deck-input-area').style.display = 'none';
+        document.getElementById('deck-curate-area').style.display = 'block';
+        advanceSwipeToNext();
+        renderListView();
+        updateTally();
+      } else {
+        document.getElementById('deck-input-area').style.display = 'block';
+        document.getElementById('deck-curate-area').style.display = 'none';
+      }
+
+      setDeckStep(step);
+
+      if (step === 2) loadStyleOptions();
+      if (step === 3) {
+        restoreBatchGrid();
+        updateBatchInfo();
+      }
+
+      updateStepIndicators();
+    }
+
+    function backToGallery() {
+      saveDeckState();
+      currentDeckId = null;
+      renderGallery();
+    }
+
+    function confirmDeleteDeck(id) {
+      const deck = getDeck(id);
+      if (confirm(`Delete "${deck?.theme || 'Untitled'}"? This cannot be undone.`)) {
+        deleteDeck(id);
+        if (currentDeckId === id) {
+          currentDeckId = null;
+          renderGallery();
+        } else {
+          renderGallery();
+        }
+      }
+    }
+
+    function deleteCurrentDeck() {
+      if (!currentDeckId) return;
+      confirmDeleteDeck(currentDeckId);
+    }
+
+    function resetDeckState() {
+      allSubjects = [];
+      swipeIndex = 0;
+      selectedModel = null;
+      selectedStylePrompt = '';
+      batchIndex = 0;
+      generatedImages = [];
+      document.getElementById('deck-input-area').style.display = 'block';
+      document.getElementById('deck-curate-area').style.display = 'none';
+      document.getElementById('deck-theme').value = '';
+      document.getElementById('batch-grid').innerHTML = '';
+    }
+
+    // ═══════════════════════════════════════
+    //  NON-LINEAR STEP NAVIGATION
+    // ═══════════════════════════════════════
+
+    document.querySelectorAll('.deck-step').forEach(stepEl => {
+      stepEl.addEventListener('click', () => {
+        const step = parseInt(stepEl.dataset.step);
+        navigateToStep(step);
+      });
+    });
+
+    function navigateToStep(step) {
+      setDeckStep(step);
+      if (step === 2) loadStyleOptions();
+      if (step === 3) {
+        restoreBatchGrid();
+        updateBatchInfo();
+        checkBatchPrereqs();
+      }
+    }
+
+    function getCurrentStep() {
+      const active = document.querySelector('.deck-step.active');
+      return active ? parseInt(active.dataset.step) : 1;
+    }
 
     function setDeckStep(step) {
       document.querySelectorAll('.deck-step').forEach(s => {
-        const n = parseInt(s.dataset.step);
-        s.classList.remove('active', 'done');
-        if (n < step) s.classList.add('done');
-        if (n === step) s.classList.add('active');
+        s.classList.remove('active');
+        if (parseInt(s.dataset.step) === step) s.classList.add('active');
       });
       document.querySelectorAll('.deck-phase').forEach(p => p.classList.remove('active'));
       document.getElementById('deck-phase-' + step).classList.add('active');
+      updateStepIndicators();
+      saveDeckState();
+    }
+
+    function updateStepIndicators() {
+      const hasSubjects = allSubjects.filter(s => s.status === 'accepted').length > 0;
+      const hasStyle = selectedModel !== null;
+      const hasImages = generatedImages.length > 0;
+
+      document.querySelectorAll('.deck-step').forEach(s => {
+        const n = parseInt(s.dataset.step);
+        s.classList.remove('has-data');
+        if (n === 1 && hasSubjects) s.classList.add('has-data');
+        if (n === 2 && hasStyle) s.classList.add('has-data');
+        if (n === 3 && hasImages) s.classList.add('has-data');
+      });
+    }
+
+    function checkBatchPrereqs() {
+      const accepted = allSubjects.filter(s => s.status === 'accepted').length;
+      const missing = [];
+      if (accepted === 0) missing.push('accepted subjects (Step 1)');
+      if (!selectedModel) missing.push('a style (Step 2)');
+
+      if (missing.length > 0) {
+        document.getElementById('batch-prereqs').style.display = '';
+        document.getElementById('batch-prereqs-text').textContent =
+          'To generate images, you need: ' + missing.join(' and ');
+        document.getElementById('batch-ready').style.display = 'none';
+      } else {
+        document.getElementById('batch-prereqs').style.display = 'none';
+        document.getElementById('batch-ready').style.display = '';
+      }
+    }
+
+    // ── Source Toggle (AI vs Manual) ────
+    function setSource(source) {
+      document.querySelectorAll('#deck-input-area .source-toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.source === source);
+      });
+      document.getElementById('source-ai').style.display = source === 'ai' ? '' : 'none';
+      document.getElementById('source-manual').style.display = source === 'manual' ? '' : 'none';
+    }
+
+    // ── Manual Card Entry ───────────────
+    function addManualCard() {
+      const subjectInput = document.getElementById('manual-subject');
+      const backInput = document.getElementById('manual-back');
+      const subject = subjectInput.value.trim();
+      const back = backInput.value.trim();
+      if (!subject) return;
+
+      allSubjects.push({ subject, back, status: 'accepted', starred: false });
+      subjectInput.value = '';
+      backInput.value = '';
+      subjectInput.focus();
+
+      // If we have subjects now, show the curate area
+      if (allSubjects.length > 0) {
+        document.getElementById('deck-input-area').style.display = 'none';
+        document.getElementById('deck-curate-area').style.display = 'block';
+        renderListView();
+        setView('list');
+      }
+      updateTally();
+      updateStepIndicators();
+      updateEditorTitle();
+      saveDeckState();
+    }
+
+    function showInlineManual() {
+      const area = document.getElementById('inline-manual');
+      area.style.display = area.style.display === 'none' ? '' : 'none';
+      if (area.style.display !== 'none') {
+        document.getElementById('inline-manual-subject').focus();
+      }
+    }
+
+    function addInlineCard() {
+      const subjectInput = document.getElementById('inline-manual-subject');
+      const backInput = document.getElementById('inline-manual-back');
+      const subject = subjectInput.value.trim();
+      const back = backInput.value.trim();
+      if (!subject) return;
+
+      allSubjects.push({ subject, back, status: 'accepted', starred: false });
+      subjectInput.value = '';
+      backInput.value = '';
+      subjectInput.focus();
+
+      renderListView();
+      updateTally();
+      updateStepIndicators();
+      saveDeckState();
+    }
+
+    // Handle Enter key in manual entry fields
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (e.target.id === 'manual-subject' || e.target.id === 'manual-back') {
+          e.preventDefault();
+          addManualCard();
+        }
+        if (e.target.id === 'inline-manual-subject' || e.target.id === 'inline-manual-back') {
+          e.preventDefault();
+          addInlineCard();
+        }
+      }
+    });
+
+    // ── View Toggle ─────────────────────
+    function setView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === view);
+      });
+      document.getElementById('swipe-view').style.display = view === 'swipe' ? 'block' : 'none';
+      document.getElementById('list-view').style.display = view === 'list' ? 'block' : 'none';
+      if (view === 'list') renderListView();
+    }
+
+    function updateEditorTitle() {
+      const theme = document.getElementById('deck-theme').value.trim();
+      document.getElementById('deck-editor-title').textContent = theme || 'Untitled Deck';
     }
 
     // ── Phase 1: Generate Subjects ──────
@@ -779,29 +1487,36 @@
       const theme = document.getElementById('deck-theme').value.trim();
       if (!theme) return;
 
+      const backType = document.getElementById('deck-back-type').value;
       const btn = document.getElementById('subjects-btn');
       btn.disabled = true;
       btn.textContent = 'Generating...';
       hideError();
 
       try {
-        const res = await fetch('/api/generate/subjects', {
+        const data = await safeFetchJson('/api/generate/subjects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ theme, count: 60 }),
+          body: JSON.stringify({ theme, count: 60, backType }),
         });
-        const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        allSubjects = data.subjects;
+        allSubjects = data.subjects.map(s => ({
+          subject: s.subject,
+          back: s.back || s.fact || '',
+          status: 'pending',
+          starred: false,
+        }));
         swipeIndex = 0;
-        acceptedCards = [];
-        rejectedCount = 0;
 
         document.getElementById('deck-input-area').style.display = 'none';
-        document.getElementById('deck-swipe-area').style.display = 'block';
-        document.getElementById('swipe-done').style.display = 'none';
+        document.getElementById('deck-curate-area').style.display = 'block';
         showCurrentCard();
+        renderListView();
+        updateTally();
+        updateStepIndicators();
+        updateEditorTitle();
+        saveDeckState();
       } catch (err) {
         showError(err.message);
       }
@@ -812,27 +1527,31 @@
 
     async function generateMoreSubjects() {
       const theme = document.getElementById('deck-theme').value.trim();
-      const btn = document.querySelector('#swipe-done .btn-secondary');
+      const backType = document.getElementById('deck-back-type').value;
+      const btn = document.getElementById('gen-more-btn');
       btn.disabled = true;
       btn.textContent = 'Generating...';
 
       try {
-        const need = TARGET_CARDS - acceptedCards.length + 10;
-        const res = await fetch('/api/generate/subjects', {
+        const accepted = allSubjects.filter(s => s.status === 'accepted').length;
+        const need = TARGET_CARDS - accepted + 10;
+        const data = await safeFetchJson('/api/generate/subjects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ theme, count: need }),
+          body: JSON.stringify({ theme, count: need, backType }),
         });
-        const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        // Filter out subjects we already have
-        const existing = new Set(acceptedCards.map(c => c.subject));
-        const fresh = data.subjects.filter(s => !existing.has(s.subject));
+        const existing = new Set(allSubjects.map(s => s.subject));
+        const fresh = data.subjects
+          .filter(s => !existing.has(s.subject))
+          .map(s => ({ subject: s.subject, back: s.back || s.fact || '', status: 'pending', starred: false }));
         allSubjects = [...allSubjects, ...fresh];
 
-        document.getElementById('swipe-done').style.display = 'none';
-        showCurrentCard();
+        advanceSwipeToNext();
+        renderListView();
+        updateTally();
+        saveDeckState();
       } catch (err) {
         showError(err.message);
       }
@@ -841,79 +1560,131 @@
       btn.textContent = 'Generate More';
     }
 
+    function advanceSwipeToNext() {
+      while (swipeIndex < allSubjects.length && allSubjects[swipeIndex].status !== 'pending') {
+        swipeIndex++;
+      }
+      if (swipeIndex < allSubjects.length) {
+        showCurrentCard();
+      }
+    }
+
     function showCurrentCard() {
+      while (swipeIndex < allSubjects.length && allSubjects[swipeIndex].status !== 'pending') {
+        swipeIndex++;
+      }
       if (swipeIndex >= allSubjects.length) {
-        finishSwiping();
+        document.getElementById('swipe-card').style.display = 'none';
+        document.querySelector('.swipe-buttons').style.display = 'none';
+        document.querySelector('.swipe-counter').textContent = 'All reviewed';
         return;
       }
+
       const s = allSubjects[swipeIndex];
       document.getElementById('swipe-subject').textContent = s.subject;
-      document.getElementById('swipe-fact').textContent = s.fact;
-      document.getElementById('swipe-counter').textContent = `${swipeIndex + 1} / ${allSubjects.length}`;
-      updateTally();
+      document.getElementById('swipe-back').textContent = s.back;
+      const pending = allSubjects.filter(s => s.status === 'pending').length;
+      document.getElementById('swipe-counter').textContent = `${allSubjects.length - pending + 1} / ${allSubjects.length}`;
 
       const card = document.getElementById('swipe-card');
+      card.style.display = '';
+      document.querySelector('.swipe-buttons').style.display = '';
       card.classList.remove('exit-left', 'exit-right');
     }
 
     function swipe(action) {
+      if (swipeIndex >= allSubjects.length) return;
       const card = document.getElementById('swipe-card');
       const s = allSubjects[swipeIndex];
 
       if (action === 'reject') {
         card.classList.add('exit-left');
-        rejectedCount++;
+        s.status = 'rejected';
       } else {
         card.classList.add('exit-right');
-        acceptedCards.push({
-          subject: s.subject,
-          fact: s.fact,
-          starred: action === 'star',
-        });
+        s.status = 'accepted';
+        s.starred = action === 'star';
       }
 
       swipeIndex++;
       updateTally();
+      updateStepIndicators();
+      saveDeckState();
 
-      // Check if we have enough
-      if (acceptedCards.length >= TARGET_CARDS) {
-        setTimeout(() => finishSwiping(), 300);
-        return;
+      setTimeout(() => {
+        showCurrentCard();
+        if (currentView === 'list') renderListView();
+      }, 300);
+    }
+
+    // ── List View Rendering ─────────────
+    function renderListView() {
+      const container = document.getElementById('subject-list');
+      container.innerHTML = '';
+
+      allSubjects.forEach((s, i) => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+
+        const isAccepted = s.status === 'accepted';
+        const isRejected = s.status === 'rejected';
+        const isStarred = s.starred;
+
+        item.innerHTML = `
+          <div class="list-item-text">
+            <div class="list-item-subject">${escHtml(s.subject)}</div>
+            <div class="list-item-back">${escHtml(s.back)}</div>
+          </div>
+          <div class="list-item-actions">
+            <button class="list-action-btn reject ${isRejected ? 'active-reject' : ''}" onclick="listAction(${i},'reject')">✕</button>
+            <button class="list-action-btn star-btn ${isStarred ? 'active-star' : ''}" onclick="listAction(${i},'star')">★</button>
+            <button class="list-action-btn accept ${isAccepted ? 'active-accept' : ''}" onclick="listAction(${i},'accept')">✔</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function listAction(index, action) {
+      const s = allSubjects[index];
+      if (action === 'reject') {
+        s.status = 'rejected';
+        s.starred = false;
+      } else if (action === 'accept') {
+        s.status = 'accepted';
+      } else if (action === 'star') {
+        s.status = 'accepted';
+        s.starred = !s.starred;
       }
-
-      setTimeout(() => showCurrentCard(), 300);
+      updateTally();
+      updateStepIndicators();
+      renderListView();
+      saveDeckState();
     }
 
     function updateTally() {
-      document.getElementById('tally-accepted').textContent = acceptedCards.length;
-      document.getElementById('tally-starred').textContent = acceptedCards.filter(c => c.starred).length;
-      document.getElementById('tally-rejected').textContent = rejectedCount;
-    }
+      const accepted = allSubjects.filter(s => s.status === 'accepted');
+      const rejected = allSubjects.filter(s => s.status === 'rejected');
+      const starred = allSubjects.filter(s => s.starred);
+      const remaining = allSubjects.filter(s => s.status === 'pending');
 
-    function finishSwiping() {
-      document.getElementById('swipe-card').style.display = 'none';
-      document.querySelector('.swipe-buttons').style.display = 'none';
-      document.querySelector('.swipe-counter').style.display = 'none';
-      document.getElementById('swipe-done').style.display = 'block';
-
-      const need = TARGET_CARDS - acceptedCards.length;
-      if (need > 0) {
-        document.getElementById('swipe-summary').textContent =
-          `${acceptedCards.length} accepted, ${rejectedCount} rejected. Need ${need} more to reach ${TARGET_CARDS}.`;
-        document.getElementById('to-style-btn').textContent = `Continue with ${acceptedCards.length} →`;
-      } else {
-        document.getElementById('swipe-summary').textContent =
-          `${acceptedCards.length} cards ready. ${acceptedCards.filter(c => c.starred).length} starred.`;
-      }
+      document.getElementById('tally-accepted').textContent = accepted.length;
+      document.getElementById('tally-starred').textContent = starred.length;
+      document.getElementById('tally-rejected').textContent = rejected.length;
+      document.getElementById('tally-remaining').textContent = remaining.length;
     }
 
     // ── Keyboard shortcuts for swiping ──
     document.addEventListener('keydown', (e) => {
-      if (currentMode !== 'deck') return;
+      if (currentMode !== 'deck' || currentView !== 'swipe') return;
       const phase1 = document.getElementById('deck-phase-1').classList.contains('active');
-      const swiping = document.getElementById('deck-swipe-area').style.display !== 'none';
-      const done = document.getElementById('swipe-done').style.display !== 'none';
-      if (!phase1 || !swiping || done) return;
+      if (!phase1) return;
 
       if (e.key === 'ArrowLeft') swipe('reject');
       else if (e.key === 'ArrowRight') swipe('accept');
@@ -921,22 +1692,16 @@
     });
 
     // ── Phase 2: Style Selection ────────
-    function goToStyle() {
-      setDeckStep(2);
-      loadStyleOptions();
-    }
-
     async function loadStyleOptions() {
       try {
-        const res = await fetch('/api/models');
-        const models = await res.json();
+        const models = await safeFetchJson('/api/models');
         const grid = document.getElementById('style-grid');
         grid.innerHTML = '';
 
         const list = currentProvider === 'replicate' ? models.replicate : models.dalle;
         list.forEach(m => {
           const div = document.createElement('div');
-          div.className = 'style-option';
+          div.className = 'style-option' + (selectedModel === m.id ? ' selected' : '');
           div.dataset.modelId = m.id;
           div.innerHTML = `
             <div class="style-option-name">${m.name}</div>
@@ -947,6 +1712,8 @@
             div.classList.add('selected');
             selectedModel = m.id;
             selectedStylePrompt = m.stylePrompt || '';
+            updateStepIndicators();
+            saveDeckState();
           });
           grid.appendChild(div);
         });
@@ -965,15 +1732,24 @@
       btn.disabled = true;
       btn.textContent = 'Testing...';
 
-      const starred = acceptedCards.filter(c => c.starred);
-      const testSubjects = (starred.length >= 3 ? starred.slice(0, 3) : acceptedCards.slice(0, 3))
-        .map(c => c.subject);
+      const accepted = allSubjects.filter(s => s.status === 'accepted');
+      const starred = accepted.filter(s => s.starred);
+      let testSubjects;
+      if (starred.length >= 3) {
+        testSubjects = starred.slice(0, 3).map(c => c.subject);
+      } else if (accepted.length >= 3) {
+        testSubjects = accepted.slice(0, 3).map(c => c.subject);
+      } else {
+        // No subjects yet — use theme as fallback
+        const theme = document.getElementById('deck-theme').value.trim() || 'sample subject';
+        testSubjects = [theme + ' example 1', theme + ' example 2', theme + ' example 3'];
+      }
 
       document.getElementById('style-test-area').style.display = 'block';
       document.getElementById('style-test-results').innerHTML = '';
 
       try {
-        const res = await fetch('/api/generate/style-test', {
+        const res = await safeFetchStream('/api/generate/style-test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1020,48 +1796,61 @@
 
       btn.disabled = false;
       btn.textContent = 'Test Style';
+      saveDeckState();
     }
 
     function clearStyleTest() {
       document.getElementById('style-test-area').style.display = 'none';
       document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
       selectedModel = null;
+      selectedStylePrompt = '';
+      updateStepIndicators();
+      saveDeckState();
     }
 
     // ── Phase 3: Batch Generation ───────
-    function goToGenerate() {
-      if (!selectedModel) {
-        // Default to first available
-        const firstOption = document.querySelector('.style-option');
-        if (firstOption) {
-          firstOption.click();
-        } else {
-          showError('Pick a style first');
-          return;
-        }
-      }
-      setDeckStep(3);
-      batchIndex = 0;
-      document.getElementById('batch-grid').innerHTML = '';
-      document.getElementById('deck-complete').style.display = 'none';
-      updateBatchInfo();
+    function restoreBatchGrid() {
+      const grid = document.getElementById('batch-grid');
+      grid.innerHTML = '';
+      generatedImages.forEach((img, i) => {
+        const div = document.createElement('div');
+        div.className = 'card-item';
+        div.innerHTML = `
+          <img src="${img.url}" alt="${escHtml(img.subject)}">
+          <span class="card-num">${i + 1}</span>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    function getAcceptedCards() {
+      return allSubjects.filter(s => s.status === 'accepted');
     }
 
     function updateBatchInfo() {
-      const remaining = acceptedCards.length - batchIndex;
+      checkBatchPrereqs();
+      const accepted = getAcceptedCards();
+      const remaining = accepted.length - batchIndex;
       const next = Math.min(BATCH_SIZE, remaining);
       document.getElementById('batch-info').textContent =
-        `${batchIndex} of ${acceptedCards.length} cards generated. ${remaining} remaining.`;
+        `${batchIndex} of ${accepted.length} cards generated. ${remaining} remaining.`;
       document.getElementById('batch-btn').textContent = `Generate Next ${next}`;
       document.getElementById('batch-btn').style.display = remaining > 0 ? '' : 'none';
       document.getElementById('batch-done-area').style.display = 'none';
+
+      if (remaining <= 0 && batchIndex > 0) {
+        document.getElementById('deck-complete').style.display = 'block';
+      } else {
+        document.getElementById('deck-complete').style.display = 'none';
+      }
     }
 
     async function generateBatch() {
-      const remaining = acceptedCards.length - batchIndex;
+      const accepted = getAcceptedCards();
+      const remaining = accepted.length - batchIndex;
       if (remaining <= 0) return;
 
-      const batchCards = acceptedCards.slice(batchIndex, batchIndex + BATCH_SIZE);
+      const batchCards = accepted.slice(batchIndex, batchIndex + BATCH_SIZE);
       const btn = document.getElementById('batch-btn');
       btn.disabled = true;
       btn.style.display = 'none';
@@ -1071,11 +1860,11 @@
       document.getElementById('batch-done-area').style.display = 'none';
 
       try {
-        const res = await fetch('/api/generate/deck-batch', {
+        const res = await safeFetchStream('/api/generate/deck-batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cards: batchCards,
+            cards: batchCards.map(c => ({ subject: c.subject, fact: c.back })),
             provider: currentProvider,
             model: selectedModel,
             stylePrompt: selectedStylePrompt,
@@ -1100,14 +1889,20 @@
                 const event = JSON.parse(line.slice(6));
                 if (event.done) break;
                 if (event.url) {
+                  generatedImages.push({
+                    subject: event.subject,
+                    back: batchCards[event.index]?.back || '',
+                    url: event.url,
+                  });
                   const grid = document.getElementById('batch-grid');
                   const div = document.createElement('div');
                   div.className = 'card-item';
                   div.innerHTML = `
-                    <img src="${event.url}" alt="${event.subject}">
+                    <img src="${event.url}" alt="${escHtml(event.subject)}">
                     <span class="card-num">${batchIndex + event.index + 1}</span>
                   `;
                   grid.appendChild(div);
+                  saveDeckState();
                 }
                 const pct = ((event.index + 1) / batchCards.length) * 100;
                 document.getElementById('batch-progress-fill').style.width = pct + '%';
@@ -1126,15 +1921,17 @@
       document.getElementById('batch-count-label').style.display = 'none';
       btn.disabled = false;
 
-      if (batchIndex >= acceptedCards.length) {
+      if (batchIndex >= accepted.length) {
         document.getElementById('deck-complete').style.display = 'block';
         document.getElementById('batch-btn').style.display = 'none';
       } else {
         updateBatchInfo();
         document.getElementById('batch-done-area').style.display = 'block';
-        const next = Math.min(BATCH_SIZE, acceptedCards.length - batchIndex);
+        const next = Math.min(BATCH_SIZE, accepted.length - batchIndex);
         document.getElementById('batch-next-btn').textContent = `Generate Next ${next}`;
       }
+      updateStepIndicators();
+      saveDeckState();
     }
 
     // ── Single Generation ───────────────
@@ -1150,12 +1947,11 @@
 
       try {
         const endpoint = currentProvider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-        const res = await fetch(endpoint, {
+        const data = await safeFetchJson(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt }),
         });
-        const data = await res.json();
         if (data.error) throw new Error(data.error);
         document.getElementById('single-result').innerHTML = `
           <img class="result-img" src="${data.url}" alt="Generated image">
@@ -1168,6 +1964,10 @@
       btn.disabled = false;
       btn.textContent = 'Generate';
     }
+
+    // ── Init ────────────────────────────
+    migrateOldDeck();
+    renderGallery();
   </script>
 </body>
 </html>
