@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
+const admin = require('firebase-admin');
 
 const app = express();
 app.use(cors());
@@ -13,6 +14,45 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
+// ─── Firebase Setup ─────────────────────────────────────────────────
+let bucket = null;
+try {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+  if (serviceAccount.project_id) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: `${serviceAccount.project_id}.firebasestorage.app`,
+    });
+    bucket = admin.storage().bucket();
+    console.log('Firebase Storage initialized');
+  } else {
+    console.warn('FIREBASE_SERVICE_ACCOUNT not set — images will use temporary URLs');
+  }
+} catch (err) {
+  console.warn('Firebase init failed:', err.message);
+}
+
+// Download image from URL and upload to Firebase, return permanent URL
+async function saveToFirebase(imageUrl, folder = 'images') {
+  if (!bucket || !imageUrl) return imageUrl;
+  try {
+    const res = await fetch(imageUrl);
+    if (!res.ok) return imageUrl;
+    const buffer = await res.buffer();
+    const ext = imageUrl.includes('.webp') ? 'webp' : 'png';
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const file = bucket.file(filename);
+    await file.save(buffer, {
+      metadata: { contentType: ext === 'webp' ? 'image/webp' : 'image/png' },
+    });
+    await file.makePublic();
+    return `https://storage.googleapis.com/${bucket.name}/${filename}`;
+  } catch (err) {
+    console.warn('Firebase upload failed:', err.message);
+    return imageUrl; // fall back to temporary URL
+  }
+}
+
 // ─── Available models ───────────────────────────────────────────────
 const MODELS = {
   replicate: [
@@ -20,6 +60,7 @@ const MODELS = {
     { id: 'sageryza/paint', version: '89efc7b98503ea158b5f848a5edbfd8d9bd24d589ccf34986eeee6b3d87fadcd', name: 'Painterly', trigger: 'pnt' },
     { id: 'sageryza/special', version: '82d7dd7806bf8fb62fb4e36d67ed361d088e10743c56737e0f08904ec8a5a920', name: 'Sketchy', trigger: 'special' },
     { id: 'sageryza/victorianstyle', version: '50684448f55b69edd2ca835099ed927f24690d79bfcc90a1334962c591a78cce', name: 'Book Illustrations', trigger: 'vict' },
+    { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
@@ -150,7 +191,8 @@ app.post('/api/generate/dalle', async (req, res) => {
     });
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json({ url: data.data[0].url, revised_prompt: data.data[0].revised_prompt });
+    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -203,8 +245,9 @@ app.post('/api/generate/replicate', async (req, res) => {
     if (prediction.status === 'failed') return res.status(400).json({ error: prediction.error || 'Generation failed' });
 
     const output = prediction.output;
-    const url = Array.isArray(output) ? output[0] : output;
-    res.json({ url });
+    const tempUrl = Array.isArray(output) ? output[0] : output;
+    const permanentUrl = await saveToFirebase(tempUrl, 'replicate');
+    res.json({ url: permanentUrl });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
