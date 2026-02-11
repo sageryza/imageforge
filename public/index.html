@@ -781,6 +781,11 @@
         <button class="tab" data-mode="single">Single</button>
       </div>
     </div>
+    <div class="provider-toggle">
+      <span style="color:var(--accent-dim); font-size:12px; margin-right:6px;">✦</span>
+      <button class="provider-btn" data-provider="dalle">DALL·E</button>
+      <button class="provider-btn active" data-provider="replicate">Replicate</button>
+    </div>
   </header>
 
   <div class="error-bar" id="error-bar">
@@ -1007,6 +1012,15 @@
       });
     });
 
+    // ── Provider ────────────────────────
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentProvider = btn.dataset.provider;
+      });
+    });
+
     // ── Error ───────────────────────────
     function showError(msg) {
       document.getElementById('error-text').textContent = msg;
@@ -1083,7 +1097,7 @@
         const data = await safeFetchJson('/api/generate/sticker-sheet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ moments, provider: 'dalle' }),
+          body: JSON.stringify({ moments, provider: currentProvider }),
         });
         if (data.error) throw new Error(data.error);
         document.getElementById('sticker-result').innerHTML = `
@@ -1232,6 +1246,10 @@
       batchIndex = deck.batchIndex || 0;
       generatedImages = deck.generatedImages || [];
       currentProvider = deck.provider || 'replicate';
+
+      document.querySelectorAll('.provider-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.provider === currentProvider);
+      });
 
       document.getElementById('deck-gallery').style.display = 'none';
       document.getElementById('deck-editor').style.display = '';
@@ -1689,7 +1707,7 @@
           div.dataset.modelId = m.id;
           div.innerHTML = `
             <div class="style-option-name">${m.name}</div>
-            <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : m.id}</div>
+            <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>
           `;
           div.addEventListener('click', () => {
             document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
@@ -1697,6 +1715,9 @@
             selectedModel = m.id;
             selectedStylePrompt = m.stylePrompt || '';
             currentProvider = m.provider;
+            document.querySelectorAll('.provider-btn').forEach(b => {
+              b.classList.toggle('active', b.dataset.provider === currentProvider);
+            });
             updateStepIndicators();
             saveDeckState();
           });
@@ -1931,7 +1952,8 @@
       document.getElementById('single-result').innerHTML = '';
 
       try {
-        const data = await safeFetchJson('/api/generate/dalle', {
+        const endpoint = currentProvider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
+        const data = await safeFetchJson(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt }),
