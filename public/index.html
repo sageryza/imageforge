@@ -9,17 +9,17 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0e0e0e;
-      --surface: #1a1a1a;
-      --border: #2a2a2a;
-      --accent: #c4a882;
-      --accent-dim: #8a7560;
-      --text: #e8e0d4;
-      --text-dim: #7a7368;
-      --danger: #c45a5a;
-      --green: #6a9a6a;
-      --green-dim: #3a5a3a;
-      --star: #d4a843;
+      --bg: #faf9f7;
+      --surface: #ffffff;
+      --border: #e8e4df;
+      --accent: #b48b6a;
+      --accent-dim: #c9ad93;
+      --text: #3a3530;
+      --text-dim: #9e9590;
+      --danger: #d4807a;
+      --green: #7ab58a;
+      --green-dim: #d4edd9;
+      --star: #dbb45c;
     }
 
     body {
@@ -253,8 +253,8 @@
 
     .error-bar {
       padding: 12px 28px;
-      background: #1a1212;
-      border-bottom: 1px solid #2a1515;
+      background: #fef2f2;
+      border-bottom: 1px solid #f5d5d5;
       display: none;
     }
 
@@ -308,8 +308,8 @@
       bottom: 6px;
       right: 8px;
       font-size: 10px;
-      color: var(--text-dim);
-      background: rgba(0,0,0,0.7);
+      color: #fff;
+      background: rgba(0,0,0,0.5);
       padding: 2px 6px;
       border-radius: 3px;
     }
@@ -348,13 +348,14 @@
       cursor: pointer;
       transition: all 0.15s ease;
       position: relative;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
 
     .deck-gallery-card:hover { border-color: var(--text-dim); }
 
     .deck-gallery-card.active-deck {
       border-color: var(--accent);
-      background: #1a1714;
+      background: #f5f0eb;
     }
 
     .deck-gallery-theme {
@@ -557,6 +558,7 @@
       padding: 28px 24px;
       position: relative;
       transition: transform 0.3s ease, opacity 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .swipe-card.exit-left {
@@ -610,11 +612,11 @@
 
     .swipe-btn:hover { border-color: var(--text-dim); }
     .swipe-btn.reject { color: var(--danger); }
-    .swipe-btn.reject:hover { border-color: var(--danger); background: #1a1515; }
+    .swipe-btn.reject:hover { border-color: var(--danger); background: #fef2f2; }
     .swipe-btn.accept { color: var(--green); }
-    .swipe-btn.accept:hover { border-color: var(--green); background: #151a15; }
+    .swipe-btn.accept:hover { border-color: var(--green); background: #f0faf2; }
     .swipe-btn.star { color: var(--star); font-size: 20px; }
-    .swipe-btn.star:hover { border-color: var(--star); background: #1a1815; }
+    .swipe-btn.star:hover { border-color: var(--star); background: #fdf8ee; }
 
     .swipe-tally {
       display: flex;
@@ -686,8 +688,8 @@
     .list-action-btn.accept { color: var(--green); }
     .list-action-btn.star-btn { color: var(--text-dim); }
     .list-action-btn.active-accept { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-    .list-action-btn.active-reject { background: #2a1515; border-color: var(--danger); color: var(--danger); }
-    .list-action-btn.active-star { background: #2a2415; border-color: var(--star); color: var(--star); }
+    .list-action-btn.active-reject { background: #fef2f2; border-color: var(--danger); color: var(--danger); }
+    .list-action-btn.active-star { background: #fdf8ee; border-color: var(--star); color: var(--star); }
 
     /* ── Style Picker ──────────────────────── */
     .style-grid {
@@ -710,7 +712,7 @@
 
     .style-option.selected {
       border-color: var(--accent);
-      background: #1a1714;
+      background: #f5f0eb;
     }
 
     .style-option-name {
@@ -779,11 +781,6 @@
         <button class="tab" data-mode="single">Single</button>
       </div>
     </div>
-    <div class="provider-toggle">
-      <span class="provider-label">Provider</span>
-      <button class="provider-btn active" data-provider="dalle">DALL·E</button>
-      <button class="provider-btn" data-provider="replicate">Replicate</button>
-    </div>
   </header>
 
   <div class="error-bar" id="error-bar">
@@ -834,7 +831,7 @@
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
         <button class="btn-secondary btn-small" onclick="backToGallery()">← All Decks</button>
         <span id="deck-editor-title" style="font-size:14px; color:var(--text); font-weight:500;"></span>
-        <button class="btn-danger btn-small" onclick="deleteCurrentDeck()">Delete</button>
+        <button onclick="deleteCurrentDeck()" style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; font-family:inherit; padding:4px 8px;">delete</button>
       </div>
 
       <div class="deck-steps" id="deck-steps">
@@ -862,24 +859,17 @@
             </div>
           </div>
 
-          <div class="source-toggle" style="margin-top: 16px;">
-            <button class="source-toggle-btn active" data-source="ai" onclick="setSource('ai')">AI Generate</button>
-            <button class="source-toggle-btn" data-source="manual" onclick="setSource('manual')">Add Manually</button>
-          </div>
-
-          <!-- AI Generate -->
-          <div id="source-ai">
+          <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn" id="subjects-btn" onclick="generateSubjects()">Generate Subjects</button>
           </div>
 
-          <!-- Manual Entry -->
-          <div id="source-manual" style="display:none;">
-            <div class="manual-entry">
-              <div class="manual-entry-row">
-                <input type="text" id="manual-subject" placeholder="Subject (card front)">
-                <input type="text" id="manual-back" placeholder="Back text (fact, description, etc.)">
-                <button class="manual-add-btn" onclick="addManualCard()">Add</button>
-              </div>
+          <!-- Manual Entry (always visible below AI generate) -->
+          <div class="manual-entry" style="margin-top: 16px;">
+            <label>Or add manually</label>
+            <div class="manual-entry-row">
+              <input type="text" id="manual-subject" placeholder="Subject (card front)">
+              <input type="text" id="manual-back" placeholder="Back text (fact, description, etc.)">
+              <button class="manual-add-btn" onclick="addManualCard()">Add</button>
             </div>
           </div>
         </div>
@@ -889,18 +879,6 @@
             <div class="view-toggle" style="margin-bottom:0;">
               <button class="view-toggle-btn active" data-view="swipe" onclick="setView('swipe')">Swipe</button>
               <button class="view-toggle-btn" data-view="list" onclick="setView('list')">List</button>
-            </div>
-            <div class="source-toggle" style="margin-bottom:0; margin-left: auto;">
-              <button class="source-toggle-btn" data-source="manual-inline" onclick="showInlineManual()">+ Add Card</button>
-            </div>
-          </div>
-
-          <!-- Inline manual add (toggled) -->
-          <div id="inline-manual" style="display:none; margin-bottom: 16px;">
-            <div class="manual-entry-row">
-              <input type="text" id="inline-manual-subject" placeholder="Subject">
-              <input type="text" id="inline-manual-back" placeholder="Back text">
-              <button class="manual-add-btn" onclick="addInlineCard()">Add</button>
             </div>
           </div>
 
@@ -933,7 +911,18 @@
           </div>
 
           <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;" id="curate-actions">
+            <button class="btn" onclick="acceptAll()">Accept All</button>
             <button class="btn-secondary" id="gen-more-btn" onclick="generateMoreSubjects()">Generate More</button>
+            <button class="btn-secondary" onclick="showInlineManual()">+ Add Card</button>
+          </div>
+
+          <!-- Inline manual add -->
+          <div id="inline-manual" style="display:none; margin-top: 12px;">
+            <div class="manual-entry-row">
+              <input type="text" id="inline-manual-subject" placeholder="Subject">
+              <input type="text" id="inline-manual-back" placeholder="Back text">
+              <button class="manual-add-btn" onclick="addInlineCard()">Add</button>
+            </div>
           </div>
         </div>
       </div>
@@ -992,7 +981,7 @@
 
   <script>
     let currentMode = 'sticker';
-    let currentProvider = 'dalle';
+    let currentProvider = 'replicate';
 
     // ── Deck state ──────────────────────
     let currentDeckId = null;
@@ -1015,15 +1004,6 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('section-' + currentMode).classList.add('active');
         if (currentMode === 'deck') renderGallery();
-      });
-    });
-
-    // ── Provider ────────────────────────
-    document.querySelectorAll('.provider-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentProvider = btn.dataset.provider;
       });
     });
 
@@ -1103,7 +1083,7 @@
         const data = await safeFetchJson('/api/generate/sticker-sheet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ moments, provider: currentProvider }),
+          body: JSON.stringify({ moments, provider: 'dalle' }),
         });
         if (data.error) throw new Error(data.error);
         document.getElementById('sticker-result').innerHTML = `
@@ -1251,11 +1231,7 @@
       selectedStylePrompt = deck.selectedStylePrompt || '';
       batchIndex = deck.batchIndex || 0;
       generatedImages = deck.generatedImages || [];
-      currentProvider = deck.provider || 'dalle';
-
-      document.querySelectorAll('.provider-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.provider === currentProvider);
-      });
+      currentProvider = deck.provider || 'replicate';
 
       document.getElementById('deck-gallery').style.display = 'none';
       document.getElementById('deck-editor').style.display = '';
@@ -1391,13 +1367,17 @@
       }
     }
 
-    // ── Source Toggle (AI vs Manual) ────
-    function setSource(source) {
-      document.querySelectorAll('#deck-input-area .source-toggle-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.source === source);
+    // ── Accept All subjects ────────────
+    function acceptAll() {
+      allSubjects.forEach(s => {
+        if (s.status === 'pending') s.status = 'accepted';
       });
-      document.getElementById('source-ai').style.display = source === 'ai' ? '' : 'none';
-      document.getElementById('source-manual').style.display = source === 'manual' ? '' : 'none';
+      swipeIndex = allSubjects.length;
+      showCurrentCard();
+      renderListView();
+      updateTally();
+      updateStepIndicators();
+      saveDeckState();
     }
 
     // ── Manual Card Entry ───────────────
@@ -1698,20 +1678,25 @@
         const grid = document.getElementById('style-grid');
         grid.innerHTML = '';
 
-        const list = currentProvider === 'replicate' ? models.replicate : models.dalle;
-        list.forEach(m => {
+        // Show all models from both providers, Replicate first
+        const allModels = [
+          ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
+          ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
+        ];
+        allModels.forEach(m => {
           const div = document.createElement('div');
           div.className = 'style-option' + (selectedModel === m.id ? ' selected' : '');
           div.dataset.modelId = m.id;
           div.innerHTML = `
             <div class="style-option-name">${m.name}</div>
-            <div class="style-option-id">${m.id}</div>
+            <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : m.id}</div>
           `;
           div.addEventListener('click', () => {
             document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
             div.classList.add('selected');
             selectedModel = m.id;
             selectedStylePrompt = m.stylePrompt || '';
+            currentProvider = m.provider;
             updateStepIndicators();
             saveDeckState();
           });
@@ -1946,8 +1931,7 @@
       document.getElementById('single-result').innerHTML = '';
 
       try {
-        const endpoint = currentProvider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-        const data = await safeFetchJson(endpoint, {
+        const data = await safeFetchJson('/api/generate/dalle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt }),
