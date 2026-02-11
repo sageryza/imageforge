@@ -78,6 +78,52 @@ app.post('/api/generate/subjects', async (req, res) => {
   }
 });
 
+// ─── Extract visual moments from a description ─────────────────────
+app.post('/api/generate/moments', async (req, res) => {
+  try {
+    const { description } = req.body;
+    if (!description) return res.status(400).json({ error: 'description is required' });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: 0.9,
+        messages: [
+          {
+            role: 'system',
+            content: `You help illustrate a dating memoir. Given a date description, extract exactly 6 small, specific, visual moments that would make good simple watercolor-style drawings. Each should be a concrete detail — an object, a scene, a gesture — not an abstract feeling.
+
+For each moment, provide:
+- "moment": a short 3-5 word label
+- "prompt": a detailed image generation prompt for a soft watercolor illustration, under 40 words. Always start with "Soft watercolor illustration of" and include "minimal background, gentle muted palette"
+
+Return valid JSON only, no markdown fences. The JSON should be an array of 6 objects with "moment" and "prompt" fields.`,
+          },
+          {
+            role: 'user',
+            content: description,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    const text = data.choices[0].message.content.trim();
+    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    const moments = JSON.parse(cleaned);
+    res.json({ moments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Single image: DALL·E ───────────────────────────────────────────
 app.post('/api/generate/dalle', async (req, res) => {
   try {
