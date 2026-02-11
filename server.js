@@ -110,7 +110,12 @@ app.post('/api/generate/replicate', async (req, res) => {
       body: JSON.stringify({ input: { prompt: fullPrompt } }),
     });
     let prediction = await createRes.json();
-    if (prediction.error) return res.status(400).json({ error: prediction.error });
+    if (!createRes.ok || prediction.error) {
+      return res.status(400).json({ error: prediction.error || prediction.detail || JSON.stringify(prediction) });
+    }
+    if (!prediction.urls || !prediction.urls.get) {
+      return res.status(400).json({ error: 'Unexpected Replicate response: ' + JSON.stringify(prediction) });
+    }
 
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
       await new Promise(r => setTimeout(r, 1500));
