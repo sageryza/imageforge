@@ -345,13 +345,15 @@ app.post('/api/generate/deck-batch', async (req, res) => {
 // ─── Sticker sheet ──────────────────────────────────────────────────
 app.post('/api/generate/sticker-sheet', async (req, res) => {
   try {
-    const { moments, provider = 'dalle' } = req.body;
-    const prompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
+    const { moments, provider = 'dalle', model, stylePrompt = '' } = req.body;
+    const basePrompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
+    const prompt = stylePrompt ? `${stylePrompt}. ${basePrompt}` : basePrompt;
     const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
+    const body = provider === 'replicate' ? { prompt, model: model || 'sageryza/gosh' } : { prompt };
     const internal = await fetch(`http://localhost:${process.env.PORT || 3001}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(body),
     });
     const data = await internal.json();
     res.json(data);

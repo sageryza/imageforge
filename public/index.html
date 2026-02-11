@@ -795,7 +795,11 @@
 
   <!-- ═══ Sticker Section ═══ -->
   <div class="section active" id="section-sticker">
-    <label>Moments</label>
+    <label>Style</label>
+    <div class="style-grid" id="sticker-style-grid"></div>
+    <div style="margin-top: 20px;">
+      <label>Moments</label>
+    </div>
     <div id="moments-list">
       <div class="moment-row">
         <span class="moment-num">1</span>
@@ -976,7 +980,11 @@
 
   <!-- ═══ Single Section ═══ -->
   <div class="section" id="section-single">
-    <label>Prompt</label>
+    <label>Style</label>
+    <div class="style-grid" id="single-style-grid"></div>
+    <div style="margin-top: 20px;">
+      <label>Prompt</label>
+    </div>
     <textarea id="single-prompt" placeholder="Describe what you want to generate..."></textarea>
     <div style="margin-top: 20px;">
       <button class="btn" id="single-btn" onclick="generateSingle()">Generate</button>
@@ -987,6 +995,61 @@
   <script>
     let currentMode = 'sticker';
     let currentProvider = 'replicate';
+
+    // ── Style state for sticker/single ──
+    let stickerSelectedModel = null;
+    let stickerSelectedStylePrompt = '';
+    let stickerSelectedProvider = 'replicate';
+    let singleSelectedModel = null;
+    let singleSelectedStylePrompt = '';
+    let singleSelectedProvider = 'replicate';
+    let allModelsCache = null;
+
+    // ── Shared style grid renderer ──────
+    async function getAllModels() {
+      if (allModelsCache) return allModelsCache;
+      const models = await safeFetchJson('/api/models');
+      allModelsCache = [
+        ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
+        ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
+      ];
+      return allModelsCache;
+    }
+
+    function renderStyleGrid(containerId, currentModelId, onSelect) {
+      getAllModels().then(allModels => {
+        const grid = document.getElementById(containerId);
+        if (!grid) return;
+        grid.innerHTML = '';
+        allModels.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'style-option' + (currentModelId === m.id ? ' selected' : '');
+          div.innerHTML = `
+            <div class="style-option-name">${m.name}</div>
+            <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>
+          `;
+          div.addEventListener('click', () => {
+            grid.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+            div.classList.add('selected');
+            onSelect(m);
+          });
+          grid.appendChild(div);
+        });
+      });
+    }
+
+    function initSectionGrids() {
+      renderStyleGrid('sticker-style-grid', stickerSelectedModel, (m) => {
+        stickerSelectedModel = m.id;
+        stickerSelectedStylePrompt = m.stylePrompt || '';
+        stickerSelectedProvider = m.provider;
+      });
+      renderStyleGrid('single-style-grid', singleSelectedModel, (m) => {
+        singleSelectedModel = m.id;
+        singleSelectedStylePrompt = m.stylePrompt || '';
+        singleSelectedProvider = m.provider;
+      });
+    }
 
     // ── Deck state ──────────────────────
     let currentDeckId = null;
@@ -1097,7 +1160,12 @@
         const data = await safeFetchJson('/api/generate/sticker-sheet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ moments, provider: currentProvider }),
+          body: JSON.stringify({
+            moments,
+            provider: stickerSelectedProvider,
+            model: stickerSelectedModel,
+            stylePrompt: stickerSelectedStylePrompt,
+          }),
         });
         if (data.error) throw new Error(data.error);
         document.getElementById('sticker-result').innerHTML = `
@@ -1691,41 +1759,16 @@
 
     // ── Phase 2: Style Selection ────────
     async function loadStyleOptions() {
-      try {
-        const models = await safeFetchJson('/api/models');
-        const grid = document.getElementById('style-grid');
-        grid.innerHTML = '';
-
-        // Show all models from both providers, Replicate first
-        const allModels = [
-          ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
-          ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
-        ];
-        allModels.forEach(m => {
-          const div = document.createElement('div');
-          div.className = 'style-option' + (selectedModel === m.id ? ' selected' : '');
-          div.dataset.modelId = m.id;
-          div.innerHTML = `
-            <div class="style-option-name">${m.name}</div>
-            <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>
-          `;
-          div.addEventListener('click', () => {
-            document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
-            div.classList.add('selected');
-            selectedModel = m.id;
-            selectedStylePrompt = m.stylePrompt || '';
-            currentProvider = m.provider;
-            document.querySelectorAll('.provider-btn').forEach(b => {
-              b.classList.toggle('active', b.dataset.provider === currentProvider);
-            });
-            updateStepIndicators();
-            saveDeckState();
-          });
-          grid.appendChild(div);
+      renderStyleGrid('style-grid', selectedModel, (m) => {
+        selectedModel = m.id;
+        selectedStylePrompt = m.stylePrompt || '';
+        currentProvider = m.provider;
+        document.querySelectorAll('.provider-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.provider === currentProvider);
         });
-      } catch (err) {
-        showError(err.message);
-      }
+        updateStepIndicators();
+        saveDeckState();
+      });
     }
 
     async function testStyle() {
@@ -1952,11 +1995,18 @@
       document.getElementById('single-result').innerHTML = '';
 
       try {
-        const endpoint = currentProvider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
+        const provider = singleSelectedProvider;
+        const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
+        const fullPrompt = singleSelectedStylePrompt
+          ? (provider === 'dalle' ? `${singleSelectedStylePrompt}. ${prompt}` : `${singleSelectedStylePrompt} ${prompt}`)
+          : prompt;
+        const body = provider === 'replicate'
+          ? { prompt: fullPrompt, model: singleSelectedModel }
+          : { prompt: fullPrompt };
         const data = await safeFetchJson(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify(body),
         });
         if (data.error) throw new Error(data.error);
         document.getElementById('single-result').innerHTML = `
@@ -1974,6 +2024,7 @@
     // ── Init ────────────────────────────
     migrateOldDeck();
     renderGallery();
+    initSectionGrids();
   </script>
 </body>
 </html>
