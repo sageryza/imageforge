@@ -23,7 +23,6 @@ const MODELS = {
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
-    // User-uploaded style presets go here
   ],
 };
 
@@ -31,11 +30,19 @@ app.get('/api/models', (req, res) => {
   res.json(MODELS);
 });
 
-// ─── Generate subjects + facts for a deck ───────────────────────────
+// ─── Generate subjects for a deck ───────────────────────────────────
 app.post('/api/generate/subjects', async (req, res) => {
   try {
-    const { theme, count = 60 } = req.body;
+    const { theme, count = 60, backType = 'facts' } = req.body;
     if (!theme) return res.status(400).json({ error: 'theme is required' });
+
+    const backInstructions = {
+      facts: 'a 1-2 sentence interesting fact for the card back',
+      recipes: 'a short recipe or preparation method for the card back (2-3 sentences max)',
+      descriptions: 'a 1-2 sentence vivid description for the card back',
+      quotes: 'a relevant famous quote for the card back',
+    };
+    const backDesc = backInstructions[backType] || backInstructions.facts;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -49,7 +56,7 @@ app.post('/api/generate/subjects', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You generate subjects for illustrated card decks. Return valid JSON only, no markdown fences. The JSON should be an array of objects with "subject" (short title for the card front) and "fact" (1-2 sentence interesting fact for the card back). Make every entry unique and varied. Never repeat.`,
+            content: `You generate subjects for illustrated card decks. Return valid JSON only, no markdown fences. The JSON should be an array of objects with "subject" (short title for the card front) and "back" (${backDesc}). Make every entry unique and varied. Never repeat.`,
           },
           {
             role: 'user',
@@ -63,7 +70,6 @@ app.post('/api/generate/subjects', async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     const text = data.choices[0].message.content.trim();
-    // Strip markdown fences if present
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
     const subjects = JSON.parse(cleaned);
     res.json({ subjects });
@@ -92,7 +98,7 @@ app.post('/api/generate/dalle', async (req, res) => {
   }
 });
 
-// ─── Single image: Replicate (custom LoRA support) ──────────────────
+// ─── Single image: Replicate (custom LoRA) ──────────────────────────
 app.post('/api/generate/replicate', async (req, res) => {
   try {
     const { prompt, model = 'sageryza/gosh' } = req.body;
@@ -127,12 +133,7 @@ app.post('/api/generate/replicate', async (req, res) => {
       }),
     });
     let prediction = await createRes.json();
-    if (!createRes.ok || prediction.error) {
-      return res.status(400).json({ error: prediction.error || prediction.detail || JSON.stringify(prediction) });
-    }
-    if (!prediction.urls || !prediction.urls.get) {
-      return res.status(400).json({ error: 'Unexpected Replicate response: ' + JSON.stringify(prediction) });
-    }
+    if (prediction.error) return res.status(400).json({ error: prediction.error });
 
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
       await new Promise(r => setTimeout(r, 1500));
@@ -151,11 +152,10 @@ app.post('/api/generate/replicate', async (req, res) => {
   }
 });
 
-// ─── Style test: generate a few images to preview a style ───────────
+// ─── Style test: generate preview images ────────────────────────────
 app.post('/api/generate/style-test', async (req, res) => {
   try {
     const { subjects, provider = 'replicate', model, stylePrompt = '' } = req.body;
-    // subjects: array of 1-3 subject strings to test with
     if (!subjects || !subjects.length) return res.status(400).json({ error: 'subjects required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -196,11 +196,10 @@ app.post('/api/generate/style-test', async (req, res) => {
   }
 });
 
-// ─── Deck batch: generate images in batches of N ────────────────────
+// ─── Deck batch: generate images in batches ─────────────────────────
 app.post('/api/generate/deck-batch', async (req, res) => {
   try {
     const { cards, provider = 'replicate', model, stylePrompt = '' } = req.body;
-    // cards: array of { subject, fact } objects (the approved ones)
     if (!cards || !cards.length) return res.status(400).json({ error: 'cards required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -242,7 +241,7 @@ app.post('/api/generate/deck-batch', async (req, res) => {
   }
 });
 
-// ─── Sticker sheet (existing) ───────────────────────────────────────
+// ─── Sticker sheet ──────────────────────────────────────────────────
 app.post('/api/generate/sticker-sheet', async (req, res) => {
   try {
     const { moments, provider = 'dalle' } = req.body;
