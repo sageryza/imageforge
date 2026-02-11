@@ -8,6 +8,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname + '/public'));
 
+app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
