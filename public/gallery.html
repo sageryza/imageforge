@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImageForge — Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #faf9f7;
+      --surface: #ffffff;
+      --border: #e8e2d9;
+      --accent: #b48b6a;
+      --text: #3a3530;
+      --text-dim: #9a918a;
+    }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+    header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .back-link {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--text); }
+    .filters {
+      padding: 16px 28px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 5px 14px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .filter-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+    .gallery-grid {
+      padding: 0 28px 28px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .gallery-item {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .gallery-item img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+      cursor: pointer;
+    }
+    .gallery-item-info {
+      padding: 6px 8px;
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+    .count-label {
+      padding: 8px 28px 16px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .loading {
+      padding: 40px 28px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .lightbox-download {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      color: #fff;
+      font-size: 13px;
+      text-decoration: none;
+      background: rgba(255,255,255,0.15);
+      padding: 8px 16px;
+      border-radius: 4px;
+    }
+    @media (max-width: 600px) {
+      .gallery-grid { padding: 0 16px 16px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      header { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gallery</h1>
+    <a href="/" class="back-link">← ImageForge</a>
+  </header>
+  <div class="filters" id="filters"></div>
+  <div class="count-label" id="count-label"></div>
+  <div class="loading" id="loading">Loading images...</div>
+  <div class="gallery-grid" id="gallery-grid"></div>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">×</button>
+    <img id="lightbox-img" src="" alt="">
+    <a class="lightbox-download" id="lightbox-download" href="" download target="_blank">↓ Download</a>
+  </div>
+
+  <script>
+    let allImages = [];
+    let activeFilter = 'all';
+
+    async function loadGallery() {
+      try {
+        const res = await fetch('/api/gallery');
+        const data = await res.json();
+        allImages = data.images || [];
+        buildFilters();
+        renderGrid();
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Failed to load gallery';
+      }
+    }
+
+    function buildFilters() {
+      const folders = [...new Set(allImages.map(i => i.folder))];
+      const container = document.getElementById('filters');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-btn active';
+      allBtn.textContent = 'All';
+      allBtn.onclick = () => setFilter('all');
+      container.appendChild(allBtn);
+
+      folders.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = f;
+        btn.onclick = () => setFilter(f);
+        container.appendChild(btn);
+      });
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.toLowerCase() === filter.toLowerCase() || (filter === 'all' && b.textContent === 'All'));
+      });
+      renderGrid();
+    }
+
+    function renderGrid() {
+      document.getElementById('loading').style.display = 'none';
+      const grid = document.getElementById('gallery-grid');
+      grid.innerHTML = '';
+
+      const filtered = activeFilter === 'all'
+        ? allImages
+        : allImages.filter(i => i.folder === activeFilter);
+
+      document.getElementById('count-label').textContent = `${filtered.length} image${filtered.length !== 1 ? 's' : ''}`;
+
+      filtered.forEach(img => {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        const date = new Date(img.created);
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        div.innerHTML = `
+          <img src="${img.url}" alt="${img.name}" onclick="openLightbox('${img.url}')">
+          <div class="gallery-item-info">
+            <span>${img.folder}</span>
+            <span>${dateStr}</span>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    function openLightbox(url) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-download').href = url;
+      document.getElementById('lightbox').classList.add('open');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    loadGallery();
+  </script>
+</body>
+</html>

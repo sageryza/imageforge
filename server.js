@@ -36,22 +36,53 @@ try {
 async function saveToFirebase(imageUrl, folder = 'images') {
   if (!bucket || !imageUrl) return imageUrl;
   try {
-    const res = await fetch(imageUrl);
-    if (!res.ok) return imageUrl;
+    console.log('Saving to Firebase:', folder, 'from', imageUrl.slice(0, 80));
+    const res = await fetch(imageUrl, { redirect: 'follow' });
+    if (!res.ok) {
+      console.warn('Firebase: fetch failed with status', res.status);
+      return imageUrl;
+    }
     const buffer = await res.buffer();
-    const ext = imageUrl.includes('.webp') ? 'webp' : 'png';
+    const contentType = res.headers.get('content-type') || '';
+    let ext = 'png';
+    if (contentType.includes('webp') || imageUrl.includes('.webp')) ext = 'webp';
+    else if (contentType.includes('jpeg') || contentType.includes('jpg')) ext = 'jpg';
     const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const file = bucket.file(filename);
     await file.save(buffer, {
-      metadata: { contentType: ext === 'webp' ? 'image/webp' : 'image/png' },
+      metadata: { contentType: contentType || (ext === 'webp' ? 'image/webp' : 'image/png') },
     });
     await file.makePublic();
-    return `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    const permanentUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    console.log('Firebase: saved as', filename);
+    return permanentUrl;
   } catch (err) {
     console.warn('Firebase upload failed:', err.message);
-    return imageUrl; // fall back to temporary URL
+    return imageUrl;
   }
 }
+
+// ─── Gallery: list all saved images ─────────────────────────────────
+app.get('/api/gallery', async (req, res) => {
+  if (!bucket) return res.json({ images: [] });
+  try {
+    const [files] = await bucket.getFiles();
+    const images = files
+      .filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f.name))
+      .map(f => ({
+        name: f.name,
+        url: `https://storage.googleapis.com/${bucket.name}/${f.name}`,
+        folder: f.name.split('/')[0] || 'uncategorized',
+        created: f.metadata.timeCreated,
+      }))
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+    res.json({ images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/gallery', (req, res) => { res.sendFile(__dirname + '/public/gallery.html'); });
 
 // ─── Available models ───────────────────────────────────────────────
 const MODELS = {
@@ -201,12 +232,14 @@ app.post('/api/generate/dalle', async (req, res) => {
 // ─── Single image: Replicate (custom LoRA) ──────────────────────────
 app.post('/api/generate/replicate', async (req, res) => {
   try {
-    const { prompt, model = 'sageryza/gosh' } = req.body;
+    const { prompt } = req.body;
+    const model = req.body.model || 'sageryza/gosh';
 
     // Look up trigger word and version if it's one of our known models
     const known = MODELS.replicate.find(m => m.id === model);
     const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
     const version = known ? `${known.id}:${known.version}` : model;
+    console.log('Replicate:', { model, trigger: known?.trigger, promptStart: fullPrompt.slice(0, 60) });
 
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
