@@ -769,6 +769,57 @@
       .manual-entry-row input:first-child { flex: 1 1 100%; }
       .deck-gallery-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Settings ────────────────────── */
+    .settings-model {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .settings-model-header {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .settings-model-id {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .settings-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .settings-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 120px;
+    }
+    .settings-field label {
+      font-size: 10px;
+      margin-bottom: 0;
+    }
+    .settings-field input,
+    .settings-field select,
+    .settings-field textarea {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    .settings-field textarea {
+      min-height: 50px;
+    }
+    .settings-field.wide { flex: 1 1 100%; }
+    .settings-save-note {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -779,6 +830,8 @@
         <button class="tab active" data-mode="sticker">Stickers</button>
         <button class="tab" data-mode="deck">Deck</button>
         <button class="tab" data-mode="single">Single</button>
+        <button class="tab" data-mode="settings">⚙</button>
+        <a href="/gallery" class="tab" style="text-decoration:none;">Gallery</a>
       </div>
     </div>
     <div class="provider-toggle">
@@ -992,6 +1045,30 @@
     <div id="single-result"></div>
   </div>
 
+  <!-- ═══ Settings Section ═══ -->
+  <div class="section" id="section-settings">
+    <label>Replicate Model Settings</label>
+    <p class="settings-save-note">Changes save automatically to your browser.</p>
+    <div id="settings-models" style="margin-top: 16px;"></div>
+
+    <div style="margin-top: 24px;">
+      <label>Global Defaults</label>
+      <div class="settings-model" style="margin-top: 8px;">
+        <div class="settings-row">
+          <div class="settings-field">
+            <label>Sticker/Single Suffix</label>
+            <input type="text" id="global-bg-suffix" placeholder="e.g. centered on a white background" value="centered on a white background">
+          </div>
+        </div>
+        <p class="settings-save-note">Appended to sticker & single prompts (not decks)</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px;">
+      <button class="btn-secondary" onclick="resetAllSettings()">Reset All to Defaults</button>
+    </div>
+  </div>
+
   <script>
     let currentMode = 'sticker';
     let currentProvider = 'replicate';
@@ -1004,6 +1081,134 @@
     let singleSelectedStylePrompt = '';
     let singleSelectedProvider = 'replicate';
     let allModelsCache = null;
+
+    // ── Model Settings (localStorage) ────
+    const DEFAULT_MODEL_SETTINGS = {
+      suffix: '',
+      lora_scale: 1,
+      megapixels: '1',
+      output_format: 'webp',
+      num_outputs: 1,
+      guidance_scale: 3,
+      output_quality: 80,
+      num_inference_steps: 28,
+    };
+
+    function loadAllSettings() {
+      try {
+        return JSON.parse(localStorage.getItem('imageforge_model_settings') || '{}');
+      } catch { return {}; }
+    }
+
+    function saveAllSettings(settings) {
+      localStorage.setItem('imageforge_model_settings', JSON.stringify(settings));
+    }
+
+    function getModelSettings(modelId) {
+      const all = loadAllSettings();
+      return { ...DEFAULT_MODEL_SETTINGS, ...(all[modelId] || {}) };
+    }
+
+    function getGlobalBgSuffix() {
+      return localStorage.getItem('imageforge_bg_suffix') ?? 'centered on a white background';
+    }
+
+    function saveGlobalBgSuffix(val) {
+      localStorage.setItem('imageforge_bg_suffix', val);
+    }
+
+    async function renderSettingsPage() {
+      const models = await getAllModels();
+      const replicateModels = models.filter(m => m.provider === 'replicate');
+      const container = document.getElementById('settings-models');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // Load global suffix
+      document.getElementById('global-bg-suffix').value = getGlobalBgSuffix();
+      document.getElementById('global-bg-suffix').addEventListener('input', (e) => {
+        saveGlobalBgSuffix(e.target.value);
+      });
+
+      replicateModels.forEach(m => {
+        const s = getModelSettings(m.id);
+        const div = document.createElement('div');
+        div.className = 'settings-model';
+        div.innerHTML = `
+          <div class="settings-model-header">${m.name}</div>
+          <div class="settings-model-id">${m.id} · trigger: ${m.trigger || '—'}</div>
+          <div class="settings-row">
+            <div class="settings-field wide">
+              <label>Suffix (appended to prompt)</label>
+              <textarea data-model="${m.id}" data-key="suffix">${s.suffix}</textarea>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-field">
+              <label>LoRA Scale</label>
+              <input type="number" step="0.1" min="0" max="2" data-model="${m.id}" data-key="lora_scale" value="${s.lora_scale}">
+            </div>
+            <div class="settings-field">
+              <label>Guidance Scale</label>
+              <input type="number" step="0.5" min="0" max="20" data-model="${m.id}" data-key="guidance_scale" value="${s.guidance_scale}">
+            </div>
+            <div class="settings-field">
+              <label>Inference Steps</label>
+              <input type="number" step="1" min="1" max="50" data-model="${m.id}" data-key="num_inference_steps" value="${s.num_inference_steps}">
+            </div>
+            <div class="settings-field">
+              <label>Num Outputs</label>
+              <input type="number" step="1" min="1" max="4" data-model="${m.id}" data-key="num_outputs" value="${s.num_outputs}">
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-field">
+              <label>Format</label>
+              <select data-model="${m.id}" data-key="output_format">
+                <option value="webp" ${s.output_format === 'webp' ? 'selected' : ''}>WebP</option>
+                <option value="png" ${s.output_format === 'png' ? 'selected' : ''}>PNG</option>
+                <option value="jpg" ${s.output_format === 'jpg' ? 'selected' : ''}>JPG</option>
+              </select>
+            </div>
+            <div class="settings-field">
+              <label>Megapixels</label>
+              <select data-model="${m.id}" data-key="megapixels">
+                <option value="0.25" ${s.megapixels === '0.25' ? 'selected' : ''}>0.25</option>
+                <option value="1" ${s.megapixels === '1' ? 'selected' : ''}>1</option>
+              </select>
+            </div>
+            <div class="settings-field">
+              <label>Output Quality</label>
+              <input type="number" step="5" min="10" max="100" data-model="${m.id}" data-key="output_quality" value="${s.output_quality}">
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Auto-save on change
+      container.addEventListener('input', handleSettingsChange);
+      container.addEventListener('change', handleSettingsChange);
+    }
+
+    function handleSettingsChange(e) {
+      const el = e.target;
+      const modelId = el.dataset.model;
+      const key = el.dataset.key;
+      if (!modelId || !key) return;
+      const all = loadAllSettings();
+      if (!all[modelId]) all[modelId] = {};
+      let val = el.value;
+      if (el.type === 'number') val = parseFloat(val);
+      all[modelId][key] = val;
+      saveAllSettings(all);
+    }
+
+    function resetAllSettings() {
+      localStorage.removeItem('imageforge_model_settings');
+      localStorage.removeItem('imageforge_bg_suffix');
+      renderSettingsPage();
+    }
 
     // ── Shared style grid renderer ──────
     async function getAllModels() {
@@ -1064,7 +1269,7 @@
     let currentView = 'swipe';
 
     // ── Tabs ────────────────────────────
-    document.querySelectorAll('.tab').forEach(tab => {
+    document.querySelectorAll('.tab[data-mode]').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
@@ -1072,6 +1277,7 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('section-' + currentMode).classList.add('active');
         if (currentMode === 'deck') renderGallery();
+        if (currentMode === 'settings') renderSettingsPage();
       });
     });
 
@@ -1157,6 +1363,9 @@
       document.getElementById('sticker-result').innerHTML = '';
 
       try {
+        const settings = stickerSelectedProvider === 'replicate'
+          ? getModelSettings(stickerSelectedModel) : {};
+        const bgSuffix = getGlobalBgSuffix();
         const data = await safeFetchJson('/api/generate/sticker-sheet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1165,6 +1374,8 @@
             provider: stickerSelectedProvider,
             model: stickerSelectedModel,
             stylePrompt: stickerSelectedStylePrompt,
+            bgSuffix,
+            settings,
           }),
         });
         if (data.error) throw new Error(data.error);
@@ -1806,6 +2017,7 @@
             provider: currentProvider,
             model: selectedModel,
             stylePrompt: selectedStylePrompt,
+            settings: currentProvider === 'replicate' ? getModelSettings(selectedModel) : {},
           }),
         });
 
@@ -1917,6 +2129,7 @@
             provider: currentProvider,
             model: selectedModel,
             stylePrompt: selectedStylePrompt,
+            settings: currentProvider === 'replicate' ? getModelSettings(selectedModel) : {},
           }),
         });
 
@@ -1997,12 +2210,22 @@
       try {
         const provider = singleSelectedProvider;
         const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-        const fullPrompt = singleSelectedStylePrompt
-          ? (provider === 'dalle' ? `${singleSelectedStylePrompt}. ${prompt}` : `${singleSelectedStylePrompt} ${prompt}`)
-          : prompt;
-        const body = provider === 'replicate'
-          ? { prompt: fullPrompt, model: singleSelectedModel }
-          : { prompt: fullPrompt };
+        let fullPrompt;
+        let body;
+
+        if (provider === 'replicate') {
+          const settings = getModelSettings(singleSelectedModel);
+          const bgSuffix = getGlobalBgSuffix();
+          const parts = [prompt, settings.suffix, bgSuffix].filter(Boolean);
+          fullPrompt = parts.join(', ');
+          body = { prompt: fullPrompt, model: singleSelectedModel, settings };
+        } else {
+          fullPrompt = singleSelectedStylePrompt
+            ? `${singleSelectedStylePrompt}. ${prompt}`
+            : prompt;
+          body = { prompt: fullPrompt };
+        }
+
         const data = await safeFetchJson(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

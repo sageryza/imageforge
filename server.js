@@ -1,4 +1,3 @@
-// imageforge-server v10 — concurrent generation (max 4 at a time)
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -14,7 +13,6 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
-const MAX_CONCURRENT = 4;
 
 // ─── Firebase Setup ─────────────────────────────────────────────────
 let bucket = null;
@@ -61,93 +59,6 @@ async function saveToFirebase(imageUrl, folder = 'images') {
   } catch (err) {
     console.warn('Firebase upload failed:', err.message);
     return imageUrl;
-  }
-}
-
-// ─── Concurrent pool helper ─────────────────────────────────────────
-// Runs tasks with at most `limit` concurrent, calls `onResult` as each finishes
-async function runPool(tasks, limit, onResult) {
-  let nextIndex = 0;
-  let active = 0;
-
-  return new Promise((resolve) => {
-    function startNext() {
-      while (active < limit && nextIndex < tasks.length) {
-        const i = nextIndex++;
-        active++;
-        tasks[i]().then(
-          (result) => { active--; onResult(i, result, null); startNext(); },
-          (err) => { active--; onResult(i, null, err); startNext(); },
-        );
-      }
-      if (active === 0 && nextIndex >= tasks.length) resolve();
-    }
-    startNext();
-  });
-}
-
-// ─── Internal image generation (no localhost HTTP round-trip) ────────
-async function generateImageInternal(provider, prompt, model) {
-  if (provider === 'replicate') {
-    const known = MODELS.replicate.find(m => m.id === model);
-    const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
-    const version = known ? `${known.id}:${known.version}` : model;
-    console.log('Replicate:', { model, trigger: known?.trigger, promptStart: fullPrompt.slice(0, 60) });
-
-    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version,
-        input: {
-          prompt: fullPrompt,
-          model: 'dev',
-          go_fast: false,
-          lora_scale: 1,
-          megapixels: '1',
-          num_outputs: 1,
-          aspect_ratio: '1:1',
-          output_format: 'webp',
-          guidance_scale: 3,
-          output_quality: 80,
-          prompt_strength: 0.8,
-          num_inference_steps: 28,
-        },
-      }),
-    });
-    let prediction = await createRes.json();
-    if (prediction.error) throw new Error(prediction.error);
-
-    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
-      await new Promise(r => setTimeout(r, 1500));
-      const pollRes = await fetch(prediction.urls.get, {
-        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` },
-      });
-      prediction = await pollRes.json();
-    }
-    if (prediction.status === 'failed') throw new Error(prediction.error || 'Generation failed');
-
-    const output = prediction.output;
-    const tempUrl = Array.isArray(output) ? output[0] : output;
-    const permanentUrl = await saveToFirebase(tempUrl, 'replicate');
-    return { url: permanentUrl };
-  } else {
-    // DALL·E
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }),
-    });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
-    return { url: permanentUrl, revised_prompt: data.data[0].revised_prompt };
   }
 }
 
@@ -301,8 +212,18 @@ Return valid JSON only, no markdown fences. The JSON should be an array of objec
 app.post('/api/generate/dalle', async (req, res) => {
   try {
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
-    const result = await generateImageInternal('dalle', prompt, 'dall-e-3');
-    res.json(result);
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size, quality }),
+    });
+    const data = await response.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -311,40 +232,109 @@ app.post('/api/generate/dalle', async (req, res) => {
 // ─── Single image: Replicate (custom LoRA) ──────────────────────────
 app.post('/api/generate/replicate', async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, settings = {} } = req.body;
     const model = req.body.model || 'sageryza/gosh';
-    const result = await generateImageInternal('replicate', prompt, model);
-    res.json(result);
+
+    // Look up trigger word and version if it's one of our known models
+    const known = MODELS.replicate.find(m => m.id === model);
+    const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
+    const version = known ? `${known.id}:${known.version}` : model;
+
+    const loraScale = settings.lora_scale ?? 1;
+    const megapixels = settings.megapixels ?? '1';
+    const numOutputs = settings.num_outputs ?? 1;
+    const outputFormat = settings.output_format ?? 'webp';
+    const guidanceScale = settings.guidance_scale ?? 3;
+    const outputQuality = settings.output_quality ?? 80;
+    const numInferenceSteps = settings.num_inference_steps ?? 28;
+
+    console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
+
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        version,
+        input: {
+          prompt: fullPrompt,
+          model: 'dev',
+          go_fast: false,
+          lora_scale: loraScale,
+          megapixels: megapixels,
+          num_outputs: numOutputs,
+          aspect_ratio: '1:1',
+          output_format: outputFormat,
+          guidance_scale: guidanceScale,
+          output_quality: outputQuality,
+          prompt_strength: 0.8,
+          num_inference_steps: numInferenceSteps,
+        },
+      }),
+    });
+    let prediction = await createRes.json();
+    if (prediction.error) return res.status(400).json({ error: prediction.error });
+
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+      await new Promise(r => setTimeout(r, 1500));
+      const pollRes = await fetch(prediction.urls.get, {
+        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` },
+      });
+      prediction = await pollRes.json();
+    }
+    if (prediction.status === 'failed') return res.status(400).json({ error: prediction.error || 'Generation failed' });
+
+    const output = prediction.output;
+    const urls = Array.isArray(output) ? output : [output];
+    const permanentUrls = [];
+    for (const tempUrl of urls) {
+      permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
+    }
+    res.json({ url: permanentUrls[0], urls: permanentUrls });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Style test: generate preview images (concurrent) ───────────────
+// ─── Style test: generate preview images ────────────────────────────
 app.post('/api/generate/style-test', async (req, res) => {
   try {
-    const { subjects, provider = 'replicate', model, stylePrompt = '' } = req.body;
+    const { subjects, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
     if (!subjects || !subjects.length) return res.status(400).json({ error: 'subjects required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const tasks = subjects.map((subject, i) => () => {
-      const prompt = provider === 'replicate'
-        ? `${stylePrompt} ${subject}`.trim()
-        : (stylePrompt ? `${stylePrompt}. ${subject}` : subject);
-      return generateImageInternal(provider, prompt, model || 'sageryza/gosh');
-    });
-
-    await runPool(tasks, MAX_CONCURRENT, (i, result, err) => {
-      if (err) {
-        res.write(`data: ${JSON.stringify({ index: i, total: subjects.length, subject: subjects[i], error: err.message })}\n\n`);
-      } else {
-        res.write(`data: ${JSON.stringify({ index: i, total: subjects.length, subject: subjects[i], ...result })}\n\n`);
+    for (let i = 0; i < subjects.length; i++) {
+      const subject = subjects[i];
+      try {
+        let imageData;
+        if (provider === 'replicate') {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/replicate`;
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh', settings }),
+          });
+          imageData = await internal.json();
+        } else {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/dalle`;
+          const prompt = stylePrompt ? `${stylePrompt}. ${subject}` : subject;
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+          });
+          imageData = await internal.json();
+        }
+        res.write(`data: ${JSON.stringify({ index: i, total: subjects.length, subject, ...imageData })}\n\n`);
+      } catch (err) {
+        res.write(`data: ${JSON.stringify({ index: i, total: subjects.length, subject, error: err.message })}\n\n`);
       }
-    });
-
+    }
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
@@ -352,31 +342,44 @@ app.post('/api/generate/style-test', async (req, res) => {
   }
 });
 
-// ─── Deck batch: generate images concurrently ───────────────────────
+// ─── Deck batch: generate images in batches ─────────────────────────
 app.post('/api/generate/deck-batch', async (req, res) => {
   try {
-    const { cards, provider = 'replicate', model, stylePrompt = '' } = req.body;
+    const { cards, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
     if (!cards || !cards.length) return res.status(400).json({ error: 'cards required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const tasks = cards.map((card, i) => () => {
-      const prompt = provider === 'replicate'
-        ? `${stylePrompt} ${card.subject}`.trim()
-        : (stylePrompt ? `${stylePrompt}. ${card.subject}` : card.subject);
-      return generateImageInternal(provider, prompt, model || 'sageryza/gosh');
-    });
-
-    await runPool(tasks, MAX_CONCURRENT, (i, result, err) => {
-      if (err) {
-        res.write(`data: ${JSON.stringify({ index: i, total: cards.length, subject: cards[i].subject, error: err.message })}\n\n`);
-      } else {
-        res.write(`data: ${JSON.stringify({ index: i, total: cards.length, subject: cards[i].subject, ...result })}\n\n`);
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      try {
+        let imageData;
+        if (provider === 'replicate') {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/replicate`;
+          const prompt = `${stylePrompt} ${card.subject}`.trim();
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, model: model || 'sageryza/gosh', settings }),
+          });
+          imageData = await internal.json();
+        } else {
+          const endpoint = `http://localhost:${process.env.PORT || 3001}/api/generate/dalle`;
+          const prompt = stylePrompt ? `${stylePrompt}. ${card.subject}` : card.subject;
+          const internal = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+          });
+          imageData = await internal.json();
+        }
+        res.write(`data: ${JSON.stringify({ index: i, total: cards.length, subject: card.subject, ...imageData })}\n\n`);
+      } catch (err) {
+        res.write(`data: ${JSON.stringify({ index: i, total: cards.length, subject: card.subject, error: err.message })}\n\n`);
       }
-    });
-
+    }
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
@@ -387,19 +390,25 @@ app.post('/api/generate/deck-batch', async (req, res) => {
 // ─── Sticker sheet ──────────────────────────────────────────────────
 app.post('/api/generate/sticker-sheet', async (req, res) => {
   try {
-    const { moments, provider = 'dalle', model, stylePrompt = '' } = req.body;
+    const { moments, provider = 'dalle', model, stylePrompt = '', bgSuffix = '', settings = {} } = req.body;
     const basePrompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
-    const prompt = stylePrompt ? `${stylePrompt}. ${basePrompt}` : basePrompt;
-    const result = await generateImageInternal(
-      provider,
-      prompt,
-      provider === 'replicate' ? (model || 'sageryza/gosh') : 'dall-e-3'
-    );
-    res.json(result);
+    const parts = [stylePrompt, basePrompt, bgSuffix].filter(Boolean);
+    const prompt = parts.join('. ');
+    const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
+    const body = provider === 'replicate'
+      ? { prompt, model: model || 'sageryza/gosh', settings }
+      : { prompt };
+    const internal = await fetch(`http://localhost:${process.env.PORT || 3001}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await internal.json();
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server v10 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
