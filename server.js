@@ -1,4 +1,4 @@
-// imageforge-server v11 — improved moment prompts + crash fix
+// imageforge-server v11 — moments v3 prompts, replicate crash fix, pwcscans model
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -93,6 +93,7 @@ const MODELS = {
     { id: 'sageryza/special', version: '82d7dd7806bf8fb62fb4e36d67ed361d088e10743c56737e0f08904ec8a5a920', name: 'Sketchy', trigger: 'special' },
     { id: 'sageryza/victorianstyle', version: '50684448f55b69edd2ca835099ed927f24690d79bfcc90a1334962c591a78cce', name: 'Book Illustrations', trigger: 'vict' },
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
+    { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
@@ -235,17 +236,26 @@ app.post('/api/generate/dalle', async (req, res) => {
   }
 });
 
-// ─── Single image: Replicate (custom LoRA) — with crash fix ─────────
+// ─── Single image: Replicate (custom LoRA) — with settings + crash fix ──
 app.post('/api/generate/replicate', async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, settings = {} } = req.body;
     const model = req.body.model || 'sageryza/gosh';
 
     // Look up trigger word and version if it's one of our known models
     const known = MODELS.replicate.find(m => m.id === model);
     const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
     const version = known ? `${known.id}:${known.version}` : model;
-    console.log('Replicate:', { model, trigger: known?.trigger, promptStart: fullPrompt.slice(0, 60) });
+
+    const loraScale = settings.lora_scale ?? 1;
+    const megapixels = settings.megapixels ?? '1';
+    const numOutputs = settings.num_outputs ?? 1;
+    const outputFormat = settings.output_format ?? 'webp';
+    const guidanceScale = settings.guidance_scale ?? 3;
+    const outputQuality = settings.output_quality ?? 80;
+    const numInferenceSteps = settings.num_inference_steps ?? 28;
+
+    console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
 
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -259,15 +269,15 @@ app.post('/api/generate/replicate', async (req, res) => {
           prompt: fullPrompt,
           model: 'dev',
           go_fast: false,
-          lora_scale: 1,
-          megapixels: '1',
-          num_outputs: 1,
+          lora_scale: loraScale,
+          megapixels: megapixels,
+          num_outputs: numOutputs,
           aspect_ratio: '1:1',
-          output_format: 'webp',
-          guidance_scale: 3,
-          output_quality: 80,
+          output_format: outputFormat,
+          guidance_scale: guidanceScale,
+          output_quality: outputQuality,
           prompt_strength: 0.8,
-          num_inference_steps: 28,
+          num_inference_steps: numInferenceSteps,
         },
       }),
     });
@@ -289,9 +299,12 @@ app.post('/api/generate/replicate', async (req, res) => {
     if (prediction.status === 'failed') return res.status(400).json({ error: prediction.error || 'Generation failed' });
 
     const output = prediction.output;
-    const tempUrl = Array.isArray(output) ? output[0] : output;
-    const permanentUrl = await saveToFirebase(tempUrl, 'replicate');
-    res.json({ url: permanentUrl });
+    const urls = Array.isArray(output) ? output : [output];
+    const permanentUrls = [];
+    for (const tempUrl of urls) {
+      permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
+    }
+    res.json({ url: permanentUrls[0], urls: permanentUrls });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -300,7 +313,7 @@ app.post('/api/generate/replicate', async (req, res) => {
 // ─── Style test: generate preview images ────────────────────────────
 app.post('/api/generate/style-test', async (req, res) => {
   try {
-    const { subjects, provider = 'replicate', model, stylePrompt = '' } = req.body;
+    const { subjects, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
     if (!subjects || !subjects.length) return res.status(400).json({ error: 'subjects required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -316,7 +329,7 @@ app.post('/api/generate/style-test', async (req, res) => {
           const internal = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh' }),
+            body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh', settings }),
           });
           imageData = await internal.json();
         } else {
@@ -344,7 +357,7 @@ app.post('/api/generate/style-test', async (req, res) => {
 // ─── Deck batch: generate images in batches ─────────────────────────
 app.post('/api/generate/deck-batch', async (req, res) => {
   try {
-    const { cards, provider = 'replicate', model, stylePrompt = '' } = req.body;
+    const { cards, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
     if (!cards || !cards.length) return res.status(400).json({ error: 'cards required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -361,7 +374,7 @@ app.post('/api/generate/deck-batch', async (req, res) => {
           const internal = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, model: model || 'sageryza/gosh' }),
+            body: JSON.stringify({ prompt, model: model || 'sageryza/gosh', settings }),
           });
           imageData = await internal.json();
         } else {
@@ -389,11 +402,14 @@ app.post('/api/generate/deck-batch', async (req, res) => {
 // ─── Sticker sheet ──────────────────────────────────────────────────
 app.post('/api/generate/sticker-sheet', async (req, res) => {
   try {
-    const { moments, provider = 'dalle', model, stylePrompt = '' } = req.body;
+    const { moments, provider = 'dalle', model, stylePrompt = '', bgSuffix = '', settings = {} } = req.body;
     const basePrompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
-    const prompt = stylePrompt ? `${stylePrompt}. ${basePrompt}` : basePrompt;
+    const parts = [stylePrompt, basePrompt, bgSuffix].filter(Boolean);
+    const prompt = parts.join('. ');
     const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-    const body = provider === 'replicate' ? { prompt, model: model || 'sageryza/gosh' } : { prompt };
+    const body = provider === 'replicate'
+      ? { prompt, model: model || 'sageryza/gosh', settings }
+      : { prompt };
     const internal = await fetch(`http://localhost:${process.env.PORT || 3001}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
