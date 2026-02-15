@@ -1,3 +1,4 @@
+// imageforge-server v11 — improved moment prompts + crash fix
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -156,7 +157,7 @@ app.post('/api/generate/subjects', async (req, res) => {
   }
 });
 
-// ─── Extract visual moments from a description ─────────────────────
+// ─── Extract visual moments from a description (v3) ─────────────────
 app.post('/api/generate/moments', async (req, res) => {
   try {
     const { description } = req.body;
@@ -174,17 +175,22 @@ app.post('/api/generate/moments', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You help illustrate a dating memoir. Given a date description, extract small, specific, visual moments that would make good simple watercolor-style drawings.
+            content: `You help illustrate a dating memoir written by a young woman. Given a date description, extract small, specific, visual moments that would make good simple watercolor-style drawings.
+
+THE AUTHOR/NARRATOR: A petite young woman with curly brown hair. Whenever she appears in a scene, describe her this way. NEVER write "the narrator", "the author", or "the woman" — always use a physical description like "a petite girl with curly brown hair".
 
 CRITICAL RULES:
 - ONLY extract moments that are explicitly described in the text. Never invent or assume details.
 - Each moment should be a concrete detail — an object, a scene, a gesture — not an abstract feeling.
 - If the text only contains 2-3 clear visual moments, return only 2-3. Do NOT pad to 6 with invented scenes.
 - Return UP TO 6 moments, but fewer is fine if the text is short.
+- ALWAYS describe people by their physical appearance as mentioned in the text (tall, skinny, pale, bearded, etc). If the text describes what someone looks like, USE that description in the prompt. Never just say "a man" or "a person" — pull details from the text.
+- Focus on specific objects, gestures, and compositions rather than full complex scenes. The best prompts are simple: one or two subjects, a clear action or arrangement.
+- Avoid prompts that require precise spatial relationships between many elements — these confuse image generators.
 
 For each moment, provide:
 - "moment": a short 3-5 word label
-- "prompt": a detailed image generation prompt for a soft watercolor illustration, under 40 words. Always start with "Soft watercolor illustration of" and include "minimal background, gentle muted palette"
+- "prompt": a detailed image generation prompt for a soft watercolor illustration, under 50 words. Always start with "Soft watercolor illustration of" and end with "minimal background, gentle muted palette"
 
 Return valid JSON only, no markdown fences. The JSON should be an array of objects with "moment" and "prompt" fields.`,
           },
@@ -229,26 +235,17 @@ app.post('/api/generate/dalle', async (req, res) => {
   }
 });
 
-// ─── Single image: Replicate (custom LoRA) ──────────────────────────
+// ─── Single image: Replicate (custom LoRA) — with crash fix ─────────
 app.post('/api/generate/replicate', async (req, res) => {
   try {
-    const { prompt, settings = {} } = req.body;
+    const { prompt } = req.body;
     const model = req.body.model || 'sageryza/gosh';
 
     // Look up trigger word and version if it's one of our known models
     const known = MODELS.replicate.find(m => m.id === model);
     const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
     const version = known ? `${known.id}:${known.version}` : model;
-
-    const loraScale = settings.lora_scale ?? 1;
-    const megapixels = settings.megapixels ?? '1';
-    const numOutputs = settings.num_outputs ?? 1;
-    const outputFormat = settings.output_format ?? 'webp';
-    const guidanceScale = settings.guidance_scale ?? 3;
-    const outputQuality = settings.output_quality ?? 80;
-    const numInferenceSteps = settings.num_inference_steps ?? 28;
-
-    console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
+    console.log('Replicate:', { model, trigger: known?.trigger, promptStart: fullPrompt.slice(0, 60) });
 
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -262,20 +259,25 @@ app.post('/api/generate/replicate', async (req, res) => {
           prompt: fullPrompt,
           model: 'dev',
           go_fast: false,
-          lora_scale: loraScale,
-          megapixels: megapixels,
-          num_outputs: numOutputs,
+          lora_scale: 1,
+          megapixels: '1',
+          num_outputs: 1,
           aspect_ratio: '1:1',
-          output_format: outputFormat,
-          guidance_scale: guidanceScale,
-          output_quality: outputQuality,
+          output_format: 'webp',
+          guidance_scale: 3,
+          output_quality: 80,
           prompt_strength: 0.8,
-          num_inference_steps: numInferenceSteps,
+          num_inference_steps: 28,
         },
       }),
     });
     let prediction = await createRes.json();
     if (prediction.error) return res.status(400).json({ error: prediction.error });
+
+    // FIX: Check for missing polling URL (happens with rate limiting / concurrent requests)
+    if (!prediction.urls?.get) {
+      return res.status(400).json({ error: prediction.detail || 'Replicate did not return a polling URL — may be rate limited' });
+    }
 
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
       await new Promise(r => setTimeout(r, 1500));
@@ -287,12 +289,9 @@ app.post('/api/generate/replicate', async (req, res) => {
     if (prediction.status === 'failed') return res.status(400).json({ error: prediction.error || 'Generation failed' });
 
     const output = prediction.output;
-    const urls = Array.isArray(output) ? output : [output];
-    const permanentUrls = [];
-    for (const tempUrl of urls) {
-      permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
-    }
-    res.json({ url: permanentUrls[0], urls: permanentUrls });
+    const tempUrl = Array.isArray(output) ? output[0] : output;
+    const permanentUrl = await saveToFirebase(tempUrl, 'replicate');
+    res.json({ url: permanentUrl });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -301,7 +300,7 @@ app.post('/api/generate/replicate', async (req, res) => {
 // ─── Style test: generate preview images ────────────────────────────
 app.post('/api/generate/style-test', async (req, res) => {
   try {
-    const { subjects, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
+    const { subjects, provider = 'replicate', model, stylePrompt = '' } = req.body;
     if (!subjects || !subjects.length) return res.status(400).json({ error: 'subjects required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -317,7 +316,7 @@ app.post('/api/generate/style-test', async (req, res) => {
           const internal = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh', settings }),
+            body: JSON.stringify({ prompt: `${stylePrompt} ${subject}`.trim(), model: model || 'sageryza/gosh' }),
           });
           imageData = await internal.json();
         } else {
@@ -345,7 +344,7 @@ app.post('/api/generate/style-test', async (req, res) => {
 // ─── Deck batch: generate images in batches ─────────────────────────
 app.post('/api/generate/deck-batch', async (req, res) => {
   try {
-    const { cards, provider = 'replicate', model, stylePrompt = '', settings = {} } = req.body;
+    const { cards, provider = 'replicate', model, stylePrompt = '' } = req.body;
     if (!cards || !cards.length) return res.status(400).json({ error: 'cards required' });
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -362,7 +361,7 @@ app.post('/api/generate/deck-batch', async (req, res) => {
           const internal = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, model: model || 'sageryza/gosh', settings }),
+            body: JSON.stringify({ prompt, model: model || 'sageryza/gosh' }),
           });
           imageData = await internal.json();
         } else {
@@ -390,14 +389,11 @@ app.post('/api/generate/deck-batch', async (req, res) => {
 // ─── Sticker sheet ──────────────────────────────────────────────────
 app.post('/api/generate/sticker-sheet', async (req, res) => {
   try {
-    const { moments, provider = 'dalle', model, stylePrompt = '', bgSuffix = '', settings = {} } = req.body;
+    const { moments, provider = 'dalle', model, stylePrompt = '' } = req.body;
     const basePrompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
-    const parts = [stylePrompt, basePrompt, bgSuffix].filter(Boolean);
-    const prompt = parts.join('. ');
+    const prompt = stylePrompt ? `${stylePrompt}. ${basePrompt}` : basePrompt;
     const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-    const body = provider === 'replicate'
-      ? { prompt, model: model || 'sageryza/gosh', settings }
-      : { prompt };
+    const body = provider === 'replicate' ? { prompt, model: model || 'sageryza/gosh' } : { prompt };
     const internal = await fetch(`http://localhost:${process.env.PORT || 3001}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -411,4 +407,4 @@ app.post('/api/generate/sticker-sheet', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
