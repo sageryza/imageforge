@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Little Book of Miracles</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #faf9f7;
+      --surface: #ffffff;
+      --paper: #fdfbf6;
+      --border: #e8e4df;
+      --accent: #b48b6a;
+      --accent-dim: #c9ad93;
+      --text: #3a3530;
+      --text-dim: #9e9590;
+      --danger: #d4807a;
+      --green: #7ab58a;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-left { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
+    h1 {
+      font-size: 18px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .tabs { display: flex; gap: 6px; }
+    .tab {
+      padding: 6px 14px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+    .section { padding: 28px; max-width: 920px; margin: 0 auto; display: none; }
+    .section.active { display: block; }
+
+    label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    select { cursor: pointer; }
+
+    .btn {
+      padding: 10px 24px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .btn:disabled { background: var(--accent-dim); opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 10px 24px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--text-dim); }
+    .btn-small { padding: 6px 14px; font-size: 11px; }
+
+    .error-bar { padding: 12px 28px; background: #fef2f2; border-bottom: 1px solid #f5d5d5; display: none; }
+    .error-bar.show { display: flex; align-items: center; gap: 12px; }
+    .error-bar span { color: var(--danger); font-size: 13px; }
+    .error-dismiss { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; }
+
+    /* ── View toggle ── */
+    .view-toggle { display: flex; gap: 4px; margin-bottom: 24px; }
+    .view-toggle-btn {
+      padding: 6px 18px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s ease;
+    }
+    .view-toggle-btn.active { background: var(--surface); color: var(--text); border-color: var(--text-dim); }
+
+    /* ── Style picker ── */
+    .style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 8px; }
+    .style-option { padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
+    .style-option:hover { border-color: var(--text-dim); }
+    .style-option.selected { border-color: var(--accent); background: #f5f0eb; }
+    .style-option-name { font-size: 14px; font-weight: 500; color: var(--text); }
+    .style-option-id { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    .compose-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .compose-card h2 { font-size: 14px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+    .compose-card p.hint { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .row .grow { flex: 1 1 200px; }
+
+    .progress-note { font-size: 12px; color: var(--text-dim); margin-top: 10px; font-style: italic; }
+
+    /* ── Entry list ── */
+    .entry-list { margin-top: 8px; }
+    .entry-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .entry-thumb {
+      width: 64px; height: 64px; flex-shrink: 0;
+      border-radius: 6px; border: 1px solid var(--border);
+      object-fit: cover; background: var(--paper);
+    }
+    .entry-thumb.placeholder { display: flex; align-items: center; justify-content: center; color: var(--accent-dim); font-size: 22px; }
+    .entry-body { flex: 1; min-width: 0; }
+    .entry-title { font-family: var(--serif); font-size: 19px; font-weight: 500; color: var(--text); }
+    .entry-text { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-top: 2px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .entry-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 13px; color: var(--text-dim);
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;
+    }
+    .icon-btn:hover { border-color: var(--text-dim); color: var(--text); }
+    .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .empty-state { padding: 30px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+    /* ── The book (read view) ── */
+    .book-stage {
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+      padding: 10px 0 30px;
+    }
+    .book {
+      width: 100%;
+      max-width: 820px;
+      aspect-ratio: 3 / 2;
+      perspective: 2000px;
+    }
+    .spread {
+      width: 100%; height: 100%;
+      display: flex;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+      overflow: hidden;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+      transform-origin: left center;
+    }
+    .spread.turn-next { transform: rotateY(-14deg); opacity: 0; }
+    .spread.turn-prev { transform: rotateY(14deg); opacity: 0; }
+
+    .page { flex: 1 1 50%; min-width: 0; position: relative; }
+    .page-img {
+      background: #f3eee6;
+      display: flex; align-items: center; justify-content: center;
+      border-right: 1px solid var(--border);
+    }
+    .page-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .page-img .img-placeholder { color: var(--accent-dim); font-size: 40px; }
+    .page-text {
+      padding: 8% 9%;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .page-text .kicker { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-dim); margin-bottom: 16px; }
+    .page-text .ptitle { font-family: var(--serif); font-size: clamp(22px, 3.4vw, 34px); font-weight: 500; line-height: 1.15; color: var(--text); margin-bottom: 16px; }
+    .page-text .pbody { font-family: var(--serif); font-size: clamp(15px, 2vw, 20px); line-height: 1.55; color: #5a534c; }
+    .page-num { position: absolute; bottom: 14px; right: 20px; font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+    /* Cover */
+    .cover {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 8%;
+      background: linear-gradient(160deg, #f4ede2, #efe6d6);
+    }
+    .cover .ornament { font-size: 26px; color: var(--accent); margin-bottom: 18px; }
+    .cover .cover-kicker { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    .cover .cover-title { font-family: var(--serif); font-style: italic; font-size: clamp(30px, 6vw, 56px); font-weight: 500; line-height: 1.05; color: var(--text); }
+    .cover .cover-sub { font-family: var(--serif); font-size: clamp(15px, 2.4vw, 22px); color: #6b6359; margin-top: 16px; }
+    .cover .cover-rule { width: 60px; height: 1px; background: var(--accent-dim); margin: 22px 0; }
+
+    .book-nav { display: flex; align-items: center; gap: 20px; }
+    .nav-btn {
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 18px; color: var(--text);
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .book-counter { font-size: 12px; color: var(--text-dim); min-width: 80px; text-align: center; }
+
+    @media (max-width: 680px) {
+      header { padding: 16px; }
+      .section { padding: 18px 14px; }
+      .book { aspect-ratio: 3 / 4; }
+      .spread { flex-direction: column; }
+      .page-img { flex: 0 0 50%; border-right: none; border-bottom: 1px solid var(--border); }
+      .page-text { flex: 1 1 50%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>Little Book of Miracles</h1>
+      <div class="tabs">
+        <button class="tab active" id="tab-write">Write</button>
+        <button class="tab" id="tab-read">Read</button>
+        <a href="/" class="tab">Forge</a>
+        <a href="/gallery" class="tab">Gallery</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="error-bar" id="error-bar">
+    <span id="error-text"></span>
+    <button class="error-dismiss" onclick="hideError()">dismiss</button>
+  </div>
+
+  <!-- ═══ WRITE ═══ -->
+  <div class="section active" id="section-write">
+
+    <div class="compose-card">
+      <h2>Your book</h2>
+      <p class="hint">Title and dedication shown on the cover.</p>
+      <div class="row">
+        <div class="grow">
+          <label>Title</label>
+          <input type="text" id="book-title" placeholder="A Little Book of Miracles">
+        </div>
+        <div class="grow">
+          <label>Subtitle / dedication</label>
+          <input type="text" id="book-subtitle" placeholder="everyday miracles & synchronicities">
+        </div>
+      </div>
+    </div>
+
+    <div class="compose-card">
+      <h2>Illustration style</h2>
+      <p class="hint">Every entry is illustrated in this style.</p>
+      <div class="style-grid" id="style-grid"></div>
+    </div>
+
+    <div class="compose-card">
+      <h2>Add a miracle</h2>
+      <p class="hint">Write down a small wonder or synchronicity — exactly as it happened. It becomes an illustrated page.</p>
+      <textarea id="capture-input" placeholder="I was just thinking about an old friend when she texted me out of nowhere, after three years..."></textarea>
+      <div class="row" style="margin-top: 12px;">
+        <button class="btn" id="capture-btn" onclick="captureMiracle()">Add to book</button>
+      </div>
+      <div class="progress-note" id="capture-note" style="display:none;"></div>
+    </div>
+
+    <div class="compose-card">
+      <h2>Or imagine a few</h2>
+      <p class="hint">Give a theme and let it dream up a handful of little everyday miracles to start your book.</p>
+      <div class="row">
+        <div class="grow">
+          <label>Theme</label>
+          <input type="text" id="imagine-input" placeholder="e.g. quiet mornings, the city at night, small coincidences">
+        </div>
+        <div style="flex: 0 0 90px;">
+          <label>How many</label>
+          <select id="imagine-count">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+        <button class="btn-secondary" id="imagine-btn" onclick="imagineMiracles()">Imagine</button>
+      </div>
+      <div class="progress-note" id="imagine-note" style="display:none;"></div>
+    </div>
+
+    <div style="margin-top: 24px; display:flex; align-items:center; justify-content:space-between;">
+      <label style="margin-bottom:0;">Pages <span id="entry-count" style="color:var(--text-dim);"></span></label>
+      <button class="btn-secondary btn-small" id="read-btn" onclick="setView('read')">Read book →</button>
+    </div>
+    <div class="entry-list" id="entry-list"></div>
+  </div>
+
+  <!-- ═══ READ ═══ -->
+  <div class="section" id="section-read">
+    <div class="book-stage">
+      <div class="book">
+        <div class="spread" id="spread"></div>
+      </div>
+      <div class="book-nav">
+        <button class="nav-btn" id="prev-btn" onclick="turnPage(-1)">‹</button>
+        <span class="book-counter" id="book-counter"></span>
+        <button class="nav-btn" id="next-btn" onclick="turnPage(1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────
+    let book = loadBook();
+    let selectedModel = null;
+    let selectedStylePrompt = '';
+    let selectedProvider = 'replicate';
+    let allModelsCache = null;
+    let currentPage = 0;
+
+    // ── Storage ────────────────────────
+    function loadBook() {
+      try {
+        const raw = localStorage.getItem('imageforge_miracles_book');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return { title: '', subtitle: '', entries: [] };
+    }
+    function saveBook() { localStorage.setItem('imageforge_miracles_book', JSON.stringify(book)); }
+
+    // ── Model settings (shared with main app) ──
+    const DEFAULT_MODEL_SETTINGS = {
+      suffix: '', lora_scale: 1, megapixels: '1', output_format: 'webp',
+      num_outputs: 1, guidance_scale: 3, output_quality: 80, num_inference_steps: 28,
+    };
+    function loadAllSettings() {
+      try { return JSON.parse(localStorage.getItem('imageforge_model_settings') || '{}'); } catch { return {}; }
+    }
+    function getModelSettings(modelId) {
+      const all = loadAllSettings();
+      return { ...DEFAULT_MODEL_SETTINGS, ...(all[modelId] || {}) };
+    }
+
+    // ── Errors / helpers ───────────────
+    function showError(msg) {
+      document.getElementById('error-text').textContent = msg;
+      document.getElementById('error-bar').classList.add('show');
+    }
+    function hideError() { document.getElementById('error-bar').classList.remove('show'); }
+    function escHtml(str) { const d = document.createElement('div'); d.textContent = str == null ? '' : str; return d.innerHTML; }
+
+    async function safeFetchJson(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text.slice(0, 200)}`);
+      }
+      return res.json();
+    }
+
+    // ── Models / style picker ──────────
+    async function getAllModels() {
+      if (allModelsCache) return allModelsCache;
+      const models = await safeFetchJson('/api/models');
+      allModelsCache = [
+        ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
+        ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
+      ];
+      return allModelsCache;
+    }
+
+    async function renderStyleGrid() {
+      const all = await getAllModels();
+      // Default: a watercolor model, else the first
+      if (!selectedModel) {
+        const pref = book.styleModel
+          ? all.find(m => m.id === book.styleModel)
+          : all.find(m => /water/i.test(m.name)) || all[0];
+        if (pref) { selectedModel = pref.id; selectedStylePrompt = pref.stylePrompt || ''; selectedProvider = pref.provider; }
+      }
+      const grid = document.getElementById('style-grid');
+      grid.innerHTML = '';
+      all.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'style-option' + (selectedModel === m.id ? ' selected' : '');
+        div.innerHTML = `
+          <div class="style-option-name">${escHtml(m.name)}</div>
+          <div class="style-option-id">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
+        div.addEventListener('click', () => {
+          selectedModel = m.id; selectedStylePrompt = m.stylePrompt || ''; selectedProvider = m.provider;
+          book.styleModel = m.id; saveBook();
+          grid.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+          div.classList.add('selected');
+        });
+        grid.appendChild(div);
+      });
+    }
+
+    // ── Illustration for a prompt ──────
+    async function generateImage(prompt) {
+      if (selectedProvider === 'replicate') {
+        const settings = getModelSettings(selectedModel);
+        const parts = [prompt, settings.suffix].filter(Boolean);
+        const data = await safeFetchJson('/api/generate/replicate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: parts.join(', '), model: selectedModel, settings }),
+        });
+        if (data.error) throw new Error(data.error);
+        return data.url;
+      } else {
+        const fullPrompt = selectedStylePrompt ? `${selectedStylePrompt}. ${prompt}` : prompt;
+        const data = await safeFetchJson('/api/generate/dalle', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt }),
+        });
+        if (data.error) throw new Error(data.error);
+        return data.url;
+      }
+    }
+
+    // ── Capture a real moment ──────────
+    async function captureMiracle() {
+      const seed = document.getElementById('capture-input').value.trim();
+      if (!seed) return;
+      if (!selectedModel) { showError('Pick an illustration style first'); return; }
+
+      const btn = document.getElementById('capture-btn');
+      const note = document.getElementById('capture-note');
+      btn.disabled = true; btn.textContent = 'Writing...';
+      note.style.display = ''; note.textContent = 'Finding the words...';
+      hideError();
+
+      try {
+        const data = await safeFetchJson('/api/generate/miracles', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seed, mode: 'capture' }),
+        });
+        if (data.error) throw new Error(data.error);
+        const e = data.entries[0];
+        const entry = { id: 'e_' + Date.now(), title: e.title, text: e.text, prompt: e.prompt, url: '' };
+        book.entries.push(entry);
+        saveBook(); renderEntries();
+        document.getElementById('capture-input').value = '';
+
+        note.textContent = 'Painting the illustration...';
+        try {
+          entry.url = await generateImage(e.prompt);
+        } catch (imgErr) {
+          showError('Entry saved, but illustration failed: ' + imgErr.message);
+        }
+        saveBook(); renderEntries();
+      } catch (err) {
+        showError(err.message);
+      }
+      btn.disabled = false; btn.textContent = 'Add to book';
+      note.style.display = 'none';
+    }
+
+    // ── Imagine several ────────────────
+    async function imagineMiracles() {
+      const seed = document.getElementById('imagine-input').value.trim();
+      if (!seed) return;
+      if (!selectedModel) { showError('Pick an illustration style first'); return; }
+      const count = parseInt(document.getElementById('imagine-count').value, 10) || 3;
+
+      const btn = document.getElementById('imagine-btn');
+      const note = document.getElementById('imagine-note');
+      btn.disabled = true; btn.textContent = 'Dreaming...';
+      note.style.display = ''; note.textContent = 'Imagining little miracles...';
+      hideError();
+
+      try {
+        const data = await safeFetchJson('/api/generate/miracles', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seed, mode: 'imagine', count }),
+        });
+        if (data.error) throw new Error(data.error);
+
+        const newEntries = data.entries.map((e, i) => ({
+          id: 'e_' + Date.now() + '_' + i, title: e.title, text: e.text, prompt: e.prompt, url: '',
+        }));
+        book.entries.push(...newEntries);
+        saveBook(); renderEntries();
+        document.getElementById('imagine-input').value = '';
+
+        for (let i = 0; i < newEntries.length; i++) {
+          note.textContent = `Painting illustration ${i + 1} of ${newEntries.length}...`;
+          try {
+            newEntries[i].url = await generateImage(newEntries[i].prompt);
+          } catch (imgErr) {
+            showError('Some illustrations failed: ' + imgErr.message);
+          }
+          saveBook(); renderEntries();
+        }
+      } catch (err) {
+        showError(err.message);
+      }
+      btn.disabled = false; btn.textContent = 'Imagine';
+      note.style.display = 'none';
+    }
+
+    // ── Entry list (write view) ────────
+    function renderEntries() {
+      document.getElementById('book-title').value = book.title || '';
+      document.getElementById('book-subtitle').value = book.subtitle || '';
+      const list = document.getElementById('entry-list');
+      const countEl = document.getElementById('entry-count');
+      countEl.textContent = book.entries.length ? `(${book.entries.length})` : '';
+      list.innerHTML = '';
+
+      if (!book.entries.length) {
+        list.innerHTML = '<div class="empty-state">No pages yet. Add a miracle above to begin your book.</div>';
+        return;
+      }
+
+      book.entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'entry-row';
+        const thumb = e.url
+          ? `<img class="entry-thumb" src="${e.url}" alt="">`
+          : `<div class="entry-thumb placeholder">✦</div>`;
+        row.innerHTML = `
+          ${thumb}
+          <div class="entry-body">
+            <div class="entry-title">${escHtml(e.title)}</div>
+            <div class="entry-text">${escHtml(e.text)}</div>
+          </div>
+          <div class="entry-actions">
+            <button class="icon-btn" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveEntry(${i},-1)">↑</button>
+            <button class="icon-btn" title="Move down" ${i === book.entries.length - 1 ? 'disabled' : ''} onclick="moveEntry(${i},1)">↓</button>
+            <button class="icon-btn" title="Repaint illustration" onclick="repaintEntry(${i})">↻</button>
+            <button class="icon-btn danger" title="Remove" onclick="removeEntry(${i})">×</button>
+          </div>`;
+        list.appendChild(row);
+      });
+    }
+
+    function moveEntry(i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= book.entries.length) return;
+      [book.entries[i], book.entries[j]] = [book.entries[j], book.entries[i]];
+      saveBook(); renderEntries();
+    }
+
+    function removeEntry(i) {
+      if (!confirm(`Remove "${book.entries[i].title}"?`)) return;
+      book.entries.splice(i, 1);
+      saveBook(); renderEntries();
+    }
+
+    async function repaintEntry(i) {
+      const e = book.entries[i];
+      if (!selectedModel) { showError('Pick an illustration style first'); return; }
+      hideError();
+      const prev = e.url; e.url = ''; renderEntries();
+      try {
+        e.url = await generateImage(e.prompt);
+      } catch (err) {
+        e.url = prev; showError('Repaint failed: ' + err.message);
+      }
+      saveBook(); renderEntries();
+    }
+
+    // ── Book title fields ──────────────
+    document.getElementById('book-title').addEventListener('input', e => { book.title = e.target.value; saveBook(); });
+    document.getElementById('book-subtitle').addEventListener('input', e => { book.subtitle = e.target.value; saveBook(); });
+
+    // ── View switching ─────────────────
+    function setView(view) {
+      document.getElementById('tab-write').classList.toggle('active', view === 'write');
+      document.getElementById('tab-read').classList.toggle('active', view === 'read');
+      document.getElementById('section-write').classList.toggle('active', view === 'write');
+      document.getElementById('section-read').classList.toggle('active', view === 'read');
+      if (view === 'read') { currentPage = 0; renderPage(); }
+    }
+    document.getElementById('tab-write').addEventListener('click', () => setView('write'));
+    document.getElementById('tab-read').addEventListener('click', () => setView('read'));
+
+    // ── Read view (flip-through) ───────
+    function totalPages() { return 1 + book.entries.length; } // cover + entries
+
+    function pageHtml(idx) {
+      if (idx === 0) {
+        return `<div class="cover">
+            <div class="ornament">✦</div>
+            <div class="cover-kicker">a little book of</div>
+            <div class="cover-title">${escHtml(book.title || 'Miracles')}</div>
+            <div class="cover-rule"></div>
+            <div class="cover-sub">${escHtml(book.subtitle || 'everyday miracles & synchronicities')}</div>
+          </div>`;
+      }
+      const e = book.entries[idx - 1];
+      const img = e.url
+        ? `<img src="${e.url}" alt="">`
+        : `<div class="img-placeholder">✦</div>`;
+      return `
+        <div class="page page-img">${img}</div>
+        <div class="page page-text">
+          <div class="kicker">no. ${idx}</div>
+          <div class="ptitle">${escHtml(e.title)}</div>
+          <div class="pbody">${escHtml(e.text)}</div>
+          <div class="page-num">${idx} of ${book.entries.length}</div>
+        </div>`;
+    }
+
+    function renderPage() {
+      const spread = document.getElementById('spread');
+      if (!book.entries.length) {
+        spread.innerHTML = `<div class="cover">
+            <div class="ornament">✦</div>
+            <div class="cover-title">Miracles</div>
+            <div class="cover-rule"></div>
+            <div class="cover-sub">Your book is empty. Switch to Write to add your first page.</div>
+          </div>`;
+        document.getElementById('book-counter').textContent = '';
+        document.getElementById('prev-btn').disabled = true;
+        document.getElementById('next-btn').disabled = true;
+        return;
+      }
+      spread.innerHTML = pageHtml(currentPage);
+      document.getElementById('book-counter').textContent =
+        currentPage === 0 ? 'Cover' : `${currentPage} / ${book.entries.length}`;
+      document.getElementById('prev-btn').disabled = currentPage === 0;
+      document.getElementById('next-btn').disabled = currentPage >= totalPages() - 1;
+    }
+
+    function turnPage(dir) {
+      const next = currentPage + dir;
+      if (next < 0 || next >= totalPages()) return;
+      const spread = document.getElementById('spread');
+      spread.classList.add(dir > 0 ? 'turn-next' : 'turn-prev');
+      setTimeout(() => {
+        currentPage = next;
+        renderPage();
+        spread.classList.remove('turn-next', 'turn-prev');
+      }, 220);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('section-read').classList.contains('active')) return;
+      if (e.key === 'ArrowRight') turnPage(1);
+      else if (e.key === 'ArrowLeft') turnPage(-1);
+    });
+
+    // ── Init ───────────────────────────
+    renderStyleGrid();
+    renderEntries();
+  </script>
+</body>
+</html>
