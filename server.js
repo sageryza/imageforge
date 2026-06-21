@@ -85,6 +85,8 @@ app.get('/api/gallery', async (req, res) => {
 
 app.get('/gallery', (req, res) => { res.sendFile(__dirname + '/public/gallery.html'); });
 
+app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
+
 // ─── Available models ───────────────────────────────────────────────
 const MODELS = {
   replicate: [
@@ -210,6 +212,67 @@ Return valid JSON only, no markdown fences. The JSON should be an array of objec
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
     const moments = JSON.parse(cleaned);
     res.json({ moments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Little Book of Miracles: turn a moment (or theme) into book entries ──
+app.post('/api/generate/miracles', async (req, res) => {
+  try {
+    const { seed, mode = 'capture', count = 3 } = req.body;
+    if (!seed || !seed.trim()) return res.status(400).json({ error: 'seed is required' });
+
+    const captureSystem = `You help keep "A Little Book of Miracles" — a gentle collection of everyday miracles and synchronicities: small coincidences and quiet wonders that feel quietly meaningful (thinking of someone right before they call, a song that answers a question, the way light falls at the exact right moment). Given something the keeper of the book jotted down, turn it into ONE short book entry.
+
+RULES:
+- Stay true to what they actually wrote. Never invent events that didn't happen. You may gently polish the language and draw out the wonder, but keep it honest and grounded in their words.
+- Voice: warm, intimate, unhurried, a little luminous — never saccharine, preachy, or religious unless their note is.
+- "title": a short evocative title, 2 to 5 words.
+- "text": 2 to 4 sentences reflecting on the moment for the page.
+- "prompt": a soft watercolor illustration prompt under 50 words capturing ONE concrete, simple visual from the moment — one or two subjects, a clear arrangement. Always start with "Soft watercolor illustration of" and end with "minimal background, gentle muted palette". Describe people by their physical appearance if the note mentions it; never put words or text in the image.
+
+Return valid JSON only, no markdown fences: an object with "title", "text", and "prompt".`;
+
+    const imagineSystem = `You help write "A Little Book of Miracles" — a gentle collection of everyday miracles and synchronicities: small coincidences and quiet wonders that feel quietly meaningful (thinking of someone right before they call, a song that answers a question, the way light falls at the exact right moment). Given a theme, imagine ${count} small, specific, believable everyday-miracle moments around it.
+
+RULES:
+- Each moment should feel like a real small wonder, not a grand event. Specific and concrete, not abstract.
+- Make every entry unique and varied. Never repeat.
+- Voice: warm, intimate, unhurried, a little luminous — never saccharine or preachy.
+- For each entry provide "title" (2 to 5 words), "text" (2 to 4 sentences for the page), and "prompt" (a soft watercolor illustration prompt under 50 words capturing one concrete, simple visual — start with "Soft watercolor illustration of" and end with "minimal background, gentle muted palette"; never put words or text in the image).
+
+Return valid JSON only, no markdown fences: an array of objects with "title", "text", and "prompt".`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: mode === 'imagine' ? 0.95 : 0.7,
+        messages: [
+          { role: 'system', content: mode === 'imagine' ? imagineSystem : captureSystem },
+          {
+            role: 'user',
+            content: mode === 'imagine'
+              ? `Theme: ${seed}. Imagine ${count} everyday-miracle entries. Return a JSON array.`
+              : seed,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    const text = data.choices[0].message.content.trim();
+    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    res.json({ entries });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
