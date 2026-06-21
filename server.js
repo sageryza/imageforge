@@ -15,6 +15,30 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
+// Call OpenAI chat completions with a couple of retries. Recovers from
+// transient network hiccups (e.g. "Premature close" / dropped connections)
+// that otherwise surface as a one-off 500 error.
+async function openaiChat(body, retries = 2) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 // ─── Firebase Setup ─────────────────────────────────────────────────
 let bucket = null;
 try {
@@ -126,13 +150,7 @@ app.post('/api/generate/subjects', async (req, res) => {
     };
     const backDesc = backInstructions[backType] || backInstructions.facts;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const data = await openaiChat({
         model: 'gpt-4o-mini',
         temperature: 0.9,
         messages: [
@@ -145,10 +163,8 @@ app.post('/api/generate/subjects', async (req, res) => {
             content: `Generate ${count} unique subjects for a "${theme}" card deck. Return JSON array.`,
           },
         ],
-      }),
     });
 
-    const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     const text = data.choices[0].message.content.trim();
@@ -166,13 +182,7 @@ app.post('/api/generate/moments', async (req, res) => {
     const { description } = req.body;
     if (!description) return res.status(400).json({ error: 'description is required' });
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const data = await openaiChat({
         model: 'gpt-4o-mini',
         temperature: 0.7,
         messages: [
@@ -202,10 +212,8 @@ Return valid JSON only, no markdown fences. The JSON should be an array of objec
             content: description,
           },
         ],
-      }),
     });
 
-    const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     const text = data.choices[0].message.content.trim();
@@ -244,13 +252,7 @@ RULES:
 
 Return valid JSON only, no markdown fences: an array of objects with "title", "text", and "prompt".`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const data = await openaiChat({
         model: 'gpt-4o-mini',
         temperature: mode === 'imagine' ? 0.95 : 0.7,
         messages: [
@@ -262,10 +264,8 @@ Return valid JSON only, no markdown fences: an array of objects with "title", "t
               : seed,
           },
         ],
-      }),
     });
 
-    const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     const text = data.choices[0].message.content.trim();
