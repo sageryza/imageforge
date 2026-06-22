@@ -8,6 +8,8 @@ flip-through book of everyday miracles & synchronicities).
 
 - `/` — main forge (Stickers, Deck, Single, Settings)
 - `/book` — Little Book of Miracles (Write + Read)
+- `/talking` — Talking to Myself (standalone illustrated zine of dreams,
+  memories & wishes; uses `gpt-image-1` with a `dall-e-3` fallback)
 - `/gallery` — all saved images
 
 ## Environment variables

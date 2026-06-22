@@ -87,6 +87,27 @@ async function saveToFirebase(imageUrl, folder = 'images') {
   }
 }
 
+// Save a raw image buffer (e.g. gpt-image-1 base64 output) to Firebase and
+// return a permanent URL. Falls back to a data URL when Firebase isn't
+// configured, so the image still renders without any credentials set up.
+async function saveBufferToFirebase(buffer, contentType, folder = 'images') {
+  const ext = contentType.includes('webp') ? 'webp'
+    : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+  if (!bucket) return `data:${contentType};base64,${buffer.toString('base64')}`;
+  try {
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const file = bucket.file(filename);
+    await file.save(buffer, { metadata: { contentType } });
+    await file.makePublic();
+    const permanentUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    console.log('Firebase: saved as', filename);
+    return permanentUrl;
+  } catch (err) {
+    console.warn('Firebase buffer upload failed:', err.message);
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  }
+}
+
 // ─── Gallery: list all saved images ─────────────────────────────────
 app.get('/api/gallery', async (req, res) => {
   if (!bucket) return res.json({ images: [] });
@@ -110,6 +131,9 @@ app.get('/api/gallery', async (req, res) => {
 app.get('/gallery', (req, res) => { res.sendFile(__dirname + '/public/gallery.html'); });
 
 app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
+
+// ─── Talking to Myself: standalone dream/memory zine app ────────────
+app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
 
 // ─── Available models ───────────────────────────────────────────────
 const MODELS = {
@@ -480,6 +504,99 @@ app.post('/api/generate/sticker-sheet', async (req, res) => {
     });
     const data = await internal.json();
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Talking to Myself: illustrate a dream / memory / wish ──────────
+// Shared visual style — a moody illustrated-zine panel. Captions are drawn
+// by the app UI, so the image itself must contain NO text or letters.
+const TALKING_STYLE =
+  'Detailed pen-and-ink illustration with dense cross-hatching and fine line work, ' +
+  'softened by muted watercolor washes in a limited, dusty palette (sepia, faded ' +
+  'indigo, ochre, sage, dusty rose). Aged cream paper texture. A single framed ' +
+  'panel with a hand-drawn border. Melancholic, surreal, intimate diary mood, like ' +
+  'an outsider-art comic. Simple composition, one or two subjects. ' +
+  'Absolutely no text, no words, no letters, no captions anywhere in the image.';
+
+// Tone hints per entry type, woven into the caption + prompt generation.
+const TALKING_TYPES = {
+  dream:    'a dream — allow it to be surreal, dreamlogic, uncanny',
+  memory:   'a memory — tender, specific, slightly faded by time',
+  happened: 'something that actually happened — grounded and real, a small true moment',
+  read:     'something they read — illustrate the idea or image it left behind',
+  wish:     'a wish — hopeful, yearning, a little luminous',
+};
+
+// Generate one illustrated panel. Tries gpt-image-1 first (newest model);
+// if the account can't use it, transparently falls back to dall-e-3.
+async function generateZinePanel(imagePrompt) {
+  // Attempt 1: gpt-image-1 (returns base64)
+  try {
+    const r = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) throw new Error('gpt-image-1 returned no image');
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/png', 'talking');
+    return { url, model: 'gpt-image-1' };
+  } catch (err) {
+    console.warn('gpt-image-1 failed, falling back to dall-e-3:', err.message);
+  }
+  // Attempt 2: dall-e-3 (returns a URL)
+  const r = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'dall-e-3', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'standard' }),
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message || 'dall-e-3 error');
+  const url = await saveToFirebase(data.data[0].url, 'talking');
+  return { url, model: 'dall-e-3' };
+}
+
+app.post('/api/talking/illustrate', async (req, res) => {
+  try {
+    const { text, type = 'memory' } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: 'text is required' });
+    const typeHint = TALKING_TYPES[type] || TALKING_TYPES.memory;
+
+    // Step 1: turn the raw entry into a short caption + a concrete image prompt.
+    const chat = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.85,
+      messages: [
+        {
+          role: 'system',
+          content: `You help make an illustrated personal zine called "Talking to Myself". The keeper jots down ${typeHint}. Turn their note into ONE panel.
+
+Return valid JSON only, no markdown fences, with two fields:
+- "caption": a short, evocative title for the panel, 2 to 6 words, plain language, no quotation marks. It will be printed under the drawing in small caps (e.g. "the house kept whispering", "things i never sent").
+- "prompt": a concrete image-generation prompt under 45 words describing ONE simple, specific visual from their note — one or two subjects, a clear arrangement. Pull real details from their words; never invent people or places they didn't mention. Describe people by any physical details they gave. Do not include any words, text, or lettering in the scene.
+
+Stay honest to what they wrote — you may gently draw out the feeling, but never fabricate events.`,
+        },
+        { role: 'user', content: text.trim() },
+      ],
+    });
+    if (chat.error) return res.status(400).json({ error: chat.error.message });
+
+    const raw = chat.choices[0].message.content.trim().replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { parsed = { caption: '', prompt: text.trim() }; }
+    const caption = (parsed.caption || '').toString().trim();
+    const scene = (parsed.prompt || text.trim()).toString().trim();
+
+    // Step 2: render the panel in the zine style.
+    const imagePrompt = `${scene}\n\nStyle: ${TALKING_STYLE}`;
+    const { url, model } = await generateZinePanel(imagePrompt);
+
+    res.json({ caption, url, model, type, scene });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
