@@ -529,36 +529,39 @@ const TALKING_TYPES = {
   wish:     'a wish — hopeful, yearning, a little luminous',
 };
 
-// Generate one illustrated panel. Tries gpt-image-1 first (newest model);
-// if the account can't use it, transparently falls back to dall-e-3.
+// Generate one illustrated panel with gpt-image-1 (returns base64). If the
+// account can't use gpt-image-1 yet, surface a clear error rather than
+// silently switching models (which would break the zine's visual style).
 async function generateZinePanel(imagePrompt) {
-  // Attempt 1: gpt-image-1 (returns base64)
+  const r = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' }),
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
+  const b64 = data.data?.[0]?.b64_json;
+  if (!b64) throw new Error('gpt-image-1 returned no image');
+  const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/png', 'talking');
+  return { url, model: 'gpt-image-1' };
+}
+
+// Lightweight one-shot check: does this OpenAI account work with gpt-image-1?
+app.get('/api/talking/check', async (req, res) => {
+  if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' }),
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: 'a single small ink dot on cream paper', n: 1, size: '1024x1024', quality: 'low' }),
     });
     const data = await r.json();
-    if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) throw new Error('gpt-image-1 returned no image');
-    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/png', 'talking');
-    return { url, model: 'gpt-image-1' };
+    if (data.error) return res.json({ ok: false, error: data.error.message, code: data.error.code });
+    return res.json({ ok: Boolean(data.data?.[0]?.b64_json), model: 'gpt-image-1' });
   } catch (err) {
-    console.warn('gpt-image-1 failed, falling back to dall-e-3:', err.message);
+    return res.json({ ok: false, error: err.message });
   }
-  // Attempt 2: dall-e-3 (returns a URL)
-  const r = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'dall-e-3', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'standard' }),
-  });
-  const data = await r.json();
-  if (data.error) throw new Error(data.error.message || 'dall-e-3 error');
-  const url = await saveToFirebase(data.data[0].url, 'talking');
-  return { url, model: 'dall-e-3' };
-}
+});
 
 app.post('/api/talking/illustrate', async (req, res) => {
   try {
