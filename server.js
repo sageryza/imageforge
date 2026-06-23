@@ -705,3 +705,19 @@ app.post('/api/talking/render-page', async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
+
+// ─── Keep-awake ─────────────────────────────────────────────────────
+// Free-tier hosts spin the server down after ~15 min with no inbound
+// traffic, causing slow cold starts / "Load failed" on the next visit.
+// Pinging our own public URL on a timer keeps it warm — no external uptime
+// service or setup needed. Render provides RENDER_EXTERNAL_URL automatically.
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL;
+if (SELF_URL) {
+  const KEEP_AWAKE_MS = 10 * 60 * 1000; // 10 min, under the ~15 min idle window
+  setInterval(() => {
+    fetch(`${SELF_URL}/api/talking/ping`).catch(() => {});
+  }, KEEP_AWAKE_MS);
+  console.log('Keep-awake self-ping enabled for', SELF_URL);
+} else {
+  console.log('Keep-awake disabled (no RENDER_EXTERNAL_URL)');
+}
