@@ -533,9 +533,11 @@ const TALKING_TYPES = {
 
 // POST to OpenAI's image endpoint with retries. gpt-image-1 can take a while
 // and the connection sometimes drops ("Premature close"); retrying recovers
-// from those transient network errors, mirroring openaiChat above.
-async function openaiImage(body, retries = 3) {
-  let lastErr;
+// from those transient network errors, mirroring openaiChat above. It also
+// waits out the per-minute rate limit automatically (a rejected request makes
+// no image and isn't billed, so retrying is safe).
+async function openaiImage(body, retries = 4) {
+  let lastErr, lastData;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch('https://api.openai.com/v1/images/generations', {
@@ -543,12 +545,23 @@ async function openaiImage(body, retries = 3) {
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'Connection': 'close' },
         body: JSON.stringify(body),
       });
-      return await res.json();
+      const data = await res.json();
+      lastData = data;
+      // If we hit the per-minute image rate limit, wait the suggested time
+      // (default ~13s) and try again instead of failing the request.
+      if (data.error && data.error.code === 'rate_limit_exceeded' && attempt < retries) {
+        const m = /try again in ([\d.]+)\s*s/i.exec(data.error.message || '');
+        const waitMs = Math.min((m ? Math.ceil(parseFloat(m[1]) * 1000) : 13000) + 800, 20000);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      return data;
     } catch (err) {
       lastErr = err;
       if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
     }
   }
+  if (lastData) return lastData;
   throw lastErr;
 }
 
