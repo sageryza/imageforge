@@ -581,6 +581,10 @@ try {
   console.warn('No style reference image found — falling back to text-only style');
 }
 
+// Edit-mode (style-reference) generation is gated off until verified live —
+// it appeared to hang/time out. Text-only generation is the proven path.
+const USE_STYLE_REF = process.env.USE_STYLE_REF === '1';
+
 // gpt-image-1 edit endpoint (multipart) with the style reference image and
 // the same rate-limit / retry handling as openaiImage.
 async function openaiImageEdit(prompt, refBuffer, retries = 4) {
@@ -599,6 +603,7 @@ async function openaiImageEdit(prompt, refBuffer, retries = 4) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
         body: form,
+        timeout: 75000,
       });
       const data = await res.json();
       lastData = data;
@@ -620,8 +625,8 @@ async function openaiImageEdit(prompt, refBuffer, retries = 4) {
 
 async function generateZinePanel(imagePrompt) {
   // Preferred path: edit mode with the style reference image (best match to
-  // the look). The prompt makes clear the reference is for STYLE, not content.
-  if (styleRefBuffer) {
+  // the look). Gated until verified — falls back to text-only generation.
+  if (USE_STYLE_REF && styleRefBuffer) {
     try {
       const editPrompt = 'Use the attached image purely as the STYLE reference (match its medium, linework, palette and caption lettering) — do NOT copy its content. ' + imagePrompt;
       const data = await openaiImageEdit(editPrompt, styleRefBuffer);
