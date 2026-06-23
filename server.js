@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
+const fs = require('fs');
+const FormData = require('form-data');
 const admin = require('firebase-admin');
 
 const app = express();
@@ -568,9 +570,71 @@ async function openaiImage(body, retries = 4) {
 // Generate one illustrated panel with gpt-image-1 (returns base64). If the
 // account can't use gpt-image-1 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
+// Load the style-reference image once (used to anchor the zine look, the way
+// ChatGPT fed it the uploaded panel). Lives outside /public so it's never
+// web-served — only sent to OpenAI as a style guide.
+let styleRefBuffer = null;
+try {
+  styleRefBuffer = fs.readFileSync(__dirname + '/refs/style.jpg');
+  console.log('Style reference loaded (', styleRefBuffer.length, 'bytes )');
+} catch {
+  console.warn('No style reference image found — falling back to text-only style');
+}
+
+// gpt-image-1 edit endpoint (multipart) with the style reference image and
+// the same rate-limit / retry handling as openaiImage.
+async function openaiImageEdit(prompt, refBuffer, retries = 4) {
+  let lastErr, lastData;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const form = new FormData();
+      form.append('model', 'gpt-image-1');
+      form.append('prompt', prompt);
+      form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
+      form.append('size', '1024x1024');
+      form.append('quality', 'medium');
+      form.append('output_format', 'webp');
+      form.append('output_compression', '80');
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+        body: form,
+      });
+      const data = await res.json();
+      lastData = data;
+      if (data.error && data.error.code === 'rate_limit_exceeded' && attempt < retries) {
+        const m = /try again in ([\d.]+)\s*s/i.exec(data.error.message || '');
+        const waitMs = Math.min((m ? Math.ceil(parseFloat(m[1]) * 1000) : 13000) + 800, 20000);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      return data;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+    }
+  }
+  if (lastData) return lastData;
+  throw lastErr;
+}
+
 async function generateZinePanel(imagePrompt) {
-  // WebP + compression keeps the image small (~5-10x smaller than PNG) so that,
-  // until cloud storage is on, several pages still fit in the phone's storage.
+  // Preferred path: edit mode with the style reference image (best match to
+  // the look). The prompt makes clear the reference is for STYLE, not content.
+  if (styleRefBuffer) {
+    try {
+      const editPrompt = 'Use the attached image purely as the STYLE reference (match its medium, linework, palette and caption lettering) — do NOT copy its content. ' + imagePrompt;
+      const data = await openaiImageEdit(editPrompt, styleRefBuffer);
+      if (data.error) throw new Error(data.error.message || 'gpt-image-1 edit error');
+      const b64 = data.data?.[0]?.b64_json;
+      if (!b64) throw new Error('gpt-image-1 edit returned no image');
+      const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'talking');
+      return { url, model: 'gpt-image-1-edit' };
+    } catch (err) {
+      console.warn('Style-reference edit failed, using text-only generation:', err.message);
+    }
+  }
+  // Fallback: text-only generation (still gpt-image-1). WebP keeps it small.
   const data = await openaiImage({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium', output_format: 'webp', output_compression: 80 });
   if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
   const b64 = data.data?.[0]?.b64_json;
