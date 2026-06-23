@@ -252,7 +252,24 @@
   const grid = $('grid'), emptyEl = $('empty'), errEl = $('error'), goBtn = $('go'), entryEl = $('entry');
 
   function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch { return []; } }
-  function save(items) { localStorage.setItem(STORE, JSON.stringify(items)); }
+  // Save resiliently: if the phone's storage is full (big images stored
+  // locally), drop the oldest pages and retry rather than throwing.
+  function save(items) {
+    let arr = items.slice(0, 80);
+    for (;;) {
+      try { localStorage.setItem(STORE, JSON.stringify(arr)); return arr.length; }
+      catch (e) {
+        if (arr.length <= 1) { try { localStorage.removeItem(STORE); } catch {} return 0; }
+        arr = arr.slice(0, arr.length - 1); // drop the oldest, try again
+      }
+    }
+  }
+  // Heads-up if images are only living on the phone (no cloud storage yet).
+  function maybeWarnStorage(url) {
+    if (url && url.indexOf('data:') === 0) {
+      $('hint').textContent = 'Note: pages are saved only on this phone right now — older ones drop off when it fills up.';
+    }
+  }
 
   function render() {
     const items = load();
@@ -333,6 +350,7 @@
   async function runSingle(text) {
     showLoading(true);
     const data = await postJSON('/api/talking/illustrate', { text, type: activeType });
+    maybeWarnStorage(data.url);
     const items = load();
     items.unshift({ id: newId(), type: activeType, text, caption: data.caption || '', url: data.url, model: data.model, created: Date.now() });
     save(items);
@@ -353,6 +371,7 @@
       showLoading(true, groups.length > 1 ? `drawing page ${g + 1} of ${groups.length}…` : 'drawing…');
       try {
         const data = await postJSON('/api/talking/render-page', { beats: groups[g] });
+        maybeWarnStorage(data.url);
         const items = load();
         items.unshift({ id: newId(), type: activeType, text, page: true, url: data.url, captions: data.captions || [], model: data.model, created: Date.now() });
         save(items);

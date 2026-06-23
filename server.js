@@ -581,6 +581,10 @@ async function generateZinePanel(imagePrompt) {
 // warm a sleeping free-tier instance before the first illustrate request.
 app.get('/api/talking/ping', (req, res) => { res.json({ ok: true }); });
 
+// Status: is cloud image storage (Firebase) connected? When false, images
+// come back as big data URLs that have to live in the phone's browser.
+app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(bucket) }); });
+
 // Lightweight one-shot check: does this OpenAI account work with gpt-image-1?
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
