@@ -384,6 +384,8 @@
       // iOS Safari reports a failed/aborted network request as "Load failed".
       if (/load failed|fetch|network|aborted/i.test(msg)) {
         errEl.textContent = 'Couldn’t reach the server (it may have been waking up). Give it ~20 seconds and tap again.';
+      } else if (/rate limit|quota/i.test(msg)) {
+        errEl.textContent = 'Making images a little fast for the service — wait about a minute, then tap again.';
       } else {
         errEl.textContent = msg || 'Could not illustrate that. Try again.';
       }
