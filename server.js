@@ -569,11 +569,13 @@ async function openaiImage(body, retries = 4) {
 // account can't use gpt-image-1 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
 async function generateZinePanel(imagePrompt) {
-  const data = await openaiImage({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' });
+  // WebP + compression keeps the image small (~5-10x smaller than PNG) so that,
+  // until cloud storage is on, several pages still fit in the phone's storage.
+  const data = await openaiImage({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium', output_format: 'webp', output_compression: 80 });
   if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
   const b64 = data.data?.[0]?.b64_json;
   if (!b64) throw new Error('gpt-image-1 returned no image');
-  const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/png', 'talking');
+  const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'talking');
   return { url, model: 'gpt-image-1' };
 }
 

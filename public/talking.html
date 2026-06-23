@@ -156,12 +156,11 @@
   @media (max-width: 460px) { .panel.page { grid-column: auto; } }
   .panel .imgframe {
     border: 1px solid var(--frame);
-    aspect-ratio: 1 / 1;
     overflow: hidden;
     background: #e8dec5;
-    display: flex; align-items: center; justify-content: center;
   }
-  .panel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Show the whole image (captions are baked in) — never crop it. */
+  .panel img { width: 100%; height: auto; display: block; }
   .panel .caption {
     font-family: 'Special Elite', monospace;
     text-transform: uppercase;
@@ -190,6 +189,7 @@
 
   /* loading panel */
   .panel.loading .imgframe {
+    aspect-ratio: 1 / 1;
     background: linear-gradient(110deg, #e8dec5 30%, #f1e8d2 50%, #e8dec5 70%);
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite linear;
@@ -224,14 +224,10 @@
         <button class="chip" data-type="read">read</button>
         <button class="chip" data-type="wish">wish</button>
       </div>
-      <div class="modes" id="modes">
-        <button class="modebtn active" data-mode="single">one panel</button>
-        <button class="modebtn" data-mode="page">full page &middot; 2&times;2</button>
-      </div>
       <textarea id="entry" placeholder="Write the dream you had, the thing you remember, the line you read, the wish you keep&hellip;"></textarea>
       <div class="composer-row">
         <span class="hint" id="hint">Pick a kind, write a little, and it becomes a page.</span>
-        <button class="illustrate" id="go">Illustrate this</button>
+        <button class="illustrate" id="go">Illustrate</button>
       </div>
       <div class="error" id="error"></div>
     </section>
@@ -307,16 +303,7 @@
     };
   });
 
-  // Mode (one panel vs full 2x2 page)
-  $('modes').querySelectorAll('.modebtn').forEach(btn => {
-    btn.onclick = () => {
-      $('modes').querySelectorAll('.modebtn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeMode = btn.dataset.mode;
-      goBtn.textContent = goLabel();
-    };
-  });
-  function goLabel() { return activeMode === 'page' ? 'Illustrate page' : 'Illustrate this'; }
+  function goLabel() { return 'Illustrate'; }
 
   function showLoading(on, label) {
     let lp = document.getElementById('loadingPanel');
@@ -395,8 +382,7 @@
     if (!text) { errEl.textContent = 'Write something first.'; return; }
     busy = true; goBtn.disabled = true; goBtn.textContent = 'Drawing…';
     try {
-      if (activeMode === 'page') await runPage(text);
-      else await runSingle(text);
+      await runPage(text);
     } catch (e) {
       showLoading(false);
       const msg = (e && e.message) || '';
