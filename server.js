@@ -529,16 +529,32 @@ const TALKING_TYPES = {
   wish:     'a wish — hopeful, yearning, a little luminous',
 };
 
+// POST to OpenAI's image endpoint with retries. gpt-image-1 can take a while
+// and the connection sometimes drops ("Premature close"); retrying recovers
+// from those transient network errors, mirroring openaiChat above.
+async function openaiImage(body, retries = 3) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 // Generate one illustrated panel with gpt-image-1 (returns base64). If the
 // account can't use gpt-image-1 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
 async function generateZinePanel(imagePrompt) {
-  const r = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' }),
-  });
-  const data = await r.json();
+  const data = await openaiImage({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium' });
   if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
   const b64 = data.data?.[0]?.b64_json;
   if (!b64) throw new Error('gpt-image-1 returned no image');
@@ -550,12 +566,7 @@ async function generateZinePanel(imagePrompt) {
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
-    const r = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt: 'a single small ink dot on cream paper', n: 1, size: '1024x1024', quality: 'low' }),
-    });
-    const data = await r.json();
+    const data = await openaiImage({ model: 'gpt-image-1', prompt: 'a single small ink dot on cream paper', n: 1, size: '1024x1024', quality: 'low' });
     if (data.error) return res.json({ ok: false, error: data.error.message, code: data.error.code });
     return res.json({ ok: Boolean(data.data?.[0]?.b64_json), model: 'gpt-image-1' });
   } catch (err) {
