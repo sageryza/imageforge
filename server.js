@@ -642,27 +642,31 @@ Stay honest to what they wrote — you may gently draw out the feeling, but neve
 });
 
 // ─── Page mode: multi-panel pages (4 panels per image, spill into more) ──
-// Visual style for grid pages. Unlike TALKING_STYLE, captions ARE allowed
-// here because the panels are hand-lettered into the image like a zine page.
+// Visual style for grid pages, modeled on the prompt that produced the look
+// the keeper liked. Captions ARE allowed here (hand-lettered into the page).
 const TALKING_STYLE_GRID =
-  'Detailed pen-and-ink illustration with dense cross-hatching, softened by ' +
-  'muted watercolor washes in a limited dusty palette (sepia, faded indigo, ' +
-  'ochre, sage, dusty rose), on aged cream paper. Melancholic, surreal, ' +
-  'intimate diary-comic mood, like an outsider-art zine.';
+  'Match a rough, handmade, underground-zine feeling: uneven black ink outlines, ' +
+  'scratchy crosshatching, muted watercolor washes, warm cream paper, awkward ' +
+  'all-caps handwritten caption bars, and slightly claustrophobic surreal dream ' +
+  'imagery. Muted palette: dusty gray-blue, dirty yellow, faded pink, dull red, ' +
+  'cream, and strong black areas. Psychologically charged, weird, blunt, and a ' +
+  'little heavy. Do NOT make it polished, cute, inspirational, glossy, or overly ' +
+  'decorative — keep it imperfect, rough, human, and slightly ugly in a good way.';
 
 // Build one gpt-image-1 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
   const n = beats.length;
-  const layout = n >= 4 ? 'a 2x2 grid of four equal framed panels'
-    : n === 3 ? 'three equal framed panels in a row'
-    : n === 2 ? 'two equal framed panels side by side'
-    : 'a single framed panel';
+  const layout = n >= 4 ? 'a 2x2 grid of four comic-style panels'
+    : n === 3 ? 'three comic-style panels in a row'
+    : n === 2 ? 'two comic-style panels side by side'
+    : 'a single comic-style panel';
   const lines = beats.map((b, i) =>
-    `Panel ${i + 1}: ${b.scene}. Caption beneath the panel: "${b.caption}"`).join('\n');
-  return `A single illustrated zine page on aged cream paper: ${layout}, each with a hand-drawn ` +
-    `border and equal size. ${TALKING_STYLE_GRID}\n\n${lines}\n\nBeneath each panel, hand-letter its ` +
-    `caption in small uppercase letters, spelled exactly as written. The ONLY text anywhere in the ` +
-    `image is those short captions — no other words, no title, no signature.`;
+    `Panel ${i + 1}: ${b.scene}. Caption bar: "${b.caption}"`).join('\n');
+  return `Create a single illustration as ${layout} on warm cream paper, each panel an ` +
+    `equal size with a hand-drawn border. ${TALKING_STYLE_GRID}\n\n${lines}\n\nRender the page ` +
+    `as one complete image. Beneath each panel put an awkward all-caps handwritten caption bar with ` +
+    `its caption, spelled exactly as written. The ONLY text anywhere in the image is those short ` +
+    `captions — no other words, no title, no signature.`;
 }
 
 // Step 1: break an entry into ordered visual beats, chunked into groups of 4.
