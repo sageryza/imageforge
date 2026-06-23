@@ -85,6 +85,20 @@
   }
   .chip:hover { border-color: var(--ink); color: var(--ink); }
   .chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .modes { display: flex; gap: 0; margin-bottom: 14px; }
+  .modebtn {
+    font-family: 'Special Elite', monospace;
+    text-transform: lowercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+    padding: 6px 16px;
+    border: 1px solid var(--ink-soft);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .modebtn + .modebtn { border-left: none; }
+  .modebtn.active { background: var(--accent); color: #f3ead6; border-color: var(--accent); }
   textarea {
     width: 100%;
     min-height: 88px;
@@ -138,6 +152,8 @@
     animation: fadein 0.5s ease;
   }
   @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .panel.page { grid-column: span 2; }
+  @media (max-width: 460px) { .panel.page { grid-column: auto; } }
   .panel .imgframe {
     border: 1px solid var(--frame);
     aspect-ratio: 1 / 1;
@@ -208,6 +224,10 @@
         <button class="chip" data-type="read">read</button>
         <button class="chip" data-type="wish">wish</button>
       </div>
+      <div class="modes" id="modes">
+        <button class="modebtn active" data-mode="single">one panel</button>
+        <button class="modebtn" data-mode="page">full page &middot; 2&times;2</button>
+      </div>
       <textarea id="entry" placeholder="Write the dream you had, the thing you remember, the line you read, the wish you keep&hellip;"></textarea>
       <div class="composer-row">
         <span class="hint" id="hint">Pick a kind, write a little, and it becomes a page.</span>
@@ -225,6 +245,7 @@
 <script>
   const STORE = 'talking_entries_v1';
   let activeType = 'dream';
+  let activeMode = 'single';
   let busy = false;
 
   const $ = (id) => document.getElementById(id);
@@ -245,11 +266,13 @@
   function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   function panelHTML(it) {
-    return `<figure class="panel">
+    const cap = it.page ? '' : `<figcaption class="caption">${esc(it.caption || '&nbsp;')}</figcaption>`;
+    const alt = it.page ? (it.captions || []).join(', ') : (it.caption || '');
+    return `<figure class="panel${it.page ? ' page' : ''}">
       <button class="del" data-id="${it.id}" title="remove">&times;</button>
       <span class="typetag">${esc(it.type)}</span>
-      <div class="imgframe"><img src="${esc(it.url)}" alt="${esc(it.caption)}" loading="lazy"></div>
-      <figcaption class="caption">${esc(it.caption || '&nbsp;')}</figcaption>
+      <div class="imgframe"><img src="${esc(it.url)}" alt="${esc(alt)}" loading="lazy"></div>
+      ${cap}
     </figure>`;
   }
 
@@ -267,7 +290,18 @@
     };
   });
 
-  function showLoading(on) {
+  // Mode (one panel vs full 2x2 page)
+  $('modes').querySelectorAll('.modebtn').forEach(btn => {
+    btn.onclick = () => {
+      $('modes').querySelectorAll('.modebtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeMode = btn.dataset.mode;
+      goBtn.textContent = goLabel();
+    };
+  });
+  function goLabel() { return activeMode === 'page' ? 'Illustrate page' : 'Illustrate this'; }
+
+  function showLoading(on, label) {
     let lp = document.getElementById('loadingPanel');
     if (on) {
       emptyEl.style.display = 'none';
@@ -275,10 +309,64 @@
         lp = document.createElement('figure');
         lp.className = 'panel loading';
         lp.id = 'loadingPanel';
-        lp.innerHTML = '<div class="imgframe"></div><figcaption class="caption">drawing&hellip;</figcaption>';
+        lp.innerHTML = '<div class="imgframe"></div><figcaption class="caption"></figcaption>';
         grid.prepend(lp);
       }
+      lp.querySelector('.caption').textContent = label || 'drawing…';
     } else if (lp) { lp.remove(); }
+  }
+
+  function newId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
+
+  async function postJSON(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
+  // One entry -> one panel.
+  async function runSingle(text) {
+    showLoading(true);
+    const data = await postJSON('/api/talking/illustrate', { text, type: activeType });
+    const items = load();
+    items.unshift({ id: newId(), type: activeType, text, caption: data.caption || '', url: data.url, model: data.model, created: Date.now() });
+    save(items);
+    entryEl.value = '';
+    showLoading(false);
+    render();
+  }
+
+  // One entry -> a page (or pages) of 2x2 panels. Renders one image at a time
+  // so each request stays short and pages appear as they finish.
+  async function runPage(text) {
+    showLoading(true, 'reading…');
+    const plan = await postJSON('/api/talking/plan', { text, type: activeType });
+    const groups = plan.groups || [];
+    if (!groups.length) throw new Error('Could not find anything to illustrate.');
+    let made = 0;
+    for (let g = 0; g < groups.length; g++) {
+      showLoading(true, groups.length > 1 ? `drawing page ${g + 1} of ${groups.length}…` : 'drawing…');
+      try {
+        const data = await postJSON('/api/talking/render-page', { beats: groups[g] });
+        const items = load();
+        items.unshift({ id: newId(), type: activeType, text, page: true, url: data.url, captions: data.captions || [], model: data.model, created: Date.now() });
+        save(items);
+        showLoading(false);
+        render();
+        made++;
+      } catch (err) {
+        showLoading(false);
+        if (made === 0) throw err;
+        errEl.textContent = `Made ${made} page${made > 1 ? 's' : ''}; the next one failed: ${err.message}`;
+        break;
+      }
+    }
+    if (made > 0) entryEl.value = '';
   }
 
   async function illustrate() {
@@ -287,29 +375,9 @@
     errEl.textContent = '';
     if (!text) { errEl.textContent = 'Write something first.'; return; }
     busy = true; goBtn.disabled = true; goBtn.textContent = 'Drawing…';
-    showLoading(true);
     try {
-      const r = await fetch('/api/talking/illustrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, type: activeType }),
-      });
-      const data = await r.json();
-      if (!r.ok || data.error) throw new Error(data.error || 'Something went wrong.');
-      const items = load();
-      items.unshift({
-        id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-        type: activeType,
-        text,
-        caption: data.caption || '',
-        url: data.url,
-        model: data.model,
-        created: Date.now(),
-      });
-      save(items);
-      entryEl.value = '';
-      showLoading(false);
-      render();
+      if (activeMode === 'page') await runPage(text);
+      else await runSingle(text);
     } catch (e) {
       showLoading(false);
       const msg = (e && e.message) || '';
@@ -320,7 +388,7 @@
         errEl.textContent = msg || 'Could not illustrate that. Try again.';
       }
     } finally {
-      busy = false; goBtn.disabled = false; goBtn.textContent = 'Illustrate this';
+      busy = false; goBtn.disabled = false; goBtn.textContent = goLabel();
     }
   }
 

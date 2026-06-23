@@ -622,5 +622,86 @@ Stay honest to what they wrote — you may gently draw out the feeling, but neve
   }
 });
 
+// ─── Page mode: multi-panel pages (4 panels per image, spill into more) ──
+// Visual style for grid pages. Unlike TALKING_STYLE, captions ARE allowed
+// here because the panels are hand-lettered into the image like a zine page.
+const TALKING_STYLE_GRID =
+  'Detailed pen-and-ink illustration with dense cross-hatching, softened by ' +
+  'muted watercolor washes in a limited dusty palette (sepia, faded indigo, ' +
+  'ochre, sage, dusty rose), on aged cream paper. Melancholic, surreal, ' +
+  'intimate diary-comic mood, like an outsider-art zine.';
+
+// Build one gpt-image-1 prompt for a page of 1–4 panels.
+function buildPagePrompt(beats) {
+  const n = beats.length;
+  const layout = n >= 4 ? 'a 2x2 grid of four equal framed panels'
+    : n === 3 ? 'three equal framed panels in a row'
+    : n === 2 ? 'two equal framed panels side by side'
+    : 'a single framed panel';
+  const lines = beats.map((b, i) =>
+    `Panel ${i + 1}: ${b.scene}. Caption beneath the panel: "${b.caption}"`).join('\n');
+  return `A single illustrated zine page on aged cream paper: ${layout}, each with a hand-drawn ` +
+    `border and equal size. ${TALKING_STYLE_GRID}\n\n${lines}\n\nBeneath each panel, hand-letter its ` +
+    `caption in small uppercase letters, spelled exactly as written. The ONLY text anywhere in the ` +
+    `image is those short captions — no other words, no title, no signature.`;
+}
+
+// Step 1: break an entry into ordered visual beats, chunked into groups of 4.
+app.post('/api/talking/plan', async (req, res) => {
+  try {
+    const { text, type = 'memory' } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: 'text is required' });
+    const typeHint = TALKING_TYPES[type] || TALKING_TYPES.memory;
+
+    const chat = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.8,
+      messages: [
+        {
+          role: 'system',
+          content: `You help turn a note into the panels of an illustrated comic zine page. The keeper jotted down ${typeHint}. Break it into its distinct visual beats, in order — each beat becomes one comic panel.
+
+Return valid JSON only, no markdown fences: an array of objects with:
+- "caption": 2 to 6 words, plain language, no quotation marks (printed under the panel in small caps).
+- "scene": a concrete image prompt under 35 words for that single moment — one or two subjects, a clear arrangement, no text or lettering described in the scene.
+
+Rules: Only use moments actually present in the note; never invent events, people, or places. Describe people by any physical details given. Return between 1 and 12 beats — as many as the note genuinely contains, no padding.`,
+        },
+        { role: 'user', content: text.trim() },
+      ],
+    });
+    if (chat.error) return res.status(400).json({ error: chat.error.message });
+
+    const raw = chat.choices[0].message.content.trim().replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    let beats;
+    try { beats = JSON.parse(raw); } catch { beats = []; }
+    beats = (Array.isArray(beats) ? beats : [])
+      .map(b => ({ caption: (b.caption || '').toString().trim(), scene: (b.scene || '').toString().trim() }))
+      .filter(b => b.scene)
+      .slice(0, 12);
+    if (!beats.length) return res.status(400).json({ error: 'Could not find anything to illustrate.' });
+
+    // Chunk into groups of 4 panels (one image per group).
+    const groups = [];
+    for (let i = 0; i < beats.length; i += 4) groups.push(beats.slice(i, i + 4));
+    res.json({ beats, groups, type });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Step 2: render one page image (1–4 panels) from a group of beats.
+app.post('/api/talking/render-page', async (req, res) => {
+  try {
+    const { beats } = req.body || {};
+    if (!Array.isArray(beats) || !beats.length) return res.status(400).json({ error: 'beats required' });
+    const prompt = buildPagePrompt(beats.slice(0, 4));
+    const { url, model } = await generateZinePanel(prompt);
+    res.json({ url, model, captions: beats.slice(0, 4).map(b => b.caption) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
