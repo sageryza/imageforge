@@ -312,7 +312,13 @@
       render();
     } catch (e) {
       showLoading(false);
-      errEl.textContent = e.message || 'Could not illustrate that. Try again.';
+      const msg = (e && e.message) || '';
+      // iOS Safari reports a failed/aborted network request as "Load failed".
+      if (/load failed|fetch|network|aborted/i.test(msg)) {
+        errEl.textContent = 'Couldn’t reach the server (it may have been waking up). Give it ~20 seconds and tap again.';
+      } else {
+        errEl.textContent = msg || 'Could not illustrate that. Try again.';
+      }
     } finally {
       busy = false; goBtn.disabled = false; goBtn.textContent = 'Illustrate this';
     }
@@ -322,6 +328,11 @@
   entryEl.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') illustrate();
   });
+
+  // Wake the (free-tier) server as soon as the page opens, so it's already
+  // running by the time the first page is illustrated — avoids cold-start
+  // "Load failed" errors.
+  fetch('/api/talking/ping').catch(() => {});
 
   render();
 </script>
