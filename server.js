@@ -533,37 +533,27 @@ const TALKING_TYPES = {
   wish:     'a wish — hopeful, yearning, a little luminous',
 };
 
-// POST to OpenAI's image endpoint with retries. gpt-image-1 can take a while
-// and the connection sometimes drops ("Premature close"); retrying recovers
-// from those transient network errors, mirroring openaiChat above. It also
-// waits out the per-minute rate limit automatically (a rejected request makes
-// no image and isn't billed, so retrying is safe).
-async function openaiImage(body, retries = 4) {
-  let lastErr, lastData;
+// POST to OpenAI's image endpoint with retries for transient network errors
+// (e.g. "Premature close"), mirroring openaiChat. It does NOT wait out the
+// per-minute rate limit — holding the request open caused phone-side timeouts
+// ("couldn't reach the server"); instead it returns the rate-limit error fast
+// and the client tells the user to wait a moment.
+async function openaiImage(body, retries = 2) {
+  let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'Connection': 'close' },
         body: JSON.stringify(body),
+        timeout: 90000,
       });
-      const data = await res.json();
-      lastData = data;
-      // If we hit the per-minute image rate limit, wait the suggested time
-      // (default ~13s) and try again instead of failing the request.
-      if (data.error && data.error.code === 'rate_limit_exceeded' && attempt < retries) {
-        const m = /try again in ([\d.]+)\s*s/i.exec(data.error.message || '');
-        const waitMs = Math.min((m ? Math.ceil(parseFloat(m[1]) * 1000) : 13000) + 800, 20000);
-        await new Promise(r => setTimeout(r, waitMs));
-        continue;
-      }
-      return data;
+      return await res.json();
     } catch (err) {
       lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
   }
-  if (lastData) return lastData;
   throw lastErr;
 }
 
@@ -582,13 +572,15 @@ try {
 }
 
 // Edit-mode (style-reference) generation is gated off until verified live —
-// it appeared to hang/time out. Text-only generation is the proven path.
-const USE_STYLE_REF = process.env.USE_STYLE_REF === '1';
+// it appeared to hang/time out. Now that requests fail fast on rate limits,
+// the style reference is on by default again (set USE_STYLE_REF=0 to disable).
+const USE_STYLE_REF = process.env.USE_STYLE_REF !== '0';
 
-// gpt-image-1 edit endpoint (multipart) with the style reference image and
-// the same rate-limit / retry handling as openaiImage.
-async function openaiImageEdit(prompt, refBuffer, retries = 4) {
-  let lastErr, lastData;
+// gpt-image-1 edit endpoint (multipart) with the style reference image. Like
+// openaiImage, it returns rate-limit errors fast rather than holding the
+// request open (which caused phone-side timeouts).
+async function openaiImageEdit(prompt, refBuffer, retries = 2) {
+  let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const form = new FormData();
@@ -605,21 +597,12 @@ async function openaiImageEdit(prompt, refBuffer, retries = 4) {
         body: form,
         timeout: 75000,
       });
-      const data = await res.json();
-      lastData = data;
-      if (data.error && data.error.code === 'rate_limit_exceeded' && attempt < retries) {
-        const m = /try again in ([\d.]+)\s*s/i.exec(data.error.message || '');
-        const waitMs = Math.min((m ? Math.ceil(parseFloat(m[1]) * 1000) : 13000) + 800, 20000);
-        await new Promise(r => setTimeout(r, waitMs));
-        continue;
-      }
-      return data;
+      return await res.json();
     } catch (err) {
       lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
   }
-  if (lastData) return lastData;
   throw lastErr;
 }
 

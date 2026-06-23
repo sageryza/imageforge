@@ -346,6 +346,24 @@
     render();
   }
 
+  // Render one group, pausing on the phone (between separate short requests)
+  // if we hit the per-minute image limit — never holds a request open.
+  async function renderGroupWithPause(beats, label) {
+    for (let attempt = 0; ; attempt++) {
+      showLoading(true, label);
+      try {
+        return await postJSON('/api/talking/render-page', { beats });
+      } catch (err) {
+        if (/rate limit|quota/i.test(err.message || '') && attempt < 3) {
+          showLoading(true, 'pausing a moment for the image limit…');
+          await new Promise(r => setTimeout(r, 20000));
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
   // One entry -> a page (or pages) of 2x2 panels. Renders one image at a time
   // so each request stays short and pages appear as they finish.
   async function runPage(text) {
@@ -355,22 +373,23 @@
     if (!groups.length) throw new Error('Could not find anything to illustrate.');
     let made = 0;
     for (let g = 0; g < groups.length; g++) {
-      showLoading(true, groups.length > 1 ? `drawing page ${g + 1} of ${groups.length}…` : 'drawing…');
+      const label = groups.length > 1 ? `drawing page ${g + 1} of ${groups.length}…` : 'drawing…';
+      let data;
       try {
-        const data = await postJSON('/api/talking/render-page', { beats: groups[g] });
-        maybeWarnStorage(data.url);
-        const items = load();
-        items.unshift({ id: newId(), type: activeType, text, page: true, url: data.url, captions: data.captions || [], model: data.model, created: Date.now() });
-        save(items);
-        showLoading(false);
-        render();
-        made++;
+        data = await renderGroupWithPause(groups[g], label);
       } catch (err) {
         showLoading(false);
         if (made === 0) throw err;
-        errEl.textContent = `Made ${made} page${made > 1 ? 's' : ''}; the next one failed: ${err.message}`;
+        errEl.textContent = `Made ${made} page${made > 1 ? 's' : ''} — the rest hit the per-minute limit. Wait ~a minute and tap again.`;
         break;
       }
+      maybeWarnStorage(data.url);
+      const items = load();
+      items.unshift({ id: newId(), type: activeType, text, page: true, url: data.url, captions: data.captions || [], model: data.model, created: Date.now() });
+      save(items);
+      showLoading(false);
+      render();
+      made++;
     }
     if (made > 0) entryEl.value = '';
   }
