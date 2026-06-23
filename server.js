@@ -17,8 +17,9 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
 // Call OpenAI chat completions with a couple of retries. Recovers from
 // transient network hiccups (e.g. "Premature close" / dropped connections)
-// that otherwise surface as a one-off 500 error.
-async function openaiChat(body, retries = 2) {
+// that otherwise surface as a one-off 500 error. 'Connection: close' avoids
+// reusing a stale keep-alive socket, the usual cause of "Premature close".
+async function openaiChat(body, retries = 3) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -27,13 +28,14 @@ async function openaiChat(body, retries = 2) {
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
+          'Connection': 'close',
         },
         body: JSON.stringify(body),
       });
       return await res.json();
     } catch (err) {
       lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
+      if (attempt < retries) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
     }
   }
   throw lastErr;
@@ -538,7 +540,7 @@ async function openaiImage(body, retries = 3) {
     try {
       const res = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'Connection': 'close' },
         body: JSON.stringify(body),
       });
       return await res.json();
