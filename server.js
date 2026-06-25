@@ -576,7 +576,7 @@ try {
 // the style reference is on by default again (set USE_STYLE_REF=0 to disable).
 const USE_STYLE_REF = process.env.USE_STYLE_REF !== '0';
 
-// gpt-image-1 edit endpoint (multipart) with the style reference image. Like
+// gpt-image-2 edit endpoint (multipart) with the style reference image. Like
 // openaiImage, it returns rate-limit errors fast rather than holding the
 // request open (which caused phone-side timeouts).
 async function openaiImageEdit(prompt, refBuffer, retries = 2) {
@@ -584,7 +584,7 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const form = new FormData();
-      form.append('model', 'gpt-image-1');
+      form.append('model', 'gpt-image-2');
       form.append('prompt', prompt);
       form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
       form.append('size', '1024x1024');
@@ -607,28 +607,16 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
 }
 
 async function generateZinePanel(imagePrompt) {
-  // Preferred path: edit mode with the style reference image (best match to
-  // the look). Gated until verified — falls back to text-only generation.
-  if (USE_STYLE_REF && styleRefBuffer) {
-    try {
-      const editPrompt = 'Use the attached image purely as the STYLE reference (match its medium, linework, palette and caption lettering) — do NOT copy its content. ' + imagePrompt;
-      const data = await openaiImageEdit(editPrompt, styleRefBuffer);
-      if (data.error) throw new Error(data.error.message || 'gpt-image-1 edit error');
-      const b64 = data.data?.[0]?.b64_json;
-      if (!b64) throw new Error('gpt-image-1 edit returned no image');
-      const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'talking');
-      return { url, model: 'gpt-image-1-edit' };
-    } catch (err) {
-      console.warn('Style-reference edit failed, using text-only generation:', err.message);
-    }
-  }
-  // Fallback: text-only generation (still gpt-image-1). WebP keeps it small.
-  const data = await openaiImage({ model: 'gpt-image-1', prompt: imagePrompt, n: 1, size: '1024x1024', quality: 'medium', output_format: 'webp', output_compression: 80 });
-  if (data.error) throw new Error(data.error.message || 'gpt-image-1 error');
+  // Edit mode with the style reference image — gpt-image-2, NO fallback.
+  // If it errors, the error surfaces (we don't quietly switch model/style).
+  if (!styleRefBuffer) throw new Error('Style reference image not loaded');
+  const editPrompt = 'Use the attached image purely as the STYLE reference (match its medium, linework, palette and caption lettering) — do NOT copy its content. ' + imagePrompt;
+  const data = await openaiImageEdit(editPrompt, styleRefBuffer);
+  if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
   const b64 = data.data?.[0]?.b64_json;
-  if (!b64) throw new Error('gpt-image-1 returned no image');
+  if (!b64) throw new Error('gpt-image-2 edit returned no image');
   const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'talking');
-  return { url, model: 'gpt-image-1' };
+  return { url, model: 'gpt-image-2-edit' };
 }
 
 // Instant wake-up ping (no external calls) — used by the page on load to
@@ -643,9 +631,9 @@ app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(buck
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
-    const data = await openaiImage({ model: 'gpt-image-1', prompt: 'a single small ink dot on cream paper', n: 1, size: '1024x1024', quality: 'low' });
+    const data = await openaiImage({ model: 'gpt-image-2', prompt: 'a single small ink dot on cream paper', n: 1, size: '1024x1024', quality: 'low' });
     if (data.error) return res.json({ ok: false, error: data.error.message, code: data.error.code });
-    return res.json({ ok: Boolean(data.data?.[0]?.b64_json), model: 'gpt-image-1' });
+    return res.json({ ok: Boolean(data.data?.[0]?.b64_json), model: 'gpt-image-2' });
   } catch (err) {
     return res.json({ ok: false, error: err.message });
   }
