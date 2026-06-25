@@ -694,16 +694,10 @@ Stay honest to what they wrote — you may gently draw out the feeling, but neve
 });
 
 // ─── Page mode: multi-panel pages (4 panels per image, spill into more) ──
-// Visual style for grid pages, modeled on the prompt that produced the look
-// the keeper liked. Captions ARE allowed here (hand-lettered into the page).
-const TALKING_STYLE_GRID =
-  'Match a rough, handmade, underground-zine feeling: uneven black ink outlines, ' +
-  'scratchy crosshatching, muted watercolor washes, warm cream paper, awkward ' +
-  'all-caps handwritten caption bars, and slightly claustrophobic surreal dream ' +
-  'imagery. Muted palette: dusty gray-blue, dirty yellow, faded pink, dull red, ' +
-  'cream, and strong black areas. Psychologically charged, weird, blunt, and a ' +
-  'little heavy. Do NOT make it polished, cute, inspirational, glossy, or overly ' +
-  'decorative — keep it imperfect, rough, human, and slightly ugly in a good way.';
+// Style description intentionally blank for now (diagnostic): in edit mode the
+// look should come from the attached reference image; in the text-only
+// fallback, pages will look plain — making a silent fallback obvious.
+const TALKING_STYLE_GRID = '';
 
 // Build one gpt-image-1 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {

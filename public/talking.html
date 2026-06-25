@@ -196,6 +196,9 @@
   }
   @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
   .panel.loading .caption { color: var(--ink-soft); font-style: normal; }
+  .caption.eng { letter-spacing: 1px; }
+  .caption.eng.ref { color: #3f6f43; }
+  .caption.eng.noref { color: var(--accent); }
 
   .empty {
     text-align: center; color: var(--ink-soft); font-style: italic;
@@ -279,7 +282,10 @@
   function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   function panelHTML(it) {
-    const cap = it.page ? '' : `<figcaption class="caption">${esc(it.caption || '&nbsp;')}</figcaption>`;
+    const usedRef = it.model && it.model.indexOf('edit') !== -1;
+    const cap = it.page
+      ? `<figcaption class="caption eng ${usedRef ? 'ref' : 'noref'}">${usedRef ? 'reference ✓' : 'text-only (no reference)'}</figcaption>`
+      : `<figcaption class="caption">${esc(it.caption || '&nbsp;')}</figcaption>`;
     const alt = it.page ? (it.captions || []).join(', ') : (it.caption || '');
     return `<figure class="panel${it.page ? ' page' : ''}">
       <button class="del" data-id="${it.id}" title="remove">&times;</button>
