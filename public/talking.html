@@ -58,6 +58,14 @@
     margin-top: 6px;
     font-size: 16px;
   }
+  .masthead .buildinfo {
+    margin-top: 8px;
+    font-family: 'Special Elite', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    opacity: 0.7;
+  }
 
   main { max-width: 980px; margin: 0 auto; padding: 0 20px; }
 
@@ -218,6 +226,7 @@
     <h1>Talking to Myself</h1>
     <div class="vol">Volume 01</div>
     <div class="tag">an illustrated zine of dreams, memories &amp; small wishes</div>
+    <div class="buildinfo" id="buildinfo"></div>
   </header>
 
   <main>
@@ -455,6 +464,15 @@
   // running by the time the first page is illustrated — avoids cold-start
   // "Load failed" errors.
   fetch('/api/talking/ping').catch(() => {});
+
+  // Show which deployed version is live (commit + when it started).
+  fetch('/api/talking/version').then(r => r.json()).then(v => {
+    let when = v.booted;
+    try {
+      when = new Date(v.booted).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } catch {}
+    $('buildinfo').textContent = `build ${v.commit} · live since ${when}`;
+  }).catch(() => {});
 
   render();
 </script>

@@ -623,6 +623,15 @@ async function generateZinePanel(imagePrompt) {
 // warm a sleeping free-tier instance before the first illustrate request.
 app.get('/api/talking/ping', (req, res) => { res.json({ ok: true }); });
 
+// Build info so the page can show which deployed version is live.
+const BOOT_TIME = new Date().toISOString();
+app.get('/api/talking/version', (req, res) => {
+  res.json({
+    commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'dev',
+    booted: BOOT_TIME,
+  });
+});
+
 // Status: is cloud image storage (Firebase) connected? When false, images
 // come back as big data URLs that have to live in the phone's browser.
 app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(bucket) }); });
