@@ -588,7 +588,7 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       form.append('prompt', prompt);
       form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
       form.append('size', '1024x1024');
-      form.append('quality', 'medium');
+      form.append('quality', 'low');
       form.append('output_format', 'webp');
       form.append('output_compression', '80');
       const res = await fetch('https://api.openai.com/v1/images/edits', {
