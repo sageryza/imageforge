@@ -114,6 +114,8 @@
   textarea:focus { outline: none; border-color: var(--ink-soft); }
   .composer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 12px; }
   .hint { font-style: italic; color: var(--ink-soft); font-size: 14px; }
+  #fillTest { color: var(--accent); text-decoration: none; font-style: normal; font-family: 'Special Elite', monospace; font-size: 12px; letter-spacing: 0.5px; }
+  #fillTest:hover { text-decoration: underline; }
   button.illustrate {
     font-family: 'Special Elite', monospace;
     text-transform: uppercase;
@@ -227,9 +229,9 @@
         <button class="chip" data-type="read">read</button>
         <button class="chip" data-type="wish">wish</button>
       </div>
-      <textarea id="entry" placeholder="Write the dream you had, the thing you remember, the line you read, the wish you keep&hellip;"></textarea>
+      <textarea id="entry" placeholder="Write the dream you had, the thing you remember, the line you read, the wish you keep&hellip;">I told my dad that when you dream of flying it means your soul has nothing to do, and he decided that meant his soul was a freeloader. He told me about floating up almost to his ceiling when he was a boy, on a bunk bed. And that Dave did too — a plain, ordinary middle-aged man who works for him and has the exact same birthday.</textarea>
       <div class="composer-row">
-        <span class="hint" id="hint">Pick a kind, write a little, and it becomes a page.</span>
+        <span class="hint" id="hint"><a href="#" id="fillTest">↺ reset to test dream</a></span>
         <button class="illustrate" id="go">Illustrate</button>
       </div>
       <div class="error" id="error"></div>
@@ -423,6 +425,10 @@
       busy = false; goBtn.disabled = false; goBtn.textContent = goLabel();
     }
   }
+
+  // Fixed test entry (captured from the prepopulated box) for A/B comparisons.
+  const TEST_DREAM = entryEl.value;
+  $('fillTest').onclick = (e) => { e.preventDefault(); entryEl.value = TEST_DREAM; entryEl.focus(); };
 
   goBtn.onclick = illustrate;
   entryEl.addEventListener('keydown', (e) => {
