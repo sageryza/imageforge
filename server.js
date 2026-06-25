@@ -694,10 +694,13 @@ Stay honest to what they wrote — you may gently draw out the feeling, but neve
 });
 
 // ─── Page mode: multi-panel pages (4 panels per image, spill into more) ──
-// Style description intentionally blank for now (diagnostic): in edit mode the
-// look should come from the attached reference image; in the text-only
-// fallback, pages will look plain — making a silent fallback obvious.
-const TALKING_STYLE_GRID = '';
+// Refined style line from ChatGPT's own "for reuse" prompt — used alongside
+// the reference image (both signals, matching the ChatGPT setup).
+const TALKING_STYLE_GRID =
+  'Hand-drawn diary-comic page on aged cream paper. Naive outsider-art linework ' +
+  'in colored pencil and ink, with thin wobbly black panel borders and handwritten ' +
+  'caption boxes. Muted palette of gray-blue, tan, black, and pale yellow. Imperfect ' +
+  'anatomy, awkward emotional faces, simple compositions, slightly eerie but intimate.';
 
 // Build one gpt-image-1 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
@@ -707,12 +710,12 @@ function buildPagePrompt(beats) {
     : n === 2 ? 'two comic-style panels side by side'
     : 'a single comic-style panel';
   const lines = beats.map((b, i) =>
-    `Panel ${i + 1}: ${b.scene}. Caption bar: "${b.caption}"`).join('\n');
-  return `Create a single illustration as ${layout} on warm cream paper, each panel an ` +
-    `equal size with a hand-drawn border. ${TALKING_STYLE_GRID}\n\n${lines}\n\nRender the page ` +
-    `as one complete image. Beneath each panel put an awkward all-caps handwritten caption bar with ` +
-    `its caption, spelled exactly as written. The ONLY text anywhere in the image is those short ` +
-    `captions — no other words, no title, no signature.`;
+    `Panel ${i + 1}: ${b.scene}. Caption box: "${b.caption}"`).join('\n');
+  return `Create a single illustration as ${layout} on aged cream paper, each panel an ` +
+    `equal size with a thin wobbly black border. ${TALKING_STYLE_GRID}\n\n${lines}\n\nRender the page ` +
+    `as one complete image. Beneath each panel put a handwritten caption box with its caption, ` +
+    `spelled exactly as written. The ONLY text anywhere in the image is those short captions — ` +
+    `no other words, no title, no signature.`;
 }
 
 // Step 1: break an entry into ordered visual beats, chunked into groups of 4.
