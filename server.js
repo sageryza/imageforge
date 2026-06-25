@@ -565,7 +565,7 @@ async function openaiImage(body, retries = 2) {
 // web-served — only sent to OpenAI as a style guide.
 let styleRefBuffer = null;
 try {
-  styleRefBuffer = fs.readFileSync(__dirname + '/refs/style.png');
+  styleRefBuffer = fs.readFileSync(__dirname + '/refs/style.jpg');
   console.log('Style reference loaded (', styleRefBuffer.length, 'bytes )');
 } catch {
   console.warn('No style reference image found — falling back to text-only style');
@@ -586,7 +586,7 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       const form = new FormData();
       form.append('model', 'gpt-image-1');
       form.append('prompt', prompt);
-      form.append('image', refBuffer, { filename: 'style.png', contentType: 'image/png' });
+      form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
       form.append('size', '1024x1024');
       form.append('quality', 'medium');
       form.append('output_format', 'webp');
@@ -611,7 +611,7 @@ async function generateZinePanel(imagePrompt) {
   // the look). Gated until verified — falls back to text-only generation.
   if (USE_STYLE_REF && styleRefBuffer) {
     try {
-      const editPrompt = 'Use the attached image ONLY as a texture/style reference — closely match its dense scratchy cross-hatching, heavy ink shading, dark low-key values, sepia near-monochrome palette and hand-lettering. Ignore its panel count, layout and subject matter (do NOT copy its content). ' + imagePrompt;
+      const editPrompt = 'Use the attached image purely as the STYLE reference (match its medium, linework, palette and caption lettering) — do NOT copy its content. ' + imagePrompt;
       const data = await openaiImageEdit(editPrompt, styleRefBuffer);
       if (data.error) throw new Error(data.error.message || 'gpt-image-1 edit error');
       const b64 = data.data?.[0]?.b64_json;
@@ -697,14 +697,10 @@ Stay honest to what they wrote — you may gently draw out the feeling, but neve
 // Refined style line from ChatGPT's own "for reuse" prompt — used alongside
 // the reference image (both signals, matching the ChatGPT setup).
 const TALKING_STYLE_GRID =
-  'Dense, scratchy pen-and-ink illustration with heavy cross-hatching and fine ' +
-  'hatched shading everywhere, like a vintage engraving or woodcut on aged, ' +
-  'antique paper. Dark and low-key: deep black ink, heavy shadows, near-monochrome ' +
-  'sepia and brown with only small muted color accents. Eerie, melancholic, haunted ' +
-  'mood; gaunt, sunken-eyed, awkward faces. Naive outsider art — imperfect, raw, ' +
-  'hand-drawn, a little ugly and unsettling in a good way. Thin wobbly black panel ' +
-  'borders and small handwritten caption boxes. NOT clean, NOT bright, NOT cute, ' +
-  'NOT smooth, NOT a polished modern webcomic.';
+  'Hand-drawn diary-comic page on aged cream paper. Naive outsider-art linework ' +
+  'in colored pencil and ink, with thin wobbly black panel borders and handwritten ' +
+  'caption boxes. Muted palette of gray-blue, tan, black, and pale yellow. Imperfect ' +
+  'anatomy, awkward emotional faces, simple compositions, slightly eerie but intimate.';
 
 // Build one gpt-image-1 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
