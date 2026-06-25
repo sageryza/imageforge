@@ -341,6 +341,13 @@
     return data;
   }
 
+  async function getJSON(url) {
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
   // One entry -> one panel.
   async function runSingle(text) {
     showLoading(true);
@@ -354,13 +361,22 @@
     render();
   }
 
-  // Render one group, pausing on the phone (between separate short requests)
-  // if we hit the per-minute image limit — never holds a request open.
+  // Start a render job, then poll it. Polling = many quick requests, so the
+  // phone never holds one long connection open (gpt-image-2 can be slow).
+  // Pauses and retries if we hit the per-minute image limit.
   async function renderGroupWithPause(beats, label) {
     for (let attempt = 0; ; attempt++) {
       showLoading(true, label);
       try {
-        return await postJSON('/api/talking/render-page', { beats });
+        const { jobId } = await postJSON('/api/talking/render-page', { beats });
+        const started = Date.now();
+        for (;;) {
+          await new Promise(r => setTimeout(r, 3000));
+          const job = await getJSON('/api/talking/job/' + jobId); // throws if status === error
+          if (job.status === 'done') return job;
+          if (Date.now() - started > 4 * 60 * 1000) throw new Error('Timed out waiting for the image.');
+          showLoading(true, label);
+        }
       } catch (err) {
         if (/rate limit|quota/i.test(err.message || '') && attempt < 3) {
           showLoading(true, 'pausing a moment for the image limit…');

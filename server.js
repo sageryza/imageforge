@@ -751,16 +751,41 @@ Rules: Only use moments actually present in the note; never invent events, peopl
 });
 
 // Step 2: render one page image (1–4 panels) from a group of beats.
-app.post('/api/talking/render-page', async (req, res) => {
-  try {
-    const { beats } = req.body || {};
-    if (!Array.isArray(beats) || !beats.length) return res.status(400).json({ error: 'beats required' });
-    const prompt = buildPagePrompt(beats.slice(0, 4));
-    const { url, model } = await generateZinePanel(prompt);
-    res.json({ url, model, captions: beats.slice(0, 4).map(b => b.caption) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Render a page as a BACKGROUND JOB so the phone never holds one long request
+// open (gpt-image-2 can take a while). Start returns a jobId immediately; the
+// client polls /api/talking/job/:id until it's done or errored.
+const talkingJobs = new Map(); // jobId -> { status, url, model, captions, error, ts }
+
+function sweepJobs() {
+  const now = Date.now();
+  for (const [id, job] of talkingJobs) {
+    if (job.status !== 'pending' && now - job.ts > 10 * 60 * 1000) talkingJobs.delete(id);
   }
+}
+
+app.post('/api/talking/render-page', (req, res) => {
+  const { beats } = req.body || {};
+  if (!Array.isArray(beats) || !beats.length) return res.status(400).json({ error: 'beats required' });
+  sweepJobs();
+  const jobId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const captions = beats.slice(0, 4).map(b => b.caption);
+  talkingJobs.set(jobId, { status: 'pending', ts: Date.now() });
+  // Kick off generation without awaiting — the HTTP response returns now.
+  (async () => {
+    try {
+      const { url, model } = await generateZinePanel(buildPagePrompt(beats.slice(0, 4)));
+      talkingJobs.set(jobId, { status: 'done', url, model, captions, ts: Date.now() });
+    } catch (err) {
+      talkingJobs.set(jobId, { status: 'error', error: err.message, ts: Date.now() });
+    }
+  })();
+  res.json({ jobId });
+});
+
+app.get('/api/talking/job/:id', (req, res) => {
+  const job = talkingJobs.get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'job not found (it may have expired)' });
+  res.json(job);
 });
 
 const PORT = process.env.PORT || 3001;
