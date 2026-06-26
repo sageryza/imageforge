@@ -153,6 +153,12 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
 
 // ─── Available models ───────────────────────────────────────────────
+// House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
+// prepended to every prompt. `version` may be null — when so, the latest model
+// version is resolved from Replicate on first use (see resolveReplicateVersion),
+// which is how new LoRAs (e.g. HOONIE) can be added without pinning a hash.
+//   promptSuffix — appended to every prompt for this model (style anchor).
+//   defaultSteps — num_inference_steps to use when the client doesn't override.
 const MODELS = {
   replicate: [
     { id: 'sageryza/gosh', version: 'd337796af9f1cc9566f378d2f78deff7864bd5439247935a9f651e5762cdfb39', name: 'Gouache', trigger: 'gosh' },
@@ -161,17 +167,30 @@ const MODELS = {
     { id: 'sageryza/victorianstyle', version: '50684448f55b69edd2ca835099ed927f24690d79bfcc90a1334962c591a78cce', name: 'Book Illustrations', trigger: 'vict' },
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
+    { id: 'sageryza/hoonie', version: null, name: 'Hoonie Linocut', trigger: 'HOONIE', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
   ],
+  // OpenAI image generation. The DALL·E 3 style presets were retired — a single
+  // clean entry remains so OpenAI is still selectable alongside the LoRAs.
   dalle: [
-    { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
-    { id: 'dall-e-3-watercolor', name: 'Soft Watercolor', stylePrompt: 'Soft watercolor illustration with gentle washes, muted pastel palette, minimal background, hand-painted feel.' },
-    { id: 'dall-e-3-lineart', name: 'Ink & Line Art', stylePrompt: 'Delicate ink line drawing with fine pen strokes, minimal color accents, white background, editorial illustration style.' },
-    { id: 'dall-e-3-woodblock', name: 'Woodblock Print', stylePrompt: 'Japanese woodblock print style with bold outlines, flat color areas, limited palette, ukiyo-e influenced.' },
-    { id: 'dall-e-3-risograph', name: 'Risograph', stylePrompt: 'Risograph print style with halftone dots, limited 2-3 color palette, slight misregistration, textured grain.' },
-    { id: 'dall-e-3-botanical', name: 'Botanical', stylePrompt: 'Scientific botanical illustration style with precise detail, soft natural colors, cream paper background, vintage naturalist feel.' },
-    { id: 'dall-e-3-cutout', name: 'Paper Cutout', stylePrompt: 'Paper cut-out collage style with layered colored paper shapes, subtle shadows, handcraft aesthetic, flat design.' },
+    { id: 'dall-e-3', name: 'DALL·E 3', stylePrompt: '' },
   ],
 };
+
+// Resolve a Replicate model's version id. Pinned versions are returned as-is;
+// models with version:null have their latest version fetched once and cached.
+const versionCache = new Map();
+async function resolveReplicateVersion(known) {
+  if (known.version) return known.version;
+  if (versionCache.has(known.id)) return versionCache.get(known.id);
+  const res = await fetch(`https://api.replicate.com/v1/models/${known.id}`, {
+    headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` },
+  });
+  const data = await res.json();
+  const latest = data?.latest_version?.id;
+  if (!latest) throw new Error(`Could not resolve latest version for ${known.id}`);
+  versionCache.set(known.id, latest);
+  return latest;
+}
 
 app.get('/api/models', (req, res) => {
   res.json(MODELS);
@@ -346,10 +365,13 @@ app.post('/api/generate/replicate', async (req, res) => {
     const { prompt, settings = {} } = req.body;
     const model = req.body.model || 'sageryza/gosh';
 
-    // Look up trigger word and version if it's one of our known models
+    // Look up trigger word and version if it's one of our known models. The
+    // trigger is prepended and any model-level promptSuffix appended, so the
+    // style anchor travels with the model everywhere it's used.
     const known = MODELS.replicate.find(m => m.id === model);
-    const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
-    const version = known ? `${known.id}:${known.version}` : model;
+    let fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
+    if (known?.promptSuffix) fullPrompt = `${fullPrompt}, ${known.promptSuffix}`;
+    const version = known ? `${known.id}:${await resolveReplicateVersion(known)}` : model;
 
     const loraScale = settings.lora_scale ?? 1;
     const megapixels = settings.megapixels ?? '1';
@@ -357,7 +379,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     const outputFormat = settings.output_format ?? 'webp';
     const guidanceScale = settings.guidance_scale ?? 3;
     const outputQuality = settings.output_quality ?? 80;
-    const numInferenceSteps = settings.num_inference_steps ?? 28;
+    const numInferenceSteps = settings.num_inference_steps ?? known?.defaultSteps ?? 28;
 
     console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
 

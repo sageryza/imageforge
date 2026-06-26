@@ -36,7 +36,19 @@
     border-bottom: 2px solid var(--ink);
     margin: 0 auto 8px;
     max-width: 980px;
+    position: relative;
   }
+  .masthead .hub-back {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    font-family: 'Special Elite', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  .masthead .hub-back:hover { color: var(--accent); }
   .masthead h1 {
     font-family: 'Special Elite', 'Courier New', monospace;
     font-size: clamp(30px, 6vw, 52px);
@@ -240,6 +252,7 @@
 </head>
 <body>
   <header class="masthead">
+    <a href="/" class="hub-back">← Hub</a>
     <h1>Talking to Myself</h1>
     <div class="vol">Volume 01</div>
     <div class="tag">an illustrated zine of dreams, memories &amp; small wishes</div>

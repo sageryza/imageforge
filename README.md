@@ -1,16 +1,33 @@
 # ImageForge
 
-A small Express app for turning text into illustrated visuals — card decks,
-sticker sheets, single images, and **A Little Book of Miracles** (an illustrated
-flip-through book of everyday miracles & synchronicities).
+A hub for turning text into illustrated projects. The home screen (`/`) is a
+grid of project types — each opens a focused workflow that shares the same set
+of house styles (gpt-image-2 plus the Replicate Flux LoRAs).
 
 ## Pages
 
-- `/` — main forge (Stickers, Deck, Single, Settings)
-- `/book` — Little Book of Miracles (Write + Read)
-- `/talking` — Talking to Myself (standalone illustrated zine of dreams,
-  memories & wishes; uses `gpt-image-1` with a `dall-e-3` fallback)
-- `/gallery` — all saved images
+- `/` — **the hub**: a home screen listing every project type. The Card Deck,
+  Sticker Sheet, Single Image and Styles & Settings workflows live here as
+  focused in-page workspaces; the others link out to their own pages.
+- `/book` — **Picture Book**: A Little Book of Miracles (Write + Read)
+- `/talking` — **Illustrated Zine**: Talking to Myself (dreams, memories &
+  wishes rendered as diary-comic panels; uses `gpt-image-2`)
+- `/gallery` — all saved images, grouped by project
+
+## Design system
+
+Shared tokens and components live in [`public/forge.css`](public/forge.css).
+Design rule: **no pill-shaped buttons** — text buttons are rounded rectangles
+(`border-radius: 6px`); circular icon buttons are the only exception.
+
+## House styles
+
+The Replicate LoRAs are defined in `MODELS.replicate` in `server.js`. Each has a
+trigger word that's prepended to every prompt. A model may pin a `version` hash
+or leave it `null` to resolve the latest version from Replicate on first use —
+that's how **HOONIE** (`sageryza/hoonie`, a vintage linocut/engraving LoRA) is
+wired in, with its `linocut relief print, white background` suffix and 40
+inference steps applied automatically.
 
 ## Environment variables
 
