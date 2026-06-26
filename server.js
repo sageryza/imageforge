@@ -161,6 +161,7 @@ const MODELS = {
     { id: 'sageryza/victorianstyle', version: '50684448f55b69edd2ca835099ed927f24690d79bfcc90a1334962c591a78cce', name: 'Book Illustrations', trigger: 'vict' },
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
+    { id: 'sageryza/pocketbook', version: 'b5d2bbe6509dae44002e4308918c09ed7881128ba9a59b7b6f6309257ceb30cb', name: 'Pocketbook Icons', trigger: 'POCKETBOOK', recommendedScale: 1.2 },
   ],
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
@@ -351,7 +352,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     const fullPrompt = known ? `${known.trigger}, ${prompt}` : prompt;
     const version = known ? `${known.id}:${known.version}` : model;
 
-    const loraScale = settings.lora_scale ?? 1;
+    const loraScale = settings.lora_scale ?? known?.recommendedScale ?? 1;
     const megapixels = settings.megapixels ?? '1';
     const numOutputs = settings.num_outputs ?? 1;
     const outputFormat = settings.output_format ?? 'webp';
