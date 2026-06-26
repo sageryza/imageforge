@@ -164,7 +164,7 @@ const MODELS = {
     { id: 'sageryza/pocketbook', version: 'b5d2bbe6509dae44002e4308918c09ed7881128ba9a59b7b6f6309257ceb30cb', name: 'Pocketbook Icons', trigger: 'POCKETBOOK', recommendedScale: 1.2 },
   ],
   dalle: [
-    { id: 'dall-e-3', name: 'DALL·E 3 (default)', stylePrompt: '' },
+    { id: 'dall-e-3', name: 'GPT Image 2 (default)', stylePrompt: '' },
     { id: 'dall-e-3-watercolor', name: 'Soft Watercolor', stylePrompt: 'Soft watercolor illustration with gentle washes, muted pastel palette, minimal background, hand-painted feel.' },
     { id: 'dall-e-3-lineart', name: 'Ink & Line Art', stylePrompt: 'Delicate ink line drawing with fine pen strokes, minimal color accents, white background, editorial illustration style.' },
     { id: 'dall-e-3-woodblock', name: 'Woodblock Print', stylePrompt: 'Japanese woodblock print style with bold outlines, flat color areas, limited palette, ukiyo-e influenced.' },
@@ -320,21 +320,32 @@ Return valid JSON only, no markdown fences: an array of objects with "title", "t
   }
 });
 
-// ─── Single image: DALL·E ───────────────────────────────────────────
+// ─── Single image: gpt-image-2 (OpenAI) ─────────────────────────────
+// gpt-image-2 only — NO fallback. If it errors, surface the error rather than
+// silently switching models. Returns base64, so we save the buffer to Firebase.
 app.post('/api/generate/dalle', async (req, res) => {
   try {
-    const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size, quality }),
+    const { prompt } = req.body;
+    // Map legacy DALL·E sizes/quality onto gpt-image-2's accepted values.
+    const SIZE_MAP = { '1792x1024': '1536x1024', '1024x1792': '1024x1536' };
+    const reqSize = req.body.size || '1024x1024';
+    const size = SIZE_MAP[reqSize]
+      || (['1024x1024', '1536x1024', '1024x1536', 'auto'].includes(reqSize) ? reqSize : '1024x1024');
+    const quality = ['low', 'medium', 'high', 'auto'].includes(req.body.quality) ? req.body.quality : 'high';
+
+    const data = await openaiImage({
+      model: 'gpt-image-2',
+      prompt,
+      n: 1,
+      size,
+      quality,
+      output_format: 'webp',
+      output_compression: 80,
     });
-    const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
-    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(502).json({ error: 'gpt-image-2 returned no image' });
+    const permanentUrl = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'dalle');
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -571,8 +582,8 @@ async function openaiImage(body, retries = 2) {
   throw lastErr;
 }
 
-// Generate one illustrated panel with gpt-image-1 (returns base64). If the
-// account can't use gpt-image-1 yet, surface a clear error rather than
+// Generate one illustrated panel with gpt-image-2 (returns base64). If the
+// account can't use gpt-image-2 yet, surface a clear error rather than
 // silently switching models (which would break the zine's visual style).
 // Load the style-reference image once (used to anchor the zine look, the way
 // ChatGPT fed it the uploaded panel). Lives outside /public so it's never
@@ -650,7 +661,7 @@ app.get('/api/talking/version', (req, res) => {
 // come back as big data URLs that have to live in the phone's browser.
 app.get('/api/talking/status', (req, res) => { res.json({ firebase: Boolean(bucket) }); });
 
-// Lightweight one-shot check: does this OpenAI account work with gpt-image-1?
+// Lightweight one-shot check: does this OpenAI account work with gpt-image-2?
 app.get('/api/talking/check', async (req, res) => {
   if (!OPENAI_API_KEY) return res.json({ ok: false, error: 'OPENAI_API_KEY not set on the server' });
   try {
@@ -713,7 +724,7 @@ const TALKING_STYLE_GRID =
   'caption boxes. Muted palette of gray-blue, tan, black, and pale yellow. Imperfect ' +
   'anatomy, awkward emotional faces, simple compositions, slightly eerie but intimate.';
 
-// Build one gpt-image-1 prompt for a page of 1–4 panels.
+// Build one gpt-image-2 prompt for a page of 1–4 panels.
 function buildPagePrompt(beats) {
   const n = beats.length;
   const layout = n >= 4 ? 'a 2x2 grid of four comic-style panels'
