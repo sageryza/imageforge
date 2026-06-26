@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImageForge — Test Station</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/forge.css">
+  <style>
+    .station {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .station-intro {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .station-intro .machine { color: var(--accent); flex-shrink: 0; }
+    .station-intro .machine svg { width: 56px; height: 56px; display: block; }
+    .station-intro h2 { font-size: 20px; font-weight: 600; }
+    .station-intro p { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; max-width: 620px; }
+
+    /* ── Prompt bar ── */
+    .prompt-bar { margin-bottom: 22px; }
+    .prompt-bar label {
+      font-size: 11px; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 8px; display: block;
+    }
+    .prompt-bar textarea {
+      width: 100%; min-height: 64px; resize: vertical;
+      padding: 12px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 15px; font-family: inherit; outline: none;
+    }
+    .prompt-bar textarea:focus { border-color: var(--accent-dim); }
+    .prompt-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+    /* ── Styles section ── */
+    .styles-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .styles-head label {
+      font-size: 11px; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .styles-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 9px 18px; background: var(--accent); color: var(--bg);
+      border: none; border-radius: var(--radius); cursor: pointer;
+      font-size: 12px; font-weight: 600; font-family: inherit;
+      letter-spacing: 0.5px; text-transform: uppercase; transition: all 0.15s ease;
+    }
+    .btn:disabled { background: var(--accent-dim); opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 9px 16px; background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+      font-size: 12px; font-weight: 500; font-family: inherit;
+      letter-spacing: 0.5px; text-transform: uppercase; transition: all 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--text-dim); }
+
+    .style-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .style-tile {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      cursor: pointer;
+      background: linear-gradient(135deg, #efe7dc, #e3d7c6 60%, #d9c9b3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      font-family: inherit;
+      padding: 0;
+      color: var(--text);
+    }
+    .style-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(58,53,48,0.12); }
+    .style-tile.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    .style-tile img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .style-tile .tile-label {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 18px 10px 8px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+      color: #fff; text-align: left;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0));
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .style-tile .tile-provider {
+      position: absolute; top: 8px; left: 10px;
+      font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+      color: rgba(255,255,255,0.9); text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .style-tile.no-sample .tile-provider { color: var(--text-dim); text-shadow: none; }
+    .style-tile.no-sample .tile-label { color: var(--text); text-shadow: none; background: none; }
+    /* select checkbox */
+    .tile-check {
+      position: absolute; top: 6px; right: 6px;
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.85);
+      background: rgba(0,0,0,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 13px; z-index: 2;
+    }
+    .style-tile.no-sample .tile-check { border-color: var(--border); background: var(--surface); color: var(--accent); }
+    .style-tile.selected .tile-check { background: var(--accent); border-color: var(--accent); }
+    /* run-one button on hover */
+    .tile-run {
+      position: absolute; inset: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+    .style-tile:hover .tile-run { opacity: 1; }
+    .tile-run span {
+      background: rgba(255,255,255,0.92); color: var(--text);
+      border-radius: var(--radius); padding: 6px 12px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .run-row { margin: 18px 0 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .selected-note { font-size: 12px; color: var(--text-dim); }
+
+    /* ── Results ── */
+    .results-head { margin: 28px 0 12px; display: flex; align-items: center; justify-content: space-between; }
+    .results-head label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .result-card {
+      border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; background: var(--surface);
+    }
+    .result-card .rc-img {
+      width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--surface-2);
+    }
+    .result-card .rc-spinner {
+      width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      background: var(--surface-2); color: var(--text-dim); font-size: 12px;
+    }
+    .result-card .rc-meta { padding: 10px 12px; }
+    .result-card .rc-style { font-size: 13px; font-weight: 600; }
+    .result-card .rc-prompt { font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .result-card .rc-actions { margin-top: 8px; display: flex; gap: 12px; }
+    .result-card a, .result-card button.rc-link {
+      font-size: 11px; color: var(--accent); text-decoration: none;
+      background: none; border: none; cursor: pointer; font-family: inherit; padding: 0;
+    }
+    .result-card .rc-error { color: var(--danger); }
+
+    .spin {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty { padding: 30px 0; color: var(--text-dim); font-size: 13px; }
+
+    @media (max-width: 600px) {
+      .station { padding: 16px; }
+      .style-tiles { grid-template-columns: 1fr 1fr; }
+      .results-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand" onclick="location.href='/'" title="Back to hub">
+      <span class="brand-mark">◆</span>
+      <h1>ImageForge</h1>
+    </div>
+    <nav class="app-nav">
+      <span class="tool-name">Test Station</span>
+      <a class="btn-ghost" href="/">← Hub</a>
+    </nav>
+  </header>
+
+  <div class="station">
+    <div class="station-intro">
+      <span class="machine"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6 L40 6 L34 16 L30 16 Z"/><rect x="12" y="18" width="34" height="28" rx="3"/><circle cx="22" cy="30" r="5"/><path d="M22 30 L25 27"/><path d="M34 24 h8 M34 30 h8 M34 36 h6"/><path d="M46 30 h6 v6"/><circle cx="52" cy="40" r="2.5"/><path d="M16 46 v8 h22 v-8"/><rect x="20" y="50" width="14" height="9" rx="1"/><path d="M22 56 l3-3 2 2 3-3 2 4"/><path d="M50 12 l1.3 2.7 2.7 1.3 -2.7 1.3 -1.3 2.7 -1.3 -2.7 -2.7 -1.3 2.7 -1.3z"/></svg></span>
+      <div>
+        <h2>The Style Machine</h2>
+        <p>Type one prompt, then tap a style to see it rendered that way. Your prompt stays put — try a different style, or tick several and run them all at once to compare.</p>
+      </div>
+    </div>
+
+    <div class="prompt-bar">
+      <label>Prompt</label>
+      <textarea id="prompt" placeholder="e.g. a fox curled up asleep, a teapot on a windowsill, a castle on a hill…"></textarea>
+      <div class="prompt-hint">Tip: tap a tile to run it instantly, or tick the ◦ on a few tiles and press <strong>Run selected</strong>.</div>
+    </div>
+
+    <div class="styles-head">
+      <label>Styles</label>
+      <div class="styles-head-actions">
+        <button class="btn-secondary" id="samples-btn" onclick="generateSamples()" title="Render a sample image for every style so the tiles show what each one makes (uses one generation per style).">✨ Fill in style samples</button>
+      </div>
+    </div>
+    <div class="style-tiles" id="style-tiles"></div>
+
+    <div class="run-row">
+      <button class="btn" id="run-selected" onclick="runSelected()" disabled>Run selected</button>
+      <span class="selected-note" id="selected-note">No styles selected</span>
+    </div>
+
+    <div class="results-head">
+      <label>Results</label>
+      <button class="btn-secondary" id="clear-results" onclick="clearResults()" style="display:none;">Clear</button>
+    </div>
+    <div class="results-grid" id="results-grid"></div>
+    <div class="empty" id="results-empty">Nothing yet — enter a prompt and tap a style.</div>
+  </div>
+
+  <script>
+    // ── Settings (mirrors index.html keys so per-style tuning carries over) ──
+    const DEFAULT_MODEL_SETTINGS = {
+      suffix: '', lora_scale: 1, megapixels: '1', output_format: 'webp',
+      num_outputs: 1, guidance_scale: 3, output_quality: 80, num_inference_steps: 28,
+    };
+    let modelServerDefaults = {}; // modelId -> { num_inference_steps } from /api/models
+
+    function loadAllSettings() {
+      try { return JSON.parse(localStorage.getItem('imageforge_model_settings') || '{}'); }
+      catch { return {}; }
+    }
+    function getModelSettings(modelId) {
+      const all = loadAllSettings();
+      return { ...DEFAULT_MODEL_SETTINGS, ...(modelServerDefaults[modelId] || {}), ...(all[modelId] || {}) };
+    }
+    function getGlobalBgSuffix() {
+      return localStorage.getItem('imageforge_bg_suffix') ?? 'centered on a white background';
+    }
+
+    // ── Sample thumbnails persisted per style ──
+    const SAMPLE_PROMPT = 'a little fox sitting';
+    function loadSamples() {
+      try { return JSON.parse(localStorage.getItem('imageforge_style_samples') || '{}'); }
+      catch { return {}; }
+    }
+    function saveSample(modelId, url) {
+      const s = loadSamples(); s[modelId] = url;
+      localStorage.setItem('imageforge_style_samples', JSON.stringify(s));
+    }
+
+    let styles = [];
+    const selected = new Set();
+
+    async function safeFetchJson(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text.slice(0, 200)}`);
+      }
+      return res.json();
+    }
+
+    async function loadStyles() {
+      const models = await safeFetchJson('/api/models');
+      (models.replicate || []).forEach(m => {
+        if (m.defaultSteps) modelServerDefaults[m.id] = { num_inference_steps: m.defaultSteps };
+      });
+      styles = [
+        ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
+        ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
+      ];
+      renderTiles();
+    }
+
+    function renderTiles() {
+      const samples = loadSamples();
+      const grid = document.getElementById('style-tiles');
+      grid.innerHTML = '';
+      styles.forEach(s => {
+        const sample = samples[s.id];
+        const tile = document.createElement('button');
+        tile.className = 'style-tile' + (sample ? '' : ' no-sample') + (selected.has(s.id) ? ' selected' : '');
+        tile.dataset.id = s.id;
+        tile.innerHTML = `
+          ${sample ? `<img src="${sample}" alt="${escHtml(s.name)} sample">` : ''}
+          <span class="tile-provider">${s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
+          <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
+          <span class="tile-run"><span>▶ run</span></span>
+          <span class="tile-label">${escHtml(s.name)}</span>
+        `;
+        // Tile body → run this one style now.
+        tile.addEventListener('click', (e) => {
+          if (e.target.closest('.tile-check')) { toggleSelect(s.id); return; }
+          runStyles([s]);
+        });
+        grid.appendChild(tile);
+      });
+    }
+
+    function toggleSelect(id) {
+      if (selected.has(id)) selected.delete(id); else selected.add(id);
+      renderTiles();
+      const n = selected.size;
+      document.getElementById('run-selected').disabled = n === 0;
+      document.getElementById('selected-note').textContent =
+        n === 0 ? 'No styles selected' : `${n} style${n > 1 ? 's' : ''} selected`;
+    }
+
+    function escHtml(str) {
+      const d = document.createElement('div'); d.textContent = str ?? ''; return d.innerHTML;
+    }
+
+    function getPrompt() {
+      const p = document.getElementById('prompt').value.trim();
+      return p;
+    }
+
+    function runSelected() {
+      const chosen = styles.filter(s => selected.has(s.id));
+      if (chosen.length) runStyles(chosen);
+    }
+
+    // Render `prompt` through each given style, one result card each.
+    async function runStyles(chosen, overridePrompt) {
+      const prompt = overridePrompt || getPrompt();
+      if (!prompt) {
+        document.getElementById('prompt').focus();
+        flashHint('Enter a prompt first.');
+        return;
+      }
+      document.getElementById('results-empty').style.display = 'none';
+      document.getElementById('clear-results').style.display = '';
+      // Sequential to stay friendly with Replicate rate limits.
+      for (const style of chosen) {
+        const card = addPendingCard(style, prompt);
+        try {
+          const data = await generateOne(style, prompt);
+          if (data.error) throw new Error(data.error);
+          fillCard(card, data.url, style);
+          if (data.url) saveSample(style.id, data.url); // freshen the tile thumbnail
+        } catch (err) {
+          failCard(card, err.message);
+        }
+      }
+      renderTiles();
+    }
+
+    async function generateOne(style, prompt) {
+      if (style.provider === 'replicate') {
+        const settings = getModelSettings(style.id);
+        const bgSuffix = getGlobalBgSuffix();
+        const parts = [prompt, settings.suffix, bgSuffix].filter(Boolean);
+        return safeFetchJson('/api/generate/replicate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: parts.join(', '), model: style.id, settings }),
+        });
+      }
+      const full = style.stylePrompt ? `${style.stylePrompt}. ${prompt}` : prompt;
+      return safeFetchJson('/api/generate/dalle', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: full }),
+      });
+    }
+
+    // ── Result cards (newest first) ──
+    function addPendingCard(style, prompt) {
+      const grid = document.getElementById('results-grid');
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.innerHTML = `
+        <div class="rc-spinner"><span class="spin"></span>rendering…</div>
+        <div class="rc-meta">
+          <div class="rc-style">${escHtml(style.name)}</div>
+          <div class="rc-prompt">${escHtml(prompt)}</div>
+        </div>`;
+      grid.prepend(card);
+      return card;
+    }
+    function fillCard(card, url, style) {
+      card.querySelector('.rc-spinner')?.remove();
+      const img = document.createElement('img');
+      img.className = 'rc-img'; img.src = url; img.alt = style.name;
+      card.prepend(img);
+      const meta = card.querySelector('.rc-meta');
+      const actions = document.createElement('div');
+      actions.className = 'rc-actions';
+      actions.innerHTML = `
+        <a href="${url}" download="${style.id.replace(/\W+/g,'-')}.png" target="_blank">↓ Download</a>
+        <button class="rc-link" onclick="reuseInto(this)" data-prompt="${escHtml(document.getElementById('prompt').value)}">↻ Re-run</button>`;
+      actions.querySelector('.rc-link').dataset.styleId = style.id;
+      meta.appendChild(actions);
+    }
+    function failCard(card, msg) {
+      card.querySelector('.rc-spinner')?.remove();
+      const div = document.createElement('div');
+      div.className = 'rc-spinner rc-error'; div.textContent = '⚠ ' + msg;
+      card.prepend(div);
+    }
+    function reuseInto(btn) {
+      const style = styles.find(s => s.id === btn.dataset.styleId);
+      if (style) runStyles([style]);
+    }
+    function clearResults() {
+      document.getElementById('results-grid').innerHTML = '';
+      document.getElementById('results-empty').style.display = '';
+      document.getElementById('clear-results').style.display = 'none';
+    }
+
+    function flashHint(msg) {
+      const hint = document.querySelector('.prompt-hint');
+      const orig = hint.innerHTML;
+      hint.innerHTML = `<strong style="color:var(--danger)">${msg}</strong>`;
+      setTimeout(() => { hint.innerHTML = orig; }, 2500);
+    }
+
+    // ── Fill in samples: render SAMPLE_PROMPT through every style missing one ──
+    async function generateSamples() {
+      const btn = document.getElementById('samples-btn');
+      const samples = loadSamples();
+      const missing = styles.filter(s => !samples[s.id]);
+      const targets = missing.length ? missing : styles; // if all present, refresh all
+      btn.disabled = true;
+      let done = 0;
+      for (const style of targets) {
+        btn.textContent = `✨ Rendering samples… ${++done}/${targets.length}`;
+        try {
+          const data = await generateOne(style, SAMPLE_PROMPT);
+          if (data.url) { saveSample(style.id, data.url); renderTiles(); }
+        } catch { /* leave tile as placeholder */ }
+      }
+      btn.disabled = false;
+      btn.textContent = '✨ Refresh style samples';
+    }
+
+    loadStyles();
+  </script>
+</body>
+</html>

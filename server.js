@@ -147,6 +147,9 @@ app.get('/api/gallery', async (req, res) => {
 
 app.get('/gallery', (req, res) => { res.sendFile(__dirname + '/public/gallery.html'); });
 
+// ─── Test Station: try one prompt across many styles ────────────────
+app.get('/test', (req, res) => { res.sendFile(__dirname + '/public/test.html'); });
+
 app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
