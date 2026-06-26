@@ -8,7 +8,20 @@ const FormData = require('form-data');
 const admin = require('firebase-admin');
 
 const app = express();
-app.use(cors());
+
+// ─── CORS ───────────────────────────────────────────────────────────
+// The API is called from browser apps on other origins (e.g. a Claude
+// artifact), so cross-origin requests must be allowed. Permissive for now
+// — any origin — since the endpoints are already open; `origin: true`
+// reflects the caller's origin (so it also works if we ever add
+// credentials). Tighten `origin` to an allow-list later if needed.
+const corsOptions = {
+  origin: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // explicit preflight for every route
 app.use(express.json());
 app.use(express.static(__dirname + '/public'));
 
