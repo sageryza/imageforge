@@ -797,6 +797,47 @@ app.get('/api/talking/job/:id', (req, res) => {
   res.json(job);
 });
 
+// ─── Upscale a page for print (Replicate Real-ESRGAN, faithful 4x) ──────
+// Takes the exact approved image and increases resolution for print without
+// changing the art. Runs as a background job (polled like render-page).
+async function upscaleImage(imageInput) {
+  const createRes = await fetch('https://api.replicate.com/v1/models/nightmareai/real-esrgan/predictions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ input: { image: imageInput, scale: 4, face_enhance: false } }),
+  });
+  let prediction = await createRes.json();
+  if (prediction.error) throw new Error(prediction.error.detail || prediction.error || 'Replicate error');
+  if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
+  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
+    await new Promise(r => setTimeout(r, 2000));
+    const pollRes = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+    prediction = await pollRes.json();
+  }
+  if (prediction.status !== 'succeeded') throw new Error(prediction.error || 'Upscale failed');
+  const out = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  if (!out) throw new Error('Upscale produced no image');
+  return await saveToFirebase(out, 'talking-print'); // permanent if Firebase set, else the Replicate URL
+}
+
+app.post('/api/talking/upscale', (req, res) => {
+  const { image } = req.body || {};
+  if (!image) return res.status(400).json({ error: 'image required' });
+  if (!REPLICATE_API_TOKEN) return res.status(400).json({ error: 'Replicate token not set on the server' });
+  sweepJobs();
+  const jobId = 'up_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  talkingJobs.set(jobId, { status: 'pending', ts: Date.now() });
+  (async () => {
+    try {
+      const url = await upscaleImage(image);
+      talkingJobs.set(jobId, { status: 'done', url, ts: Date.now() });
+    } catch (err) {
+      talkingJobs.set(jobId, { status: 'error', error: err.message, ts: Date.now() });
+    }
+  })();
+  res.json({ jobId });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
 

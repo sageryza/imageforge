@@ -196,6 +196,23 @@
     transition: all 0.15s ease;
   }
   .panel:hover .del { background: rgba(43,38,32,0.78); color: var(--paper); }
+  .panel .printbtn {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 0 8px 8px;
+    padding: 6px 0;
+    font-family: 'Special Elite', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .panel .printbtn:hover { background: var(--accent); color: #f3ead6; }
+  .panel .printbtn:disabled { opacity: 0.5; cursor: default; }
 
   /* loading panel */
   .panel.loading .imgframe {
@@ -288,6 +305,12 @@
     grid.querySelectorAll('.del').forEach(b => {
       b.onclick = () => { remove(b.dataset.id); };
     });
+    grid.querySelectorAll('.printbtn').forEach(b => {
+      b.onclick = () => {
+        const it = load().find(x => x.id === b.dataset.id);
+        if (it) upscaleForPrint(it, b);
+      };
+    });
   }
 
   function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -303,7 +326,29 @@
       <span class="typetag">${esc(it.type)}</span>
       <div class="imgframe"><img src="${esc(it.url)}" alt="${esc(alt)}" loading="lazy"></div>
       ${cap}
+      <button class="printbtn" data-id="${it.id}" title="upscale for print">⤢ print</button>
     </figure>`;
+  }
+
+  // Upscale the approved page to print resolution via the server (Replicate),
+  // then open the hi-res image so it can be saved. Polls a background job.
+  async function upscaleForPrint(item, btn) {
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = 'upscaling…';
+    try {
+      const { jobId } = await postJSON('/api/talking/upscale', { image: item.url });
+      const started = Date.now();
+      for (;;) {
+        await new Promise(r => setTimeout(r, 3000));
+        const job = await getJSON('/api/talking/job/' + jobId); // throws on error status
+        if (job.status === 'done') { window.open(job.url, '_blank'); break; }
+        if (Date.now() - started > 4 * 60 * 1000) throw new Error('Timed out.');
+      }
+    } catch (e) {
+      alert('Print upscale failed: ' + ((e && e.message) || 'unknown error'));
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
   }
 
   function remove(id) {
