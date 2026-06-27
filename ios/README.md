@@ -55,8 +55,19 @@ placeholder until it's run.
 
 - Keep `ForgeStyles.all` (here), `MODELS` (`server.js`) and `FORGE_STYLES`
   (the Cloud Function) in sync when styles change.
-- **TestFlight:** archive in Xcode → upload to App Store Connect → TestFlight,
-  same flow as the Miracles app. Add an endpoint/app check before wide beta so
-  the callable can't be abused (it's auth-gated, but anon auth is open).
+- **TestFlight (no Mac needed):** the `iOS TestFlight` GitHub Action
+  (`.github/workflows/ios-testflight.yml`) builds on a macOS runner and uploads
+  via fastlane (`fastlane beta`) with Apple-managed signing — same flow as the
+  Miracles/XI apps. One-time prerequisites:
+  1. Add three repo secrets to **this** repo (Settings → Secrets and variables →
+     Actions): `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` — the same App Store
+     Connect API key values used by the games repo (GitHub secrets are
+     per-repo, so they must be re-added here).
+  2. Create the App Store Connect app record once: App Store Connect → Apps → +
+     → New App → bundle id `com.sageryza.imageforge`, name "ImageForge".
+  Then run the workflow from the Actions tab (or it runs on pushes to `main`
+  touching `ios/`). Team id `5XR23N2CBH`.
+- Add an endpoint/app check before wide beta so the callable can't be abused
+  (it's auth-gated, but anonymous auth is open).
 - Next workflows to port: the **Deck Factory** pipeline, then the Picture Book /
   Zine, reusing the same service pattern.
