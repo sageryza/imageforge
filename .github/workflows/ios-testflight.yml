@@ -1,19 +1,18 @@
 name: iOS TestFlight
 
 # Builds the ImageForge app on a cloud macOS runner, signs it with the App Store
-# Connect API key, and uploads it to TestFlight. Run it by hand from the
-# Actions tab (Run workflow), or it runs on pushes to main that touch ios/.
-# No local Mac required.
+# Connect API key, and uploads it to TestFlight. No local Mac required.
 #
-# Requires three repo secrets (copy them from the games repo / your App Store
-# Connect API key): ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8, base64).
+# MANUAL ONLY for now (workflow_dispatch): TestFlight builds currently run from
+# the `ImageForge TestFlight` workflow in the memory-library-react repo, which
+# already holds the App Store Connect secrets. This workflow is kept here ready
+# to take over once the three secrets are added to THIS repo — at which point you
+# can re-add a `push` trigger for auto-builds. It is intentionally not on `push`
+# so it can't auto-fail (red X) while the secrets are absent.
+#
+# Requires three repo secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (.p8, base64).
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'ios/**'
-      - '.github/workflows/ios-testflight.yml'
 
 jobs:
   testflight:
