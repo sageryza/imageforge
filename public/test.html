@@ -275,9 +275,13 @@
       (models.replicate || []).forEach(m => {
         if (m.defaultSteps) modelServerDefaults[m.id] = { num_inference_steps: m.defaultSteps };
       });
-      // The Test Station compares the house styles (the Replicate LoRAs). The
-      // generic OpenAI model isn't a "style", so it's left out of the tiles.
-      styles = (models.replicate || []).map(m => ({ ...m, provider: 'replicate' }));
+      // The Test Station compares the house styles (the Replicate LoRAs) plus
+      // gpt-image-2. The generic DALL·E 3 model isn't a "style", so it's left
+      // out of the tiles.
+      styles = [
+        ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
+        ...(models.openai || []).map(m => ({ ...m, provider: 'openai' })),
+      ];
       renderTiles();
     }
 
@@ -296,7 +300,7 @@
         tile.dataset.id = s.id;
         tile.innerHTML = `
           <img src="${sample}" alt="${escHtml(s.name)} sample">
-          <span class="tile-provider">${s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
+          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
           <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
           <span class="tile-run"><span>▶ run</span></span>
           <span class="tile-label">${escHtml(s.name)}</span>
@@ -364,6 +368,14 @@
     }
 
     async function generateOne(style, prompt) {
+      if (style.provider === 'openai') {
+        const bgSuffix = getGlobalBgSuffix();
+        const full = [prompt, bgSuffix].filter(Boolean).join(', ');
+        return safeFetchJson('/api/generate/gptimage', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: full, quality: style.quality || 'low' }),
+        });
+      }
       if (style.provider === 'replicate') {
         const settings = getModelSettings(style.id);
         const bgSuffix = getGlobalBgSuffix();

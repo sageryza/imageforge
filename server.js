@@ -177,6 +177,11 @@ const MODELS = {
   dalle: [
     { id: 'dall-e-3', name: 'DALL·E 3', stylePrompt: '' },
   ],
+  // gpt-image-2 (OpenAI's current image model), rendered at quality "low" to
+  // stay fast + cheap — the same model/setting the zine uses.
+  openai: [
+    { id: 'gpt-image-2', name: 'ChatGPT (gpt-image-2)', quality: 'low' },
+  ],
 };
 
 // Resolve a Replicate model's version id. Pinned versions are returned as-is;
@@ -357,6 +362,23 @@ app.post('/api/generate/dalle', async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message });
     const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Single image: OpenAI gpt-image-2 (quality low by default) ──────
+app.post('/api/generate/gptimage', async (req, res) => {
+  try {
+    const { prompt, quality = 'low', size = '1024x1024' } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+    const data = await openaiImage({ model: 'gpt-image-2', prompt, n: 1, size, quality, output_format: 'webp' });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
