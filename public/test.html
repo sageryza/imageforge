@@ -202,7 +202,7 @@
 
     <div class="prompt-bar">
       <label>Prompt</label>
-      <textarea id="prompt" placeholder="e.g. a fox curled up asleep, a teapot on a windowsill, a castle on a hill…"></textarea>
+      <textarea id="prompt" placeholder="e.g. a teapot on a windowsill, a castle on a hill, a slice of layer cake…"></textarea>
       <div class="prompt-hint">Tip: tap a tile to run it instantly, or tick the ◦ on a few tiles and press <strong>Run selected</strong>.</div>
     </div>
 
@@ -248,7 +248,7 @@
     }
 
     // ── Sample thumbnails persisted per style ──
-    const SAMPLE_PROMPT = 'a little fox sitting';
+    const SAMPLE_PROMPT = 'a cozy little cottage';
     function loadSamples() {
       try { return JSON.parse(localStorage.getItem('imageforge_style_samples') || '{}'); }
       catch { return {}; }
@@ -287,17 +287,26 @@
       const grid = document.getElementById('style-tiles');
       grid.innerHTML = '';
       styles.forEach(s => {
-        const sample = samples[s.id];
+        // Prefer a sample rendered this session, else the committed preview
+        // shipped at /samples/<seg>.webp. If neither loads (e.g. DALL·E, which
+        // has no committed preview), the <img> onerror drops to a placeholder.
+        const seg = s.id.split('/').pop();
+        const sample = samples[s.id] || `/samples/${seg}.webp`;
         const tile = document.createElement('button');
-        tile.className = 'style-tile' + (sample ? '' : ' no-sample') + (selected.has(s.id) ? ' selected' : '');
+        tile.className = 'style-tile' + (selected.has(s.id) ? ' selected' : '');
         tile.dataset.id = s.id;
         tile.innerHTML = `
-          ${sample ? `<img src="${sample}" alt="${escHtml(s.name)} sample">` : ''}
+          <img src="${sample}" alt="${escHtml(s.name)} sample">
           <span class="tile-provider">${s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
           <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
           <span class="tile-run"><span>▶ run</span></span>
           <span class="tile-label">${escHtml(s.name)}</span>
         `;
+        // No preview available → strip the broken image and show placeholder.
+        tile.querySelector('img').addEventListener('error', function () {
+          this.remove();
+          tile.classList.add('no-sample');
+        });
         // Tile body → run this one style now.
         tile.addEventListener('click', (e) => {
           if (e.target.closest('.tile-check')) { toggleSelect(s.id); return; }
