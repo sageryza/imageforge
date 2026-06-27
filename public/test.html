@@ -275,10 +275,9 @@
       (models.replicate || []).forEach(m => {
         if (m.defaultSteps) modelServerDefaults[m.id] = { num_inference_steps: m.defaultSteps };
       });
-      styles = [
-        ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
-        ...(models.dalle || []).map(m => ({ ...m, provider: 'dalle' })),
-      ];
+      // The Test Station compares the house styles (the Replicate LoRAs). The
+      // generic OpenAI model isn't a "style", so it's left out of the tiles.
+      styles = (models.replicate || []).map(m => ({ ...m, provider: 'replicate' }));
       renderTiles();
     }
 
