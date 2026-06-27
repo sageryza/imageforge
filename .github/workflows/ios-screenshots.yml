@@ -1,0 +1,90 @@
+name: iOS screenshots
+
+# Visual loop for the SwiftUI app without a local Mac: builds for the iOS
+# Simulator, launches the app, captures a screenshot, and publishes the PNG to
+# the `ci-screenshots` branch (so it can be fetched + reviewed). Manual only.
+# Free on this public repo (standard GitHub-hosted runners).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  screenshot:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $XC"
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick an available iPhone simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for rt in d for x in d[rt] if x.get('isAvailable') and 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
+          if [ -z "$UDID" ]; then echo '::error::no iPhone simulator available'; exit 1; fi
+          echo "Using simulator $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Build for Simulator (no signing)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project ImageForge.xcodeproj -scheme ImageForge \
+            -configuration Debug -sdk iphonesimulator \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -20
+
+      - name: Launch app and capture screenshot
+        working-directory: ios
+        run: |
+          set -e
+          UDID="${{ steps.sim.outputs.udid }}"
+          APP="build/Build/Products/Debug-iphonesimulator/ImageForge.app"
+          echo "App: $APP"; ls -la "$APP"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" com.sageryza.imageforge
+          # give SwiftUI + remote AsyncImage tiles time to render
+          sleep 12
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/test-station.png"
+          echo "captured:"; ls -la "$RUNNER_TEMP/test-station.png"
+
+      - name: Publish to ci-screenshots branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin ci-screenshots >/dev/null 2>&1; then
+            git fetch origin ci-screenshots
+            git switch ci-screenshots
+          else
+            git switch --orphan ci-screenshots
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p shots
+          cp "$RUNNER_TEMP/test-station.png" shots/test-station.png
+          git add shots/test-station.png
+          git commit -m "ci: screenshot $(date -u +%Y-%m-%dT%H:%M:%SZ)" || { echo "no change"; exit 0; }
+          git push origin ci-screenshots
+
+      - name: Also upload as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: ${{ runner.temp }}/test-station.png
