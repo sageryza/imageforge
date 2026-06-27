@@ -55,18 +55,19 @@ placeholder until it's run.
 
 - Keep `ForgeStyles.all` (here), `MODELS` (`server.js`) and `FORGE_STYLES`
   (the Cloud Function) in sync when styles change.
-- **TestFlight (no Mac needed):** the `iOS TestFlight` GitHub Action
-  (`.github/workflows/ios-testflight.yml`) builds on a macOS runner and uploads
-  via fastlane (`fastlane beta`) with Apple-managed signing — same flow as the
-  Miracles/XI apps. One-time prerequisites:
-  1. Add three repo secrets to **this** repo (Settings → Secrets and variables →
-     Actions): `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` — the same App Store
-     Connect API key values used by the games repo (GitHub secrets are
-     per-repo, so they must be re-added here).
-  2. Create the App Store Connect app record once: App Store Connect → Apps → +
-     → New App → bundle id `com.sageryza.imageforge`, name "ImageForge".
-  Then run the workflow from the Actions tab (or it runs on pushes to `main`
-  touching `ios/`). Team id `5XR23N2CBH`.
+- **TestFlight (no Mac needed):** builds run from the **`ImageForge TestFlight`**
+  workflow in the `memory-library-react` repo, which already holds the App Store
+  Connect secrets. That workflow checks out *this* public repo at build time and
+  runs the lane below (`ios/fastlane/Fastfile`, `fastlane beta`) — Apple-managed
+  signing, no certs. Trigger it from that repo's Actions tab (`workflow_dispatch`).
+  The App Store Connect app record (`com.sageryza.imageforge` / "ImageForge")
+  must exist once; the App ID auto-registers during signing. Team id `5XR23N2CBH`.
+  - This repo also keeps its own `iOS TestFlight` workflow
+    (`.github/workflows/ios-testflight.yml`), but it's **manual-only**
+    (`workflow_dispatch`) and dormant until you add `ASC_KEY_ID`,
+    `ASC_ISSUER_ID`, `ASC_KEY_P8` as secrets here. Once they're set you can run
+    it directly (and re-add a `push` trigger for auto-builds) to make this repo
+    self-contained instead of building from the games repo.
 - Add an endpoint/app check before wide beta so the callable can't be abused
   (it's auth-gated, but anonymous auth is open).
 - Next workflows to port: the **Deck Factory** pipeline, then the Picture Book /
