@@ -1,0 +1,167 @@
+/* ──────────────────────────────────────────────────────────────────
+   ImageForge design system
+   Shared tokens + components for the hub and every project workflow.
+
+   Design rules (see CLAUDE.md):
+   • No pills. Text buttons are rounded rectangles — border-radius: 6px.
+     Circular icon buttons (toggles, dots) are the only exception.
+   • Warm paper palette, quiet type, generous spacing.
+   ────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-2: #f5f0eb;
+  --border: #e8e4df;
+  --accent: #b48b6a;
+  --accent-dim: #c9ad93;
+  --text: #3a3530;
+  --text-dim: #9e9590;
+  --danger: #d4807a;
+  --green: #7ab58a;
+  --star: #dbb45c;
+  --radius: 6px;
+  --radius-lg: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── App header / hub navigation ─────────────────────────────────── */
+.app-header {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-mark { color: var(--accent-dim); font-size: 14px; }
+
+.brand h1 {
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tool-name {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.btn-ghost {
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover { border-color: var(--text-dim); }
+
+/* ── Hub home ────────────────────────────────────────────────────── */
+.hub {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 48px 28px 64px;
+}
+
+.hub-tagline {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+  max-width: 540px;
+  line-height: 1.6;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  display: block;
+  text-align: left;
+  text-decoration: none;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.project-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
+  box-shadow: 0 6px 18px rgba(58,53,48,0.08);
+}
+
+.project-card .pc-icon {
+  font-size: 28px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 16px;
+}
+.project-card .pc-icon svg { width: 38px; height: 38px; color: var(--accent); display: block; }
+
+.project-card .pc-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.project-card .pc-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.project-card .pc-ext {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .app-header { padding: 16px; }
+  .hub { padding: 32px 16px 48px; }
+  .hub-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .project-card { padding: 18px; }
+}
