@@ -1,229 +1,204 @@
 # Secretly A Witch — Instagram Content Strategy
 
 **Account:** [@moonsickbaby](https://instagram.com/moonsickbaby)
-**Brand:** Secretly A Witch
-**Built with:** ImageForge house styles (so every visual here is something you can
-actually generate today). Test Station: https://imageforge-q125.onrender.com/test
+**Brand:** Secretly A Witch · [secretlyawitch.com](https://secretlyawitch.com) · [Etsy: sophiespincher](https://www.etsy.com/shop/sophiespincher)
+**Tagline:** *"plants to tingle the spine and electrify the soul."*
 
-> ⚠️ **Assumptions to confirm.** The question prompt got interrupted before you
-> could answer, so this draft makes educated guesses. Tell me where I'm wrong and
-> I'll re-cut it:
-> - **What you sell:** assumed a mix of *witchy goods* (candles, tarot, apothecary,
->   jewelry) and/or *readings/services*. If it's purely a personal brand, or purely
->   digital products, the "sell" posts change.
-> - **Vibe:** assumed **modern, a little playful, mystical-but-relatable** — the
->   "secretly a witch in a normal life" angle the name implies. Can go darker/moodier
->   or softer/dreamier on request.
-> - **Cadence:** assumed you want something *sustainable solo*, not a full-time
->   content grind.
+**Make the posts here:** [Instagram Studio](https://imageforge-q125.onrender.com/instagram) — a
+brand-tuned page in ImageForge that generates a 4:5 image in a house style **and** a
+caption + hashtags in the @moonsickbaby voice. Everything below is wired into it.
+
+---
+
+## 0. Brand profile (confirmed)
+
+- **What it is:** witchcraft & wiccan supplies — curated kits and individual items,
+  mystical-but-beginner-friendly, big on personalization ("make your own practice").
+- **What sells:** apothecary boxes (mortar & pestle), apothecary reference cards,
+  black salt (protection/banishing), Book of Shadows / grimoire journals, crystals
+  (palm stones, mystery kits, heart boxes, advent calendar), pendulum boards,
+  celestial bells, Color-Your-Own tarot decks, "Come to Me" love potion oil, and
+  starter / travel altar kits.
+- **Personal brand + shop:** @moonsickbaby is a face/voice, not just a storefront.
+- **Visual + tone direction (your call):** **between dark & moody and playful.**
+  Two signature post shapes:
+  1. **Beautiful flat-lays** — products on botanical beds, pressed leaves, candlelight.
+  2. **Funny meme content** — relatable "secretly a witch in normal life" humor.
+  Free to get edgy or stay playful.
 
 ---
 
 ## 1. Positioning — the one-line idea
 
-> **"For people who look normal on the outside and keep a little magic on the
-> inside."**
+> **"For people who look normal on the outside and keep a little magic on the inside."**
 
 The name *Secretly A Witch* is the whole strategy in three words. The hook is the
-**secret** — the gap between an ordinary surface (commute, group chat, laundry) and
-a private inner life of ritual, intuition, and small magic. Every post should sit on
-that line somewhere. It's relatable *and* aspirational, which is exactly what makes
-people save and share.
+**secret** — the gap between an ordinary surface and a private inner life of ritual,
+intuition, and small magic. The brand already lives there ("nobody needs to know what
+this is for. but you do"). Every post sits somewhere on that line.
 
 **Voice:** warm, dry-funny, a little conspiratorial — like texting a friend who also
-talks to the moon. Never preachy, never "spiritual-influencer" airy. Lowercase-energy
-captions are on-brand for @moonsickbaby.
-
-**What we're NOT:** generic "good vibes" wellness, fear-based fortune-telling, or
-anything that reads like a stock-photo crystal shop.
+talks to the moon. Lowercase-energy captions are on-brand. Never preachy, never
+fear-based fortune-telling, never generic "good vibes" wellness.
 
 ---
 
-## 2. Content pillars (the recurring buckets)
+## 2. Content pillars
 
-Rotate these so the feed has rhythm and you never face a blank page. Suggested mix
-per week in parentheses.
-
-| Pillar | What it is | Why it works | Mix |
+| Pillar | What it is | IG Studio angle | Mix |
 |---|---|---|---|
-| 🌙 **Secretly a witch in public** | Relatable "normal life + quiet magic" moments. Memes, POV captions, "me pretending I'm not reading everyone's energy at the meeting." | Highest share/save potential. This is your signature. | ~30% |
-| 🔮 **Ritual & how-to** | Simple, do-it-tonight practices: a moon-water recipe, a candle color guide, a 1-card pull. Carousels. | Saves + "send to a friend." Establishes authority gently. | ~25% |
-| 🕯️ **The goods** | Product/service posts — but framed as story, not catalog. "what this candle is actually for." | Converts. Keep it ≤20% so the feed never feels like an ad. | ~20% |
-| 📓 **Behind the cauldron** | Process, packing orders, your hands, the workspace, why you started. Stories + Reels. | Builds parasocial trust → loyal buyers. | ~15% |
-| ✨ **Seasonal / lunar** | New moon, full moon, sabbats, eclipses, solstices — tied to a prompt or offer. | Reliable, plannable, algorithm-friendly timeliness. | ~10% |
+| 🌿 **Product flat-lays** | Hero shots of real products on botanical/candlelit beds. | *Product flat-lay* (Gouache) | ~25% |
+| 😼 **Secretly-a-witch memes** | Relatable "normal life + quiet magic" humor. Your signature share-driver. | *Witchy meme* (Sketchy) | ~25% |
+| 🔮 **Ritual & how-to** | Simple do-it-tonight practices (moon water, black-salt threshold, 1-card pull). | *Ritual / how-to* (Watercolor) | ~20% |
+| 🌙 **Lunar moments** | New/full-moon anchor posts, plannable + timely. | *Lunar moment* (HOONIE linocut) | ~15% |
+| 🕯️ **Behind the cauldron** | Process, packing orders, your hands, why you started. | *Behind the cauldron* (Painterly) | ~10% |
+| 📜 **Botanical / ingredient** | Clean reference-card looks — herbs, correspondences. Ties to the apothecary line. | *Botanical / ingredient* (Book Illustrations) | ~5% |
+
+Keep overtly-selling posts ≤25% so the feed never reads like a catalog. The memes and
+rituals are what make people follow; the flat-lays are what make them buy.
 
 ---
 
 ## 3. Cadence (sustainable solo plan)
 
-- **Feed: 3–4 posts/week.** Mon / Wed / Fri + an optional Sunday. Quality over volume.
-- **Stories: most days, low effort.** Repost feed posts, polls ("candle or incense
-  tonight?"), behind-the-scenes, restock alerts.
-- **Reels: 1–2/week.** Highest reach lever right now. Even a slow pan over a generated
-  image + trending audio + text hook counts.
-- **Lunar anchors:** always post on the **new moon** (intention-setting) and **full
-  moon** (release). Pre-schedule these — dates below.
+- **Feed: 3–4 posts/week** — Mon / Wed / Fri (+ optional Sun). Quality over volume.
+- **Stories: most days, low effort** — repost feed, polls ("candle or incense tonight?"),
+  restock alerts, behind-the-scenes.
+- **Reels: 1–2/week** — biggest reach lever. A slow pan over a flat-lay + trending audio +
+  a meme text hook counts.
+- **Lunar anchors:** always post on the **new moon** (intention) and **full moon**
+  (release). Pre-schedule these (§7).
 
-**Best windows for this niche:** evenings (7–10pm local) and Sunday mornings. The
-moon content over-indexes at night.
+Best windows for this niche: **evenings 7–10pm** and **Sunday mornings**; moon content
+over-indexes at night.
 
 ---
 
 ## 4. Four-week launch calendar
 
-A concrete starting grid. Pillar in brackets; each row has a ready-to-use ImageForge
-style + a caption seed (full prompts & captions in §5–6).
+Each row → an [Instagram Studio](https://imageforge-q125.onrender.com/instagram) angle.
+Open the angle, hit **Generate post**, tweak the caption, schedule.
 
 ### Week 1 — establish the voice
-| Day | Pillar | Post | Style |
+| Day | Pillar | Post | Studio angle |
 |---|---|---|---|
-| Mon | 🌙 Secretly | "ways i'm secretly a witch at my day job" carousel (5 slides) | Sketchy |
-| Wed | 🔮 Ritual | "moon water, the lazy version" how-to carousel | Watercolor |
-| Fri | 🕯️ Goods | Hero shot of a signature product + origin story | Gouache |
-| Sun | ✨ Lunar | New-moon intention prompt (see §7 dates) | HOONIE linocut |
+| Mon | 😼 Meme | "me at the meeting / me the second i get home" | Witchy meme |
+| Wed | 🔮 Ritual | "moon water, the lazy version" | Ritual / how-to |
+| Fri | 🌿 Flat-lay | Hero: Book of Shadows journal on dark linen | Product flat-lay |
+| Sun | 🌙 Lunar | New-moon intention prompt (§7) | Lunar moment |
 
 ### Week 2 — go deeper
-| Day | Pillar | Post | Style |
+| Day | Pillar | Post | Studio angle |
 |---|---|---|---|
-| Mon | 🌙 Secretly | POV meme: "me, normal" vs "me, at home" diptych | Sketchy |
-| Wed | 📓 Behind | Your hands packing an order / making something | Painterly |
-| Fri | 🔮 Ritual | "what each candle color is for" reference carousel | Book Illustrations (B&W) |
-| Sun | 🌙 Secretly | Relatable witch meme, light + funny | Sketchy |
+| Mon | 😼 Meme | "normal closet vs my closet (suspicious amount of herbs)" | Witchy meme |
+| Wed | 🕯️ Behind | Hands wrapping an order in brown paper + twine | Behind the cauldron |
+| Fri | 📜 Botanical | "3 herbs that earn their place on every altar" | Botanical / ingredient |
+| Sun | 😼 Meme | "tag the friend who's also secretly a witch" | Witchy meme |
 
 ### Week 3 — sell gently
-| Day | Pillar | Post | Style |
+| Day | Pillar | Post | Studio angle |
 |---|---|---|---|
-| Mon | ✨ Lunar | Full-moon release ritual + tie to a product | HOONIE linocut |
-| Wed | 🕯️ Goods | "what this is actually for" — reframe a product | Gouache |
-| Fri | 🔮 Ritual | 1-card pull / weekly energy read | Watercolor |
-| Sun | 📓 Behind | Why you started Secretly A Witch (founder story) | Painterly |
+| Mon | 🌙 Lunar | Full-moon release + tie to black salt | Lunar moment |
+| Wed | 🌿 Flat-lay | Apothecary box w/ mortar & pestle, botanical bed | Product flat-lay |
+| Fri | 🔮 Ritual | Black-salt threshold protection | Ritual / how-to |
+| Sun | 🕯️ Behind | Founder story — why you started | Behind the cauldron |
 
 ### Week 4 — community + momentum
-| Day | Pillar | Post | Style |
+| Day | Pillar | Post | Studio angle |
 |---|---|---|---|
-| Mon | 🌙 Secretly | "tag the friend who's also secretly a witch" | Sketchy |
-| Wed | 🔮 Ritual | Seasonal practice (tie to nearest sabbat) | Book Illustrations |
-| Fri | 🕯️ Goods | Bestseller / restock + soft CTA | Gouache |
-| Sun | ✨ Lunar | Recap + ask: "what do you want more of?" | Watercolor |
+| Mon | 😼 Meme | "(silently cleansing the entire room) yeah totally" | Witchy meme |
+| Wed | 🌿 Flat-lay | Crystal mystery kit spilling open | Product flat-lay |
+| Fri | 🔮 Ritual | One-candle intention burn | Ritual / how-to |
+| Sun | 🌙 Lunar | Recap + ask "what do you want more of?" | Lunar moment |
 
 ---
 
-## 5. Copy-paste ImageForge prompts (per style)
+## 5. The visuals — house styles per pillar
 
-Generate at the Test Station (https://imageforge-q125.onrender.com/test). The trigger
-word is added server-side automatically — just paste the description. All built so
-**no text appears in the image** (add text in Instagram or Canva so it stays crisp).
+Generated in [Instagram Studio](https://imageforge-q125.onrender.com/instagram); each
+angle pre-selects the right style and a 4:5 crop. You can switch style or format anytime.
 
-**Sketchy** — memes & relatable "secretly a witch" panels
-```
-a tired young woman at an office desk secretly drawing a tiny protective sigil
-on a sticky note, coffee cup, monstera plant, loose energetic linework, humor
-```
+| Pillar | Default style | Why |
+|---|---|---|
+| Flat-lay | **Gouache** | Rich, painterly, moody — flatters product + botanicals. |
+| Meme | **Sketchy** | Loose, deadpan linework reads as funny, not precious. |
+| Ritual | **Watercolor** | Soft, gentle, calming — fits how-to + lunar softness. |
+| Lunar | **HOONIE linocut** | Bold graphic relief print — stops the scroll at night. |
+| Behind | **Painterly** | Warm, atmospheric, intimate — candlelit workspace feel. |
+| Botanical | **Book Illustrations** | Clean B&W pen-and-ink — reference-card authority. |
 
-**Watercolor Drawings** — rituals, soft mystical, lunar
-```
-a hand pouring water into a glass jar under a full moon on a windowsill, sprig
-of rosemary, soft muted palette, minimal background
-```
+> **No text in the image.** Generate clean, then add words in Instagram/Canva so type
+> stays crisp. The Studio's prompts are built this way.
 
-**Gouache** — product hero shots & rich feature posts
-```
-a single lit black candle on a stack of old books with dried lavender and a
-crystal, warm candlelight, deep moody background, painterly texture
-```
-
-**HOONIE Linocut** — lunar/sabbat anchors, bold graphic posts
-```
-a crescent moon with a single open eye, surrounded by stars and a sprig of
-wormwood, bold symmetrical composition
-```
-*(server adds: linocut relief print, white background)*
-
-**Painterly** — behind-the-scenes, founder story, atmospheric
-```
-a cozy candlelit workspace at night, hands wrapping a small parcel in brown
-paper and twine, dried herbs and jars on shelves, warm intimate light
-```
-
-**Book Illustrations (B&W pen & ink)** — reference carousels (candle colors, herbs)
-```
-a neat botanical arrangement of labeled-looking herb sprigs and a single candle,
-fine linework, whimsical, white background
-```
-
-> **IG sizing:** generate, then crop to **1080×1350 (4:5 portrait)** for feed —
-> it's the biggest real estate the feed allows. Square 1080×1080 also fine.
+> **Sizing:** Feed = **1080×1350 (4:5)**, the default. Square 1080×1080 and Story
+> 1080×1920 (9:16) are toggles in the Studio.
 
 ---
 
-## 6. Caption + hashtag templates
+## 6. Captions & hashtags
 
-### Caption formulas (steal these)
-- **The secret reveal:** `nobody at the [place] knows that last night i [tiny ritual]. anyway. how's everyone doing 🌙`
-- **The how-to:** Hook line → 3–5 short steps → soft CTA (`save this for the next full moon ↗`).
-- **The product story:** What it's *for* emotionally, not its ingredients. End with a low-pressure line (`link in bio if it's calling you`).
-- **The ask (engagement):** End on a question: `what's your most secretly-a-witch habit?`
+The Studio writes these for you per angle (shuffle until one lands). Reference banks:
 
-### Hashtag sets (rotate; ~8–15 per post, mix sizes)
-**Core brand:**
-`#secretlyawitch #moonsickbaby #babywitch #witchtok #modernwitch`
-**Ritual/lunar:**
-`#newmoonritual #fullmoonmagic #moonwater #witchcraft #lunarliving #intuitivewitch`
-**Goods (if selling):**
-`#witchyshop #handmadecandles #smallbusinesswitch #witchyvibes #apothecary`
-**Discovery/relatable:**
-`#witchhumor #spiritualgirlies #cottagewitch #everydaymagic #thatwitchaesthetic`
+### Caption formulas
+- **Secret reveal:** `nobody needs to know what this is for. but you do 🌙`
+- **Meme:** `me at the meeting: normal / me the second i get home: 🔮🕯️🧂 — who else`
+- **How-to:** hook → 3 short steps → `save this for the next time you need it ↗`
+- **Product:** what it's *for* emotionally, then a soft CTA → `link in bio if it's calling you`
+- **Engagement:** end on a question → `what's your most secretly-a-witch habit?`
 
-> Avoid the same block every time (Instagram dampens it). Keep 3–4 saved sets and rotate.
+### Hashtag sets (rotate 8–12/post; mix sizes — the Studio rotates these automatically)
+**Core:** `#secretlyawitch #moonsickbaby #babywitch #modernwitch #witchtok`
+**Product:** `#witchyshop #apothecary #witchcraftsupplies #smallbusinesswitch #altarsupplies`
+**Meme:** `#witchhumor #witchymemes #spiritualgirlies #thatwitchaesthetic #everydaymagic`
+**Ritual:** `#witchcraft #ritualmagic #moonwater #intuitivewitch #magickpractice`
+**Lunar:** `#newmoonritual #fullmoonmagic #lunarliving #moonmagic #moonchild`
+**Botanical:** `#greenwitch #herbalwitch #botanicalwitch #plantmagic #kitchenwitch`
 
 ### Bio suggestion
 ```
 Secretly A Witch 🌙
-quiet magic for people who look normal on the outside
-✨ rituals · candles · readings   ↓ start here
-[link]
+plants to tingle the spine + electrify the soul
+✨ apothecary · crystals · altar kits   ↓ start here
+secretlyawitch.com
 ```
 
 ---
 
 ## 7. Lunar anchor dates (2026 — confirm against your timezone)
 
-Pre-schedule a post for each. *(Dates are UTC-based; verify locally before scheduling.)*
-
 | Date | Phase | Post angle |
 |---|---|---|
 | Jul 10 | 🌑 New Moon (Cancer) | intention-setting, home & roots |
 | Jul 25 | 🌕 Full Moon (Aquarius) | release what's not yours to carry |
+| Aug 1 | 🌾 Lughnasadh (sabbat) | first-harvest, gratitude |
 | Aug 9 | 🌑 New Moon (Leo) | confidence, creative spark |
 | Aug 23 | 🌕 Full Moon (Pisces) | dreams, intuition, rest |
-| Aug 1 | 🌾 Lughnasadh (sabbat) | first-harvest, gratitude |
 
-> I can pull an exact, timezone-correct lunar calendar for the rest of the year on
-> request and drop it straight into the calendar.
+> Ask me for a full, timezone-correct 2026 lunar + sabbat calendar and I'll drop it in.
 
 ---
 
 ## 8. First-week action checklist
 
-1. **Confirm the assumptions in the banner** (what you sell + vibe).
-2. **Set the bio** (§6) and pick a saved-highlights structure: `start here · rituals · shop · reviews`.
-3. **Batch-generate Week 1 visuals** at the Test Station using §5 prompts.
-4. **Write Week 1 captions** from §6 formulas.
-5. **Schedule** Mon/Wed/Fri + the new-moon post.
-6. **Post Stories daily** — lowest effort, highest consistency signal.
+1. **Set the bio** (§6) + highlights: `start here · rituals · shop · reviews`.
+2. **Open [Instagram Studio](https://imageforge-q125.onrender.com/instagram)** → generate
+   Week 1's four posts (one per angle).
+3. **Shuffle captions** until each lands; tweak in your own voice.
+4. **Schedule** Mon/Wed/Fri + the new-moon post.
+5. **Post Stories daily** — lowest effort, highest consistency signal.
 
 ---
 
 ## 9. What I can build next (just say which)
 
-- **An ImageForge "Instagram" workflow** — a dedicated page that generates IG-ready
-  4:5 posts in your house styles, with caption + hashtag suggestions, like the other
-  project types on the hub.
 - **A 30-caption pack** written out in full, ready to paste.
-- **A batch of Week 1 visuals** generated and dropped in the gallery.
+- **Auto-caption via AI** in the Studio (live OpenAI call instead of the template bank).
+- **A "carousel" angle** for multi-slide how-tos and reference cards.
 - **A full 2026 lunar + sabbat calendar**, timezone-correct.
 - **A Notion content calendar** you can manage from your phone.
+- **Saved-posts gallery** filtered to Instagram, so generated posts collect in one place.
 
 ---
 
-*Draft v1 — built on assumptions noted in the banner. Redirect anything and I'll re-cut it.*
+*Built on your confirmed answers (physical products + personal brand; dark-moody-meets-playful;
+flat-lays + memes). The Instagram Studio tool encodes all of this — redirect anything and I'll re-cut it.*

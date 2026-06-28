@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImageForge — Instagram Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/forge.css">
+  <style>
+    .studio { max-width: 1100px; margin: 0 auto; padding: 28px; }
+
+    .studio-intro { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+    .studio-intro .machine { color: var(--accent); flex-shrink: 0; }
+    .studio-intro .machine svg { width: 52px; height: 52px; display: block; }
+    .studio-intro h2 { font-size: 20px; font-weight: 600; }
+    .studio-intro p { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; max-width: 640px; }
+    .studio-intro .brandline { color: var(--accent); font-weight: 500; }
+
+    label.field-label {
+      font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 10px; display: block;
+    }
+
+    /* ── Angle chooser ── */
+    .angles { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .angle {
+      text-align: left; padding: 14px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-lg);
+      cursor: pointer; font-family: inherit; color: var(--text);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .angle:hover { transform: translateY(-2px); border-color: var(--accent-dim); box-shadow: 0 6px 18px rgba(58,53,48,0.08); }
+    .angle.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    .angle .a-icon { font-size: 22px; line-height: 1; display: block; margin-bottom: 8px; }
+    .angle .a-label { font-size: 14px; font-weight: 600; }
+    .angle .a-blurb { font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
+
+    /* ── Prompt ── */
+    .prompt-bar { margin-bottom: 20px; }
+    .prompt-row { display: flex; gap: 8px; align-items: flex-start; }
+    .prompt-bar textarea {
+      width: 100%; min-height: 60px; resize: vertical; padding: 12px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 15px; font-family: inherit; outline: none;
+    }
+    .prompt-bar textarea:focus { border-color: var(--accent-dim); }
+    .prompt-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+    /* ── Controls row ── */
+    .controls { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+    .control-group { }
+    .seg {
+      display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .seg button {
+      padding: 8px 14px; background: var(--surface); color: var(--text-dim);
+      border: none; border-right: 1px solid var(--border); cursor: pointer;
+      font-family: inherit; font-size: 12px; font-weight: 500; transition: all 0.15s ease;
+    }
+    .seg button:last-child { border-right: none; }
+    .seg button.on { background: var(--accent); color: #fff; }
+
+    .style-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .style-pill {
+      padding: 7px 13px; background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.15s ease;
+    }
+    .style-pill:hover { border-color: var(--text-dim); }
+    .style-pill.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .btn {
+      padding: 11px 22px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius); cursor: pointer;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      letter-spacing: 0.5px; text-transform: uppercase; transition: all 0.15s ease;
+    }
+    .btn:disabled { background: var(--accent-dim); opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 8px 14px; background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+      font-size: 12px; font-weight: 500; font-family: inherit; transition: all 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--text-dim); }
+
+    .make-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 4px 0 26px; }
+
+    /* ── Caption studio ── */
+    .caption-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 18px; margin-bottom: 26px;
+    }
+    .caption-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .caption-head .field-label { margin: 0; }
+    .caption-head .cap-actions { display: flex; gap: 8px; }
+    .caption-text {
+      font-size: 14px; line-height: 1.55; white-space: pre-wrap;
+      padding: 12px 14px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); min-height: 48px;
+    }
+    .caption-tags { margin-top: 10px; font-size: 13px; color: var(--accent); line-height: 1.6; }
+
+    /* ── Results ── */
+    .results-head { margin: 6px 0 14px; display: flex; align-items: center; justify-content: space-between; }
+    .results-head .field-label { margin: 0; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .post-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
+    .post-card .pc-frame { width: 100%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; }
+    .post-card .pc-frame img { width: 100%; display: block; }
+    .post-card .pc-frame.ph { aspect-ratio: 4/5; color: var(--text-dim); font-size: 12px; }
+    .post-card .pc-body { padding: 12px 14px; }
+    .post-card .pc-style { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .post-card .pc-cap { font-size: 13px; line-height: 1.5; margin-top: 6px; white-space: pre-wrap; }
+    .post-card .pc-tags { font-size: 12px; color: var(--accent); margin-top: 8px; line-height: 1.5; }
+    .post-card .pc-foot { margin-top: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .post-card a, .post-card button.pc-link {
+      font-size: 12px; color: var(--accent); text-decoration: none; background: none;
+      border: none; cursor: pointer; font-family: inherit; padding: 0;
+    }
+    .post-card .pc-err { color: var(--danger); font-size: 12px; padding: 14px; }
+
+    .spin { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { padding: 24px 0; color: var(--text-dim); font-size: 13px; }
+    .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: var(--radius); font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 50; }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 600px) {
+      .studio { padding: 16px; }
+      .angles { grid-template-columns: 1fr 1fr; }
+      .results-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand" onclick="location.href='/'" title="Back to hub">
+      <span class="brand-mark">◆</span>
+      <h1>ImageForge</h1>
+    </div>
+    <nav class="app-nav">
+      <span class="tool-name">Instagram Studio</span>
+      <a class="btn-ghost" href="/">← Hub</a>
+    </nav>
+  </header>
+
+  <div class="studio">
+    <div class="studio-intro">
+      <span class="machine"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="12" width="40" height="40" rx="10"/><circle cx="32" cy="32" r="9"/><circle cx="44" cy="20" r="2.4" fill="currentColor" stroke="none"/><path d="M28 6 l1.4 3 3 1.4 -3 1.4 -1.4 3 -1.4 -3 -3 -1.4 3 -1.4z"/></svg></span>
+      <div>
+        <h2>Instagram Studio</h2>
+        <p>Make on-brand posts for <span class="brandline">Secretly A Witch</span> — pick an angle, generate a 4:5 image in a house style, and get a caption + hashtags written in the <a href="https://instagram.com/moonsickbaby" target="_blank">@moonsickbaby</a> voice. Tweak anything before you post.</p>
+      </div>
+    </div>
+
+    <label class="field-label">1 · Pick an angle</label>
+    <div class="angles" id="angles"></div>
+
+    <div class="prompt-bar">
+      <label class="field-label">2 · Image idea</label>
+      <div class="prompt-row">
+        <textarea id="prompt" placeholder="Describe the image…"></textarea>
+      </div>
+      <div class="prompt-hint">Pre-filled from the angle. Tap <strong>🎲 Surprise me</strong> for a fresh idea, or write your own. Keep text OUT of the image — add words in Instagram/Canva so they stay crisp.</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label class="field-label">House style</label>
+        <div class="style-pills" id="style-pills"></div>
+      </div>
+      <div class="control-group">
+        <label class="field-label">Format</label>
+        <div class="seg" id="format-seg">
+          <button data-ar="4:5" class="on">Feed 4:5</button>
+          <button data-ar="1:1">Square</button>
+          <button data-ar="9:16">Story 9:16</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="make-row">
+      <button class="btn" id="make-btn" onclick="makePost()">✦ Generate post</button>
+      <button class="btn-secondary" onclick="shufflePrompt()">🎲 Surprise me</button>
+      <button class="btn-secondary" onclick="rollCaption()">↻ New caption</button>
+    </div>
+
+    <div class="caption-card">
+      <div class="caption-head">
+        <label class="field-label">Caption &amp; hashtags</label>
+        <div class="cap-actions">
+          <button class="btn-secondary" onclick="rollCaption()">↻ Shuffle</button>
+          <button class="btn-secondary" onclick="copyCaption()">⧉ Copy</button>
+        </div>
+      </div>
+      <div class="caption-text" id="caption-text">Pick an angle and a caption appears here.</div>
+      <div class="caption-tags" id="caption-tags"></div>
+    </div>
+
+    <div class="results-head">
+      <label class="field-label">Your posts</label>
+      <button class="btn-secondary" id="clear-btn" onclick="clearPosts()" style="display:none;">Clear</button>
+    </div>
+    <div class="results-grid" id="results-grid"></div>
+    <div class="empty" id="results-empty">Nothing yet — pick an angle and press <strong>Generate post</strong>.</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // ════════════════════════════════════════════════════════════════
+  //  Secretly A Witch — brand knowledge baked in.
+  //  Voice: warm, dry-funny, a little conspiratorial. Lowercase energy.
+  //  Tagline: "plants to tingle the spine and electrify the soul."
+  //  Products: apothecary boxes, reference cards, black salt, Book of
+  //  Shadows journals, crystals, pendulum boards, celestial bells,
+  //  Color-Your-Own tarot, "Come to Me" oil, starter & travel altar kits.
+  // ════════════════════════════════════════════════════════════════
+
+  const PRODUCTS = [
+    'an apothecary box with a wooden mortar and pestle',
+    'a stack of apothecary reference cards tied with twine',
+    'a small jar of black salt for protection',
+    'a Book of Shadows journal with a moon-phase cover',
+    'a carnelian palm stone',
+    'a crystal mystery kit spilling open',
+    'an engraved wooden pendulum board with a brass pendulum',
+    'a little celestial bell',
+    'a Color-Your-Own tarot deck mid-shuffle',
+    'a bottle of "Come to Me" love potion oil',
+    'a travel altar kit laid out',
+  ];
+
+  // Each angle = a content pillar with prompt seeds, a default style, and a
+  // caption bank. {sub} is swapped for a random product where used.
+  const ANGLES = [
+    {
+      id: 'flatlay', icon: '🌿', label: 'Product flat-lay',
+      blurb: 'Hero shot of a product on a botanical bed.',
+      style: 'sageryza/gosh', captionBank: 'product',
+      prompts: [
+        'overhead flat-lay of {sub} on dark linen, surrounded by pressed leaves, dried flowers and a lit candle, moody candlelight, deep shadows',
+        '{sub} arranged on a slab of dark stone with eucalyptus sprigs, moon-phase scattering, rich painterly shadows',
+        'a moody flat-lay of {sub} among dried botanicals, amethyst points and drips of candle wax, deep green and black palette',
+      ],
+    },
+    {
+      id: 'meme', icon: '😼', label: 'Witchy meme',
+      blurb: 'Relatable "secretly a witch" humor.',
+      style: 'sageryza/special', captionBank: 'meme',
+      prompts: [
+        'a tired young woman at an office desk secretly drawing a tiny protective sigil on a sticky note, coffee cup, monstera plant, loose energetic linework, deadpan humor',
+        'a woman in normal clothes at a grocery store secretly sniffing a bundle of fresh rosemary like it is contraband, comedic expression, sketchy linework',
+        'a person on the couch in pajamas surrounded by tarot cards, crystals and a black cat judging them, funny cozy chaos, loose ink linework',
+      ],
+    },
+    {
+      id: 'ritual', icon: '🔮', label: 'Ritual / how-to',
+      blurb: 'A simple do-it-tonight practice.',
+      style: 'sageryza/watercolordrawings', captionBank: 'ritual',
+      prompts: [
+        'a hand pouring water into a glass jar on a windowsill under a full moon, sprig of rosemary, soft muted palette, minimal background',
+        'a hand sprinkling black salt in a thin protective line across a doorway threshold at dusk, gentle muted tones',
+        'a single candle being lit with a long match beside a folded paper intention and a sprig of lavender, soft quiet light',
+      ],
+    },
+    {
+      id: 'lunar', icon: '🌙', label: 'Lunar moment',
+      blurb: 'New / full moon anchor post.',
+      style: 'sageryza/hoonie', captionBank: 'lunar',
+      prompts: [
+        'a crescent moon with a single open eye, surrounded by stars and a sprig of wormwood, bold symmetrical composition',
+        'a full moon over a row of glass jars on a windowsill charging in the moonlight, bold graphic shapes',
+        'a hand holding up a small crystal to a giant full moon, stars and moths around it, striking silhouette',
+      ],
+    },
+    {
+      id: 'behind', icon: '🕯️', label: 'Behind the cauldron',
+      blurb: 'Process / packing / your hands.',
+      style: 'sageryza/paint', captionBank: 'behind',
+      prompts: [
+        'a cozy candlelit workspace at night, hands wrapping a small parcel in brown paper and twine, dried herbs and jars on shelves, warm intimate light',
+        'hands grinding herbs with a mortar and pestle by candlelight, jars and labels scattered, warm amber glow',
+        'a workbench covered in half-finished altar kits, crystals, ribbon and a steaming mug, warm lamplight, lived-in and magical',
+      ],
+    },
+    {
+      id: 'botanical', icon: '📜', label: 'Botanical / ingredient',
+      blurb: 'Clean reference-card look.',
+      style: 'sageryza/victorianstyle', captionBank: 'botanical',
+      prompts: [
+        'a neat botanical study of mugwort, rosemary and lavender sprigs with a single candle, fine pen-and-ink linework, white background',
+        'an arrangement of labelled-looking herb bundles and a small mortar and pestle, fine linework, whimsical, white background',
+        'a single tall sprig of wormwood with detailed leaves and a crescent moon, delicate pen-and-ink illustration, white background',
+      ],
+    },
+  ];
+
+  // Caption banks. {tag} closes with a light call-to-action. Lowercase,
+  // dry, a little conspiratorial — never preachy.
+  const CAPTIONS = {
+    product: [
+      'nobody needs to know what this is for. but you do 🌙\n\n{cta}',
+      'made for the part of you that talks to the moon when no one’s looking.\n\n{cta}',
+      'plants to tingle the spine and electrify the soul. as promised.\n\n{cta}',
+      'a small, quiet kind of power. wrapped and ready.\n\n{cta}',
+      'for your altar, your bag, or the back of the drawer you keep secret. ✨\n\n{cta}',
+    ],
+    meme: [
+      'me, at the meeting: normal\nme, the second i get home: 🔮🕯️🧂\n\nwho else',
+      'pov: you said “i’m not really into that stuff” and then went home and charged your crystals under the moon',
+      'normal person closet: clothes\nmy closet: clothes + a suspicious amount of dried herbs',
+      'tag the friend who’s also secretly a witch. you know exactly who 🌙',
+      'them: are you ok you’ve been quiet\nme: (silently cleansing the entire room) yeah totally',
+    ],
+    ritual: [
+      'tonight’s tiny ritual, for when the week’s been a lot:\n\n{steps}\n\nsave this for the next time you need it ↗',
+      'the lazy-witch version (the only version i actually do):\n\n{steps}\n\n{cta}',
+      'no special tools, no perfect timing. just this:\n\n{steps}\n\nsave it for later ✨',
+    ],
+    lunar: [
+      'new moon energy: set the intention, then let it go.\n\nwhat are you calling in this cycle? tell me below 🌑',
+      'full moon tonight 🌕 put your crystals on the sill, write down what you’re ready to release, and let her do the rest.',
+      'the moon doesn’t rush and neither should you. rest is a ritual too. 🌙',
+      'charging everything that isn’t nailed down tonight. you?',
+    ],
+    behind: [
+      'how it actually gets made: candlelight, twine, and a slightly possessed playlist 🕯️\n\n{cta}',
+      'every order leaves my hands wrapped like a tiny secret. because it kind of is.\n\n{cta}',
+      'started this because i couldn’t find the things i wanted, so i made them. still can’t believe it’s real.\n\n{cta}',
+    ],
+    botanical: [
+      'know your plants, know your power. a tiny field guide 🌿\n\nsave this one ↗',
+      'three herbs that earn their place on every altar. swipe / steal / save.\n\n{cta}',
+      'plants to tingle the spine and electrify the soul — literally the whole brand in one sprig.\n\n{cta}',
+    ],
+  };
+
+  const RITUAL_STEPS = [
+    '1. fill a clean jar with water\n2. set it on the sill under tonight’s moon\n3. in the morning, it’s moon water — use it to anoint, cleanse, or just drink',
+    '1. a thin line of black salt across the doorway\n2. one slow breath\n3. “nothing crosses this that isn’t mine to carry”',
+    '1. light one candle\n2. write the thing you want on a slip of paper\n3. tuck it under the candle and let it burn down safely',
+  ];
+
+  const CTAS = [
+    'in the shop now — link in bio 🌙',
+    'link in bio if it’s calling you ✨',
+    'find it at secretlyawitch.com (link in bio)',
+    'restocked + ready — link in bio',
+    'tap the link in bio if you know, you know.',
+  ];
+
+  const HASHTAGS = {
+    core: ['#secretlyawitch', '#moonsickbaby', '#babywitch', '#modernwitch', '#witchtok'],
+    product: ['#witchyshop', '#apothecary', '#witchcraftsupplies', '#smallbusinesswitch', '#altarsupplies', '#crystalsofinstagram'],
+    meme: ['#witchhumor', '#witchymemes', '#spiritualgirlies', '#thatwitchaesthetic', '#everydaymagic'],
+    ritual: ['#witchcraft', '#ritualmagic', '#moonwater', '#intuitivewitch', '#magickpractice', '#witchythings'],
+    lunar: ['#newmoonritual', '#fullmoonmagic', '#lunarliving', '#moonmagic', '#moonchild'],
+    behind: ['#handmadewitchy', '#makersgonnamake', '#smallbusinesswitch', '#witchylife', '#behindthescenes'],
+    botanical: ['#greenwitch', '#herbalwitch', '#botanicalwitch', '#plantmagic', '#kitchenwitch'],
+  };
+
+  // ── State ──
+  let styles = [];
+  let current = ANGLES[0];
+  let currentStyleId = current.style;
+  let currentAR = '4:5';
+  let promptIdx = 0;
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function rotate(arr, n) { return arr.slice(0, n); }
+
+  function escHtml(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+  async function safeFetchJson(url, opts){
+    const res = await fetch(url, opts);
+    if(!res.ok){ const t = await res.text(); throw new Error(`Server error ${res.status}: ${t.slice(0,200)}`); }
+    return res.json();
+  }
+
+  // ── Render angle cards ──
+  function renderAngles(){
+    const wrap = document.getElementById('angles');
+    wrap.innerHTML = '';
+    ANGLES.forEach(a => {
+      const el = document.createElement('button');
+      el.className = 'angle' + (a.id === current.id ? ' selected' : '');
+      el.innerHTML = `<span class="a-icon">${a.icon}</span><span class="a-label">${escHtml(a.label)}</span><span class="a-blurb">${escHtml(a.blurb)}</span>`;
+      el.addEventListener('click', () => selectAngle(a));
+      wrap.appendChild(el);
+    });
+  }
+
+  function selectAngle(a){
+    current = a;
+    currentStyleId = a.style;
+    promptIdx = 0;
+    fillPrompt();
+    renderAngles();
+    renderStylePills();
+    rollCaption();
+  }
+
+  function fillPrompt(){
+    const seed = current.prompts[promptIdx % current.prompts.length];
+    document.getElementById('prompt').value = seed.replace('{sub}', pick(PRODUCTS));
+  }
+
+  function shufflePrompt(){
+    promptIdx++;
+    fillPrompt();
+  }
+
+  // ── Style pills (loaded from /api/models, brand-relevant ones first) ──
+  async function loadStyles(){
+    try {
+      const models = await safeFetchJson('/api/models');
+      styles = (models.replicate || []).map(m => ({ id: m.id, name: m.name }));
+    } catch {
+      // Fallback to known house styles if the API is unreachable.
+      styles = [
+        {id:'sageryza/gosh', name:'Gouache'}, {id:'sageryza/paint', name:'Painterly'},
+        {id:'sageryza/special', name:'Sketchy'}, {id:'sageryza/victorianstyle', name:'Book Illustrations'},
+        {id:'sageryza/watercolordrawings', name:'Watercolor'}, {id:'sageryza/pwcscans', name:'PWC Scans'},
+        {id:'sageryza/hoonie', name:'Hoonie Linocut'},
+      ];
+    }
+    renderStylePills();
+  }
+
+  function renderStylePills(){
+    const wrap = document.getElementById('style-pills');
+    wrap.innerHTML = '';
+    styles.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'style-pill' + (s.id === currentStyleId ? ' on' : '');
+      b.textContent = s.name;
+      b.addEventListener('click', () => { currentStyleId = s.id; renderStylePills(); });
+      wrap.appendChild(b);
+    });
+  }
+
+  // ── Format toggle ──
+  document.getElementById('format-seg').addEventListener('click', e => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    currentAR = btn.dataset.ar;
+    document.querySelectorAll('#format-seg button').forEach(b => b.classList.toggle('on', b === btn));
+  });
+
+  // ── Caption generation ──
+  let captionText = '', captionTags = '';
+  function rollCaption(){
+    let body = pick(CAPTIONS[current.captionBank]);
+    body = body.replace('{steps}', pick(RITUAL_STEPS)).replace('{cta}', pick(CTAS));
+    captionText = body;
+    const tags = [...rotate(shuffle(HASHTAGS.core), 4), ...rotate(shuffle(HASHTAGS[current.captionBank] || []), 6)];
+    captionTags = tags.join(' ');
+    document.getElementById('caption-text').textContent = captionText;
+    document.getElementById('caption-tags').textContent = captionTags;
+  }
+  function shuffle(arr){ return [...arr].sort(() => Math.random() - 0.5); }
+
+  function copyCaption(){
+    const full = captionText + '\n\n' + captionTags;
+    navigator.clipboard.writeText(full).then(() => toast('Caption + hashtags copied')).catch(() => toast('Copy failed'));
+  }
+
+  // ── Generate the image ──
+  async function makePost(){
+    const prompt = document.getElementById('prompt').value.trim();
+    if(!prompt){ document.getElementById('prompt').focus(); toast('Add an image idea first'); return; }
+    const style = styles.find(s => s.id === currentStyleId) || {id: currentStyleId, name: currentStyleId};
+    const btn = document.getElementById('make-btn');
+    btn.disabled = true;
+    document.getElementById('results-empty').style.display = 'none';
+    document.getElementById('clear-btn').style.display = '';
+
+    const cap = captionText, tags = captionTags;
+    const card = addPendingCard(style);
+    try {
+      const data = await safeFetchJson('/api/generate/replicate', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt, model: style.id, settings: { aspect_ratio: currentAR } }),
+      });
+      if(data.error) throw new Error(data.error);
+      fillCard(card, data.url, style, cap, tags);
+    } catch(err){
+      failCard(card, err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function addPendingCard(style){
+    const grid = document.getElementById('results-grid');
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="pc-frame ph"><span class="spin"></span></div>
+      <div class="pc-body"><div class="pc-style">${escHtml(style.name)} · ${currentAR}</div></div>`;
+    grid.prepend(card);
+    return card;
+  }
+
+  function fillCard(card, url, style, cap, tags){
+    const frame = card.querySelector('.pc-frame');
+    frame.classList.remove('ph'); frame.innerHTML = '';
+    const img = document.createElement('img'); img.src = url; img.alt = style.name;
+    frame.appendChild(img);
+    const body = card.querySelector('.pc-body');
+    body.innerHTML = `<div class="pc-style">${escHtml(style.name)} · ${currentAR}</div>
+      <div class="pc-cap">${escHtml(cap)}</div>
+      <div class="pc-tags">${escHtml(tags)}</div>
+      <div class="pc-foot">
+        <a href="${url}" download="secretlyawitch-${style.id.split('/').pop()}.png" target="_blank">↓ Image</a>
+        <button class="pc-link" data-copy="${escHtml(cap + '\n\n' + tags)}">⧉ Copy caption</button>
+      </div>`;
+    body.querySelector('.pc-link').addEventListener('click', function(){
+      navigator.clipboard.writeText(this.dataset.copy).then(()=>toast('Caption copied')).catch(()=>toast('Copy failed'));
+    });
+  }
+
+  function failCard(card, msg){
+    card.querySelector('.pc-frame')?.remove();
+    const div = document.createElement('div'); div.className = 'pc-err'; div.textContent = '⚠ ' + msg;
+    card.prepend(div);
+  }
+
+  function clearPosts(){
+    document.getElementById('results-grid').innerHTML = '';
+    document.getElementById('results-empty').style.display = '';
+    document.getElementById('clear-btn').style.display = 'none';
+  }
+
+  // ── Boot ──
+  renderAngles();
+  fillPrompt();
+  rollCaption();
+  loadStyles();
+  </script>
+</body>
+</html>

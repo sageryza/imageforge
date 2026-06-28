@@ -155,6 +155,9 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
 
+// ─── Instagram Studio: brand-tuned 4:5 posts + captions ─────────────
+app.get('/instagram', (req, res) => { res.sendFile(__dirname + '/public/instagram.html'); });
+
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
 // prepended to every prompt. `version` may be null — when so, the latest model
@@ -405,6 +408,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     const guidanceScale = settings.guidance_scale ?? 3;
     const outputQuality = settings.output_quality ?? 80;
     const numInferenceSteps = settings.num_inference_steps ?? known?.defaultSteps ?? 28;
+    const aspectRatio = settings.aspect_ratio ?? '1:1';
 
     console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
 
@@ -423,7 +427,7 @@ app.post('/api/generate/replicate', async (req, res) => {
           lora_scale: loraScale,
           megapixels: megapixels,
           num_outputs: numOutputs,
-          aspect_ratio: '1:1',
+          aspect_ratio: aspectRatio,
           output_format: outputFormat,
           guidance_scale: guidanceScale,
           output_quality: outputQuality,
