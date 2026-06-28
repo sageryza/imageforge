@@ -6,7 +6,7 @@ import SwiftUI
 struct TestStationView: View {
     @State private var prompt = ""
     @State private var selected: Set<String> = []
-    @State private var results: [ForgeResult] = []
+    @State private var results: [ForgeResult] = [ForgeResult(styleId: "hoonie", styleName: "Hoonie Linocut", prompt: "a cozy little cottage")]   // TEMP: show loading GIF for screenshot
     @State private var busy = false
     @State private var errorText: String?
 
