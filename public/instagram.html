@@ -61,15 +61,6 @@
     .seg button:last-child { border-right: none; }
     .seg button.on { background: var(--accent); color: #fff; }
 
-    .style-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .style-pill {
-      padding: 7px 13px; background: var(--surface); color: var(--text);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.15s ease;
-    }
-    .style-pill:hover { border-color: var(--text-dim); }
-    .style-pill.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-
     .btn {
       padding: 11px 22px; background: var(--accent); color: #fff;
       border: none; border-radius: var(--radius); cursor: pointer;
@@ -150,7 +141,7 @@
       <span class="machine"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="12" width="40" height="40" rx="10"/><circle cx="32" cy="32" r="9"/><circle cx="44" cy="20" r="2.4" fill="currentColor" stroke="none"/><path d="M28 6 l1.4 3 3 1.4 -3 1.4 -1.4 3 -1.4 -3 -3 -1.4 3 -1.4z"/></svg></span>
       <div>
         <h2>Instagram Studio</h2>
-        <p>Make on-brand posts for <span class="brandline">Secretly A Witch</span> — pick an angle, generate a 4:5 image in a house style, and get a caption + hashtags written in the <a href="https://instagram.com/moonsickbaby" target="_blank">@moonsickbaby</a> voice. Tweak anything before you post.</p>
+        <p>Make on-brand posts for <span class="brandline">Secretly A Witch</span> — pick an angle, generate an image with ChatGPT (gpt-image-2), and get a caption + hashtags written in the <a href="https://instagram.com/moonsickbaby" target="_blank">@moonsickbaby</a> voice. Tweak anything before you post.</p>
       </div>
     </div>
 
@@ -167,15 +158,17 @@
 
     <div class="controls">
       <div class="control-group">
-        <label class="field-label">House style</label>
-        <div class="style-pills" id="style-pills"></div>
+        <label class="field-label">Quality</label>
+        <div class="seg" id="quality-seg">
+          <button data-q="low" class="on">Low · fast</button>
+          <button data-q="medium">Medium · hero</button>
+        </div>
       </div>
       <div class="control-group">
         <label class="field-label">Format</label>
         <div class="seg" id="format-seg">
-          <button data-ar="4:5" class="on">Feed 4:5</button>
+          <button data-ar="4:5" class="on">Feed (portrait)</button>
           <button data-ar="1:1">Square</button>
-          <button data-ar="9:16">Story 9:16</button>
         </div>
       </div>
     </div>
@@ -232,69 +225,74 @@
     'a travel altar kit laid out',
   ];
 
-  // Each angle = a content pillar with prompt seeds, a default style, and a
-  // caption bank. {sub} is swapped for a random product where used.
+  // Each angle = a content pillar with prompt seeds (tuned for gpt-image-2) and
+  // a caption bank. {sub} is swapped for a random product where used. Prompts
+  // end with "no text" because gpt-image renders legible text and we want clean
+  // images to caption later — EXCEPT the quote angle, which leans on it.
+  const NOTEXT = ', witchy aesthetic, no text, no words, no lettering';
   const ANGLES = [
     {
       id: 'flatlay', icon: '🌿', label: 'Product flat-lay',
-      blurb: 'Hero shot of a product on a botanical bed.',
-      style: 'sageryza/gosh', captionBank: 'product',
+      blurb: 'Real product re-staged on a moody bed.', captionBank: 'product',
       prompts: [
-        'overhead flat-lay of {sub} on dark linen, surrounded by pressed leaves, dried flowers and a lit candle, moody candlelight, deep shadows',
-        '{sub} arranged on a slab of dark stone with eucalyptus sprigs, moon-phase scattering, rich painterly shadows',
-        'a moody flat-lay of {sub} among dried botanicals, amethyst points and drips of candle wax, deep green and black palette',
+        'overhead flat-lay photograph of {sub} on dark linen, surrounded by pressed leaves, dried roses and a lit candle, dramatic moody candlelight, rich shadows, premium product photography' + NOTEXT,
+        'a moody product photograph of {sub} on a slab of dark stone with eucalyptus sprigs, raw amethyst and clear quartz points, deep green and black palette, cinematic light' + NOTEXT,
+        'a flat-lay of {sub} on deep purple velvet with dried lavender, rose buds and gold candle glow, witchy apothecary styling, dramatic shadows' + NOTEXT,
       ],
     },
     {
       id: 'meme', icon: '😼', label: 'Witchy meme',
-      blurb: 'Relatable "secretly a witch" humor.',
-      style: 'sageryza/special', captionBank: 'meme',
+      blurb: 'Relatable "secretly a witch" humor.', captionBank: 'meme',
       prompts: [
-        'a tired young woman at an office desk secretly drawing a tiny protective sigil on a sticky note, coffee cup, monstera plant, loose energetic linework, deadpan humor',
-        'a woman in normal clothes at a grocery store secretly sniffing a bundle of fresh rosemary like it is contraband, comedic expression, sketchy linework',
-        'a person on the couch in pajamas surrounded by tarot cards, crystals and a black cat judging them, funny cozy chaos, loose ink linework',
+        'a funny modern flat illustration of a tired young woman at an office desk secretly hiding a small crystal and a tarot card under her laptop while a coworker walks by, deadpan expression, muted earthy colors, generous empty space at the very top for a caption' + NOTEXT,
+        'a cozy overhead illustration of a messy nightstand with tarot cards, a small crystal, a lit candle, a mug and a phone showing a moon-phase app, cute modern muted illustration, lots of empty space at the top for a caption' + NOTEXT,
+        'a funny modern flat illustration of a woman in normal clothes at a grocery store secretly smelling a bundle of fresh rosemary like contraband, deadpan comedic expression, muted colors, empty space at top for a caption' + NOTEXT,
       ],
     },
     {
       id: 'ritual', icon: '🔮', label: 'Ritual / how-to',
-      blurb: 'A simple do-it-tonight practice.',
-      style: 'sageryza/watercolordrawings', captionBank: 'ritual',
+      blurb: 'A simple do-it-tonight practice.', captionBank: 'ritual',
       prompts: [
-        'a hand pouring water into a glass jar on a windowsill under a full moon, sprig of rosemary, soft muted palette, minimal background',
-        'a hand sprinkling black salt in a thin protective line across a doorway threshold at dusk, gentle muted tones',
-        'a single candle being lit with a long match beside a folded paper intention and a sprig of lavender, soft quiet light',
+        'a moody photograph of a hand pouring water into a glass mason jar on a windowsill under a full moon, sprig of rosemary, soft candlelight, deep blue night tones, cinematic' + NOTEXT,
+        'a photograph of a hand sprinkling black salt in a thin protective line across a wooden doorway threshold at dusk, warm low light, atmospheric' + NOTEXT,
+        'a cinematic photograph of a single candle being lit beside a folded paper intention and a sprig of lavender, dark moody background, soft glow' + NOTEXT,
       ],
     },
     {
       id: 'lunar', icon: '🌙', label: 'Lunar moment',
-      blurb: 'New / full moon anchor post.',
-      style: 'sageryza/hoonie', captionBank: 'lunar',
+      blurb: 'New / full moon anchor post.', captionBank: 'lunar',
       prompts: [
-        'a crescent moon with a single open eye, surrounded by stars and a sprig of wormwood, bold symmetrical composition',
-        'a full moon over a row of glass jars on a windowsill charging in the moonlight, bold graphic shapes',
-        'a hand holding up a small crystal to a giant full moon, stars and moths around it, striking silhouette',
+        'a moody photograph of a row of crystals and glass jars charging on a windowsill under a giant full moon at night, deep blue and silver tones, stars, atmospheric' + NOTEXT,
+        'a cinematic photograph of two hands holding a small crystal up toward a huge glowing full moon, dark sky, moths and stars, dramatic silhouette' + NOTEXT,
+        'a dark elegant illustration of a crescent moon, stars and a sprig of wormwood in gold line art on deep navy, refined celestial composition' + NOTEXT,
       ],
     },
     {
-      id: 'behind', icon: '🕯️', label: 'Behind the cauldron',
-      blurb: 'Process / packing / your hands.',
-      style: 'sageryza/paint', captionBank: 'behind',
+      id: 'filler', icon: '🌫️', label: 'Filler / atmosphere',
+      blurb: 'Mood posts between sells.', captionBank: 'behind',
       prompts: [
-        'a cozy candlelit workspace at night, hands wrapping a small parcel in brown paper and twine, dried herbs and jars on shelves, warm intimate light',
-        'hands grinding herbs with a mortar and pestle by candlelight, jars and labels scattered, warm amber glow',
-        'a workbench covered in half-finished altar kits, crystals, ribbon and a steaming mug, warm lamplight, lived-in and magical',
+        'a moody cinematic close-up photograph of two hands gently cupping a glowing clear quartz crystal by candlelight, dark background, soft wisps of incense smoke, warm rim light, intimate' + NOTEXT,
+        'a cozy candlelit photograph of hands wrapping a small parcel in brown paper and twine on a dark wood table, dried herbs and amber jars around, warm intimate light' + NOTEXT,
+        'an atmospheric photograph of a single white candle burning on a windowsill at night with a full moon beyond the glass, dried herbs, deep blue moody tones' + NOTEXT,
       ],
     },
     {
-      id: 'botanical', icon: '📜', label: 'Botanical / ingredient',
-      blurb: 'Clean reference-card look.',
-      style: 'sageryza/victorianstyle', captionBank: 'botanical',
+      id: 'quote', icon: '📜', label: 'Quote card',
+      blurb: 'Tagline on a witchy background.', captionBank: 'product', isQuote: true,
       prompts: [
-        'a neat botanical study of mugwort, rosemary and lavender sprigs with a single candle, fine pen-and-ink linework, white background',
-        'an arrangement of labelled-looking herb bundles and a small mortar and pestle, fine linework, whimsical, white background',
-        'a single tall sprig of wormwood with detailed leaves and a crescent moon, delicate pen-and-ink illustration, white background',
+        'an elegant dark moody background with delicate gold botanical line illustrations, stars and a crescent moon in the corners, deep navy and black with soft candle glow, centered elegant serif text that reads "{quote}", refined witchy aesthetic',
+        'a deep midnight-blue card with fine gold botanical linework, a small candle and potion bottle at the bottom, centered classic serif text that reads "{quote}", elegant celestial styling',
       ],
     },
+  ];
+
+  // Short, postable lines for the quote angle.
+  const QUOTES = [
+    'plants to tingle the spine and electrify the soul',
+    'secretly a witch',
+    'a little magic on the inside',
+    'trust the moon, not the calendar',
+    'quiet magic for loud times',
   ];
 
   // Caption banks. {tag} closes with a light call-to-action. Lowercase,
@@ -362,11 +360,13 @@
   };
 
   // ── State ──
-  let styles = [];
   let current = ANGLES[0];
-  let currentStyleId = current.style;
-  let currentAR = '4:5';
+  let currentQuality = 'low';   // 'low' (fast) | 'medium' (hero shots)
+  let currentAR = '4:5';        // '4:5' portrait | '1:1' square
   let promptIdx = 0;
+
+  // gpt-image-2 sizes: square or portrait (we crop portrait to 4:5 for the feed).
+  function sizeForAR(ar){ return ar === '1:1' ? '1024x1024' : '1024x1536'; }
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function rotate(arr, n) { return arr.slice(0, n); }
@@ -395,17 +395,17 @@
 
   function selectAngle(a){
     current = a;
-    currentStyleId = a.style;
     promptIdx = 0;
     fillPrompt();
     renderAngles();
-    renderStylePills();
     rollCaption();
   }
 
   function fillPrompt(){
     const seed = current.prompts[promptIdx % current.prompts.length];
-    document.getElementById('prompt').value = seed.replace('{sub}', pick(PRODUCTS));
+    document.getElementById('prompt').value = seed
+      .replace('{sub}', pick(PRODUCTS))
+      .replace('{quote}', pick(QUOTES));
   }
 
   function shufflePrompt(){
@@ -413,36 +413,12 @@
     fillPrompt();
   }
 
-  // ── Style pills (loaded from /api/models, brand-relevant ones first) ──
-  async function loadStyles(){
-    try {
-      const models = await safeFetchJson('/api/models');
-      styles = (models.replicate || []).map(m => ({ id: m.id, name: m.name }));
-    } catch {
-      // Fallback to known house styles if the API is unreachable.
-      styles = [
-        {id:'sageryza/gosh', name:'Gouache'}, {id:'sageryza/paint', name:'Painterly'},
-        {id:'sageryza/special', name:'Sketchy'}, {id:'sageryza/victorianstyle', name:'Book Illustrations'},
-        {id:'sageryza/watercolordrawings', name:'Watercolor'}, {id:'sageryza/pwcscans', name:'PWC Scans'},
-        {id:'sageryza/hoonie', name:'Hoonie Linocut'},
-      ];
-    }
-    renderStylePills();
-  }
-
-  function renderStylePills(){
-    const wrap = document.getElementById('style-pills');
-    wrap.innerHTML = '';
-    styles.forEach(s => {
-      const b = document.createElement('button');
-      b.className = 'style-pill' + (s.id === currentStyleId ? ' on' : '');
-      b.textContent = s.name;
-      b.addEventListener('click', () => { currentStyleId = s.id; renderStylePills(); });
-      wrap.appendChild(b);
-    });
-  }
-
-  // ── Format toggle ──
+  // ── Quality + format toggles ──
+  document.getElementById('quality-seg').addEventListener('click', e => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    currentQuality = btn.dataset.q;
+    document.querySelectorAll('#quality-seg button').forEach(b => b.classList.toggle('on', b === btn));
+  });
   document.getElementById('format-seg').addEventListener('click', e => {
     const btn = e.target.closest('button'); if(!btn) return;
     currentAR = btn.dataset.ar;
@@ -467,25 +443,25 @@
     navigator.clipboard.writeText(full).then(() => toast('Caption + hashtags copied')).catch(() => toast('Copy failed'));
   }
 
-  // ── Generate the image ──
+  // ── Generate the image (ChatGPT / gpt-image-2) ──
   async function makePost(){
     const prompt = document.getElementById('prompt').value.trim();
     if(!prompt){ document.getElementById('prompt').focus(); toast('Add an image idea first'); return; }
-    const style = styles.find(s => s.id === currentStyleId) || {id: currentStyleId, name: currentStyleId};
+    const meta = `${current.label} · ${currentQuality} · ${currentAR}`;
     const btn = document.getElementById('make-btn');
     btn.disabled = true;
     document.getElementById('results-empty').style.display = 'none';
     document.getElementById('clear-btn').style.display = '';
 
     const cap = captionText, tags = captionTags;
-    const card = addPendingCard(style);
+    const card = addPendingCard(meta);
     try {
-      const data = await safeFetchJson('/api/generate/replicate', {
+      const data = await safeFetchJson('/api/generate/gptimage', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ prompt, model: style.id, settings: { aspect_ratio: currentAR } }),
+        body: JSON.stringify({ prompt, quality: currentQuality, size: sizeForAR(currentAR) }),
       });
       if(data.error) throw new Error(data.error);
-      fillCard(card, data.url, style, cap, tags);
+      fillCard(card, data.url, meta, cap, tags);
     } catch(err){
       failCard(card, err.message);
     } finally {
@@ -493,27 +469,27 @@
     }
   }
 
-  function addPendingCard(style){
+  function addPendingCard(meta){
     const grid = document.getElementById('results-grid');
     const card = document.createElement('div');
     card.className = 'post-card';
     card.innerHTML = `<div class="pc-frame ph"><span class="spin"></span></div>
-      <div class="pc-body"><div class="pc-style">${escHtml(style.name)} · ${currentAR}</div></div>`;
+      <div class="pc-body"><div class="pc-style">${escHtml(meta)}</div></div>`;
     grid.prepend(card);
     return card;
   }
 
-  function fillCard(card, url, style, cap, tags){
+  function fillCard(card, url, meta, cap, tags){
     const frame = card.querySelector('.pc-frame');
     frame.classList.remove('ph'); frame.innerHTML = '';
-    const img = document.createElement('img'); img.src = url; img.alt = style.name;
+    const img = document.createElement('img'); img.src = url; img.alt = meta;
     frame.appendChild(img);
     const body = card.querySelector('.pc-body');
-    body.innerHTML = `<div class="pc-style">${escHtml(style.name)} · ${currentAR}</div>
+    body.innerHTML = `<div class="pc-style">${escHtml(meta)}</div>
       <div class="pc-cap">${escHtml(cap)}</div>
       <div class="pc-tags">${escHtml(tags)}</div>
       <div class="pc-foot">
-        <a href="${url}" download="secretlyawitch-${style.id.split('/').pop()}.png" target="_blank">↓ Image</a>
+        <a href="${url}" download="secretlyawitch-${current.id}.png" target="_blank">↓ Image</a>
         <button class="pc-link" data-copy="${escHtml(cap + '\n\n' + tags)}">⧉ Copy caption</button>
       </div>`;
     body.querySelector('.pc-link').addEventListener('click', function(){
@@ -537,7 +513,6 @@
   renderAngles();
   fillPrompt();
   rollCaption();
-  loadStyles();
   </script>
 </body>
 </html>

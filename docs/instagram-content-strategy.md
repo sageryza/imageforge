@@ -47,12 +47,12 @@ fear-based fortune-telling, never generic "good vibes" wellness.
 
 | Pillar | What it is | IG Studio angle | Mix |
 |---|---|---|---|
-| 🌿 **Product flat-lays** | Hero shots of real products on botanical/candlelit beds. | *Product flat-lay* (Gouache) | ~25% |
-| 😼 **Secretly-a-witch memes** | Relatable "normal life + quiet magic" humor. Your signature share-driver. | *Witchy meme* (Sketchy) | ~25% |
-| 🔮 **Ritual & how-to** | Simple do-it-tonight practices (moon water, black-salt threshold, 1-card pull). | *Ritual / how-to* (Watercolor) | ~20% |
-| 🌙 **Lunar moments** | New/full-moon anchor posts, plannable + timely. | *Lunar moment* (HOONIE linocut) | ~15% |
-| 🕯️ **Behind the cauldron** | Process, packing orders, your hands, why you started. | *Behind the cauldron* (Painterly) | ~10% |
-| 📜 **Botanical / ingredient** | Clean reference-card looks — herbs, correspondences. Ties to the apothecary line. | *Botanical / ingredient* (Book Illustrations) | ~5% |
+| 🌿 **Product flat-lays** | Hero shots of real products on botanical/candlelit beds. | *Product flat-lay* | ~25% |
+| 😼 **Secretly-a-witch memes** | Relatable "normal life + quiet magic" humor. Your signature share-driver. | *Witchy meme* | ~25% |
+| 🔮 **Ritual & how-to** | Simple do-it-tonight practices (moon water, black-salt threshold, 1-card pull). | *Ritual / how-to* | ~20% |
+| 🌙 **Lunar moments** | New/full-moon anchor posts, plannable + timely. | *Lunar moment* | ~15% |
+| 🌫️ **Filler / atmosphere** | Mood/texture posts between sells — candles, hands, crystals, smoke. | *Filler / atmosphere* | ~10% |
+| 📜 **Quote cards** | Tagline / spell-y lines in gold serif on a celestial background. | *Quote card* | ~5% |
 
 Keep overtly-selling posts ≤25% so the feed never reads like a catalog. The memes and
 rituals are what make people follow; the flat-lays are what make them buy.
@@ -92,7 +92,7 @@ Open the angle, hit **Generate post**, tweak the caption, schedule.
 |---|---|---|---|
 | Mon | 😼 Meme | "normal closet vs my closet (suspicious amount of herbs)" | Witchy meme |
 | Wed | 🕯️ Behind | Hands wrapping an order in brown paper + twine | Behind the cauldron |
-| Fri | 📜 Botanical | "3 herbs that earn their place on every altar" | Botanical / ingredient |
+| Fri | 📜 Quote | "plants to tingle the spine + electrify the soul" tagline card | Quote card |
 | Sun | 😼 Meme | "tag the friend who's also secretly a witch" | Witchy meme |
 
 ### Week 3 — sell gently
@@ -113,25 +113,35 @@ Open the angle, hit **Generate post**, tweak the caption, schedule.
 
 ---
 
-## 5. The visuals — house styles per pillar
+## 5. The visuals — engine: ChatGPT (gpt-image-2)
 
-Generated in [Instagram Studio](https://imageforge-q125.onrender.com/instagram); each
-angle pre-selects the right style and a 4:5 crop. You can switch style or format anytime.
+We tested the in-house Replicate LoRA styles and switched to **ChatGPT (gpt-image-2)**:
+it renders photoreal moody flat-lays that match the real brand, handles legible text
+(the quote cards), and stays clean of the garbled-text artifacts the LoRAs produced.
+The [Instagram Studio](https://imageforge-q125.onrender.com/instagram) now generates
+every angle through it.
 
-| Pillar | Default style | Why |
-|---|---|---|
-| Flat-lay | **Gouache** | Rich, painterly, moody — flatters product + botanicals. |
-| Meme | **Sketchy** | Loose, deadpan linework reads as funny, not precious. |
-| Ritual | **Watercolor** | Soft, gentle, calming — fits how-to + lunar softness. |
-| Lunar | **HOONIE linocut** | Bold graphic relief print — stops the scroll at night. |
-| Behind | **Painterly** | Warm, atmospheric, intimate — candlelit workspace feel. |
-| Botanical | **Book Illustrations** | Clean B&W pen-and-ink — reference-card authority. |
+- **Quality toggle — Low vs Medium.** *Low* is fast and looks great for the everyday
+  feed (memes, filler, most flat-lays). *Medium* adds polish — reserve it for **hero
+  product shots** you'll run as ads or pin.
+- **Photoreal vs illustrated by angle.** Flat-lays, rituals, lunar, filler → photoreal,
+  dark-moody, candlelit. Memes → clean modern flat illustration with caption space on top.
+  Quote cards → gold serif text on a celestial background.
+- **No text in the photo posts.** Prompts end with "no text" so images stay clean; add
+  caption words in Instagram/Canva. (The quote angle is the deliberate exception.)
+- **Sizing:** Feed = **portrait 1024×1536** (crop to 4:5), or **square 1024×1024** — both
+  toggles in the Studio.
 
-> **No text in the image.** Generate clean, then add words in Instagram/Canva so type
-> stays crisp. The Studio's prompts are built this way.
+### Proven production prompts (trial-tested, 6/6 kept)
+Paste into the Studio or use directly against `/api/generate/gptimage`. `{product}` =
+swap a real item (apothecary box, crystal mystery box, Come To Me oil, etc.).
 
-> **Sizing:** Feed = **1080×1350 (4:5)**, the default. Square 1080×1080 and Story
-> 1080×1920 (9:16) are toggles in the Studio.
+- **Flat-lay:** `overhead flat-lay photograph of {product} on dark linen, surrounded by pressed leaves, dried roses and a lit candle, dramatic moody candlelight, rich shadows, premium product photography, no text`
+- **Meme (desk):** `a funny modern flat illustration of a tired young woman at an office desk secretly hiding a small crystal and a tarot card under her laptop while a coworker walks by, deadpan expression, muted earthy colors, generous empty space at the top for a caption, no text`
+- **Ritual:** `a moody photograph of a hand pouring water into a glass mason jar on a windowsill under a full moon, sprig of rosemary, soft candlelight, deep blue night tones, cinematic, no text`
+- **Lunar:** `a cinematic photograph of two hands holding a small crystal up toward a huge glowing full moon, dark sky, moths and stars, dramatic silhouette, no text`
+- **Filler:** `a moody cinematic close-up of two hands cupping a glowing clear quartz crystal by candlelight, dark background, soft wisps of incense smoke, warm rim light, no text`
+- **Quote card:** `an elegant dark moody background with delicate gold botanical line illustrations, stars and a crescent moon in the corners, deep navy and black, centered elegant serif text that reads "plants to tingle the spine and electrify the soul"`
 
 ---
 

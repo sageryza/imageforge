@@ -6,6 +6,7 @@
   - Test Station: https://imageforge-q125.onrender.com/test
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
+  - Instagram Studio (Secretly A Witch): https://imageforge-q125.onrender.com/instagram
   - Gallery: https://imageforge-q125.onrender.com/gallery
 
 ## What it is
