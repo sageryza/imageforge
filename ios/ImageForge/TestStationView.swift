@@ -17,7 +17,6 @@ struct TestStationView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    intro
                     promptField
                     if !results.isEmpty { resultsSection }   // image(s) above the styles
                     stylesSection
@@ -40,17 +39,6 @@ struct TestStationView: View {
     }
 
     // MARK: - Sections
-
-    private var intro: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("The Style Machine")
-                .font(.title3.weight(.semibold))
-                .foregroundColor(Theme.text)
-            Text("Type one prompt, then tap a style to render it. Tap another to compare, or tick a few and run them together.")
-                .font(.footnote)
-                .foregroundColor(Theme.textDim)
-        }
-    }
 
     private var promptField: some View {
         VStack(alignment: .leading, spacing: 8) {
