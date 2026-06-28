@@ -10,6 +10,12 @@ struct TestStationView: View {
     @State private var busy = false
     @State private var errorText: String?
 
+    // App Store Guideline 5.1.2(i): one-time consent before sending the prompt
+    // to third-party AI (Replicate / OpenAI). Gated in run().
+    @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
+    @State private var showConsent = false
+    @State private var pendingStyles: [ForgeStyle] = []
+
     // Three across.
     private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
@@ -33,6 +39,19 @@ struct TestStationView: View {
                 Button("OK", role: .cancel) { errorText = nil }
             } message: {
                 Text(errorText ?? "")
+            }
+            .sheet(isPresented: $showConsent) {
+                AIConsentSheet(
+                    theme: .deckFactory,
+                    appName: "Deck Factory",
+                    providers: [
+                        AIProvider(name: "Replicate", role: "Generates your images (house styles)"),
+                        AIProvider(name: "OpenAI", role: "Generates your images (ChatGPT / gpt-image-2)"),
+                    ],
+                    dataDescription: "the prompt you enter",
+                    privacyURL: URL(string: "https://incaseofamnesia.com/privacy.html"),
+                    onAgree: { aiConsentAccepted = true; showConsent = false; run(pendingStyles) },
+                    onCancel: { showConsent = false })
             }
         }
         .tint(Theme.accent)
@@ -117,6 +136,8 @@ struct TestStationView: View {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Enter a prompt first."; return }
         guard !busy else { return }
+        // Gate the first AI call behind the consent sheet (5.1.2(i)).
+        guard aiConsentAccepted else { pendingStyles = styles; showConsent = true; return }
         busy = true
         Task {
             for style in styles {
