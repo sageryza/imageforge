@@ -13,7 +13,7 @@ struct TestStationView: View {
     // App Store Guideline 5.1.2(i): one-time consent before sending the prompt
     // to third-party AI (Replicate / OpenAI). Gated in run().
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
-    @State private var showConsent = false
+    @State private var showConsent = true   // TEMP: forced on for screenshot
     @State private var pendingStyles: [ForgeStyle] = []
 
     // Three across.
