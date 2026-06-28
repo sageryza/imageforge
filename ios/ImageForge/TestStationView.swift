@@ -240,6 +240,10 @@ private struct ResultCard: View {
                 } else if let error = result.error {
                     Text(error).font(.caption2).foregroundColor(Theme.danger)
                         .multilineTextAlignment(.center).padding(8)
+                } else if result.styleId == "hoonie" {
+                    // HOONIE gets its own engraving loading animation.
+                    Color.white
+                    GIFView(name: "hoonie-loading").frame(width: 120, height: 120)
                 } else {
                     ProgressView()
                 }
