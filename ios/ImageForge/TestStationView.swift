@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The Style Machine — type one prompt, run it through any house style (or
-/// several at once) and compare. The iOS sibling of the web /test page.
+/// several at once) and compare. Results appear above the style swatches; each
+/// swatch is a wide, zoomed-in crop of the style's look with a centered label.
 struct TestStationView: View {
     @State private var prompt = ""
     @State private var selected: Set<String> = []
@@ -9,7 +10,8 @@ struct TestStationView: View {
     @State private var busy = false
     @State private var errorText: String?
 
-    private let grid = [GridItem(.adaptive(minimum: 150), spacing: 12)]
+    // Three across.
+    private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
         NavigationStack {
@@ -17,9 +19,9 @@ struct TestStationView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     intro
                     promptField
+                    if !results.isEmpty { resultsSection }   // image(s) above the styles
                     stylesSection
                     if !selected.isEmpty { runSelectedButton }
-                    if !results.isEmpty { resultsSection }
                 }
                 .padding()
             }
@@ -44,7 +46,7 @@ struct TestStationView: View {
             Text("The Style Machine")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(Theme.text)
-            Text("Type one prompt, then tap a style to see it rendered that way. Your prompt stays put — tap another style, or tick a few and run them together to compare.")
+            Text("Type one prompt, then tap a style to render it. Tap another to compare, or tick a few and run them together.")
                 .font(.footnote)
                 .foregroundColor(Theme.textDim)
         }
@@ -53,8 +55,7 @@ struct TestStationView: View {
     private var promptField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("PROMPT")
-                .font(.caption2.weight(.semibold))
-                .tracking(1)
+                .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
             TextField("a teapot on a windowsill, a castle on a hill…",
                       text: $prompt, axis: .vertical)
@@ -63,19 +64,33 @@ struct TestStationView: View {
                 .foregroundColor(Theme.text)
                 .padding(12)
                 .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                    .stroke(Theme.border, lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
                 .cornerRadius(Theme.radius)
+        }
+    }
+
+    private var resultsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("RESULT")
+                    .font(.caption2.weight(.semibold)).tracking(1)
+                    .foregroundColor(Theme.textDim)
+                Spacer()
+                Button("Clear") { results.removeAll() }
+                    .font(.caption).foregroundColor(Theme.accent)
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+                ForEach(results) { ResultCard(result: $0) }
+            }
         }
     }
 
     private var stylesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("STYLES")
-                .font(.caption2.weight(.semibold))
-                .tracking(1)
+                .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
-            LazyVGrid(columns: grid, spacing: 12) {
+            LazyVGrid(columns: grid, spacing: 8) {
                 ForEach(ForgeStyles.all) { style in
                     StyleTile(
                         style: style,
@@ -104,32 +119,12 @@ struct TestStationView: View {
         .opacity(busy ? 0.5 : 1)
     }
 
-    private var resultsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("RESULTS")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1)
-                    .foregroundColor(Theme.textDim)
-                Spacer()
-                Button("Clear") { results.removeAll() }
-                    .font(.caption)
-                    .foregroundColor(Theme.accent)
-            }
-            LazyVGrid(columns: grid, spacing: 12) {
-                ForEach(results) { ResultCard(result: $0) }
-            }
-        }
-    }
-
     // MARK: - Actions
 
     private func toggle(_ id: String) {
         if selected.contains(id) { selected.remove(id) } else { selected.insert(id) }
     }
 
-    /// Render the current prompt through each style, sequentially (kind to
-    /// Replicate/OpenAI rate limits), prepending a result card per style.
     private func run(_ styles: [ForgeStyle]) {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Enter a prompt first."; return }
@@ -156,7 +151,7 @@ struct TestStationView: View {
     }
 }
 
-// MARK: - Style tile
+// MARK: - Style swatch (wide, zoomed into the linework; centered label)
 
 private struct StyleTile: View {
     let style: ForgeStyle
@@ -166,12 +161,14 @@ private struct StyleTile: View {
 
     var body: some View {
         Button(action: onRun) {
-            ZStack(alignment: .bottomLeading) {
-                // Sample preview (committed) or a soft placeholder.
+            ZStack {
+                // Zoomed crop of the sample so the line/paint texture shows,
+                // not the whole subject.
                 if let url = style.sampleURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
-                        case .success(let image): image.resizable().scaledToFill()
+                        case .success(let image):
+                            image.resizable().scaledToFill().scaleEffect(1.7)
                         default: placeholder
                         }
                     }
@@ -179,23 +176,31 @@ private struct StyleTile: View {
                     placeholder
                 }
 
-                LinearGradient(colors: [.black.opacity(0.55), .clear],
-                               startPoint: .bottom, endPoint: .center)
-
+                // Centered, standout label (rounded rect — not a pill).
                 Text(style.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption2.weight(.bold))
                     .foregroundColor(.white)
-                    .shadow(radius: 2)
-                    .padding(10)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(.black.opacity(0.5)))
+                    .padding(4)
             }
-            .frame(height: 150)
+            .frame(height: 64)
             .frame(maxWidth: .infinity)
             .clipped()
-            .cornerRadius(Theme.radiusLg)
-            .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg)
-                .stroke(isSelected ? Theme.accent : Theme.border,
-                        lineWidth: isSelected ? 2 : 1))
-            .overlay(alignment: .topTrailing) { selectToggle }
+            .cornerRadius(Theme.radius)
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: isSelected ? 2.5 : 1))
+            .overlay(alignment: .topTrailing) {
+                Button(action: onToggle) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.caption)
+                        .foregroundColor(isSelected ? Theme.accent : .white)
+                        .shadow(radius: 2)
+                        .padding(4)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -203,17 +208,6 @@ private struct StyleTile: View {
     private var placeholder: some View {
         LinearGradient(colors: [Theme.surface2, Theme.accentDim.opacity(0.4)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    private var selectToggle: some View {
-        Button(action: onToggle) {
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
-                .foregroundColor(isSelected ? Theme.accent : .white)
-                .shadow(radius: 2)
-                .padding(8)
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -230,8 +224,7 @@ private struct ResultCard: View {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let image): image.resizable().scaledToFill()
-                        case .failure: Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(Theme.danger)
+                        case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
                         default: ProgressView()
                         }
                     }
@@ -242,18 +235,11 @@ private struct ResultCard: View {
                     ProgressView()
                 }
             }
-            .frame(height: 150)
-            .frame(maxWidth: .infinity)
-            .clipped()
+            .frame(height: 150).frame(maxWidth: .infinity).clipped()
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(result.styleName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Theme.text)
-                Text(result.prompt)
-                    .font(.caption2)
-                    .foregroundColor(Theme.textDim)
-                    .lineLimit(2)
+                Text(result.styleName).font(.subheadline.weight(.semibold)).foregroundColor(Theme.text)
+                Text(result.prompt).font(.caption2).foregroundColor(Theme.textDim).lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
