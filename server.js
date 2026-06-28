@@ -22,7 +22,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
-app.use(express.json());
+// Reference images for the Sticker Page are sent as base64 in the JSON body,
+// so the default 100kb limit is far too small — allow a handful of photos.
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
@@ -154,6 +156,9 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
+
+// ─── Sticker Page: full-page kiss-cut sticker sheet (gpt-image-2) ────
+app.get('/stickers', (req, res) => { res.sendFile(__dirname + '/public/stickers.html'); });
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
@@ -568,6 +573,99 @@ app.post('/api/generate/sticker-sheet', async (req, res) => {
     });
     const data = await internal.json();
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Sticker Page: full-page sticker sheet via gpt-image-2 ──────────
+// The new, richer sticker workflow (standalone /stickers page). One prompt
+// (+ optional reference images) becomes a single full-page sheet of kiss-cut
+// stickers. Reference images are sent as base64 in the JSON body and forwarded
+// to gpt-image-2's edits endpoint as visual references; with no references it
+// falls back to plain generation. quality defaults to "medium".
+function decodeDataUrl(s) {
+  if (!s) return null;
+  const m = /^data:([^;]+);base64,(.*)$/.exec(s);
+  const b64 = m ? m[2] : s;            // accept raw base64 too
+  const mime = m ? m[1] : 'image/png';
+  try { return { buffer: Buffer.from(b64, 'base64'), mime }; } catch { return null; }
+}
+
+// Multipart edits call to gpt-image-2 with one or more reference images. Uses
+// the `image[]` field so several references can guide a single result. Fails
+// fast on errors (no held-open socket) like the other OpenAI helpers.
+async function openaiStickerEdit({ prompt, refs, quality, size, retries = 2 }) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const form = new FormData();
+      form.append('model', 'gpt-image-2');
+      form.append('prompt', prompt);
+      refs.forEach((r, i) => {
+        const ext = (r.mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        form.append('image[]', r.buffer, { filename: `ref${i}.${ext}`, contentType: r.mime });
+      });
+      form.append('size', size);
+      form.append('quality', quality);
+      form.append('output_format', 'webp');
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+        body: form,
+        timeout: 120000,
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+const STICKER_QUALITIES = new Set(['low', 'medium', 'high']);
+const STICKER_SIZES = new Set(['1024x1024', '1024x1536', '1536x1024', 'auto']);
+
+app.post('/api/generate/sticker-page', async (req, res) => {
+  try {
+    let { prompt = '', refs = [], quality = 'medium', size = '1024x1536' } = req.body;
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+    prompt = String(prompt).trim();
+    if (!prompt) return res.status(400).json({ error: 'Describe the stickers you want.' });
+    if (!STICKER_QUALITIES.has(quality)) quality = 'medium';
+    if (!STICKER_SIZES.has(size)) size = '1024x1536';
+
+    const refBuffers = (Array.isArray(refs) ? refs : [])
+      .slice(0, 4)                      // keep the request sane
+      .map(decodeDataUrl)
+      .filter(Boolean);
+
+    // Base instruction that turns the user's idea into a printable sticker sheet:
+    // many separate die-cut stickers, thick white borders, scattered, no text.
+    const sheet =
+      'A full-page sticker sheet: a collection of separate die-cut (kiss-cut) ' +
+      'stickers arranged scattered across a plain white background, varied sizes ' +
+      'and slight rotations, each sticker with a clean thick white border and a ' +
+      'subtle drop shadow so it reads as a peel-off sticker. Cohesive set, ' +
+      'glossy vinyl look, vibrant and cute. Absolutely no text, words or letters. ' +
+      'The stickers depict: ' + prompt;
+    const refNote = refBuffers.length
+      ? ' Use the attached image(s) as reference for the subjects and overall look.'
+      : '';
+    const fullPrompt = sheet + refNote;
+
+    let data;
+    if (refBuffers.length) {
+      data = await openaiStickerEdit({ prompt: fullPrompt, refs: refBuffers, quality, size });
+    } else {
+      data = await openaiImage({ model: 'gpt-image-2', prompt: fullPrompt, n: 1, size, quality, output_format: 'webp' });
+    }
+    if (data.error) return res.status(400).json({ error: data.error.message || 'gpt-image-2 error' });
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'stickers');
+    res.json({ url, quality, size });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
