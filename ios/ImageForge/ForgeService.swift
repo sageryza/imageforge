@@ -176,6 +176,25 @@ final class ForgeService {
         return url
     }
 
+    /// Illustrate a dream in the baked moody style. Returns the image URL.
+    func generateDream(text: String) async throws -> URL {
+        try await ensureSignedIn()
+        let result = try await call("forgeTestImage", [
+            "prompt": text,
+            "style": "dream",
+            "quality": "medium",
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No dream was returned."])
+        }
+        return url
+    }
+
     /// Read the signed-in user's saved creations (newest first). These are
     /// written server-side on every generation, so they survive a dropped
     /// connection / backgrounded app and back the in-app grid.
