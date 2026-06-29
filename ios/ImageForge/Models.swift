@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// A house style shown as a tile in the Test Station. `id` is the style key the
 /// `forgeTestImage` Cloud Function expects; `sampleSeg` is the filename of the
@@ -29,6 +30,33 @@ enum ForgeStyles {
         ForgeStyle(id: "hoonie",      name: "Hoonie Linocut",       provider: "replicate", sampleSeg: "hoonie"),
         ForgeStyle(id: "gpt-image-2", name: "ChatGPT (gpt-image-2)", provider: "openai",   sampleSeg: nil),
     ]
+}
+
+/// A detected sticker's bounding box on the sheet, as fractions (0–1) of the
+/// sheet's width/height. Returned by the backend's segmentation.
+struct StickerBox: Hashable {
+    let xPct: Double
+    let yPct: Double
+    let wPct: Double
+    let hPct: Double
+}
+
+/// A generated sticker sheet: the flat image plus the per-sticker boxes used by
+/// the tap-to-redo canvas.
+struct StickerSheetResult {
+    let url: URL
+    let boxes: [StickerBox]
+}
+
+/// One on-canvas sticker the user can tap to redo. Positioned by its center and
+/// size as fractions of the canvas; carries its current image.
+struct CanvasSticker: Identifiable {
+    let id = UUID()
+    var centerXPct: Double
+    var centerYPct: Double
+    var sidePct: Double      // square side as a fraction of canvas width
+    var image: UIImage?
+    var isLoading: Bool = false
 }
 
 /// One generation in the results feed (newest first).

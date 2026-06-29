@@ -1,19 +1,22 @@
 import SwiftUI
+import UIKit
 
 /// Sticker Page — describe a set of stickers and get one full-page sheet of
-/// free-form kiss-cut stickers. The house sticker style (reference images +
-/// palette) is baked into the `forgeStickerSheet` Cloud Function, so the screen
-/// only collects a prompt and a quality. Generation goes through gpt-image-2, so
-/// it sits behind the same one-time AI-consent gate as the Test Station.
+/// free-form stickers (house style baked in server-side). After a sheet is
+/// generated, "Edit stickers" opens a canvas where each detected sticker is its
+/// own tile you can tap to regenerate in place. Generation goes through
+/// gpt-image-2, so it sits behind the shared one-time AI-consent gate.
 struct StickerView: View {
     @State private var prompt = ""
     @State private var quality = "medium"
     @State private var busy = false
-    @State private var sheetURL: URL?
+    @State private var sheet: StickerSheetResult?
     @State private var errorText: String?
 
-    // App Store Guideline 5.1.2(i): one-time consent before sending anything to
-    // third-party AI. Shared key with the Test Station.
+    // Editor
+    @State private var loadingEditor = false
+    @State private var editorItem: IdentifiedImage?
+
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
 
@@ -27,7 +30,7 @@ struct StickerView: View {
                     qualityPicker
                     generateButton
                     if busy { loadingCard }
-                    if let url = sheetURL, !busy { resultCard(url) }
+                    if let sheet, !busy { resultCard(sheet) }
                 }
                 .padding()
             }
@@ -52,6 +55,13 @@ struct StickerView: View {
                     privacyURL: URL(string: "https://incaseofamnesia.com/privacy.html"),
                     onAgree: { aiConsentAccepted = true; showConsent = false; run() },
                     onCancel: { showConsent = false })
+            }
+            .fullScreenCover(item: $editorItem) { item in
+                if let sheet {
+                    StickerEditor(sheetImage: item.image, boxes: sheet.boxes) {
+                        editorItem = nil
+                    }
+                }
             }
         }
         .tint(Theme.accent)
@@ -128,12 +138,12 @@ struct StickerView: View {
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
-    private func resultCard(_ url: URL) -> some View {
+    private func resultCard(_ sheet: StickerSheetResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("YOUR SHEET")
                 .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
-            AsyncImage(url: url) { phase in
+            AsyncImage(url: sheet.url) { phase in
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFit()
@@ -146,8 +156,25 @@ struct StickerView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            ShareLink(item: url) {
-                Label("Share / Save", systemImage: "square.and.arrow.up")
+
+            if !sheet.boxes.isEmpty {
+                Button { openEditor(sheet) } label: {
+                    HStack {
+                        if loadingEditor { ProgressView().tint(.white) }
+                        Text(loadingEditor ? "Opening…" : "Edit stickers  ·  tap any to redo")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Theme.accent)
+                    .foregroundColor(.white)
+                    .cornerRadius(Theme.radius)
+                }
+                .disabled(loadingEditor)
+            }
+
+            ShareLink(item: sheet.url) {
+                Label("Share / Save sheet", systemImage: "square.and.arrow.up")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(Theme.accent)
             }
@@ -164,18 +191,223 @@ struct StickerView: View {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Describe the stickers you want first."; return }
         guard !busy else { return }
-        // Gate the first AI call behind the consent sheet (5.1.2(i)).
         guard aiConsentAccepted else { showConsent = true; return }
         busy = true
-        sheetURL = nil
+        sheet = nil
         Task {
             do {
-                let url = try await ForgeService.shared.generateStickerSheet(prompt: text, quality: quality)
-                sheetURL = url
+                sheet = try await ForgeService.shared.generateStickerSheet(prompt: text, quality: quality)
             } catch {
                 errorText = error.localizedDescription
             }
             busy = false
         }
     }
+
+    /// Download the sheet image, then open the tap-to-redo canvas.
+    private func openEditor(_ sheet: StickerSheetResult) {
+        guard !loadingEditor else { return }
+        loadingEditor = true
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: sheet.url)
+                if let img = UIImage(data: data) {
+                    editorItem = IdentifiedImage(image: img)
+                } else {
+                    errorText = "Couldn't open the sheet for editing."
+                }
+            } catch {
+                errorText = error.localizedDescription
+            }
+            loadingEditor = false
+        }
+    }
+}
+
+/// Wraps a UIImage so it can drive `.fullScreenCover(item:)` / `.sheet(item:)`.
+struct IdentifiedImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+// MARK: - Editor canvas
+
+/// Full-screen canvas of individual sticker tiles cropped from the sheet. Tap a
+/// tile to regenerate just that sticker in place.
+private struct StickerEditor: View {
+    let sheetImage: UIImage
+    let boxes: [StickerBox]
+    var onClose: () -> Void
+
+    @State private var stickers: [CanvasSticker] = []
+    @State private var errorText: String?
+    @State private var shareItem: IdentifiedImage?
+
+    private var aspect: CGFloat {
+        guard sheetImage.size.height > 0 else { return 2.0 / 3.0 }
+        return sheetImage.size.width / sheetImage.size.height
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Text("Tap any sticker to redo it.")
+                .font(.caption).foregroundColor(Theme.textDim)
+                .padding(.vertical, 8)
+            canvas
+            Spacer(minLength: 0)
+        }
+        .background(Theme.bg.ignoresSafeArea())
+        .onAppear(perform: buildStickers)
+        .alert("Couldn't redo", isPresented: Binding(get: { errorText != nil },
+                                                     set: { if !$0 { errorText = nil } })) {
+            Button("OK", role: .cancel) { errorText = nil }
+        } message: { Text(errorText ?? "") }
+        .sheet(item: $shareItem) { item in
+            ActivityView(items: [item.image])
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            Button("Done", action: onClose)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(Theme.accent)
+            Spacer()
+            Text("Edit Stickers").font(.subheadline.weight(.semibold)).foregroundColor(Theme.text)
+            Spacer()
+            Button { shareItem = IdentifiedImage(image: flatten()) } label: {
+                Image(systemName: "square.and.arrow.up").foregroundColor(Theme.accent)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(Theme.surface)
+        .overlay(Rectangle().fill(Theme.border).frame(height: 1), alignment: .bottom)
+    }
+
+    private var canvas: some View {
+        Color.clear
+            .aspectRatio(aspect, contentMode: .fit)
+            .overlay {
+                GeometryReader { geo in
+                    ZStack(alignment: .topLeading) {
+                        Color.white
+                        ForEach(stickers) { s in
+                            tile(s, canvas: geo.size)
+                        }
+                    }
+                }
+            }
+            .background(Color.white)
+            .cornerRadius(Theme.radius)
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+            .padding(12)
+    }
+
+    private func tile(_ s: CanvasSticker, canvas: CGSize) -> some View {
+        let side = s.sidePct * canvas.width
+        return Group {
+            if let img = s.image {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: side, height: side)
+                    .overlay {
+                        if s.isLoading {
+                            ZStack {
+                                Color.white.opacity(0.6)
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .position(x: s.centerXPct * canvas.width, y: s.centerYPct * canvas.height)
+                    .onTapGesture { redo(s.id) }
+            }
+        }
+    }
+
+    // MARK: build / redo
+
+    private func buildStickers() {
+        guard sheetImage.cgImage != nil else { return }
+        let sheetW = sheetImage.size.width, sheetH = sheetImage.size.height
+        stickers = boxes.map { b in
+            let cx = b.xPct + b.wPct / 2
+            let cy = b.yPct + b.hPct / 2
+            // Square side as a fraction of WIDTH (so tiles are square in points).
+            let sideW = max(b.wPct, b.hPct * (sheetH / sheetW)) * 1.06
+            let img = cropSquare(centerXPct: cx, centerYPct: cy, sideWPct: sideW)
+            return CanvasSticker(centerXPct: cx, centerYPct: cy, sidePct: sideW, image: img)
+        }
+    }
+
+    private func cropSquare(centerXPct: Double, centerYPct: Double, sideWPct: Double) -> UIImage? {
+        guard let cg = sheetImage.cgImage else { return nil }
+        let W = Double(cg.width), H = Double(cg.height)
+        let sidePx = sideWPct * W
+        let cx = centerXPct * W, cy = centerYPct * H
+        let raw = CGRect(x: cx - sidePx / 2, y: cy - sidePx / 2, width: sidePx, height: sidePx)
+        let rect = raw.intersection(CGRect(x: 0, y: 0, width: W, height: H))
+        guard !rect.isNull, let cropped = cg.cropping(to: rect) else { return nil }
+        return UIImage(cgImage: cropped, scale: sheetImage.scale, orientation: sheetImage.imageOrientation)
+    }
+
+    private func redo(_ id: UUID) {
+        guard let idx = stickers.firstIndex(where: { $0.id == id }),
+              let img = stickers[idx].image, !stickers[idx].isLoading,
+              let png = img.pngData() else { return }
+        stickers[idx].isLoading = true
+        Task {
+            do {
+                let url = try await ForgeService.shared.redoSticker(imageData: png)
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let i = stickers.firstIndex(where: { $0.id == id }) {
+                    if let newImg = UIImage(data: data) { stickers[i].image = newImg }
+                    stickers[i].isLoading = false
+                }
+            } catch {
+                if let i = stickers.firstIndex(where: { $0.id == id }) { stickers[i].isLoading = false }
+                errorText = error.localizedDescription
+            }
+        }
+    }
+
+    /// Flatten the current canvas to a shareable image.
+    @MainActor private func flatten() -> UIImage {
+        let renderW: CGFloat = 1000
+        let size = CGSize(width: renderW, height: renderW / aspect)
+        let content = StickerCanvasRender(stickers: stickers, size: size)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        return renderer.uiImage ?? sheetImage
+    }
+}
+
+/// Non-interactive render of the canvas at a fixed size (for sharing/export).
+private struct StickerCanvasRender: View {
+    let stickers: [CanvasSticker]
+    let size: CGSize
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.white
+            ForEach(stickers) { s in
+                if let img = s.image {
+                    Image(uiImage: img)
+                        .resizable().scaledToFit()
+                        .frame(width: s.sidePct * size.width, height: s.sidePct * size.width)
+                        .position(x: s.centerXPct * size.width, y: s.centerYPct * size.height)
+                }
+            }
+        }
+        .frame(width: size.width, height: size.height)
+    }
+}
+
+/// UIKit share sheet wrapper.
+private struct ActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
