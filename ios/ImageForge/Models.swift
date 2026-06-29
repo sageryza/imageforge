@@ -59,6 +59,15 @@ struct CanvasSticker: Identifiable {
     var isLoading: Bool = false
 }
 
+/// A saved creation (sticker sheet, coloring page, …) from the user's server
+/// list — powers the in-app grid + "pick it up when you reopen" recovery.
+struct Creation: Identifiable, Hashable {
+    let id: String
+    let type: String
+    let url: URL
+    let prompt: String?
+}
+
 /// One generation in the results feed (newest first).
 struct ForgeResult: Identifiable {
     let id = UUID()

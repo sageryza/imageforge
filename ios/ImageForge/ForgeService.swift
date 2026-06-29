@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFunctions
+import FirebaseFirestore
 
 /// Thin wrapper over the reused backend: anonymous Firebase Auth + the
 /// `forgeTestImage` Cloud Function (renders one prompt through a chosen house
@@ -131,5 +132,49 @@ final class ForgeService {
             )
         }
         return url
+    }
+
+    /// Generate a printable black-and-white coloring page.
+    func generateColoringPage(prompt: String, quality: String) async throws -> URL {
+        try await ensureSignedIn()
+        let result = try await call("forgeTestImage", [
+            "prompt": prompt,
+            "style": "coloring-page",
+            "quality": quality,
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(
+                domain: "ImageForge", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No coloring page was returned."]
+            )
+        }
+        return url
+    }
+
+    /// Read the signed-in user's saved creations (newest first). These are
+    /// written server-side on every generation, so they survive a dropped
+    /// connection / backgrounded app and back the in-app grid.
+    func fetchCreations(limit: Int = 60) async throws -> [Creation] {
+        try await ensureSignedIn()
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let snap = try await Firestore.firestore()
+            .collection("users").document(uid).collection("creations")
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return snap.documents.compactMap { doc in
+            let data = doc.data()
+            guard let urlStr = data["url"] as? String, let url = URL(string: urlStr) else { return nil }
+            return Creation(
+                id: doc.documentID,
+                type: (data["type"] as? String) ?? "image",
+                url: url,
+                prompt: data["prompt"] as? String
+            )
+        }
     }
 }

@@ -24,8 +24,7 @@ struct StickerView: View {
     private let qualities = ["low", "medium", "high"]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     // Generated content sits above the prompt controls.
                     if busy { loadingCard }
@@ -72,8 +71,6 @@ struct StickerView: View {
                     }
                 }
             }
-        }
-        .tint(Theme.accent)
     }
 
     // MARK: - Sections
@@ -138,7 +135,7 @@ struct StickerView: View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Theme.surface2)
             VStack(spacing: 10) {
-                ProgressView()
+                GIFView(name: "loading-anim", ext: "png").frame(width: 120, height: 120)
                 Text("rendering your sticker sheet…")
                     .font(.caption).foregroundColor(Theme.textDim)
             }

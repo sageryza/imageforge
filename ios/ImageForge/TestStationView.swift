@@ -21,8 +21,7 @@ struct TestStationView: View {
     private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     promptField
                     if !results.isEmpty { resultsSection }   // image(s) above the styles
@@ -61,8 +60,6 @@ struct TestStationView: View {
                     onAgree: { aiConsentAccepted = true; showConsent = false; run(pendingStyles) },
                     onCancel: { showConsent = false })
             }
-        }
-        .tint(Theme.accent)
     }
 
     // MARK: - Sections
