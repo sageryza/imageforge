@@ -19,6 +19,7 @@ struct StickerView: View {
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
+    @FocusState private var promptFocused: Bool
 
     private let qualities = ["low", "medium", "high"]
 
@@ -33,6 +34,13 @@ struct StickerView: View {
                     if let sheet, !busy { resultCard(sheet) }
                 }
                 .padding()
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { promptFocused = false }
+                }
             }
             .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Sticker Page")
@@ -79,6 +87,7 @@ struct StickerView: View {
                 .lineLimit(2...5)
                 .font(.body)
                 .foregroundColor(Theme.text)
+                .focused($promptFocused)
                 .padding(12)
                 .background(Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
@@ -188,6 +197,7 @@ struct StickerView: View {
     // MARK: - Actions
 
     private func run() {
+        promptFocused = false   // dismiss the keyboard
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Describe the stickers you want first."; return }
         guard !busy else { return }

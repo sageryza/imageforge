@@ -15,6 +15,7 @@ struct TestStationView: View {
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
     @State private var pendingStyles: [ForgeStyle] = []
+    @FocusState private var promptFocused: Bool
 
     // Three across.
     private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
@@ -29,6 +30,13 @@ struct TestStationView: View {
                     if !selected.isEmpty { runSelectedButton }
                 }
                 .padding()
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { promptFocused = false }
+                }
             }
             .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Test Station")
@@ -69,6 +77,7 @@ struct TestStationView: View {
                 .lineLimit(2...5)
                 .font(.body)
                 .foregroundColor(Theme.text)
+                .focused($promptFocused)
                 .padding(12)
                 .background(Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
@@ -133,6 +142,7 @@ struct TestStationView: View {
     }
 
     private func run(_ styles: [ForgeStyle]) {
+        promptFocused = false   // dismiss the keyboard
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Enter a prompt first."; return }
         guard !busy else { return }
