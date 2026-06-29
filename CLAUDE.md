@@ -44,6 +44,10 @@ each opens a focused workflow that shares the same house styles.
   PRs — never bare text the user has to assemble.
 - **Always include clickable testing links** when something is ready to test:
   the deployed page for the feature plus the PR link.
+- **Copy-paste / handoff messages = one code block.** When the user asks for a
+  message to copy-paste, forward, or hand off to another chat, put the ENTIRE
+  message inside a single fenced code block so it copies in one tap — no
+  commentary mixed in, never split across sections or styled headers.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
