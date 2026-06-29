@@ -18,10 +18,43 @@ final class ForgeService {
         }
     }
 
+    /// Call a callable with a couple of automatic retries on transient network
+    /// failures (e.g. "network connection lost"), so a brief blip doesn't kill a
+    /// generation. Permanent errors (bad input, rate limit) are thrown right away.
+    private func call(_ name: String, _ payload: [String: Any], retries: Int = 2) async throws -> HTTPSCallableResult {
+        var attempt = 0
+        while true {
+            do {
+                return try await functions.httpsCallable(name).call(payload)
+            } catch {
+                attempt += 1
+                if attempt > retries || !Self.isRetryable(error) { throw error }
+                try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_500_000_000)
+            }
+        }
+    }
+
+    private static func isRetryable(_ error: Error) -> Bool {
+        func urlRetryable(_ e: NSError) -> Bool {
+            e.domain == NSURLErrorDomain && [
+                NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+                NSURLErrorTimedOut, NSURLErrorCannotConnectToHost,
+                NSURLErrorCannotFindHost, NSURLErrorDNSLookupFailed,
+            ].contains(e.code)
+        }
+        let ns = error as NSError
+        if urlRetryable(ns) { return true }
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError, urlRetryable(underlying) { return true }
+        // Firebase Functions transient codes (domain "com.firebase.functions"):
+        // 4 deadlineExceeded, 13 internal, 14 unavailable.
+        if ns.domain == "com.firebase.functions" { return [4, 13, 14].contains(ns.code) }
+        return false
+    }
+
     /// Render `prompt` in `styleId` and return the image URL.
     func generate(prompt: String, styleId: String) async throws -> URL {
         try await ensureSignedIn()
-        let result = try await functions.httpsCallable("forgeTestImage").call([
+        let result = try await call("forgeTestImage", [
             "prompt": prompt,
             "style": styleId,
         ])
@@ -46,7 +79,7 @@ final class ForgeService {
         try await ensureSignedIn()
         // Routed through forgeTestImage (style "sticker-sheet") because that
         // function already has the public-invoker binding the client SDK needs.
-        let result = try await functions.httpsCallable("forgeTestImage").call([
+        let result = try await call("forgeTestImage", [
             "prompt": prompt,
             "style": "sticker-sheet",
             "quality": quality,
@@ -74,15 +107,19 @@ final class ForgeService {
         return StickerSheetResult(url: url, boxes: boxes)
     }
 
-    /// Redo one sticker: send the cropped tile (PNG bytes) and get back a fresh
-    /// variation of the same subject in the house style, on plain white.
-    func redoSticker(imageData: Data) async throws -> URL {
+    /// Redo one sticker: send the cropped tile (PNG bytes). With `replacement`
+    /// text, draw that new subject in the same style; otherwise a fresh variation
+    /// of the same subject. Returns the new sticker image URL.
+    func redoSticker(imageData: Data, replacement: String? = nil) async throws -> URL {
         try await ensureSignedIn()
-        let result = try await functions.httpsCallable("forgeTestImage").call([
+        var payload: [String: Any] = [
             "style": "redo-sticker",
             "image": imageData.base64EncodedString(),
             "mimeType": "image/png",
-        ])
+        ]
+        let want = replacement?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !want.isEmpty { payload["prompt"] = want }
+        let result = try await call("forgeTestImage", payload)
         guard
             let data = result.data as? [String: Any],
             let urlString = data["url"] as? String,

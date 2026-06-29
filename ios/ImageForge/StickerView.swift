@@ -27,11 +27,12 @@ struct StickerView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    // Generated content sits above the prompt controls.
+                    if busy { loadingCard }
+                    if let sheet, !busy { resultCard(sheet) }
                     promptField
                     qualityPicker
                     generateButton
-                    if busy { loadingCard }
-                    if let sheet, !busy { resultCard(sheet) }
                 }
                 .padding()
             }
@@ -252,6 +253,9 @@ private struct StickerEditor: View {
     @State private var stickers: [CanvasSticker] = []
     @State private var errorText: String?
     @State private var shareItem: IdentifiedImage?
+    @State private var redoTargetId: UUID?
+    @State private var redoText = ""
+    @State private var showRedoAlert = false
 
     private var aspect: CGFloat {
         guard sheetImage.size.height > 0 else { return 2.0 / 3.0 }
@@ -275,6 +279,13 @@ private struct StickerEditor: View {
         } message: { Text(errorText ?? "") }
         .sheet(item: $shareItem) { item in
             ActivityView(items: [item.image])
+        }
+        .alert("Redo this sticker", isPresented: $showRedoAlert) {
+            TextField("What should it be? (blank = redraw)", text: $redoText)
+            Button("Go") { if let id = redoTargetId { redo(id, replacement: redoText) } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Type what this sticker should become, or leave blank for a fresh version of the same thing.")
         }
     }
 
@@ -331,7 +342,11 @@ private struct StickerEditor: View {
                         }
                     }
                     .position(x: s.centerXPct * canvas.width, y: s.centerYPct * canvas.height)
-                    .onTapGesture { redo(s.id) }
+                    .onTapGesture {
+                        redoTargetId = s.id
+                        redoText = ""
+                        showRedoAlert = true
+                    }
             }
         }
     }
@@ -362,14 +377,14 @@ private struct StickerEditor: View {
         return UIImage(cgImage: cropped, scale: sheetImage.scale, orientation: sheetImage.imageOrientation)
     }
 
-    private func redo(_ id: UUID) {
+    private func redo(_ id: UUID, replacement: String) {
         guard let idx = stickers.firstIndex(where: { $0.id == id }),
               let img = stickers[idx].image, !stickers[idx].isLoading,
               let png = img.pngData() else { return }
         stickers[idx].isLoading = true
         Task {
             do {
-                let url = try await ForgeService.shared.redoSticker(imageData: png)
+                let url = try await ForgeService.shared.redoSticker(imageData: png, replacement: replacement)
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let i = stickers.firstIndex(where: { $0.id == id }) {
                     if let newImg = UIImage(data: data) { stickers[i].image = newImg }
