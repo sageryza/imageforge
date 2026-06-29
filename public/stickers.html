@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sticker Page · ImageForge</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/forge.css">
+  <style>
+    .wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .intro { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 28px; max-width: 560px; }
+
+    label.field-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 84px;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--accent-dim); }
+
+    .block { margin-bottom: 26px; }
+
+    /* Reference images */
+    .refs-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .ref-thumb {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+    .ref-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ref-remove {
+      position: absolute;
+      top: 3px; right: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+      padding: 0;
+    }
+    .ref-add {
+      width: 78px;
+      height: 78px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 22px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .ref-add:hover { border-color: var(--text-dim); color: var(--text); }
+    .ref-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+    /* Quality segmented control (rounded rects, no pills) */
+    .seg { display: inline-flex; gap: 6px; }
+    .seg-btn {
+      padding: 7px 16px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .seg-btn.active { background: var(--surface-2); color: var(--text); border-color: var(--accent-dim); }
+
+    .btn {
+      padding: 12px 28px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn:disabled { background: var(--accent-dim); opacity: 0.6; cursor: not-allowed; }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: #fef2f2;
+      border: 1px solid #f5d5d5;
+      border-radius: var(--radius);
+      color: var(--danger);
+      font-size: 13px;
+    }
+    .error.show { display: block; }
+
+    /* Result */
+    .result { margin-top: 32px; }
+    .sheet-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      box-shadow: 0 2px 10px rgba(58,53,48,0.06);
+    }
+    .sheet-frame img { width: 100%; border-radius: var(--radius); display: block; }
+    .download-link {
+      display: inline-block;
+      margin-top: 14px;
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .download-link:hover { text-decoration: underline; }
+
+    /* Loading shimmer */
+    .loading {
+      margin-top: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      aspect-ratio: 2 / 3;
+      background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .loading.show { display: flex; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    .next-note {
+      margin-top: 40px;
+      padding: 16px 18px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" title="Back to hub" style="text-decoration:none;">
+      <span class="brand-mark">◆</span>
+      <h1>ImageForge</h1>
+    </a>
+    <nav class="app-nav">
+      <span class="tool-name">Sticker Page</span>
+      <a class="btn-ghost" href="/" style="text-decoration:none;">← Hub</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <p class="intro">
+      Describe a set of stickers and ImageForge renders one full-page sheet of
+      kiss-cut stickers with ChatGPT (gpt-image-2). Add reference images to guide
+      the subjects or the look.
+    </p>
+
+    <div class="block">
+      <label class="field-label" for="prompt">What stickers do you want?</label>
+      <textarea id="prompt" placeholder="e.g. a set of cozy autumn stickers — a steaming mug, a maple leaf, a little fox, a stack of books, a candle"></textarea>
+    </div>
+
+    <div class="block">
+      <label class="field-label">Reference images (optional)</label>
+      <div class="refs-grid" id="refs-grid">
+        <button class="ref-add" id="ref-add" title="Add reference image">+</button>
+      </div>
+      <input type="file" id="ref-input" accept="image/*" multiple style="display:none;">
+      <p class="ref-hint">Up to 4 images — photos or art to base the stickers on.</p>
+    </div>
+
+    <div class="block">
+      <label class="field-label">Quality</label>
+      <div class="seg" id="quality-seg">
+        <button class="seg-btn" data-q="low">Low</button>
+        <button class="seg-btn active" data-q="medium">Medium</button>
+        <button class="seg-btn" data-q="high">High</button>
+      </div>
+    </div>
+
+    <button class="btn" id="generate-btn" onclick="generate()">Generate Sticker Sheet</button>
+    <div class="error" id="error"></div>
+
+    <div class="loading" id="loading">rendering your sticker sheet…</div>
+
+    <div class="result" id="result"></div>
+
+    <div class="next-note">
+      <strong>Coming next:</strong> tap any single sticker to regenerate just that
+      one in place, and drag stickers around the sheet to rearrange them.
+    </div>
+  </div>
+
+  <script>
+    let refs = [];               // array of data URLs
+    let quality = 'medium';
+
+    // ── Quality selector ──
+    document.getElementById('quality-seg').addEventListener('click', (e) => {
+      const btn = e.target.closest('.seg-btn');
+      if (!btn) return;
+      quality = btn.dataset.q;
+      document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+
+    // ── Reference images ──
+    const refInput = document.getElementById('ref-input');
+    document.getElementById('ref-add').addEventListener('click', () => refInput.click());
+    refInput.addEventListener('change', async () => {
+      for (const file of refInput.files) {
+        if (refs.length >= 4) break;
+        const dataUrl = await readFile(file);
+        refs.push(dataUrl);
+      }
+      refInput.value = '';
+      renderRefs();
+    });
+
+    function readFile(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+
+    function renderRefs() {
+      const grid = document.getElementById('refs-grid');
+      grid.querySelectorAll('.ref-thumb').forEach(t => t.remove());
+      const addBtn = document.getElementById('ref-add');
+      refs.forEach((src, i) => {
+        const div = document.createElement('div');
+        div.className = 'ref-thumb';
+        div.innerHTML = `<img src="${src}" alt="reference ${i + 1}">
+          <button class="ref-remove" title="Remove" data-i="${i}">×</button>`;
+        grid.insertBefore(div, addBtn);
+      });
+      addBtn.style.display = refs.length >= 4 ? 'none' : '';
+      grid.querySelectorAll('.ref-remove').forEach(b => {
+        b.addEventListener('click', () => { refs.splice(+b.dataset.i, 1); renderRefs(); });
+      });
+    }
+
+    // ── Errors ──
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() { document.getElementById('error').classList.remove('show'); }
+
+    // ── Generate ──
+    async function generate() {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) { showError('Describe the stickers you want first.'); return; }
+      hideError();
+
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('loading').classList.add('show');
+
+      try {
+        const res = await fetch('/api/generate/sticker-page', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, refs, quality, size: '1024x1536' }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+        document.getElementById('result').innerHTML = `
+          <label class="field-label">Your sticker sheet</label>
+          <div class="sheet-frame"><img src="${data.url}" alt="Sticker sheet"></div>
+          <a class="download-link" href="${data.url}" download="sticker-sheet.webp" target="_blank">↓ Download full sheet</a>
+        `;
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        document.getElementById('loading').classList.remove('show');
+        btn.disabled = false;
+        btn.textContent = 'Generate Sticker Sheet';
+      }
+    }
+  </script>
+</body>
+</html>
