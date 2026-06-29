@@ -37,4 +37,26 @@ final class ForgeService {
         }
         return url
     }
+
+    /// Render a full-page sticker sheet from `prompt`. The house sticker look is
+    /// baked into the `forgeStickerSheet` Cloud Function (reference images +
+    /// style prompt); the app only sends the subject prompt and the quality.
+    func generateStickerSheet(prompt: String, quality: String) async throws -> URL {
+        try await ensureSignedIn()
+        let result = try await functions.httpsCallable("forgeStickerSheet").call([
+            "prompt": prompt,
+            "quality": quality,
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(
+                domain: "ImageForge", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No sticker sheet was returned."]
+            )
+        }
+        return url
+    }
 }
