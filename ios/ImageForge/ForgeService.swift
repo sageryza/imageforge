@@ -43,8 +43,11 @@ final class ForgeService {
     /// style prompt); the app only sends the subject prompt and the quality.
     func generateStickerSheet(prompt: String, quality: String) async throws -> URL {
         try await ensureSignedIn()
-        let result = try await functions.httpsCallable("forgeStickerSheet").call([
+        // Routed through forgeTestImage (style "sticker-sheet") because that
+        // function already has the public-invoker binding the client SDK needs.
+        let result = try await functions.httpsCallable("forgeTestImage").call([
             "prompt": prompt,
+            "style": "sticker-sheet",
             "quality": quality,
         ])
         guard
