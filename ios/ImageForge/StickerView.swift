@@ -78,9 +78,11 @@ struct StickerView: View {
             }
             .fullScreenCover(item: $editorItem) { item in
                 if let sheet {
-                    StickerEditor(sheetImage: item.image, boxes: sheet.boxes) {
-                        editorItem = nil
-                    }
+                    StickerEditor(
+                        sheetImage: item.image,
+                        boxes: sheet.boxes,
+                        onClose: { editorItem = nil },
+                        onSaved: { url in self.sheet = StickerSheetResult(url: url, boxes: sheet.boxes) })
                 }
             }
     }
@@ -236,6 +238,7 @@ private struct StickerEditor: View {
     let sheetImage: UIImage
     let boxes: [StickerBox]
     var onClose: () -> Void
+    var onSaved: (URL) -> Void = { _ in }
 
     @State private var stickers: [CanvasSticker] = []
     @State private var errorText: String?
@@ -243,6 +246,7 @@ private struct StickerEditor: View {
     @State private var redoTargetId: UUID?
     @State private var redoText = ""
     @State private var showRedoAlert = false
+    @State private var didEdit = false
 
     private var aspect: CGFloat {
         guard sheetImage.size.height > 0 else { return 2.0 / 3.0 }
@@ -278,7 +282,7 @@ private struct StickerEditor: View {
 
     private var header: some View {
         HStack {
-            Button("Done", action: onClose)
+            Button("Done") { done() }
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(Theme.accent)
             Spacer()
@@ -378,7 +382,7 @@ private struct StickerEditor: View {
                 let url = try await ForgeService.shared.redoSticker(imageData: png, replacement: replacement)
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let i = stickers.firstIndex(where: { $0.id == id }) {
-                    if let newImg = UIImage(data: data) { stickers[i].image = newImg }
+                    if let newImg = UIImage(data: data) { stickers[i].image = newImg; didEdit = true }
                     stickers[i].isLoading = false
                 }
             } catch {
@@ -386,6 +390,20 @@ private struct StickerEditor: View {
                 errorText = error.localizedDescription
             }
         }
+    }
+
+    /// Close the editor. If anything was redone, flatten the sheet and save the
+    /// edited version to My Creations (and hand it back so the main screen shows
+    /// it). Saving runs in the background so closing is instant.
+    private func done() {
+        if didEdit, let data = flatten().jpegData(compressionQuality: 0.9) {
+            Task {
+                if let url = try? await ForgeService.shared.saveEditedSheet(imageData: data) {
+                    onSaved(url)
+                }
+            }
+        }
+        onClose()
     }
 
     /// Flatten the current canvas to a shareable image.

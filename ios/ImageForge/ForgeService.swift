@@ -134,6 +134,27 @@ final class ForgeService {
         return url
     }
 
+    /// Persist an edited (flattened) sticker sheet to the user's creations so
+    /// edits made in the editor aren't lost. Returns the saved image URL.
+    func saveEditedSheet(imageData: Data, prompt: String? = nil) async throws -> URL {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "style": "save-sheet",
+            "image": imageData.base64EncodedString(),
+        ]
+        if let p = prompt, !p.isEmpty { payload["prompt"] = p }
+        let result = try await call("forgeTestImage", payload)
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Couldn't save the sheet."])
+        }
+        return url
+    }
+
     /// Generate a printable black-and-white coloring page.
     func generateColoringPage(prompt: String, quality: String) async throws -> URL {
         try await ensureSignedIn()
