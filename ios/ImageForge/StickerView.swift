@@ -41,6 +41,18 @@ struct StickerView: View {
                     Spacer()
                     Button("Done") { promptFocused = false }
                 }
+                if let sheet, !busy {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Menu {
+                            if !sheet.boxes.isEmpty {
+                                Button { openEditor(sheet) } label: { Label("Edit stickers", systemImage: "wand.and.stars") }
+                            }
+                            ShareLink(item: sheet.url) { Label("Share / Save", systemImage: "square.and.arrow.up") }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
             }
             .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Sticker Page")
@@ -133,63 +145,33 @@ struct StickerView: View {
 
     private var loadingCard: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Theme.surface2)
-            VStack(spacing: 10) {
-                GIFView(name: "loading-anim", ext: "png").frame(width: 120, height: 120)
-                Text("rendering your sticker sheet…")
-                    .font(.caption).foregroundColor(Theme.textDim)
-            }
+            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
+            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
+    // Just the sheet on white — tap it to open the editor. Actions live in the
+    // ⋯ menu in the nav bar; sheets also auto-save to My Creations.
     private func resultCard(_ sheet: StickerSheetResult) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("YOUR SHEET")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            AsyncImage(url: sheet.url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFit()
-                        .background(Color.white)
-                        .cornerRadius(Theme.radius)
-                case .failure:
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-                default:
-                    ProgressView()
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-            if !sheet.boxes.isEmpty {
-                Button { openEditor(sheet) } label: {
-                    HStack {
-                        if loadingEditor { ProgressView().tint(.white) }
-                        Text(loadingEditor ? "Opening…" : "Edit stickers  ·  tap any to redo")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.accent)
-                    .foregroundColor(.white)
-                    .cornerRadius(Theme.radius)
-                }
-                .disabled(loadingEditor)
-            }
-
-            ShareLink(item: sheet.url) {
-                Label("Share / Save sheet", systemImage: "square.and.arrow.up")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(Theme.accent)
+        AsyncImage(url: sheet.url) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable().scaledToFit().background(Color.white)
+            case .failure:
+                Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+            default:
+                ProgressView()
             }
         }
-        .padding(14)
-        .background(Theme.surface)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
         .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+        .contentShape(Rectangle())
+        .onTapGesture { if !sheet.boxes.isEmpty { openEditor(sheet) } }
     }
 
     // MARK: - Actions
@@ -202,11 +184,19 @@ struct StickerView: View {
         guard aiConsentAccepted else { showConsent = true; return }
         busy = true
         sheet = nil
+        let started = Date()
         Task {
             do {
                 sheet = try await ForgeService.shared.generateStickerSheet(prompt: text, quality: quality)
             } catch {
-                errorText = error.localizedDescription
+                // The on-screen call may have dropped (e.g. backgrounded) while
+                // the server finished. Try to pick up the saved sheet before
+                // surfacing an error.
+                if let recovered = try? await ForgeService.shared.latestStickerSheet(since: started.addingTimeInterval(-120)) {
+                    sheet = recovered
+                } else {
+                    errorText = "Couldn't reach the server. If you left the app, your sheet may still be finishing — check My Creations."
+                }
             }
             busy = false
         }
@@ -294,8 +284,12 @@ private struct StickerEditor: View {
             Spacer()
             Text("Edit Stickers").font(.subheadline.weight(.semibold)).foregroundColor(Theme.text)
             Spacer()
-            Button { shareItem = IdentifiedImage(image: flatten()) } label: {
-                Image(systemName: "square.and.arrow.up").foregroundColor(Theme.accent)
+            Menu {
+                Button { shareItem = IdentifiedImage(image: flatten()) } label: {
+                    Label("Share / Save", systemImage: "square.and.arrow.up")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle").foregroundColor(Theme.accent)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)

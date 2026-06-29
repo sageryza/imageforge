@@ -177,4 +177,38 @@ final class ForgeService {
             )
         }
     }
+
+    /// Recovery: if a sticker generation's on-screen call dropped (e.g. the app
+    /// was backgrounded), the server still finished and saved it. Find the newest
+    /// sticker creation made since `since` and rebuild the full sheet (url +
+    /// boxes) so the screen can show it instead of an error.
+    func latestStickerSheet(since: Date) async throws -> StickerSheetResult? {
+        try await ensureSignedIn()
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
+        // Fetch a few newest creations and pick the newest sticker one — avoids a
+        // composite index that a type+createdAt query would require.
+        let snap = try await Firestore.firestore()
+            .collection("users").document(uid).collection("creations")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 6)
+            .getDocuments()
+        for doc in snap.documents {
+            let data = doc.data()
+            guard (data["type"] as? String) == "sticker",
+                  let urlStr = data["url"] as? String, let url = URL(string: urlStr) else { continue }
+            if let ts = data["createdAt"] as? Timestamp, ts.dateValue() < since { continue }
+            let rawBoxes = (data["stickers"] as? [[String: Any]]) ?? []
+            let boxes: [StickerBox] = rawBoxes.compactMap { b in
+                guard
+                    let x = (b["xPct"] as? NSNumber)?.doubleValue,
+                    let y = (b["yPct"] as? NSNumber)?.doubleValue,
+                    let w = (b["wPct"] as? NSNumber)?.doubleValue,
+                    let h = (b["hPct"] as? NSNumber)?.doubleValue
+                else { return nil }
+                return StickerBox(xPct: x, yPct: y, wPct: w, hPct: h)
+            }
+            return StickerSheetResult(url: url, boxes: boxes)
+        }
+        return nil
+    }
 }

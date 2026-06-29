@@ -32,6 +32,15 @@ struct ColoringView: View {
                 Spacer()
                 Button("Done") { promptFocused = false }
             }
+            if let url = pageURL, !busy {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        ShareLink(item: url) { Label("Share / Save", systemImage: "square.and.arrow.up") }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
         }
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("Coloring Pages")
@@ -115,41 +124,29 @@ struct ColoringView: View {
 
     private var loadingCard: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Theme.surface2)
-            VStack(spacing: 10) {
-                GIFView(name: "loading-anim", ext: "png").frame(width: 120, height: 120)
-                Text("drawing your coloring page…")
-                    .font(.caption).foregroundColor(Theme.textDim)
-            }
+            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
+            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
+    // Just the page on white. Actions live in the ⋯ menu; pages auto-save to
+    // My Creations.
     private func resultCard(_ url: URL) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("YOUR PAGE")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFit().background(Color.white).cornerRadius(Theme.radius)
-                case .failure:
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-                default:
-                    ProgressView()
-                }
-            }
-            .frame(maxWidth: .infinity)
-            ShareLink(item: url) {
-                Label("Share / Save", systemImage: "square.and.arrow.up")
-                    .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable().scaledToFit().background(Color.white)
+            case .failure:
+                Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+            default:
+                ProgressView()
             }
         }
-        .padding(14)
-        .background(Theme.surface)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
         .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }

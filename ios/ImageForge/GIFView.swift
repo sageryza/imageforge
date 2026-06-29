@@ -15,6 +15,10 @@ struct GIFView: UIViewRepresentable {
         iv.startAnimating()
         iv.setContentHuggingPriority(.defaultLow, for: .horizontal)
         iv.setContentHuggingPriority(.defaultLow, for: .vertical)
+        // Allow SwiftUI's .frame(...) to shrink it below the image's intrinsic
+        // size (otherwise it renders at full resolution).
+        iv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        iv.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         return iv
     }
 
