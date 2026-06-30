@@ -195,6 +195,28 @@ final class ForgeService {
         return url
     }
 
+    /// Generate a greeting card front: an illustration with `message` set as a
+    /// headline along the bottom (composited server-side). Returns the card URL.
+    func generateGreetingCard(prompt: String, message: String?, quality: String) async throws -> URL {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "prompt": prompt,
+            "style": "greeting-card",
+            "quality": quality,
+        ]
+        if let m = message?.trimmingCharacters(in: .whitespacesAndNewlines), !m.isEmpty { payload["message"] = m }
+        let result = try await call("forgeTestImage", payload)
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No card was returned."])
+        }
+        return url
+    }
+
     /// Generate one storybook page: an illustrated scene with `caption` set along
     /// the bottom (composited server-side). Returns the finished page image URL.
     func generateStorybookPage(prompt: String, caption: String?, quality: String) async throws -> URL {

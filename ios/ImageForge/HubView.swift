@@ -21,6 +21,10 @@ struct HubView: View {
                         HubCard(icon: "book", title: "Storybook",
                                 desc: "Build a picture book — a page at a time, words and all.")
                     }
+                    NavigationLink(destination: GreetingCardsView()) {
+                        HubCard(icon: "envelope", title: "Greeting Cards",
+                                desc: "A card front with your greeting — birthdays, thanks, anything.")
+                    }
                     NavigationLink(destination: DreamsView()) {
                         HubCard(icon: "moon.stars", title: "Dreams",
                                 desc: "Illustrate last night's dream — and keep a journal.")
