@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 /// Instagram — make on-brand square posts: describe the post, optionally attach a
 /// product photo (staged into a flat-lay) and/or a caption (composited onto the
@@ -22,16 +23,26 @@ struct InstagramView: View {
     @State private var postResult: String?
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
+    @AppStorage("ig.aesthetic.v1") private var aesthetic = "dark"
     @State private var showConsent = false
+    @State private var planning = false
+    // Caption helper (used in the post preview sheet)
+    @State private var draftCaption = ""
+    @State private var draftHashtags: [String] = []
+    @State private var captionBusy = false
     @FocusState private var focusedField: Field?
     private enum Field { case prompt, caption }
 
     private let qualities = ["low", "medium", "high"]
+    private let aesthetics: [(id: String, label: String)] = [
+        ("dark", "Dark"), ("celestial", "Celestial"), ("earthy", "Earthy"),
+    ]
     private let grid = [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                presetPicker
                 promptField
                 referencePicker
                 captionField
@@ -52,6 +63,13 @@ struct InstagramView: View {
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("Instagram")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { planning = true } label: { Image(systemName: "square.grid.3x3") }
+                    .disabled(posts.isEmpty)
+            }
+        }
+        .navigationDestination(isPresented: $planning) { FeedPlannerView(posts: posts) }
         .task { await loadPosts() }
         .onChange(of: photoItem) { _ in loadPickedPhoto() }
         .alert("Couldn't generate",
@@ -122,6 +140,28 @@ struct InstagramView: View {
                 .padding(12).background(Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
                 .cornerRadius(Theme.radius)
+        }
+    }
+
+    private var presetPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("AESTHETIC")
+                .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
+            HStack(spacing: 8) {
+                ForEach(aesthetics, id: \.id) { a in
+                    Button { aesthetic = a.id } label: {
+                        Text(a.label)
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity).padding(.vertical, 9)
+                            .background(aesthetic == a.id ? Theme.surface2 : Color.clear)
+                            .foregroundColor(aesthetic == a.id ? Theme.text : Theme.textDim)
+                            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                                .stroke(aesthetic == a.id ? Theme.accentDim : Theme.border, lineWidth: 1))
+                            .cornerRadius(Theme.radius)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -197,6 +237,7 @@ struct InstagramView: View {
                         default: ProgressView().padding(40)
                         }
                     }
+                    captionHelper(p)
                     Button { post(p, asStory: false) } label: {
                         HStack {
                             if posting && !postingStory { ProgressView().tint(.white) }
@@ -229,6 +270,7 @@ struct InstagramView: View {
             .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Post").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { preview = nil } } }
+            .onAppear { draftCaption = ""; draftHashtags = [] }
             .alert("Instagram", isPresented: Binding(get: { postResult != nil }, set: { if !$0 { postResult = nil } })) {
                 Button("OK", role: .cancel) { postResult = nil }
             } message: { Text(postResult ?? "") }
@@ -236,13 +278,73 @@ struct InstagramView: View {
         .tint(Theme.accent)
     }
 
+    private func captionHelper(_ p: Creation) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("CAPTION")
+                    .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
+                Spacer()
+                Button { suggestCaption(p) } label: {
+                    HStack(spacing: 4) {
+                        if captionBusy { ProgressView().scaleEffect(0.7) } else { Image(systemName: "sparkles") }
+                        Text(captionBusy ? "Writing…" : "Suggest")
+                    }
+                    .font(.caption.weight(.semibold)).foregroundColor(Theme.accent)
+                }
+                .disabled(captionBusy)
+            }
+            TextField("Write a caption, or tap Suggest…", text: $draftCaption, axis: .vertical)
+                .lineLimit(2...6).font(.callout).foregroundColor(Theme.text)
+                .padding(10).background(Theme.surface)
+                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+                .cornerRadius(Theme.radius)
+            if !draftHashtags.isEmpty {
+                Text(draftHashtags.map { "#\($0)" }.joined(separator: " "))
+                    .font(.caption).foregroundColor(Theme.textDim)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if !draftCaption.isEmpty || !draftHashtags.isEmpty {
+                Button {
+                    UIPasteboard.general.string = composedCaption(p)
+                } label: {
+                    Label("Copy caption + tags", systemImage: "doc.on.doc")
+                        .font(.caption.weight(.medium)).foregroundColor(Theme.accent)
+                }
+            }
+        }
+    }
+
+    /// The caption used when posting: the draft + hashtags, or the subject prompt.
+    private func composedCaption(_ p: Creation) -> String {
+        let base = draftCaption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tags = draftHashtags.isEmpty ? "" : draftHashtags.map { "#\($0)" }.joined(separator: " ")
+        let joined = [base, tags].filter { !$0.isEmpty }.joined(separator: "\n\n")
+        return joined.isEmpty ? (p.prompt ?? "") : joined
+    }
+
+    private func suggestCaption(_ p: Creation) {
+        guard !captionBusy else { return }
+        captionBusy = true
+        Task {
+            do {
+                let r = try await ForgeService.shared.generateCaption(subject: p.prompt ?? "a witchy product")
+                draftCaption = r.caption
+                draftHashtags = r.hashtags
+            } catch {
+                postResult = error.localizedDescription
+            }
+            captionBusy = false
+        }
+    }
+
     private func post(_ p: Creation, asStory: Bool) {
         guard !posting else { return }
         posting = true
         postingStory = asStory
+        let cap = composedCaption(p)
         Task {
             do {
-                try await ForgeService.shared.postToInstagram(imageUrl: p.url, caption: p.prompt, asStory: asStory)
+                try await ForgeService.shared.postToInstagram(imageUrl: p.url, caption: cap, asStory: asStory)
                 postResult = asStory ? "Posted to your Story! 🎉 (gone in 24h)" : "Posted to your feed! 🎉"
             } catch {
                 postResult = error.localizedDescription
@@ -266,7 +368,7 @@ struct InstagramView: View {
         Task {
             do {
                 let url = try await ForgeService.shared.generateIgPost(
-                    prompt: text, referenceImage: refData, caption: cap, quality: quality)
+                    prompt: text, referenceImage: refData, caption: cap, quality: quality, aesthetic: aesthetic)
                 posts.insert(Creation(id: UUID().uuidString, type: "instagram", url: url, prompt: text), at: 0)
             } catch {
                 errorText = error.localizedDescription

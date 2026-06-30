@@ -239,14 +239,16 @@ final class ForgeService {
         return url
     }
 
-    /// Generate a square Instagram post. Optional product reference photo and
-    /// optional caption text (composited onto the image for memes).
-    func generateIgPost(prompt: String, referenceImage: Data?, caption: String?, quality: String) async throws -> URL {
+    /// Generate a 4:5 Instagram post in the chosen `aesthetic` preset (dark /
+    /// celestial / earthy). Optional product reference photo and optional caption
+    /// text (composited onto the image for memes).
+    func generateIgPost(prompt: String, referenceImage: Data?, caption: String?, quality: String, aesthetic: String = "dark") async throws -> URL {
         try await ensureSignedIn()
         var payload: [String: Any] = [
             "prompt": prompt,
             "style": "ig-post",
             "quality": quality,
+            "aesthetic": aesthetic,
         ]
         if let ref = referenceImage { payload["refs"] = [ref.base64EncodedString()] }
         if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
@@ -260,6 +262,19 @@ final class ForgeService {
                           userInfo: [NSLocalizedDescriptionKey: "No post was returned."])
         }
         return url
+    }
+
+    /// Get an on-brand caption + hashtags for a post subject (text only).
+    func generateCaption(subject: String) async throws -> (caption: String, hashtags: [String]) {
+        try await ensureSignedIn()
+        let result = try await call("forgeTestImage", [
+            "prompt": subject,
+            "style": "ig-caption",
+        ])
+        let data = result.data as? [String: Any]
+        let caption = (data?["caption"] as? String) ?? ""
+        let hashtags = (data?["hashtags"] as? [String]) ?? []
+        return (caption, hashtags)
     }
 
     /// Publish an already-generated image straight to Instagram (Graph API).
