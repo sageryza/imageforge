@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Studio · ImageForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/forge.css" />
+<style>
+  .studio { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.03);
+  }
+  .step[hidden] { display: none; }
+  .step-label {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px; font-weight: 600;
+  }
+  label.fld { display: block; font-size: 13px; color: var(--text-dim); margin: 12px 0 5px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--bg); color: var(--text);
+    font-family: inherit; font-size: 14px;
+  }
+  textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+  .btn {
+    padding: 11px 18px; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius); cursor: pointer; font-family: inherit;
+    font-size: 14px; font-weight: 500; letter-spacing: .3px; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .preview { margin-top: 16px; text-align: center; }
+  .preview img { max-width: 320px; width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+  .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .tag { display: inline-block; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 3px 9px; font-size: 12px; margin: 3px 4px 0 0; }
+  .status { font-size: 13px; margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); }
+  .status.ok { background: #eef6f0; color: #3f7d56; border: 1px solid #cce6d6; }
+  .status.err { background: #fbeeed; color: #b15049; border: 1px solid #f0d2cf; }
+  .status.work { background: var(--surface-2); color: var(--text-dim); }
+  .spin { display:inline-block; width:12px; height:12px; border:2px solid var(--accent-dim);
+    border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-1px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  a.link { color: var(--accent); }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand" onclick="location.href='/'">
+    <span class="brand-mark">◆</span><h1>ImageForge</h1>
+  </div>
+  <nav class="app-nav">
+    <span class="tool-name">Studio</span>
+    <button class="btn-ghost" onclick="location.href='/'">← Hub</button>
+  </nav>
+</header>
+
+<main class="studio">
+  <p class="hub-tagline">Describe an idea → generate a design → let AI write the listing → push a draft to Etsy for review. Nothing goes live; you review every draft.</p>
+
+  <!-- Step 1: idea -->
+  <section class="step">
+    <div class="step-label">1 · Idea</div>
+    <div class="row">
+      <div style="flex:2">
+        <label class="fld" for="theme">Theme / description</label>
+        <input id="theme" type="text" placeholder="e.g. vintage celestial moon phases over botanical wildflowers" />
+      </div>
+      <div>
+        <label class="fld" for="ptype">Product type</label>
+        <select id="ptype">
+          <option value="art print">Art print</option>
+          <option value="greeting card">Greeting card</option>
+          <option value="poster">Poster</option>
+          <option value="sticker">Sticker</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="genBtn" onclick="generateDesign()">Generate design</button>
+      <span class="muted" id="genHint"></span>
+    </div>
+    <div class="preview" id="preview" hidden><img id="previewImg" alt="design preview" /></div>
+  </section>
+
+  <!-- Step 2: listing content -->
+  <section class="step" id="step2" hidden>
+    <div class="step-label">2 · Listing</div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn" id="writeBtn" onclick="writeListing()">Write listing with AI</button>
+      <span class="muted" id="writeHint"></span>
+    </div>
+    <label class="fld" for="title">Title <span class="muted">(≤140)</span></label>
+    <input id="title" type="text" maxlength="140" />
+    <label class="fld">Tags</label>
+    <div id="tags" class="muted">—</div>
+    <label class="fld" for="desc">Description</label>
+    <textarea id="desc"></textarea>
+    <div class="row" style="margin-top:12px">
+      <div><label class="fld" for="price">Price (USD)</label><input id="price" type="number" value="18" min="1" step="1" /></div>
+      <div><label class="fld" for="shop">Etsy shop id <span class="muted">(auto)</span></label><input id="shop" type="text" placeholder="auto-detected" /></div>
+    </div>
+  </section>
+
+  <!-- Step 3: draft -->
+  <section class="step" id="step3" hidden>
+    <div class="step-label">3 · Review draft on Etsy</div>
+    <p class="muted">Creates a <strong>draft</strong> listing (not live) with the design uploaded. You publish it yourself from Etsy after reviewing.</p>
+    <div class="btn-row">
+      <button class="btn" id="draftBtn" onclick="createDraft()">Create Etsy draft</button>
+    </div>
+    <div id="draftStatus"></div>
+  </section>
+</main>
+
+<script>
+  let designUrl = null;
+
+  function setStatus(el, kind, html) {
+    el.className = 'status ' + kind;
+    el.innerHTML = (kind === 'work' ? '<span class="spin"></span>' : '') + html;
+    el.hidden = false;
+  }
+
+  async function api(path, opts) {
+    const res = await fetch(path, opts);
+    const text = await res.text();
+    let body; try { body = JSON.parse(text); } catch { body = text; }
+    return { ok: res.ok, status: res.status, body };
+  }
+
+  async function generateDesign() {
+    const theme = document.getElementById('theme').value.trim();
+    const hint = document.getElementById('genHint');
+    if (!theme) { hint.textContent = 'Enter a theme first.'; return; }
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>generating…';
+    const ptype = document.getElementById('ptype').value;
+    const prompt = `${theme}. ${ptype} illustration, clean composition, white background.`;
+    const r = await api('/api/generate/gptimage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1024' }),
+    });
+    btn.disabled = false;
+    if (!r.ok || !r.body.url) { hint.textContent = 'Failed: ' + ((r.body && r.body.error) || r.status); return; }
+    hint.textContent = '';
+    designUrl = r.body.url;
+    document.getElementById('previewImg').src = designUrl;
+    document.getElementById('preview').hidden = false;
+    document.getElementById('step2').hidden = false;
+    document.getElementById('step3').hidden = false;
+    prefillShop();
+  }
+
+  async function prefillShop() {
+    const shop = document.getElementById('shop');
+    if (shop.value) return;
+    const r = await api('/api/etsy/defaults');
+    if (r.ok && r.body.shop_id) shop.value = r.body.shop_id;
+  }
+
+  async function writeListing() {
+    const theme = document.getElementById('theme').value.trim();
+    const hint = document.getElementById('writeHint');
+    const btn = document.getElementById('writeBtn');
+    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>writing…';
+    const r = await api('/api/pipeline/listing-content', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme, productType: document.getElementById('ptype').value }),
+    });
+    btn.disabled = false; hint.textContent = '';
+    if (!r.ok) { hint.textContent = 'Failed: ' + ((r.body && r.body.error) || r.status); return; }
+    document.getElementById('title').value = r.body.title || '';
+    document.getElementById('desc').value = r.body.description || '';
+    document.getElementById('tags').innerHTML = (r.body.tags || []).map(t => `<span class="tag">${t}</span>`).join('') || '—';
+  }
+
+  async function createDraft() {
+    const st = document.getElementById('draftStatus');
+    const btn = document.getElementById('draftBtn');
+    const shop_id = document.getElementById('shop').value.trim();
+    if (!designUrl) { setStatus(st, 'err', 'Generate a design first.'); return; }
+    if (!shop_id) { setStatus(st, 'err', 'No Etsy shop id (set ETSY_SHOP_ID or enter one).'); return; }
+    btn.disabled = true; setStatus(st, 'work', 'Fetching shop defaults…');
+    const def = await api('/api/etsy/defaults?shop_id=' + encodeURIComponent(shop_id));
+    if (!def.ok) { btn.disabled = false; setStatus(st, 'err', 'Could not read shop defaults: ' + ((def.body && def.body.error) || def.status)); return; }
+    setStatus(st, 'work', 'Creating draft + uploading design…');
+    const payload = {
+      shop_id: Number(shop_id), images: [designUrl],
+      title: document.getElementById('title').value.trim(),
+      description: document.getElementById('desc').value.trim(),
+      tags: [...document.querySelectorAll('#tags .tag')].map(t => t.textContent),
+      price: Number(document.getElementById('price').value) || 18,
+      taxonomy_id: def.body.taxonomy_id,
+      shipping_profile_id: def.body.shipping_profile_id,
+      return_policy_id: def.body.return_policy_id,
+      readiness_state_id: def.body.readiness_state_id,
+    };
+    const r = await api('/api/pipeline/publish-draft', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    btn.disabled = false;
+    if (r.ok && r.body.ok) {
+      const id = r.body.listing_id;
+      setStatus(st, 'ok', `Draft created ✓ (listing ${id}) — <a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review it in your Etsy drafts</a>.`);
+    } else {
+      const err = (r.body && (r.body.error || (r.body.body && r.body.body.error))) || r.status;
+      setStatus(st, 'err', 'Draft failed: ' + err);
+    }
+  }
+</script>
+</body>
+</html>

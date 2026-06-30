@@ -51,8 +51,12 @@ lifted into a standalone tool later.
   image(s) in one call (auto-generates listing content when `generateContent`);
   `POST /pod-product` creates a Printify product from a design (upload → variants
   + front print area → create, optionally `publish` to the connected Etsy shop
-  for auto-fulfillment). Etsy-draft path = manual fulfilment; Printify
-  publish path = auto-fulfils on sale (needs Etsy connected inside Printify).
+  for auto-fulfillment); `POST /remove-bg` strips a design's background to a
+  transparent PNG (Replicate `851-labs/background-remover`) — apparel products
+  pass `removeBackground:true` so the art prints clean, not as a filled box.
+  Etsy-draft path = manual fulfilment; Printify publish path = auto-fulfils on
+  sale (needs Etsy connected inside Printify). Printify products default to
+  **draft** (`visible:false`); pass `goLive:true` to publish a live listing.
 - **`printify.js`** (`/api/printify`) — POD, wide catalog / lower cost. Bearer
   PAT (`PRINTIFY_API_KEY`), optional `PRINTIFY_SHOP_ID`. Routes: status, shops,
   catalog/blueprints, products, uploads. *Live-confirmed working.*

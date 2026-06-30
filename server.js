@@ -241,6 +241,9 @@ Read the two objects. For each axis, decide same or different, and choose the th
   }
 });
 
+// ─── Studio: idea → design → AI listing → draft Etsy listing ────────
+app.get('/studio', (req, res) => { res.sendFile(__dirname + '/public/studio.html'); });
+
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
 // prepended to every prompt. `version` may be null — when so, the latest model

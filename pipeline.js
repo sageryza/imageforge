@@ -22,6 +22,12 @@ const express = require('express');
 const fetch = require('node-fetch');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
+
+// Replicate background-removal model (turns a design into a transparent PNG —
+// essential for apparel so the art prints clean, not as a filled rectangle).
+const BG_REMOVE_MODEL = '851-labs/background-remover';
+let bgRemoveVersion = null; // resolved + cached on first use
 
 // Defensive requires — if a module file is missing or fails to load, treat that
 // service as simply unavailable rather than crashing the whole server.
@@ -199,6 +205,42 @@ async function publishDraft(opts = {}) {
   };
 }
 
+// ─── Background removal ─────────────────────────────────────────────
+// Run a design through Replicate's background remover and return a transparent
+// PNG URL. Polls the prediction (same pattern as the upscaler in server.js).
+// The returned URL is a temporary Replicate URL — fine for an immediate
+// Printify upload (Printify fetches and stores it).
+async function removeBackground(imageUrl) {
+  if (!REPLICATE_API_TOKEN) throw new Error('REPLICATE_API_TOKEN not set');
+  if (!imageUrl) throw new Error('imageUrl required');
+  if (!bgRemoveVersion) {
+    const mr = await fetch(`https://api.replicate.com/v1/models/${BG_REMOVE_MODEL}`, {
+      headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}` },
+    });
+    const mj = await mr.json();
+    if (!mj.latest_version) throw new Error('could not resolve bg-removal model version');
+    bgRemoveVersion = mj.latest_version.id;
+  }
+  const create = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ version: bgRemoveVersion, input: { image: imageUrl } }),
+  });
+  let p = await create.json();
+  if (p.error) throw new Error(p.error.detail || JSON.stringify(p.error));
+  if (!p.urls || !p.urls.get) throw new Error(p.detail || 'no polling url from Replicate');
+  let n = 0;
+  while (!['succeeded', 'failed', 'canceled'].includes(p.status) && n < 60) {
+    await new Promise(r => setTimeout(r, 2000));
+    p = await (await fetch(p.urls.get, { headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}` } })).json();
+    n++;
+  }
+  if (p.status !== 'succeeded') throw new Error(`bg-removal ${p.status}: ${p.error || ''}`);
+  const out = Array.isArray(p.output) ? p.output[0] : p.output;
+  if (!out) throw new Error('bg-removal produced no image');
+  return out;
+}
+
 // ─── Orchestration: design → Printify product (→ Etsy auto-fulfillment) ──
 // Creates a print-on-demand product in Printify from a design. Unlike the Etsy
 // draft path (which we fulfil ourselves), a Printify product PUBLISHED to a
@@ -225,6 +267,7 @@ async function createPrintifyProduct(opts = {}) {
     title, description, tags,
     generateContent = false, theme, productType = 'shirt', audience,
     placement = {},                      // { position, x, y, scale, angle }
+    removeBackground: removeBg = false,  // strip the design's background first (apparel)
     publish = false,
     // SAFE BY DEFAULT: create the product hidden so that when it publishes to
     // Etsy it lands as a DRAFT, not a live/purchasable listing. Opt into a live
@@ -248,8 +291,16 @@ async function createPrintifyProduct(opts = {}) {
     if (!image || (!image.url && !image.contents)) {
       throw new Error('image.url, image.contents, or image.id required');
     }
+    let uploadUrl = image.url;
+    let uploadContents = image.contents;
+    // Optionally strip the background first (needs a URL input). Replaces the
+    // upload source with the resulting transparent PNG.
+    if (removeBg && uploadUrl) {
+      uploadUrl = await removeBackground(uploadUrl);
+      uploadContents = undefined;
+    }
     const up = await printify.uploadImage({
-      fileName: image.fileName || 'design.png', url: image.url, contents: image.contents,
+      fileName: image.fileName || 'design.png', url: uploadUrl, contents: uploadContents,
     });
     if (!up.ok || !up.body || !up.body.id) {
       return { ok: false, stage: 'upload_image', status: up.status, body: up.body };
@@ -362,6 +413,18 @@ router.post('/publish-draft', express.json({ limit: '25mb' }), async (req, res) 
   }
 });
 
+// Strip a design's background → transparent PNG (for apparel). Body: { image_url }.
+router.post('/remove-bg', express.json(), async (req, res) => {
+  const { image_url } = req.body || {};
+  if (!image_url) return res.status(400).json({ error: 'image_url required' });
+  try {
+    const url = await removeBackground(image_url);
+    res.json({ url });
+  } catch (err) {
+    res.status(/required|not set/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
 // Create a Printify POD product from a design (→ optionally publish to Etsy for
 // auto-fulfillment). Body: { blueprint_id, print_provider_id, variant_ids[],
 // price (cents), image:{url|contents|id}, title?/description?/tags? or
@@ -382,5 +445,6 @@ module.exports = {
   generateListingContent,
   publishDraft,
   createPrintifyProduct,
+  removeBackground,
   clampListing,
 };
