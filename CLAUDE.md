@@ -89,7 +89,8 @@ lifted into a standalone tool later.
   `listings_r`/`listings_w`; access tokens expire hourly and auto-refresh.
 - **Routes:** `GET /api/etsy/ping` (health), `GET /api/etsy/status`,
   `GET /api/etsy/connect` (start OAuth), `GET /api/etsy/callback`,
-  `GET /api/etsy/me`, `POST /api/etsy/listings/draft`.
+  `GET /api/etsy/me`, `POST /api/etsy/listings/draft`,
+  `POST /api/etsy/listings/state` (revert a live listing to draft/inactive).
 - **Env vars** (Render dashboard, `sync:false`): `ETSY_API_KEY`,
   `ETSY_SHARED_SECRET`, optional `ETSY_REDIRECT_URI`. The callback URL must be
   registered on the Etsy app; defaults to `<RENDER_EXTERNAL_URL>/api/etsy/callback`.
