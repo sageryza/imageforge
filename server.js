@@ -32,24 +32,10 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
-// ─── Product pipeline ───────────────────────────────────────────────
-// Each service is a self-contained module (router + helpers). The pipeline
-// module orchestrates them: design → POD product → draft Etsy listing.
-//   etsy     — Etsy Open API v3 (draft listings; app key + OAuth 2.0)
-//   printify — POD, wide catalog / lower cost (apparel, cards)
-//   printful — POD, in-house quality (apparel, greeting cards)
-//   lulu     — POD, books / coloring books
-//   pipeline — listing-content (SEO) generation + design→Etsy orchestration
-const etsy = require('./etsy');
-const printify = require('./printify');
-const printful = require('./printful');
-const lulu = require('./lulu');
-const pipeline = require('./pipeline');
-app.use('/api/etsy', etsy.router);
-app.use('/api/printify', printify.router);
-app.use('/api/printful', printful.router);
-app.use('/api/lulu', lulu.router);
-app.use('/api/pipeline', pipeline.router);
+// NOTE: the product-pipeline routes (/api/etsy, /api/printify, /api/printful,
+// /api/lulu, /api/pipeline) are mounted further below, AFTER Firebase init —
+// so the Firestore key-loader can populate process.env before the service
+// modules read their keys at require-time. See "Product pipeline" block.
 
 // Call OpenAI chat completions with a couple of retries. Recovers from
 // transient network hiccups (e.g. "Premature close" / dropped connections)
@@ -94,6 +80,35 @@ try {
 } catch (err) {
   console.warn('Firebase init failed:', err.message);
 }
+
+// ─── Product pipeline ───────────────────────────────────────────────
+// Each service is a self-contained module (router + helpers). The pipeline
+// module orchestrates them: design → POD product → draft Etsy listing.
+//   etsy     — Etsy Open API v3 (draft listings; app key + OAuth 2.0)
+//   printify — POD, wide catalog / lower cost (apparel, cards)
+//   printful — POD, in-house quality (apparel, greeting cards)
+//   lulu     — POD, books / coloring books
+//   pipeline — listing-content (SEO) generation + design→Etsy orchestration
+//
+// Mounted AFTER Firebase init so the Firestore key-loader can hydrate
+// process.env from the config doc before each module reads its keys (env vars
+// still win). The modules are required inside the loader's .then() so the first
+// require — the one that captures process.env — happens post-hydration. Until
+// it resolves (a sub-second window at startup) the /api/* pipeline routes 404.
+const { loadConfig } = require('./config-loader');
+loadConfig().then(() => {
+  const etsy = require('./etsy');
+  const printify = require('./printify');
+  const printful = require('./printful');
+  const lulu = require('./lulu');
+  const pipeline = require('./pipeline');
+  app.use('/api/etsy', etsy.router);
+  app.use('/api/printify', printify.router);
+  app.use('/api/printful', printful.router);
+  app.use('/api/lulu', lulu.router);
+  app.use('/api/pipeline', pipeline.router);
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration)');
+}).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
 async function saveToFirebase(imageUrl, folder = 'images') {
