@@ -248,8 +248,13 @@ function validateTags(tags) {
 // state, which is exactly what the pipeline wants (Sophie reviews before
 // publishing). Required fields per Etsy + the handoff: quantity, title,
 // description, price, who_made, when_made, taxonomy_id. The caller supplies the
-// content; we fill safe defaults and enforce the tag rules. `legacy=false` is
-// required when the shop uses processing/readiness profiles.
+// content; we fill safe defaults and enforce the tag rules.
+//
+// The `legacy` query param selects the processing-time model: legacy=false
+// requires a `readiness_state_id` (new processing profiles), while legacy=true
+// uses the shipping profile's traditional processing times. We pick legacy=true
+// unless a readiness_state_id is supplied, so shops on either model work. The
+// caller can force it with `listing.legacy`.
 async function createDraftListing(shopId, listing = {}) {
   const payload = {
     quantity: listing.quantity ?? 1,
@@ -273,7 +278,10 @@ async function createDraftListing(shopId, listing = {}) {
     throw err;
   }
 
-  return userFetch(`/shops/${shopId}/listings?legacy=false`, {
+  const legacy = listing.legacy !== undefined
+    ? listing.legacy
+    : !(listing.extra && listing.extra.readiness_state_id);
+  return userFetch(`/shops/${shopId}/listings?legacy=${legacy}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(

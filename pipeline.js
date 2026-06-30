@@ -133,8 +133,8 @@ async function publishDraft(opts = {}) {
   const {
     shop_id,
     images = [],            // array of public image URLs (or {url, rank})
-    price, quantity = 1, taxonomy_id, who_made, when_made, type,
-    shipping_profile_id, readiness_state_id,
+    price, quantity = 1, taxonomy_id, who_made, when_made, type, legacy,
+    shipping_profile_id, readiness_state_id, return_policy_id,
     // either provide title/tags/description directly...
     title, tags, description, materials,
     // ...or ask the pipeline to write them:
@@ -147,12 +147,15 @@ async function publishDraft(opts = {}) {
     content = await generateListingContent({ theme, productType, audience });
   }
 
+  // Physical listings need a shipping profile, a return policy, and (on the new
+  // model) a readiness state. Pass through whatever the caller supplies.
   const extra = {};
   if (shipping_profile_id) extra.shipping_profile_id = shipping_profile_id;
   if (readiness_state_id) extra.readiness_state_id = readiness_state_id;
+  if (return_policy_id) extra.return_policy_id = return_policy_id;
 
   const draftRes = await etsy.createDraftListing(shop_id, {
-    ...content, price, quantity, taxonomy_id, who_made, when_made, type,
+    ...content, price, quantity, taxonomy_id, who_made, when_made, type, legacy,
     extra: Object.keys(extra).length ? extra : undefined,
   });
   if (!draftRes.ok) {
