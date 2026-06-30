@@ -17,6 +17,8 @@ struct InstagramView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var refImage: UIImage?
     @State private var preview: Creation?
+    @State private var posting = false
+    @State private var postResult: String?
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
@@ -194,9 +196,19 @@ struct InstagramView: View {
                         default: ProgressView().padding(40)
                         }
                     }
+                    Button { post(p) } label: {
+                        HStack {
+                            if posting { ProgressView().tint(.white) }
+                            Text(posting ? "Posting…" : "Post to Instagram")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
+                    }
+                    .disabled(posting)
                     ShareLink(item: p.url) {
-                        Label("Share / Post", systemImage: "square.and.arrow.up")
-                            .font(.subheadline.weight(.semibold)).foregroundColor(Theme.accent)
+                        Label("Share / Save", systemImage: "square.and.arrow.up")
+                            .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
                     }
                 }
                 .padding()
@@ -204,8 +216,25 @@ struct InstagramView: View {
             .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Post").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { preview = nil } } }
+            .alert("Instagram", isPresented: Binding(get: { postResult != nil }, set: { if !$0 { postResult = nil } })) {
+                Button("OK", role: .cancel) { postResult = nil }
+            } message: { Text(postResult ?? "") }
         }
         .tint(Theme.accent)
+    }
+
+    private func post(_ p: Creation) {
+        guard !posting else { return }
+        posting = true
+        Task {
+            do {
+                try await ForgeService.shared.postToInstagram(imageUrl: p.url, caption: p.prompt)
+                postResult = "Posted to Instagram! 🎉"
+            } catch {
+                postResult = error.localizedDescription
+            }
+            posting = false
+        }
     }
 
     // MARK: - Actions

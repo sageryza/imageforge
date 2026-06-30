@@ -218,6 +218,18 @@ final class ForgeService {
         return url
     }
 
+    /// Publish an already-generated image straight to Instagram (Graph API).
+    /// Throws a clear error if Instagram posting isn't set up yet.
+    func postToInstagram(imageUrl: URL, caption: String?) async throws {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "style": "ig-publish",
+            "imageUrl": imageUrl.absoluteString,
+        ]
+        if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
+        _ = try await call("forgeTestImage", payload)
+    }
+
     /// Read the signed-in user's saved creations (newest first). These are
     /// written server-side on every generation, so they survive a dropped
     /// connection / backgrounded app and back the in-app grid.
