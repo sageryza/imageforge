@@ -37,7 +37,31 @@ each opens a focused workflow that shares the same house styles.
   URLs + the gallery; without `FIREBASE_SERVICE_ACCOUNT` images are temporary
   (~1hr) Replicate/OpenAI URLs.
 
-## Etsy product pipeline
+## Product pipeline
+The full pipeline lives in five self-contained modules wired into `server.js`:
+generated design → POD product → **draft Etsy listing** Sophie reviews before
+publishing. Each module is a router + exported helpers, decoupled enough to be
+lifted into a standalone tool later.
+
+- **`pipeline.js`** (`/api/pipeline`) — orchestration glue. `GET /status`
+  aggregates connectivity across every service; `GET /route?product_type=` maps
+  a product type to a POD service; `POST /listing-content` AI-writes SEO
+  title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
+  `POST /publish-draft` creates the Etsy draft **and** uploads the design
+  image(s) in one call (auto-generates listing content when `generateContent`).
+- **`printify.js`** (`/api/printify`) — POD, wide catalog / lower cost. Bearer
+  PAT (`PRINTIFY_API_KEY`), optional `PRINTIFY_SHOP_ID`. Routes: status, shops,
+  catalog/blueprints, products, uploads. *Live-confirmed working.*
+- **`printful.js`** (`/api/printful`) — POD, in-house quality apparel/cards.
+  Bearer account token (`PRINTFUL_API_KEY`), optional `PRINTFUL_STORE_ID`
+  (`X-PF-Store-Id`). Has a direct Etsy integration. *Built, not yet key-tested.*
+- **`lulu.js`** (`/api/lulu`) — POD, books / coloring books. OAuth2
+  client-credentials (`LULU_API_KEY`+`LULU_API_SECRET`), sandbox via
+  `LULU_SANDBOX`/`LULU_API_BASE`. Routes: status, cost, print-jobs. Paper maxes
+  ~90 GSM uncoated. *Built, not yet key-tested.*
+- Card decks (oracle/tarot) are **manual** fulfilment (Robinson Chen) — no API.
+
+## Etsy module
 - `etsy.js` is a self-contained Etsy Open API v3 module mounted at `/api/etsy`
   (`server.js`). Terminal step of the product pipeline: generated design →
   POD product → **draft Etsy listing** Sophie reviews before publishing.
