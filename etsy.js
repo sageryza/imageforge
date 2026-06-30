@@ -296,6 +296,30 @@ async function createDraftListing(shopId, listing = {}) {
   });
 }
 
+// Update fields on an existing listing (PATCH). Most useful for changing
+// `state` — e.g. reverting a listing that went live ("active") back to "draft"
+// or "inactive" so it's not purchasable. Pass any updatable listing fields.
+async function updateListing(shopId, listingId, fields = {}) {
+  return userFetch(`/shops/${shopId}/listings/${listingId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(fields).flatMap(([k, v]) => (v == null ? [] : [[k, String(v)]]))
+      )
+    ).toString(),
+  });
+}
+
+// Set a listing's state. Etsy may reject "draft" for a listing that has already
+// been active; in that case fall back to "inactive" (also non-purchasable).
+async function setListingState(shopId, listingId, state = 'draft') {
+  const first = await updateListing(shopId, listingId, { state });
+  if (first.ok || state === 'inactive') return first;
+  const fallback = await updateListing(shopId, listingId, { state: 'inactive' });
+  return fallback.ok ? { ...fallback, note: `"${state}" rejected; set to "inactive" instead` } : first;
+}
+
 // Upload an image to a listing (required before it can be activated). Accepts a
 // remote image URL (downloaded here) or a raw Buffer.
 async function uploadListingImage(shopId, listingId, image, opts = {}) {
@@ -395,6 +419,20 @@ router.post('/listings/draft', express.json(), async (req, res) => {
   }
 });
 
+// Change a listing's state — e.g. revert a listing that accidentally went live
+// back to a draft. Body: { shop_id, listing_id, state? } (state defaults to
+// "draft"; falls back to "inactive" if Etsy rejects "draft").
+router.post('/listings/state', express.json(), async (req, res) => {
+  const { shop_id, listing_id, state = 'draft' } = req.body || {};
+  if (!shop_id || !listing_id) return res.status(400).json({ error: 'shop_id and listing_id required' });
+  try {
+    const r = await setListingState(shop_id, listing_id, state);
+    res.status(r.status).json(r.note ? { ...r.body, note: r.note } : r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 function htmlPage(title, msg) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
 <style>body{font-family:'EB Garamond',Georgia,serif;background:#faf6ef;color:#5a1a1a;
@@ -413,6 +451,8 @@ module.exports = {
   getMe,
   getShops,
   createDraftListing,
+  updateListing,
+  setListingState,
   uploadListingImage,
   validateTags,
   buildAuthUrl,
