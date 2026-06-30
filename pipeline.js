@@ -209,6 +209,10 @@ async function publishDraft(opts = {}) {
 // optionally publish to the connected Etsy store. Title/description/tags can be
 // supplied directly or AI-written (they flow onto the Etsy listing at publish).
 //
+// SAFE BY DEFAULT: the product is created HIDDEN (visible:false) so publishing
+// lands it on Etsy as a DRAFT, never a live/purchasable listing. Pass
+// goLive: true to make it a live listing on purpose.
+//
 // NOTE: `publish` only works once the Etsy shop is connected as a sales channel
 // inside Printify; otherwise it returns a Printify error (the product is still
 // created and can be published later).
@@ -222,6 +226,11 @@ async function createPrintifyProduct(opts = {}) {
     generateContent = false, theme, productType = 'shirt', audience,
     placement = {},                      // { position, x, y, scale, angle }
     publish = false,
+    // SAFE BY DEFAULT: create the product hidden so that when it publishes to
+    // Etsy it lands as a DRAFT, not a live/purchasable listing. Opt into a live
+    // listing explicitly with goLive: true. (Printify's `visible` field is the
+    // "Hide in Store" toggle; visible=false → Etsy draft.)
+    goLive = false,
   } = opts;
   if (!blueprint_id || !print_provider_id) throw new Error('blueprint_id and print_provider_id required');
   if (!Array.isArray(variant_ids) || !variant_ids.length) throw new Error('variant_ids required');
@@ -257,6 +266,7 @@ async function createPrintifyProduct(opts = {}) {
     title: content.title,
     description: content.description || content.title,
     blueprint_id, print_provider_id,
+    visible: goLive === true,            // false → publishes to Etsy as a draft
     variants: variant_ids.map(id => ({ id, price, is_enabled: true })),
     print_areas: [{
       variant_ids,
@@ -274,7 +284,15 @@ async function createPrintifyProduct(opts = {}) {
     const pub = await printify.publishProduct(productId, shop_id);
     published = { ok: pub.ok, status: pub.status, body: pub.body };
   }
-  return { ok: true, product_id: productId, image_id: imageId, content, published };
+  return {
+    ok: true,
+    product_id: productId,
+    image_id: imageId,
+    content,
+    visible: goLive === true,
+    intended_etsy_state: goLive === true ? 'active (live)' : 'draft',
+    published,
+  };
 }
 
 // ─── Router ─────────────────────────────────────────────────────────
