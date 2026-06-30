@@ -61,6 +61,19 @@ lifted into a standalone tool later.
   ~90 GSM uncoated. *Built, not yet key-tested.*
 - Card decks (oracle/tarot) are **manual** fulfilment (Robinson Chen) — no API.
 
+### Key loading (env vars OR Firestore)
+- `config-loader.js` runs at boot (after Firebase init) and hydrates
+  `process.env` from a single Firestore doc (default `config/pipeline`,
+  overridable via `PIPELINE_CONFIG_DOC`). **Host env vars always win** — a key
+  already in the environment is never overwritten; Firestore only fills gaps.
+- The pipeline routers are mounted **inside** the loader's `.then()`, so the
+  service modules capture their keys *after* hydration (brief startup window
+  where `/api/*` pipeline routes 404).
+- Mirrors the sibling repo's `config/*` pattern. Populate the doc with
+  `node scripts/set-pipeline-keys.js` (needs `FIREBASE_SERVICE_ACCOUNT` + the
+  keys in the environment; writes only key names to the log, never values).
+- So keys can live in Render env vars, all in Firestore, or a mix.
+
 ## Etsy module
 - `etsy.js` is a self-contained Etsy Open API v3 module mounted at `/api/etsy`
   (`server.js`). Terminal step of the product pipeline: generated design →
