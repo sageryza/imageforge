@@ -96,8 +96,16 @@ function clampListing(content) {
     ? etsy.validateTags(content.tags)
     : (Array.isArray(content.tags) ? content.tags.map(t => String(t).trim()).filter(t => t && t.length <= 20).slice(0, 13) : []);
   const description = String(content.description || '').trim();
-  const materials = Array.isArray(content.materials) ? content.materials.slice(0, 13) : undefined;
-  return { title, tags, description, ...(materials ? { materials } : {}) };
+  // Etsy materials allow only letters, numbers, and spaces (no hyphens/punct),
+  // ≤45 chars each, ≤13 total. Sanitize so AI-written values (e.g.
+  // "eco-friendly ink") don't get rejected with invalid_characters.
+  const materials = Array.isArray(content.materials)
+    ? content.materials
+        .map(m => String(m).replace(/[^A-Za-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 45))
+        .filter(Boolean)
+        .slice(0, 13)
+    : undefined;
+  return { title, tags, description, ...(materials && materials.length ? { materials } : {}) };
 }
 
 // Generate SEO-optimized Etsy listing content from a theme + product type.
