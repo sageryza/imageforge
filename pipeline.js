@@ -135,6 +135,10 @@ async function publishDraft(opts = {}) {
     images = [],            // array of public image URLs (or {url, rank})
     price, quantity = 1, taxonomy_id, who_made, when_made, type, legacy,
     shipping_profile_id, readiness_state_id, return_policy_id,
+    // free-form extra Etsy listing fields (e.g. item_weight, item_length,
+    // item_width, item_height, item_weight_unit, item_dimensions_unit — needed
+    // when the shipping profile uses calculated shipping). Forwarded as-is.
+    extra: extraFields,
     // either provide title/tags/description directly...
     title, tags, description, materials,
     // ...or ask the pipeline to write them:
@@ -148,8 +152,9 @@ async function publishDraft(opts = {}) {
   }
 
   // Physical listings need a shipping profile, a return policy, and (on the new
-  // model) a readiness state. Pass through whatever the caller supplies.
-  const extra = {};
+  // model) a readiness state. Pass through whatever the caller supplies, plus
+  // any free-form extra fields.
+  const extra = { ...(extraFields || {}) };
   if (shipping_profile_id) extra.shipping_profile_id = shipping_profile_id;
   if (readiness_state_id) extra.readiness_state_id = readiness_state_id;
   if (return_policy_id) extra.return_policy_id = return_policy_id;
