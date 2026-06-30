@@ -10,6 +10,25 @@
 <link rel="stylesheet" href="/forge.css" />
 <style>
   .studio { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+  /* rotating product-blank showcase */
+  .mockup-hero { text-align: center; margin: 4px 0 22px; }
+  .mockup-stage {
+    position: relative; width: 200px; height: 200px; margin: 0 auto;
+  }
+  .mockup-stage img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+    opacity: 0; transform: scale(.96); transition: opacity .9s ease, transform .9s ease;
+    border-radius: var(--radius-lg);
+  }
+  .mockup-stage img.active { opacity: 1; transform: scale(1); }
+  .mockup-caption {
+    margin-top: 6px; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-dim); min-height: 14px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mockup-stage img { transition: opacity .3s ease; transform: none; }
+    .mockup-stage img.active { transform: none; }
+  }
   .step {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 18px;
@@ -64,6 +83,17 @@
 </header>
 
 <main class="studio">
+  <div class="mockup-hero">
+    <div class="mockup-stage" id="mockStage" aria-hidden="true">
+      <img src="/mockups/tee.webp" data-label="Tee" alt="" />
+      <img src="/mockups/sweatshirt.webp" data-label="Sweatshirt" alt="" />
+      <img src="/mockups/hat.webp" data-label="Hat" alt="" />
+      <img src="/mockups/tote.webp" data-label="Tote" alt="" />
+      <img src="/mockups/card.webp" data-label="Greeting card" alt="" />
+      <img src="/mockups/mug.webp" data-label="Mug" alt="" />
+    </div>
+    <div class="mockup-caption" id="mockCaption">&nbsp;</div>
+  </div>
   <p class="hub-tagline">Describe an idea → generate a design → let AI write the listing → push a draft to Etsy for review. Nothing goes live; you review every draft.</p>
 
   <!-- Step 1: idea -->
@@ -122,6 +152,20 @@
 </main>
 
 <script>
+  // Rotating product-blank showcase — cross-fade through the mockups.
+  (function rotateMockups() {
+    const imgs = [...document.querySelectorAll('#mockStage img')];
+    const cap = document.getElementById('mockCaption');
+    if (!imgs.length) return;
+    let i = 0;
+    const show = (n) => {
+      imgs.forEach((im, k) => im.classList.toggle('active', k === n));
+      cap.textContent = imgs[n].dataset.label || '';
+    };
+    show(0);
+    setInterval(() => { i = (i + 1) % imgs.length; show(i); }, 2600);
+  })();
+
   let designUrl = null;
 
   function setStatus(el, kind, html) {
