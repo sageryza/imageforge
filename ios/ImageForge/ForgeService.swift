@@ -277,6 +277,46 @@ final class ForgeService {
         return (caption, hashtags)
     }
 
+    /// Generate a 5-slide educational carousel (cover + 4) from a topic, in the
+    /// chosen aesthetic. Returns the slide URLs plus a suggested caption/hashtags.
+    func generateCarousel(topic: String, aesthetic: String, quality: String) async throws -> CarouselResult {
+        try await ensureSignedIn()
+        let result = try await call("forgeTestImage", [
+            "prompt": topic,
+            "style": "ig-carousel",
+            "aesthetic": aesthetic,
+            "quality": quality,
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let arr = data["slides"] as? [String]
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No carousel was returned."])
+        }
+        let slides = arr.compactMap { URL(string: $0) }
+        guard slides.count >= 2 else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "The carousel came back too short."])
+        }
+        return CarouselResult(
+            slides: slides,
+            title: (data["title"] as? String) ?? "",
+            caption: (data["caption"] as? String) ?? "",
+            hashtags: (data["hashtags"] as? [String]) ?? [])
+    }
+
+    /// Publish a set of slide URLs as one Instagram carousel.
+    func postCarousel(imageUrls: [URL], caption: String?) async throws {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "style": "ig-carousel-publish",
+            "imageUrls": imageUrls.map { $0.absoluteString },
+        ]
+        if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
+        _ = try await call("forgeTestImage", payload)
+    }
+
     /// Publish an already-generated image straight to Instagram (Graph API).
     /// `asStory` posts a 24h Story instead of a feed post (Stories ignore the
     /// caption). Throws a clear error if Instagram posting isn't set up yet.

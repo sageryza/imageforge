@@ -68,6 +68,15 @@ struct Creation: Identifiable, Hashable {
     let prompt: String?
 }
 
+/// A generated educational carousel: ordered slide images plus a suggested
+/// caption + hashtags. Posted as one Instagram carousel.
+struct CarouselResult {
+    let slides: [URL]
+    let title: String
+    let caption: String
+    let hashtags: [String]
+}
+
 /// One generation in the results feed (newest first).
 struct ForgeResult: Identifiable {
     let id = UUID()

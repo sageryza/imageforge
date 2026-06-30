@@ -42,6 +42,17 @@ struct InstagramView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                NavigationLink(destination: CarouselView()) {
+                    HStack {
+                        Image(systemName: "rectangle.stack")
+                        Text("Make a carousel").font(.subheadline.weight(.medium))
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption)
+                    }
+                    .foregroundColor(Theme.accent)
+                    .padding(12)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.accentDim, lineWidth: 1))
+                }
                 presetPicker
                 promptField
                 referencePicker
