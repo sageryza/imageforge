@@ -33,11 +33,17 @@ const API = process.env.LULU_API_BASE
 // Lulu's token endpoint lives under the "glasstree" Keycloak realm.
 const TOKEN_URL = `${API}/auth/realms/glasstree/protocol/openid-connect/token`;
 
-const API_KEY = process.env.LULU_API_KEY || '';      // client key
-const API_SECRET = process.env.LULU_API_SECRET || ''; // client secret
+const API_KEY = (process.env.LULU_API_KEY || '').trim();      // client key
+const API_SECRET = (process.env.LULU_API_SECRET || '').trim(); // client secret
+// Lulu's dashboard also hands out a single pre-encoded base64(key:secret)
+// string for the Basic auth header. If LULU_BASE64 is set we use it directly
+// (no need to split it back into key + secret); otherwise we encode the pair.
+// Strip any stray whitespace/newlines a copy-paste may have injected — base64
+// must be contiguous, and a stray line break silently yields "invalid_client".
+const API_BASE64 = (process.env.LULU_BASE64 || '').replace(/\s+/g, '');
 
 function configured() {
-  return Boolean(API_KEY && API_SECRET);
+  return Boolean(API_BASE64 || (API_KEY && API_SECRET));
 }
 
 // ─── Token store ────────────────────────────────────────────────────
@@ -50,7 +56,8 @@ let token = null; // { access_token, expires_at }
 // key/secret as base64(<key>:<secret>); the body is the grant type.
 async function getToken() {
   if (!configured()) throw new Error('not_configured');
-  const basic = Buffer.from(`${API_KEY}:${API_SECRET}`).toString('base64');
+  // Prefer the pre-encoded LULU_BASE64 if provided; else encode key:secret.
+  const basic = API_BASE64 || Buffer.from(`${API_KEY}:${API_SECRET}`).toString('base64');
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: {
