@@ -21,6 +21,10 @@ struct HubView: View {
                         HubCard(icon: "moon.stars", title: "Dreams",
                                 desc: "Illustrate last night's dream — and keep a journal.")
                     }
+                    NavigationLink(destination: InstagramView()) {
+                        HubCard(icon: "camera", title: "Instagram",
+                                desc: "Make on-brand square posts — product flat-lays & witchy memes.")
+                    }
                     NavigationLink(destination: CreationsView()) {
                         HubCard(icon: "square.grid.2x2", title: "My Creations",
                                 desc: "Everything you've made, in one grid.")

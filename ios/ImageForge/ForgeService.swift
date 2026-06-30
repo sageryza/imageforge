@@ -195,6 +195,29 @@ final class ForgeService {
         return url
     }
 
+    /// Generate a square Instagram post. Optional product reference photo and
+    /// optional caption text (composited onto the image for memes).
+    func generateIgPost(prompt: String, referenceImage: Data?, caption: String?, quality: String) async throws -> URL {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "prompt": prompt,
+            "style": "ig-post",
+            "quality": quality,
+        ]
+        if let ref = referenceImage { payload["refs"] = [ref.base64EncodedString()] }
+        if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
+        let result = try await call("forgeTestImage", payload)
+        guard
+            let data = result.data as? [String: Any],
+            let urlString = data["url"] as? String,
+            let url = URL(string: urlString)
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No post was returned."])
+        }
+        return url
+    }
+
     /// Read the signed-in user's saved creations (newest first). These are
     /// written server-side on every generation, so they survive a dropped
     /// connection / backgrounded app and back the in-app grid.
