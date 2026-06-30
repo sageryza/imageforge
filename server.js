@@ -194,6 +194,53 @@ app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.ht
 // ─── Sticker Page: full-page kiss-cut sticker sheet (gpt-image-2) ────
 app.get('/stickers', (req, res) => { res.sendFile(__dirname + '/public/stickers.html'); });
 
+// ─── Set: a game of three strange objects ───────────────────────────
+app.get('/set', (req, res) => { res.sendFile(__dirname + '/public/set.html'); });
+
+// Design + generate the THIRD object that completes a set from two given
+// objects. The SET rule: per dimension the trio is all-same or all-different,
+// so any two force the third. An LLM reasons out the third's attributes
+// (same where the pair matches, a fresh third value where they differ) across
+// the physical axes AND the conceptual "denied inference" axis, writes an
+// image prompt, then gpt-image-2 (quality low) renders it on the house ground.
+const SET_GROUND = 'A single small sculptural object photographed on a plain seamless light-gray studio background, soft even lighting, centered, product-photo style, handmade craft feel. The object: ';
+app.post('/api/set/third', async (req, res) => {
+  try {
+    const { a, b } = req.body;
+    if (!a || !b || !a.name || !b.name) return res.status(400).json({ error: 'two objects (a, b) are required' });
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+
+    const sys = `You design objects for "Set" — a game like the card game SET, but with strange little sculptural objects instead of cards. A valid set is THREE objects where, for every axis you can read, the three are either ALL THE SAME or ALL DIFFERENT — never two-and-one. Given the first two, the third is forced: same where the two match, a genuinely third value where they differ.
+
+The axes are loose and creative, not a fixed schema. They include physical ones (material, scale, palette, form) and one conceptual axis — the "denied inference": each object sets up an expectation the mind completes, then refuses it (an absent whole, a refused function, a refused affection, a false worth, a present surplus, a wrong material).
+
+Read the two objects. For each axis, decide same or different, and choose the third's value (different from BOTH where they differ). Then invent ONE concrete third object that satisfies all of it and feels like it belongs beside the other two — uncanny in the right way, the kind of thing that itches. Return STRICT JSON only, no markdown:
+{"name":"2-4 word title","object":"a vivid one-sentence physical description of the third object","axes":[{"axis":"material","relation":"same|different","value":"..."}],"rationale":"one short sentence on why it completes the set"}`;
+
+    const user = `Object one — ${a.name}: ${a.blurb || ''}\nObject two — ${b.name}: ${b.blurb || ''}\n\nDesign the third.`;
+
+    const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.9,
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] });
+    if (chat.error) return res.status(400).json({ error: chat.error.message });
+
+    let design;
+    try {
+      const txt = chat.choices[0].message.content.trim().replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+      design = JSON.parse(txt);
+    } catch (e) { return res.status(502).json({ error: 'could not parse the third design' }); }
+
+    const data = await openaiImage({ model: 'gpt-image-2', prompt: SET_GROUND + design.object, n: 1, size: '1024x1024', quality: 'low', output_format: 'webp' });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'set');
+
+    res.json({ url, name: design.name || 'The third', object: design.object || '', axes: design.axes || [], rationale: design.rationale || '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
 // prepended to every prompt. `version` may be null — when so, the latest model
