@@ -18,6 +18,7 @@ struct InstagramView: View {
     @State private var refImage: UIImage?
     @State private var preview: Creation?
     @State private var posting = false
+    @State private var postingStory = false
     @State private var postResult: String?
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
@@ -196,16 +197,28 @@ struct InstagramView: View {
                         default: ProgressView().padding(40)
                         }
                     }
-                    Button { post(p) } label: {
+                    Button { post(p, asStory: false) } label: {
                         HStack {
-                            if posting { ProgressView().tint(.white) }
-                            Text(posting ? "Posting…" : "Post to Instagram")
+                            if posting && !postingStory { ProgressView().tint(.white) }
+                            Text(posting && !postingStory ? "Posting…" : "Post to Feed")
                                 .font(.subheadline.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
                     }
                     .disabled(posting)
+                    Button { post(p, asStory: true) } label: {
+                        HStack {
+                            if postingStory { ProgressView().tint(Theme.accent) }
+                            Text(postingStory ? "Posting…" : "Post to Story")
+                                .font(.subheadline.weight(.semibold)).foregroundColor(Theme.accent)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.accentDim, lineWidth: 1))
+                    }
+                    .disabled(posting)
+                    Text("A Story disappears after 24 hours.")
+                        .font(.caption2).foregroundColor(Theme.textDim)
                     ShareLink(item: p.url) {
                         Label("Share / Save", systemImage: "square.and.arrow.up")
                             .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
@@ -223,17 +236,19 @@ struct InstagramView: View {
         .tint(Theme.accent)
     }
 
-    private func post(_ p: Creation) {
+    private func post(_ p: Creation, asStory: Bool) {
         guard !posting else { return }
         posting = true
+        postingStory = asStory
         Task {
             do {
-                try await ForgeService.shared.postToInstagram(imageUrl: p.url, caption: p.prompt)
-                postResult = "Posted to Instagram! 🎉"
+                try await ForgeService.shared.postToInstagram(imageUrl: p.url, caption: p.prompt, asStory: asStory)
+                postResult = asStory ? "Posted to your Story! 🎉 (gone in 24h)" : "Posted to your feed! 🎉"
             } catch {
                 postResult = error.localizedDescription
             }
             posting = false
+            postingStory = false
         }
     }
 

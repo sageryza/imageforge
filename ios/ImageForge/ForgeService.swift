@@ -263,12 +263,14 @@ final class ForgeService {
     }
 
     /// Publish an already-generated image straight to Instagram (Graph API).
-    /// Throws a clear error if Instagram posting isn't set up yet.
-    func postToInstagram(imageUrl: URL, caption: String?) async throws {
+    /// `asStory` posts a 24h Story instead of a feed post (Stories ignore the
+    /// caption). Throws a clear error if Instagram posting isn't set up yet.
+    func postToInstagram(imageUrl: URL, caption: String?, asStory: Bool = false) async throws {
         try await ensureSignedIn()
         var payload: [String: Any] = [
             "style": "ig-publish",
             "imageUrl": imageUrl.absoluteString,
+            "asStory": asStory,
         ]
         if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
         _ = try await call("forgeTestImage", payload)
