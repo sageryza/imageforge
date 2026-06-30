@@ -38,9 +38,13 @@ const API_SECRET = (process.env.LULU_API_SECRET || '').trim(); // client secret
 // Lulu's dashboard also hands out a single pre-encoded base64(key:secret)
 // string for the Basic auth header. If LULU_BASE64 is set we use it directly
 // (no need to split it back into key + secret); otherwise we encode the pair.
-// Strip any stray whitespace/newlines a copy-paste may have injected — base64
-// must be contiguous, and a stray line break silently yields "invalid_client".
-const API_BASE64 = (process.env.LULU_BASE64 || '').replace(/\s+/g, '');
+// Lulu's dashboard shows this value as "Basic <base64>" wrapped over several
+// lines, so a verbatim paste carries a leading "Basic " and newlines — both of
+// which silently break auth ("invalid_client"). Strip a leading "Basic " then
+// remove all remaining whitespace so the dashboard value works as-is.
+const API_BASE64 = (process.env.LULU_BASE64 || '')
+  .replace(/^\s*Basic\s+/i, '')
+  .replace(/\s+/g, '');
 
 function configured() {
   return Boolean(API_BASE64 || (API_KEY && API_SECRET));
