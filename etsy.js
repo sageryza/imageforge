@@ -296,6 +296,26 @@ async function createDraftListing(shopId, listing = {}) {
   });
 }
 
+// Derive sensible listing defaults (shipping profile, return policy, readiness
+// state, taxonomy) from an existing active listing in the shop — read with the
+// app key, no OAuth scope needed. Lets the UI create a physical draft without
+// the user hunting down these ids.
+async function getListingDefaults(shopId) {
+  const r = await appFetch(`/shops/${shopId}/listings/active?limit=1`);
+  const l = r.ok && r.body && Array.isArray(r.body.results) ? r.body.results[0] : null;
+  if (!l) return { ok: false, status: r.status, body: r.body };
+  return {
+    ok: true,
+    defaults: {
+      shop_id: Number(shopId),
+      shipping_profile_id: l.shipping_profile_id,
+      return_policy_id: l.return_policy_id,
+      readiness_state_id: l.readiness_state_id,
+      taxonomy_id: l.taxonomy_id,
+    },
+  };
+}
+
 // Update fields on an existing listing (PATCH). Most useful for changing
 // `state` — e.g. reverting a listing that went live ("active") back to "draft"
 // or "inactive" so it's not purchasable. Pass any updatable listing fields.
@@ -396,6 +416,19 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// Listing defaults derived from an existing active listing (for the studio UI).
+router.get('/defaults', async (req, res) => {
+  const shopId = req.query.shop_id || process.env.ETSY_SHOP_ID;
+  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const r = await getListingDefaults(shopId);
+    if (!r.ok) return res.status(502).json({ error: 'no active listing found to derive defaults from', detail: r.body });
+    res.json(r.defaults);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 // Who am I (and primary shop) — handy first call after connecting.
 router.get('/me', async (req, res) => {
   try {
@@ -451,6 +484,7 @@ module.exports = {
   getMe,
   getShops,
   createDraftListing,
+  getListingDefaults,
   updateListing,
   setListingState,
   uploadListingImage,

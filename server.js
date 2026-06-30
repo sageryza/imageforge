@@ -194,6 +194,9 @@ app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.ht
 // ─── Sticker Page: full-page kiss-cut sticker sheet (gpt-image-2) ────
 app.get('/stickers', (req, res) => { res.sendFile(__dirname + '/public/stickers.html'); });
 
+// ─── Studio: idea → design → AI listing → draft Etsy listing ────────
+app.get('/studio', (req, res) => { res.sendFile(__dirname + '/public/studio.html'); });
+
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
 // prepended to every prompt. `version` may be null — when so, the latest model
