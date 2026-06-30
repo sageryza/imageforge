@@ -17,6 +17,10 @@ struct HubView: View {
                         HubCard(icon: "pencil.and.outline", title: "Coloring Pages",
                                 desc: "Printable black-and-white line art to color.")
                     }
+                    NavigationLink(destination: StorybookView()) {
+                        HubCard(icon: "book", title: "Storybook",
+                                desc: "Build a picture book — a page at a time, words and all.")
+                    }
                     NavigationLink(destination: DreamsView()) {
                         HubCard(icon: "moon.stars", title: "Dreams",
                                 desc: "Illustrate last night's dream — and keep a journal.")
