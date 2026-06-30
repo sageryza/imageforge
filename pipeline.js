@@ -114,6 +114,32 @@ function clampListing(content) {
   return { title, tags, description, ...(materials && materials.length ? { materials } : {}) };
 }
 
+// "Talk it out" — turn a loose, freeform description into a concrete plan:
+// a design theme, 1-3 house styles (chosen from the ones the shop actually
+// has), and a few product types. Powers the Studio's conversational input.
+async function interpretBrief({ text, styles = [] } = {}) {
+  if (!text) throw new Error('text required');
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const sys = [
+    'You help a maker turn a loose idea into a plan for print-on-demand products.',
+    'Return STRICT JSON: {"theme": a short concrete visual design theme (a phrase, not a sentence),',
+    '"styles": array of 1-3 style names chosen ONLY from the provided available list,',
+    '"products": array of 1-4 items from ["art print","greeting card","poster","sticker","t-shirt","sweatshirt","tote","mug"],',
+    '"note": one short friendly sentence reflecting their vibe back}.',
+  ].join(' ');
+  const user = `Available styles: ${styles.join(', ') || '(none)'}\nTheir description: ${text}`;
+  const raw = await openaiJSON([
+    { role: 'system', content: sys },
+    { role: 'user', content: user },
+  ]);
+  return {
+    theme: String(raw.theme || '').trim(),
+    styles: Array.isArray(raw.styles) ? raw.styles.filter(s => styles.includes(s)).slice(0, 3) : [],
+    products: Array.isArray(raw.products) ? raw.products.slice(0, 4) : [],
+    note: String(raw.note || '').trim(),
+  };
+}
+
 // Generate SEO-optimized Etsy listing content from a theme + product type.
 async function generateListingContent({ theme, productType = 'art print', audience, extraContext } = {}) {
   if (!theme) throw new Error('theme required');
@@ -392,6 +418,16 @@ router.get('/route', (req, res) => {
   res.json({ product_type: productType, service: routePOD(productType) });
 });
 
+// Talk-it-out: freeform description -> { theme, styles, products, note }.
+router.post('/brief', express.json(), async (req, res) => {
+  try {
+    const plan = await interpretBrief(req.body || {});
+    res.json(plan);
+  } catch (err) {
+    res.status(err.message.includes('required') || err.message.includes('not set') ? 400 : 502).json({ error: err.message });
+  }
+});
+
 // Generate listing content only (title / 13 tags / description).
 router.post('/listing-content', express.json(), async (req, res) => {
   try {
@@ -442,6 +478,7 @@ router.post('/pod-product', express.json({ limit: '25mb' }), async (req, res) =>
 module.exports = {
   router,
   routePOD,
+  interpretBrief,
   generateListingContent,
   publishDraft,
   createPrintifyProduct,

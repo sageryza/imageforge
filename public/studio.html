@@ -9,258 +9,288 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/forge.css" />
 <style>
-  .studio { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
-  /* rotating product-blank showcase */
-  .mockup-hero { text-align: center; margin: 4px 0 22px; }
-  .mockup-stage {
-    position: relative; width: 200px; height: 200px; margin: 0 auto;
-  }
-  .mockup-stage img {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
-    opacity: 0; transform: scale(.96); transition: opacity .9s ease, transform .9s ease;
-    border-radius: var(--radius-lg);
-  }
-  .mockup-stage img.active { opacity: 1; transform: scale(1); }
-  .mockup-caption {
-    margin-top: 6px; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--text-dim); min-height: 14px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .mockup-stage img { transition: opacity .3s ease; transform: none; }
-    .mockup-stage img.active { transform: none; }
-  }
-  .step {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 18px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.03);
-  }
-  .step[hidden] { display: none; }
-  .step-label {
-    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 12px; font-weight: 600;
-  }
-  label.fld { display: block; font-size: 13px; color: var(--text-dim); margin: 12px 0 5px; }
-  input[type=text], input[type=number], textarea, select {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
-    border-radius: var(--radius); background: var(--bg); color: var(--text);
-    font-family: inherit; font-size: 14px;
-  }
-  textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > * { flex: 1; min-width: 140px; }
-  .btn {
-    padding: 11px 18px; background: var(--accent); color: #fff; border: none;
-    border-radius: var(--radius); cursor: pointer; font-family: inherit;
-    font-size: 14px; font-weight: 500; letter-spacing: .3px; transition: opacity .15s;
-  }
-  .btn:hover { opacity: .9; }
+  .studio { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  /* Brief bar */
+  .brief { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 18px; }
+  .brief textarea { width: 100%; min-height: 52px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-family: inherit; font-size: 14px; background: var(--bg); resize: vertical; }
+  .lab { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin: 14px 0 7px; display:block; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  input[type=text], input[type=number] { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; background: var(--bg); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 11px; color: var(--text-dim); background: var(--bg); cursor: pointer; user-select: none; }
+  .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn { padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; }
   .btn:disabled { opacity: .5; cursor: default; }
-  .btn-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .preview { margin-top: 16px; text-align: center; }
-  .preview img { max-width: 320px; width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
-  .tag { display: inline-block; background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 3px 9px; font-size: 12px; margin: 3px 4px 0 0; }
-  .status { font-size: 13px; margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); }
-  .status.ok { background: #eef6f0; color: #3f7d56; border: 1px solid #cce6d6; }
-  .status.err { background: #fbeeed; color: #b15049; border: 1px solid #f0d2cf; }
-  .status.work { background: var(--surface-2); color: var(--text-dim); }
-  .spin { display:inline-block; width:12px; height:12px; border:2px solid var(--accent-dim);
-    border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-1px; margin-right:6px; }
+  .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--accent-dim); border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Work area */
+  .work { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .work.has-sel { grid-template-columns: 1.3fr 1fr; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+  .sec { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; font-weight: 600; }
+  .dgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+  .tile { position: relative; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface-2); cursor: pointer; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; }
+  .tile.sel { outline: 2px solid var(--accent); }
+  .tile .badge { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,.85); font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--text-dim); padding: 3px 6px; }
+  .tile.loading { display:flex; align-items:center; justify-content:center; }
+  /* empty-state carousel */
+  .empty { text-align:center; padding: 18px 0; }
+  .mstage { position: relative; width: 180px; height: 180px; margin: 0 auto; }
+  .mstage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transform:scale(.96); transition:opacity .9s, transform .9s; }
+  .mstage img.active { opacity:1; transform:scale(1); }
+  .mcap { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); margin-top:6px; min-height:14px; }
+  /* product previews */
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 12px; }
+  .pcard { text-align:center; }
+  .pstage { position: relative; aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
+  .pstage .blank { width:100%; height:100%; object-fit:contain; }
+  .pstage .art { position:absolute; width:40%; height:40%; left:50%; top:42%; transform:translate(-50%,-50%); object-fit:cover; border-radius:3px; mix-blend-mode:multiply; opacity:.93; }
+  .pstage.print .art { width:78%; height:78%; top:50%; mix-blend-mode:normal; box-shadow:0 1px 6px rgba(0,0,0,.12); }
+  .pcap { font-size:11px; color:var(--text-dim); margin-top:5px; }
+  .route { font-size:11px; color:var(--accent); }
+  label.fld { font-size: 13px; color: var(--text-dim); display:block; margin: 12px 0 5px; }
+  textarea.copy { width:100%; min-height:80px; border:1px solid var(--border); border-radius:var(--radius); padding:9px; font-family:inherit; font-size:13px; background:var(--bg); resize:vertical; }
+  .tag { display:inline-block; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:2px 8px; font-size:11px; margin:3px 4px 0 0; }
+  .status { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:var(--radius); }
+  .status.ok { background:#eef6f0; color:#3f7d56; border:1px solid #cce6d6; }
+  .status.err { background:#fbeeed; color:#b15049; border:1px solid #f0d2cf; }
+  .status.work { background:var(--surface-2); color:var(--text-dim); }
   a.link { color: var(--accent); }
+  @media (max-width:760px){ .work.has-sel{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <header class="app-header">
-  <div class="brand" onclick="location.href='/'">
-    <span class="brand-mark">◆</span><h1>ImageForge</h1>
-  </div>
-  <nav class="app-nav">
-    <span class="tool-name">Studio</span>
-    <button class="btn-ghost" onclick="location.href='/'">← Hub</button>
-  </nav>
+  <div class="brand" onclick="location.href='/'"><span class="brand-mark">◆</span><h1>ImageForge</h1></div>
+  <nav class="app-nav"><span class="tool-name">Studio</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
 </header>
 
 <main class="studio">
-  <div class="mockup-hero">
-    <div class="mockup-stage" id="mockStage" aria-hidden="true">
-      <img src="/mockups/tee.webp" data-label="Tee" alt="" />
-      <img src="/mockups/sweatshirt.webp" data-label="Sweatshirt" alt="" />
-      <img src="/mockups/hat.webp" data-label="Hat" alt="" />
-      <img src="/mockups/tote.webp" data-label="Tote" alt="" />
-      <img src="/mockups/card.webp" data-label="Greeting card" alt="" />
-      <img src="/mockups/mug.webp" data-label="Mug" alt="" />
-    </div>
-    <div class="mockup-caption" id="mockCaption">&nbsp;</div>
-  </div>
-  <p class="hub-tagline">Describe an idea → generate a design → let AI write the listing → push a draft to Etsy for review. Nothing goes live; you review every draft.</p>
-
-  <!-- Step 1: idea -->
-  <section class="step">
-    <div class="step-label">1 · Idea</div>
+  <!-- Brief bar -->
+  <section class="brief">
+    <label class="lab" style="margin-top:0">Not sure yet? Describe the vibe and I'll plan it</label>
     <div class="row">
-      <div style="flex:2">
-        <label class="fld" for="theme">Theme / description</label>
-        <input id="theme" type="text" placeholder="e.g. vintage celestial moon phases over botanical wildflowers" />
-      </div>
-      <div>
-        <label class="fld" for="ptype">Product type</label>
-        <select id="ptype">
-          <option value="art print">Art print</option>
-          <option value="greeting card">Greeting card</option>
-          <option value="poster">Poster</option>
-          <option value="sticker">Sticker</option>
-        </select>
-      </div>
+      <textarea id="vibe" style="flex:1; min-width:240px" placeholder="e.g. celestial + botanical, kind of witchy — maybe a sweatshirt and some cards"></textarea>
+      <button class="btn ghost" id="planBtn" onclick="planIt()">Plan it →</button>
     </div>
-    <div class="btn-row">
-      <button class="btn" id="genBtn" onclick="generateDesign()">Generate design</button>
+    <div class="muted" id="planNote" style="margin-top:8px"></div>
+
+    <label class="lab">Theme</label>
+    <input id="theme" type="text" style="width:100%" placeholder="celestial botanical moon phases" />
+
+    <label class="lab">House style <span style="text-transform:none;letter-spacing:0">(pick one or more)</span></label>
+    <div class="chips" id="styles"><span class="muted">loading styles…</span></div>
+
+    <label class="lab">Products to preview</label>
+    <div class="chips" id="products"></div>
+
+    <div class="row" style="margin-top:16px; align-items:center">
+      <div><label class="lab" style="margin:0 0 5px">How many</label>
+        <select id="count" style="padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--bg)">
+          <option>2</option><option selected>4</option><option>6</option>
+        </select></div>
+      <button class="btn" id="genBtn" onclick="generate()">Generate designs</button>
       <span class="muted" id="genHint"></span>
     </div>
-    <div class="preview" id="preview" hidden><img id="previewImg" alt="design preview" /></div>
   </section>
 
-  <!-- Step 2: listing content -->
-  <section class="step" id="step2" hidden>
-    <div class="step-label">2 · Listing</div>
-    <div class="btn-row" style="margin-top:0">
-      <button class="btn" id="writeBtn" onclick="writeListing()">Write listing with AI</button>
-      <span class="muted" id="writeHint"></span>
-    </div>
-    <label class="fld" for="title">Title <span class="muted">(≤140)</span></label>
-    <input id="title" type="text" maxlength="140" />
-    <label class="fld">Tags</label>
-    <div id="tags" class="muted">—</div>
-    <label class="fld" for="desc">Description</label>
-    <textarea id="desc"></textarea>
-    <div class="row" style="margin-top:12px">
-      <div><label class="fld" for="price">Price (USD)</label><input id="price" type="number" value="18" min="1" step="1" /></div>
-      <div><label class="fld" for="shop">Etsy shop id <span class="muted">(auto)</span></label><input id="shop" type="text" placeholder="auto-detected" /></div>
-    </div>
-  </section>
+  <!-- Work area -->
+  <div class="work" id="work">
+    <section class="panel">
+      <div class="sec">Designs</div>
+      <div id="empty" class="empty">
+        <div class="mstage" id="mstage">
+          <img src="/mockups/tee.webp" data-label="Tee" /><img src="/mockups/sweatshirt.webp" data-label="Sweatshirt" />
+          <img src="/mockups/hat.webp" data-label="Hat" /><img src="/mockups/tote.webp" data-label="Tote" />
+          <img src="/mockups/card.webp" data-label="Card" /><img src="/mockups/mug.webp" data-label="Mug" />
+        </div>
+        <div class="mcap" id="mcap">&nbsp;</div>
+        <p class="muted" style="margin-top:8px">Describe a vibe or set a theme + style, then generate.</p>
+      </div>
+      <div class="dgrid" id="dgrid" hidden></div>
+    </section>
 
-  <!-- Step 3: draft -->
-  <section class="step" id="step3" hidden>
-    <div class="step-label">3 · Review draft on Etsy</div>
-    <p class="muted">Creates a <strong>draft</strong> listing (not live) with the design uploaded. You publish it yourself from Etsy after reviewing.</p>
-    <div class="btn-row">
-      <button class="btn" id="draftBtn" onclick="createDraft()">Create Etsy draft</button>
-    </div>
-    <div id="draftStatus"></div>
-  </section>
+    <section class="panel" id="side" hidden>
+      <div class="sec">On your products</div>
+      <div class="pgrid" id="pgrid"></div>
+      <label class="lab" style="margin-top:18px">Listing copy</label>
+      <button class="btn ghost" id="copyBtn" onclick="writeCopy()" style="font-size:13px;padding:7px 12px">Write with AI</button>
+      <span class="muted" id="copyHint"></span>
+      <label class="fld" for="ctitle">Title</label>
+      <input id="ctitle" type="text" style="width:100%" maxlength="140" />
+      <label class="fld">Tags</label>
+      <div id="ctags" class="muted">—</div>
+      <label class="fld" for="cdesc">Description</label>
+      <textarea id="cdesc" class="copy"></textarea>
+      <div class="row" style="margin-top:10px">
+        <div><label class="fld" style="margin-top:0" for="price">Price (USD)</label><input id="price" type="number" value="18" min="1" /></div>
+        <div><label class="fld" style="margin-top:0" for="shop">Etsy shop id</label><input id="shop" type="text" placeholder="auto" /></div>
+      </div>
+      <div class="row" style="margin-top:14px; align-items:center">
+        <button class="btn" id="draftBtn" onclick="createDraft()">Create Etsy draft</button>
+      </div>
+      <div id="draftStatus"></div>
+      <p class="muted" style="margin-top:10px">Apparel can auto-fulfil via Printify (draft) — wiring that into one click is the next step. For now this creates a reviewable Etsy draft with your design.</p>
+    </section>
+  </div>
 </main>
 
 <script>
-  // Rotating product-blank showcase — cross-fade through the mockups.
-  (function rotateMockups() {
-    const imgs = [...document.querySelectorAll('#mockStage img')];
-    const cap = document.getElementById('mockCaption');
-    if (!imgs.length) return;
-    let i = 0;
-    const show = (n) => {
-      imgs.forEach((im, k) => im.classList.toggle('active', k === n));
-      cap.textContent = imgs[n].dataset.label || '';
-    };
-    show(0);
-    setInterval(() => { i = (i + 1) % imgs.length; show(i); }, 2600);
-  })();
-
-  let designUrl = null;
-
-  function setStatus(el, kind, html) {
-    el.className = 'status ' + kind;
-    el.innerHTML = (kind === 'work' ? '<span class="spin"></span>' : '') + html;
-    el.hidden = false;
-  }
+  const PRODUCTS = [
+    { key:'art print', label:'Art print', mockup:null, route:'Etsy draft' },
+    { key:'greeting card', label:'Card', mockup:'/mockups/card.webp', route:'Etsy draft' },
+    { key:'t-shirt', label:'Tee', mockup:'/mockups/tee.webp', route:'Printify' },
+    { key:'sweatshirt', label:'Sweatshirt', mockup:'/mockups/sweatshirt.webp', route:'Printify' },
+    { key:'tote', label:'Tote', mockup:'/mockups/tote.webp', route:'Printify' },
+    { key:'mug', label:'Mug', mockup:'/mockups/mug.webp', route:'Printify' },
+  ];
+  let STYLES = [];          // {id,name}
+  let selectedStyles = new Set();
+  let selectedProducts = new Set(['art print','greeting card']);
+  let designs = [];          // urls
+  let activeDesign = null;
 
   async function api(path, opts) {
     const res = await fetch(path, opts);
-    const text = await res.text();
-    let body; try { body = JSON.parse(text); } catch { body = text; }
-    return { ok: res.ok, status: res.status, body };
+    const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
+    return { ok: res.ok, status: res.status, body: b };
   }
 
-  async function generateDesign() {
+  // ── empty-state carousel ──
+  (function rotate(){
+    const imgs=[...document.querySelectorAll('#mstage img')], cap=document.getElementById('mcap');
+    let i=0; const show=n=>{imgs.forEach((im,k)=>im.classList.toggle('active',k===n));cap.textContent=imgs[n].dataset.label;};
+    show(0); setInterval(()=>{i=(i+1)%imgs.length;show(i);},2600);
+  })();
+
+  // ── load styles + products ──
+  async function init(){
+    const r = await api('/api/models');
+    STYLES = (r.ok && r.body.replicate) ? r.body.replicate.map(m=>({id:m.id,name:m.name})) : [];
+    const el = document.getElementById('styles');
+    el.innerHTML = STYLES.map(s=>`<span class="chip" data-style="${s.name}">${s.name}</span>`).join('');
+    el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ c.classList.toggle('on'); const n=c.dataset.style; selectedStyles.has(n)?selectedStyles.delete(n):selectedStyles.add(n); });
+    if (el.querySelector('.chip')) { el.querySelector('.chip').classList.add('on'); selectedStyles.add(STYLES[0].name); }
+    const pe = document.getElementById('products');
+    pe.innerHTML = PRODUCTS.map(p=>`<span class="chip ${selectedProducts.has(p.key)?'on':''}" data-prod="${p.key}">${p.label}</span>`).join('');
+    pe.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ c.classList.toggle('on'); const k=c.dataset.prod; selectedProducts.has(k)?selectedProducts.delete(k):selectedProducts.add(k); if(activeDesign)renderProducts(); });
+    api('/api/etsy/defaults').then(d=>{ if(d.ok&&d.body.shop_id) document.getElementById('shop').value=d.body.shop_id; });
+  }
+  init();
+
+  // ── talk-it-out ──
+  async function planIt(){
+    const text = document.getElementById('vibe').value.trim();
+    const note = document.getElementById('planNote'); const btn=document.getElementById('planBtn');
+    if(!text){ note.textContent='Type a description first.'; return; }
+    btn.disabled=true; note.innerHTML='<span class="spin"></span>thinking…';
+    const r = await api('/api/pipeline/brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,styles:STYLES.map(s=>s.name)})});
+    btn.disabled=false;
+    if(!r.ok){ note.textContent='Failed: '+((r.body&&r.body.error)||r.status); return; }
+    document.getElementById('theme').value = r.body.theme || '';
+    // select styles
+    selectedStyles = new Set(r.body.styles||[]);
+    document.querySelectorAll('#styles .chip').forEach(c=>c.classList.toggle('on', selectedStyles.has(c.dataset.style)));
+    // select products that we support
+    if((r.body.products||[]).length){
+      selectedProducts = new Set();
+      (r.body.products||[]).forEach(p=>{ const m=PRODUCTS.find(x=>x.key===p||x.label.toLowerCase()===String(p).toLowerCase()); if(m)selectedProducts.add(m.key); });
+      if(!selectedProducts.size) selectedProducts.add('art print');
+      document.querySelectorAll('#products .chip').forEach(c=>c.classList.toggle('on', selectedProducts.has(c.dataset.prod)));
+    }
+    note.textContent = r.body.note || 'Filled in a plan — tweak and generate.';
+  }
+
+  // ── generate batch ──
+  async function generate(){
     const theme = document.getElementById('theme').value.trim();
     const hint = document.getElementById('genHint');
-    if (!theme) { hint.textContent = 'Enter a theme first.'; return; }
-    const btn = document.getElementById('genBtn');
-    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>generating…';
-    const ptype = document.getElementById('ptype').value;
-    const prompt = `${theme}. ${ptype} illustration, clean composition, white background.`;
-    const r = await api('/api/generate/gptimage', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1024' }),
-    });
-    btn.disabled = false;
-    if (!r.ok || !r.body.url) { hint.textContent = 'Failed: ' + ((r.body && r.body.error) || r.status); return; }
-    hint.textContent = '';
-    designUrl = r.body.url;
-    document.getElementById('previewImg').src = designUrl;
-    document.getElementById('preview').hidden = false;
-    document.getElementById('step2').hidden = false;
-    document.getElementById('step3').hidden = false;
-    prefillShop();
+    if(!theme){ hint.textContent='Set a theme (or describe a vibe and Plan it).'; return; }
+    if(!selectedStyles.size){ hint.textContent='Pick at least one style.'; return; }
+    const n = Number(document.getElementById('count').value);
+    const styleNames = [...selectedStyles];
+    // spread N across selected styles (round-robin)
+    const jobs = [];
+    for(let i=0;i<n;i++){ const name = styleNames[i % styleNames.length]; jobs.push(STYLES.find(s=>s.name===name)); }
+    document.getElementById('empty').hidden = true;
+    const grid = document.getElementById('dgrid'); grid.hidden=false;
+    grid.innerHTML = jobs.map((j,i)=>`<div class="tile loading" id="t${i}"><span class="spin"></span></div>`).join('');
+    document.getElementById('genBtn').disabled = true; hint.innerHTML='<span class="spin"></span>generating '+n+'…';
+    designs = [];
+    await Promise.all(jobs.map(async (j,i)=>{
+      const r = await api('/api/generate/replicate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:theme, model:j.id})});
+      const cell = document.getElementById('t'+i);
+      if(r.ok && r.body.url){
+        designs[i]=r.body.url;
+        cell.classList.remove('loading');
+        cell.innerHTML = `<img src="${r.body.url}"/><span class="badge">${j.name}</span>`;
+        cell.onclick = ()=>selectDesign(r.body.url, cell);
+      } else {
+        cell.classList.remove('loading'); cell.innerHTML='<span class="muted" style="font-size:11px;padding:6px;text-align:center">failed</span>';
+      }
+    }));
+    document.getElementById('genBtn').disabled=false; hint.textContent='Tap a design to place it.';
   }
 
-  async function prefillShop() {
-    const shop = document.getElementById('shop');
-    if (shop.value) return;
-    const r = await api('/api/etsy/defaults');
-    if (r.ok && r.body.shop_id) shop.value = r.body.shop_id;
+  function selectDesign(url, cell){
+    activeDesign = url;
+    document.querySelectorAll('#dgrid .tile').forEach(t=>t.classList.remove('sel'));
+    if(cell) cell.classList.add('sel');
+    document.getElementById('work').classList.add('has-sel');
+    document.getElementById('side').hidden = false;
+    renderProducts();
   }
 
-  async function writeListing() {
+  function renderProducts(){
+    const grid = document.getElementById('pgrid');
+    const chosen = PRODUCTS.filter(p=>selectedProducts.has(p.key));
+    grid.innerHTML = chosen.map(p=>{
+      const stageClass = p.mockup ? '' : 'print';
+      const blank = p.mockup ? `<img class="blank" src="${p.mockup}"/>` : '';
+      return `<div class="pcard"><div class="pstage ${stageClass}">${blank}<img class="art" src="${activeDesign}"/></div>
+        <div class="pcap">${p.label}</div><div class="route">${p.route}</div></div>`;
+    }).join('') || '<p class="muted">Pick products above to preview.</p>';
+  }
+
+  async function writeCopy(){
     const theme = document.getElementById('theme').value.trim();
-    const hint = document.getElementById('writeHint');
-    const btn = document.getElementById('writeBtn');
-    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>writing…';
-    const r = await api('/api/pipeline/listing-content', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ theme, productType: document.getElementById('ptype').value }),
-    });
-    btn.disabled = false; hint.textContent = '';
-    if (!r.ok) { hint.textContent = 'Failed: ' + ((r.body && r.body.error) || r.status); return; }
-    document.getElementById('title').value = r.body.title || '';
-    document.getElementById('desc').value = r.body.description || '';
-    document.getElementById('tags').innerHTML = (r.body.tags || []).map(t => `<span class="tag">${t}</span>`).join('') || '—';
+    const hint = document.getElementById('copyHint'); const btn=document.getElementById('copyBtn');
+    const primary = [...selectedProducts][0] || 'art print';
+    btn.disabled=true; hint.innerHTML='<span class="spin"></span>writing…';
+    const r = await api('/api/pipeline/listing-content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,productType:primary})});
+    btn.disabled=false; hint.textContent='';
+    if(!r.ok){ hint.textContent='Failed: '+((r.body&&r.body.error)||r.status); return; }
+    document.getElementById('ctitle').value = r.body.title||'';
+    document.getElementById('cdesc').value = r.body.description||'';
+    document.getElementById('ctags').innerHTML = (r.body.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')||'—';
   }
 
-  async function createDraft() {
-    const st = document.getElementById('draftStatus');
-    const btn = document.getElementById('draftBtn');
-    const shop_id = document.getElementById('shop').value.trim();
-    if (!designUrl) { setStatus(st, 'err', 'Generate a design first.'); return; }
-    if (!shop_id) { setStatus(st, 'err', 'No Etsy shop id (set ETSY_SHOP_ID or enter one).'); return; }
-    btn.disabled = true; setStatus(st, 'work', 'Fetching shop defaults…');
-    const def = await api('/api/etsy/defaults?shop_id=' + encodeURIComponent(shop_id));
-    if (!def.ok) { btn.disabled = false; setStatus(st, 'err', 'Could not read shop defaults: ' + ((def.body && def.body.error) || def.status)); return; }
-    setStatus(st, 'work', 'Creating draft + uploading design…');
-    const payload = {
-      shop_id: Number(shop_id), images: [designUrl],
-      title: document.getElementById('title').value.trim(),
-      description: document.getElementById('desc').value.trim(),
-      tags: [...document.querySelectorAll('#tags .tag')].map(t => t.textContent),
-      price: Number(document.getElementById('price').value) || 18,
-      taxonomy_id: def.body.taxonomy_id,
-      shipping_profile_id: def.body.shipping_profile_id,
-      return_policy_id: def.body.return_policy_id,
-      readiness_state_id: def.body.readiness_state_id,
-    };
-    const r = await api('/api/pipeline/publish-draft', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    btn.disabled = false;
-    if (r.ok && r.body.ok) {
-      const id = r.body.listing_id;
-      setStatus(st, 'ok', `Draft created ✓ (listing ${id}) — <a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review it in your Etsy drafts</a>.`);
-    } else {
-      const err = (r.body && (r.body.error || (r.body.body && r.body.body.error))) || r.status;
-      setStatus(st, 'err', 'Draft failed: ' + err);
-    }
+  async function createDraft(){
+    const st=document.getElementById('draftStatus'); const btn=document.getElementById('draftBtn');
+    const shop=document.getElementById('shop').value.trim();
+    if(!activeDesign){ setStatus(st,'err','Pick a design first.'); return; }
+    if(!shop){ setStatus(st,'err','No Etsy shop id (set ETSY_SHOP_ID or type one).'); return; }
+    btn.disabled=true; setStatus(st,'work','Fetching shop defaults…');
+    const def=await api('/api/etsy/defaults?shop_id='+encodeURIComponent(shop));
+    if(!def.ok){ btn.disabled=false; setStatus(st,'err','Defaults failed: '+((def.body&&def.body.error)||def.status)); return; }
+    setStatus(st,'work','Creating draft + uploading design…');
+    const r=await api('/api/pipeline/publish-draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      shop_id:Number(shop), images:[activeDesign],
+      title:document.getElementById('ctitle').value.trim(),
+      description:document.getElementById('cdesc').value.trim(),
+      tags:[...document.querySelectorAll('#ctags .tag')].map(t=>t.textContent),
+      price:Number(document.getElementById('price').value)||18,
+      taxonomy_id:def.body.taxonomy_id, shipping_profile_id:def.body.shipping_profile_id,
+      return_policy_id:def.body.return_policy_id, readiness_state_id:def.body.readiness_state_id,
+    })});
+    btn.disabled=false;
+    if(r.ok&&r.body.ok) setStatus(st,'ok',`Draft created ✓ (listing ${r.body.listing_id}) — <a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review in Etsy drafts</a>.`);
+    else setStatus(st,'err','Failed: '+((r.body&&(r.body.error||(r.body.body&&r.body.body.error)))||r.status));
   }
+  function setStatus(el,k,html){ el.className='status '+k; el.innerHTML=(k==='work'?'<span class="spin"></span>':'')+html; el.hidden=false; }
 </script>
 </body>
 </html>
