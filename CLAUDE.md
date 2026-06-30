@@ -48,7 +48,11 @@ lifted into a standalone tool later.
   a product type to a POD service; `POST /listing-content` AI-writes SEO
   title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
   `POST /publish-draft` creates the Etsy draft **and** uploads the design
-  image(s) in one call (auto-generates listing content when `generateContent`).
+  image(s) in one call (auto-generates listing content when `generateContent`);
+  `POST /pod-product` creates a Printify product from a design (upload → variants
+  + front print area → create, optionally `publish` to the connected Etsy shop
+  for auto-fulfillment). Etsy-draft path = manual fulfilment; Printify
+  publish path = auto-fulfils on sale (needs Etsy connected inside Printify).
 - **`printify.js`** (`/api/printify`) — POD, wide catalog / lower cost. Bearer
   PAT (`PRINTIFY_API_KEY`), optional `PRINTIFY_SHOP_ID`. Routes: status, shops,
   catalog/blueprints, products, uploads. *Live-confirmed working.*

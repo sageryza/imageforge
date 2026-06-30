@@ -144,6 +144,18 @@ router.get('/catalog/blueprints', async (req, res) => {
   res.status(r.status).json(r.body);
 });
 
+// Print providers that can make a given blueprint (needed to build a product).
+router.get('/catalog/blueprints/:id/print-providers', async (req, res) => {
+  const r = await getBlueprintProviders(req.params.id);
+  res.status(r.status).json(r.body);
+});
+
+// Variants (sizes/colours + their ids) for a blueprint + provider.
+router.get('/catalog/blueprints/:id/print-providers/:pid/variants', async (req, res) => {
+  const r = await getProviderVariants(req.params.id, req.params.pid);
+  res.status(r.status).json(r.body);
+});
+
 router.get('/products', async (req, res) => {
   try {
     const r = await listProducts(req.query.shop_id);

@@ -199,6 +199,84 @@ async function publishDraft(opts = {}) {
   };
 }
 
+// ─── Orchestration: design → Printify product (→ Etsy auto-fulfillment) ──
+// Creates a print-on-demand product in Printify from a design. Unlike the Etsy
+// draft path (which we fulfil ourselves), a Printify product PUBLISHED to a
+// connected Etsy shop auto-fulfils on sale — Printify prints and ships.
+//
+// Steps: upload the design (unless an image id is given) → build the variants
+// (id + price + enabled) and the front print area → create the product →
+// optionally publish to the connected Etsy store. Title/description/tags can be
+// supplied directly or AI-written (they flow onto the Etsy listing at publish).
+//
+// NOTE: `publish` only works once the Etsy shop is connected as a sales channel
+// inside Printify; otherwise it returns a Printify error (the product is still
+// created and can be published later).
+async function createPrintifyProduct(opts = {}) {
+  if (!printify) throw new Error('printify module unavailable');
+  const {
+    shop_id, blueprint_id, print_provider_id,
+    variant_ids = [], price,             // price in cents (e.g. 2499 = $24.99)
+    image,                               // { url } | { contents } | { id }
+    title, description, tags,
+    generateContent = false, theme, productType = 'shirt', audience,
+    placement = {},                      // { position, x, y, scale, angle }
+    publish = false,
+  } = opts;
+  if (!blueprint_id || !print_provider_id) throw new Error('blueprint_id and print_provider_id required');
+  if (!Array.isArray(variant_ids) || !variant_ids.length) throw new Error('variant_ids required');
+  if (price == null) throw new Error('price (in cents) required');
+
+  // Content: supplied directly, or AI-written (also used for the Etsy listing
+  // once Printify publishes the product).
+  let content = { title, description, tags };
+  if (generateContent) content = await generateListingContent({ theme, productType, audience });
+  if (!content.title) throw new Error('title required (or set generateContent)');
+
+  // Resolve the Printify image id (upload the design if not already uploaded).
+  let imageId = image && image.id;
+  if (!imageId) {
+    if (!image || (!image.url && !image.contents)) {
+      throw new Error('image.url, image.contents, or image.id required');
+    }
+    const up = await printify.uploadImage({
+      fileName: image.fileName || 'design.png', url: image.url, contents: image.contents,
+    });
+    if (!up.ok || !up.body || !up.body.id) {
+      return { ok: false, stage: 'upload_image', status: up.status, body: up.body };
+    }
+    imageId = up.body.id;
+  }
+
+  const place = {
+    position: placement.position || 'front',
+    x: placement.x ?? 0.5, y: placement.y ?? 0.5,
+    scale: placement.scale ?? 1, angle: placement.angle ?? 0,
+  };
+  const product = {
+    title: content.title,
+    description: content.description || content.title,
+    blueprint_id, print_provider_id,
+    variants: variant_ids.map(id => ({ id, price, is_enabled: true })),
+    print_areas: [{
+      variant_ids,
+      placeholders: [{ position: place.position, images: [{ id: imageId, x: place.x, y: place.y, scale: place.scale, angle: place.angle }] }],
+    }],
+  };
+  if (Array.isArray(content.tags) && content.tags.length) product.tags = content.tags;
+
+  const res = await printify.createProduct(product, shop_id);
+  if (!res.ok) return { ok: false, stage: 'create_product', status: res.status, body: res.body };
+  const productId = res.body && res.body.id;
+
+  let published;
+  if (publish) {
+    const pub = await printify.publishProduct(productId, shop_id);
+    published = { ok: pub.ok, status: pub.status, body: pub.body };
+  }
+  return { ok: true, product_id: productId, image_id: imageId, content, published };
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
@@ -266,10 +344,25 @@ router.post('/publish-draft', express.json({ limit: '25mb' }), async (req, res) 
   }
 });
 
+// Create a Printify POD product from a design (→ optionally publish to Etsy for
+// auto-fulfillment). Body: { blueprint_id, print_provider_id, variant_ids[],
+// price (cents), image:{url|contents|id}, title?/description?/tags? or
+// generateContent+theme, publish? }.
+router.post('/pod-product', express.json({ limit: '25mb' }), async (req, res) => {
+  try {
+    const result = await createPrintifyProduct(req.body || {});
+    res.status(result.ok ? 200 : 502).json(result);
+  } catch (err) {
+    const code = /required|unavailable/.test(err.message) ? 400 : 502;
+    res.status(code).json({ error: err.message });
+  }
+});
+
 module.exports = {
   router,
   routePOD,
   generateListingContent,
   publishDraft,
+  createPrintifyProduct,
   clampListing,
 };
