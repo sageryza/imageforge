@@ -92,8 +92,11 @@ lifted into a standalone tool later.
 - **Listing rules:** title ≤140 chars, ≤13 tags each ≤20 chars (enforced in
   `validateTags`), `who_made:"i_did"`, `when_made:"2020_2026"`, `legacy=false`
   on writes. Etsy bans apps after 6 months of inactivity — keep it warm.
-- Tokens persist to gitignored `.etsy-tokens.json` (ephemeral on Render free
-  tier; move to Firebase for durability later).
+- OAuth tokens persist to **Firestore** (`config/etsy-tokens`, override via
+  `ETSY_TOKENS_DOC`) when Firebase is available, so they survive Render
+  redeploys / cold restarts. Falls back to gitignored `.etsy-tokens.json` when
+  Firebase isn't initialized (local dev). So a one-time `/connect` authorization
+  sticks across deploys instead of being wiped each time.
 
 ## Design rules (forever)
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
