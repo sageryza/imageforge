@@ -35,6 +35,7 @@ const etsy = tryRequire('./etsy');
 const printify = tryRequire('./printify');
 const printful = tryRequire('./printful');
 const lulu = tryRequire('./lulu');
+const configLoader = tryRequire('./config-loader');
 
 // ─── Product-type → POD service routing ─────────────────────────────
 // Maps the product types from the handoff to the service that prints them.
@@ -197,6 +198,29 @@ router.get('/status', (req, res) => {
     image_generation: Boolean(OPENAI_API_KEY || process.env.REPLICATE_API_TOKEN),
     pod_routes: POD_ROUTES.map(r => ({ pattern: String(r.match), service: r.service })),
   });
+});
+
+// Diagnostic: report what the RUNNING process actually sees for each managed
+// key — presence, length, first/last char, and whether the value has stray
+// whitespace (a tell-tale of a bad copy-paste / line break in the dashboard).
+// NEVER returns the secret value itself. Helps debug "the key is set in the
+// host dashboard but the app says it's not". Safe to remove once keys are
+// confirmed working.
+router.get('/env-check', (req, res) => {
+  const keys = (configLoader && configLoader.MANAGED_KEYS) || [];
+  const report = {};
+  for (const k of keys) {
+    const v = process.env[k];
+    if (!v) { report[k] = { set: false }; continue; }
+    report[k] = {
+      set: true,
+      length: v.length,
+      first: v[0],
+      last: v[v.length - 1],
+      hasWhitespace: /\s/.test(v),
+    };
+  }
+  res.json({ note: 'fingerprints only — no secret values', keys: report });
 });
 
 // Which POD service handles a given product type.
