@@ -8,7 +8,7 @@ import UIKit
 /// gpt-image-2, so it sits behind the shared one-time AI-consent gate.
 struct StickerView: View {
     @State private var prompt = ""
-    @State private var quality = "medium"
+    @State private var quality = "low"
     @State private var busy = false
     @State private var sheet: StickerSheetResult?
     @State private var errorText: String?
@@ -21,17 +21,17 @@ struct StickerView: View {
     @State private var showConsent = false
     @FocusState private var promptFocused: Bool
 
-    private let qualities = ["low", "medium", "high"]
-
     var body: some View {
         ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    // Generated content sits above the prompt controls.
-                    if busy { loadingCard }
-                    if let sheet, !busy { resultCard(sheet) }
-                    promptField
-                    qualityPicker
-                    generateButton
+                VStack(alignment: .leading, spacing: 16) {
+                    ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
+                              loaderText: "conjuring your stickers…") {
+                        stickerEmpty
+                    } result: {
+                        stickerResult
+                    }
+                    Composer(quality: $quality, text: $prompt, placeholder: "what's on the sheet?",
+                             busy: busy, focused: $promptFocused, onGo: run)
                 }
                 .padding()
             }
@@ -54,8 +54,8 @@ struct StickerView: View {
                     }
                 }
             }
-            .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("Sticker Page")
+            .background(Theme.cream.ignoresSafeArea())
+            .navigationTitle("Stickers")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Couldn't generate",
                    isPresented: Binding(get: { errorText != nil },
@@ -89,91 +89,36 @@ struct StickerView: View {
 
     // MARK: - Sections
 
-    private var promptField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("WHAT STICKERS?")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            TextField("a cozy autumn set — a steaming mug, a maple leaf, a little fox, a stack of books…",
-                      text: $prompt, axis: .vertical)
-                .lineLimit(2...5)
-                .font(.body)
-                .foregroundColor(Theme.text)
-                .focused($promptFocused)
-                .padding(12)
-                .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
-                .cornerRadius(Theme.radius)
-        }
-    }
-
-    private var qualityPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("QUALITY")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            HStack(spacing: 8) {
-                ForEach(qualities, id: \.self) { q in
-                    Button { quality = q } label: {
-                        Text(q.capitalized)
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(quality == q ? Theme.surface2 : Color.clear)
-                            .foregroundColor(quality == q ? Theme.text : Theme.textDim)
-                            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                                .stroke(quality == q ? Theme.accentDim : Theme.border, lineWidth: 1))
-                            .cornerRadius(Theme.radius)
-                    }
-                    .buttonStyle(.plain)
+    // Empty stage — ghost tiles hinting where the stickers will land.
+    private var stickerEmpty: some View {
+        VStack(spacing: 14) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                ForEach(0..<6, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                        .foregroundColor(Theme.ghost)
+                        .aspectRatio(1, contentMode: .fit)
                 }
             }
+            .frame(width: 210)
+            Text("your stickers appear here").font(.callout).foregroundColor(Theme.inkSoft)
         }
+        .padding(20)
     }
 
-    private var generateButton: some View {
-        Button { run() } label: {
-            Text(busy ? "Generating…" : "Generate Sticker Sheet")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(Theme.accent)
-                .foregroundColor(.white)
-                .cornerRadius(Theme.radius)
-        }
-        .disabled(busy)
-        .opacity(busy ? 0.6 : 1)
-    }
-
-    private var loadingCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(2.0 / 3.0, contentMode: .fit)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-    }
-
-    // Just the sheet on white — tap it to open the editor. Actions live in the
-    // ⋯ menu in the nav bar; sheets also auto-save to My Creations.
-    private func resultCard(_ sheet: StickerSheetResult) -> some View {
-        AsyncImage(url: sheet.url) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFit().background(Color.white)
-            case .failure:
-                Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default:
-                ProgressView()
+    // The generated sheet, filling the stage — tap to open the editor.
+    @ViewBuilder private var stickerResult: some View {
+        if let sheet {
+            AsyncImage(url: sheet.url) { phase in
+                switch phase {
+                case .success(let image): image.resizable().scaledToFit()
+                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                default: ProgressView()
+                }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { if !sheet.boxes.isEmpty { openEditor(sheet) } }
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .cornerRadius(Theme.radiusLg)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-        .contentShape(Rectangle())
-        .onTapGesture { if !sheet.boxes.isEmpty { openEditor(sheet) } }
     }
 
     // MARK: - Actions
