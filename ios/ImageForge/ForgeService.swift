@@ -317,6 +317,32 @@ final class ForgeService {
         _ = try await call("forgeTestImage", payload)
     }
 
+    /// Generate a short cinematic vertical Reel (still + Ken-Burns motion) in the
+    /// chosen aesthetic. Returns the video URL plus a poster still.
+    func generateReel(prompt: String, aesthetic: String, quality: String) async throws -> (video: URL, poster: URL?) {
+        try await ensureSignedIn()
+        let result = try await call("forgeTestImage", [
+            "prompt": prompt, "style": "ig-reel", "aesthetic": aesthetic, "quality": quality,
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let v = data["videoUrl"] as? String, let video = URL(string: v)
+        else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No reel was returned."])
+        }
+        let poster = (data["url"] as? String).flatMap { URL(string: $0) }
+        return (video, poster)
+    }
+
+    /// Publish a video URL as an Instagram Reel.
+    func postReel(videoUrl: URL, caption: String?) async throws {
+        try await ensureSignedIn()
+        var payload: [String: Any] = ["style": "ig-reel-publish", "videoUrl": videoUrl.absoluteString]
+        if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
+        _ = try await call("forgeTestImage", payload)
+    }
+
     /// Publish an already-generated image straight to Instagram (Graph API).
     /// `asStory` posts a 24h Story instead of a feed post (Stories ignore the
     /// caption). Throws a clear error if Instagram posting isn't set up yet.

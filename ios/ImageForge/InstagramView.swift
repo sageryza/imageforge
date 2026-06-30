@@ -42,16 +42,25 @@ struct InstagramView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                NavigationLink(destination: CarouselView()) {
-                    HStack {
-                        Image(systemName: "rectangle.stack")
-                        Text("Make a carousel").font(.subheadline.weight(.medium))
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption)
+                HStack(spacing: 10) {
+                    NavigationLink(destination: CarouselView()) {
+                        HStack {
+                            Image(systemName: "rectangle.stack")
+                            Text("Carousel").font(.subheadline.weight(.medium))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(Theme.accent).padding(12)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.accentDim, lineWidth: 1))
                     }
-                    .foregroundColor(Theme.accent)
-                    .padding(12)
-                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.accentDim, lineWidth: 1))
+                    NavigationLink(destination: ReelView()) {
+                        HStack {
+                            Image(systemName: "play.rectangle")
+                            Text("Reel").font(.subheadline.weight(.medium))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(Theme.accent).padding(12)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.accentDim, lineWidth: 1))
+                    }
                 }
                 presetPicker
                 promptField
