@@ -32,6 +32,25 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
+// ─── Product pipeline ───────────────────────────────────────────────
+// Each service is a self-contained module (router + helpers). The pipeline
+// module orchestrates them: design → POD product → draft Etsy listing.
+//   etsy     — Etsy Open API v3 (draft listings; app key + OAuth 2.0)
+//   printify — POD, wide catalog / lower cost (apparel, cards)
+//   printful — POD, in-house quality (apparel, greeting cards)
+//   lulu     — POD, books / coloring books
+//   pipeline — listing-content (SEO) generation + design→Etsy orchestration
+const etsy = require('./etsy');
+const printify = require('./printify');
+const printful = require('./printful');
+const lulu = require('./lulu');
+const pipeline = require('./pipeline');
+app.use('/api/etsy', etsy.router);
+app.use('/api/printify', printify.router);
+app.use('/api/printful', printful.router);
+app.use('/api/lulu', lulu.router);
+app.use('/api/pipeline', pipeline.router);
+
 // Call OpenAI chat completions with a couple of retries. Recovers from
 // transient network hiccups (e.g. "Premature close" / dropped connections)
 // that otherwise surface as a one-off 500 error. 'Connection: close' avoids
