@@ -35,19 +35,25 @@ const TOKEN_URL = `${API}/auth/realms/glasstree/protocol/openid-connect/token`;
 
 const API_KEY = (process.env.LULU_API_KEY || '').trim();      // client key
 const API_SECRET = (process.env.LULU_API_SECRET || '').trim(); // client secret
-// Lulu's dashboard also hands out a single pre-encoded base64(key:secret)
-// string for the Basic auth header. If LULU_BASE64 is set we use it directly
-// (no need to split it back into key + secret); otherwise we encode the pair.
-// Lulu's dashboard shows this value as "Basic <base64>" wrapped over several
-// lines, so a verbatim paste carries a leading "Basic " and newlines — both of
-// which silently break auth ("invalid_client"). Strip a leading "Basic " then
-// remove all remaining whitespace so the dashboard value works as-is.
-const API_BASE64 = (process.env.LULU_BASE64 || '')
-  .replace(/^\s*Basic\s+/i, '')
-  .replace(/\s+/g, '');
+// Lulu's dashboard hands out a COMPLETE "Basic <base64>" Authorization header
+// (the "BASE64 ENCODED KEY & SECRET" box). We use it verbatim — the single
+// "Basic " is Lulu's, not ours, so nothing gets prepended/doubled. Newlines
+// from the dashboard's line-wrapping are removed.
+const LULU_BASE64 = (process.env.LULU_BASE64 || '').replace(/[\r\n]+/g, '').trim();
 
 function configured() {
-  return Boolean(API_BASE64 || (API_KEY && API_SECRET));
+  return Boolean(LULU_BASE64 || (API_KEY && API_SECRET));
+}
+
+// The full Authorization header value, containing exactly one "Basic ".
+// Either Lulu's ready-made LULU_BASE64 (passed through as-is — we only add the
+// prefix if a bare base64 without it was supplied), or one built from the
+// key + secret pair.
+function authorization() {
+  if (LULU_BASE64) {
+    return /^basic\s/i.test(LULU_BASE64) ? LULU_BASE64 : `Basic ${LULU_BASE64}`;
+  }
+  return `Basic ${Buffer.from(`${API_KEY}:${API_SECRET}`).toString('base64')}`;
 }
 
 // ─── Token store ────────────────────────────────────────────────────
@@ -60,12 +66,10 @@ let token = null; // { access_token, expires_at }
 // key/secret as base64(<key>:<secret>); the body is the grant type.
 async function getToken() {
   if (!configured()) throw new Error('not_configured');
-  // Prefer the pre-encoded LULU_BASE64 if provided; else encode key:secret.
-  const basic = API_BASE64 || Buffer.from(`${API_KEY}:${API_SECRET}`).toString('base64');
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${basic}`,
+      'Authorization': authorization(),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({ grant_type: 'client_credentials' }).toString(),
