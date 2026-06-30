@@ -44,25 +44,50 @@ function redirectUri() {
 }
 
 // ─── Token store ────────────────────────────────────────────────────
-// OAuth tokens persist to a JSON file (gitignored) so a restart inside a
-// session doesn't force a re-auth. On Render's free tier the filesystem is
-// ephemeral, so tokens are lost on redeploy/cold-restart — acceptable for now;
-// swap TOKEN_FILE for a Firebase-backed store when durability is needed.
+// OAuth tokens persist to FIRESTORE when Firebase is available, so they survive
+// Render redeploys / cold restarts (the free-tier disk is wiped on restart,
+// which would otherwise log Etsy out on every deploy). Falls back to a local
+// JSON file when Firebase isn't initialized (e.g. local dev without a service
+// account). Either way an in-memory copy is cached for the process lifetime.
+const admin = require('firebase-admin');
 const TOKEN_FILE = process.env.ETSY_TOKEN_FILE || path.join(__dirname, '.etsy-tokens.json');
+const TOKENS_DOC = process.env.ETSY_TOKENS_DOC || 'config/etsy-tokens';
 let tokens = null; // { access_token, refresh_token, expires_at, scopes }
 
-function loadTokens() {
-  if (tokens) return tokens;
+// The Firestore document handle for the tokens, or null when Firebase isn't up.
+function tokensDocRef() {
+  if (!admin.apps.length) return null;
   try {
-    tokens = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
-  } catch {
-    tokens = null;
+    const slash = TOKENS_DOC.indexOf('/');
+    return admin.firestore()
+      .collection(TOKENS_DOC.slice(0, slash))
+      .doc(TOKENS_DOC.slice(slash + 1));
+  } catch { return null; }
+}
+
+async function loadTokens() {
+  if (tokens) return tokens;
+  const ref = tokensDocRef();
+  if (ref) {
+    try {
+      const snap = await ref.get();
+      if (snap.exists) { tokens = snap.data(); return tokens; }
+    } catch (err) {
+      console.warn('etsy: Firestore token read failed —', err.message);
+    }
   }
+  try { tokens = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8')); } catch { tokens = null; }
   return tokens;
 }
 
-function saveTokens(t) {
+async function saveTokens(t) {
   tokens = t;
+  const ref = tokensDocRef();
+  if (ref) {
+    try { await ref.set(t); return; } catch (err) {
+      console.warn('etsy: Firestore token write failed, falling back to file —', err.message);
+    }
+  }
   try {
     fs.writeFileSync(TOKEN_FILE, JSON.stringify(t, null, 2));
   } catch (err) {
@@ -155,12 +180,12 @@ async function exchangeCode(code, state) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`token_exchange_failed: ${JSON.stringify(data)}`);
-  persist(data);
+  await persist(data);
   return tokens;
 }
 
 async function refreshToken() {
-  const t = loadTokens();
+  const t = await loadTokens();
   if (!t || !t.refresh_token) throw new Error('not_connected');
   const res = await fetch(OAUTH_TOKEN, {
     method: 'POST',
@@ -173,15 +198,15 @@ async function refreshToken() {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`token_refresh_failed: ${JSON.stringify(data)}`);
-  persist(data);
+  await persist(data);
   return tokens;
 }
 
-function persist(data) {
+async function persist(data) {
   // Etsy returns access_token, refresh_token, expires_in (seconds). The
   // access token's subject is "<user_id>.xxxxx" — user_id is the prefix.
   const userId = typeof data.access_token === 'string' ? data.access_token.split('.')[0] : null;
-  saveTokens({
+  await saveTokens({
     access_token: data.access_token,
     refresh_token: data.refresh_token || (tokens && tokens.refresh_token),
     expires_at: Date.now() + (data.expires_in || 3600) * 1000,
@@ -191,7 +216,7 @@ function persist(data) {
 }
 
 async function ensureFreshToken() {
-  const t = loadTokens();
+  const t = await loadTokens();
   if (!t) return;
   if (Date.now() >= t.expires_at - 60_000) {
     await refreshToken();
@@ -308,8 +333,8 @@ router.get('/ping', async (req, res) => {
 });
 
 // Connection status for the pipeline UI / Claude Code to inspect.
-router.get('/status', (req, res) => {
-  const t = loadTokens();
+router.get('/status', async (req, res) => {
+  const t = await loadTokens();
   res.json({
     configured: configured(),
     redirect_uri: redirectUri(),
