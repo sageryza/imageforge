@@ -32,6 +32,12 @@ app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
+// ─── Etsy product-pipeline routes ───────────────────────────────────
+// Self-contained module: read-only ping/taxonomy via the app key, OAuth 2.0
+// for draft-listing writes. Mounted at /api/etsy.
+const etsy = require('./etsy');
+app.use('/api/etsy', etsy.router);
+
 // Call OpenAI chat completions with a couple of retries. Recovers from
 // transient network hiccups (e.g. "Premature close" / dropped connections)
 // that otherwise surface as a one-off 500 error. 'Connection: close' avoids

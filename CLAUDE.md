@@ -37,6 +37,27 @@ each opens a focused workflow that shares the same house styles.
   URLs + the gallery; without `FIREBASE_SERVICE_ACCOUNT` images are temporary
   (~1hr) Replicate/OpenAI URLs.
 
+## Etsy product pipeline
+- `etsy.js` is a self-contained Etsy Open API v3 module mounted at `/api/etsy`
+  (`server.js`). Terminal step of the product pipeline: generated design →
+  POD product → **draft Etsy listing** Sophie reviews before publishing.
+- **Two auth tiers.** App-level reads (ping, taxonomy) send
+  `x-api-key: <ETSY_API_KEY>:<ETSY_SHARED_SECRET>` — the keystring AND shared
+  secret joined by a colon (keystring alone → 403 "Shared secret is required").
+  Writes (draft listings, image upload) need OAuth 2.0 + PKCE with scopes
+  `listings_r`/`listings_w`; access tokens expire hourly and auto-refresh.
+- **Routes:** `GET /api/etsy/ping` (health), `GET /api/etsy/status`,
+  `GET /api/etsy/connect` (start OAuth), `GET /api/etsy/callback`,
+  `GET /api/etsy/me`, `POST /api/etsy/listings/draft`.
+- **Env vars** (Render dashboard, `sync:false`): `ETSY_API_KEY`,
+  `ETSY_SHARED_SECRET`, optional `ETSY_REDIRECT_URI`. The callback URL must be
+  registered on the Etsy app; defaults to `<RENDER_EXTERNAL_URL>/api/etsy/callback`.
+- **Listing rules:** title ≤140 chars, ≤13 tags each ≤20 chars (enforced in
+  `validateTags`), `who_made:"i_did"`, `when_made:"2020_2026"`, `legacy=false`
+  on writes. Etsy bans apps after 6 months of inactivity — keep it warm.
+- Tokens persist to gitignored `.etsy-tokens.json` (ephemeral on Render free
+  tier; move to Firebase for durability later).
+
 ## Design rules (forever)
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
