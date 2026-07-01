@@ -44,8 +44,22 @@
   .slot:hover .regen{opacity:1}
   .spinner{width:22px;height:22px;border:2px solid #e6e2d8;border-top-color:#8a5e38;border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .hint{text-align:center;color:var(--faint);font-size:12px;margin-top:12px;font-style:italic}
+  .hint{text-align:center;color:var(--faint);font-size:12px;margin-top:10px;font-style:italic}
+  .hint b{color:var(--soft);font-weight:600;font-style:normal}
   .hint[hidden]{display:none}
+  .drawctl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px}
+  .drawctl[hidden]{display:none}
+  .dcol{display:flex;justify-content:center;gap:14px}
+  .dcol .link{font-size:12px;letter-spacing:.05em}
+  .dcol .link:disabled{opacity:.28;cursor:default;text-decoration:none}
+  .picker{position:fixed;inset:0;background:rgba(28,27,25,.5);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
+  .picker[hidden]{display:none}
+  .picker-inner{background:var(--paper);border-radius:6px;max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:18px}
+  .picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px;color:var(--soft);letter-spacing:.05em;text-transform:uppercase}
+  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+  .pk{background:#fff;border:1px solid var(--line);border-radius:3px;cursor:pointer;padding:0;overflow:hidden;aspect-ratio:1}
+  .pk img{width:100%;height:100%;object-fit:cover;display:block}
+  .pk:hover{border-color:var(--soft)}
 
   /* ── controls ── */
   .ctl[hidden]{display:none}
@@ -118,7 +132,12 @@
     <div class="slot" data-i="1"></div>
     <div class="slot" data-i="2"></div>
   </div>
-  <div class="hint" id="hint" hidden>tap any object to redraw just that one</div>
+  <div class="drawctl" id="drawctl" hidden>
+    <div class="dcol" data-i="0"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
+    <div class="dcol" data-i="1"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
+    <div class="dcol" data-i="2"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
+  </div>
+  <div class="hint" id="hint" hidden>tap an object to reshuffle it · <b>pick</b> chooses one · <b>new</b> generates one to complete the other two</div>
 
   <section class="ctl" id="ctl-make">
     <p class="lead">Describe the first two objects. They generate, and the third is designed to complete them. Regenerate any until it's right.</p>
@@ -156,25 +175,32 @@
   </section>
 </div>
 
+<div class="picker" id="picker" hidden>
+  <div class="picker-inner">
+    <div class="picker-head"><span>pick an object</span><button class="link" id="pickclose">close</button></div>
+    <div class="picker-grid" id="pickgrid"></div>
+  </div>
+</div>
+
 <script>
 const IMG="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/";
 /* DATA is the seed pool for "draw three" (white-background specimens) */
 const DATA=[
-  {img:IMG+"1782870973140-lxcva7.webp"},
-  {img:IMG+"1782870991586-swoyjl.webp"},
-  {img:IMG+"1782871010732-ib1gjt.webp"},
-  {img:IMG+"1782871032007-obqtp3.webp"},
-  {img:IMG+"1782871078642-7sp1hq.webp"},
-  {img:IMG+"1782871097844-yxkj45.webp"},
-  {img:IMG+"1782871114249-blqu3p.webp"},
-  {img:IMG+"1782871129966-f8qxc2.webp"},
-  {img:IMG+"1782871155149-l87md8.webp"},
-  {img:IMG+"1782871172349-8ahog9.webp"},
-  {img:IMG+"1782871190721-smq23e.webp"},
-  {img:IMG+"1782871206745-3jn3he.webp"},
-  {img:IMG+"1782871229363-0d24nl.webp"},
-  {img:IMG+"1782871250046-2ovd63.webp"},
-  {img:IMG+"1782871269743-qqh1wr.webp"},
+  {img:IMG+"1782870973140-lxcva7.webp", name:"Worm plush", blurb:"A stuffed animal too small to cuddle; a worm no one reaches for."},
+  {img:IMG+"1782870991586-swoyjl.webp", name:"Peas in resin", blurb:"A spoonful of peas frozen in resin, the eater erased."},
+  {img:IMG+"1782871010732-ib1gjt.webp", name:"Porcelain tiles", blurb:"Blue-and-white china tiles shaped like game pieces, bearing no letters."},
+  {img:IMG+"1782871032007-obqtp3.webp", name:"Solid teacup", blurb:"A porcelain teacup solid all the way through, with no hollow to hold tea."},
+  {img:IMG+"1782871078642-7sp1hq.webp", name:"Silver receipt", blurb:"A crumpled paper receipt cast in sterling silver."},
+  {img:IMG+"1782871097844-yxkj45.webp", name:"Floating doorknob", blurb:"A brass knob on a torn scrap of door, opening nothing."},
+  {img:IMG+"1782871114249-blqu3p.webp", name:"Lace umbrella", blurb:"An umbrella of open lace the rain falls straight through."},
+  {img:IMG+"1782871129966-f8qxc2.webp", name:"Marble fry", blurb:"A single french fry carved from veined marble."},
+  {img:IMG+"1782871155149-l87md8.webp", name:"One-number clock", blurb:"A clock whose every numeral is the same; it cannot tell time."},
+  {img:IMG+"1782871172349-8ahog9.webp", name:"Jelly key", blurb:"A house key cast in trembling amber jelly."},
+  {img:IMG+"1782871190721-smq23e.webp", name:"Snake in a vest", blurb:"A garden snake in a tiny sequined vest it cannot need."},
+  {img:IMG+"1782871206745-3jn3he.webp", name:"Empty sleeve", blurb:"A buttoned shirt sleeve standing hollow — no arm, no jacket."},
+  {img:IMG+"1782871229363-0d24nl.webp", name:"A hood", blurb:"A fabric hood around a head that isn't there."},
+  {img:IMG+"1782871250046-2ovd63.webp", name:"Eyeglasses", blurb:"Round wire frames with the eyes still present in the lenses."},
+  {img:IMG+"1782871269743-qqh1wr.webp", name:"Clay sleeve", blurb:"A shirt sleeve sculpted in raw clay — cloth made earth."},
 ];
 
 const $=s=>document.querySelector(s);
@@ -199,6 +225,7 @@ function renderCase(){
         b.title='regenerate'; b.onclick=e=>{e.stopPropagation(); regenMake(i);}; sl.appendChild(b); }
     } else { sl.innerHTML=''; sl.onclick=null; }
   });
+  renderDrawCtl();
 }
 
 /* ── make a set ── */
@@ -267,8 +294,43 @@ function draw(){
 }
 function redrawOne(i){
   const others=stage.filter((o,j)=>j!==i&&o);
-  stage[i]=pick(others); renderCase();
+  stage[i]=pick(others); renderCase(); checkJudge();
 }
+let pickSlot=null;
+function renderDrawCtl(){
+  const dc=$('#drawctl');
+  if(mode!=='draw'){ dc.hidden=true; return; }
+  dc.hidden=false;
+  [...dc.querySelectorAll('.dcol')].forEach(col=>{
+    const i=+col.dataset.i;
+    const others=[0,1,2].filter(j=>j!==i);
+    const canNew = others.every(j=>stage[j]) && !loading.some(Boolean) && !busy;
+    col.querySelector('[data-a="new"]').disabled = !canNew;
+  });
+}
+function openPicker(i){
+  pickSlot=i;
+  const g=$('#pickgrid');
+  g.innerHTML=DATA.map((o,k)=>`<button class="pk" data-k="${k}" title="${esc(o.name)}"><img src="${o.img}" loading="lazy" alt=""></button>`).join('');
+  [...g.querySelectorAll('.pk')].forEach(b=>b.onclick=()=>{ stage[pickSlot]=DATA[+b.dataset.k]; closePicker(); renderCase(); checkJudge(); });
+  $('#picker').hidden=false;
+}
+function closePicker(){ $('#picker').hidden=true; pickSlot=null; }
+async function newFrom(i){
+  if(busy) return;
+  const others=[0,1,2].filter(j=>j!==i);
+  const a=stage[others[0]], b=stage[others[1]];
+  if(!a||!b) return;
+  busy=true; loading[i]=true; $('#judge').hidden=true; renderCase();
+  try{
+    const r=await fetch('/api/set/third',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({a:{name:a.name||'an object',blurb:a.blurb||a.name||''},b:{name:b.name||'an object',blurb:b.blurb||b.name||''}})});
+    const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('server '+r.status));
+    stage[i]={img:d.url,name:d.name,blurb:d.object};
+  }catch(err){ alert('Could not generate: '+err.message); }
+  loading[i]=false; busy=false; renderCase(); checkJudge();
+}
+function checkJudge(){ if(mode==='draw' && stage.every(Boolean) && !loading.some(Boolean) && $('#judge').hidden) openJudge(); }
 function openJudge(){ $('#axes').innerHTML=''; addAxis(); $('#judge').hidden=false; }
 function addAxis(){
   const row=document.createElement('div'); row.className='axis';
@@ -317,10 +379,13 @@ function setMode(m){
   $('#ctl-draw').hidden = m!=='draw';
   $('#hint').hidden = m!=='draw';
   document.querySelectorAll('nav.modes button').forEach(b=>b.classList.toggle('act', b.dataset.mode===m));
-  resetMake(); $('#judge').hidden=true; stage=[null,null,null]; loading=[false,false,false]; renderCase();
+  resetMake(); closePicker(); $('#judge').hidden=true; stage=[null,null,null]; loading=[false,false,false]; renderCase();
 }
 
 document.querySelectorAll('nav.modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#drawctl').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(!btn) return; const col=btn.closest('.dcol'); if(!col) return; const i=+col.dataset.i; if(btn.dataset.a==='pick') openPicker(i); else if(btn.dataset.a==='new') newFrom(i); });
+$('#pickclose').onclick=closePicker;
+$('#picker').onclick=e=>{ if(e.target.id==='picker') closePicker(); };
 $('#genset').onclick=generateSet;
 $('#resetmake').onclick=resetMake;
 $('#keepmake').onclick=()=>{ keep((thirdMeta?.axes||[]).map(a=>({name:a.axis, rel:a.relation==='different'?'diff':'same'}))); resetMake(); };
