@@ -25,16 +25,17 @@ struct StickerView: View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
-                              loaderText: "conjuring your stickers…") {
+                              maxHeight: 430, loaderText: "conjuring your stickers…") {
                         stickerResult
                     }
-                    Composer(text: $prompt, placeholder: "what's on the sheet?",
+                    Composer(quality: $quality, text: $prompt, placeholder: "what's on the sheet?",
                              busy: busy, focused: $promptFocused, onGo: run)
                 }
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
+                ToolbarItem(placement: .principal) { StarTitle(text: "Stickers") }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { promptFocused = false }

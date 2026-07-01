@@ -2,8 +2,7 @@ import SwiftUI
 
 // Shared building blocks for the stripped-down tool layout: a result STAGE that's
 // always on screen (shows the HOONIE loader gif until a result exists, then the
-// result in place) and a one-row COMPOSER (prompt · go). Styling is intentionally
-// restrained for now — the visual style isn't locked yet; this is about the UI.
+// result in place) and a one-row COMPOSER (quality menu · prompt · go).
 
 /// The always-present result frame. Shows the HOONIE gif (idle, then animating as
 /// it works) until there's a result, then the result fills the frame in place.
@@ -11,17 +10,19 @@ struct ToolStage<ResultContent: View>: View {
     var busy: Bool
     var hasResult: Bool
     var aspect: CGFloat = 1
+    var cornerRadius: CGFloat = 8
+    var maxHeight: CGFloat? = nil
     var loaderText: String? = nil
     @ViewBuilder var result: () -> ResultContent
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
+            RoundedRectangle(cornerRadius: cornerRadius).fill(Color.white)
             if hasResult && !busy {
                 result()
             } else {
                 VStack(spacing: 8) {
-                    GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
+                    GIFView(name: "loading-anim", ext: "png").frame(width: 140, height: 140)
                     if busy, let t = loaderText {
                         Text(t).font(.caption).foregroundColor(Theme.textDim)
                     }
@@ -30,12 +31,36 @@ struct ToolStage<ResultContent: View>: View {
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(aspect, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+        .frame(maxHeight: maxHeight)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .overlay(RoundedRectangle(cornerRadius: cornerRadius).stroke(Theme.border, lineWidth: 1))
+        .frame(maxWidth: .infinity)
     }
 }
 
-/// The single generate affordance — one small icon button.
+/// Quality picker as a small dropdown menu button (Low / Medium / High).
+struct QualityMenu: View {
+    @Binding var quality: String
+    var body: some View {
+        Menu {
+            Button("Low") { quality = "low" }
+            Button("Medium") { quality = "medium" }
+            Button("High") { quality = "high" }
+        } label: {
+            HStack(spacing: 3) {
+                Text(quality.capitalized).font(.caption.weight(.semibold))
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+            }
+            .foregroundColor(Theme.text)
+            .frame(height: 50).padding(.horizontal, 11)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+        }
+    }
+}
+
+/// The single generate affordance — a mauve-pink button with the three-star icon.
 struct GoButton: View {
     var busy: Bool
     var action: () -> Void
@@ -44,13 +69,25 @@ struct GoButton: View {
             Image(systemName: "sparkles").font(.system(size: 19, weight: .semibold))
                 .frame(width: 50, height: 50)
                 .foregroundColor(.white)
-                .background(Theme.accent)
+                .background(Theme.mauve)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
                 .opacity(busy ? 0.5 : 1)
         }
         .buttonStyle(.plain)
         .disabled(busy)
         .accessibilityLabel("Generate")
+    }
+}
+
+/// A decorated tool title: a little star on each side of the name.
+struct StarTitle: View {
+    var text: String
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "sparkle").font(.system(size: 11)).foregroundColor(Theme.mauve)
+            Text(text).font(.headline).foregroundColor(Theme.text)
+            Image(systemName: "sparkle").font(.system(size: 11)).foregroundColor(Theme.mauve)
+        }
     }
 }
 
@@ -87,8 +124,9 @@ struct ScheduleSheet: View {
     }
 }
 
-/// One-row composer: prompt box · go button. (Quality defaults to Low; no control.)
+/// One-row composer: quality menu · prompt box · go button.
 struct Composer: View {
+    @Binding var quality: String
     @Binding var text: String
     var placeholder: String
     var busy: Bool
@@ -96,7 +134,8 @@ struct Composer: View {
     var onGo: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 8) {
+            QualityMenu(quality: $quality)
             TextField(placeholder, text: $text, axis: .vertical)
                 .lineLimit(1...4).font(.body)
                 .foregroundColor(Theme.text)
