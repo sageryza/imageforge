@@ -13,20 +13,21 @@ struct GreetingCardsView: View {
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
-    @FocusState private var focusedField: Field?
-    private enum Field { case message, prompt }
-
-    private let qualities = ["low", "medium", "high"]
+    @FocusState private var messageFocused: Bool
+    @FocusState private var promptFocused: Bool
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                if busy { loadingCard }
-                if let url = cardURL, !busy { resultCard(url) }
+            VStack(alignment: .leading, spacing: 16) {
+                StarTitle(text: "Greeting Cards").frame(maxWidth: .infinity).padding(.top, 4)
+                ToolStage(busy: busy, hasResult: cardURL != nil, aspect: 2.0 / 3.0,
+                          maxHeight: 430,
+                          loaderText: "making your card — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
+                    cardResult
+                }
                 messageField
-                promptField
-                qualityPicker
-                generateButton
+                Composer(quality: $quality, text: $prompt, placeholder: "…",
+                         busy: busy, focused: $promptFocused, onGo: run)
             }
             .padding()
         }
@@ -34,7 +35,7 @@ struct GreetingCardsView: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Done") { focusedField = nil }
+                Button("Done") { messageFocused = false; promptFocused = false }
             }
             if let url = cardURL, !busy {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -47,10 +48,11 @@ struct GreetingCardsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("Greeting Cards")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Couldn't generate",
-               isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
+               isPresented: Binding(get: { errorText != nil },
+                                    set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
         .sheet(isPresented: $showConsent) {
@@ -65,90 +67,33 @@ struct GreetingCardsView: View {
         }
     }
 
+    // Optional greeting headline set along the bottom of the card.
     private var messageField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("GREETING (OPTIONAL)")
-                .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("Happy Birthday!", text: $message, axis: .vertical)
-                .lineLimit(1...3).font(.body).foregroundColor(Theme.text)
-                .focused($focusedField, equals: .message)
-                .padding(12).background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
-                .cornerRadius(Theme.radius)
-        }
+        TextField("greeting (optional) — e.g. Happy Birthday!", text: $message, axis: .vertical)
+            .lineLimit(1...3).font(.body).foregroundColor(Theme.text)
+            .tint(Theme.accent)
+            .focused($messageFocused)
+            .padding(.horizontal, 14).frame(minHeight: 50)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
 
-    private var promptField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("WHAT'S ON THE CARD?")
-                .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("a witchy black cat with balloons and crystals…", text: $prompt, axis: .vertical)
-                .lineLimit(2...5).font(.body).foregroundColor(Theme.text)
-                .focused($focusedField, equals: .prompt)
-                .padding(12).background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
-                .cornerRadius(Theme.radius)
-        }
-    }
-
-    private var qualityPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("QUALITY")
-                .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            HStack(spacing: 8) {
-                ForEach(qualities, id: \.self) { q in
-                    Button { quality = q } label: {
-                        Text(q.capitalized)
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity).padding(.vertical, 9)
-                            .background(quality == q ? Theme.surface2 : Color.clear)
-                            .foregroundColor(quality == q ? Theme.text : Theme.textDim)
-                            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                                .stroke(quality == q ? Theme.accentDim : Theme.border, lineWidth: 1))
-                            .cornerRadius(Theme.radius)
-                    }
-                    .buttonStyle(.plain)
+    @ViewBuilder private var cardResult: some View {
+        if let url = cardURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image): image.resizable().scaledToFill()
+                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                default: ProgressView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private var generateButton: some View {
-        Button { run() } label: {
-            Text(busy ? "Making your card…" : "Make Card")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity).padding(.vertical, 13)
-                .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
-        }
-        .disabled(busy).opacity(busy ? 0.6 : 1)
-    }
-
-    private var loadingCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(2.0 / 3.0, contentMode: .fit)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-    }
-
-    private func resultCard(_ url: URL) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image): image.resizable().scaledToFit().background(Color.white)
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .cornerRadius(Theme.radiusLg)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
     private func run() {
-        focusedField = nil
+        messageFocused = false; promptFocused = false
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Describe what's on the card first."; return }
         guard !busy else { return }

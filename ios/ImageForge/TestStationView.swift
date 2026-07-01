@@ -23,6 +23,7 @@ struct TestStationView: View {
     var body: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    StarTitle(text: "Test Station").frame(maxWidth: .infinity).padding(.top, 4)
                     promptField
                     if !results.isEmpty { resultsSection }   // image(s) above the styles
                     stylesSection
@@ -38,7 +39,7 @@ struct TestStationView: View {
                 }
             }
             .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("Test Station")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Couldn't generate",
                    isPresented: Binding(get: { errorText != nil },
@@ -124,8 +125,8 @@ struct TestStationView: View {
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Theme.accent)
-                .foregroundColor(Theme.bg)
+                .background(Theme.mauve)
+                .foregroundColor(.white)
                 .cornerRadius(Theme.radius)
         }
         .disabled(busy)
@@ -250,7 +251,7 @@ private struct ResultCard: View {
                 } else if result.styleId == "hoonie" {
                     // HOONIE gets its own engraving loading animation.
                     Color.white
-                    GIFView(name: "hoonie-loading").frame(width: 120, height: 120)
+                    GIFView(name: "hoonie-loading", speed: 0.35).frame(width: 120, height: 120)
                 } else {
                     ProgressView()
                 }

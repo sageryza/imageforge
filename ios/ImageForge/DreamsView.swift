@@ -19,6 +19,7 @@ struct DreamsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                StarTitle(text: "Dreams").frame(maxWidth: .infinity).padding(.top, 4)
                 inputSection
                 if busy { loadingCard }
                 journalSection
@@ -33,7 +34,7 @@ struct DreamsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("Dreams")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadDreams()
@@ -78,7 +79,7 @@ struct DreamsView: View {
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .background(Theme.accent)
+                    .background(Theme.mauve)
                     .foregroundColor(.white)
                     .cornerRadius(Theme.radius)
             }
@@ -90,7 +91,7 @@ struct DreamsView: View {
     private var loadingCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
+            GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)

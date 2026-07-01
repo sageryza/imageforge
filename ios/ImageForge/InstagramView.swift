@@ -43,6 +43,7 @@ struct InstagramView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                StarTitle(text: "Instagram").frame(maxWidth: .infinity).padding(.top, 4)
                 HStack(spacing: 10) {
                     NavigationLink(destination: CarouselView()) {
                         HStack {
@@ -82,7 +83,7 @@ struct InstagramView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("Instagram")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -209,7 +210,7 @@ struct InstagramView: View {
             Text(busy ? "Generating…" : "Generate Post")
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity).padding(.vertical, 13)
-                .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
+                .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
         }
         .disabled(busy).opacity(busy ? 0.6 : 1)
     }
@@ -217,7 +218,7 @@ struct InstagramView: View {
     private var loadingCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
+            GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity).aspectRatio(1, contentMode: .fit)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))

@@ -13,16 +13,17 @@ struct ColoringView: View {
     @State private var showConsent = false
     @FocusState private var promptFocused: Bool
 
-    private let qualities = ["low", "medium", "high"]
-
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                if busy { loadingCard }
-                if let url = pageURL, !busy { resultCard(url) }
-                promptField
-                qualityPicker
-                generateButton
+            VStack(alignment: .leading, spacing: 16) {
+                StarTitle(text: "Coloring Pages").frame(maxWidth: .infinity).padding(.top, 4)
+                ToolStage(busy: busy, hasResult: pageURL != nil, aspect: 2.0 / 3.0,
+                          maxHeight: 430,
+                          loaderText: "drawing your page — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
+                    pageResult
+                }
+                Composer(quality: $quality, text: $prompt, placeholder: "…",
+                         busy: busy, focused: $promptFocused, onGo: run)
             }
             .padding()
         }
@@ -43,7 +44,7 @@ struct ColoringView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("Coloring Pages")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Couldn't generate",
                isPresented: Binding(get: { errorText != nil },
@@ -66,89 +67,18 @@ struct ColoringView: View {
         }
     }
 
-    private var promptField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("WHAT SCENE?")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            TextField("a friendly dragon reading in a cozy garden…",
-                      text: $prompt, axis: .vertical)
-                .lineLimit(2...5)
-                .font(.body)
-                .foregroundColor(Theme.text)
-                .focused($promptFocused)
-                .padding(12)
-                .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
-                .cornerRadius(Theme.radius)
-        }
-    }
-
-    private var qualityPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("QUALITY")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
-            HStack(spacing: 8) {
-                ForEach(qualities, id: \.self) { q in
-                    Button { quality = q } label: {
-                        Text(q.capitalized)
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(quality == q ? Theme.surface2 : Color.clear)
-                            .foregroundColor(quality == q ? Theme.text : Theme.textDim)
-                            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                                .stroke(quality == q ? Theme.accentDim : Theme.border, lineWidth: 1))
-                            .cornerRadius(Theme.radius)
-                    }
-                    .buttonStyle(.plain)
+    // The page filling the stage.
+    @ViewBuilder private var pageResult: some View {
+        if let url = pageURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image): image.resizable().scaledToFill()
+                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                default: ProgressView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private var generateButton: some View {
-        Button { run() } label: {
-            Text(busy ? "Generating…" : "Generate Coloring Page")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(Theme.accent)
-                .foregroundColor(.white)
-                .cornerRadius(Theme.radius)
-        }
-        .disabled(busy)
-        .opacity(busy ? 0.6 : 1)
-    }
-
-    private var loadingCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(2.0 / 3.0, contentMode: .fit)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-    }
-
-    // Just the page on white. Actions live in the ⋯ menu; pages auto-save to
-    // My Creations.
-    private func resultCard(_ url: URL) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFit().background(Color.white)
-            case .failure:
-                Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default:
-                ProgressView()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .cornerRadius(Theme.radiusLg)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
     private func run() {

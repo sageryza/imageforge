@@ -23,6 +23,7 @@ struct StorybookView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                StarTitle(text: "Storybook").frame(maxWidth: .infinity).padding(.top, 4)
                 if busy { loadingCard }
                 bookSection
                 Divider().background(Theme.border)
@@ -38,7 +39,7 @@ struct StorybookView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("Storybook")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadPages() }
         .alert("Couldn't make the page",
@@ -62,7 +63,7 @@ struct StorybookView: View {
     private var loadingCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
+            GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
@@ -161,7 +162,7 @@ struct StorybookView: View {
                 Text(busy ? "Drawing the page…" : "Add Page")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 13)
-                    .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
+                    .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
             }
             .disabled(busy).opacity(busy ? 0.6 : 1)
         }

@@ -107,7 +107,7 @@ struct CarouselView: View {
             Text(busy ? "Building your carousel…" : "Generate Carousel")
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity).padding(.vertical, 13)
-                .background(Theme.accent).foregroundColor(.white).cornerRadius(Theme.radius)
+                .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
         }
         .disabled(busy).opacity(busy ? 0.6 : 1)
     }
@@ -116,7 +116,7 @@ struct CarouselView: View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
             VStack(spacing: 10) {
-                GIFView(name: "loading-anim", ext: "png").frame(width: 130, height: 130)
+                GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 130, height: 130)
                 Text("Writing slides & illustrating…").font(.caption).foregroundColor(Theme.textDim)
             }
         }
