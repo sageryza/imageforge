@@ -159,7 +159,11 @@
   let designs = [];          // urls
   let activeDesign = null;
 
-  async function api(path, opts) {
+  // Access token injected by the server (empty when the gate is disabled).
+  const STUDIO_TOKEN = '__STUDIO_TOKEN__';
+  const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+  async function api(path, opts = {}) {
+    if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
     const res = await fetch(path, opts);
     const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
     return { ok: res.ok, status: res.status, body: b };

@@ -22,6 +22,9 @@ const express = require('express');
 const fetch = require('node-fetch');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+// Optional access token. When set, mutating/costly pipeline routes require the
+// `x-studio-token` header (the Studio page sends it). Disabled when unset.
+const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
 // Replicate background-removal model (turns a design into a transparent PNG —
@@ -516,6 +519,17 @@ async function createPrintifyProduct(opts = {}) {
 
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
+
+// Access gate: when STUDIO_TOKEN is set, require it on everything except a few
+// harmless reads. Blocks the public internet from running up API costs or
+// creating drafts in the shops. No-op (open) when STUDIO_TOKEN is unset.
+const OPEN_READS = new Set(['/status', '/route', '/pod-options']);
+router.use((req, res, next) => {
+  if (!STUDIO_TOKEN) return next();
+  if (req.method === 'GET' && OPEN_READS.has(req.path)) return next();
+  if (req.get('x-studio-token') === STUDIO_TOKEN) return next();
+  return res.status(401).json({ error: 'unauthorized' });
+});
 
 // Aggregate connectivity across every pipeline service — one call for the hub
 // / Claude Code to see what's wired up.

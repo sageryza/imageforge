@@ -263,7 +263,23 @@ Read the two objects. Decide each axis same or different, and force the third's 
 });
 
 // ─── Studio: idea → design → AI listing → draft Etsy listing ────────
-app.get('/studio', (req, res) => { res.sendFile(__dirname + '/public/studio.html'); });
+// Studio is gated when STUDIO_TOKEN is set: the page requires a password (HTTP
+// Basic — any username, password = the token) and is served with the token
+// injected so its API calls can authenticate. When STUDIO_TOKEN is unset the
+// gate is disabled (open), so nothing breaks until it's configured.
+const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
+app.get('/studio', (req, res) => {
+  if (STUDIO_TOKEN) {
+    const m = (req.get('authorization') || '').match(/^Basic (.+)$/);
+    const pass = m ? Buffer.from(m[1], 'base64').toString().split(':')[1] : '';
+    if (pass !== STUDIO_TOKEN) {
+      res.set('WWW-Authenticate', 'Basic realm="ImageForge Studio"');
+      return res.status(401).send('Authentication required.');
+    }
+  }
+  let html = fs.readFileSync(__dirname + '/public/studio.html', 'utf8');
+  res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
+});
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

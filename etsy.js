@@ -33,6 +33,12 @@ const SCOPES = ['listings_r', 'listings_w'];
 
 const API_KEY = process.env.ETSY_API_KEY || '';
 const SHARED_SECRET = process.env.ETSY_SHARED_SECRET || '';
+// Optional access token — gates the write routes (draft/state) when set.
+const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
+function requireToken(req, res, next) {
+  if (!STUDIO_TOKEN || req.get('x-studio-token') === STUDIO_TOKEN) return next();
+  return res.status(401).json({ error: 'unauthorized' });
+}
 
 // Where to land after the Etsy consent screen. Must EXACTLY match a callback
 // URL registered on the app in the Etsy developer dashboard. Defaults to the
@@ -440,7 +446,7 @@ router.get('/me', async (req, res) => {
 });
 
 // Create a draft listing. Body = the listing fields (see createDraftListing).
-router.post('/listings/draft', express.json(), async (req, res) => {
+router.post('/listings/draft', requireToken, express.json(), async (req, res) => {
   const { shop_id, ...listing } = req.body || {};
   if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
   try {
@@ -455,7 +461,7 @@ router.post('/listings/draft', express.json(), async (req, res) => {
 // Change a listing's state — e.g. revert a listing that accidentally went live
 // back to a draft. Body: { shop_id, listing_id, state? } (state defaults to
 // "draft"; falls back to "inactive" if Etsy rejects "draft").
-router.post('/listings/state', express.json(), async (req, res) => {
+router.post('/listings/state', requireToken, express.json(), async (req, res) => {
   const { shop_id, listing_id, state = 'draft' } = req.body || {};
   if (!shop_id || !listing_id) return res.status(400).json({ error: 'shop_id and listing_id required' });
   try {
