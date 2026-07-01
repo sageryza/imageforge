@@ -219,7 +219,6 @@ struct AdsView: View {
             Task { await refresh() }
         }
         session.presentationContextProvider = AuthContext.shared
-        session.prefersEphemeralWebSession = false
         session.start()
     }
 
