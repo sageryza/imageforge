@@ -22,7 +22,9 @@ struct ToolStage<ResultContent: View>: View {
                 result()
             } else {
                 VStack(spacing: 8) {
-                    GIFView(name: "loading-anim", ext: "png").frame(width: 140, height: 140)
+                    // Idles slow and calm; speeds up once generation kicks in.
+                    GIFView(name: "loading-anim", ext: "png", speed: busy ? 1.6 : 0.35)
+                        .frame(width: 140, height: 140)
                     if busy, let t = loaderText {
                         Text(t).font(.caption).foregroundColor(Theme.textDim)
                     }
