@@ -26,11 +26,9 @@ struct StickerView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
                               loaderText: "conjuring your stickers…") {
-                        stickerEmpty
-                    } result: {
                         stickerResult
                     }
-                    Composer(quality: $quality, text: $prompt, placeholder: "what's on the sheet?",
+                    Composer(text: $prompt, placeholder: "what's on the sheet?",
                              busy: busy, focused: $promptFocused, onGo: run)
                 }
                 .padding()
@@ -54,7 +52,7 @@ struct StickerView: View {
                     }
                 }
             }
-            .background(Theme.cream.ignoresSafeArea())
+            .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Stickers")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Couldn't generate",
@@ -88,23 +86,6 @@ struct StickerView: View {
     }
 
     // MARK: - Sections
-
-    // Empty stage — ghost tiles hinting where the stickers will land.
-    private var stickerEmpty: some View {
-        VStack(spacing: 14) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                ForEach(0..<6, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                        .foregroundColor(Theme.ghost)
-                        .aspectRatio(1, contentMode: .fit)
-                }
-            }
-            .frame(width: 210)
-            Text("your stickers appear here").font(.callout).foregroundColor(Theme.inkSoft)
-        }
-        .padding(20)
-    }
 
     // The generated sheet, filling the stage — tap to open the editor.
     @ViewBuilder private var stickerResult: some View {

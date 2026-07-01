@@ -1,90 +1,52 @@
 import SwiftUI
 
-// Shared "Deck Factory" building blocks for the stripped-down tool layout:
-// a result STAGE that's always on screen (empty placeholder → in-frame loader →
-// result), and a one-row COMPOSER (quality chip · prompt · go) that sits below it.
+// Shared building blocks for the stripped-down tool layout: a result STAGE that's
+// always on screen (shows the HOONIE loader gif until a result exists, then the
+// result in place) and a one-row COMPOSER (prompt · go). Styling is intentionally
+// restrained for now — the visual style isn't locked yet; this is about the UI.
 
-/// The always-present result frame. Shows the tool's empty placeholder until you
-/// generate, the HOONIE loader in the same frame while working, then the result.
-struct ToolStage<EmptyContent: View, ResultContent: View>: View {
+/// The always-present result frame. Shows the HOONIE gif (idle, then animating as
+/// it works) until there's a result, then the result fills the frame in place.
+struct ToolStage<ResultContent: View>: View {
     var busy: Bool
     var hasResult: Bool
     var aspect: CGFloat = 1
     var loaderText: String? = nil
-    @ViewBuilder var empty: () -> EmptyContent
     @ViewBuilder var result: () -> ResultContent
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusXL).fill(Color.white)
-            if busy {
-                VStack(spacing: 8) {
-                    GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
-                    if let t = loaderText { Text(t).font(.caption).foregroundColor(Theme.inkSoft) }
-                }
-            } else if hasResult {
+            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
+            if hasResult && !busy {
                 result()
             } else {
-                empty()
+                VStack(spacing: 8) {
+                    GIFView(name: "loading-anim", ext: "png").frame(width: 150, height: 150)
+                    if busy, let t = loaderText {
+                        Text(t).font(.caption).foregroundColor(Theme.textDim)
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(aspect, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusXL))
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusXL).stroke(Theme.ink, lineWidth: 2.5))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 }
 
-/// A faint "what will appear here" hint for an empty stage.
-struct EmptyHint: View {
-    var systemImage: String = "sparkles"
-    var text: String
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: systemImage).font(.system(size: 34)).foregroundColor(Theme.ghost)
-            Text(text).font(.callout).foregroundColor(Theme.inkSoft)
-                .multilineTextAlignment(.center)
-        }
-        .padding(24)
-    }
-}
-
-/// Tiny quality toggle — defaults to Low, taps cycle Low → Med → High.
-struct QualityChip: View {
-    @Binding var quality: String
-    private let order = ["low", "medium", "high"]
-    var body: some View {
-        Button {
-            let i = order.firstIndex(of: quality) ?? 0
-            quality = order[(i + 1) % order.count]
-        } label: {
-            VStack(spacing: 1) {
-                Image(systemName: "speedometer").font(.system(size: 15, weight: .semibold))
-                Text(quality.prefix(1).uppercased()).font(.system(size: 9, weight: .heavy))
-            }
-            .frame(width: 48, height: 48)
-            .foregroundColor(Theme.ink)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.ink, lineWidth: 2))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Quality: \(quality)")
-    }
-}
-
-/// The single generate affordance — a marigold ✦ button.
+/// The single generate affordance — one small icon button.
 struct GoButton: View {
     var busy: Bool
     var action: () -> Void
     var body: some View {
         Button(action: action) {
-            Image(systemName: "sparkles").font(.system(size: 20, weight: .bold))
-                .frame(width: 52, height: 52)
-                .foregroundColor(Theme.ink)
-                .background(busy ? Theme.ghost : Theme.marigold)
+            Image(systemName: "sparkles").font(.system(size: 19, weight: .semibold))
+                .frame(width: 50, height: 50)
+                .foregroundColor(.white)
+                .background(Theme.accent)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.ink, lineWidth: 2))
+                .opacity(busy ? 0.5 : 1)
         }
         .buttonStyle(.plain)
         .disabled(busy)
@@ -92,9 +54,8 @@ struct GoButton: View {
     }
 }
 
-/// One-row composer: quality chip · prompt box · go button.
+/// One-row composer: prompt box · go button. (Quality defaults to Low; no control.)
 struct Composer: View {
-    @Binding var quality: String
     @Binding var text: String
     var placeholder: String
     var busy: Bool
@@ -103,14 +64,15 @@ struct Composer: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            QualityChip(quality: $quality)
             TextField(placeholder, text: $text, axis: .vertical)
-                .lineLimit(1...4).font(.body).foregroundColor(Theme.ink)
+                .lineLimit(1...4).font(.body)
+                .foregroundColor(Theme.text)
+                .tint(Theme.accent)
                 .focused(focused)
                 .padding(.horizontal, 14).padding(.vertical, 14)
-                .background(Color.white)
+                .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.ink, lineWidth: 2))
+                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
             GoButton(busy: busy, action: onGo)
         }
     }
