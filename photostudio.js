@@ -147,37 +147,50 @@ async function describeProduct({ image } = {}) {
   };
 }
 
-// ─── gpt-image-2 edits: re-stage the real product ───────────────────
-// One edit call. `input_fidelity: high` keeps the actual product intact while
-// changing only its background/staging. Returns a PNG buffer (Etsy-friendly).
-async function editImage({ buffer, mime, prompt, size = 'auto', retries = 2 }) {
+// ─── OpenAI image edits: re-stage the real product ──────────────────
+// Returns a PNG buffer (Etsy accepts png/jpg/gif, not webp).
+//
+// Faithfulness matters here — the point is to re-light/re-stage the ACTUAL
+// product, not hallucinate a new one. Only gpt-image-1 supports the
+// `input_fidelity: high` flag that preserves the real subject (gpt-image-2
+// rejects it — "does not support the 'input_fidelity' parameter"). So we edit
+// with gpt-image-1 first, and only fall back to gpt-image-2 (no fidelity flag)
+// if gpt-image-1 is ever unavailable on the account — degraded but not broken.
+const EDIT_MODELS = [
+  { model: 'gpt-image-1', inputFidelity: true },  // faithful: preserves the real product
+  { model: 'gpt-image-2', inputFidelity: false }, // fallback if gpt-image-1 is unavailable
+];
+async function editImage({ buffer, mime, prompt, size = '1024x1024', quality = 'medium', retries = 1 }) {
   let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const form = new FormData();
-      form.append('model', 'gpt-image-2');
-      form.append('prompt', prompt);
-      const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
-      form.append('image', buffer, { filename: `product.${ext}`, contentType: mime });
-      form.append('input_fidelity', 'high'); // preserve the real product
-      form.append('size', size);
-      form.append('quality', 'high');
-      form.append('output_format', 'png'); // Etsy accepts png/jpg/gif, not webp
-      const res = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
-        body: form,
-        timeout: 180000,
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
-      const b64 = data.data?.[0]?.b64_json;
-      if (!b64) throw new Error('gpt-image-2 returned no image');
-      return Buffer.from(b64, 'base64');
-    } catch (err) {
-      lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+  for (const cfg of EDIT_MODELS) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const form = new FormData();
+        form.append('model', cfg.model);
+        form.append('prompt', prompt);
+        const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        form.append('image', buffer, { filename: `product.${ext}`, contentType: mime });
+        if (cfg.inputFidelity) form.append('input_fidelity', 'high');
+        form.append('size', size);
+        form.append('quality', quality);
+        form.append('output_format', 'png');
+        const res = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+          body: form,
+          timeout: 180000,
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(`${cfg.model}: ${data.error.message || 'edit error'}`);
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error(`${cfg.model} returned no image`);
+        return Buffer.from(b64, 'base64');
+      } catch (err) {
+        lastErr = err;
+        if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      }
     }
+    // gpt-image-1 exhausted its retries — fall through to the gpt-image-2 fallback.
   }
   throw lastErr;
 }
@@ -197,7 +210,7 @@ function flatlayPrompt(scene) {
 
 // Generate the mockups. Always the clean white-background shot; then up to
 // `maxFlatlays` styled flatlays from the described scenes. Runs concurrently.
-async function makeMockups({ image, scenes = [], includeWhite = true, maxFlatlays = 2, size = 'auto' } = {}) {
+async function makeMockups({ image, scenes = [], includeWhite = true, maxFlatlays = 2, size = '1024x1024' } = {}) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   const img = decodeImage(image);
   if (!img) throw new Error('image required');
