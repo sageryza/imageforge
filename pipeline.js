@@ -26,7 +26,9 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 
 // Replicate background-removal model (turns a design into a transparent PNG —
 // essential for apparel so the art prints clean, not as a filled rectangle).
-const BG_REMOVE_MODEL = '851-labs/background-remover';
+// BiRefNet gives cleaner alpha edges than the basic remover (less of a faint
+// matte "box" around the art).
+const BG_REMOVE_MODEL = 'men1scus/birefnet';
 let bgRemoveVersion = null; // resolved + cached on first use
 
 // Defensive requires — if a module file is missing or fails to load, treat that
@@ -321,6 +323,26 @@ function placeInArea(cat, ar = 1, margin = 0.92) {
   return { x: 0.5, y: cat.y ?? 0.5, scale, angle: 0 };
 }
 
+function catalogByBlueprint(blueprintId) {
+  return Object.values(POD_CATALOG).find(c => c.blueprint_id === blueprintId);
+}
+
+// Resolve a product's front print-area dimensions — from POD_CATALOG when known,
+// otherwise fetched from Printify's catalog. Used so the SELL path places art
+// correctly (contained) too, not just the previews.
+async function resolvePrintArea(blueprintId, providerId, variantId) {
+  const cat = catalogByBlueprint(blueprintId);
+  if (cat) return { pw: cat.pw, ph: cat.ph, y: cat.y };
+  try {
+    const r = await printify.getProviderVariants(blueprintId, providerId);
+    const variants = r.ok && r.body && Array.isArray(r.body.variants) ? r.body.variants : [];
+    const v = variants.find(x => x.id === variantId) || variants[0];
+    const front = v && (v.placeholders || []).find(p => p.position === 'front');
+    if (front) return { pw: front.width, ph: front.height, y: 0.5 };
+  } catch { /* fall through */ }
+  return null;
+}
+
 // Generate REAL Printify mockups for a design across product types. For each
 // requested product we create a hidden throwaway product with the design in the
 // front print area, poll until Printify renders the mockup, grab the image URL,
@@ -424,6 +446,7 @@ async function createPrintifyProduct(opts = {}) {
 
   // Resolve the Printify image id (upload the design if not already uploaded).
   let imageId = image && image.id;
+  let designAR = 1;
   if (!imageId) {
     if (!image || (!image.url && !image.contents)) {
       throw new Error('image.url, image.contents, or image.id required');
@@ -443,13 +466,21 @@ async function createPrintifyProduct(opts = {}) {
       return { ok: false, stage: 'upload_image', status: up.status, body: up.body };
     }
     imageId = up.body.id;
+    if (up.body.width && up.body.height) designAR = up.body.width / up.body.height;
   }
 
-  const place = {
-    position: placement.position || 'front',
-    x: placement.x ?? 0.5, y: placement.y ?? 0.5,
-    scale: placement.scale ?? 1, angle: placement.angle ?? 0,
-  };
+  // Placement: CONTAIN the design in the real print area (same math as previews)
+  // unless the caller passes an explicit scale. This makes the actual printed
+  // product correct — not just the mockup.
+  let place;
+  if (placement.scale != null) {
+    place = { position: placement.position || 'front', x: placement.x ?? 0.5, y: placement.y ?? 0.5, scale: placement.scale, angle: placement.angle ?? 0 };
+  } else {
+    const area = await resolvePrintArea(blueprint_id, print_provider_id, variant_ids[0]);
+    const auto = area ? placeInArea({ pw: area.pw, ph: area.ph, y: placement.y ?? area.y }, designAR)
+                      : { x: 0.5, y: placement.y ?? 0.5, scale: 1, angle: 0 };
+    place = { position: placement.position || 'front', x: placement.x ?? auto.x, y: placement.y ?? auto.y, scale: auto.scale, angle: placement.angle ?? 0 };
+  }
   const product = {
     title: content.title,
     description: content.description || content.title,
@@ -498,29 +529,6 @@ router.get('/status', (req, res) => {
     image_generation: Boolean(OPENAI_API_KEY || process.env.REPLICATE_API_TOKEN),
     pod_routes: POD_ROUTES.map(r => ({ pattern: String(r.match), service: r.service })),
   });
-});
-
-// Diagnostic: report what the RUNNING process actually sees for each managed
-// key — presence, length, first/last char, and whether the value has stray
-// whitespace (a tell-tale of a bad copy-paste / line break in the dashboard).
-// NEVER returns the secret value itself. Helps debug "the key is set in the
-// host dashboard but the app says it's not". Safe to remove once keys are
-// confirmed working.
-router.get('/env-check', (req, res) => {
-  const keys = (configLoader && configLoader.MANAGED_KEYS) || [];
-  const report = {};
-  for (const k of keys) {
-    const v = process.env[k];
-    if (!v) { report[k] = { set: false }; continue; }
-    report[k] = {
-      set: true,
-      length: v.length,
-      first: v[0],
-      last: v[v.length - 1],
-      hasWhitespace: /\s/.test(v),
-    };
-  }
-  res.json({ note: 'fingerprints only — no secret values', keys: report });
 });
 
 // Which POD service handles a given product type.
