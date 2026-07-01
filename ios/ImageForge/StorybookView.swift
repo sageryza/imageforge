@@ -18,8 +18,6 @@ struct StorybookView: View {
     @FocusState private var focusedField: Field?
     private enum Field { case caption, scene }
 
-    private let qualities = ["low", "medium", "high"]
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -77,20 +75,17 @@ struct StorybookView: View {
             emptyHint
         } else {
             VStack(spacing: 10) {
-                TabView(selection: $current) {
-                    ForEach(Array(pages.enumerated()), id: \.element.id) { idx, page in
-                        pageView(page).tag(idx)
-                    }
+                PageCurlBook(count: pages.count, index: $current) { idx in
+                    bookPage(pages[idx])
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(maxWidth: .infinity)
                 .aspectRatio(2.0 / 3.0, contentMode: .fit)
                 .background(Color.white)
-                .cornerRadius(Theme.radiusLg)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
                 .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
 
                 HStack(spacing: 14) {
-                    Text("Page \(min(current + 1, pages.count)) of \(pages.count)")
+                    Text("Page \(min(current + 1, pages.count)) of \(pages.count) · drag a page edge to turn")
                         .font(.caption).foregroundColor(Theme.textDim)
                     Spacer()
                     if let url = pages[safe: current]?.url {
@@ -103,15 +98,29 @@ struct StorybookView: View {
         }
     }
 
-    private func pageView(_ page: Creation) -> some View {
-        AsyncImage(url: page.url) { phase in
-            switch phase {
-            case .success(let image): image.resizable().scaledToFit()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView()
+    // One book page: the illustration up top, the words set below it in the
+    // serif — on solid white "paper" so the page-curl reads like a real book.
+    private func bookPage(_ page: Creation) -> some View {
+        VStack(spacing: 0) {
+            AsyncImage(url: page.url) { phase in
+                switch phase {
+                case .success(let image): image.resizable().scaledToFit()
+                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                default: ProgressView()
+                }
             }
+            .frame(maxWidth: .infinity)
+            if let cap = page.prompt, !cap.isEmpty {
+                Text(cap)
+                    .font(Theme.serif(18))
+                    .foregroundColor(Theme.text)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 18)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.white)
     }
 
     private var emptyHint: some View {
@@ -156,7 +165,10 @@ struct StorybookView: View {
                     .cornerRadius(Theme.radius)
             }
 
-            qualityPicker
+            HStack(spacing: 8) {
+                QualityMenu(quality: $quality)
+                Spacer()
+            }
 
             Button { run() } label: {
                 Text(busy ? "Drawing the page…" : "Add Page")
@@ -165,24 +177,6 @@ struct StorybookView: View {
                     .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
             }
             .disabled(busy).opacity(busy ? 0.6 : 1)
-        }
-    }
-
-    private var qualityPicker: some View {
-        HStack(spacing: 8) {
-            ForEach(qualities, id: \.self) { q in
-                Button { quality = q } label: {
-                    Text(q.capitalized)
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .background(quality == q ? Theme.surface2 : Color.clear)
-                        .foregroundColor(quality == q ? Theme.text : Theme.textDim)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                            .stroke(quality == q ? Theme.accentDim : Theme.border, lineWidth: 1))
-                        .cornerRadius(Theme.radius)
-                }
-                .buttonStyle(.plain)
-            }
         }
     }
 

@@ -34,7 +34,6 @@ struct InstagramView: View {
     @FocusState private var focusedField: Field?
     private enum Field { case prompt, caption }
 
-    private let qualities = ["low", "medium", "high"]
     private let aesthetics: [(id: String, label: String)] = [
         ("dark", "Dark"), ("celestial", "Celestial"), ("earthy", "Earthy"),
     ]
@@ -189,19 +188,8 @@ struct InstagramView: View {
 
     private var qualityPicker: some View {
         HStack(spacing: 8) {
-            ForEach(qualities, id: \.self) { q in
-                Button { quality = q } label: {
-                    Text(q.capitalized)
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .background(quality == q ? Theme.surface2 : Color.clear)
-                        .foregroundColor(quality == q ? Theme.text : Theme.textDim)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                            .stroke(quality == q ? Theme.accentDim : Theme.border, lineWidth: 1))
-                        .cornerRadius(Theme.radius)
-                }
-                .buttonStyle(.plain)
-            }
+            QualityMenu(quality: $quality)
+            Spacer()
         }
     }
 
