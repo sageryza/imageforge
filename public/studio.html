@@ -140,13 +140,14 @@
 
 <script>
   const PRODUCTS = [
-    { key:'art print', label:'Art print', mockup:null, route:'Etsy draft' },
-    { key:'greeting card', label:'Card', mockup:'/mockups/card.webp', route:'Etsy draft' },
-    { key:'t-shirt', label:'Tee', mockup:'/mockups/tee.webp', route:'Printify' },
-    { key:'sweatshirt', label:'Sweatshirt', mockup:'/mockups/sweatshirt.webp', route:'Printify' },
-    { key:'tote', label:'Tote', mockup:'/mockups/tote.webp', route:'Printify' },
-    { key:'mug', label:'Mug', mockup:'/mockups/mug.webp', route:'Printify' },
+    { key:'art print', label:'Art print', real:false, route:'Etsy draft' },
+    { key:'greeting card', label:'Card', real:false, route:'Etsy draft' },
+    { key:'t-shirt', label:'Tee', real:true, route:'Printify' },
+    { key:'sweatshirt', label:'Sweatshirt', real:true, route:'Printify' },
+    { key:'tote', label:'Tote', real:true, route:'Printify' },
+    { key:'mug', label:'Mug', real:true, route:'Printify' },
   ];
+  const mockCache = {}; // "designUrl|product" -> real mockup url
   let STYLES = [];          // {id,name}
   let selectedStyles = new Set();
   let selectedProducts = new Set(['art print','greeting card']);
@@ -248,11 +249,29 @@
     const grid = document.getElementById('pgrid');
     const chosen = PRODUCTS.filter(p=>selectedProducts.has(p.key));
     grid.innerHTML = chosen.map(p=>{
-      const stageClass = p.mockup ? '' : 'print';
-      const blank = p.mockup ? `<img class="blank" src="${p.mockup}"/>` : '';
-      return `<div class="pcard"><div class="pstage ${stageClass}">${blank}<img class="art" src="${activeDesign}"/></div>
-        <div class="pcap">${p.label}</div><div class="route">${p.route}</div></div>`;
+      if(!p.real){
+        // art print / card — the design itself, framed (it IS the artwork)
+        return `<div class="pcard"><div class="pstage print"><img class="art" src="${activeDesign}"/></div>
+          <div class="pcap">${p.label}</div><div class="route">${p.route}</div></div>`;
+      }
+      const url = mockCache[activeDesign+'|'+p.key];
+      const inner = url ? `<img class="blank" src="${url}"/>` : `<span class="spin"></span>`;
+      const rlabel = url ? 'real mockup' : 'rendering…';
+      return `<div class="pcard"><div class="pstage" style="display:flex;align-items:center;justify-content:center">${inner}</div>
+        <div class="pcap">${p.label}</div><div class="route">${rlabel} · ${p.route}</div></div>`;
     }).join('') || '<p class="muted">Pick products above to preview.</p>';
+    // kick off real-mockup generation for any uncached apparel products
+    const need = chosen.filter(p=>p.real && !mockCache[activeDesign+'|'+p.key]).map(p=>p.key);
+    if(need.length) fetchMockups(need, activeDesign);
+  }
+
+  let mockInFlight = false;
+  async function fetchMockups(productKeys, design){
+    if(mockInFlight) return; mockInFlight = true;
+    const r = await api('/api/pipeline/mockups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:design, products:productKeys})});
+    mockInFlight = false;
+    if(r.ok){ (r.body.mockups||[]).forEach(m=>{ if(m.ok&&m.mockup_url) mockCache[design+'|'+m.product]=m.mockup_url; }); }
+    if(design===activeDesign) renderProducts();
   }
 
   async function writeCopy(){
