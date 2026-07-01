@@ -22,11 +22,14 @@ struct ToolStage<ResultContent: View>: View {
                 result()
             } else {
                 VStack(spacing: 8) {
-                    // Idles slow and calm; speeds up once generation kicks in.
-                    GIFView(name: "loading-anim", ext: "png", speed: busy ? 1.6 : 0.35)
+                    // Idles very slow and calm; eases up to the gentle "working"
+                    // pace once generation actually starts.
+                    GIFView(name: "loading-anim", ext: "png", speed: busy ? 0.35 : 0.15)
                         .frame(width: 140, height: 140)
                     if busy, let t = loaderText {
                         Text(t).font(.caption).foregroundColor(Theme.textDim)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
                 }
             }
@@ -43,6 +46,9 @@ struct ToolStage<ResultContent: View>: View {
 /// Quality picker as a small dropdown menu button (Low / Medium / High).
 struct QualityMenu: View {
     @Binding var quality: String
+    static func shortLabel(_ q: String) -> String {
+        switch q { case "medium": return "Med"; case "high": return "High"; default: return "Low" }
+    }
     var body: some View {
         Menu {
             Button("Low") { quality = "low" }
@@ -50,7 +56,9 @@ struct QualityMenu: View {
             Button("High") { quality = "high" }
         } label: {
             HStack(spacing: 3) {
-                Text(quality.capitalized).font(.caption.weight(.semibold))
+                // Short, equal-ish labels so the button never changes width.
+                Text(Self.shortLabel(quality)).font(.caption.weight(.semibold))
+                    .frame(width: 32, alignment: .leading)
                 Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
             }
             .foregroundColor(Theme.text)
@@ -99,7 +107,7 @@ struct StarTitle: View {
             Spacer(minLength: 12)
             Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 22)
     }
 }
 

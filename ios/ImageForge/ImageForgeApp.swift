@@ -11,7 +11,7 @@ struct ImageForgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HubView()
+            RootView()
         }
     }
 

@@ -27,7 +27,8 @@ struct StickerView: View {
                     StarTitle(text: "Sticker Sheet")
                         .padding(.top, 4)
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
-                              maxHeight: 430, loaderText: "conjuring your stickers…") {
+                              maxHeight: 430,
+                              loaderText: "conjuring your sheet — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
                         stickerResult
                     }
                     Composer(quality: $quality, text: $prompt, placeholder: "…",
@@ -94,11 +95,12 @@ struct StickerView: View {
         if let sheet {
             AsyncImage(url: sheet.url) { phase in
                 switch phase {
-                case .success(let image): image.resizable().scaledToFit()
+                case .success(let image): image.resizable().scaledToFill()
                 case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
                 default: ProgressView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture { if !sheet.boxes.isEmpty { openEditor(sheet) } }
         }
