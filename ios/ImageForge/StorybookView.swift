@@ -75,8 +75,8 @@ struct StorybookView: View {
             emptyHint
         } else {
             VStack(spacing: 10) {
-                PageCurlBook(count: pages.count, index: $current) { idx in
-                    spread(pages[idx])
+                PageCurlBook(count: spreadCount, index: $current) { i in
+                    spread(i)
                 }
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1.5, contentMode: .fit)   // landscape: an open book
@@ -85,10 +85,10 @@ struct StorybookView: View {
                 .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
 
                 HStack(spacing: 14) {
-                    Text("Page \(min(current + 1, pages.count)) of \(pages.count) · drag a page edge to turn")
+                    Text("\(pageRangeLabel) · drag a page edge to turn")
                         .font(.caption).foregroundColor(Theme.textDim)
                     Spacer()
-                    if let url = pages[safe: current]?.url {
+                    if let url = pages[safe: current * 2]?.url {
                         ShareLink(item: url) {
                             Image(systemName: "square.and.arrow.up").foregroundColor(Theme.accent)
                         }
@@ -98,43 +98,61 @@ struct StorybookView: View {
         }
     }
 
-    // One open-book spread: the words set on the left page, the illustration on
-    // the right — with a soft gutter shadow down the middle so it reads like a
-    // real open picture book.
-    private func spread(_ page: Creation) -> some View {
-        HStack(spacing: 0) {
-            // LEFT — the words, on warm paper.
-            ZStack {
-                Color(hex: 0xFBF8F1)
-                if let cap = page.prompt, !cap.isEmpty {
-                    Text(cap)
-                        .font(Theme.serif(16))
-                        .foregroundColor(Theme.text)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.6)
-                        .padding(18)
-                } else {
-                    Text("·").font(Theme.serif(20)).foregroundColor(Theme.textDim)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(gutter(trailing: true), alignment: .trailing)
+    // Two facing pages per spread; a spread turns two pages at a time.
+    private var spreadCount: Int { max(1, (pages.count + 1) / 2) }
 
-            // RIGHT — the picture, on white paper.
-            ZStack {
-                Color.white
-                AsyncImage(url: page.url) { phase in
-                    switch phase {
-                    case .success(let image): image.resizable().scaledToFit().padding(8)
-                    case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-                    default: ProgressView()
+    private var pageRangeLabel: String {
+        let lo = current * 2 + 1
+        let hi = min(current * 2 + 2, pages.count)
+        let range = lo == hi ? "Page \(lo)" : "Pages \(lo)–\(hi)"
+        return "\(range) of \(pages.count)"
+    }
+
+    private func pageAt(_ idx: Int) -> Creation? {
+        (idx >= 0 && idx < pages.count) ? pages[idx] : nil
+    }
+
+    // One open-book spread: two facing pages, each a picture with its words set
+    // along the bottom — a soft gutter shadow down the spine between them.
+    private func spread(_ i: Int) -> some View {
+        HStack(spacing: 0) {
+            leaf(pageAt(i * 2))
+                .overlay(gutter(trailing: true), alignment: .trailing)
+            leaf(pageAt(i * 2 + 1))
+                .overlay(gutter(trailing: false), alignment: .leading)
+        }
+        .background(Color.white)
+    }
+
+    // One page: the illustration filling the page, its words tucked underneath.
+    private func leaf(_ page: Creation?) -> some View {
+        ZStack {
+            Color.white
+            if let page {
+                VStack(spacing: 6) {
+                    AsyncImage(url: page.url) { phase in
+                        switch phase {
+                        case .success(let image): image.resizable().scaledToFit()
+                        case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                        default: ProgressView()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 10).padding(.horizontal, 10)
+                    if let cap = page.prompt, !cap.isEmpty {
+                        Text(cap)
+                            .font(Theme.serif(12))
+                            .foregroundColor(Theme.text)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(3).minimumScaleFactor(0.6)
+                            .padding(.horizontal, 10).padding(.bottom, 12)
+                    } else {
+                        Spacer().frame(height: 12)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(gutter(trailing: false), alignment: .leading)
         }
-        .background(Color.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // Soft shadow along the spine side of a page.
@@ -236,7 +254,7 @@ struct StorybookView: View {
                 let url = try await ForgeService.shared.generateStorybookPage(
                     prompt: scn, caption: cap, quality: quality)
                 pages.append(Creation(id: UUID().uuidString, type: "storybook", url: url, prompt: cap))
-                current = pages.count - 1
+                current = max(0, (pages.count - 1) / 2)   // spread holding the new page
                 caption = ""; scene = ""
             } catch {
                 errorText = error.localizedDescription
@@ -250,7 +268,7 @@ struct StorybookView: View {
         if let all = try? await ForgeService.shared.fetchCreations(limit: 90) {
             // Creations come newest-first; a book reads oldest-first.
             pages = all.filter { $0.type == "storybook" }.reversed()
-            current = max(0, pages.count - 1)
+            current = max(0, (pages.count - 1) / 2)   // last spread
         }
         loading = false
     }
