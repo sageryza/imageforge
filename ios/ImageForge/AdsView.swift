@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AuthenticationServices
 import FirebaseAuth
 
@@ -85,7 +86,7 @@ struct AdsView: View {
             Label("Connected to Meta", systemImage: "checkmark.seal.fill")
                 .font(.subheadline.weight(.semibold)).foregroundColor(Theme.text)
             if let name = summary?.accountName {
-                Text("Ad account: \(name)\(summary?.currency.map { " · \($0)" } ?? "")")
+                Text(accountLine(name: name, currency: summary?.currency))
                     .font(.caption).foregroundColor(Theme.textDim)
             }
             if let pixel = summary?.pixelId {
@@ -177,6 +178,11 @@ struct AdsView: View {
         .padding(16)
         .background(Theme.surface).cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+    }
+
+    private func accountLine(name: String, currency: String?) -> String {
+        if let c = currency, !c.isEmpty { return "Ad account: \(name) · \(c)" }
+        return "Ad account: \(name)"
     }
 
     // MARK: - Actions
