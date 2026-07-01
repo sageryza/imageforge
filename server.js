@@ -203,7 +203,24 @@ app.get('/set', (req, res) => { res.sendFile(__dirname + '/public/set.html'); })
 // (same where the pair matches, a fresh third value where they differ) across
 // the physical axes AND the conceptual "denied inference" axis, writes an
 // image prompt, then gpt-image-2 (quality low) renders it on the house ground.
-const SET_GROUND = 'A single small sculptural object photographed on a plain seamless light-gray studio background, soft even lighting, centered, product-photo style, handmade craft feel. The object: ';
+const SET_GROUND = 'A single small sculptural object photographed on a plain seamless pure white background, soft even lighting, centered, product-photo style, handmade craft feel. The object: ';
+
+// Generate one object image from a plain description, on the house ground.
+// Used by "Make a set" so the player describes the first two objects and
+// regenerates them until happy (the third is designed by /api/set/third).
+app.post('/api/set/object', async (req, res) => {
+  try {
+    const { description } = req.body;
+    if (!description) return res.status(400).json({ error: 'description is required' });
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+    const data = await openaiImage({ model: 'gpt-image-2', prompt: SET_GROUND + description, n: 1, size: '1024x1024', quality: 'low', output_format: 'webp' });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'set');
+    res.json({ url });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 app.post('/api/set/third', async (req, res) => {
   try {
     const { a, b } = req.body;
