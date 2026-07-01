@@ -101,6 +101,20 @@ async function createProduct(product, shopId) {
   });
 }
 
+// Fetch a single product (its `images` array holds Printify's rendered mockups
+// once they're ready).
+async function getProduct(productId, shopId) {
+  const id = await resolveShopId(shopId);
+  return pfFetch(`/shops/${id}/products/${productId}.json`);
+}
+
+// Delete a product. Mockup image URLs remain valid on Printify's CDN after
+// deletion, so throwaway "preview" products can be cleaned up immediately.
+async function deleteProduct(productId, shopId) {
+  const id = await resolveShopId(shopId);
+  return pfFetch(`/shops/${id}/products/${productId}.json`, { method: 'DELETE' });
+}
+
 // Publish a product to the shop's connected sales channel. For the Etsy
 // pipeline we usually DON'T call this — Printify's own Etsy integration can
 // push it, or we create the Etsy draft ourselves via etsy.js. Provided for
@@ -192,5 +206,7 @@ module.exports = {
   listProducts,
   uploadImage,
   createProduct,
+  getProduct,
+  deleteProduct,
   publishProduct,
 };

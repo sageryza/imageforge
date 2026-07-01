@@ -267,6 +267,71 @@ async function removeBackground(imageUrl) {
   return out;
 }
 
+// ─── Real product mockups (Printify-rendered) ──────────────────────
+// Blueprint / print-provider / a representative variant per product type, used
+// to spin up throwaway "preview" products just to harvest Printify's rendered
+// mockup images. (Validated live; front print area.)
+const POD_CATALOG = {
+  't-shirt':       { blueprint_id: 12,  print_provider_id: 99, variant_id: 18102, scale: 0.9, apparel: true },
+  'sweatshirt':    { blueprint_id: 49,  print_provider_id: 99, variant_id: 25376, scale: 0.9, apparel: true },
+  'tote':          { blueprint_id: 507, print_provider_id: 48, variant_id: 80814, scale: 0.7, apparel: true },
+  'mug':           { blueprint_id: 68,  print_provider_id: 1,  variant_id: 33719, scale: 1.0, apparel: true },
+  // greeting card / art print: shown as a framed design in the UI (a real
+  // Printify card mockup needs a valid decorator — a later addition).
+};
+
+// Generate REAL Printify mockups for a design across product types. For each
+// requested product we create a hidden throwaway product with the design in the
+// front print area, poll until Printify renders the mockup, grab the image URL,
+// then delete the product (the mockup URL survives). Apparel uses a
+// background-removed version of the design so the art prints clean.
+async function generateMockups({ image_url, products = [], removeBg = true, shop_id } = {}) {
+  if (!printify) throw new Error('printify module unavailable');
+  if (!image_url) throw new Error('image_url required');
+  const keys = products.map(p => String(p).toLowerCase()).filter(p => POD_CATALOG[p]);
+  if (!keys.length) return { mockups: [] };
+
+  // Printify won't accept webp uploads (our designs are webp), and apparel needs
+  // a transparent design. Running through the bg remover yields a clean PNG that
+  // solves both. If it fails we fall back to the original URL and let Printify
+  // reject/accept it. One upload, reused for every product.
+  let pngUrl = image_url;
+  if (removeBg) {
+    try { pngUrl = await removeBackground(image_url); } catch { /* keep original */ }
+  }
+  const up = await printify.uploadImage({ fileName: 'design.png', url: pngUrl });
+  const imageId = up.ok && up.body && up.body.id;
+  if (!imageId) return { mockups: [], error: 'image upload failed', detail: up.body };
+
+  const oneMockup = async (key) => {
+    const cat = POD_CATALOG[key];
+    try {
+      const created = await printify.createProduct({
+        title: `preview ${key}`, description: 'preview',
+        blueprint_id: cat.blueprint_id, print_provider_id: cat.print_provider_id, visible: false,
+        variants: [{ id: cat.variant_id, price: 2000, is_enabled: true }],
+        print_areas: [{ variant_ids: [cat.variant_id], placeholders: [{ position: 'front', images: [{ id: imageId, x: 0.5, y: 0.5, scale: cat.scale, angle: 0 }] }] }],
+      }, shop_id);
+      const pid = created.ok && created.body && created.body.id;
+      if (!pid) return { product: key, ok: false, error: created.body };
+      let url = null;
+      for (let i = 0; i < 14 && !url; i++) {
+        const got = await printify.getProduct(pid, shop_id);
+        const imgs = got.ok && got.body && Array.isArray(got.body.images) ? got.body.images : [];
+        if (imgs.length) url = (imgs.find(im => im.is_default) || imgs[0]).src;
+        else await new Promise(r => setTimeout(r, 2000));
+      }
+      printify.deleteProduct(pid, shop_id).catch(() => {}); // fire-and-forget cleanup
+      return url ? { product: key, ok: true, mockup_url: url } : { product: key, ok: false, error: 'no mockup rendered' };
+    } catch (err) {
+      return { product: key, ok: false, error: err.message };
+    }
+  };
+
+  const mockups = await Promise.all(keys.map(oneMockup));
+  return { mockups };
+}
+
 // ─── Orchestration: design → Printify product (→ Etsy auto-fulfillment) ──
 // Creates a print-on-demand product in Printify from a design. Unlike the Etsy
 // draft path (which we fulfil ourselves), a Printify product PUBLISHED to a
@@ -449,6 +514,17 @@ router.post('/publish-draft', express.json({ limit: '25mb' }), async (req, res) 
   }
 });
 
+// Real Printify mockups for a design. Body: { image_url, products[], removeBackground? }.
+router.post('/mockups', express.json({ limit: '25mb' }), async (req, res) => {
+  const { image_url, products, removeBackground: rb = true, shop_id } = req.body || {};
+  try {
+    const out = await generateMockups({ image_url, products, removeBg: rb, shop_id });
+    res.json(out);
+  } catch (err) {
+    res.status(/required|unavailable/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
 // Strip a design's background → transparent PNG (for apparel). Body: { image_url }.
 router.post('/remove-bg', express.json(), async (req, res) => {
   const { image_url } = req.body || {};
@@ -482,6 +558,7 @@ module.exports = {
   generateListingContent,
   publishDraft,
   createPrintifyProduct,
+  generateMockups,
   removeBackground,
   clampListing,
 };
