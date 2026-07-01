@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// A grid of everything you've made. Reads the server-saved creations list, so
 /// generations show up here even if a connection dropped or the app was
@@ -9,8 +10,18 @@ struct CreationsView: View {
     @State private var errorText: String?
     @State private var preview: Creation?
     @State private var filter: String? = nil   // nil = show everything
+    @State private var editable: EditableSheet?
+    @State private var openingEditor = false
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 10)]
+
+    /// A saved sheet pulled back out for editing: its image + re-detected boxes.
+    struct EditableSheet: Identifiable {
+        let id = UUID()
+        let creationURL: URL
+        let image: UIImage
+        let boxes: [StickerBox]
+    }
 
     /// Types present in the user's creations, in a friendly fixed order.
     private var types: [String] {
@@ -64,6 +75,22 @@ struct CreationsView: View {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
         .sheet(item: $preview) { c in previewSheet(c) }
+        .fullScreenCover(item: $editable) { e in
+            StickerEditor(
+                sheetImage: e.image,
+                boxes: e.boxes,
+                onClose: { editable = nil },
+                onSaved: { _ in Task { await load() } })   // edited copy → refresh grid
+        }
+        .overlay {
+            if openingEditor {
+                ZStack {
+                    Color.black.opacity(0.25).ignoresSafeArea()
+                    ProgressView("Opening editor…").padding(20)
+                        .background(Theme.surface).cornerRadius(Theme.radiusLg)
+                }
+            }
+        }
     }
 
     // Horizontal row of rounded-rect filter chips (no pills): All + one per type.
@@ -145,6 +172,17 @@ struct CreationsView: View {
                         Text(p).font(.caption).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    if c.type == "sticker" {
+                        Button { openForEdit(c) } label: {
+                            Label("Edit stickers", systemImage: "wand.and.stars")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 46)
+                                .background(Theme.mauve)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                        }
+                        .buttonStyle(.plain)
+                    }
                     ShareLink(item: c.url) {
                         Label("Share / Save", systemImage: "square.and.arrow.up")
                             .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
@@ -162,6 +200,33 @@ struct CreationsView: View {
             }
         }
         .tint(Theme.accent)
+    }
+
+    /// Pull a saved sheet back out: download it, re-detect the sticker boxes
+    /// (off the main thread), then open the tap-to-redo editor.
+    private func openForEdit(_ c: Creation) {
+        guard !openingEditor else { return }
+        let url = c.url
+        preview = nil
+        openingEditor = true
+        Task {
+            defer { openingEditor = false }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard let img = UIImage(data: data) else {
+                    errorText = "Couldn't open that sheet."; return
+                }
+                let boxes = await Task.detached(priority: .userInitiated) {
+                    StickerSegmenter.boxes(from: img)
+                }.value
+                guard !boxes.isEmpty else {
+                    errorText = "Couldn't pick out individual stickers on this sheet."; return
+                }
+                editable = EditableSheet(creationURL: url, image: img, boxes: boxes)
+            } catch {
+                errorText = error.localizedDescription
+            }
+        }
     }
 
     private func load() async {

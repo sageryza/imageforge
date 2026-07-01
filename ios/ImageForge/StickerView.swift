@@ -163,8 +163,9 @@ struct IdentifiedImage: Identifiable {
 // MARK: - Editor canvas
 
 /// Full-screen canvas of individual sticker tiles cropped from the sheet. Tap a
-/// tile to regenerate just that sticker in place.
-private struct StickerEditor: View {
+/// tile to regenerate just that sticker in place. Used both right after
+/// generation (StickerView) and when re-opening a saved sheet (CreationsView).
+struct StickerEditor: View {
     let sheetImage: UIImage
     let boxes: [StickerBox]
     var onClose: () -> Void
