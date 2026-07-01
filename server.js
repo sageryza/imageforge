@@ -102,12 +102,14 @@ loadConfig().then(() => {
   const printful = require('./printful');
   const lulu = require('./lulu');
   const pipeline = require('./pipeline');
+  const photostudio = require('./photostudio');
   app.use('/api/etsy', etsy.router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
   app.use('/api/pipeline', pipeline.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration)');
+  app.use('/api/photostudio', photostudio.router);
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -268,18 +270,25 @@ Read the two objects. Decide each axis same or different, and force the third's 
 // injected so its API calls can authenticate. When STUDIO_TOKEN is unset the
 // gate is disabled (open), so nothing breaks until it's configured.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
-app.get('/studio', (req, res) => {
-  if (STUDIO_TOKEN) {
-    const m = (req.get('authorization') || '').match(/^Basic (.+)$/);
-    const pass = m ? Buffer.from(m[1], 'base64').toString().split(':')[1] : '';
-    if (pass !== STUDIO_TOKEN) {
-      res.set('WWW-Authenticate', 'Basic realm="ImageForge Studio"');
-      return res.status(401).send('Authentication required.');
+// Serve a token-gated page, injecting the token so its API calls authenticate.
+function serveGated(file) {
+  return (req, res) => {
+    if (STUDIO_TOKEN) {
+      const m = (req.get('authorization') || '').match(/^Basic (.+)$/);
+      const pass = m ? Buffer.from(m[1], 'base64').toString().split(':')[1] : '';
+      if (pass !== STUDIO_TOKEN) {
+        res.set('WWW-Authenticate', 'Basic realm="ImageForge Studio"');
+        return res.status(401).send('Authentication required.');
+      }
     }
-  }
-  let html = fs.readFileSync(__dirname + '/public/studio.html', 'utf8');
-  res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
-});
+    const html = fs.readFileSync(__dirname + '/public/' + file, 'utf8');
+    res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
+  };
+}
+app.get('/studio', serveGated('studio.html'));
+// Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
+// draft (mockups + listing content). Same gate as the Studio.
+app.get('/photo', serveGated('photo.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

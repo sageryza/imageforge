@@ -82,6 +82,23 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Photo → Etsy pipeline (no POD)
+- `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
+  from the POD pipeline for items Sophie already MADE (a handmade pouch, a
+  ceramic, a print she ships herself). One photo of the real product →
+  reviewable Etsy draft. No Printify/Printful/Lulu, no auto-fulfilment.
+- **Flow:** `POST /describe` (gpt-4o vision → name/summary/category/materials/
+  colors/keywords + 3 staging ideas); `POST /mockups` (gpt-image-2 **edits**
+  endpoint with `input_fidelity:high` so the ACTUAL product is preserved, not
+  hallucinated — a clean white-background shot + up to 2 styled flatlays, saved
+  to Firebase as PNGs); `POST /analyze` (describe + write listing content in one
+  call, reuses `pipeline.generateListingContent`); `POST /draft` (derives Etsy
+  shipping/return/readiness/taxonomy defaults from an active listing, then
+  reuses `pipeline.publishDraft` to create the DRAFT with the mockups attached).
+- Mockups need Firebase (permanent public URLs Etsy can fetch); without it they
+  fall back to data URLs and the `/draft` step refuses them. Same `STUDIO_TOKEN`
+  gate as the POD pipeline (only `GET /status` is open).
+
 ## Etsy module
 - `etsy.js` is a self-contained Etsy Open API v3 module mounted at `/api/etsy`
   (`server.js`). Terminal step of the product pipeline: generated design →
