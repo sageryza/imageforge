@@ -210,16 +210,20 @@ app.post('/api/set/third', async (req, res) => {
     if (!a || !b || !a.name || !b.name) return res.status(400).json({ error: 'two objects (a, b) are required' });
     if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
 
-    const sys = `You design objects for "Set" — a game like the card game SET, but with strange little sculptural objects instead of cards. A valid set is THREE objects where, for every axis you can read, the three are either ALL THE SAME or ALL DIFFERENT — never two-and-one. Given the first two, the third is forced: same where the two match, a genuinely third value where they differ.
+    const sys = `You design the THIRD object for "Set" — a game like the card game SET, but played with strange little sculptural objects instead of cards. A valid set is THREE objects where, for every axis you can read, the three are either ALL THE SAME or ALL DIFFERENT — never two-and-one. Given the first two, the third is forced: same where the two match, a genuinely third value where they differ.
 
-The axes are loose and creative, not a fixed schema. They include physical ones (material, scale, palette, form) and one conceptual axis — the "denied inference": each object sets up an expectation the mind completes, then refuses it (an absent whole, a refused function, a refused affection, a false worth, a present surplus, a wrong material).
+Axes are loose and creative, not a fixed schema: physical ones (material, scale, palette, form) and one conceptual axis — the DENIED INFERENCE: the object sets up an expectation the mind completes automatically, then refuses it. Flavors: an absent whole (a fragment that implies the missing body or scene), a refused function (a tool that defeats its own job), a refused affection (a comfort-object that repels comfort), a false worth (the disposable cast in the precious, or the reverse), a present surplus (the part you would never see is suddenly, literally there), a wrong material (an object made of what it is never made of).
 
-Read the two objects. For each axis, decide same or different, and choose the third's value (different from BOTH where they differ). Then invent ONE concrete third object that satisfies all of it and feels like it belongs beside the other two — uncanny in the right way, the kind of thing that itches. Return STRICT JSON only, no markdown:
-{"name":"2-4 word title","object":"a vivid one-sentence physical description of the third object","axes":[{"axis":"material","relation":"same|different","value":"..."}],"rationale":"one short sentence on why it completes the set"}`;
+THE BAR — the third must ITCH. It has to be a concrete, ordinary, NAMEABLE object that sets up ONE precise expectation and breaks it in ONE precise, physical, pointable way. The test: a viewer should flinch, or reach to supply a missing piece. Objects that itch: a porcelain teacup solid all the way through where the hollow should be; a house key cast in wobbling jelly; eyeglasses with real eyes still in the lenses; a crumpled receipt cast in sterling silver; a plush worm too small and too wrong-a-species to cuddle. Notice these are plain objects with one exact wrongness — not moods.
+
+DO NOT DODGE. Forbidden: ethereal, abstract, or poetic escape hatches — no light, glow, mist, aura, essence, "energy", shimmer, dream, floating sparkles, or anything ineffable; no merely pretty, whimsical, or decorative resolution. If you could not photograph it plainly on a table like a product shot, it is too vague — throw it out and pick a harder, more literal object. The wrongness is specific and physical, never a vibe. Name it plainly, like a museum label, never poetically — a title like "Empty Bowl of Light" is exactly the pretty dodge to avoid.
+
+Read the two objects. Decide each axis same or different, and force the third's value (different from BOTH where they differ). Then commit to ONE concrete everyday object that satisfies all of it and itches hard beside the other two. Return STRICT JSON only, no markdown:
+{"name":"2-4 word plain title","object":"one literal sentence a product photographer could shoot: a specific ordinary object with one precise, physical wrongness","axes":[{"axis":"material","relation":"same|different","value":"..."}],"rationale":"one sentence naming the exact expectation it denies"}`;
 
     const user = `Object one — ${a.name}: ${a.blurb || ''}\nObject two — ${b.name}: ${b.blurb || ''}\n\nDesign the third.`;
 
-    const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.9,
+    const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8,
       messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] });
     if (chat.error) return res.status(400).json({ error: chat.error.message });
 
