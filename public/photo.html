@@ -184,8 +184,14 @@
     const r = await api('/api/photostudio/mockups', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ image: photoDataUrl, scenes }) });
     btn.disabled = false;
     if (!r.ok) { hint.innerHTML = `<span style="color:#b15049">${(r.body && r.body.error) || 'mockups failed'}</span>`; grid.innerHTML=''; return; }
-    mockups = (r.body.mockups || []).filter(m => m.ok).map(m => ({ ...m, selected: true }));
-    hint.textContent = mockups.length ? 'Tap to include / exclude each one.' : 'No mockups rendered — try again.';
+    const all = r.body.mockups || [];
+    mockups = all.filter(m => m.ok).map(m => ({ ...m, selected: true }));
+    if (mockups.length) {
+      hint.textContent = 'Tap to include / exclude each one.';
+    } else {
+      const reason = (all.find(m => m.error) || {}).error;
+      hint.innerHTML = `<span style="color:#b15049">No mockups rendered${reason ? ' — ' + reason : ''}. Try again.</span>`;
+    }
     renderMockups();
   }
   function renderMockups(){
