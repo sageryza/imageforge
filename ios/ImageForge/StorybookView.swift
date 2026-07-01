@@ -76,13 +76,13 @@ struct StorybookView: View {
         } else {
             VStack(spacing: 10) {
                 PageCurlBook(count: pages.count, index: $current) { idx in
-                    bookPage(pages[idx])
+                    spread(pages[idx])
                 }
                 .frame(maxWidth: .infinity)
-                .aspectRatio(2.0 / 3.0, contentMode: .fit)
-                .background(Color.white)
+                .aspectRatio(1.5, contentMode: .fit)   // landscape: an open book
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
                 .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
 
                 HStack(spacing: 14) {
                     Text("Page \(min(current + 1, pages.count)) of \(pages.count) · drag a page edge to turn")
@@ -98,42 +98,83 @@ struct StorybookView: View {
         }
     }
 
-    // One book page: the illustration up top, the words set below it in the
-    // serif — on solid white "paper" so the page-curl reads like a real book.
-    private func bookPage(_ page: Creation) -> some View {
-        VStack(spacing: 0) {
-            AsyncImage(url: page.url) { phase in
-                switch phase {
-                case .success(let image): image.resizable().scaledToFit()
-                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-                default: ProgressView()
+    // One open-book spread: the words set on the left page, the illustration on
+    // the right — with a soft gutter shadow down the middle so it reads like a
+    // real open picture book.
+    private func spread(_ page: Creation) -> some View {
+        HStack(spacing: 0) {
+            // LEFT — the words, on warm paper.
+            ZStack {
+                Color(hex: 0xFBF8F1)
+                if let cap = page.prompt, !cap.isEmpty {
+                    Text(cap)
+                        .font(Theme.serif(16))
+                        .foregroundColor(Theme.text)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.6)
+                        .padding(18)
+                } else {
+                    Text("·").font(Theme.serif(20)).foregroundColor(Theme.textDim)
                 }
             }
-            .frame(maxWidth: .infinity)
-            if let cap = page.prompt, !cap.isEmpty {
-                Text(cap)
-                    .font(Theme.serif(18))
-                    .foregroundColor(Theme.text)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(gutter(trailing: true), alignment: .trailing)
+
+            // RIGHT — the picture, on white paper.
+            ZStack {
+                Color.white
+                AsyncImage(url: page.url) { phase in
+                    switch phase {
+                    case .success(let image): image.resizable().scaledToFit().padding(8)
+                    case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                    default: ProgressView()
+                    }
+                }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(gutter(trailing: false), alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.white)
     }
 
+    // Soft shadow along the spine side of a page.
+    private func gutter(trailing: Bool) -> some View {
+        LinearGradient(
+            colors: trailing ? [.clear, .black.opacity(0.12)] : [.black.opacity(0.12), .clear],
+            startPoint: .leading, endPoint: .trailing)
+            .frame(width: 16)
+    }
+
+    // Empty state: a blank open book inviting the first page.
     private var emptyHint: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "book").font(.system(size: 34)).foregroundColor(Theme.accentDim)
-            Text("Your book starts here").font(.headline).foregroundColor(Theme.text)
-            Text("Write the words for a page and describe its picture — each one you add becomes the next page.")
-                .font(.caption).foregroundColor(Theme.textDim)
-                .multilineTextAlignment(.center)
+        HStack(spacing: 0) {
+            ZStack {
+                Color(hex: 0xFBF8F1)
+                VStack(spacing: 8) {
+                    Image(systemName: "book").font(.system(size: 30)).foregroundColor(Theme.accentDim)
+                    Text("Your book\nstarts here")
+                        .font(Theme.serif(19)).foregroundColor(Theme.text)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(14)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(gutter(trailing: true), alignment: .trailing)
+
+            ZStack {
+                Color.white
+                Text("write a page below\nto begin →")
+                    .font(.caption).foregroundColor(Theme.textDim)
+                    .multilineTextAlignment(.center).padding(14)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(gutter(trailing: false), alignment: .leading)
         }
-        .frame(maxWidth: .infinity).padding(.vertical, 28)
-        .background(Theme.surface).cornerRadius(Theme.radiusLg)
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1.5, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 
     // MARK: - Compose

@@ -95,19 +95,17 @@ struct GoButton: View {
 struct StarTitle: View {
     var text: String
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 10) {
             Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
-            Spacer(minLength: 12)
             Text(text)
                 .font(Theme.serif(24).smallCaps())
                 .tracking(1.5)
                 .foregroundColor(Theme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            Spacer(minLength: 12)
             Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
         }
-        .padding(.horizontal, 22)
+        .frame(maxWidth: .infinity)
     }
 }
 
