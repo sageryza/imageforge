@@ -131,15 +131,45 @@
   drop.ondragleave = () => drop.classList.remove('over');
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); };
   fileInput.onchange = () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); };
+  // Normalize whatever the phone/browser hands us (HEIC, huge JPEG, odd color
+  // profile) into a clean, downsized sRGB JPEG that OpenAI's image endpoints
+  // reliably accept. The browser decodes the original (Safari reads HEIC), we
+  // redraw it onto a canvas capped at 1536px on the long edge, flatten any
+  // transparency to white, and re-encode as JPEG. This is what fixes the
+  // "invalid image file or mode" errors from raw iPhone photos.
   function loadFile(f){
-    if (!f.type.startsWith('image/')) return;
-    const r = new FileReader();
-    r.onload = () => {
-      photoDataUrl = r.result;
+    const isImage = (f.type && f.type.startsWith('image/')) || /\.(heic|heif|jpe?g|png|webp)$/i.test(f.name || '');
+    if (!isImage) { document.getElementById('analyzeHint').innerHTML = '<span style="color:#b15049">That doesn\'t look like an image.</span>'; return; }
+    const hint = document.getElementById('analyzeHint');
+    hint.innerHTML = '<span class="spin"></span>Reading photo…';
+    const img = new Image();
+    const objUrl = URL.createObjectURL(f);
+    img.onload = () => {
+      URL.revokeObjectURL(objUrl);
+      try {
+        const MAX = 1536;
+        const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        const scale = Math.min(1, MAX / Math.max(w, h));
+        const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cw, ch); // flatten alpha
+        ctx.drawImage(img, 0, 0, cw, ch);
+        photoDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      } catch (e) {
+        hint.innerHTML = '<span style="color:#b15049">Couldn\'t process that photo. Try a JPEG or PNG.</span>';
+        return;
+      }
+      hint.textContent = '';
       document.getElementById('dropHint').innerHTML = `<img src="${photoDataUrl}" alt="your product" />`;
       document.getElementById('analyzeBtn').disabled = false;
     };
-    r.readAsDataURL(f);
+    img.onerror = () => {
+      URL.revokeObjectURL(objUrl);
+      hint.innerHTML = '<span style="color:#b15049">Couldn\'t read that image on this device. Try a JPEG or PNG.</span>';
+    };
+    img.src = objUrl;
   }
 
   // ── analyze: describe + write listing ──
@@ -177,7 +207,7 @@
     if (!photoDataUrl) return;
     const btn = document.getElementById('mockBtn'), hint = document.getElementById('mockHint');
     const grid = document.getElementById('mgrid');
-    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>Staging your product (this takes a bit)…';
+    btn.disabled = true; hint.innerHTML = '<span class="spin"></span>Staging your product — this takes about a minute, hang tight…';
     // show placeholders
     const n = 1 + Math.min(2, scenes.length);
     grid.innerHTML = Array.from({length:n}).map(()=>'<div class="mtile loading"><span class="spin"></span></div>').join('');
