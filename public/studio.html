@@ -51,6 +51,9 @@
   .pstage.print .art { width:78%; height:78%; top:50%; mix-blend-mode:normal; box-shadow:0 1px 6px rgba(0,0,0,.12); }
   .pcap { font-size:11px; color:var(--text-dim); margin-top:5px; }
   .route { font-size:11px; color:var(--accent); }
+  .swatches { display:flex; gap:5px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+  .swatch { width:16px; height:16px; border-radius:50%; border:1px solid var(--border); cursor:pointer; padding:0; }
+  .swatch.on { outline:2px solid var(--accent); outline-offset:1px; }
   label.fld { font-size: 13px; color: var(--text-dim); display:block; margin: 12px 0 5px; }
   textarea.copy { width:100%; min-height:80px; border:1px solid var(--border); border-radius:var(--radius); padding:9px; font-family:inherit; font-size:13px; background:var(--bg); resize:vertical; }
   .tag { display:inline-block; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:2px 8px; font-size:11px; margin:3px 4px 0 0; }
@@ -147,7 +150,9 @@
     { key:'tote', label:'Tote', real:true, route:'Printify' },
     { key:'mug', label:'Mug', real:true, route:'Printify' },
   ];
-  const mockCache = {}; // "designUrl|product" -> real mockup url
+  const mockCache = {}; // "designUrl|product|variant" -> real mockup url
+  let POD_OPTIONS = {};    // product -> { default_variant, colors:[{n,v,hex}] }
+  let selectedVariant = {}; // product -> variant id (garment color)
   let STYLES = [];          // {id,name}
   let selectedStyles = new Set();
   let selectedProducts = new Set(['art print','greeting card']);
@@ -179,8 +184,12 @@
     pe.innerHTML = PRODUCTS.map(p=>`<span class="chip ${selectedProducts.has(p.key)?'on':''}" data-prod="${p.key}">${p.label}</span>`).join('');
     pe.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ c.classList.toggle('on'); const k=c.dataset.prod; selectedProducts.has(k)?selectedProducts.delete(k):selectedProducts.add(k); if(activeDesign)renderProducts(); });
     api('/api/etsy/defaults').then(d=>{ if(d.ok&&d.body.shop_id) document.getElementById('shop').value=d.body.shop_id; });
+    const po = await api('/api/pipeline/pod-options');
+    if(po.ok){ POD_OPTIONS = po.body || {}; Object.keys(POD_OPTIONS).forEach(k=>selectedVariant[k]=POD_OPTIONS[k].default_variant); }
   }
   init();
+
+  function setColor(product, variant){ selectedVariant[product]=variant; renderProducts(); }
 
   // ── talk-it-out ──
   async function planIt(){
@@ -254,23 +263,29 @@
         return `<div class="pcard"><div class="pstage print"><img class="art" src="${activeDesign}"/></div>
           <div class="pcap">${p.label}</div><div class="route">${p.route}</div></div>`;
       }
-      const url = mockCache[activeDesign+'|'+p.key];
+      const variant = selectedVariant[p.key];
+      const url = mockCache[activeDesign+'|'+p.key+'|'+variant];
       const inner = url ? `<img class="blank" src="${url}"/>` : `<span class="spin"></span>`;
       const rlabel = url ? 'real mockup' : 'rendering…';
-      return `<div class="pcard"><div class="pstage" style="display:flex;align-items:center;justify-content:center">${inner}</div>
+      const colors = (POD_OPTIONS[p.key]&&POD_OPTIONS[p.key].colors)||[];
+      const sw = colors.length
+        ? `<div class="swatches">`+colors.map(c=>`<button class="swatch ${c.v===variant?'on':''}" style="background:${c.hex}" title="${c.n}" onclick="setColor('${p.key}',${c.v})"></button>`).join('')+`</div>`
+        : '';
+      return `<div class="pcard"><div class="pstage" style="display:flex;align-items:center;justify-content:center">${inner}</div>${sw}
         <div class="pcap">${p.label}</div><div class="route">${rlabel} · ${p.route}</div></div>`;
     }).join('') || '<p class="muted">Pick products above to preview.</p>';
-    // kick off real-mockup generation for any uncached apparel products
-    const need = chosen.filter(p=>p.real && !mockCache[activeDesign+'|'+p.key]).map(p=>p.key);
+    // kick off real-mockup generation for any uncached apparel product/color
+    const need = chosen.filter(p=>p.real && !mockCache[activeDesign+'|'+p.key+'|'+selectedVariant[p.key]]).map(p=>p.key);
     if(need.length) fetchMockups(need, activeDesign);
   }
 
   let mockInFlight = false;
   async function fetchMockups(productKeys, design){
     if(mockInFlight) return; mockInFlight = true;
-    const r = await api('/api/pipeline/mockups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:design, products:productKeys})});
+    const variants = {}; productKeys.forEach(k=>{ if(selectedVariant[k]) variants[k]=selectedVariant[k]; });
+    const r = await api('/api/pipeline/mockups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:design, products:productKeys, variants})});
     mockInFlight = false;
-    if(r.ok){ (r.body.mockups||[]).forEach(m=>{ if(m.ok&&m.mockup_url) mockCache[design+'|'+m.product]=m.mockup_url; }); }
+    if(r.ok){ (r.body.mockups||[]).forEach(m=>{ if(m.ok&&m.mockup_url) mockCache[design+'|'+m.product+'|'+(m.variant_id||selectedVariant[m.product])]=m.mockup_url; }); }
     if(design===activeDesign) renderProducts();
   }
 

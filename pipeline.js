@@ -273,11 +273,41 @@ async function removeBackground(imageUrl) {
 // mockup images. (Validated live; front print area.)
 // Per product: blueprint / provider / variant, the FRONT print-area pixel size
 // (from the catalog, used to place the art correctly), and a vertical anchor.
+// `variant_id` is the DEFAULT color (deliberately LIGHT — dark line art printed
+// on a dark garment is invisible once the white background is removed, so a
+// light default keeps designs readable). `colors` are the pickable options.
 const POD_CATALOG = {
-  't-shirt':    { blueprint_id: 12,  print_provider_id: 99, variant_id: 18102, pw: 3951, ph: 4800, y: 0.42, apparel: true },
-  'sweatshirt': { blueprint_id: 49,  print_provider_id: 99, variant_id: 25376, pw: 3185, ph: 3636, y: 0.42, apparel: true },
-  'tote':       { blueprint_id: 507, print_provider_id: 48, variant_id: 80814, pw: 2102, ph: 4051, y: 0.30, apparel: true },
-  'mug':        { blueprint_id: 68,  print_provider_id: 1,  variant_id: 33719, pw: 2700, ph: 1120, y: 0.50, apparel: true },
+  't-shirt': {
+    blueprint_id: 12, print_provider_id: 99, pw: 3951, ph: 4800, y: 0.42, apparel: true,
+    variant_id: 18390, // Natural
+    colors: [
+      { n: 'Natural', v: 18390, hex: '#e8e0cf' }, { n: 'White', v: 18542, hex: '#ffffff' },
+      { n: 'Soft Cream', v: 18462, hex: '#f2ead6' }, { n: 'Athletic Heather', v: 18078, hex: '#b7b8b3' },
+      { n: 'Navy', v: 18398, hex: '#2b2f42' }, { n: 'Forest', v: 18182, hex: '#2f4a3a' },
+      { n: 'Black', v: 18102, hex: '#222222' },
+    ],
+  },
+  'sweatshirt': {
+    blueprint_id: 49, print_provider_id: 99, pw: 3185, ph: 3636, y: 0.42, apparel: true,
+    variant_id: 25456, // Sand
+    colors: [
+      { n: 'Sand', v: 25456, hex: '#d8cbb0' }, { n: 'White', v: 25458, hex: '#ffffff' },
+      { n: 'Sport Grey', v: 25457, hex: '#b0b0b0' }, { n: 'Navy', v: 25450, hex: '#2b2f42' },
+      { n: 'Black', v: 25459, hex: '#222222' },
+    ],
+  },
+  'tote': {
+    blueprint_id: 507, print_provider_id: 48, pw: 2102, ph: 4051, y: 0.30, apparel: true,
+    variant_id: 80814, // Beige
+    colors: [
+      { n: 'Beige', v: 80814, hex: '#d9cdb5' }, { n: 'White', v: 80818, hex: '#ffffff' },
+      { n: 'Black', v: 80815, hex: '#222222' },
+    ],
+  },
+  'mug': {
+    blueprint_id: 68, print_provider_id: 1, pw: 2700, ph: 1120, y: 0.50, apparel: true,
+    variant_id: 33719, colors: [], // white ceramic only
+  },
   // greeting card / art print: shown as a framed design in the UI (a real
   // Printify card mockup needs a valid decorator — a later addition).
 };
@@ -296,7 +326,7 @@ function placeInArea(cat, ar = 1, margin = 0.92) {
 // front print area, poll until Printify renders the mockup, grab the image URL,
 // then delete the product (the mockup URL survives). Apparel uses a
 // background-removed version of the design so the art prints clean.
-async function generateMockups({ image_url, products = [], removeBg = true, shop_id } = {}) {
+async function generateMockups({ image_url, products = [], removeBg = true, shop_id, variants = {} } = {}) {
   if (!printify) throw new Error('printify module unavailable');
   if (!image_url) throw new Error('image_url required');
   const keys = products.map(p => String(p).toLowerCase()).filter(p => POD_CATALOG[p]);
@@ -320,12 +350,13 @@ async function generateMockups({ image_url, products = [], removeBg = true, shop
   const oneMockup = async (key) => {
     const cat = POD_CATALOG[key];
     const place = placeInArea(cat, ar);
+    const variantId = variants[key] || cat.variant_id; // optional color override
     try {
       const created = await printify.createProduct({
         title: `preview ${key}`, description: 'preview',
         blueprint_id: cat.blueprint_id, print_provider_id: cat.print_provider_id, visible: false,
-        variants: [{ id: cat.variant_id, price: 2000, is_enabled: true }],
-        print_areas: [{ variant_ids: [cat.variant_id], placeholders: [{ position: 'front', images: [{ id: imageId, x: place.x, y: place.y, scale: place.scale, angle: place.angle }] }] }],
+        variants: [{ id: variantId, price: 2000, is_enabled: true }],
+        print_areas: [{ variant_ids: [variantId], placeholders: [{ position: 'front', images: [{ id: imageId, x: place.x, y: place.y, scale: place.scale, angle: place.angle }] }] }],
       }, shop_id);
       const pid = created.ok && created.body && created.body.id;
       if (!pid) return { product: key, ok: false, error: created.body };
@@ -337,7 +368,7 @@ async function generateMockups({ image_url, products = [], removeBg = true, shop
         else await new Promise(r => setTimeout(r, 2000));
       }
       printify.deleteProduct(pid, shop_id).catch(() => {}); // fire-and-forget cleanup
-      return url ? { product: key, ok: true, mockup_url: url } : { product: key, ok: false, error: 'no mockup rendered' };
+      return url ? { product: key, variant_id: variantId, ok: true, mockup_url: url } : { product: key, ok: false, error: 'no mockup rendered' };
     } catch (err) {
       return { product: key, ok: false, error: err.message };
     }
@@ -529,15 +560,25 @@ router.post('/publish-draft', express.json({ limit: '25mb' }), async (req, res) 
   }
 });
 
-// Real Printify mockups for a design. Body: { image_url, products[], removeBackground? }.
+// Real Printify mockups for a design. Body: { image_url, products[],
+// removeBackground?, variants?:{product:variant_id} } (variants = color override).
 router.post('/mockups', express.json({ limit: '25mb' }), async (req, res) => {
-  const { image_url, products, removeBackground: rb = true, shop_id } = req.body || {};
+  const { image_url, products, removeBackground: rb = true, shop_id, variants } = req.body || {};
   try {
-    const out = await generateMockups({ image_url, products, removeBg: rb, shop_id });
+    const out = await generateMockups({ image_url, products, removeBg: rb, shop_id, variants });
     res.json(out);
   } catch (err) {
     res.status(/required|unavailable/.test(err.message) ? 400 : 502).json({ error: err.message });
   }
+});
+
+// Product options (garment colors) for the Studio's color pickers.
+router.get('/pod-options', (req, res) => {
+  const out = {};
+  for (const [key, cat] of Object.entries(POD_CATALOG)) {
+    out[key] = { default_variant: cat.variant_id, colors: cat.colors || [] };
+  }
+  res.json(out);
 });
 
 // Strip a design's background → transparent PNG (for apparel). Body: { image_url }.
