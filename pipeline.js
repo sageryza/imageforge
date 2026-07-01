@@ -271,14 +271,25 @@ async function removeBackground(imageUrl) {
 // Blueprint / print-provider / a representative variant per product type, used
 // to spin up throwaway "preview" products just to harvest Printify's rendered
 // mockup images. (Validated live; front print area.)
+// Per product: blueprint / provider / variant, the FRONT print-area pixel size
+// (from the catalog, used to place the art correctly), and a vertical anchor.
 const POD_CATALOG = {
-  't-shirt':       { blueprint_id: 12,  print_provider_id: 99, variant_id: 18102, scale: 0.9, apparel: true },
-  'sweatshirt':    { blueprint_id: 49,  print_provider_id: 99, variant_id: 25376, scale: 0.9, apparel: true },
-  'tote':          { blueprint_id: 507, print_provider_id: 48, variant_id: 80814, scale: 0.7, apparel: true },
-  'mug':           { blueprint_id: 68,  print_provider_id: 1,  variant_id: 33719, scale: 1.0, apparel: true },
+  't-shirt':    { blueprint_id: 12,  print_provider_id: 99, variant_id: 18102, pw: 3951, ph: 4800, y: 0.42, apparel: true },
+  'sweatshirt': { blueprint_id: 49,  print_provider_id: 99, variant_id: 25376, pw: 3185, ph: 3636, y: 0.42, apparel: true },
+  'tote':       { blueprint_id: 507, print_provider_id: 48, variant_id: 80814, pw: 2102, ph: 4051, y: 0.30, apparel: true },
+  'mug':        { blueprint_id: 68,  print_provider_id: 1,  variant_id: 33719, pw: 2700, ph: 1120, y: 0.50, apparel: true },
   // greeting card / art print: shown as a framed design in the UI (a real
   // Printify card mockup needs a valid decorator — a later addition).
 };
+
+// Place a design of aspect ratio `ar` (width/height) inside a print area so it
+// is CONTAINED — never cropped — with a small margin. Printify's `scale` is the
+// image width relative to the print-area width; to also fit the height we cap
+// scale at (print_h * ar / print_w). x/y are the image CENTER (0..1).
+function placeInArea(cat, ar = 1, margin = 0.92) {
+  const scale = Math.min(1, (cat.ph * ar) / cat.pw) * margin;
+  return { x: 0.5, y: cat.y ?? 0.5, scale, angle: 0 };
+}
 
 // Generate REAL Printify mockups for a design across product types. For each
 // requested product we create a hidden throwaway product with the design in the
@@ -302,15 +313,19 @@ async function generateMockups({ image_url, products = [], removeBg = true, shop
   const up = await printify.uploadImage({ fileName: 'design.png', url: pngUrl });
   const imageId = up.ok && up.body && up.body.id;
   if (!imageId) return { mockups: [], error: 'image upload failed', detail: up.body };
+  // Design aspect ratio (from Printify's upload response) — so placement fits
+  // non-square art too. Defaults to square.
+  const ar = up.body.width && up.body.height ? up.body.width / up.body.height : 1;
 
   const oneMockup = async (key) => {
     const cat = POD_CATALOG[key];
+    const place = placeInArea(cat, ar);
     try {
       const created = await printify.createProduct({
         title: `preview ${key}`, description: 'preview',
         blueprint_id: cat.blueprint_id, print_provider_id: cat.print_provider_id, visible: false,
         variants: [{ id: cat.variant_id, price: 2000, is_enabled: true }],
-        print_areas: [{ variant_ids: [cat.variant_id], placeholders: [{ position: 'front', images: [{ id: imageId, x: 0.5, y: 0.5, scale: cat.scale, angle: 0 }] }] }],
+        print_areas: [{ variant_ids: [cat.variant_id], placeholders: [{ position: 'front', images: [{ id: imageId, x: place.x, y: place.y, scale: place.scale, angle: place.angle }] }] }],
       }, shop_id);
       const pid = created.ok && created.body && created.body.id;
       if (!pid) return { product: key, ok: false, error: created.body };
