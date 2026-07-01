@@ -430,4 +430,40 @@ final class ForgeService {
         }
         return nil
     }
+
+    // MARK: - Ads (Meta Marketing API, via backend)
+
+    /// Connection + pixel state. Returns connected:false when no token is stored.
+    func adsSummary() async throws -> AdsStatus {
+        try await ensureSignedIn()
+        let result = try await call("adsSummary", [:])
+        let data = (result.data as? [String: Any]) ?? [:]
+        return AdsStatus(
+            connected: (data["connected"] as? Bool) ?? false,
+            accountName: data["accountName"] as? String,
+            currency: data["currency"] as? String,
+            pixelId: data["pixelId"] as? String)
+    }
+
+    /// Create a PAUSED Advantage+ Shopping campaign. Never spends until launched.
+    func adsCreateCampaign(promoting: String, dailyBudgetCents: Int) async throws -> AdsCampaign {
+        try await ensureSignedIn()
+        let result = try await call("adsCreateCampaign", [
+            "promoting": promoting,
+            "dailyBudgetCents": dailyBudgetCents,
+        ])
+        guard let data = result.data as? [String: Any], let id = data["id"] as? String else {
+            throw NSError(domain: "ImageForge", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Couldn't build the campaign."])
+        }
+        return AdsCampaign(id: id,
+                           name: (data["name"] as? String) ?? "Campaign",
+                           status: (data["status"] as? String) ?? "PAUSED")
+    }
+
+    /// Launch (ACTIVE) or pause a campaign. This is the only call that can spend.
+    func adsSetStatus(id: String, active: Bool) async throws {
+        try await ensureSignedIn()
+        _ = try await call("adsSetStatus", ["id": id, "status": active ? "ACTIVE" : "PAUSED"])
+    }
 }

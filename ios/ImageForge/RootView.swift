@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case sticker, coloring, storybook, greeting, dreams, instagram, test
+    case sticker, coloring, storybook, greeting, dreams, instagram, ads, test
     var id: String { rawValue }
 
     var title: String {
@@ -15,6 +15,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .greeting:  return "Greeting Cards"
         case .dreams:    return "Dreams"
         case .instagram: return "Instagram"
+        case .ads:       return "Ads"
         case .test:      return "Test Station"
         }
     }
@@ -27,6 +28,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .greeting:  return "A card front with your greeting — birthdays, thanks, anything."
         case .dreams:    return "Illustrate last night's dream — and keep a journal."
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
+        case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .test:      return "Run one prompt through the house styles."
         }
     }
@@ -39,6 +41,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .greeting:  return "envelope"
         case .dreams:    return "moon.stars"
         case .instagram: return "camera"
+        case .ads:       return "megaphone"
         case .test:      return "wand.and.stars"
         }
     }
@@ -51,6 +54,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .greeting:  GreetingCardsView()
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
+        case .ads:       AdsView()
         case .test:      TestStationView()
         }
     }
