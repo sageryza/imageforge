@@ -48,10 +48,14 @@ lifted into a standalone tool later.
   a product type to a POD service; `POST /listing-content` AI-writes SEO
   title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
   `POST /publish-draft` creates the Etsy draft **and** uploads the design
-  image(s) in one call (auto-generates listing content when `generateContent`);
-  `POST /pod-product` creates a Printify product from a design (upload → variants
-  + front print area → create, optionally `publish` to the connected Etsy shop
-  for auto-fulfillment); `POST /remove-bg` strips a design's background to a
+  image(s) in one call (auto-generates listing content when `generateContent`;
+  category comes from a `productType`→Etsy-taxonomy map — `taxonomyFor()` — so
+  drafts land in a relevant category instead of inheriting a random listing's);
+  `POST /pod-product` creates a Printify product from a design (accepts a
+  `product_type` like `t-shirt`/`mug` that resolves blueprint/provider/default
+  variant from `POD_CATALOG`, or explicit ids; upload → variants + front print
+  area → create, optionally `publish` to the connected Etsy shop for
+  auto-fulfillment); `POST /remove-bg` strips a design's background to a
   transparent PNG (Replicate `851-labs/background-remover`) — apparel products
   pass `removeBackground:true` so the art prints clean, not as a filled box.
   Etsy-draft path = manual fulfilment; Printify publish path = auto-fulfils on
@@ -81,6 +85,23 @@ lifted into a standalone tool later.
   `node scripts/set-pipeline-keys.js` (needs `FIREBASE_SERVICE_ACCOUNT` + the
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
+
+## Photo → Etsy pipeline (no POD)
+- `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
+  from the POD pipeline for items Sophie already MADE (a handmade pouch, a
+  ceramic, a print she ships herself). One photo of the real product →
+  reviewable Etsy draft. No Printify/Printful/Lulu, no auto-fulfilment.
+- **Flow:** `POST /describe` (gpt-4o vision → name/summary/category/materials/
+  colors/keywords + 3 staging ideas); `POST /mockups` (gpt-image-2 **edits**
+  endpoint with `input_fidelity:high` so the ACTUAL product is preserved, not
+  hallucinated — a clean white-background shot + up to 2 styled flatlays, saved
+  to Firebase as PNGs); `POST /analyze` (describe + write listing content in one
+  call, reuses `pipeline.generateListingContent`); `POST /draft` (derives Etsy
+  shipping/return/readiness/taxonomy defaults from an active listing, then
+  reuses `pipeline.publishDraft` to create the DRAFT with the mockups attached).
+- Mockups need Firebase (permanent public URLs Etsy can fetch); without it they
+  fall back to data URLs and the `/draft` step refuses them. Same `STUDIO_TOKEN`
+  gate as the POD pipeline (only `GET /status` is open).
 
 ## Etsy module
 - `etsy.js` is a self-contained Etsy Open API v3 module mounted at `/api/etsy`

@@ -168,6 +168,24 @@ async function generateListingContent({ theme, productType = 'art print', audien
   return clampListing(raw);
 }
 
+// Map a product type to a sensible Etsy taxonomy leaf (a most-specific node,
+// which Etsy requires). Used so a draft's category matches what it IS, instead
+// of inheriting a random active listing's category. All IDs are verified leaves.
+// Sophie can still change the category in Etsy; this is just a good default.
+const ETSY_TAXONOMY = {
+  'art print': 127,      // Art & Collectibles › Prints › Wood & Linocut Prints
+  'print': 127,
+  'linocut': 127,
+  'poster': 125,         // Prints › Music & Movie Posters
+  'greeting card': 1310, // Paper & Party Supplies › Paper › Note Cards
+  'card': 1310,
+  'note card': 1310,
+};
+function taxonomyFor(productType) {
+  if (!productType) return null;
+  return ETSY_TAXONOMY[String(productType).toLowerCase().trim()] || null;
+}
+
 // ─── Orchestration: design → Etsy draft ─────────────────────────────
 // Creates a DRAFT Etsy listing and uploads one or more design images to it.
 // Listing content can be supplied directly, or auto-generated from theme +
@@ -191,6 +209,11 @@ async function publishDraft(opts = {}) {
   } = opts;
   if (!shop_id) throw new Error('shop_id required');
 
+  // Category: prefer a leaf mapped from the product type; only fall back to a
+  // caller-supplied taxonomy_id (e.g. one derived from an existing listing) when
+  // the product type is unknown. Avoids drafts landing in an unrelated category.
+  const resolvedTaxonomy = taxonomyFor(productType) || taxonomy_id;
+
   let content = { title, tags, description, materials };
   if (generateContent) {
     content = await generateListingContent({ theme, productType, audience });
@@ -205,7 +228,7 @@ async function publishDraft(opts = {}) {
   if (return_policy_id) extra.return_policy_id = return_policy_id;
 
   const draftRes = await etsy.createDraftListing(shop_id, {
-    ...content, price, quantity, taxonomy_id, who_made, when_made, type, legacy,
+    ...content, price, quantity, taxonomy_id: resolvedTaxonomy, who_made, when_made, type, legacy,
     extra: Object.keys(extra).length ? extra : undefined,
   });
   if (!draftRes.ok) {
@@ -423,11 +446,13 @@ async function generateMockups({ image_url, products = [], removeBg = true, shop
 async function createPrintifyProduct(opts = {}) {
   if (!printify) throw new Error('printify module unavailable');
   const {
-    shop_id, blueprint_id, print_provider_id,
-    variant_ids = [], price,             // price in cents (e.g. 2499 = $24.99)
+    shop_id, price,                      // price in cents (e.g. 2499 = $24.99)
     image,                               // { url } | { contents } | { id }
     title, description, tags,
-    generateContent = false, theme, productType = 'shirt', audience,
+    generateContent = false, theme, audience,
+    // product_type resolves blueprint/provider/default-variant from POD_CATALOG
+    // (e.g. "t-shirt", "mug") so callers needn't know Printify's ids.
+    product_type,
     placement = {},                      // { position, x, y, scale, angle }
     removeBackground: removeBg = false,  // strip the design's background first (apparel)
     publish = false,
@@ -437,8 +462,18 @@ async function createPrintifyProduct(opts = {}) {
     // "Hide in Store" toggle; visible=false → Etsy draft.)
     goLive = false,
   } = opts;
-  if (!blueprint_id || !print_provider_id) throw new Error('blueprint_id and print_provider_id required');
-  if (!Array.isArray(variant_ids) || !variant_ids.length) throw new Error('variant_ids required');
+
+  // Resolve blueprint / provider / variants: explicit ids win, else fill from
+  // POD_CATALOG by product_type. The AI copy also inherits product_type so the
+  // listing reads like the actual garment, not a generic "shirt".
+  const cat = product_type ? POD_CATALOG[String(product_type).toLowerCase().trim()] : null;
+  const blueprint_id = opts.blueprint_id || (cat && cat.blueprint_id);
+  const print_provider_id = opts.print_provider_id || (cat && cat.print_provider_id);
+  const variant_ids = (Array.isArray(opts.variant_ids) && opts.variant_ids.length)
+    ? opts.variant_ids : (cat ? [cat.variant_id] : []);
+  const productType = opts.productType || product_type || 'shirt';
+  if (!blueprint_id || !print_provider_id) throw new Error('blueprint_id and print_provider_id required (or a known product_type)');
+  if (!Array.isArray(variant_ids) || !variant_ids.length) throw new Error('variant_ids required (or a known product_type)');
   if (price == null) throw new Error('price (in cents) required');
 
   // Content: supplied directly, or AI-written (also used for the Etsy listing
@@ -639,4 +674,5 @@ module.exports = {
   generateMockups,
   removeBackground,
   clampListing,
+  taxonomyFor,
 };
