@@ -79,15 +79,25 @@ struct GoButton: View {
     }
 }
 
-/// A decorated tool title: a little star on each side of the name.
+/// A decorated tool title: the three-star sparkles (same icon as the generate
+/// button) pushed out to each edge, with the name centered in EB Garamond
+/// small-caps between them.
 struct StarTitle: View {
     var text: String
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "sparkle").font(.system(size: 11)).foregroundColor(Theme.mauve)
-            Text(text).font(.headline).foregroundColor(Theme.text)
-            Image(systemName: "sparkle").font(.system(size: 11)).foregroundColor(Theme.mauve)
+        HStack(spacing: 0) {
+            Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
+            Spacer(minLength: 12)
+            Text(text)
+                .font(Theme.serif(24).smallCaps())
+                .tracking(1.5)
+                .foregroundColor(Theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 12)
+            Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
         }
+        .padding(.horizontal, 4)
     }
 }
 
@@ -136,12 +146,15 @@ struct Composer: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             QualityMenu(quality: $quality)
-            TextField(placeholder, text: $text, axis: .vertical)
-                .lineLimit(1...4).font(.body)
+            TextField(placeholder, text: $text)
+                .font(.body)
                 .foregroundColor(Theme.text)
                 .tint(Theme.accent)
                 .focused(focused)
-                .padding(.horizontal, 14).padding(.vertical, 14)
+                .submitLabel(.go)
+                .onSubmit(onGo)
+                .padding(.horizontal, 14)
+                .frame(height: 50)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))

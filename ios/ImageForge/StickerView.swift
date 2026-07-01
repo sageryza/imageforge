@@ -24,18 +24,19 @@ struct StickerView: View {
     var body: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    StarTitle(text: "Sticker Sheet")
+                        .padding(.top, 4)
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
                               maxHeight: 430, loaderText: "conjuring your stickers…") {
                         stickerResult
                     }
-                    Composer(quality: $quality, text: $prompt, placeholder: "what's on the sheet?",
+                    Composer(quality: $quality, text: $prompt, placeholder: "…",
                              busy: busy, focused: $promptFocused, onGo: run)
                 }
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
-                ToolbarItem(placement: .principal) { StarTitle(text: "Stickers") }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { promptFocused = false }
@@ -54,7 +55,7 @@ struct StickerView: View {
                 }
             }
             .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("Stickers")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Couldn't generate",
                    isPresented: Binding(get: { errorText != nil },

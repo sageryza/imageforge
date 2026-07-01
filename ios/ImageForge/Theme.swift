@@ -25,6 +25,11 @@ enum Theme {
     static let mauve     = Color(hex: 0xC58BA6)   // generate-button accent (mauve pink)
     static let ghost     = Color(hex: 0xD8CFB6)   // empty-placeholder dashed lines
     static let radiusXL: CGFloat = 18
+
+    /// EB Garamond (bundled + registered at launch) at a given size.
+    static func serif(_ size: CGFloat) -> Font {
+        Font.custom("EBGaramond-Regular", size: size)
+    }
 }
 
 extension Color {
