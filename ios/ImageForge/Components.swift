@@ -54,6 +54,39 @@ struct GoButton: View {
     }
 }
 
+/// Pick a future time (and Feed vs Story) to schedule a post.
+struct ScheduleSheet: View {
+    var allowStoryChoice: Bool = false
+    var onSchedule: (Date, Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var when = Date().addingTimeInterval(3600)
+    @State private var asStory = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker("When", selection: $when, in: Date()...)
+                    .datePickerStyle(.graphical)
+                if allowStoryChoice {
+                    Picker("Post as", selection: $asStory) {
+                        Text("Feed post").tag(false)
+                        Text("Story").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .navigationTitle("Schedule").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Schedule") { onSchedule(when, asStory); dismiss() }
+                }
+            }
+        }
+        .tint(Theme.accent)
+    }
+}
+
 /// One-row composer: prompt box · go button. (Quality defaults to Low; no control.)
 struct Composer: View {
     @Binding var text: String

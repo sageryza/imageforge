@@ -20,6 +20,7 @@ struct InstagramView: View {
     @State private var preview: Creation?
     @State private var posting = false
     @State private var postingStory = false
+    @State private var scheduling = false
     @State private var postResult: String?
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
@@ -280,6 +281,11 @@ struct InstagramView: View {
                     .disabled(posting)
                     Text("A Story disappears after 24 hours.")
                         .font(.caption2).foregroundColor(Theme.textDim)
+                    Button { scheduling = true } label: {
+                        Label("Schedule for later", systemImage: "clock")
+                            .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
+                    }
+                    .disabled(posting)
                     ShareLink(item: p.url) {
                         Label("Share / Save", systemImage: "square.and.arrow.up")
                             .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
@@ -291,11 +297,29 @@ struct InstagramView: View {
             .navigationTitle("Post").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { preview = nil } } }
             .onAppear { draftCaption = ""; draftHashtags = [] }
+            .sheet(isPresented: $scheduling) {
+                ScheduleSheet(allowStoryChoice: true) { date, asStory in
+                    schedule(p, at: date, asStory: asStory)
+                }
+            }
             .alert("Instagram", isPresented: Binding(get: { postResult != nil }, set: { if !$0 { postResult = nil } })) {
                 Button("OK", role: .cancel) { postResult = nil }
             } message: { Text(postResult ?? "") }
         }
         .tint(Theme.accent)
+    }
+
+    private func schedule(_ p: Creation, at: Date, asStory: Bool) {
+        Task {
+            do {
+                try await ForgeService.shared.schedulePost(
+                    type: asStory ? "story" : "feed", imageUrl: p.url,
+                    caption: composedCaption(p), at: at)
+                postResult = "Scheduled! It'll post to \(asStory ? "your Story" : "your feed") automatically."
+            } catch {
+                postResult = error.localizedDescription
+            }
+        }
     }
 
     private func captionHelper(_ p: Creation) -> some View {

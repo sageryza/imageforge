@@ -343,6 +343,23 @@ final class ForgeService {
         _ = try await call("forgeTestImage", payload)
     }
 
+    /// Schedule a finished post to publish later. `type` is feed / story /
+    /// carousel / reel; pass the matching url(s). It posts at `at`.
+    func schedulePost(type: String, imageUrl: URL? = nil, imageUrls: [URL]? = nil,
+                      videoUrl: URL? = nil, caption: String?, at: Date) async throws {
+        try await ensureSignedIn()
+        var payload: [String: Any] = [
+            "style": "ig-schedule",
+            "type": type,
+            "postAt": Int(at.timeIntervalSince1970 * 1000),
+        ]
+        if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
+        if let u = imageUrl { payload["imageUrl"] = u.absoluteString }
+        if let us = imageUrls { payload["imageUrls"] = us.map { $0.absoluteString } }
+        if let v = videoUrl { payload["videoUrl"] = v.absoluteString }
+        _ = try await call("forgeTestImage", payload)
+    }
+
     /// Publish an already-generated image straight to Instagram (Graph API).
     /// `asStory` posts a 24h Story instead of a feed post (Stories ignore the
     /// caption). Throws a clear error if Instagram posting isn't set up yet.
