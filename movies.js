@@ -616,13 +616,17 @@ async function renderSketchGrid(movie, group) {
   try {
     const gridFile = path.join(tmpDir, 'grid.webp');
     fs.writeFileSync(gridFile, buf);
-    // 1024x1536 grid → 512x768 quadrants, inset 2.5% to shave the drawn borders.
+    // 1024x1536 grid → quadrants. A light inset (1.5%/side) shaves any sliver
+    // of the neighboring panel, then a uniform cream mat (4.5%/side, matched
+    // to the reference's aged paper) frames every slice evenly — so each
+    // panel reads as drawn-on-paper instead of an off-center crop.
     for (let i = 0; i < group.length; i++) {
       const scene = group[i];
       const outFile = path.join(tmpDir, `q${i}.webp`);
       const x = i % 2, y = Math.floor(i / 2);
       await run(FFMPEG, ['-y', '-i', gridFile, '-vf',
-        `crop=iw/2*0.95:ih/2*0.95:iw/2*${x}+iw/2*0.025:ih/2*${y}+ih/2*0.025`,
+        `crop=iw/2*0.97:ih/2*0.97:iw/2*${x}+iw/2*0.015:ih/2*${y}+ih/2*0.015,` +
+        `pad=iw*1.09:ih*1.09:(ow-iw)/2:(oh-ih)/2:color=#f1e7d0`,
         outFile]);
       const url = await saveBufferToStorage(fs.readFileSync(outFile), 'image/webp', 'movies/panels');
       keepHistory(scene, 'panel');
