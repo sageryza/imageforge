@@ -1,7 +1,17 @@
-# ImageForge — native iOS app (Test Station)
+# ImageForge — native iOS app (Test Station + Movie Maker)
 
-A SwiftUI app that brings the **Test Station** to iOS: type one prompt, tap a
-house style (or tick several and run them together), and compare the results.
+A SwiftUI app with two tools:
+
+- **Test Station** — type one prompt, tap a house style (or tick several and
+  run them together), and compare the results.
+- **Movie Maker** — type a story, get a movie. The native frontend for the
+  `/api/movies` pipeline on the imageforge server (scene breakdown →
+  storyboard panels → Replicate image-to-video → ffmpeg stitch), with a
+  film-strip timeline: tap any frame to zoom in (re-roll its panel, edit the
+  exact image/motion prompts, trim/speed/freeze/reorder clips, upgrade single
+  scenes to Kling, dream-mode bridges). Movies live in Firestore on the server
+  and reopen for later editing. If the server sets `STUDIO_TOKEN`, paste it in
+  Movie Settings (gear icon).
 
 The **backend is reused unchanged** — it signs in anonymously with Firebase Auth
 and calls the `forgeTestImage` Cloud Function (in the sibling
@@ -41,11 +51,14 @@ ship in the app** — they live in the function's locked-down Firestore config
 | File | Role |
 |---|---|
 | `project.yml` | XcodeGen spec (target, Firebase SPM deps, bundle id) |
-| `ImageForge/ImageForgeApp.swift` | App entry, `FirebaseApp.configure()` |
+| `ImageForge/ImageForgeApp.swift` | App entry, `FirebaseApp.configure()`, the two tabs |
 | `ImageForge/Theme.swift` | House palette (matches `public/forge.css`) |
 | `ImageForge/Models.swift` | `ForgeStyle`, `ForgeStyles.all`, `ForgeResult` |
 | `ImageForge/ForgeService.swift` | Anonymous auth + `forgeTestImage` callable |
 | `ImageForge/TestStationView.swift` | The Style Machine UI (tiles + results) |
+| `ImageForge/MovieModels.swift` | Codable models mirroring `/api/movies` JSON |
+| `ImageForge/MovieService.swift` | REST client for the movie pipeline (`x-studio-token`) |
+| `ImageForge/MovieMakerView.swift` | Movie Maker UI — film-strip timeline, zoom levels, edit desk |
 
 Tiles load their committed previews from the live web app
 (`https://imageforge-q125.onrender.com/samples/<seg>.webp`); gpt-image-2 shows a

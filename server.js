@@ -17,8 +17,8 @@ const app = express();
 // credentials). Tighten `origin` to an allow-list later if needed.
 const corsOptions = {
   origin: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-studio-token'],
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
@@ -103,13 +103,15 @@ loadConfig().then(() => {
   const lulu = require('./lulu');
   const pipeline = require('./pipeline');
   const photostudio = require('./photostudio');
+  const movies = require('./movies');
   app.use('/api/etsy', etsy.router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
   app.use('/api/pipeline', pipeline.router);
   app.use('/api/photostudio', photostudio.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio)');
+  app.use('/api/movies', movies.router);
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL

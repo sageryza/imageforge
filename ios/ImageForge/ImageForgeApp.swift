@@ -9,7 +9,12 @@ struct ImageForgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TestStationView()
+            TabView {
+                TestStationView()
+                    .tabItem { Label("Test Station", systemImage: "wand.and.stars") }
+                MovieMakerHome()
+                    .tabItem { Label("Movies", systemImage: "film") }
+            }
         }
     }
 }
