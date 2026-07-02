@@ -29,12 +29,50 @@ struct Movie: Codable, Identifiable {
     var dreamMode: Bool?
     var scenes: [MovieScene]
     var bridges: [MovieBridge]?
+    var cuts: [MovieCut]?
     var job: MovieJob?
     var movieUrl: String?
     var movieDuration: Double?
     var spend: Double?
     var createdAt: String?
     var updatedAt: String?
+}
+
+/// One finished stitch. Every stitch is kept, named by what changed since the
+/// previous cut, with the ordered frames it contains (the contact sheet).
+struct MovieCut: Codable, Identifiable {
+    let id: String
+    var url: String
+    var name: String
+    var duration: Double?
+    var stitchedAt: String?
+    var frames: [CutFrame]?
+
+    var videoURL: URL? { URL(string: url) }
+}
+
+struct CutFrame: Codable {
+    var sceneId: String
+    var title: String
+    var panelUrl: String?
+    var bridge: Bool?
+}
+
+/// A one-image quick animation (home-screen "Animate", no movie attached).
+struct QuickClip: Codable, Identifiable {
+    let id: String
+    var status: String      // running | done | error
+    var error: String?
+    var prompt: String?
+    var imageUrl: String?
+    var clipUrl: String?
+    var resolution: String?
+    var frames: Int?
+    var cost: Double?
+    var createdAt: String?
+
+    var clipVideoURL: URL? { clipUrl.flatMap(URL.init(string:)) }
+    var posterURL: URL? { imageUrl.flatMap(URL.init(string:)) }
 }
 
 struct MovieScene: Codable, Identifiable {
@@ -48,11 +86,13 @@ struct MovieScene: Codable, Identifiable {
     var pairWithNext: Bool?
     var panel: PanelState?
     var clip: ClipState?
+    var panelHistory: [PanelState]?   // superseded generations (the gallery)
+    var clipHistory: [ClipState]?
     var edits: SceneEdits?
 
     enum CodingKeys: String, CodingKey {
         case id, title, imagePrompt, motionPrompt, motionPromptOverride
-        case hasText, pairWithNext, panel, clip, edits
+        case hasText, pairWithNext, panel, clip, panelHistory, clipHistory, edits
         case summary = "description"
     }
 
@@ -70,6 +110,7 @@ struct PanelState: Codable {
     var quality: String?
     var status: String?    // running | done | error
     var error: String?
+    var promptUsed: String?
 }
 
 struct ClipState: Codable {
@@ -121,6 +162,7 @@ struct MoviesStatus: Codable {
     var replicate: Bool
     var firebase: Bool
     var ffmpeg: Bool
+    var styleReference: Bool?
     var gated: Bool
 }
 

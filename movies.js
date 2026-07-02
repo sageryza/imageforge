@@ -32,6 +32,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
+const FormData = require('form-data');
 const admin = require('firebase-admin');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -82,6 +83,29 @@ const VIDEO_MODELS = {
 
 // Rough per-panel costs (gpt-image-2, 1024x1536) so the app can show chips.
 const PANEL_COST = { low: 0.02, medium: 0.06, high: 0.25 };
+
+// ─── Style reference image ──────────────────────────────────────────
+// Sophie's hand-drawn diary-comic page (refs/movie-style.jpg — outside
+// /public so it's never web-served). When present, EVERY panel renders
+// through gpt-image-2's edits endpoint with this image attached as a pure
+// STYLE reference — matched for medium/linework/palette, never content.
+// Same trick that anchors the zine's look. Disable with MOVIE_STYLE_REF=0.
+let styleRef = null;
+try {
+  if (process.env.MOVIE_STYLE_REF !== '0') {
+    styleRef = fs.readFileSync(path.join(__dirname, 'refs', 'movie-style.jpg'));
+    console.log('movies: style reference loaded (', styleRef.length, 'bytes )');
+  }
+} catch {
+  console.warn('movies: no refs/movie-style.jpg — panels use the text style lock only');
+}
+
+const STYLE_REF_PREFIX =
+  'Use the attached image purely as the STYLE reference — match its medium, ' +
+  'ink linework and cross-hatching, muted watercolor palette, aged cream ' +
+  'paper texture and hand-drawn lettering — but do NOT copy its content, ' +
+  'subjects, characters, panels or composition. Draw one completely new ' +
+  'full-frame scene: ';
 
 // Style lock that held the illustration style verbatim in the validated run.
 const DEFAULT_MOTION_STYLE =
@@ -148,6 +172,42 @@ async function deleteMovie(id) {
   const db = firestore();
   if (db) await db.collection(COLLECTION).doc(id).delete();
   else memStore.delete(id);
+}
+
+// Quick animations (one image → one clip, no movie) get their own collection.
+const QUICK_COLLECTION = process.env.QUICK_COLLECTION || 'forge-quick';
+const memQuick = new Map();
+
+async function saveQuick(doc) {
+  doc.updatedAt = new Date().toISOString();
+  const db = firestore();
+  if (db) await db.collection(QUICK_COLLECTION).doc(doc.id).set(plain(doc));
+  else memQuick.set(doc.id, plain(doc));
+  return doc;
+}
+
+async function loadQuick(id) {
+  const db = firestore();
+  if (db) {
+    const snap = await db.collection(QUICK_COLLECTION).doc(id).get();
+    return snap.exists ? snap.data() : null;
+  }
+  return memQuick.get(id) || null;
+}
+
+async function listQuick() {
+  const db = firestore();
+  if (db) {
+    const snap = await db.collection(QUICK_COLLECTION).orderBy('createdAt', 'desc').limit(40).get();
+    return snap.docs.map(d => d.data());
+  }
+  return [...memQuick.values()].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+
+async function deleteQuick(id) {
+  const db = firestore();
+  if (db) await db.collection(QUICK_COLLECTION).doc(id).delete();
+  else memQuick.delete(id);
 }
 
 // ─── Firebase Storage upload (permanent URLs) ───────────────────────
@@ -253,6 +313,41 @@ async function openaiPanel(prompt, quality = 'medium', retries = 2) {
       if (data.error) throw new Error(data.error.message);
       const b64 = data.data?.[0]?.b64_json;
       if (!b64) throw new Error('gpt-image-2 returned no image');
+      return Buffer.from(b64, 'base64');
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+// Panel render through the EDITS endpoint with the style reference attached
+// (multipart). Mirrors openaiPanel's retry/timeout behavior; edits are slower
+// than generations so the cap only ever goes up.
+async function openaiPanelEdit(prompt, refBuffer, quality = 'medium', retries = 2) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const timeout = Math.max(150000, IMAGE_TIMEOUTS[quality] || 0);
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const form = new FormData();
+      form.append('model', 'gpt-image-2');
+      form.append('prompt', prompt);
+      form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
+      form.append('size', '1024x1536');
+      form.append('quality', quality);
+      form.append('output_format', 'webp');
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+        body: form,
+        timeout,
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const b64 = data.data?.[0]?.b64_json;
+      if (!b64) throw new Error('gpt-image-2 edit returned no image');
       return Buffer.from(b64, 'base64');
     } catch (err) {
       lastErr = err;
@@ -463,12 +558,33 @@ function motionPromptFor(movie, scene) {
   return p;
 }
 
+// Every re-roll keeps what it replaces — the raw-generations gallery.
+function keepHistory(scene, kind) {
+  const current = scene[kind];
+  if (!current?.url) return;
+  const key = kind + 'History';
+  const prior = scene[key] || [];
+  if (prior.length && prior[prior.length - 1].url === current.url) return; // failed re-roll retried
+  const entry = kind === 'panel'
+    ? { url: current.url, quality: current.quality, promptUsed: current.promptUsed }
+    : { url: current.url, tier: current.tier, frames: current.frames, cost: current.cost, promptUsed: current.promptUsed };
+  scene[key] = [...prior, entry].slice(-12);
+}
+
 // ─── Generation steps ───────────────────────────────────────────────
 async function renderPanelFor(movie, scene, quality) {
-  const prompt = `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
-  const buf = await openaiPanel(prompt, quality);
+  let prompt, buf;
+  if (styleRef) {
+    // Style comes from the attached reference image — style only, never content.
+    prompt = STYLE_REF_PREFIX + scene.imagePrompt;
+    buf = await openaiPanelEdit(prompt, styleRef, quality);
+  } else {
+    prompt = `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
+    buf = await openaiPanel(prompt, quality);
+  }
   const url = await saveBufferToStorage(buf, 'image/webp', 'movies/panels');
-  scene.panel = { url, quality, status: 'done', error: null };
+  keepHistory(scene, 'panel');
+  scene.panel = { url, quality, status: 'done', error: null, promptUsed: prompt };
   movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
 }
 
@@ -516,6 +632,7 @@ async function generateClipFor(movie, scene, idx, { tier = 'draft', frames } = {
   }
   if (!output) throw new Error('video model produced no output');
   const url = await saveUrlToStorage(output, 'movies/clips', 'video/mp4');
+  keepHistory(scene, 'clip');
   scene.clip = { url, tier, status: 'done', error: null, frames: usedFrames, cost, promptUsed: prompt };
   movie.spend = +((movie.spend || 0) + cost).toFixed(2);
 }
@@ -627,9 +744,80 @@ async function stitchMovie(movie, progress) {
     movie.movieUrl = url;
     movie.movieDuration = Math.round(duration * 10) / 10;
     movie.movieStitchedAt = new Date().toISOString();
+    recordCut(movie, seq, url, movie.movieDuration);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+// ─── Cuts: every stitch is kept, named by what changed ──────────────
+// The gallery shows each finished cut with a contact sheet of the frames it
+// contains. The name is generated by diffing the sequence + edit lists
+// against the previous cut ("trimmed sc 3, slowed sc 7, +2 bridges").
+function cutSignature(movie, seq) {
+  return seq.filter(i => i.scene).map(i => ({
+    id: i.scene.id,
+    clipUrl: i.scene.clip?.url || null,
+    tier: i.scene.clip?.tier || null,
+    edits: { ...(i.scene.edits || {}) },
+  }));
+}
+
+function nameCut(movie, sig, bridgeCount) {
+  const prev = movie.lastCutSig;
+  const prevBridges = movie.lastCutBridges || 0;
+  if (!Array.isArray(prev)) return 'first cut';
+  const num = id => {
+    const i = movie.scenes.findIndex(s => s.id === id);
+    return i >= 0 ? `sc ${i + 1}` : 'a scene';
+  };
+  const changes = [];
+  const prevById = new Map(prev.map(s => [s.id, s]));
+  const currById = new Map(sig.map(s => [s.id, s]));
+  for (const s of sig) {
+    const p = prevById.get(s.id);
+    if (!p) { changes.push(`restored ${num(s.id)}`); continue; }
+    if (p.clipUrl !== s.clipUrl) {
+      changes.push(p.tier !== s.tier ? `upgraded ${num(s.id)}` : `re-rolled ${num(s.id)}`);
+    }
+    const pe = p.edits || {}, ce = s.edits || {};
+    if ((pe.trimStart || 0) !== (ce.trimStart || 0) || (pe.trimEnd || 0) !== (ce.trimEnd || 0)) changes.push(`trimmed ${num(s.id)}`);
+    if ((pe.speed || 1) !== (ce.speed || 1)) changes.push(`${(ce.speed || 1) < (pe.speed || 1) ? 'slowed' : 'sped up'} ${num(s.id)}`);
+    if ((pe.freezeEnd || 0) !== (ce.freezeEnd || 0)) changes.push(`froze ${num(s.id)}`);
+    if ((pe.fadeOut || 0) !== (ce.fadeOut || 0)) changes.push(`fade on ${num(s.id)}`);
+  }
+  for (const p of prev) if (!currById.has(p.id)) changes.push(`dropped ${num(p.id)}`);
+  const prevOrder = prev.filter(s => currById.has(s.id)).map(s => s.id).join(',');
+  const currOrder = sig.filter(s => prevById.has(s.id)).map(s => s.id).join(',');
+  if (prevOrder !== currOrder) changes.push('reordered');
+  if (bridgeCount !== prevBridges) {
+    changes.push(bridgeCount > prevBridges ? `+${bridgeCount - prevBridges} dream bridges` : 'bridges removed');
+  }
+  if (!changes.length) return 're-stitch, no changes';
+  const shown = changes.slice(0, 3).join(', ');
+  return changes.length > 3 ? `${shown} +${changes.length - 3} more` : shown;
+}
+
+function recordCut(movie, seq, url, duration) {
+  const sig = cutSignature(movie, seq);
+  const bridgeCount = seq.filter(i => i.bridge).length;
+  const frames = seq.map(item => {
+    if (item.scene) {
+      return { sceneId: item.scene.id, title: item.scene.title, panelUrl: item.scene.panel?.url || null, bridge: false };
+    }
+    const to = movie.scenes.find(s => s.id === item.bridge.toSceneId);
+    return { sceneId: item.bridge.toSceneId, title: 'dream bridge', panelUrl: to?.panel?.url || null, bridge: true };
+  });
+  const cut = {
+    id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
+    url, duration,
+    name: nameCut(movie, sig, bridgeCount),
+    stitchedAt: new Date().toISOString(),
+    frames,
+  };
+  movie.cuts = [...(movie.cuts || []), cut].slice(-20);
+  movie.lastCutSig = sig;
+  movie.lastCutBridges = bridgeCount;
 }
 
 // ─── Background jobs ────────────────────────────────────────────────
@@ -679,6 +867,7 @@ router.get('/status', (req, res) => {
     replicate: Boolean(REPLICATE_API_TOKEN),
     firebase: Boolean(firestore()),
     ffmpeg: Boolean(FFMPEG && FFPROBE),
+    styleReference: Boolean(styleRef),
     gated: Boolean(STUDIO_TOKEN),
     models: {
       draft: VIDEO_MODELS.draft.name,
@@ -712,6 +901,7 @@ router.post('/', async (req, res) => {
       dreamMode: false,
       scenes: plan.scenes,
       bridges: [],
+      cuts: [],
       job: null,
       movieUrl: null,
       movieDuration: 0,
@@ -724,6 +914,78 @@ router.post('/', async (req, res) => {
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
   }
+});
+
+// ─── Quick animate: one image in, one clip out (no movie) ───────────
+// Home-screen "animate" button: upload a picture (drawing, photo, panel),
+// wan-2.2 animates it at 720p by default. Runs as its own polled doc.
+// NOTE: registered before '/:id' so the path wins the route match.
+router.post('/animate', async (req, res) => {
+  try {
+    const { image, prompt = '', resolution = '720p', frames } = req.body || {};
+    if (!image || !/^data:image\//.test(image)) return res.status(400).json({ error: 'image (data URL) required' });
+    if (!REPLICATE_API_TOKEN) return res.status(400).json({ error: 'REPLICATE_API_TOKEN not set' });
+    const m = /^data:([^;]+);base64,(.*)$/.exec(image);
+    if (!m) return res.status(400).json({ error: 'bad image data URL' });
+    const imageUrl = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1], 'movies/quick');
+    if (imageUrl.startsWith('data:')) return res.status(400).json({ error: 'quick animate needs Firebase Storage (public image URLs)' });
+
+    const res720 = resolution === '480p' ? '480p' : '720p';
+    const numFrames = frames === 121 ? 121 : 81;
+    const cost = res720 === '720p' ? (numFrames > 81 ? 0.24 : 0.16) : (numFrames > 81 ? 0.08 : 0.06);
+    const quick = {
+      id: 'q' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+      status: 'running', error: null,
+      prompt: String(prompt).trim(),
+      imageUrl, clipUrl: null,
+      resolution: res720, frames: numFrames, cost,
+      createdAt: new Date().toISOString(),
+    };
+    await saveQuick(quick);
+    res.json(quick);
+
+    (async () => {
+      try {
+        const fullPrompt = (quick.prompt || 'subtle natural motion, gentle ambient movement') +
+          '. The subject, style and composition of the image are preserved exactly.';
+        const p = await replicatePredict(VIDEO_MODELS.draft.version, {
+          image: imageUrl,
+          prompt: fullPrompt,
+          resolution: res720,
+          num_frames: numFrames,
+          frames_per_second: 16,
+          interpolate_output: true,
+          go_fast: true,
+        });
+        const output = Array.isArray(p.output) ? p.output[0] : p.output;
+        if (!output) throw new Error('video model produced no output');
+        quick.clipUrl = await saveUrlToStorage(output, 'movies/quick', 'video/mp4');
+        quick.status = 'done';
+      } catch (err) {
+        quick.status = 'error';
+        quick.error = err.message;
+      }
+      await saveQuick(quick).catch(e => console.warn('movies: quick save failed —', e.message));
+    })();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/quick', async (req, res) => {
+  try { res.json({ clips: await listQuick() }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/quick/:id', async (req, res) => {
+  try {
+    const quick = await loadQuick(req.params.id);
+    if (!quick) return res.status(404).json({ error: 'not found' });
+    res.json(quick);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/quick/:id', async (req, res) => {
+  try { await deleteQuick(req.params.id); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:id', async (req, res) => {

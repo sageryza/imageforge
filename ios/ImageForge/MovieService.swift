@@ -157,4 +157,28 @@ final class MovieService {
     func stitch(_ id: String) async throws -> Movie {
         try await movieCall("POST", "/\(id)/stitch")
     }
+
+    // MARK: Quick animate (one image → one clip, no movie)
+
+    /// Kick off a quick animation. `jpeg` is the picked image, already
+    /// downscaled client-side; wan-2.2 runs at 720p by default.
+    func animate(jpeg: Data, prompt: String, resolution: String = "720p") async throws -> QuickClip {
+        let dataURL = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+        return try await fetch(QuickClip.self, "POST", "/animate",
+                               body: ["image": dataURL, "prompt": prompt, "resolution": resolution],
+                               timeout: 120)
+    }
+
+    private struct QuickList: Decodable { let clips: [QuickClip] }
+    func quickList() async throws -> [QuickClip] {
+        try await fetch(QuickList.self, "GET", "/quick").clips
+    }
+
+    func quickGet(_ id: String) async throws -> QuickClip {
+        try await fetch(QuickClip.self, "GET", "/quick/\(id)")
+    }
+
+    func quickDelete(_ id: String) async throws {
+        _ = try await data("DELETE", "/quick/\(id)")
+    }
 }

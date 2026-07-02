@@ -1,5 +1,7 @@
 import SwiftUI
 import AVKit
+import PhotosUI
+import UIKit
 
 // The Movie medium — type a story, get a movie. Native frontend for
 // imageforge's movies.js (/api/movies).
@@ -92,12 +94,23 @@ struct MovieMakerHome: View {
     @AppStorage("forge.movie.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
     @State private var pendingAutopilot = false
+    @State private var pendingQuick = false
+
+    // Quick animate (one image → one clip, wan 720p)
+    @State private var quickPickerItem: PhotosPickerItem?
+    @State private var quickImageData: Data?
+    @State private var quickPrompt = ""
+    @State private var quickBusy = false
+    @State private var quickJob: QuickClip?
+    @State private var quickClips: [QuickClip] = []
+    @State private var playingQuick: QuickClip?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     newMovieSection
+                    animateSection
                     shelfSection
                 }
                 .padding()
@@ -131,8 +144,17 @@ struct MovieMakerHome: View {
                     ],
                     dataDescription: "the story you write",
                     privacyURL: URL(string: "https://incaseofamnesia.com/privacy.html"),
-                    onAgree: { aiConsentAccepted = true; showConsent = false; create(autopilot: pendingAutopilot) },
+                    onAgree: {
+                        aiConsentAccepted = true; showConsent = false
+                        if pendingQuick { pendingQuick = false; startQuickAnimate() }
+                        else { create(autopilot: pendingAutopilot) }
+                    },
                     onCancel: { showConsent = false })
+            }
+            .sheet(item: $playingQuick) { clip in
+                if let url = clip.clipVideoURL {
+                    ClipPreviewSheet(title: clip.prompt?.isEmpty == false ? clip.prompt! : "quick animation", url: url)
+                }
             }
             .alert("Movie trouble", isPresented: Binding(get: { errorText != nil },
                                                          set: { if !$0 { errorText = nil } })) {
@@ -193,6 +215,155 @@ struct MovieMakerHome: View {
         }
     }
 
+    // MARK: Quick animate (one image → one clip)
+
+    private var animateSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            label("ANIMATE ONE IMAGE")
+            HStack(alignment: .top, spacing: 12) {
+                PhotosPicker(selection: $quickPickerItem, matching: .images) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: Theme.radius).fill(Reel.surface)
+                        if let data = quickImageData, let ui = UIImage(data: data) {
+                            Image(uiImage: ui).resizable().scaledToFill()
+                        } else {
+                            VStack(spacing: 6) {
+                                Image(systemName: "photo.badge.plus").font(.title3).foregroundColor(Reel.amber)
+                                Text("pick an\nimage").font(.system(size: 10)).multilineTextAlignment(.center).foregroundColor(Reel.dim)
+                            }
+                        }
+                    }
+                    .frame(width: 84, height: 112)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                        .stroke(quickImageData == nil ? Reel.border : Reel.amber, lineWidth: 1))
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("What should move? (optional)", text: $quickPrompt, axis: .vertical)
+                        .lineLimit(1...3)
+                        .font(.caption)
+                        .foregroundColor(Reel.ink)
+                        .padding(9)
+                        .background(Reel.surface)
+                        .cornerRadius(Theme.radius)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                    reelButton(quickBusy ? "Animating…" : "▶︎ Animate · \(MovieCosts.chip(0.16))", prominent: true) {
+                        startQuickAnimate()
+                    }
+                    .disabled(quickImageData == nil || quickBusy)
+                    .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
+                    Text("wan 720p, ~5s clip, about a minute").font(.system(size: 10)).foregroundColor(Reel.dim)
+                }
+            }
+            if let job = quickJob {
+                quickJobRow(job)
+            }
+            if !quickClips.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(quickClips) { clip in
+                            quickThumb(clip)
+                        }
+                    }
+                }
+            }
+        }
+        .onChange(of: quickPickerItem) { item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    quickImageData = Self.downscaledJPEG(data)
+                }
+            }
+        }
+    }
+
+    private func quickJobRow(_ job: QuickClip) -> some View {
+        HStack(spacing: 10) {
+            if job.status == "running" { ReelSpinner(size: 18) }
+            Text(job.status == "running" ? "animating — hang tight…"
+                 : job.status == "error" ? "animation failed: \(job.error ?? "unknown")"
+                 : "done! it's in the row below — tap to play")
+                .font(.caption)
+                .foregroundColor(job.status == "error" ? Reel.danger : Reel.dim)
+            Spacer()
+        }
+        .padding(10)
+        .background(Reel.surface)
+        .cornerRadius(Theme.radius)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+    }
+
+    private func quickThumb(_ clip: QuickClip) -> some View {
+        Button {
+            if clip.clipVideoURL != nil { playingQuick = clip }
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: Theme.radius).fill(Reel.surface)
+                if let poster = clip.posterURL {
+                    AsyncImage(url: poster) { phase in
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFill().opacity(clip.status == "done" ? 1 : 0.4)
+                        }
+                    }
+                }
+                if clip.status == "running" { ReelSpinner(size: 16) }
+                else if clip.status == "done" {
+                    Image(systemName: "play.circle.fill").font(.title3).foregroundColor(.white).shadow(radius: 2)
+                }
+            }
+            .frame(width: 64, height: 86)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                Task {
+                    try? await MovieService.shared.quickDelete(clip.id)
+                    quickClips.removeAll { $0.id == clip.id }
+                }
+            } label: { Label("Delete", systemImage: "trash") }
+        }
+    }
+
+    private func startQuickAnimate() {
+        guard let data = quickImageData, !quickBusy else { return }
+        guard aiConsentAccepted else { pendingQuick = true; showConsent = true; return }
+        quickBusy = true
+        Task {
+            do {
+                var job = try await MovieService.shared.animate(jpeg: data, prompt: quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines))
+                quickJob = job
+                quickClips.insert(job, at: 0)
+                while job.status == "running" {
+                    try await Task.sleep(nanoseconds: 4_000_000_000)
+                    job = try await MovieService.shared.quickGet(job.id)
+                    quickJob = job
+                    if let i = quickClips.firstIndex(where: { $0.id == job.id }) { quickClips[i] = job }
+                }
+                if job.status == "done" {
+                    quickPickerItem = nil
+                    quickImageData = nil
+                    quickPrompt = ""
+                }
+            } catch { errorText = error.localizedDescription }
+            quickBusy = false
+        }
+    }
+
+    /// Downscale to ≤1536px JPEG so a 12MP photo doesn't ride the request.
+    private static func downscaledJPEG(_ data: Data, maxSide: CGFloat = 1536) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let side = max(image.size.width, image.size.height)
+        guard side > maxSide else { return image.jpegData(compressionQuality: 0.85) }
+        let scale = maxSide / side
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resized = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+        return resized.jpegData(compressionQuality: 0.85)
+    }
+
     private func requestCreate(autopilot: Bool) {
         let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Type a story first — one sentence is enough."; return }
@@ -242,6 +413,7 @@ struct MovieMakerHome: View {
     private func load() async {
         do {
             movies = try await MovieService.shared.list()
+            quickClips = (try? await MovieService.shared.quickList()) ?? quickClips
         } catch { errorText = error.localizedDescription }
         loading = false
     }
@@ -337,6 +509,7 @@ struct MovieDetailView: View {
     @State private var expandedSceneId: String?
     @State private var pollGeneration = 0
     @State private var busy = false           // a request is in flight
+    @State private var showGallery = false
 
     init(movieId: String, initial: Movie? = nil, autopilot: Bool = false) {
         self.movieId = movieId
@@ -369,6 +542,17 @@ struct MovieDetailView: View {
         .background(Reel.base.ignoresSafeArea())
         .navigationTitle(movie?.title ?? "Movie")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showGallery = true } label: {
+                    Image(systemName: "photo.on.rectangle.angled").foregroundColor(Reel.amber)
+                }
+                .accessibilityLabel("Gallery — every generation and finished cut")
+            }
+        }
+        .sheet(isPresented: $showGallery) {
+            if let movie { MovieGalleryView(movie: movie) }
+        }
         .toolbarBackground(Reel.base, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .alert("Movie trouble", isPresented: Binding(get: { errorText != nil },
@@ -705,7 +889,7 @@ private struct SceneFrame: View {
         .sheet(isPresented: $showImagePrompt) {
             PromptEditorSheet(
                 title: "Image prompt",
-                subtitle: "Exactly what the panel artist is told (zoom 2). The movie's style is added automatically.",
+                subtitle: "Exactly what the panel artist is told (zoom 2). Your style-reference drawing is attached automatically — style only, never its content.",
                 text: scene.imagePrompt,
                 actionLabel: "Save & re-roll panel  ·  \(MovieCosts.chip(0.06))"
             ) { newPrompt in
@@ -1036,7 +1220,7 @@ private struct PromptEditorSheet: View {
     }
 }
 
-private struct ClipPreviewSheet: View {
+struct ClipPreviewSheet: View {
     let title: String
     let url: URL
     @Environment(\.dismiss) private var dismiss

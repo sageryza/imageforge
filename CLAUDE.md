@@ -117,6 +117,20 @@ lifted into a standalone tool later.
 - **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
   download retries + size verification (replicate.delivery truncates under
   parallel load), ~5-parallel prediction pool.
+- **Style reference:** `refs/movie-style.jpg` (Sophie's hand-drawn diary-comic
+  page, never web-served). When present, EVERY panel renders via gpt-image-2's
+  **edits** endpoint with it attached as a pure STYLE reference (prefix insists
+  style only — never content/subjects/composition). `MOVIE_STYLE_REF=0`
+  disables; without the file, panels fall back to the text `imageStyle` lock.
+- **Gallery:** re-rolls are never lost — superseded generations go to
+  `scene.panelHistory`/`clipHistory` (capped 12, each with `promptUsed`); every
+  stitch is kept in `movie.cuts[]`, auto-named by diffing edits/sequence vs the
+  previous cut ("trimmed sc 3, slowed sc 7"), with an ordered `frames[]`
+  snapshot the iOS Gallery renders as a comic-panel contact sheet.
+- **Quick animate:** `POST /api/movies/animate` — one image (data URL) → one
+  wan clip, default **720p** (~$0.16); its own polled docs in `forge-quick`
+  (`GET /quick`, `GET/DELETE /quick/:id`). Home-screen "Animate one image" in
+  the app.
 
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
