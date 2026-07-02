@@ -100,12 +100,14 @@ try {
   console.warn('movies: no refs/movie-style.jpg — panels use the text style lock only');
 }
 
+// A/B-tested against a trait-naming version: letting the model read the style
+// off the image itself copies the ink texture more faithfully, but without
+// the format guard it also copies the reference's SHAPE (caption boxes, the
+// 4-panel grid). Hence: generic styling copy + explicit single-frame guard.
 const STYLE_REF_PREFIX =
-  'Use the attached image purely as the STYLE reference — match its medium, ' +
-  'ink linework and cross-hatching, muted watercolor palette, aged cream ' +
-  'paper texture and hand-drawn lettering — but do NOT copy its content, ' +
-  'subjects, characters, panels or composition. Draw one completely new ' +
-  'full-frame scene: ';
+  'Copy the styling of the attached image exactly, but do NOT copy its ' +
+  'content or subjects. One single full-frame scene, no panel grid, no ' +
+  'caption box: ';
 
 // Style lock that held the illustration style verbatim in the validated run.
 const DEFAULT_MOTION_STYLE =
