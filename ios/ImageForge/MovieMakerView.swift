@@ -636,11 +636,19 @@ struct MovieDetailView: View {
                 bigButton("Render the storyboard  ·  \(n) panels  ·  ~\(MovieCosts.chip(Double(n) * 0.06))", disabled: running || busy) {
                     fire { try await MovieService.shared.renderPanels(movieId) }
                 }
-                Button {
-                    fire { try await MovieService.shared.renderPanels(movieId, quality: "low") }
-                } label: {
-                    Text("or a rough draft pass at low  ·  ~\(MovieCosts.chip(Double(n) * 0.02))")
-                        .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                HStack(spacing: 14) {
+                    Button {
+                        fire { try await MovieService.shared.renderPanels(movieId, quality: "low") }
+                    } label: {
+                        Text("draft at low · ~\(MovieCosts.chip(Double(n) * 0.02))")
+                            .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                    }
+                    Button {
+                        fire { try await MovieService.shared.renderPanels(movieId, quality: "sketch") }
+                    } label: {
+                        Text("4-up sketch grids · ~\(MovieCosts.chip((Double(n) / 4).rounded(.up) * 0.02))")
+                            .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                    }
                 }
                 .disabled(running || busy)
             case .animate:
