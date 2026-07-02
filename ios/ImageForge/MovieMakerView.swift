@@ -1062,10 +1062,12 @@ struct MovieSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Forge server") {
+                Section {
                     TextField(MovieService.defaultServer, text: $serverURL)
                         .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                     SecureField("Studio token (if the server is gated)", text: $studioToken)
+                } header: {
+                    Text("Forge server")
                 } footer: {
                     Text("The movie pipeline runs on the ImageForge server — the app holds no AI keys. Leave the URL empty for the default.")
                 }
