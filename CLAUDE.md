@@ -86,6 +86,38 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Movies (the newest medium — iOS is the frontend)
+- `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
+  a July 2026 prototyping run (~$1.35 for a 12-scene film with dream bridges).
+  **No web page** — the native iOS app (`ios/`, Movies tab) is the frontend.
+- **Pipeline:** GPT breaks the story into ~8-12 SELF-CONTAINED scenes (each
+  prompt renders alone — the video model can't infer beats between scenes),
+  deliberately creating before/after panel pairs and repeating character
+  continuity tokens in every prompt → gpt-image-2 panels (1024x1536,
+  medium-quality storyboard first, HIGH re-render for keepers) → Replicate
+  image-to-video per scene → ffmpeg edits + stitch.
+- **Video tiers:** draft `wan-video/wan-2.2-i2v-fast` (480p, ~$0.06/clip,
+  `last_image` conditioning animates BETWEEN the two panels of a pair);
+  quality `kwaivgi/kling-v2.1` standard 720p $0.25 / pro 1080p $0.55
+  (`end_image` requires pro). Versions pinned in `VIDEO_MODELS`.
+- **Dream mode:** bridge clips over every hard cut — start = previous clip's
+  last frame (ffmpeg `-sseof` extract), end = next panel, num_frames 121 and an
+  AI-written prompt describing one continuous PHYSICAL action (short morphs
+  between different compositions read as a jarring leap).
+- **Editing is first-class and free:** per-scene trim / speed / freeze / fade /
+  drop / reorder, all server-side ffmpeg at stitch time, re-stitch in seconds.
+  ffmpeg comes from `ffmpeg-static`/`ffprobe-static` npm packages (or
+  `FFMPEG_PATH`/`FFPROBE_PATH`/PATH).
+- **State:** one Firestore doc per movie (`forge-movies` collection) — story,
+  scenes, prompts, panel/clip URLs, edit list, running job — so movies reopen
+  and re-edit later. Long steps run as background jobs recorded in the doc;
+  clients poll `GET /api/movies/:id`. Same `STUDIO_TOKEN` gate as the pipeline
+  (only `GET /status` open). Panels/clips/films are saved to Firebase Storage
+  (Replicate URLs expire ~1hr).
+- **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
+  download retries + size verification (replicate.delivery truncates under
+  parallel load), ~5-parallel prediction pool.
+
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a
