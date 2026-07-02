@@ -636,6 +636,13 @@ struct MovieDetailView: View {
                 bigButton("Render the storyboard  ·  \(n) panels  ·  ~\(MovieCosts.chip(Double(n) * 0.06))", disabled: running || busy) {
                     fire { try await MovieService.shared.renderPanels(movieId) }
                 }
+                Button {
+                    fire { try await MovieService.shared.renderPanels(movieId, quality: "low") }
+                } label: {
+                    Text("or a rough draft pass at low  ·  ~\(MovieCosts.chip(Double(n) * 0.02))")
+                        .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                }
+                .disabled(running || busy)
             case .animate:
                 let n = missingClips(movie)
                 bigButton("Animate all scenes  ·  draft  ·  ~\(MovieCosts.chip(Double(n) * 0.06))", disabled: running || busy) {
@@ -1011,6 +1018,9 @@ private struct SceneFrame: View {
             controlRow(label: "PANEL") {
                 smallButton("🎲 Re-roll · \(MovieCosts.chip(0.06))") {
                     onAction(.rerollPanel(quality: "medium", prompt: nil))
+                }
+                smallButton("🎲 Low · \(MovieCosts.chip(0.02))") {
+                    onAction(.rerollPanel(quality: "low", prompt: nil))
                 }
                 smallButton("✏️ Prompt") { showImagePrompt = true }
                 smallButton("HQ · \(MovieCosts.chip(0.25))") {
