@@ -14,30 +14,53 @@ import AVKit
 //   zoom 4  per-clip editing — trim, speed, freeze, fade, drop, reorder
 // Staying zoomed-out is effortless; zooming in is per-scene (tap a frame).
 //
-// This medium deliberately diverges from the paper-white house look:
-// film-canister dark, sprocket-holed film-strip timeline, reel spinner.
-// House rules still apply — NO PILLS (6px corners).
+// Film-strip motif (sprocket-holed timeline, reel spinner) on the warm paper
+// house palette — light, like the rest of the forge. House rules apply —
+// NO PILLS (6px corners).
 
-// ─── Reel palette ────────────────────────────────────────────────────
+// ─── Reel palette (paper light) ──────────────────────────────────────
 enum Reel {
-    static let base    = Color(hex: 0x16130E)   // canister dark
-    static let strip   = Color(hex: 0x0D0B08)   // film strip (near black)
-    static let surface = Color(hex: 0x211C15)
-    static let hole    = Color(hex: 0x2E2820)   // sprocket holes
-    static let border  = Color(hex: 0x3A3228)
-    static let cream   = Color(hex: 0xEFE4CE)
-    static let dim     = Color(hex: 0xA89B85)
-    static let amber   = Color(hex: 0xD9A441)   // canister-label accent
-    static let danger  = Color(hex: 0xE08A82)
-    static let green   = Color(hex: 0x9CC29A)
+    static let base    = Color(hex: 0xFAF9F7)   // house paper
+    static let strip   = Color(hex: 0xF1EBE2)   // film strip — warm parchment
+    static let surface = Color.white
+    static let hole    = Color(hex: 0xDCD2C4)   // sprocket holes
+    static let border  = Color(hex: 0xE8E4DF)
+    static let ink     = Color(hex: 0x3A3530)   // primary text
+    static let dim     = Color(hex: 0x9E9590)
+    static let amber   = Color(hex: 0xB48B6A)   // house accent
+    static let danger  = Color(hex: 0xD4807A)
+    static let green   = Color(hex: 0x7AB58A)
 }
 
 extension ComplianceTheme {
     static let movieReel = ComplianceTheme(
-        background: Reel.base, card: Reel.surface, ink: Reel.cream, subtleInk: Reel.dim,
-        accent: Reel.amber, accentText: .black, line: Color(white: 1, opacity: 0.12),
+        background: Reel.base, card: Reel.surface, ink: Reel.ink, subtleInk: Reel.dim,
+        accent: Reel.amber, accentText: .white, line: Color(white: 0, opacity: 0.10),
         titleFont: { Font.system(size: $0, weight: .heavy) },
         bodyFont: { Font.system(size: $0) })
+}
+
+/// Example stories for the dice button — each has a visually distinct lead
+/// character (continuity tokens the breakdown can repeat) and 3-4 concrete
+/// beats, so the storyboard lands well without any editing. Riff or rewrite.
+enum StorySeeds {
+    static let all: [String] = [
+        "A girl with a black bob haircut and a crystal necklace finds a glowing moth in her kitchen at night. She follows it out the window into the garden, where it lands on an empty jam jar. She carries the jar to her bedroom and falls asleep with it glowing on the nightstand.",
+        "An old fisherman with a white beard and a red knit cap rows out on a grey morning and pulls up a tiny whale the size of a loaf of bread. They look at each other for a long moment. He lowers it back in, and it follows his boat all the way home like a dog.",
+        "A round orange cat sneaks into a bakery before dawn. It walks across the flour sacks leaving perfect white pawprints, sits in the front window among the bread loaves, and is discovered at opening time by the baker — who shrugs and puts a 'shop cat' sign next to it.",
+        "A small robot with one wheel and a dented brass body waters a single daisy growing in a crack in the sidewalk. A storm comes; the robot shields the flower with its umbrella hand all night. In the morning the daisy has two new blooms, and the robot's dent is full of rainwater and petals.",
+        "A boy in a yellow raincoat and red boots finds a paper boat stuck in a storm drain. He frees it, folds a second one from his bus ticket, and races them down the gutter stream all the way to the sea, where both boats sail off together into the sunset.",
+        "A night-shift lighthouse keeper with round glasses and a wool sweater notices the beam has stopped turning. She climbs the spiral stairs with a candle, finds a seagull asleep on the mechanism, and gently relocates it to a nest of rags — the beam sweeps back to life over the waves.",
+        "A tortoise wearing a tiny mailbag delivers letters along a country lane. Today's last letter is addressed to the tortoise itself. It sits under a sunflower, opens the envelope, and finds a drawing of it made by all the animals on the route — which it pins up inside its shell.",
+        "A witch with silver hair in a messy bun burns her toast every single morning. Today she finally enchants the toaster; it grows legs, walks to the window, and starts toasting bread perfectly by holding slices up to the sunrise.",
+        "Two kids build a snowman with a carrot nose and a green scarf at dusk. At midnight the snowman leans over, picks up their forgotten mitten, and hangs it carefully on the garden gate before settling back into place — one mitten-shaped patch of snow missing from its arm.",
+        "A janitor at a natural history museum with a limp and a big keyring hums to the whale skeleton every night while he mops. On his last shift before retiring, the skeleton slowly turns its head and hums the tune back.",
+    ]
+
+    static func random(avoiding current: String) -> String {
+        let options = all.filter { $0 != current }
+        return options.randomElement() ?? all[0]
+    }
 }
 
 /// House-rule button (rounded rectangle, never a pill) in the reel palette.
@@ -45,7 +68,7 @@ func reelButton(_ title: String, prominent: Bool = false, action: @escaping () -
     Button(action: action) {
         Text(title)
             .font(.subheadline.weight(.semibold))
-            .foregroundColor(prominent ? .black : Reel.cream)
+            .foregroundColor(prominent ? .white : Reel.ink)
             .padding(.horizontal, 16).padding(.vertical, 11)
             .background(prominent ? Reel.amber : Reel.surface)
             .cornerRadius(Theme.radius)
@@ -92,7 +115,6 @@ struct MovieMakerHome: View {
             }
             .toolbarBackground(Reel.base, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(isPresented: $showDetail) {
                 if let movie = openedMovie {
                     MovieDetailView(movieId: movie.id, initial: movie, autopilot: openAutopilot)
@@ -120,25 +142,38 @@ struct MovieMakerHome: View {
             .refreshable { await load() }
         }
         .tint(Reel.amber)
-        .preferredColorScheme(.dark)
     }
 
     // MARK: New movie (zoom 0)
 
     private var newMovieSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            label("NEW FEATURE PRESENTATION")
+            HStack {
+                label("NEW FEATURE PRESENTATION")
+                Spacer()
+                // Blank-page antidote: prefill with an example story to riff on.
+                Button {
+                    story = StorySeeds.random(avoiding: story)
+                } label: {
+                    Image(systemName: "die.face.5")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(Reel.amber)
+                        .padding(6)
+                        .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                }
+                .accessibilityLabel("Surprise me with an example story")
+            }
             TextEditor(text: $story)
                 .frame(minHeight: 110)
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .background(Reel.surface)
-                .foregroundColor(Reel.cream)
+                .foregroundColor(Reel.ink)
                 .cornerRadius(Theme.radius)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                 .overlay(alignment: .topLeading) {
                     if story.isEmpty {
-                        Text("Type a story — a paragraph or one sentence. The pipeline does the rest.")
+                        Text("Type a story — a paragraph or one sentence — or tap the die for an example. The pipeline does the rest.")
                             .font(.callout).foregroundColor(Reel.dim)
                             .padding(18).allowsHitTesting(false)
                     }
@@ -246,7 +281,7 @@ private struct CanisterRow: View {
             HStack(spacing: 12) {
                 posterThumb
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(summary.title).font(.subheadline.weight(.semibold)).foregroundColor(Reel.cream)
+                    Text(summary.title).font(.subheadline.weight(.semibold)).foregroundColor(Reel.ink)
                         .lineLimit(2).multilineTextAlignment(.leading)
                     HStack(spacing: 8) {
                         Text("\(summary.sceneCount) scenes").font(.caption2).foregroundColor(Reel.dim)
@@ -336,7 +371,6 @@ struct MovieDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Reel.base, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .alert("Movie trouble", isPresented: Binding(get: { errorText != nil },
                                                      set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
@@ -348,7 +382,6 @@ struct MovieDetailView: View {
         .onDisappear { pollGeneration += 1 }   // stop polling
         .refreshable { await refresh() }
         .tint(Reel.amber)
-        .preferredColorScheme(.dark)
     }
 
     // MARK: Pipeline stage (what's the one obvious next step?)
@@ -382,7 +415,7 @@ struct MovieDetailView: View {
     private func headerSection(_ movie: Movie) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(movie.title).font(.title3.weight(.heavy)).foregroundColor(Reel.cream)
+                Text(movie.title).font(.title3.weight(.heavy)).foregroundColor(Reel.ink)
                 Spacer()
                 CostChip(text: "spent \(MovieCosts.chip(movie.spend ?? 0))")
             }
@@ -496,7 +529,7 @@ struct MovieDetailView: View {
                     set: { on in fire { try await MovieService.shared.patch(movieId, ["dreamMode": on]) } }
                 )) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Dream the cuts together").font(.subheadline.weight(.semibold)).foregroundColor(Reel.cream)
+                        Text("Dream the cuts together").font(.subheadline.weight(.semibold)).foregroundColor(Reel.ink)
                         Text("A surreal bridge clip morphs every hard cut — one scene physically becomes the next.")
                             .font(.caption2).foregroundColor(Reel.dim)
                     }
@@ -622,7 +655,7 @@ struct MovieDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(Reel.amber)
-                .foregroundColor(.black)
+                .foregroundColor(.white)
                 .cornerRadius(Theme.radius)
         }
         .disabled(disabled)
@@ -709,7 +742,7 @@ private struct SceneFrame: View {
                             .foregroundColor(Reel.amber)
                         Text(scene.title)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(Reel.cream)
+                            .foregroundColor(Reel.ink)
                             .multilineTextAlignment(.leading)
                     }
                     statusLine
@@ -858,7 +891,7 @@ private struct SceneFrame: View {
     private func smallButtonLabel(_ title: String) -> some View {
         Text(title)
             .font(.caption.weight(.semibold))
-            .foregroundColor(Reel.cream)
+            .foregroundColor(Reel.ink)
             .padding(.horizontal, 10).padding(.vertical, 7)
             .background(Reel.surface)
             .cornerRadius(Theme.radius)
@@ -898,11 +931,11 @@ private struct EditDesk: View {
 
             // Trim
             HStack {
-                Text("in \(trimStart, specifier: "%.1f")s").font(.caption2.monospaced()).foregroundColor(Reel.cream)
+                Text("in \(trimStart, specifier: "%.1f")s").font(.caption2.monospaced()).foregroundColor(Reel.ink)
                 Slider(value: $trimStart, in: 0...max(0.1, scene.clipSeconds - 0.5), step: 0.1) { editing in
                     if !editing { commit() }
                 }
-                Text("out \(trimEnd, specifier: "%.1f")s").font(.caption2.monospaced()).foregroundColor(Reel.cream)
+                Text("out \(trimEnd, specifier: "%.1f")s").font(.caption2.monospaced()).foregroundColor(Reel.ink)
                 Slider(value: $trimEnd, in: 0.5...scene.clipSeconds, step: 0.1) { editing in
                     if !editing { commit() }
                 }
@@ -918,7 +951,7 @@ private struct EditDesk: View {
                     } label: {
                         Text(s == 1 ? "1×" : String(format: "%g×", s))
                             .font(.caption2.weight(.bold))
-                            .foregroundColor(speed == s ? .black : Reel.cream)
+                            .foregroundColor(speed == s ? .white : Reel.ink)
                             .padding(.horizontal, 9).padding(.vertical, 5)
                             .background(speed == s ? Reel.amber : Reel.surface)
                             .cornerRadius(Theme.radius)
@@ -930,11 +963,11 @@ private struct EditDesk: View {
             HStack(spacing: 14) {
                 Stepper(value: $freeze, in: 0...5, step: 0.5,
                         onEditingChanged: { editing in if !editing { commit() } }) {
-                    Text("freeze \(freeze, specifier: "%.1f")s").font(.caption2).foregroundColor(Reel.cream)
+                    Text("freeze \(freeze, specifier: "%.1f")s").font(.caption2).foregroundColor(Reel.ink)
                 }
                 Stepper(value: $fade, in: 0...3, step: 0.5,
                         onEditingChanged: { editing in if !editing { commit() } }) {
-                    Text("fade \(fade, specifier: "%.1f")s").font(.caption2).foregroundColor(Reel.cream)
+                    Text("fade \(fade, specifier: "%.1f")s").font(.caption2).foregroundColor(Reel.ink)
                 }
             }
         }
@@ -973,7 +1006,7 @@ private struct PromptEditorSheet: View {
                     .scrollContentBackground(.hidden)
                     .padding(10)
                     .background(Reel.surface)
-                    .foregroundColor(Reel.cream)
+                    .foregroundColor(Reel.ink)
                     .cornerRadius(Theme.radius)
                     .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                 Button {
@@ -985,7 +1018,7 @@ private struct PromptEditorSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
                         .background(Reel.amber)
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .cornerRadius(Theme.radius)
                 }
             }
@@ -999,9 +1032,7 @@ private struct PromptEditorSheet: View {
                 }
             }
             .toolbarBackground(Reel.base, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -1022,9 +1053,7 @@ private struct ClipPreviewSheet: View {
                     }
                 }
                 .toolbarBackground(Reel.base, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -1164,7 +1193,7 @@ private struct JobBanner: View {
             if job.isRunning { ReelSpinner(size: 20) }
             VStack(alignment: .leading, spacing: 2) {
                 if job.isRunning {
-                    Text("\(job.kind)\(progressText)").font(.caption.weight(.semibold)).foregroundColor(Reel.cream)
+                    Text("\(job.kind)\(progressText)").font(.caption.weight(.semibold)).foregroundColor(Reel.ink)
                     Text(job.label ?? "working…").font(.caption2).foregroundColor(Reel.dim)
                 } else if job.status == "error" {
                     Text("The \(job.kind) step hit trouble").font(.caption.weight(.semibold)).foregroundColor(Reel.danger)
