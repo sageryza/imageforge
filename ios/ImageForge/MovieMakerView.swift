@@ -102,7 +102,7 @@ struct MovieMakerHome: View {
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
                     theme: .movieReel,
-                    appName: "ImageForge",
+                    appName: "Deck Factory",
                     providers: [
                         AIProvider(name: "OpenAI", role: "Breaks your story into scenes and draws the panels"),
                         AIProvider(name: "Replicate", role: "Animates the panels into video clips"),

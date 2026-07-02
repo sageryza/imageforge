@@ -1,6 +1,7 @@
-# ImageForge — native iOS app (Test Station + Movie Maker)
+# Deck Factory — the native iOS app (Test Station + Movie Maker)
 
-A SwiftUI app with two tools:
+The repo's one iOS app (bundle id `com.sageryza.imageforge`, branded **Deck
+Factory** on the App Store — yellow machine icon). A SwiftUI app with two tools:
 
 - **Test Station** — type one prompt, tap a house style (or tick several and
   run them together), and compare the results.
