@@ -82,7 +82,9 @@ const VIDEO_MODELS = {
 };
 
 // Rough per-panel costs (gpt-image-2, 1024x1536) so the app can show chips.
-const PANEL_COST = { low: 0.02, medium: 0.06, high: 0.25 };
+// "sketch" = the 4-up contact-grid pass: one low render draws FOUR scene
+// panels in a 2x2 grid, sliced into quadrants server-side (~$0.005/panel).
+const PANEL_COST = { sketch: 0.005, low: 0.02, medium: 0.06, high: 0.25 };
 
 // ─── Style reference image ──────────────────────────────────────────
 // Sophie's hand-drawn diary-comic page (refs/movie-style.jpg — outside
@@ -108,6 +110,14 @@ const STYLE_REF_PREFIX =
   'Copy the styling of the attached image exactly, but do NOT copy its ' +
   'content or subjects. One single full-frame scene, no panel grid, no ' +
   'caption box: ';
+
+// The sketch pass leans INTO the reference's format instead: one render, a
+// 2x2 grid of four scene panels, sliced into quadrants afterwards.
+const STYLE_REF_GRID_PREFIX =
+  'Copy the styling of the attached image exactly, but do NOT copy its ' +
+  'content or subjects. Draw a 2x2 grid of four EQUAL rectangular storyboard ' +
+  'panels that exactly quarter the image, separated by thin borders, with no ' +
+  'captions and no text anywhere. ';
 
 // Style lock that held the illustration style verbatim in the validated run.
 const DEFAULT_MOTION_STYLE =
@@ -590,6 +600,40 @@ async function renderPanelFor(movie, scene, quality) {
   movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
 }
 
+// The sketch pass: ONE low-quality render draws a 2x2 grid of up to four
+// scene panels, then ffmpeg slices the quadrants apart (with a small inset so
+// wobbly hand-drawn borders don't bleed between panels). ~$0.005/panel.
+async function renderSketchGrid(movie, group) {
+  if (!FFMPEG) throw new Error('ffmpeg unavailable (needed to slice the grid)');
+  const positions = ['top left', 'top right', 'bottom left', 'bottom right'];
+  const body = group.map((s, i) => `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}`).join(' ');
+  const prompt = styleRef
+    ? STYLE_REF_GRID_PREFIX + body
+    : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} A 2x2 grid of four equal storyboard panels that exactly quarter the image, thin borders, no text. ${body}`;
+  const buf = styleRef ? await openaiPanelEdit(prompt, styleRef, 'low') : await openaiPanel(prompt, 'low');
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-sketch-'));
+  try {
+    const gridFile = path.join(tmpDir, 'grid.webp');
+    fs.writeFileSync(gridFile, buf);
+    // 1024x1536 grid → 512x768 quadrants, inset 2.5% to shave the drawn borders.
+    for (let i = 0; i < group.length; i++) {
+      const scene = group[i];
+      const outFile = path.join(tmpDir, `q${i}.webp`);
+      const x = i % 2, y = Math.floor(i / 2);
+      await run(FFMPEG, ['-y', '-i', gridFile, '-vf',
+        `crop=iw/2*0.95:ih/2*0.95:iw/2*${x}+iw/2*0.025:ih/2*${y}+ih/2*0.025`,
+        outFile]);
+      const url = await saveBufferToStorage(fs.readFileSync(outFile), 'image/webp', 'movies/panels');
+      keepHistory(scene, 'panel');
+      scene.panel = { url, quality: 'sketch', status: 'done', error: null, promptUsed: prompt };
+    }
+    movie.spend = +((movie.spend || 0) + 0.02).toFixed(2);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 async function generateClipFor(movie, scene, idx, { tier = 'draft', frames } = {}) {
   if (!scene.panel?.url || scene.panel.url.startsWith('data:')) {
     throw new Error('panel not rendered yet (or not on permanent storage)');
@@ -1045,7 +1089,8 @@ router.post('/:id/panels', async (req, res) => {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
     const { quality = 'medium', only, force = false } = req.body || {};
-    const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    const q = ['sketch', 'low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    if (q === 'sketch' && !FFMPEG) return res.status(400).json({ error: 'sketch pass needs ffmpeg on the server' });
     const targets = movie.scenes.filter(s =>
       (Array.isArray(only) && only.length) ? only.includes(s.id) : (force || !s.panel?.url));
     if (!targets.length) return res.status(400).json({ error: 'no panels to render' });
@@ -1053,12 +1098,33 @@ router.post('/:id/panels', async (req, res) => {
 
     await startJob(movie, 'panels', async (progress) => {
       let done = 0;
-      await progress(0, targets.length, 'rendering panels');
-      await pool(targets, 3, async (scene) => {
-        try { await renderPanelFor(movie, scene, q); }
-        catch (err) { scene.panel = { ...(scene.panel || {}), status: 'error', error: err.message }; }
-        await progress(++done, targets.length, 'rendering panels');
-      });
+      if (q === 'sketch') {
+        // 4-up contact grids in scene order; a short remainder renders singly
+        // at low (still cheap, and slicing assumes a full 2x2).
+        const groups = [];
+        for (let i = 0; i < targets.length; i += 4) groups.push(targets.slice(i, i + 4));
+        await progress(0, targets.length, 'sketching contact grids');
+        await pool(groups, 2, async (group) => {
+          try {
+            if (group.length === 4) await renderSketchGrid(movie, group);
+            else await Promise.all(group.map(s =>
+              renderPanelFor(movie, s, 'low').catch(err => {
+                s.panel = { ...(s.panel || {}), status: 'error', error: err.message };
+              })));
+          } catch (err) {
+            group.forEach(s => { s.panel = { ...(s.panel || {}), status: 'error', error: err.message }; });
+          }
+          done += group.length;
+          await progress(done, targets.length, 'sketching contact grids');
+        });
+      } else {
+        await progress(0, targets.length, 'rendering panels');
+        await pool(targets, 3, async (scene) => {
+          try { await renderPanelFor(movie, scene, q); }
+          catch (err) { scene.panel = { ...(scene.panel || {}), status: 'error', error: err.message }; }
+          await progress(++done, targets.length, 'rendering panels');
+        });
+      }
       const failed = targets.filter(s => s.panel?.status === 'error').length;
       if (failed) throw new Error(`${failed} of ${targets.length} panels failed — re-roll them individually`);
     });
@@ -1218,6 +1284,7 @@ module.exports = {
   VIDEO_MODELS,
   // building blocks, exported for scripts/tests
   renderPanelFor,
+  renderSketchGrid,
   generateClipFor,
   probe,
   extractLastFrame,
