@@ -722,10 +722,18 @@ function decodeDataUrl(s) {
   try { return { buffer: Buffer.from(b64, 'base64'), mime }; } catch { return null; }
 }
 
+// Network timeouts for OpenAI image calls, scaled by render quality. High
+// (and auto, which may pick high) takes 3-4+ minutes at OpenAI's end, so the
+// old flat 90s cap made EVERY high render fail after three timed-out
+// attempts. Low/medium keep the short cap so phone clients still fail fast.
+const OPENAI_IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000, auto: 420000 };
+
 // Multipart edits call to gpt-image-2 with one or more reference images. Uses
 // the `image[]` field so several references can guide a single result. Fails
 // fast on errors (no held-open socket) like the other OpenAI helpers.
 async function openaiStickerEdit({ prompt, refs, quality, size, retries = 2 }) {
+  // Edits are slower than generations, so only ever raise the cap, never lower it.
+  const timeout = Math.max(120000, OPENAI_IMAGE_TIMEOUTS[quality] || 0);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -743,7 +751,7 @@ async function openaiStickerEdit({ prompt, refs, quality, size, retries = 2 }) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
         body: form,
-        timeout: 120000,
+        timeout,
       });
       return await res.json();
     } catch (err) {
@@ -827,6 +835,7 @@ const TALKING_TYPES = {
 // ("couldn't reach the server"); instead it returns the rate-limit error fast
 // and the client tells the user to wait a moment.
 async function openaiImage(body, retries = 2) {
+  const timeout = OPENAI_IMAGE_TIMEOUTS[body.quality] || 90000;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -834,7 +843,7 @@ async function openaiImage(body, retries = 2) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'Connection': 'close' },
         body: JSON.stringify(body),
-        timeout: 90000,
+        timeout,
       });
       return await res.json();
     } catch (err) {
