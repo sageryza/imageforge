@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 import AuthenticationServices
 import FirebaseAuth
 
@@ -14,9 +15,12 @@ struct AdsView: View {
 
     // Campaign builder
     @State private var promoting = ""
+    @State private var caption = ""
     @State private var dailyBudget = 15
     @State private var creating = false
     @State private var lastCampaign: AdsCampaign?
+    @State private var photoItem: PhotosPickerItem?
+    @State private var adImage: UIImage?
 
     @State private var connecting = false
     @FocusState private var promoteFocused: Bool
@@ -119,6 +123,36 @@ struct AdsView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
+                Text("AD IMAGE")
+                    .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    if let img = adImage {
+                        Image(uiImage: img).resizable().scaledToFill()
+                            .frame(height: 150).frame(maxWidth: .infinity).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                    } else {
+                        HStack(spacing: 8) {
+                            Image(systemName: "photo.on.rectangle")
+                            Text("Choose an image for the ad")
+                        }
+                        .font(.subheadline).foregroundColor(Theme.accent)
+                        .frame(maxWidth: .infinity).frame(height: 60)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CAPTION")
+                    .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
+                TextField("A little magic for your everyday. ✨", text: $caption, axis: .vertical)
+                    .lineLimit(1...4).font(.body).foregroundColor(Theme.text)
+                    .padding(12).background(Theme.surface)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+                    .cornerRadius(Theme.radius)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
                 Text("DAILY BUDGET")
                     .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
                 HStack(spacing: 14) {
@@ -139,10 +173,11 @@ struct AdsView: View {
                 .frame(maxWidth: .infinity).frame(height: 50)
                 .background(Theme.mauve).foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
-                .opacity(creating || promoting.trimmingCharacters(in: .whitespaces).isEmpty ? 0.6 : 1)
+                .opacity(canBuild ? 1 : 0.6)
             }
-            .disabled(creating || promoting.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(!canBuild)
         }
+        .onChange(of: photoItem) { _ in loadPickedImage() }
         .padding(16)
         .background(Theme.surface).cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
@@ -222,15 +257,32 @@ struct AdsView: View {
         session.start()
     }
 
+    private var canBuild: Bool {
+        !creating && !promoting.trimmingCharacters(in: .whitespaces).isEmpty && adImage != nil
+    }
+
+    private func loadPickedImage() {
+        guard let item = photoItem else { return }
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let img = UIImage(data: data) {
+                adImage = img
+            }
+        }
+    }
+
     private func create() {
         promoteFocused = false
         let what = promoting.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !what.isEmpty else { return }
+        guard !what.isEmpty, let img = adImage,
+              let jpeg = img.jpegData(compressionQuality: 0.9) else { return }
         creating = true
+        let text = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         Task {
             do {
                 lastCampaign = try await ForgeService.shared.adsCreateCampaign(
-                    promoting: what, dailyBudgetCents: dailyBudget * 100)
+                    promoting: what, dailyBudgetCents: dailyBudget * 100,
+                    imageData: jpeg, primaryText: text.isEmpty ? "A little magic for your everyday. ✨" : text)
             } catch {
                 errorText = error.localizedDescription
             }

@@ -445,12 +445,16 @@ final class ForgeService {
             pixelId: data["pixelId"] as? String)
     }
 
-    /// Create a PAUSED Advantage+ Shopping campaign. Never spends until launched.
-    func adsCreateCampaign(promoting: String, dailyBudgetCents: Int) async throws -> AdsCampaign {
+    /// Create a full, PAUSED ad (campaign + ad set + creative + ad). Never spends
+    /// until launched. `imageData` is the ad creative; `primaryText` the caption.
+    func adsCreateCampaign(promoting: String, dailyBudgetCents: Int,
+                           imageData: Data, primaryText: String) async throws -> AdsCampaign {
         try await ensureSignedIn()
         let result = try await call("adsCreateCampaign", [
             "promoting": promoting,
             "dailyBudgetCents": dailyBudgetCents,
+            "image": imageData.base64EncodedString(),
+            "primaryText": primaryText,
         ])
         guard let data = result.data as? [String: Any], let id = data["id"] as? String else {
             throw NSError(domain: "ImageForge", code: -1,
