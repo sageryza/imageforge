@@ -104,6 +104,7 @@ loadConfig().then(() => {
   const pipeline = require('./pipeline');
   const photostudio = require('./photostudio');
   const movies = require('./movies');
+  const songs = require('./songs');
   app.use('/api/etsy', etsy.router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
@@ -111,7 +112,8 @@ loadConfig().then(() => {
   app.use('/api/pipeline', pipeline.router);
   app.use('/api/photostudio', photostudio.router);
   app.use('/api/movies', movies.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies)');
+  app.use('/api/songs', songs.router);
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -291,6 +293,9 @@ app.get('/studio', serveGated('studio.html'));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
 app.get('/photo', serveGated('photo.html'));
+// Song Station: phone recording → cleaned vocal + melody-matched instrumental
+// → mixed song (keeps the real voice). Same gate as the Studio.
+app.get('/song', serveGated('song.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

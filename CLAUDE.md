@@ -132,6 +132,31 @@ lifted into a standalone tool later.
   (`GET /quick`, `GET/DELETE /quick/:id`). Home-screen "Animate one image" in
   the app.
 
+## Songs (phone recording → real song, keeping the real voice)
+- `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
+  her phone; out comes a produced track with HER actual voice (built because
+  Suno-style covers replace the singer). Pipeline: **resemble-enhance**
+  (Replicate, `denoise_flag:true`) strips background noise + restores the vocal
+  → **meta/musicgen** `stereo-melody-large` writes an instrumental that follows
+  the cleaned vocal's melody (`input_audio` conditioning, `continuation:false`)
+  → **ffmpeg** mixes voice over instrumental (adjustable gains, `loudnorm` to
+  -14 LUFS) into a 192k mp3. Version hashes pinned in `AUDIO_MODELS`.
+- MusicGen holds a melody for ~30s, so longer recordings are cut into ≤30s
+  chunks, generated with ONE shared seed (cohesion), padded/trimmed back to
+  exact chunk length (`conformChunk` — keeps sync with the voice), and joined.
+  Max 4 minutes (`MAX_SONG_SECONDS`); ~$0.11 per 30s chunk + ~$0.03 enhance.
+- Uploads arrive as data URLs, are transcoded to mono 44.1k WAV first
+  (`toWav` — voice memos are m4a, browser recordings webm), and Firebase
+  Storage is REQUIRED (Replicate must fetch the audio by URL). The style
+  prompt always gets `STYLE_SUFFIX` ("instrumental backing track, no vocals")
+  or MusicGen sings its own oohs.
+- Re-mix (gains) is free ffmpeg; re-rolling the instrumental with a new style
+  re-runs only MusicGen + mix. Old mixes go to `mixHistory` (capped 12).
+- State: movies.js pattern — one Firestore doc per song (`forge-songs`),
+  background jobs recorded in the doc, clients poll `GET /api/songs/:id`. Same
+  `STUDIO_TOKEN` gate (only `GET /status` open); `/song` served via
+  `serveGated` like `/photo`.
+
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a
