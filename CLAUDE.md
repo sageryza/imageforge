@@ -210,6 +210,9 @@ lifted into a standalone tool later.
   message to copy-paste, forward, or hand off to another chat, put the ENTIRE
   message inside a single fenced code block so it copies in one tap — no
   commentary mixed in, never split across sections or styled headers.
+- **No markdown tables in chat replies.** The user reads on a narrow phone
+  where wide tables need horizontal sliding and often don't render. Present
+  comparisons as short labeled lines or bullet lists instead.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
