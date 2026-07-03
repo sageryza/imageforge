@@ -30,6 +30,7 @@ struct Movie: Codable, Identifiable {
     var scenes: [MovieScene]
     var bridges: [MovieBridge]?
     var cuts: [MovieCut]?
+    var zine: MovieZine?
     var job: MovieJob?
     var movieUrl: String?
     var movieDuration: Double?
@@ -56,6 +57,24 @@ struct CutFrame: Codable {
     var title: String
     var panelUrl: String?
     var bridge: Bool?
+}
+
+/// The movie's scenes as a zine — a hand-lettered cover plus one captioned
+/// 2x2 page per four scenes, all in the style reference's own format.
+struct MovieZine: Codable {
+    var pages: [ZinePage]
+    var quality: String?
+    var madeAt: String?
+}
+
+struct ZinePage: Codable, Identifiable {
+    var url: String
+    var promptUsed: String?
+    var cover: Bool?
+    var sceneIds: [String]?
+
+    var id: String { url }
+    var pageURL: URL? { URL(string: url) }
 }
 
 /// A one-image quick animation (home-screen "Animate", no movie attached).

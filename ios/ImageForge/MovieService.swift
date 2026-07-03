@@ -158,6 +158,11 @@ final class MovieService {
         try await movieCall("POST", "/\(id)/stitch")
     }
 
+    /// The zine: cover + captioned pages from the movie's scenes.
+    func makeZine(_ id: String, quality: String = "medium") async throws -> Movie {
+        try await movieCall("POST", "/\(id)/zine", body: ["quality": quality])
+    }
+
     // MARK: Quick animate (one image → one clip, no movie)
 
     /// Kick off a quick animation. `jpeg` is the picked image, already
