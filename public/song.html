@@ -118,6 +118,12 @@
       <button class="btn ghost" onclick="reroll()">New instrumental</button>
     </div>
 
+    <label class="fld">Take it into GarageBand</label>
+    <div class="row">
+      <button class="btn ghost" onclick="makeMidi()">Melody → MIDI (free)</button>
+      <span class="muted" id="midiInfo">Extracts the notes you actually sang, at your timing, as a .mid file — build real chords around the real tune.</span>
+    </div>
+
     <details class="extras">
       <summary>The separate tracks</summary>
       <div class="track"><div class="tname">Cleaned vocal (your voice)</div><audio id="vocalAudio" controls></audio></div>
@@ -219,7 +225,7 @@
     }, 3000);
   }
 
-  const JOB_LABELS = { 'cleaning the vocal': 'Cleaning the noise out of your vocal…', 'writing instrumental': 'Writing the instrumental around your melody…', 'mixing': 'Mixing your voice over the instrumental…' };
+  const JOB_LABELS = { 'cleaning the vocal': 'Cleaning the noise out of your vocal…', 'writing instrumental': 'Writing the instrumental around your melody…', 'mixing': 'Mixing your voice over the instrumental…', 'listening for the melody': 'Listening for the notes you sang…' };
 
   function render(song) {
     const job = song.job;
@@ -247,6 +253,11 @@
       $('spendNote').textContent = song.spend ? `— about $${song.spend.toFixed(2)} spent on this song` : '';
       if (!running && (!job || job.status === 'done')) $('resultStatus').innerHTML = '';
     }
+    if (song.midi && song.midi.url) {
+      $('midiInfo').innerHTML = `<a class="link" href="${song.midi.url}" download="melody.mid">Download melody.mid</a> — ${song.midi.noteCount} notes, ${song.midi.voicedSeconds}s of singing. In GarageBand: track menu → import, or just drag it in.`;
+    } else if (song.midi && song.midi.status === 'error') {
+      $('midiInfo').textContent = 'Melody extraction failed: ' + (song.midi.error || 'unknown') + ' — try again.';
+    }
     if (song.vocal && song.vocal.url && $('vocalAudio').src !== song.vocal.url) $('vocalAudio').src = song.vocal.url;
     if (song.instrumental && song.instrumental.url && $('instrAudio').src !== song.instrumental.url) $('instrAudio').src = song.instrumental.url;
     if (song.original && song.original.url && $('origAudio').src !== song.original.url) $('origAudio').src = song.original.url;
@@ -271,6 +282,14 @@
       body: JSON.stringify({ style: $('restyle').value }),
     });
     if (!r.ok) return setStatus($('resultStatus'), 'err', r.body.error || 'Re-roll failed.');
+    startPolling();
+  }
+
+  async function makeMidi() {
+    if (!songId) return;
+    $('midiInfo').innerHTML = '<span class="spin"></span>Listening for the notes you sang…';
+    const r = await api(`/api/songs/${songId}/midi`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    if (!r.ok) { $('midiInfo').textContent = r.body.error || 'Extraction failed.'; return; }
     startPolling();
   }
 

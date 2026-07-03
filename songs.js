@@ -29,6 +29,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 const admin = require('firebase-admin');
+const { extractMelodyMidi } = require('./melody');
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 // Same access gate as the POD pipeline: when set, everything but GET /status
@@ -143,6 +144,7 @@ const AUDIO_EXT = {
   'audio/mpeg': 'mp3', 'audio/mp3': 'mp3',
   'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'm4a',
   'audio/ogg': 'ogg', 'audio/webm': 'webm', 'audio/flac': 'flac',
+  'audio/midi': 'mid',
 };
 
 async function saveBufferToStorage(buffer, contentType, folder) {
@@ -563,6 +565,41 @@ router.post('/:id/instrumental', async (req, res) => {
         await mixSong(song, tmpDir, { instrumentalFile });
       } catch (err) {
         if (song.instrumental?.status === 'running') song.instrumental = { ...song.instrumental, status: 'error', error: err.message };
+        throw err;
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+    res.json({ ok: true, song });
+  } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
+});
+
+// Melody → MIDI: extract the sung notes from the cleaned vocal (or the
+// original, pre-cleanup) as a .mid file for GarageBand — the handoff for
+// building real chords around the real tune. Pure DSP (melody.js), free.
+router.post('/:id/midi', async (req, res) => {
+  try {
+    const song = await loadSong(req.params.id);
+    if (!song) return res.status(404).json({ error: 'song not found' });
+    const source = song.vocal?.url || song.original?.url;
+    if (!source) return res.status(400).json({ error: 'no audio yet' });
+    if (!FFMPEG) return res.status(400).json({ error: 'ffmpeg unavailable on the server' });
+    song.midi = { ...(song.midi || {}), status: 'running', error: null };
+    await startJob(song, 'midi', async (progress) => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-song-'));
+      try {
+        await progress(0, 1, 'listening for the melody');
+        const inFile = path.join(tmpDir, 'vocal-in');
+        fs.writeFileSync(inFile, (await fetchBuffer(source)).buffer);
+        const pcmFile = path.join(tmpDir, 'vocal.pcm');
+        await run(FFMPEG, ['-y', '-i', inFile, '-f', 'f32le', '-ac', '1', '-ar', '22050', pcmFile]);
+        const raw = fs.readFileSync(pcmFile);
+        const samples = new Float32Array(raw.buffer, raw.byteOffset, Math.floor(raw.length / 4));
+        const { midi, notes, voicedSeconds } = await extractMelodyMidi(samples, 22050);
+        const url = await saveBufferToStorage(midi, 'audio/midi', 'songs/midi');
+        song.midi = { url, status: 'done', error: null, noteCount: notes.length, voicedSeconds };
+      } catch (err) {
+        song.midi = { ...(song.midi || {}), status: 'error', error: err.message };
         throw err;
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
