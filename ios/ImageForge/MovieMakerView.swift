@@ -510,6 +510,7 @@ struct MovieDetailView: View {
     @State private var pollGeneration = 0
     @State private var busy = false           // a request is in flight
     @State private var showGallery = false
+    @State private var zinePage: ZinePage?
 
     init(movieId: String, initial: Movie? = nil, autopilot: Bool = false) {
         self.movieId = movieId
@@ -531,6 +532,7 @@ struct MovieDetailView: View {
                     }
                     filmStrip(movie)
                     dreamSection(movie)
+                    zineSection(movie)
                     Text("Edits are free — trim, speed, freeze and reorder never regenerate anything. Re-stitch after tweaking. Upgrade single scenes to Kling when the draft cut feels right.")
                         .font(.caption2).foregroundColor(Reel.dim).padding(.bottom, 30)
                 } else {
@@ -552,6 +554,9 @@ struct MovieDetailView: View {
         }
         .sheet(isPresented: $showGallery) {
             if let movie { MovieGalleryView(movie: movie) }
+        }
+        .sheet(item: $zinePage) { page in
+            ZinePageSheet(page: page)
         }
         .toolbarBackground(Reel.base, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -754,6 +759,73 @@ struct MovieDetailView: View {
             .cornerRadius(Theme.radiusLg)
             .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Reel.border, lineWidth: 1))
         }
+    }
+
+    // MARK: The zine (same story, printed medium)
+
+    private func zineSection(_ movie: Movie) -> some View {
+        let pageCount = Int((Double(movie.scenes.count) / 4).rounded(.up)) + 1  // + cover
+        let cost = Double(pageCount) * 0.06
+        let running = movie.job?.isRunning == true
+        return VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("THE ZINE")
+            VStack(alignment: .leading, spacing: 10) {
+                if let zine = movie.zine, !zine.pages.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(zine.pages) { page in
+                                zinePageThumb(page)
+                            }
+                        }
+                    }
+                    HStack {
+                        Text("\(zine.pages.count) pages — tap to read & share")
+                            .font(.caption2).foregroundColor(Reel.dim)
+                        Spacer()
+                        reelButton("Remake · ~\(MovieCosts.chip(cost))") {
+                            fire { try await MovieService.shared.makeZine(movieId) }
+                        }
+                        .disabled(running || busy)
+                    }
+                } else {
+                    Text("The same story as a hand-lettered zine — a cover plus one captioned 2×2 page per four scenes, in your style. Print-ready later.")
+                        .font(.caption2).foregroundColor(Reel.dim)
+                    reelButton("📖 Make the zine · \(pageCount) pages · ~\(MovieCosts.chip(cost))", prominent: true) {
+                        fire { try await MovieService.shared.makeZine(movieId) }
+                    }
+                    .disabled(running || busy)
+                }
+            }
+            .padding(12)
+            .background(Reel.surface)
+            .cornerRadius(Theme.radiusLg)
+            .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Reel.border, lineWidth: 1))
+        }
+    }
+
+    private func zinePageThumb(_ page: ZinePage) -> some View {
+        Button { zinePage = page } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4).fill(Reel.strip)
+                    if let url = page.pageURL {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let image) = phase {
+                                image.resizable().scaledToFill()
+                            } else {
+                                ProgressView().tint(Reel.dim)
+                            }
+                        }
+                    }
+                }
+                .frame(width: 74, height: 111)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Reel.border, lineWidth: 1))
+                Text(page.cover == true ? "cover" : "page")
+                    .font(.system(size: 9)).foregroundColor(Reel.dim)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Scene actions
@@ -1255,6 +1327,44 @@ struct ClipPreviewSheet: View {
                     }
                 }
                 .toolbarBackground(Reel.base, for: .navigationBar)
+        }
+    }
+}
+
+/// Full-screen zine page: read it, share it.
+struct ZinePageSheet: View {
+    let page: ZinePage
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 12) {
+                    if let url = page.pageURL {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let image) = phase {
+                                image.resizable().scaledToFit()
+                            } else {
+                                ProgressView().tint(Reel.dim).frame(height: 400)
+                            }
+                        }
+                        .cornerRadius(Theme.radiusLg)
+                        ShareLink(item: url) {
+                            Label("Share this page", systemImage: "square.and.arrow.up")
+                                .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(Reel.base.ignoresSafeArea())
+            .navigationTitle(page.cover == true ? "Cover" : "Zine page")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") { dismiss() }.foregroundColor(Reel.amber)
+                }
+            }
         }
     }
 }

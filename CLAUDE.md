@@ -131,6 +131,13 @@ lifted into a standalone tool later.
   wan clip, default **720p** (~$0.16); its own polled docs in `forge-quick`
   (`GET /quick`, `GET/DELETE /quick/:id`). Home-screen "Animate one image" in
   the app.
+- **The zine:** `POST /api/movies/:id/zine` — the same scenes as a printed
+  medium: a hand-lettered cover + one captioned 2x2 page per four scenes
+  (captions = scene titles, rendered in the style reference's own lettering;
+  validated live — text spells exactly at medium). ~$0.06/page. Lands in
+  `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
+  the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
+  uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into

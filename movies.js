@@ -736,6 +736,86 @@ async function generateBridge(movie, bridge, tmpDir) {
   movie.spend = +((movie.spend || 0) + cost).toFixed(2);
 }
 
+// ─── The zine: the same story as captioned pages ────────────────────
+// Every movie can also BE a zine — same scenes, same style reference, but
+// composed into hand-lettered 2x2 pages (the reference page's own format)
+// instead of animated. Captions = the scene titles. Validated live: captions
+// render spelled-exactly in the reference's lettering at medium quality.
+const ZINE_LAYOUTS = {
+  4: 'Draw a 2x2 grid of four rectangular panels',
+  3: 'Draw three equal rectangular panels stacked vertically',
+  2: 'Draw two equal rectangular panels stacked vertically',
+  1: 'Draw one large single panel filling the page',
+};
+
+function zinePagePrompt(movie, group) {
+  const positions = group.length === 4
+    ? ['top left', 'top right', 'bottom left', 'bottom right']
+    : group.length === 1 ? ['full page'] : group.map((_, i) => `position ${i + 1} from the top`);
+  const body = group.map((s, i) =>
+    `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}. Caption: "${s.title.toUpperCase()}"`).join(' ');
+  const layout = `${ZINE_LAYOUTS[group.length]}, each with a small hand-lettered caption box beneath it containing EXACTLY the given caption text, spelled exactly as written. `;
+  if (styleRef) {
+    return 'Copy the styling of the attached image exactly — including its hand-lettered ' +
+      'caption boxes — but do NOT copy its content or subjects. ' + layout + body;
+  }
+  return `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${layout}${body}`;
+}
+
+function zineCoverPrompt(movie) {
+  const subject = movie.characters
+    ? `${movie.characters} — one single iconic image capturing the story: ${movie.title}`
+    : `one single iconic image capturing the story: ${movie.title}`;
+  if (styleRef) {
+    return 'Copy the styling of the attached image exactly — including its hand-drawn ' +
+      `lettering — but do NOT copy its content or subjects. Draw a zine COVER page: ` +
+      `the title "${movie.title.toUpperCase()}" hand-lettered prominently near the top, ` +
+      `spelled exactly as written, above one full-page illustration of ${subject}. ` +
+      'No other text anywhere.';
+  }
+  return `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} A zine cover: the title ` +
+    `"${movie.title.toUpperCase()}" hand-lettered prominently near the top, above one ` +
+    `full-page illustration of ${subject}. No other text.`;
+}
+
+async function renderZinePage(prompt, quality) {
+  const buf = styleRef
+    ? await openaiPanelEdit(prompt, styleRef, quality)
+    : await openaiPanel(prompt, quality);
+  return saveBufferToStorage(buf, 'image/webp', 'movies/zines');
+}
+
+async function makeZine(movie, quality, progress) {
+  const groups = [];
+  for (let i = 0; i < movie.scenes.length; i += 4) groups.push(movie.scenes.slice(i, i + 4));
+  const total = groups.length + 1;
+  const pages = [];
+  await progress(0, total, 'drawing the cover');
+  const coverPrompt = zineCoverPrompt(movie);
+  const coverUrl = await renderZinePage(coverPrompt, quality);
+  pages.push({ url: coverUrl, promptUsed: coverPrompt, cover: true, sceneIds: [] });
+  movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+  await progress(1, total, 'drawing pages');
+
+  let done = 1;
+  const results = await pool(groups, 2, async (group) => {
+    const prompt = zinePagePrompt(movie, group);
+    const url = await renderZinePage(prompt, quality);
+    movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+    await progress(++done, total, 'drawing pages');
+    return { url, promptUsed: prompt, cover: false, sceneIds: group.map(s => s.id) };
+  });
+  // Keep pages in story order (pool preserves index order); keep what
+  // succeeded even if some pages failed so nothing paid-for is lost.
+  results.forEach(r => { if (r.ok) pages.push(r.value); });
+  if (movie.zine?.pages?.length) {
+    movie.zineHistory = [...(movie.zineHistory || []), movie.zine].slice(-3);
+  }
+  movie.zine = { pages, quality, madeAt: new Date().toISOString() };
+  const failed = results.filter(r => !r.ok).length;
+  if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; remake to fill the gaps`);
+}
+
 // The ordered list of clips that make the movie: enabled scenes (skipping
 // merged pair-partners), with dream bridges interleaved when dreamMode is on.
 function movieSequence(movie) {
@@ -1266,6 +1346,23 @@ router.post('/:id/bridges', async (req, res) => {
   } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
 });
 
+// The zine — the movie's scenes as captioned hand-lettered pages (cover +
+// one page per four scenes). Pages land in movie.zine; prior zines are kept
+// in movie.zineHistory (capped 3).
+router.post('/:id/zine', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    const { quality = 'medium' } = req.body || {};
+    const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    if (!movie.scenes.length) return res.status(400).json({ error: 'no scenes' });
+    await startJob(movie, 'zine', async (progress) => {
+      await makeZine(movie, q, progress);
+    });
+    res.json({ ok: true, movie });
+  } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
+});
+
 // Stitch — apply every scene's edit list and join the sequence into the movie.
 // Near-instant relative to generation; free to re-run after every tweak.
 router.post('/:id/stitch', async (req, res) => {
@@ -1290,6 +1387,7 @@ module.exports = {
   renderPanelFor,
   renderSketchGrid,
   generateClipFor,
+  makeZine,
   probe,
   extractLastFrame,
   normalizeClip,
