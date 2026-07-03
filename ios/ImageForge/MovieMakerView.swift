@@ -93,7 +93,7 @@ struct MovieMakerHome: View {
 
     @AppStorage("forge.movie.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
-    @State private var pendingAutopilot = false
+    @State private var pendingMode: CreateMode = .autopilot
     @State private var pendingQuick = false
 
     // Quick animate (one image → one clip, wan 720p)
@@ -147,7 +147,7 @@ struct MovieMakerHome: View {
                     onAgree: {
                         aiConsentAccepted = true; showConsent = false
                         if pendingQuick { pendingQuick = false; startQuickAnimate() }
-                        else { create(autopilot: pendingAutopilot) }
+                        else { create(mode: pendingMode) }
                     },
                     onCancel: { showConsent = false })
             }
@@ -201,16 +201,30 @@ struct MovieMakerHome: View {
                     }
                 }
             HStack(spacing: 10) {
-                reelButton(creating ? "Rolling…" : "🎬  Make My Movie", prominent: true) {
-                    requestCreate(autopilot: true)
+                reelButton(creating ? "Rolling…" : "🎬  Make it!", prominent: true) {
+                    requestCreate(mode: .autopilot)
                 }
-                reelButton("Storyboard only") {
-                    requestCreate(autopilot: false)
+                Menu {
+                    Button("👤 Nail the character first · 3 key scenes") { requestCreate(mode: .character) }
+                    Divider()
+                    Button("Storyboard · sketch grids · ~½¢/panel") { requestCreate(mode: .storyboard("sketch")) }
+                    Button("Storyboard · low · 2¢/panel") { requestCreate(mode: .storyboard("low")) }
+                    Button("Storyboard · medium · 6¢/panel") { requestCreate(mode: .storyboard("medium")) }
+                    Button("Storyboard · high · 25¢/panel") { requestCreate(mode: .storyboard("high")) }
+                } label: {
+                    HStack(spacing: 5) {
+                        Text("Storyboard").font(.subheadline.weight(.semibold)).foregroundColor(Reel.ink)
+                        Image(systemName: "chevron.down").font(.caption2.weight(.bold)).foregroundColor(Reel.dim)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 11)
+                    .background(Reel.surface)
+                    .cornerRadius(Theme.radius)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                 }
             }
             .disabled(creating)
             .opacity(creating ? 0.6 : 1)
-            Text("A 10-scene draft movie runs about $1.25 end to end. You approve the storyboard panels before any video is made — and can zoom into any scene to steer it.")
+            Text("Make it! runs the whole pipeline. Or open Storyboard to pick a quality — or meet the character in 3 key scenes first, lock him in, and every panel after stays consistent.")
                 .font(.caption2).foregroundColor(Reel.dim)
         }
     }
@@ -364,22 +378,39 @@ struct MovieMakerHome: View {
         return resized.jpegData(compressionQuality: 0.85)
     }
 
-    private func requestCreate(autopilot: Bool) {
+    enum CreateMode { case autopilot, character, storyboard(String) }
+
+    private func requestCreate(mode: CreateMode) {
         let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Type a story first — one sentence is enough."; return }
-        guard aiConsentAccepted else { pendingAutopilot = autopilot; showConsent = true; return }
-        create(autopilot: autopilot)
+        guard aiConsentAccepted else { pendingMode = mode; showConsent = true; return }
+        create(mode: mode)
     }
 
-    private func create(autopilot: Bool) {
+    private func create(mode: CreateMode) {
         let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !creating else { return }
         creating = true
         Task {
             do {
-                let movie = try await MovieService.shared.create(story: text, sceneCount: nil)
+                var quality: String?
+                if case .storyboard(let q) = mode { quality = q }
+                var movie = try await MovieService.shared.create(story: text, panelQuality: quality)
+                // Kick the first render per mode so the reel is already rolling
+                // when the detail screen opens.
+                switch mode {
+                case .autopilot:
+                    break   // detail-view autopilot chains everything
+                case .character:
+                    let keys = movie.scenes.filter { $0.key == true }.map(\.id)
+                    if !keys.isEmpty {
+                        movie = try await MovieService.shared.renderPanels(movie.id, only: keys)
+                    }
+                case .storyboard:
+                    movie = try await MovieService.shared.renderPanels(movie.id)
+                }
                 story = ""
-                openAutopilot = autopilot
+                if case .autopilot = mode { openAutopilot = true } else { openAutopilot = false }
                 openedMovie = movie
                 showDetail = true
             } catch { errorText = error.localizedDescription }
@@ -611,6 +642,16 @@ struct MovieDetailView: View {
             if let characters = movie.characters, !characters.isEmpty {
                 Text("CAST  ·  \(characters)").font(.caption2).foregroundColor(Reel.dim).lineLimit(2)
             }
+            if movie.characterAnchor?.url != nil {
+                HStack(spacing: 8) {
+                    Text("🔗 character locked — renders stay consistent")
+                        .font(.caption2).foregroundColor(Reel.green)
+                    Button("unlock") {
+                        fire(poll: false) { try await MovieService.shared.setAnchor(movieId, sceneId: nil) }
+                    }
+                    .font(.caption2).foregroundColor(Reel.dim)
+                }
+            }
             HStack(spacing: 8) {
                 Text("\(movie.scenes.count) scenes").font(.caption).foregroundColor(Reel.dim)
                 if let duration = movie.movieDuration, duration > 0 {
@@ -637,25 +678,16 @@ struct MovieDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             switch stage(movie) {
             case .panels:
-                let n = missingPanels(movie)
-                bigButton("Render the storyboard  ·  \(n) panels  ·  ~\(MovieCosts.chip(Double(n) * 0.06))", disabled: running || busy) {
-                    fire { try await MovieService.shared.renderPanels(movieId) }
-                }
-                HStack(spacing: 14) {
-                    Button {
-                        fire { try await MovieService.shared.renderPanels(movieId, quality: "low") }
-                    } label: {
-                        Text("draft at low · ~\(MovieCosts.chip(Double(n) * 0.02))")
-                            .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
-                    }
-                    Button {
-                        fire { try await MovieService.shared.renderPanels(movieId, quality: "sketch") }
-                    } label: {
-                        Text("4-up sketch grids · ~\(MovieCosts.chip((Double(n) / 4).rounded(.up) * 0.02))")
-                            .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                if characterPending(movie), !running {
+                    characterBanner(movie)
+                } else {
+                    let n = missingPanels(movie)
+                    let q = movie.panelQuality ?? "medium"
+                    let per = MovieCosts.panel[q] ?? 0.06
+                    bigButton("Render the storyboard  ·  \(n) panels (\(q))  ·  ~\(MovieCosts.chip(Double(n) * per))", disabled: running || busy) {
+                        fire { try await MovieService.shared.renderPanels(movieId) }
                     }
                 }
-                .disabled(running || busy)
             case .animate:
                 let n = missingClips(movie)
                 bigButton("Animate all scenes  ·  draft  ·  ~\(MovieCosts.chip(Double(n) * 0.06))", disabled: running || busy) {
@@ -675,6 +707,43 @@ struct MovieDetailView: View {
                 EmptyView()
             }
         }
+    }
+
+    // MARK: The character (nail him down first, then lock)
+
+    /// Key-scene panels exist but no anchor is locked and panels remain — the
+    /// user should approve the character before drawing everything else.
+    private func characterPending(_ movie: Movie) -> Bool {
+        movie.characterAnchor?.url == nil
+            && movie.scenes.contains { $0.key == true && $0.panel?.url != nil }
+            && missingPanels(movie) > 0
+    }
+
+    private func characterBanner(_ movie: Movie) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("THE CHARACTER — look at the key frames above. Happy with the design?")
+                .font(.caption).foregroundColor(Reel.ink)
+            HStack(spacing: 10) {
+                reelButton("🔗 Lock & draw the rest", prominent: true) {
+                    guard let sceneId = movie.scenes.first(where: { $0.key == true && $0.panel?.url != nil })?.id else { return }
+                    fire {
+                        _ = try await MovieService.shared.setAnchor(movieId, sceneId: sceneId)
+                        return try await MovieService.shared.renderPanels(movieId)
+                    }
+                }
+                reelButton("🎲 New character") {
+                    let keys = movie.scenes.filter { $0.key == true }.map(\.id)
+                    fire { try await MovieService.shared.renderPanels(movieId, only: keys, force: true) }
+                }
+            }
+            .disabled(busy)
+            Text("Locking makes the first key panel the character's anchor — every panel and re-roll after renders with it attached, so the face, hair and clothes stay put.")
+                .font(.caption2).foregroundColor(Reel.dim)
+        }
+        .padding(12)
+        .background(Reel.surface)
+        .cornerRadius(Theme.radiusLg)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Reel.amber.opacity(0.5), lineWidth: 1))
     }
 
     // MARK: Theater (the stitched movie)
@@ -1015,6 +1084,9 @@ private struct SceneFrame: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(Reel.ink)
                             .multilineTextAlignment(.leading)
+                        if scene.key == true {
+                            Text("★").font(.caption2).foregroundColor(Reel.amber)
+                        }
                     }
                     statusLine
                     if scene.pairWithNext == true {

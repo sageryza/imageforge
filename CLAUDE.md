@@ -122,6 +122,16 @@ lifted into a standalone tool later.
   **edits** endpoint with it attached as a pure STYLE reference (prefix insists
   style only — never content/subjects/composition). `MOVIE_STYLE_REF=0`
   disables; without the file, panels fall back to the text `imageStyle` lock.
+- **Character anchor** (OpenAI cookbook technique — fixes wardrobe drift): the
+  breakdown marks ~3 `key` scenes; the app's character-first flow renders just
+  those, then `POST /:id/anchor {sceneId}` locks one panel as the character's
+  definitive look. Every later render (panels, grids, zine pages) attaches the
+  anchor as an extra `image[]` reference with the preserve-list restated
+  ("same face, hairstyle, clothing … Do not redesign the character"). The
+  breakdown's `characters` tokens must include hair + face + exact outfit.
+  `panelQuality` on the movie (set at creation via the app's Storyboard menu)
+  is the default for all panel renders. Validated live: checkered flannel held
+  across scenes.
 - **Gallery:** re-rolls are never lost — superseded generations go to
   `scene.panelHistory`/`clipHistory` (capped 12, each with `promptUsed`); every
   stitch is kept in `movie.cuts[]`, auto-named by diffing edits/sequence vs the

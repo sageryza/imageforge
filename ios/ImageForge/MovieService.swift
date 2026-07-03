@@ -95,10 +95,16 @@ final class MovieService {
     }
 
     /// Story → scene breakdown (one GPT call, synchronous, ~5-15s).
-    func create(story: String, sceneCount: Int?) async throws -> Movie {
+    func create(story: String, sceneCount: Int? = nil, panelQuality: String? = nil) async throws -> Movie {
         var body: [String: Any] = ["story": story]
         if let sceneCount { body["sceneCount"] = sceneCount }
+        if let panelQuality { body["panelQuality"] = panelQuality }
         return try await movieCall("POST", "", body: body, timeout: 120)
+    }
+
+    /// Lock (sceneId) or clear (nil) the character anchor.
+    func setAnchor(_ id: String, sceneId: String?) async throws -> Movie {
+        try await movieCall("POST", "/\(id)/anchor", body: ["sceneId": sceneId ?? NSNull()])
     }
 
     func movie(_ id: String) async throws -> Movie {
@@ -127,8 +133,12 @@ final class MovieService {
 
     // Generation steps — each starts a background job; poll `movie(id)`.
 
-    func renderPanels(_ id: String, quality: String = "medium", force: Bool = false) async throws -> Movie {
-        try await movieCall("POST", "/\(id)/panels", body: ["quality": quality, "force": force])
+    /// quality nil → the movie's chosen panelQuality; `only` limits to given scenes.
+    func renderPanels(_ id: String, quality: String? = nil, only: [String]? = nil, force: Bool = false) async throws -> Movie {
+        var body: [String: Any] = ["force": force]
+        if let quality { body["quality"] = quality }
+        if let only, !only.isEmpty { body["only"] = only }
+        return try await movieCall("POST", "/\(id)/panels", body: body)
     }
 
     func rerollPanel(_ id: String, sceneId: String, quality: String = "medium",

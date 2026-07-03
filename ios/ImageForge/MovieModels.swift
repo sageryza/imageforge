@@ -27,6 +27,8 @@ struct Movie: Codable, Identifiable {
     var motionStyle: String?
     var negativePrompt: String?
     var dreamMode: Bool?
+    var panelQuality: String?
+    var characterAnchor: CharacterAnchor?
     var scenes: [MovieScene]
     var bridges: [MovieBridge]?
     var cuts: [MovieCut]?
@@ -57,6 +59,14 @@ struct CutFrame: Codable {
     var title: String
     var panelUrl: String?
     var bridge: Bool?
+}
+
+/// The locked character reference: one approved panel that every later
+/// render attaches so the character never changes shirts mid-story.
+struct CharacterAnchor: Codable {
+    var url: String?
+    var sceneId: String?
+    var lockedAt: String?
 }
 
 /// The movie's scenes as a zine — a hand-lettered cover plus one captioned
@@ -103,6 +113,7 @@ struct MovieScene: Codable, Identifiable {
     var motionPromptOverride: String?
     var hasText: Bool?
     var pairWithNext: Bool?
+    var key: Bool?          // one of the ~3 scenes that define the character
     var panel: PanelState?
     var clip: ClipState?
     var panelHistory: [PanelState]?   // superseded generations (the gallery)
@@ -111,7 +122,7 @@ struct MovieScene: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, imagePrompt, motionPrompt, motionPromptOverride
-        case hasText, pairWithNext, panel, clip, panelHistory, clipHistory, edits
+        case hasText, pairWithNext, key, panel, clip, panelHistory, clipHistory, edits
         case summary = "description"
     }
 
@@ -187,7 +198,7 @@ struct MoviesStatus: Codable {
 
 // ─── Cost chips (mirror movies.js constants) ─────────────────────────
 enum MovieCosts {
-    static let panel: [String: Double] = ["low": 0.02, "medium": 0.06, "high": 0.25]
+    static let panel: [String: Double] = ["sketch": 0.005, "low": 0.02, "medium": 0.06, "high": 0.25]
     static let clip: [String: Double] = ["draft": 0.06, "standard": 0.25, "pro": 0.55]
     static let bridge = 0.08
 

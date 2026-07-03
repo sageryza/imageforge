@@ -334,11 +334,14 @@ async function openaiPanel(prompt, quality = 'medium', retries = 2) {
   throw lastErr;
 }
 
-// Panel render through the EDITS endpoint with the style reference attached
-// (multipart). Mirrors openaiPanel's retry/timeout behavior; edits are slower
-// than generations so the cap only ever goes up.
-async function openaiPanelEdit(prompt, refBuffer, quality = 'medium', retries = 2) {
+// Panel render through the EDITS endpoint with one or more reference images
+// attached (multipart image[] — the style page, plus the character anchor
+// once one is locked). gpt-image-2 processes reference inputs at high
+// fidelity automatically. Mirrors openaiPanel's retry/timeout behavior;
+// edits are slower than generations so the cap only ever goes up.
+async function openaiPanelEdit(prompt, refBuffers, quality = 'medium', retries = 2) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const refs = Array.isArray(refBuffers) ? refBuffers : [refBuffers];
   const timeout = Math.max(150000, IMAGE_TIMEOUTS[quality] || 0);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -346,7 +349,9 @@ async function openaiPanelEdit(prompt, refBuffer, quality = 'medium', retries = 
       const form = new FormData();
       form.append('model', 'gpt-image-2');
       form.append('prompt', prompt);
-      form.append('image', refBuffer, { filename: 'style.jpg', contentType: 'image/jpeg' });
+      refs.forEach((buf, i) => {
+        form.append('image[]', buf, { filename: `ref${i}.jpg`, contentType: 'image/jpeg' });
+      });
       form.append('size', '1024x1536');
       form.append('quality', quality);
       form.append('output_format', 'webp');
@@ -515,13 +520,14 @@ async function breakdownStory(story, sceneCount) {
   const target = sceneCount ? `exactly ${sceneCount}` : 'between 8 and 12';
   const sys = `You are a storyboard artist breaking a story into scenes for an illustrated animated short film. Return STRICT JSON:
 {"title": short film title,
- "characters": one compact phrase of visual continuity tokens for the recurring character(s), e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat",
+ "characters": one compact phrase of visual continuity tokens for the recurring character(s) — MUST specify hairstyle, facial features (beard/glasses/etc), AND the exact clothing worn for the whole story, e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat and red boots",
  "scenes": [{"title": 2-5 word scene label,
    "description": what happens in this scene, written SELF-CONTAINED,
    "imagePrompt": a full image-generation prompt for this scene's illustrated panel,
    "motionPrompt": one sentence of the SMALL physical motion happening in the shot (subtle — steam rising, a hand reaching, eyes blinking, rain falling),
    "hasText": true only if the panel should contain written text (a speech bubble, a sign, a screen),
-   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action}]}
+   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,
+   "key": true on EXACTLY the 3 scenes that show the main character most clearly (well lit, framed large, face visible) — these render first so the character design can be approved}]}
 
 HARD RULES:
 - ${target} scenes.
@@ -543,12 +549,18 @@ HARD RULES:
     motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: Boolean(s.pairWithNext),
+    key: Boolean(s.key),
     panel: null,          // { url, quality, status, error }
     clip: null,           // { url, tier, status, error, frames, cost, promptUsed }
     edits: { enabled: true, trimStart: 0, trimEnd: 0, speed: 1, freezeEnd: 0, fadeOut: 0 },
   }));
   if (!scenes.length) throw new Error('breakdown produced no scenes');
   if (scenes.length) scenes[scenes.length - 1].pairWithNext = false; // can't pair past the end
+  // Guarantee key scenes exist (first / middle / last as the fallback trio).
+  if (!scenes.some(s => s.key)) {
+    [0, Math.floor(scenes.length / 2), scenes.length - 1]
+      .forEach(i => { scenes[i].key = true; });
+  }
   return {
     title: String(out.title || 'Untitled film').trim(),
     characters: String(out.characters || '').trim(),
@@ -570,6 +582,43 @@ function motionPromptFor(movie, scene) {
   return p;
 }
 
+// ─── Character anchor (OpenAI cookbook technique) ────────────────────
+// One approved panel becomes the character's definitive appearance; every
+// later render attaches it as an extra reference with the preserve-list
+// restated verbatim ("repeat the preserve list on each iteration to reduce
+// drift" — the cookbook's exact advice). This is what keeps the shirt the
+// same shirt in scene 2 and scene 11.
+function anchorClause(movie) {
+  const tokens = movie.characters ? ` (${movie.characters})` : '';
+  return 'The character shown in the LAST attached image is the SAME character ' +
+    'in this scene — same face, same hairstyle, same clothing' + tokens +
+    ', same proportions and color palette. Do not redesign the character. ';
+}
+
+// Resolve the anchor image to a buffer (data URL in dev, storage URL live).
+async function anchorBuffer(movie) {
+  const url = movie.characterAnchor?.url;
+  if (!url) return null;
+  const m = /^data:[^;]+;base64,(.*)$/.exec(url);
+  if (m) return Buffer.from(m[1], 'base64');
+  try { return (await fetchBuffer(url)).buffer; }
+  catch (err) { console.warn('movies: anchor fetch failed —', err.message); return null; }
+}
+
+// Compose the reference set + prompt for a panel-style render: style page
+// first, character anchor last (the prompt refers to it as "the LAST image").
+async function panelRefs(movie, basePrompt) {
+  const refs = [];
+  let prompt = basePrompt;
+  if (styleRef) refs.push(styleRef);
+  const anchor = await anchorBuffer(movie);
+  if (anchor) {
+    refs.push(anchor);
+    prompt = anchorClause(movie) + prompt;
+  }
+  return { refs, prompt };
+}
+
 // Every re-roll keeps what it replaces — the raw-generations gallery.
 function keepHistory(scene, kind) {
   const current = scene[kind];
@@ -585,15 +634,13 @@ function keepHistory(scene, kind) {
 
 // ─── Generation steps ───────────────────────────────────────────────
 async function renderPanelFor(movie, scene, quality) {
-  let prompt, buf;
-  if (styleRef) {
-    // Style comes from the attached reference image — style only, never content.
-    prompt = STYLE_REF_PREFIX + scene.imagePrompt;
-    buf = await openaiPanelEdit(prompt, styleRef, quality);
-  } else {
-    prompt = `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
-    buf = await openaiPanel(prompt, quality);
-  }
+  const base = styleRef
+    ? STYLE_REF_PREFIX + scene.imagePrompt
+    : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
+  const { refs, prompt } = await panelRefs(movie, base);
+  const buf = refs.length
+    ? await openaiPanelEdit(prompt, refs, quality)
+    : await openaiPanel(prompt, quality);
   const url = await saveBufferToStorage(buf, 'image/webp', 'movies/panels');
   keepHistory(scene, 'panel');
   scene.panel = { url, quality, status: 'done', error: null, promptUsed: prompt };
@@ -607,10 +654,11 @@ async function renderSketchGrid(movie, group) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable (needed to slice the grid)');
   const positions = ['top left', 'top right', 'bottom left', 'bottom right'];
   const body = group.map((s, i) => `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}`).join(' ');
-  const prompt = styleRef
+  const base = styleRef
     ? STYLE_REF_GRID_PREFIX + body
     : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} A 2x2 grid of four equal storyboard panels that exactly quarter the image, thin borders, no text. ${body}`;
-  const buf = styleRef ? await openaiPanelEdit(prompt, styleRef, 'low') : await openaiPanel(prompt, 'low');
+  const { refs, prompt } = await panelRefs(movie, base);
+  const buf = refs.length ? await openaiPanelEdit(prompt, refs, 'low') : await openaiPanel(prompt, 'low');
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-sketch-'));
   try {
@@ -778,11 +826,12 @@ function zineCoverPrompt(movie) {
     `full-page illustration of ${subject}. No other text.`;
 }
 
-async function renderZinePage(prompt, quality) {
-  const buf = styleRef
-    ? await openaiPanelEdit(prompt, styleRef, quality)
+async function renderZinePage(movie, basePrompt, quality) {
+  const { refs, prompt } = await panelRefs(movie, basePrompt);
+  const buf = refs.length
+    ? await openaiPanelEdit(prompt, refs, quality)
     : await openaiPanel(prompt, quality);
-  return saveBufferToStorage(buf, 'image/webp', 'movies/zines');
+  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
 }
 
 async function makeZine(movie, quality, progress) {
@@ -791,19 +840,17 @@ async function makeZine(movie, quality, progress) {
   const total = groups.length + 1;
   const pages = [];
   await progress(0, total, 'drawing the cover');
-  const coverPrompt = zineCoverPrompt(movie);
-  const coverUrl = await renderZinePage(coverPrompt, quality);
-  pages.push({ url: coverUrl, promptUsed: coverPrompt, cover: true, sceneIds: [] });
+  const cover = await renderZinePage(movie, zineCoverPrompt(movie), quality);
+  pages.push({ url: cover.url, promptUsed: cover.prompt, cover: true, sceneIds: [] });
   movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
   await progress(1, total, 'drawing pages');
 
   let done = 1;
   const results = await pool(groups, 2, async (group) => {
-    const prompt = zinePagePrompt(movie, group);
-    const url = await renderZinePage(prompt, quality);
+    const page = await renderZinePage(movie, zinePagePrompt(movie, group), quality);
     movie.spend = +((movie.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
     await progress(++done, total, 'drawing pages');
-    return { url, promptUsed: prompt, cover: false, sceneIds: group.map(s => s.id) };
+    return { url: page.url, promptUsed: page.prompt, cover: false, sceneIds: group.map(s => s.id) };
   });
   // Keep pages in story order (pool preserves index order); keep what
   // succeeded even if some pages failed so nothing paid-for is lost.
@@ -1016,7 +1063,7 @@ router.get('/', async (req, res) => {
 // Create a movie: story → scene breakdown. Synchronous (one chat call).
 router.post('/', async (req, res) => {
   try {
-    const { story, title, sceneCount } = req.body || {};
+    const { story, title, sceneCount, panelQuality } = req.body || {};
     if (!story || !String(story).trim()) return res.status(400).json({ error: 'story is required' });
     const n = sceneCount ? Math.min(16, Math.max(2, parseInt(sceneCount, 10) || 0)) : null;
     const plan = await breakdownStory(String(story).trim(), n);
@@ -1029,6 +1076,8 @@ router.post('/', async (req, res) => {
       motionStyle: DEFAULT_MOTION_STYLE,
       negativePrompt: DEFAULT_NEGATIVE,
       dreamMode: false,
+      panelQuality: ['sketch', 'low', 'medium', 'high'].includes(panelQuality) ? panelQuality : 'medium',
+      characterAnchor: null,
       scenes: plan.scenes,
       bridges: [],
       cuts: [],
@@ -1166,14 +1215,36 @@ router.patch('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Render panels — all missing (or the listed / all with force), storyboard
-// quality by default. Panels are the cheap approval layer before any video.
+// Lock (or clear) the character anchor: the named scene's panel becomes the
+// character's definitive appearance, attached as a reference to every later
+// render. Body: { sceneId } to lock, { sceneId: null } to clear.
+router.post('/:id/anchor', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    const { sceneId } = req.body || {};
+    if (sceneId === null || sceneId === undefined || sceneId === '') {
+      movie.characterAnchor = null;
+    } else {
+      const scene = movie.scenes.find(s => s.id === sceneId);
+      if (!scene?.panel?.url) return res.status(400).json({ error: 'that scene has no panel yet' });
+      movie.characterAnchor = { url: scene.panel.url, sceneId: scene.id, lockedAt: new Date().toISOString() };
+    }
+    await saveMovie(movie);
+    res.json(movie);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Render panels — all missing (or the listed / all with force), at the
+// movie's chosen quality by default. Panels are the cheap approval layer
+// before any video.
 router.post('/:id/panels', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
-    const { quality = 'medium', only, force = false } = req.body || {};
-    const q = ['sketch', 'low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    const { quality, only, force = false } = req.body || {};
+    const q = ['sketch', 'low', 'medium', 'high'].includes(quality)
+      ? quality : (movie.panelQuality || 'medium');
     if (q === 'sketch' && !FFMPEG) return res.status(400).json({ error: 'sketch pass needs ffmpeg on the server' });
     const targets = movie.scenes.filter(s =>
       (Array.isArray(only) && only.length) ? only.includes(s.id) : (force || !s.panel?.url));
