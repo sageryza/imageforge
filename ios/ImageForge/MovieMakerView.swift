@@ -105,8 +105,8 @@ struct MovieMakerHome: View {
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
 
+    // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     newMovieSection
@@ -162,8 +162,7 @@ struct MovieMakerHome: View {
             } message: { Text(errorText ?? "") }
             .task { await load() }
             .refreshable { await load() }
-        }
-        .tint(Reel.amber)
+            .tint(Reel.amber)
     }
 
     // MARK: New movie (zoom 0)
