@@ -15,14 +15,15 @@ struct TestStationView: View {
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
     @State private var pendingStyles: [ForgeStyle] = []
+    @FocusState private var promptFocused: Bool
 
     // Three across.
     private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    StarTitle(text: "Test Station").frame(maxWidth: .infinity).padding(.top, 4)
                     promptField
                     if !results.isEmpty { resultsSection }   // image(s) above the styles
                     stylesSection
@@ -30,8 +31,15 @@ struct TestStationView: View {
                 }
                 .padding()
             }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { promptFocused = false }
+                }
+            }
             .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("Test Station")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Couldn't generate",
                    isPresented: Binding(get: { errorText != nil },
@@ -53,8 +61,6 @@ struct TestStationView: View {
                     onAgree: { aiConsentAccepted = true; showConsent = false; run(pendingStyles) },
                     onCancel: { showConsent = false })
             }
-        }
-        .tint(Theme.accent)
     }
 
     // MARK: - Sections
@@ -69,6 +75,7 @@ struct TestStationView: View {
                 .lineLimit(2...5)
                 .font(.body)
                 .foregroundColor(Theme.text)
+                .focused($promptFocused)
                 .padding(12)
                 .background(Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
@@ -118,8 +125,8 @@ struct TestStationView: View {
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Theme.accent)
-                .foregroundColor(Theme.bg)
+                .background(Theme.mauve)
+                .foregroundColor(.white)
                 .cornerRadius(Theme.radius)
         }
         .disabled(busy)
@@ -133,6 +140,7 @@ struct TestStationView: View {
     }
 
     private func run(_ styles: [ForgeStyle]) {
+        promptFocused = false   // dismiss the keyboard
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { errorText = "Enter a prompt first."; return }
         guard !busy else { return }
@@ -243,7 +251,7 @@ private struct ResultCard: View {
                 } else if result.styleId == "hoonie" {
                     // HOONIE gets its own engraving loading animation.
                     Color.white
-                    GIFView(name: "hoonie-loading").frame(width: 120, height: 120)
+                    GIFView(name: "hoonie-loading", speed: 0.35).frame(width: 120, height: 120)
                 } else {
                     ProgressView()
                 }
