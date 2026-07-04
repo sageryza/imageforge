@@ -199,7 +199,9 @@ lifted into a standalone tool later.
   `x-api-key: <ETSY_API_KEY>:<ETSY_SHARED_SECRET>` — the keystring AND shared
   secret joined by a colon (keystring alone → 403 "Shared secret is required").
   Writes (draft listings, image upload) need OAuth 2.0 + PKCE with scopes
-  `listings_r`/`listings_w`; access tokens expire hourly and auto-refresh.
+  `listings_r`/`listings_w`/`transactions_r`/`shops_r`; access tokens expire
+  hourly and auto-refresh. Widening `SCOPES` requires a one-time re-auth at
+  `/api/etsy/connect` — stored tokens keep the scopes they were minted with.
 - **Routes:** `GET /api/etsy/ping` (health), `GET /api/etsy/status`,
   `GET /api/etsy/connect` (start OAuth), `GET /api/etsy/callback`,
   `GET /api/etsy/me`, `POST /api/etsy/listings/draft`,
@@ -210,6 +212,16 @@ lifted into a standalone tool later.
 - **Listing rules:** title ≤140 chars, ≤13 tags each ≤20 chars (enforced in
   `validateTags`), `who_made:"i_did"`, `when_made:"2020_2026"`, `legacy=false`
   on writes. Etsy bans apps after 6 months of inactivity — keep it warm.
+- **Shop Report** (`etsy-report.js`, `/api/etsy/report`, page at `/report`) —
+  shop intelligence from live data: pulls active listings + receipts (windowed
+  by `?days=`, default 90) + reviews, cross-references lifetime views/favorites
+  vs windowed sales, and buckets listings into top sellers / hidden gems (high
+  conversion, low views → visibility problem) / stalled (views, no sales) /
+  sale candidates (favorites = Etsy-notified audience) / ad candidates (proven
+  converters). gpt-4o-mini writes a short advice section (`?advice=0` skips).
+  Same `STUDIO_TOKEN` gate; page uses `serveGated`. If the stored token
+  predates `transactions_r` the report degrades to listings-only with a
+  reconnect banner instead of failing.
 - OAuth tokens persist to **Firestore** (`config/etsy-tokens`, override via
   `ETSY_TOKENS_DOC`) when Firebase is available, so they survive Render
   redeploys / cold restarts. Falls back to gitignored `.etsy-tokens.json` when

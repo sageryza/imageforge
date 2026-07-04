@@ -105,7 +105,10 @@ loadConfig().then(() => {
   const photostudio = require('./photostudio');
   const movies = require('./movies');
   const songs = require('./songs');
+  const etsyReport = require('./etsy-report');
   app.use('/api/etsy', etsy.router);
+  // No /report route exists on etsy.router, so requests fall through to here.
+  app.use('/api/etsy/report', etsyReport.router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
@@ -296,6 +299,9 @@ app.get('/photo', serveGated('photo.html'));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
 app.get('/song', serveGated('song.html'));
+// Shop Report: what's selling / what to promote / what to put on sale, from
+// live Etsy listings + orders + reviews. Same gate as the Studio.
+app.get('/report', serveGated('report.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
