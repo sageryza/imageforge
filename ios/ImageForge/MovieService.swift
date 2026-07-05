@@ -196,4 +196,53 @@ final class MovieService {
     func quickDelete(_ id: String) async throws {
         _ = try await data("DELETE", "/quick/\(id)")
     }
+
+    // MARK: Story library (/api/stories — shared across the media)
+
+    private func storiesData(_ method: String, _ path: String,
+                             body: [String: Any]? = nil) async throws -> Data {
+        guard let url = URL(string: Self.serverURL + "/api/stories" + path) else {
+            throw MovieAPIError.badURL
+        }
+        var req = URLRequest(url: url, timeoutInterval: 90)
+        req.httpMethod = method
+        let token = Self.studioToken
+        if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
+        if let body {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+        let (data, response) = try await URLSession.shared.data(for: req)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status < 400 else {
+            if let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = dict["error"] as? String {
+                throw MovieAPIError.server(message)
+            }
+            throw MovieAPIError.server("Server error \(status)")
+        }
+        return data
+    }
+
+    private struct StoryList: Decodable { let stories: [SavedStory] }
+    func storyList() async throws -> [SavedStory] {
+        try decoder.decode(StoryList.self, from: await storiesData("GET", "")).stories
+    }
+
+    func storySave(title: String? = nil, text: String) async throws -> SavedStory {
+        var body: [String: Any] = ["text": text]
+        if let title, !title.isEmpty { body["title"] = title }
+        return try decoder.decode(SavedStory.self, from: await storiesData("POST", "", body: body))
+    }
+
+    func storyDelete(_ id: String) async throws {
+        _ = try await storiesData("DELETE", "/\(id)")
+    }
+
+    /// Whole story → picture-book pages ({words, scene} each).
+    func bookBreakdown(story: String, pageCount: Int? = nil) async throws -> BookPlan {
+        var body: [String: Any] = ["story": story]
+        if let pageCount { body["pageCount"] = pageCount }
+        return try decoder.decode(BookPlan.self, from: await storiesData("POST", "/breakdown", body: body))
+    }
 }

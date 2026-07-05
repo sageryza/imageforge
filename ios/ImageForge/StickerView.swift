@@ -24,7 +24,7 @@ struct StickerView: View {
     var body: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    StarTitle(text: "Sticker Sheet")
+                    StarTitle(text: "Sticker Sheet", stars: true)
                         .padding(.top, 4)
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
                               maxHeight: 430,

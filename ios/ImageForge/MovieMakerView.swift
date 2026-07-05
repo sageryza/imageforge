@@ -96,6 +96,10 @@ struct MovieMakerHome: View {
     @State private var pendingMode: CreateMode = .autopilot
     @State private var pendingQuick = false
 
+    // Shared story library
+    @State private var showStoryLibrary = false
+    @State private var storySaved = false
+
     // Quick animate (one image → one clip, wan 720p)
     @State private var quickPickerItem: PhotosPickerItem?
     @State private var quickImageData: Data?
@@ -134,6 +138,12 @@ struct MovieMakerHome: View {
                 }
             }
             .sheet(isPresented: $showSettings) { MovieSettingsSheet() }
+            .sheet(isPresented: $showStoryLibrary) {
+                StoryPickerSheet { text in
+                    story = text
+                    storySaved = true   // it came from the library
+                }
+            }
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
                     theme: .movieReel,
@@ -169,9 +179,35 @@ struct MovieMakerHome: View {
 
     private var newMovieSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(spacing: 10) {
                 label("NEW FEATURE PRESENTATION")
                 Spacer()
+                // Save the typed story to the shared library.
+                if !story.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button {
+                        let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
+                        Task {
+                            do { _ = try await MovieService.shared.storySave(text: text); storySaved = true }
+                            catch { errorText = error.localizedDescription }
+                        }
+                    } label: {
+                        Image(systemName: storySaved ? "bookmark.fill" : "bookmark")
+                            .font(.body.weight(.semibold))
+                            .foregroundColor(Reel.amber)
+                            .padding(6)
+                            .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                    }
+                    .accessibilityLabel("Save this story to the library")
+                }
+                // Pull a story from the shared library.
+                Button { showStoryLibrary = true } label: {
+                    Image(systemName: "books.vertical")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(Reel.amber)
+                        .padding(6)
+                        .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                }
+                .accessibilityLabel("Use a saved story")
                 // Blank-page antidote: prefill with an example story to riff on.
                 Button {
                     story = StorySeeds.random(avoiding: story)
@@ -281,6 +317,7 @@ struct MovieMakerHome: View {
                 }
             }
         }
+        .onChange(of: story) { _ in storySaved = false }
         .onChange(of: quickPickerItem) { item in
             guard let item else { return }
             Task {

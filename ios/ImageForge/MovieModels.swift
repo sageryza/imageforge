@@ -87,6 +87,26 @@ struct ZinePage: Codable, Identifiable {
     var pageURL: URL? { URL(string: url) }
 }
 
+/// A saved story in the shared library — reusable across Movies, Storybook,
+/// and whatever medium comes next.
+struct SavedStory: Codable, Identifiable {
+    let id: String
+    var title: String
+    var text: String
+    var createdAt: String?
+}
+
+/// A whole story broken into picture-book pages.
+struct BookPlan: Codable {
+    var title: String
+    var pages: [BookPage]
+}
+
+struct BookPage: Codable {
+    var words: String
+    var scene: String
+}
+
 /// A one-image quick animation (home-screen "Animate", no movie attached).
 struct QuickClip: Codable, Identifiable {
     let id: String

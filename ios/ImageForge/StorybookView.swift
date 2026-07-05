@@ -15,6 +15,9 @@ struct StorybookView: View {
     // House style for the pages (Watercolor Drawings by default) + book shape.
     @AppStorage("deckfactory.storybook.style") private var styleId = "wtr"
     @AppStorage("deckfactory.storybook.aspect") private var aspect = "portrait"
+    // Whole-story mode: pick a story from the library, it becomes pages.
+    @State private var showLibrary = false
+    @State private var bookProgress: String?
 
     /// One page's width/height ratio; a spread is two pages side by side.
     private var pageAspect: CGFloat {
@@ -30,7 +33,18 @@ struct StorybookView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                StarTitle(text: "Storybook").frame(maxWidth: .infinity).padding(.top, 4)
+                // Title pinned to the very top; the book-shape + story-library
+                // controls live in the corner of this row (no nav bar needed).
+                ZStack {
+                    StarTitle(text: "Storybook")
+                    HStack(spacing: 14) {
+                        Spacer()
+                        Button { showLibrary = true } label: {
+                            Image(systemName: "books.vertical").foregroundColor(Theme.textDim)
+                        }
+                        aspectMenu
+                    }
+                }
                 if busy { loadingCard }
                 bookSection
                 Divider().background(Theme.border)
@@ -39,21 +53,15 @@ struct StorybookView: View {
             .padding()
         }
         .scrollDismissesKeyboard(.interactively)
+        .toolbar(.hidden, for: .navigationBar)   // keep the header at the very top
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focusedField = nil }
             }
-            // Book shape, top right: square / portrait / landscape.
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button { aspect = "portrait" } label: { menuRow("Portrait", on: aspect == "portrait") }
-                    Button { aspect = "square" } label: { menuRow("Square", on: aspect == "square") }
-                    Button { aspect = "landscape" } label: { menuRow("Landscape", on: aspect == "landscape") }
-                } label: {
-                    Image(systemName: "aspectratio").foregroundColor(Theme.textDim)
-                }
-            }
+        }
+        .sheet(isPresented: $showLibrary) {
+            StoryPickerSheet { text in buildBook(from: text) }
         }
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("")
@@ -81,10 +89,26 @@ struct StorybookView: View {
         if on { Label(title, systemImage: "checkmark") } else { Text(title) }
     }
 
+    /// Book shape: square / portrait / landscape.
+    private var aspectMenu: some View {
+        Menu {
+            Button { aspect = "portrait" } label: { menuRow("Portrait", on: aspect == "portrait") }
+            Button { aspect = "square" } label: { menuRow("Square", on: aspect == "square") }
+            Button { aspect = "landscape" } label: { menuRow("Landscape", on: aspect == "landscape") }
+        } label: {
+            Image(systemName: "aspectratio").foregroundColor(Theme.textDim)
+        }
+    }
+
     private var loadingCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
+            VStack(spacing: 10) {
+                GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
+                if let p = bookProgress {
+                    Text(p).font(.caption).foregroundColor(Theme.textDim)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(pageAspect, contentMode: .fit)
@@ -186,20 +210,20 @@ struct StorybookView: View {
             .frame(width: 16)
     }
 
-    // Empty state: a blank open book — no words, just the little hoonie
-    // keeping the first page warm.
+    // Empty state: a blank open book — both pages white, no words, just the
+    // little hoonie keeping the right-hand page warm.
     private var emptyHint: some View {
         HStack(spacing: 0) {
             ZStack {
-                Color(hex: 0xFBF8F1)
-                GIFView(name: "loading-anim", ext: "png", speed: 0.15)
-                    .frame(width: 110, height: 110)
+                Color.white
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(gutter(trailing: true), alignment: .trailing)
 
             ZStack {
                 Color.white
+                GIFView(name: "loading-anim", ext: "png", speed: 0.15)
+                    .frame(width: 110, height: 110)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(gutter(trailing: false), alignment: .leading)
@@ -293,6 +317,33 @@ struct StorybookView: View {
             } catch {
                 errorText = error.localizedDescription
             }
+            busy = false
+        }
+    }
+
+    /// Whole-story mode: break the story into pages ({words, scene} each),
+    /// then draw every page in order. The page-by-page composer still works —
+    /// this just fills the book from a story in one go.
+    private func buildBook(from story: String) {
+        guard !busy else { return }
+        guard aiConsentAccepted else { showConsent = true; return }
+        busy = true
+        Task {
+            do {
+                bookProgress = "reading the story…"
+                let plan = try await MovieService.shared.bookBreakdown(story: story)
+                for (i, page) in plan.pages.enumerated() {
+                    bookProgress = "drawing page \(i + 1) of \(plan.pages.count)…"
+                    let url = try await ForgeService.shared.generateStorybookPage(
+                        prompt: page.scene, caption: page.words, quality: quality,
+                        style: styleId, aspect: aspect)
+                    pages.append(Creation(id: UUID().uuidString, type: "storybook", url: url, prompt: page.words))
+                    current = max(0, (pages.count - 1) / 2)
+                }
+            } catch {
+                errorText = error.localizedDescription
+            }
+            bookProgress = nil
             busy = false
         }
     }
