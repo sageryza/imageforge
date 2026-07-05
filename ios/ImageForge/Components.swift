@@ -89,21 +89,26 @@ struct GoButton: View {
     }
 }
 
-/// A decorated tool title: the three-star sparkles (same icon as the generate
-/// button) pushed out to each edge, with the name centered in EB Garamond
-/// small-caps between them.
+/// A decorated tool title: the name centered in EB Garamond small-caps with a
+/// star on each side. Equal spacers put every star exactly halfway between the
+/// screen edge and the word — the house placement for stars, everywhere.
 struct StarTitle: View {
     var text: String
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
             Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
+            Spacer(minLength: 0)
             Text(text)
                 .font(Theme.serif(24).smallCaps())
                 .tracking(1.5)
                 .foregroundColor(Theme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .layoutPriority(1)
+            Spacer(minLength: 0)
             Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
     }

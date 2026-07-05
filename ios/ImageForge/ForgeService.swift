@@ -219,12 +219,15 @@ final class ForgeService {
 
     /// Generate one storybook page: an illustrated scene with `caption` set along
     /// the bottom (composited server-side). Returns the finished page image URL.
-    func generateStorybookPage(prompt: String, caption: String?, quality: String) async throws -> URL {
+    func generateStorybookPage(prompt: String, caption: String?, quality: String,
+                               style: String = "wtr", aspect: String = "portrait") async throws -> URL {
         try await ensureSignedIn()
         var payload: [String: Any] = [
             "prompt": prompt,
             "style": "storybook-page",
             "quality": quality,
+            "pageStyle": style,
+            "aspect": aspect,
         ]
         if let c = caption?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty { payload["caption"] = c }
         let result = try await call("forgeTestImage", payload)
