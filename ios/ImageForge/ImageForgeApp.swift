@@ -12,6 +12,7 @@ struct ImageForgeApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .preferredColorScheme(.light)   // system menus/alerts match the paper theme
         }
     }
 

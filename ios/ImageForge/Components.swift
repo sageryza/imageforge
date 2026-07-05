@@ -89,26 +89,42 @@ struct GoButton: View {
     }
 }
 
-/// A decorated tool title: the name centered in EB Garamond small-caps with a
-/// star on each side. Equal spacers put every star exactly halfway between the
-/// screen edge and the word — the house placement for stars, everywhere.
+/// A tool title in EB Garamond small-caps, centered. Stars are reserved for
+/// the Sticker Sheet (pass `stars: true`); when shown, equal spacers put each
+/// star exactly halfway between the screen edge and the word.
 struct StarTitle: View {
     var text: String
+    var stars: Bool = false
+
+    private var title: some View {
+        Text(text)
+            .font(Theme.serif(24).smallCaps())
+            .tracking(1.5)
+            .foregroundColor(Theme.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .layoutPriority(1)
+    }
+
+    private var star: some View {
+        Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            Spacer(minLength: 0)
-            Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
-            Spacer(minLength: 0)
-            Text(text)
-                .font(Theme.serif(24).smallCaps())
-                .tracking(1.5)
-                .foregroundColor(Theme.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .layoutPriority(1)
-            Spacer(minLength: 0)
-            Image(systemName: "sparkles").font(.system(size: 15)).foregroundColor(Theme.mauve)
-            Spacer(minLength: 0)
+            if stars {
+                Spacer(minLength: 0)
+                star
+                Spacer(minLength: 0)
+                title
+                Spacer(minLength: 0)
+                star
+                Spacer(minLength: 0)
+            } else {
+                Spacer(minLength: 0)
+                title
+                Spacer(minLength: 0)
+            }
         }
         .frame(maxWidth: .infinity)
     }
