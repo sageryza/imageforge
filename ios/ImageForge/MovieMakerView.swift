@@ -904,6 +904,15 @@ struct MovieDetailView: View {
             fire { try await MovieService.shared.rerollPanel(movieId, sceneId: scene.id, quality: quality, imagePrompt: prompt) }
         case .rerollClip(let tier, let prompt):
             fire { try await MovieService.shared.rerollClip(movieId, sceneId: scene.id, tier: tier, motionPrompt: prompt) }
+        case .pairAndAnimate:
+            // Mark the pair, then generate — the server passes the next panel
+            // as last_image so the clip animates BETWEEN the two drawings.
+            fire {
+                _ = try await MovieService.shared.patchScene(movieId, sceneId: scene.id, ["pairWithNext": true])
+                return try await MovieService.shared.rerollClip(movieId, sceneId: scene.id, tier: "draft")
+            }
+        case .unpair:
+            fire(poll: false) { try await MovieService.shared.patchScene(movieId, sceneId: scene.id, ["pairWithNext": false]) }
         case .patchEdits(let edits):
             fire(poll: false) { try await MovieService.shared.patchScene(movieId, sceneId: scene.id, ["edits": edits]) }
         case .patchScene(let fields):
@@ -1006,6 +1015,8 @@ struct MovieDetailView: View {
 enum SceneAction {
     case rerollPanel(quality: String, prompt: String?)
     case rerollClip(tier: String, prompt: String?)
+    case pairAndAnimate            // one clip that travels THIS panel → NEXT panel
+    case unpair
     case patchEdits([String: Any])
     case patchScene([String: Any])
     case move(Int)
@@ -1026,6 +1037,11 @@ private struct SceneFrame: View {
     @State private var showClipPreview = false
 
     private var disabled: Bool { scene.edits?.enabled == false }
+
+    /// The next scene has a rendered panel — pairing into it is possible.
+    private var nextPanelExists: Bool {
+        index + 1 < movie.scenes.count && movie.scenes[index + 1].panel?.url != nil
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -1185,8 +1201,15 @@ private struct SceneFrame: View {
                     if scene.clipURL != nil {
                         smallButton("▶︎ Play") { showClipPreview = true }
                     }
-                    smallButton("🎲 Re-roll · \(MovieCosts.chip(0.06))") {
+                    smallButton("\(scene.clipURL == nil ? "▶︎ Animate" : "🎲 Re-roll") · \(MovieCosts.chip(0.06))") {
                         onAction(.rerollClip(tier: "draft", prompt: nil))
+                    }
+                    if scene.pairWithNext == true {
+                        smallButton("⛓ Unpair from next") { onAction(.unpair) }
+                    } else if nextPanelExists {
+                        smallButton("⇢ Animate into next · \(MovieCosts.chip(0.06))") {
+                            onAction(.pairAndAnimate)
+                        }
                     }
                     smallButton("✏️ Motion") { showMotionPrompt = true }
                     Menu {
