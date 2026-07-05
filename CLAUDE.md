@@ -205,7 +205,14 @@ lifted into a standalone tool later.
 - **Routes:** `GET /api/etsy/ping` (health), `GET /api/etsy/status`,
   `GET /api/etsy/connect` (start OAuth), `GET /api/etsy/callback`,
   `GET /api/etsy/me`, `POST /api/etsy/listings/draft`,
-  `POST /api/etsy/listings/state` (revert a live listing to draft/inactive).
+  `POST /api/etsy/listings/state` (revert a live listing to draft/inactive),
+  `GET/PUT /api/etsy/listings/:id/inventory` (read/set variations),
+  `POST /api/etsy/listings/:id/images` (copy an image onto a listing by URL),
+  `DELETE /api/etsy/listings/:id` (delete a draft/inactive listing).
+- **Variations** live on Etsy's listing INVENTORY endpoint, not the listing.
+  `buildBundleInventory(tiers)` builds a single-property "buy N" price ladder
+  (custom property 513, `price_on_property`); the PUT route also accepts a
+  `{ tiers:[{label,price,quantity?}] }` shorthand. A PUT REPLACES all inventory.
 - **Env vars** (Render dashboard, `sync:false`): `ETSY_API_KEY`,
   `ETSY_SHARED_SECRET`, optional `ETSY_REDIRECT_URI`. The callback URL must be
   registered on the Etsy app; defaults to `<RENDER_EXTERNAL_URL>/api/etsy/callback`.
