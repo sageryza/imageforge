@@ -476,8 +476,11 @@ function buildBundleInventory(tiers, { propertyName = 'Bundle', quantity = 100 }
 
 // List a listing's images (id + url per image), so photos from one listing can
 // be copied onto another (e.g. drop each deck's photo onto the bundle listing).
+// Etsy's image READ endpoint is /listings/{id}/images (no shop segment — that
+// path is upload-only). shopId is accepted for signature symmetry but unused.
 async function getListingImages(shopId, listingId) {
-  const r = await userFetch(`/shops/${shopId}/listings/${listingId}/images`);
+  const id = listingId ?? shopId; // tolerate getListingImages(listingId) too
+  const r = await userFetch(`/listings/${id}/images`);
   if (!r.ok) return r;
   return { ok: true, results: (r.body && r.body.results) || [] };
 }
