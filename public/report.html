@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shop Report · ImageForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/forge.css" />
+<style>
+  .studio { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 14px; }
+  .sec { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
+  .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; }
+  .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .rangebar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--accent-dim, #ccc); border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 10px; }
+  .stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .stat .v { font-size: 20px; font-weight: 600; }
+  .stat .k { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+  /* listing rows */
+  .lrow { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .lrow:last-child { border-bottom: none; }
+  .lrow .t { font-size: 14px; line-height: 1.35; }
+  .lrow .t a { color: var(--text); text-decoration: none; }
+  .lrow .t a:hover { color: var(--accent); }
+  .lrow .m { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .lrow .m b { color: var(--text); font-weight: 500; }
+  .advice { font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+  .banner { border: 1px solid #f0d2cf; background: #fbeeed; color: #b15049; border-radius: 6px; padding: 12px 14px; font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+  .banner a { color: inherit; font-weight: 600; }
+  .rev { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.5; }
+  .rev:last-child { border-bottom: none; }
+  .rev .stars { color: var(--accent); letter-spacing: 2px; }
+  .rev .d { color: var(--text-dim); font-size: 11px; margin-left: 6px; }
+  .empty { font-size: 13px; color: var(--text-dim); font-style: italic; padding: 6px 0; }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand" onclick="location.href='/'"><span class="brand-mark">◆</span><h1>ImageForge</h1></div>
+  <nav class="app-nav"><span class="tool-name">Shop Report</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
+</header>
+
+<main class="studio">
+  <div class="rangebar">
+    <button class="btn ghost" data-days="30" onclick="load(30)">30 days</button>
+    <button class="btn ghost on" data-days="90" onclick="load(90)">90 days</button>
+    <button class="btn ghost" data-days="365" onclick="load(365)">Year</button>
+    <span id="loading" class="muted" style="display:none"><span class="spin"></span>reading the shop…</span>
+  </div>
+  <div id="out"><div class="empty">Loading…</div></div>
+</main>
+
+<script>
+const STUDIO_TOKEN = '__STUDIO_TOKEN__';
+const out = document.getElementById('out');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cur = (n, c) => (c === 'USD' || !c ? '$' : c + ' ') + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function lrow(l, c, extras) {
+  const bits = extras.map(([k, v]) => `${k} <b>${esc(v)}</b>`).join(' · ');
+  return `<div class="lrow">
+    <div class="t"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></div>
+    <div class="m">${bits}</div>
+  </div>`;
+}
+
+function section(title, sub, listings, c, extrasFor) {
+  const body = listings.length
+    ? listings.map(l => lrow(l, c, extrasFor(l))).join('')
+    : '<div class="empty">Nothing in this bucket right now.</div>';
+  return `<section class="panel"><div class="sec">${title}</div><div class="sub">${sub}</div>${body}</section>`;
+}
+
+function render(r) {
+  const c = r.totals.currency;
+  let h = '';
+
+  if (r.needs_reconnect) {
+    h += `<div class="banner">Etsy needs a one-time re-authorization to share orders &amp; reviews (the new
+      <b>transactions</b> permission). <a href="/api/etsy/connect">Tap here to reconnect</a>, then reload this page.
+      Listing data below still works in the meantime.</div>`;
+  }
+
+  h += `<section class="panel"><div class="sec">Last ${r.window_days} days</div>
+    <div class="stats">
+      <div class="stat"><div class="v">${cur(r.totals.revenue, c)}</div><div class="k">Revenue</div></div>
+      <div class="stat"><div class="v">${r.totals.orders}</div><div class="k">Orders</div></div>
+      <div class="stat"><div class="v">${r.totals.units}</div><div class="k">Items sold</div></div>
+      <div class="stat"><div class="v">${cur(r.totals.average_order, c)}</div><div class="k">Avg order</div></div>
+      <div class="stat"><div class="v">${r.totals.distinct_buyers}</div><div class="k">Buyers</div></div>
+      <div class="stat"><div class="v">${r.totals.listings_with_sales}/${r.totals.active_listings}</div><div class="k">Listings selling</div></div>
+    </div></section>`;
+
+  if (r.advice) {
+    h += `<section class="panel"><div class="sec">Advice</div><div class="advice">${esc(r.advice)}</div></section>`;
+  }
+
+  const s = r.sections;
+  h += section('What’s selling', 'Top earners in the window.', s.top_sellers, c,
+    l => [['', cur(l.revenue, c)], ['sold', l.units], ['views', l.views], ['♥', l.favorites]]);
+  h += section('Hidden gems', 'They convert when seen, but few people see them — better tags, photos, or ads, not discounts.', s.hidden_gems, c,
+    l => [['conv', (l.conversion ?? 0) + '%'], ['sold', l.units], ['views', l.views]]);
+  h += section('Sale candidates', 'Favorites are shoppers Etsy notifies when the item goes on sale — a pre-built audience.', s.sale_candidates, c,
+    l => [['♥', l.favorites], ['sold', l.units], ['last sale', l.last_sale || 'never']]);
+  h += section('Worth ad budget', 'Proven converters — ads multiply traffic, so aim them at listings that already convert.', s.ad_candidates, c,
+    l => [['conv', (l.conversion ?? 0) + '%'], ['sold', l.units], ['', cur(l.revenue, c)]]);
+  h += section('Stalled', 'Plenty of views, zero sales — usually a price, photo, or trust problem.', s.stalled, c,
+    l => [['views', l.views], ['♥', l.favorites], ['price', l.price != null ? cur(l.price, l.currency) : '—']]);
+
+  if (r.reviews && r.reviews.count) {
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    h += `<section class="panel"><div class="sec">Reviews</div>
+      <div class="sub">${r.reviews.count} on record · average ${r.reviews.average ?? '—'}</div>
+      ${r.reviews.recent.map(v => `<div class="rev"><span class="stars">${stars(v.rating || 0)}</span><span class="d">${esc(v.date || '')}</span><div>${esc(v.text)}</div></div>`).join('')}
+    </section>`;
+  }
+
+  if (r.notes && r.notes.length) {
+    h += `<section class="panel"><div class="sec">Fine print</div><div class="muted">${r.notes.map(esc).join('<br>')}</div></section>`;
+  }
+  out.innerHTML = h;
+}
+
+async function load(days) {
+  document.querySelectorAll('.rangebar .btn').forEach(b => b.classList.toggle('on', Number(b.dataset.days) === days));
+  document.getElementById('loading').style.display = '';
+  try {
+    const res = await fetch(`/api/etsy/report?days=${days}`, {
+      headers: STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {},
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    render(data);
+  } catch (err) {
+    out.innerHTML = `<div class="banner">Couldn’t build the report: ${esc(err.message)}.
+      If Etsy isn’t connected yet, <a href="/api/etsy/connect">connect it here</a> and reload.</div>`;
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+load(90);
+</script>
+</body>
+</html>

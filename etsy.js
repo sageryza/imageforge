@@ -28,8 +28,10 @@ const OAUTH_AUTHORIZE = 'https://www.etsy.com/oauth/connect';
 const OAUTH_TOKEN = 'https://api.etsy.com/v3/public/oauth/token';
 
 // Scopes the pipeline needs. listings_r to read the shop's own drafts,
-// listings_w to create them. Add more here as the pipeline grows.
-const SCOPES = ['listings_r', 'listings_w'];
+// listings_w to create them, transactions_r for orders/sales data (the shop
+// report), shops_r for shop-level info. Widening this list requires a one-time
+// re-authorization at /api/etsy/connect — existing tokens keep their old scopes.
+const SCOPES = ['listings_r', 'listings_w', 'transactions_r', 'shops_r'];
 
 const API_KEY = process.env.ETSY_API_KEY || '';
 const SHARED_SECRET = process.env.ETSY_SHARED_SECRET || '';
@@ -237,6 +239,50 @@ async function getMe() {
 
 async function getShops(userId) {
   return userFetch(`/users/${userId}/shops`);
+}
+
+// ─── Shop data reads (for the report) ───────────────────────────────
+// All three return { ok, results } on success or the failed userFetch result
+// (with its status/body intact) so callers can surface scope errors — a 403
+// here almost always means the token predates the wider SCOPES list and the
+// user needs to re-authorize at /api/etsy/connect.
+
+// Every listing in a given state (active / draft / inactive / sold_out),
+// paginated 100 at a time. Listings carry views, num_favorers, price, url.
+async function getAllListings(shopId, state = 'active') {
+  const out = [];
+  for (let offset = 0; ; offset += 100) {
+    const r = await userFetch(`/shops/${shopId}/listings?state=${state}&limit=100&offset=${offset}`);
+    if (!r.ok) return offset === 0 ? r : { ok: true, results: out, truncated: true };
+    const page = (r.body && r.body.results) || [];
+    out.push(...page);
+    if (page.length < 100) break;
+  }
+  return { ok: true, results: out };
+}
+
+// Receipts (orders) since a unix timestamp, paginated. Each receipt includes
+// its transactions[] (line items with listing_id, quantity, price) plus
+// buyer_user_id and grandtotal — everything the sales report aggregates.
+async function getReceipts(shopId, { minCreated } = {}) {
+  const out = [];
+  for (let offset = 0; ; offset += 100) {
+    const params = new URLSearchParams({ limit: '100', offset: String(offset) });
+    if (minCreated) params.set('min_created', String(minCreated));
+    const r = await userFetch(`/shops/${shopId}/receipts?${params.toString()}`);
+    if (!r.ok) return offset === 0 ? r : { ok: true, results: out, truncated: true };
+    const page = (r.body && r.body.results) || [];
+    out.push(...page);
+    if (page.length < 100) break;
+  }
+  return { ok: true, results: out };
+}
+
+// Most recent reviews (rating + text + listing_id), newest first.
+async function getReviews(shopId, limit = 100) {
+  const r = await userFetch(`/shops/${shopId}/reviews?limit=${Math.min(limit, 100)}`);
+  if (!r.ok) return r;
+  return { ok: true, results: (r.body && r.body.results) || [] };
 }
 
 // Validate the tag rules from the handoff: up to 13 tags, each <= 20 chars.
@@ -489,6 +535,9 @@ module.exports = {
   userFetch,
   getMe,
   getShops,
+  getAllListings,
+  getReceipts,
+  getReviews,
   createDraftListing,
   getListingDefaults,
   updateListing,
