@@ -1072,6 +1072,7 @@ private struct SceneFrame: View {
     @State private var showImagePrompt = false
     @State private var showMotionPrompt = false
     @State private var showClipPreview = false
+    @State private var showPanelZoom = false
 
     private var disabled: Bool { scene.edits?.enabled == false }
 
@@ -1119,6 +1120,11 @@ private struct SceneFrame: View {
                 ClipPreviewSheet(title: scene.title, url: url)
             }
         }
+        .sheet(isPresented: $showPanelZoom) {
+            if let url = scene.panelURL {
+                PanelZoomSheet(title: scene.title, url: url)
+            }
+        }
     }
 
     // MARK: Collapsed (zoom 1)
@@ -1126,7 +1132,14 @@ private struct SceneFrame: View {
     private var collapsedRow: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
-                panelThumb
+                // Tapping the ART opens it big (pinch to zoom); tapping the
+                // rest of the row expands the scene's controls.
+                Button {
+                    if scene.panelURL != nil { showPanelZoom = true } else { onTap() }
+                } label: {
+                    panelThumb
+                }
+                .buttonStyle(.plain)
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
                         Text(String(format: "%02d", index + 1))
@@ -1458,6 +1471,58 @@ struct ClipPreviewSheet: View {
                     }
                 }
                 .toolbarBackground(Reel.base, for: .navigationBar)
+        }
+    }
+}
+
+/// Full-screen panel viewer with pinch-to-zoom — for looking the character
+/// (or any frame) in the eye before deciding.
+struct PanelZoomSheet: View {
+    let title: String
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geo in
+                ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFit()
+                        } else {
+                            ProgressView().tint(Reel.dim)
+                        }
+                    }
+                    .frame(width: geo.size.width * scale, height: geo.size.height * scale)
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+            }
+            .background(Reel.base.ignoresSafeArea())
+            .gesture(
+                MagnificationGesture()
+                    .onChanged { value in scale = min(5, max(1, lastScale * value)) }
+                    .onEnded { _ in lastScale = scale }
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    scale = scale > 1 ? 1 : 2.5
+                    lastScale = scale
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") { dismiss() }.foregroundColor(Reel.amber)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up").foregroundColor(Reel.amber)
+                    }
+                }
+            }
         }
     }
 }
