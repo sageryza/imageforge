@@ -422,6 +422,73 @@ async function uploadListingImage(shopId, listingId, image, opts = {}) {
   return { status: res.status, ok: res.ok, body };
 }
 
+// ─── Variations / inventory ─────────────────────────────────────────
+// Etsy models variations through the listing INVENTORY endpoint, not the
+// listing itself. Each combination of variation values is a "product" with one
+// or more "offerings" (price/quantity/enabled). Custom (text) variations use
+// two reserved property ids — 513 and 514 — with a free-text property_name and
+// a list of option values. `price_on_property` lists the property ids whose
+// value changes the price, which is exactly what a "buy N decks" ladder needs.
+const CUSTOM_PROP_IDS = [513, 514];
+
+// Read a listing's current inventory (products/offerings). GET is public-ish
+// but we use the user token so drafts are visible too.
+async function getListingInventory(listingId) {
+  return userFetch(`/listings/${listingId}/inventory`);
+}
+
+// Replace a listing's inventory. `inventory` must be the full Etsy shape
+// ({ products, price_on_property, quantity_on_property, sku_on_property }).
+// This is a PUT — it REPLACES everything, so callers build the complete set.
+async function updateListingInventory(listingId, inventory) {
+  return userFetch(`/listings/${listingId}/inventory`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(inventory),
+  });
+}
+
+// Build the inventory payload for a single-property "how many decks" ladder.
+// tiers = [{ label, price, quantity }, ...]; the price varies by the tier, so
+// price_on_property points at the custom property. Quantity/sku stay flat.
+// propertyName is the dropdown label the buyer sees (e.g. "Bundle").
+function buildBundleInventory(tiers, { propertyName = 'Bundle', quantity = 100 } = {}) {
+  const propertyId = CUSTOM_PROP_IDS[0];
+  return {
+    products: tiers.map((t, i) => ({
+      sku: t.sku || `BUNDLE-${i + 1}`,
+      property_values: [{
+        property_id: propertyId,
+        property_name: propertyName,
+        values: [t.label],
+      }],
+      offerings: [{
+        price: Number(t.price),
+        quantity: t.quantity ?? quantity,
+        is_enabled: true,
+      }],
+    })),
+    price_on_property: [propertyId],
+    quantity_on_property: [],
+    sku_on_property: [],
+  };
+}
+
+// List a listing's images (id + url per image), so photos from one listing can
+// be copied onto another (e.g. drop each deck's photo onto the bundle listing).
+async function getListingImages(shopId, listingId) {
+  const r = await userFetch(`/shops/${shopId}/listings/${listingId}/images`);
+  if (!r.ok) return r;
+  return { ok: true, results: (r.body && r.body.results) || [] };
+}
+
+// Delete a listing outright — used to clean up a throwaway test draft so it
+// never lingers in the shop. Etsy only lets you delete drafts / inactive
+// listings, which is all we ever call this on.
+async function deleteListing(listingId) {
+  return userFetch(`/listings/${listingId}`, { method: 'DELETE' });
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
@@ -518,6 +585,81 @@ router.post('/listings/state', requireToken, express.json(), async (req, res) =>
   }
 });
 
+// Read a listing's inventory/variations.
+router.get('/listings/:listingId/inventory', requireToken, async (req, res) => {
+  try {
+    const r = await getListingInventory(req.params.listingId);
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
+// Set a listing's variations. Body is either a ready-made Etsy inventory object
+// ({ products, price_on_property, ... }) or a convenience ladder:
+//   { tiers: [{label,price,quantity?}], property_name?, quantity? }
+// The ladder path builds the inventory via buildBundleInventory.
+router.put('/listings/:listingId/inventory', requireToken, express.json(), async (req, res) => {
+  const body = req.body || {};
+  const inventory = Array.isArray(body.tiers)
+    ? buildBundleInventory(body.tiers, { propertyName: body.property_name, quantity: body.quantity })
+    : body;
+  if (!inventory || !Array.isArray(inventory.products) || !inventory.products.length) {
+    return res.status(400).json({ error: 'provide { tiers:[...] } or a full inventory { products:[...] }' });
+  }
+  try {
+    const r = await updateListingInventory(req.params.listingId, inventory);
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
+// List a listing's images (id + url) so photos can be reviewed / copied.
+// shop_id from query or ETSY_SHOP_ID.
+router.get('/listings/:listingId/images', requireToken, async (req, res) => {
+  const shopId = req.query.shop_id || process.env.ETSY_SHOP_ID;
+  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const r = await getListingImages(shopId, req.params.listingId);
+    if (!r.ok) return res.status(r.status || 502).json(r.body || { error: 'image fetch failed' });
+    res.json({ results: r.results });
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
+// Copy an image onto a listing by URL (e.g. another deck's photo). Body:
+// { shop_id, image_url, rank? }.
+router.post('/listings/:listingId/images', requireToken, express.json(), async (req, res) => {
+  const { shop_id, image_url, rank } = req.body || {};
+  if (!shop_id || !image_url) return res.status(400).json({ error: 'shop_id and image_url required' });
+  try {
+    const r = await uploadListingImage(shop_id, req.params.listingId, image_url, { rank });
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
+// Delete a draft/inactive listing (test-draft cleanup). Safety: this route
+// REFUSES to delete an "active" (live) listing even when the token gate is
+// open, so an accidental or hostile call can never wipe a live money-maker —
+// only drafts / inactive listings can be removed here.
+router.delete('/listings/:listingId', requireToken, async (req, res) => {
+  try {
+    const cur = await userFetch(`/listings/${req.params.listingId}`);
+    const state = cur.ok && cur.body && cur.body.state;
+    if (state === 'active') {
+      return res.status(409).json({ error: 'refusing to delete an active listing — set it inactive first' });
+    }
+    const r = await deleteListing(req.params.listingId);
+    res.status(r.status).json(r.ok ? { deleted: true } : r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 function htmlPage(title, msg) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
 <style>body{font-family:'EB Garamond',Georgia,serif;background:#faf6ef;color:#5a1a1a;
@@ -543,6 +685,11 @@ module.exports = {
   updateListing,
   setListingState,
   uploadListingImage,
+  getListingInventory,
+  updateListingInventory,
+  buildBundleInventory,
+  getListingImages,
+  deleteListing,
   validateTags,
   buildAuthUrl,
   configured,
