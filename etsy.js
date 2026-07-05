@@ -615,6 +615,20 @@ router.put('/listings/:listingId/inventory', requireToken, express.json(), async
   }
 });
 
+// List a listing's images (id + url) so photos can be reviewed / copied.
+// shop_id from query or ETSY_SHOP_ID.
+router.get('/listings/:listingId/images', requireToken, async (req, res) => {
+  const shopId = req.query.shop_id || process.env.ETSY_SHOP_ID;
+  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const r = await getListingImages(shopId, req.params.listingId);
+    if (!r.ok) return res.status(r.status || 502).json(r.body || { error: 'image fetch failed' });
+    res.json({ results: r.results });
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 // Copy an image onto a listing by URL (e.g. another deck's photo). Body:
 // { shop_id, image_url, rank? }.
 router.post('/listings/:listingId/images', requireToken, express.json(), async (req, res) => {
@@ -628,9 +642,17 @@ router.post('/listings/:listingId/images', requireToken, express.json(), async (
   }
 });
 
-// Delete a draft/inactive listing (test-draft cleanup).
+// Delete a draft/inactive listing (test-draft cleanup). Safety: this route
+// REFUSES to delete an "active" (live) listing even when the token gate is
+// open, so an accidental or hostile call can never wipe a live money-maker —
+// only drafts / inactive listings can be removed here.
 router.delete('/listings/:listingId', requireToken, async (req, res) => {
   try {
+    const cur = await userFetch(`/listings/${req.params.listingId}`);
+    const state = cur.ok && cur.body && cur.body.state;
+    if (state === 'active') {
+      return res.status(409).json({ error: 'refusing to delete an active listing — set it inactive first' });
+    }
     const r = await deleteListing(req.params.listingId);
     res.status(r.status).json(r.ok ? { deleted: true } : r.body);
   } catch (err) {
