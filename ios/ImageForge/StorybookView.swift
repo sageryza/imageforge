@@ -12,6 +12,15 @@ struct StorybookView: View {
     @State private var loading = true
     @State private var current = 0
     @State private var errorText: String?
+    // House style for the pages (Watercolor Drawings by default) + book shape.
+    @AppStorage("deckfactory.storybook.style") private var styleId = "wtr"
+    @AppStorage("deckfactory.storybook.aspect") private var aspect = "portrait"
+
+    /// One page's width/height ratio; a spread is two pages side by side.
+    private var pageAspect: CGFloat {
+        switch aspect { case "square": return 1; case "landscape": return 1.5; default: return 2.0 / 3.0 }
+    }
+    private var spreadAspect: CGFloat { pageAspect * 2 }
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @State private var showConsent = false
@@ -34,6 +43,16 @@ struct StorybookView: View {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focusedField = nil }
+            }
+            // Book shape, top right: square / portrait / landscape.
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button { aspect = "portrait" } label: { menuRow("Portrait", on: aspect == "portrait") }
+                    Button { aspect = "square" } label: { menuRow("Square", on: aspect == "square") }
+                    Button { aspect = "landscape" } label: { menuRow("Landscape", on: aspect == "landscape") }
+                } label: {
+                    Image(systemName: "aspectratio").foregroundColor(Theme.textDim)
+                }
             }
         }
         .background(Theme.bg.ignoresSafeArea())
@@ -58,13 +77,17 @@ struct StorybookView: View {
 
     // MARK: - Book
 
+    @ViewBuilder private func menuRow(_ title: String, on: Bool) -> some View {
+        if on { Label(title, systemImage: "checkmark") } else { Text(title) }
+    }
+
     private var loadingCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
             GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(2.0 / 3.0, contentMode: .fit)
+        .aspectRatio(pageAspect, contentMode: .fit)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
@@ -79,7 +102,7 @@ struct StorybookView: View {
                     spread(i)
                 }
                 .frame(maxWidth: .infinity)
-                .aspectRatio(1.5, contentMode: .fit)   // landscape: an open book
+                .aspectRatio(spreadAspect, contentMode: .fit)   // an open book, two pages wide
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
                 .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
                 .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
@@ -163,33 +186,26 @@ struct StorybookView: View {
             .frame(width: 16)
     }
 
-    // Empty state: a blank open book inviting the first page.
+    // Empty state: a blank open book — no words, just the little hoonie
+    // keeping the first page warm.
     private var emptyHint: some View {
         HStack(spacing: 0) {
             ZStack {
                 Color(hex: 0xFBF8F1)
-                VStack(spacing: 8) {
-                    Image(systemName: "book").font(.system(size: 30)).foregroundColor(Theme.accentDim)
-                    Text("Your book\nstarts here")
-                        .font(Theme.serif(19)).foregroundColor(Theme.text)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(14)
+                GIFView(name: "loading-anim", ext: "png", speed: 0.15)
+                    .frame(width: 110, height: 110)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(gutter(trailing: true), alignment: .trailing)
 
             ZStack {
                 Color.white
-                Text("write a page below\nto begin →")
-                    .font(.caption).foregroundColor(Theme.textDim)
-                    .multilineTextAlignment(.center).padding(14)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(gutter(trailing: false), alignment: .leading)
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(1.5, contentMode: .fit)
+        .aspectRatio(spreadAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
@@ -199,13 +215,10 @@ struct StorybookView: View {
 
     private var composeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("ADD A PAGE")
-                .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-
             VStack(alignment: .leading, spacing: 6) {
                 Text("WORDS ON THIS PAGE")
                     .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-                TextField("Once upon a time, in a forest of glass…", text: $caption, axis: .vertical)
+                TextField("…", text: $caption, axis: .vertical)
                     .lineLimit(1...4).font(.body).foregroundColor(Theme.text)
                     .focused($focusedField, equals: .caption)
                     .padding(12).background(Theme.surface)
@@ -216,7 +229,7 @@ struct StorybookView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("PICTURE FOR THIS PAGE")
                     .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-                TextField("a small fox looking up at the glass trees", text: $scene, axis: .vertical)
+                TextField("…", text: $scene, axis: .vertical)
                     .lineLimit(2...5).font(.body).foregroundColor(Theme.text)
                     .focused($focusedField, equals: .scene)
                     .padding(12).background(Theme.surface)
@@ -224,18 +237,39 @@ struct StorybookView: View {
                     .cornerRadius(Theme.radius)
             }
 
+            // One row: quality · Add Page · style.
             HStack(spacing: 8) {
                 QualityMenu(quality: $quality)
-                Spacer()
+                Button { run() } label: {
+                    Text(busy ? "Drawing…" : "Add Page")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity).frame(height: 50)
+                        .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
+                }
+                .disabled(busy).opacity(busy ? 0.6 : 1)
+                styleMenu
             }
+        }
+    }
 
-            Button { run() } label: {
-                Text(busy ? "Drawing the page…" : "Add Page")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity).padding(.vertical, 13)
-                    .background(Theme.mauve).foregroundColor(.white).cornerRadius(Theme.radius)
+    /// House-style picker for the pages (Watercolor Drawings by default).
+    private var styleMenu: some View {
+        Menu {
+            ForEach(ForgeStyles.all) { style in
+                Button { styleId = style.id } label: {
+                    menuRow(style.name, on: styleId == style.id)
+                }
             }
-            .disabled(busy).opacity(busy ? 0.6 : 1)
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "paintpalette").font(.system(size: 14))
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+            }
+            .foregroundColor(Theme.text)
+            .frame(height: 50).padding(.horizontal, 11)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
         }
     }
 
@@ -252,7 +286,7 @@ struct StorybookView: View {
         Task {
             do {
                 let url = try await ForgeService.shared.generateStorybookPage(
-                    prompt: scn, caption: cap, quality: quality)
+                    prompt: scn, caption: cap, quality: quality, style: styleId, aspect: aspect)
                 pages.append(Creation(id: UUID().uuidString, type: "storybook", url: url, prompt: cap))
                 current = max(0, (pages.count - 1) / 2)   // spread holding the new page
                 caption = ""; scene = ""
