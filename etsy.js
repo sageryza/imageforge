@@ -583,7 +583,7 @@ router.get('/listings', requireToken, async (req, res) => {
 // an existing listing's SEO before mirroring it onto a new one.
 router.get('/listings/:listingId', requireToken, async (req, res) => {
   try {
-    const r = await userFetch(`/listings/${req.params.listingId}?includes=Tags`);
+    const r = await userFetch(`/listings/${req.params.listingId}`);
     res.status(r.status).json(r.body);
   } catch (err) {
     res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
@@ -610,6 +610,32 @@ router.post('/listings/draft', requireToken, express.json(), async (req, res) =>
   } catch (err) {
     const code = err.code === 'VALIDATION' ? 400 : (err.message === 'not_connected' ? 401 : 502);
     res.status(code).json({ error: err.message });
+  }
+});
+
+// Update fields on an existing listing (PATCH) — title, description, tags, price,
+// and personalization toggles. Body: { shop_id, title?, description?, tags?:[],
+// is_personalizable?, personalization_is_required?, personalization_instructions?,
+// ... }. tags is sent as tags[i]; everything else is passed straight through.
+router.patch('/listings/:listingId', requireToken, express.json(), async (req, res) => {
+  const { shop_id, tags, ...fields } = req.body || {};
+  const sid = shop_id || process.env.ETSY_SHOP_ID;
+  if (!sid) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(fields)) {
+      if (v === undefined || v === null) continue;
+      params.append(k, String(v));
+    }
+    if (Array.isArray(tags)) validateTags(tags).forEach((t, i) => params.append(`tags[${i}]`, t));
+    const r = await userFetch(`/shops/${sid}/listings/${req.params.listingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
   }
 });
 
@@ -671,13 +697,19 @@ router.get('/listings/:listingId/images', requireToken, async (req, res) => {
   }
 });
 
-// Copy an image onto a listing by URL (e.g. another deck's photo). Body:
-// { shop_id, image_url, rank? }.
-router.post('/listings/:listingId/images', requireToken, express.json(), async (req, res) => {
-  const { shop_id, image_url, rank } = req.body || {};
-  if (!shop_id || !image_url) return res.status(400).json({ error: 'shop_id and image_url required' });
+// Add an image onto a listing — by URL (copy another listing's photo) OR by
+// raw base64 (upload a brand-new local file that isn't on Etsy yet). Body:
+// { shop_id, image_url? , image_base64?, filename?, rank? }.
+router.post('/listings/:listingId/images', requireToken, express.json({ limit: '25mb' }), async (req, res) => {
+  const { shop_id, image_url, image_base64, filename, rank } = req.body || {};
+  if (!shop_id || (!image_url && !image_base64)) {
+    return res.status(400).json({ error: 'shop_id and image_url OR image_base64 required' });
+  }
+  const source = image_base64
+    ? Buffer.from(String(image_base64).replace(/^data:[^,]+,/, ''), 'base64')
+    : image_url;
   try {
-    const r = await uploadListingImage(shop_id, req.params.listingId, image_url, { rank });
+    const r = await uploadListingImage(shop_id, req.params.listingId, source, { rank, filename });
     res.status(r.status).json(r.body);
   } catch (err) {
     res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
