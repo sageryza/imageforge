@@ -559,6 +559,37 @@ router.get('/defaults', async (req, res) => {
   }
 });
 
+// List a shop's listings by state (draft/active/inactive/sold_out) — slimmed to
+// id/title/state/tags/price so drafts can be found and proven tags read off
+// existing listings. ?state= defaults to active; ?shop_id or ETSY_SHOP_ID.
+router.get('/listings', requireToken, async (req, res) => {
+  const shopId = req.query.shop_id || process.env.ETSY_SHOP_ID;
+  const state = req.query.state || 'active';
+  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const r = await getAllListings(shopId, state);
+    if (!r.ok) return res.status(r.status || 502).json(r.body || { error: 'listings fetch failed' });
+    const slim = r.results.map(l => ({
+      listing_id: l.listing_id, title: l.title, state: l.state,
+      tags: l.tags, price: l.price, num_favorers: l.num_favorers,
+    }));
+    res.json({ count: slim.length, results: slim });
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
+// A single listing in full (incl. tags, materials, price, state) — for reading
+// an existing listing's SEO before mirroring it onto a new one.
+router.get('/listings/:listingId', requireToken, async (req, res) => {
+  try {
+    const r = await userFetch(`/listings/${req.params.listingId}?includes=Tags`);
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 // Who am I (and primary shop) — handy first call after connecting.
 router.get('/me', async (req, res) => {
   try {
