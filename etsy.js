@@ -492,6 +492,14 @@ async function deleteListing(listingId) {
   return userFetch(`/listings/${listingId}`, { method: 'DELETE' });
 }
 
+// Delete a single image from a listing. Etsy has no "reorder images" endpoint
+// and re-ranking existing images is unreliable, so the safe way to reorder is
+// to re-upload copies in the desired order and delete the originals — this is
+// the delete half of that. DELETE /shops/{shop}/listings/{listing}/images/{id}.
+async function deleteListingImage(shopId, listingId, imageId) {
+  return userFetch(`/shops/${shopId}/listings/${listingId}/images/${imageId}`, { method: 'DELETE' });
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
@@ -645,6 +653,20 @@ router.post('/listings/:listingId/images', requireToken, express.json(), async (
   }
 });
 
+// Delete a single image from a listing (the delete half of a reorder). Body/
+// query: shop_id. Safe on active listings — removing one photo from a listing
+// that has others is non-destructive, unlike deleting the whole listing.
+router.delete('/listings/:listingId/images/:imageId', requireToken, async (req, res) => {
+  const shopId = req.query.shop_id || (req.body && req.body.shop_id) || process.env.ETSY_SHOP_ID;
+  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  try {
+    const r = await deleteListingImage(shopId, req.params.listingId, req.params.imageId);
+    res.status(r.status).json(r.ok ? { deleted: true } : (r.body || { error: 'delete failed' }));
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 // Delete a draft/inactive listing (test-draft cleanup). Safety: this route
 // REFUSES to delete an "active" (live) listing even when the token gate is
 // open, so an accidental or hostile call can never wipe a live money-maker —
@@ -693,6 +715,7 @@ module.exports = {
   buildBundleInventory,
   getListingImages,
   deleteListing,
+  deleteListingImage,
   validateTags,
   buildAuthUrl,
   configured,
