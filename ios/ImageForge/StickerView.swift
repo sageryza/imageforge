@@ -9,6 +9,7 @@ import UIKit
 struct StickerView: View {
     @State private var prompt = ""
     @State private var quality = "low"
+    @State private var model = "gpt-image-2"
     @State private var busy = false
     @State private var sheet: StickerSheetResult?
     @State private var errorText: String?
@@ -32,7 +33,7 @@ struct StickerView: View {
                         stickerResult
                     }
                     Composer(quality: $quality, text: $prompt, placeholder: "…",
-                             busy: busy, focused: $promptFocused, onGo: run)
+                             busy: busy, focused: $promptFocused, model: $model, onGo: run)
                 }
                 .padding()
             }
@@ -119,7 +120,7 @@ struct StickerView: View {
         let started = Date()
         Task {
             do {
-                sheet = try await ForgeService.shared.generateStickerSheet(prompt: text, quality: quality)
+                sheet = try await ForgeService.shared.generateStickerSheet(prompt: text, quality: quality, model: model)
             } catch {
                 // The on-screen call may have dropped (e.g. backgrounded) while
                 // the server finished. Try to pick up the saved sheet before
