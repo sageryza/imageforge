@@ -106,6 +106,7 @@ loadConfig().then(() => {
   const movies = require('./movies');
   const songs = require('./songs');
   const stories = require('./stories');
+  const mpc = require('./mpc');
   const etsyReport = require('./etsy-report');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -118,7 +119,8 @@ loadConfig().then(() => {
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   app.use('/api/stories', stories.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories)');
+  app.use('/api/mpc', mpc.router);
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL

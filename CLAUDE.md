@@ -84,8 +84,13 @@ lifted into a standalone tool later.
   only for a proven repeat seller. `scripts/mpc_card_prep.py` (Pillow) is the
   press-ready prep step run BEFORE the order builder — raw art → 825×1125 px @ 300
   DPI incl. 1/8" bleed (cover/extend/fit modes, deck-folder aware, optional
-  trim/safe proof images, low-res warnings). Robinson Chen remains the manual
-  hand-fulfilment fallback.
+  trim/safe proof images, low-res warnings). Because the pipeline's card images
+  live as **URLs** (Firebase/Replicate), not files on a computer, `mpc.js`
+  (`/api/mpc`, `POST /prep-order`) is the cloud version of both scripts: it preps
+  from URLs + builds order.xml + bundles a downloadable **ZIP** hand-off (sharp +
+  jszip; STUDIO_TOKEN-gated; returns a Firebase link). The only step still needing
+  a computer is the desktop tool's browser upload. Robinson Chen remains the
+  manual hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates

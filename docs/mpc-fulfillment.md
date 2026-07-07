@@ -80,6 +80,45 @@ Runs the MPC Autofill desktop tool from the deck folder so the relative paths
 resolve. It signs into the MPC account, fills every slot, and auto-saves the
 project. Review the saved project in the MPC account and check out by hand.
 
+## Cloud path — `/api/mpc` (no files on any computer)
+
+The pipeline generates a deck's card images and they live as **URLs** (Firebase
+Storage / Replicate / data URLs), never as files on a laptop. `mpc.js` is the
+cloud version of the two scripts above: it does the prep + order.xml + bundling
+server-side, straight from those URLs, and hands back one downloadable ZIP.
+
+- `GET /api/mpc/status` (open) — reports readiness (`sharp`/`jszip` present,
+  Firebase on, the card sizes + modes).
+- `POST /api/mpc/prep-order` (STUDIO_TOKEN-gated) — body:
+  ```json
+  {
+    "deckName": "Wolf Oracle",
+    "size": "poker", "mode": "cover", "stock": "superior", "foil": false,
+    "fronts": ["https://…/01.png", "https://…/02.png"],
+    "back":   "https://…/back.png",
+    "backs":  ["https://…/b01.png", "…"],
+    "names":  ["wolf", "owl"]
+  }
+  ```
+  `fronts[]` is required; give **either** `back` (one shared back) **or**
+  `backs[]` (per-card, matched to fronts by position). It downloads each image,
+  preps it to press-ready (same bleed/DPI as `mpc_card_prep.py`), builds the
+  `order.xml` (same local-files dialect as `mpc_order_builder.py`), and zips
+  `fronts/`, `backs/` or `back.png`, `order.xml`, and a `README.txt`. When
+  Firebase is set it uploads the ZIP and returns `{ ok, url, warnings, … }` — a
+  tap-to-download link; otherwise it streams the ZIP binary. Low-res / grid
+  sources come back in `warnings` (see below).
+
+So the flow is: pipeline → `POST /api/mpc/prep-order` → download the ZIP → run
+the desktop tool from it → review + check out. The only step that still needs a
+computer is the actual browser upload, which is the maintained tool's job.
+
+**Grid caution:** if a deck's art was generated as a multi-up grid in one image
+(e.g. six cards in one 1024×1536 output), each card is only a fraction of that
+resolution — a 2×3 grid gives ~512×512 per card, far below the 750×1050 a poker
+card needs. `prep-order` flags these in `warnings` ("~186 DPI — likely a
+grid/low-res source"). For print, generate each card at full resolution.
+
 ## Before a full deck run — smoke-test 3 cards (IMPORTANT)
 
 The XML *structure* matches the published schema, but the desktop tool is the
