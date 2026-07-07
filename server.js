@@ -147,7 +147,12 @@ async function saveToFirebase(imageUrl, folder = 'images') {
 // configured, so the image still renders without any credentials set up.
 async function saveBufferToFirebase(buffer, contentType, folder = 'images') {
   const ext = contentType.includes('webp') ? 'webp'
-    : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+    : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
+    : contentType.includes('mpeg') || contentType.includes('mp3') ? 'mp3'
+    : contentType.includes('wav') ? 'wav'
+    : contentType.includes('opus') ? 'opus'
+    : contentType.includes('aac') ? 'aac'
+    : contentType.includes('flac') ? 'flac' : 'png';
   if (!bucket) return `data:${contentType};base64,${buffer.toString('base64')}`;
   try {
     const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -514,6 +519,39 @@ app.post('/api/generate/gptimage', async (req, res) => {
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
     res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Text-to-speech: OpenAI gpt-4o-mini-tts ─────────────────────────
+// Turns text into a natural-voiced audio file. Saved to Firebase for a
+// permanent URL (like the images); also returns the raw bytes as base64 so a
+// caller can grab the audio without a second fetch. `voice` is any OpenAI voice
+// (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer);
+// `instructions` steers tone/pacing (gpt-4o-mini-tts only). `format` = mp3
+// (default), wav, opus, aac, flac.
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, voice = 'nova', model = 'gpt-4o-mini-tts', format = 'mp3', instructions } = req.body;
+    if (!text || !String(text).trim()) return res.status(400).json({ error: 'text is required' });
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+    const body = { model, voice, input: String(text).slice(0, 4000), response_format: format };
+    if (instructions) body.instructions = String(instructions).slice(0, 1000);
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const t = await response.text().catch(() => '');
+      return res.status(response.status).json({ error: `OpenAI ${response.status}: ${t.slice(0, 400)}` });
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const mime = format === 'wav' ? 'audio/wav' : format === 'opus' ? 'audio/opus'
+      : format === 'aac' ? 'audio/aac' : format === 'flac' ? 'audio/flac' : 'audio/mpeg';
+    const url = await saveBufferToFirebase(buffer, mime, 'tts');
+    res.json({ url, voice, model, format, b64: buffer.toString('base64') });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
