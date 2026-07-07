@@ -454,6 +454,35 @@ async function keywordResearch(keyword, { sample = 100 } = {}) {
   };
 }
 
+// Opportunity checker — for a batch of candidate tag phrases, combine the two
+// signals we CAN get: competition (how crowded) + a demand proxy (do the
+// listings ranking for this phrase actually tag it? if real sellers use it, it
+// has some demand). Also returns the top-5 tags of each phrase's results so
+// contamination (e.g. Magic-the-Gathering / D&D bleed) is visible. Etsy exposes
+// no true search-volume, so this is the best automated niche signal.
+async function keywordOpportunity(candidates = []) {
+  const out = [];
+  for (const raw of candidates) {
+    const phrase = String(raw).toLowerCase().trim();
+    if (!phrase) continue;
+    const kr = await keywordResearch(phrase, { sample: 100 });
+    if (!kr || !kr.ok) { out.push({ phrase, error: true }); continue; }
+    const self = (kr.top_tags || []).find(t => t.tag === phrase);
+    out.push({
+      phrase,
+      competition: kr.competition,               // fewer = easier to rank
+      used_by_winners_pct: self ? self.pct : 0,  // demand proxy: winners tag it?
+      sample_tags: (kr.top_tags || []).slice(0, 5).map(t => t.tag), // spot contamination
+    });
+  }
+  // best opportunities first: used by winners AND low competition
+  return out.sort((a, b) => {
+    const sa = (a.used_by_winners_pct || 0) - Math.log10((a.competition || 1) + 1) * 3;
+    const sb = (b.used_by_winners_pct || 0) - Math.log10((b.competition || 1) + 1) * 3;
+    return sb - sa;
+  });
+}
+
 // ─── Variations / inventory ─────────────────────────────────────────
 // Etsy models variations through the listing INVENTORY endpoint, not the
 // listing itself. Each combination of variation values is a "product" with one
@@ -600,6 +629,19 @@ router.get('/keyword-research', requireToken, async (req, res) => {
     const r = await keywordResearch(q, { sample: Math.min(Number(req.query.sample) || 100, 100) });
     if (!r.ok) return res.status(r.status || 502).json(r.body || { error: 'search failed' });
     res.json(r);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Opportunity checker — POST { candidates: ["phrase", ...] } → competition +
+// demand-proxy (used-by-winners) + contamination sample, sorted best-first.
+router.post('/keyword-opportunity', requireToken, express.json(), async (req, res) => {
+  const candidates = Array.isArray(req.body && req.body.candidates) ? req.body.candidates : [];
+  if (!candidates.length) return res.status(400).json({ error: 'candidates: [phrase, ...] required' });
+  try {
+    const results = await keywordOpportunity(candidates.slice(0, 40));
+    res.json({ results });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -842,6 +884,7 @@ module.exports = {
   getReceipts,
   getReviews,
   keywordResearch,
+  keywordOpportunity,
   createDraftListing,
   getListingDefaults,
   updateListing,
