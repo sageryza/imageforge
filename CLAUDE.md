@@ -253,6 +253,11 @@ lifted into a standalone tool later.
   image, video, or any downloadable deliverable — send it as the final item,
   after all explanatory text, so it's easy to find and never buried
   mid-message.
+- **Long replies get an audio version.** When a chat reply runs longer than
+  about one phone screen (~2–3 paragraphs), also attach a text-to-speech
+  recording of it — OpenAI `gpt-4o-mini-tts` by default (cheap, reliable).
+  Keep it faithful to the text, lightly adapted for listening (spell out URLs
+  and numbers). Only render it in the F5 cloned voice when asked.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
