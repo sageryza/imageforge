@@ -249,6 +249,10 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **Deliverables go last.** When a message includes a generated file — audio,
+  image, video, or any downloadable deliverable — send it as the final item,
+  after all explanatory text, so it's easy to find and never buried
+  mid-message.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
