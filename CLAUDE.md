@@ -278,6 +278,9 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **Delivered files/images go at the BOTTOM.** When sending or attaching any
+  file or image, place it at the very END of the message, after all the text —
+  never before or in the middle. Write the explanation first, deliver last.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
