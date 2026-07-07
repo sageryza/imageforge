@@ -639,6 +639,33 @@ router.patch('/listings/:listingId', requireToken, express.json(), async (req, r
   }
 });
 
+// Set (or clear) a listing's personalization via Etsy's new personalization
+// endpoint (the legacy is_personalizable/... fields were deprecated 2026). Body:
+// { shop_id, instructions, required?, max_allowed_characters?, question_text? }.
+// Sends a single text-input question; pass instructions:"" to effectively clear.
+router.post('/listings/:listingId/personalization', requireToken, express.json(), async (req, res) => {
+  const { shop_id, instructions = '', required = false,
+          max_allowed_characters = 255, question_text = 'Personalization' } = req.body || {};
+  const sid = shop_id || process.env.ETSY_SHOP_ID;
+  if (!sid) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  const body = {
+    personalization_questions: [{
+      question_text, instructions, question_type: 'text_input',
+      required: Boolean(required), max_allowed_characters,
+    }],
+  };
+  try {
+    const r = await userFetch(`/shops/${sid}/listings/${req.params.listingId}/personalization`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    res.status(r.status).json(r.body);
+  } catch (err) {
+    res.status(err.message === 'not_connected' ? 401 : 502).json({ error: err.message });
+  }
+});
+
 // Change a listing's state — e.g. revert a listing that accidentally went live
 // back to a draft. Body: { shop_id, listing_id, state? } (state defaults to
 // "draft"; falls back to "inactive" if Etsy rejects "draft").
