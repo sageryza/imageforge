@@ -327,7 +327,9 @@ module.exports = {
   configured: () => Boolean(sharp && JSZip),
   prepCardImage,
   buildOrderXml,
+  fetchImageBuffer,
   normalizeStock,
   pickBracket,
+  geometry,
   CARD_SIZES,
 };

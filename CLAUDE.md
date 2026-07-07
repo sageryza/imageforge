@@ -89,8 +89,18 @@ lifted into a standalone tool later.
   (`/api/mpc`, `POST /prep-order`) is the cloud version of both scripts: it preps
   from URLs + builds order.xml + bundles a downloadable **ZIP** hand-off (sharp +
   jszip; STUDIO_TOKEN-gated; returns a Firebase link). The only step still needing
-  a computer is the desktop tool's browser upload. Robinson Chen remains the
-  manual hand-fulfilment fallback.
+  a computer is the desktop tool's browser upload — OR use `mpc-upload.js`
+  (`/api/mpc-upload`), the full auto-upload: a headless Playwright browser logs
+  into MPC, creates the project, uploads every prepped card, sets options, and
+  stops at the **cart** for Sophie to review + pay (payment never automated; a
+  payment-page guard hard-stops). Background job with per-step screenshots
+  (`POST /api/mpc-upload` → poll `GET /api/mpc-upload/:id`); creds via
+  `MPC_EMAIL`/`MPC_PASSWORD`. Two caveats: it needs a browser-capable host (NOT
+  the Render free web service; `playwright` is an optionalDependency, route
+  dormant/501 there), and the MPC selectors (`DEFAULT_FLOW`) need a live
+  calibration pass — the engine is mock-tested, the selectors aren't. The ZIP
+  hand-off stays the robust fallback; Robinson Chen remains the manual
+  hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates

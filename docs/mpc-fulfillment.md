@@ -119,6 +119,47 @@ resolution — a 2×3 grid gives ~512×512 per card, far below the 750×1050 a p
 card needs. `prep-order` flags these in `warnings` ("~186 DPI — likely a
 grid/low-res source"). For print, generate each card at full resolution.
 
+## Full auto-upload — `/api/mpc-upload` (everything except paying)
+
+`mpc-upload.js` removes the last manual step: instead of downloading the ZIP and
+running the desktop tool, it drives a real (headless) browser in the cloud to log
+into MakePlayingCards, create the deck project, upload every prepped card, set the
+options, and land in the **cart** — then stops. Sophie logs in, reviews, and pays.
+**Payment is never automated** (by design and by request); the engine even has a
+payment-page guard that hard-stops if it ever lands on a pay screen.
+
+- `GET /api/mpc-upload/status` (open) — readiness (`playwright` present,
+  credentials set) + the runtime/calibration caveats.
+- `POST /api/mpc-upload` (gated) — body is the **same deck spec** as
+  `/api/mpc/prep-order` (`fronts[]` + `back`/`backs[]`, `size`, `mode`,
+  `quantity`, …). Starts a background job and returns `{ jobId, poll }`.
+- `GET /api/mpc-upload/:jobId` (gated) — poll status: `queued → running →
+  awaiting_payment` (or `error`), with a step `log`, per-step **screenshot** URLs,
+  and the `cartUrl` to open and pay.
+
+Config (env or the `config/pipeline` Firestore doc): `MPC_EMAIL`, `MPC_PASSWORD`
+(the MPC account to upload into), optional `MPC_LOGIN_URL` / `MPC_PRODUCT_URL`,
+and `MPC_BROWSER_PATH` for hosts where the browser lives outside Playwright's
+cache.
+
+### Two honest caveats
+
+1. **Runtime.** This needs a browser-capable host (Playwright + Chromium) — that
+   is **not** the Render free web service (512 MB, no browser). Run `mpc-upload`
+   on a worker / Mac / browser-capable container: `npm i playwright &&
+   npx playwright install chromium`. On the Render web app the route reports
+   `ready:false` and returns 501, harmlessly dormant. `playwright` is an
+   **optionalDependency** so it never blocks the main deploy.
+2. **Calibration.** MPC's editor DOM isn't publicly documented and their site
+   changes over time (that churn is the reason the maintained desktop tool
+   exists). The automation **engine** is generic and tested against a mock site;
+   the MPC-specific URLs/selectors live in one block (`DEFAULT_FLOW` in
+   `mpc-upload.js`) and every step is screenshotted, so the first supervised real
+   run just tunes that block. Treat it as "engine done, selectors need one live
+   calibration pass," and expect to keep it in sync when MPC changes — which is
+   exactly the fragility the ZIP hand-off avoids. Keep the ZIP path as the
+   fallback.
+
 ## Before a full deck run — smoke-test 3 cards (IMPORTANT)
 
 The XML *structure* matches the published schema, but the desktop tool is the
