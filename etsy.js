@@ -422,6 +422,38 @@ async function uploadListingImage(shopId, listingId, image, opts = {}) {
   return { status: res.status, ok: res.ok, body };
 }
 
+// ─── Keyword research (official public search, no scraping) ─────────
+// Uses Etsy's own public listing search (GET /listings/active?keywords=) with
+// the app key — no bot-block, no extra accounts, fully automated. Returns
+// COMPETITION (total matching active listings) plus the tags most used by the
+// top-ranking listings for that keyword — a real, proven-on-Etsy tag signal.
+// Note: Etsy exposes no search-VOLUME endpoint; this is competition + what
+// actually ranks, which is what you tag against anyway.
+async function keywordResearch(keyword, { sample = 100 } = {}) {
+  const q = encodeURIComponent(String(keyword).trim());
+  const r = await appFetch(`/listings/active?keywords=${q}&limit=${sample}&sort_on=score&sort_order=down`);
+  if (!r.ok) return r;
+  const results = (r.body && r.body.results) || [];
+  const freq = {};
+  for (const l of results) {
+    for (const t of (l.tags || [])) {
+      const k = String(t).toLowerCase().trim();
+      if (k) freq[k] = (freq[k] || 0) + 1;
+    }
+  }
+  const top_tags = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 30)
+    .map(([tag, used_by]) => ({ tag, used_by, pct: Math.round((used_by / (results.length || 1)) * 100) }));
+  return {
+    ok: true,
+    keyword,
+    competition: (r.body && r.body.count) ?? null, // total active listings for this term
+    sampled: results.length,
+    top_tags,
+  };
+}
+
 // ─── Variations / inventory ─────────────────────────────────────────
 // Etsy models variations through the listing INVENTORY endpoint, not the
 // listing itself. Each combination of variation values is a "product" with one
@@ -554,6 +586,20 @@ router.get('/defaults', async (req, res) => {
     const r = await getListingDefaults(shopId);
     if (!r.ok) return res.status(502).json({ error: 'no active listing found to derive defaults from', detail: r.body });
     res.json(r.defaults);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Keyword research — competition + top-ranking listings' tags for a term.
+// GET /api/etsy/keyword-research?q=witchcraft%20ritual%20cards
+router.get('/keyword-research', requireToken, async (req, res) => {
+  const q = req.query.q || req.query.keyword;
+  if (!q) return res.status(400).json({ error: 'q (keyword) required' });
+  try {
+    const r = await keywordResearch(q, { sample: Math.min(Number(req.query.sample) || 100, 100) });
+    if (!r.ok) return res.status(r.status || 502).json(r.body || { error: 'search failed' });
+    res.json(r);
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -795,6 +841,7 @@ module.exports = {
   getAllListings,
   getReceipts,
   getReviews,
+  keywordResearch,
   createDraftListing,
   getListingDefaults,
   updateListing,
