@@ -81,9 +81,11 @@ lifted into a standalone tool later.
   and auto-saves the project; Sophie reviews it in her MPC account and checks
   out by hand. Bulk tiers are **per design** (one order = one deck × qty), so the
   default is **one deck at a time / made-to-order**; batch a 6-pack (tier 2)
-  only for a proven repeat seller. The script does NOT add bleed/resize — art
-  needs a press-ready prep step (825×1125 px @ 300 DPI incl. 1/8" bleed). Robinson
-  Chen remains the manual hand-fulfilment fallback.
+  only for a proven repeat seller. `scripts/mpc_card_prep.py` (Pillow) is the
+  press-ready prep step run BEFORE the order builder — raw art → 825×1125 px @ 300
+  DPI incl. 1/8" bleed (cover/extend/fit modes, deck-folder aware, optional
+  trim/safe proof images, low-res warnings). Robinson Chen remains the manual
+  hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates

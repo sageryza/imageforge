@@ -88,15 +88,48 @@ confirm the tool loads it and places images in the right slots. If a field is
 off, it surfaces on the tiny order and it's a one-line fix — cheaper than finding
 out on a 72-card deck.
 
-## Print-readiness gap (read this)
+## Print-readiness prep — `scripts/mpc_card_prep.py`
 
-The script does **NOT** resize images or add bleed. MPC poker cards are 2.5"×3.5"
-and need a 1/8" bleed all around → a **2.75"×3.75" @ 300 DPI = 825×1125 px**
-print file. Art coming straight out of ChatGPT / gpt-image is typically
-~1024×1536 with **no bleed margin**, so it needs a prep step (correct aspect +
-bleed) before it's press-ready, or the card edges get cropped into the art.
-Accepted formats: png, jpg, jpeg, bmp, gif, tif, tiff, pdf. The tool downscales
-to 800 DPI (MPC's press max). Orders over 612 cards are split by the desktop tool.
+MPC poker cards are 2.5"×3.5" and need a 1/8" bleed all around → a
+**2.75"×3.75" @ 300 DPI = 825×1125 px** print file. Art out of ChatGPT / gpt-image
+is typically ~1024×1536 at screen res with **no bleed**, so it must be prepped
+first or the cut crops into the design and leaves white slivers at the edges.
+`mpc_card_prep.py` does that prep; run it **before** the order builder:
+
+```
+raw art  ->  mpc_card_prep.py  ->  press-ready PNGs  ->  mpc_order_builder.py  ->  order.xml
+```
+
+```
+python scripts/mpc_card_prep.py my_deck --out my_deck_print   # deck folder in, prepped deck folder out
+python scripts/mpc_order_builder.py my_deck_print              # then build the order
+```
+
+It takes a single image, a flat folder, or a **deck folder** (it walks `fronts/`,
+`backs/`, and `back.png`, preserving the layout the order builder expects). Output
+is always the exact pixel size for the card at 300 DPI with real DPI metadata.
+Requires Pillow (`pip install Pillow`).
+
+- `--size` poker (default) / bridge / tarot / square / mini / jumbo
+- `--mode`:
+  - **cover** (default) — scale to fill the whole card+bleed and center-crop the
+    small overflow. Full edge-to-edge bleed, no seams. Best for full-bleed art;
+    it reports how much of each image's edge was cropped, so keep important
+    content off the very edge.
+  - **extend** — scale to the trim size, then *manufacture* the bleed by mirroring
+    the outer edge pixels outward. Nothing inside the cut line is lost. Best when
+    the art is exactly the card face.
+  - **fit** — scale to fit inside the trim with no crop (whole image kept), pad to
+    a `--bg` colour, then extend into the bleed.
+- `--proof` also writes `_proof` images (into a `proof/` subfolder) with the trim
+  line (red) and safe zone (cyan) drawn on, so you can eyeball what gets cut.
+  These are review-only and never sent to print.
+- Flattens transparency onto `--bg` (white default; MPC prints on opaque stock)
+  and **warns when art resolves below 300 DPI** at card size (it upscales, but
+  flags it as likely soft).
+
+Accepted input formats: png, jpg, jpeg, bmp, gif, tif, tiff. The desktop tool
+downscales to 800 DPI (MPC's press max); orders over 612 cards are split by it.
 
 ## Pricing — one deck at a time vs a batch run
 
