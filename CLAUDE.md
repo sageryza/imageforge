@@ -71,7 +71,19 @@ lifted into a standalone tool later.
   client-credentials (`LULU_API_KEY`+`LULU_API_SECRET`), sandbox via
   `LULU_SANDBOX`/`LULU_API_BASE`. Routes: status, cost, print-jobs. Paper maxes
   ~90 GSM uncoated. *Built, not yet key-tested.*
-- Card decks (oracle/tarot) are **manual** fulfilment (Robinson Chen) — no API.
+- Card decks (oracle/tarot) print at **MakePlayingCards (MPC)** — no POD API, so
+  fulfilment is semi-automated (see `docs/mpc-fulfillment.md`). After an order
+  lands, `scripts/mpc_order_builder.py` turns a folder of card images (fronts/ +
+  a shared `back.png` or per-card backs/) into an MPC Autofill `order.xml`
+  (local-files dialect: `<sourceType>Local File</sourceType>`, comma-separated
+  `<slots>`, exact stock strings). The maintained community **MPC Autofill**
+  desktop tool (`autofill --directory my_deck`) then drives the browser upload
+  and auto-saves the project; Sophie reviews it in her MPC account and checks
+  out by hand. Bulk tiers are **per design** (one order = one deck × qty), so the
+  default is **one deck at a time / made-to-order**; batch a 6-pack (tier 2)
+  only for a proven repeat seller. The script does NOT add bleed/resize — art
+  needs a press-ready prep step (825×1125 px @ 300 DPI incl. 1/8" bleed). Robinson
+  Chen remains the manual hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates
