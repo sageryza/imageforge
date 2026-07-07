@@ -119,6 +119,23 @@ function clampListing(content) {
   return { title, tags, description, ...(materials && materials.length ? { materials } : {}) };
 }
 
+// Merge real Etsy ranking tags (proven to rank) ahead of the AI's tags. Ranking
+// tags lead but are capped so the AI's product-specific tags still make the cut;
+// the rest fills to 13. Returns ≤13 unique tags, each ≤20 chars.
+function blendTags(aiTags = [], rankTags = [], limit = 13, realCap = 8) {
+  const norm = s => String(s || '').toLowerCase().trim();
+  const seen = new Set();
+  const out = [];
+  const add = t => {
+    const k = norm(t);
+    if (k && k.length <= 20 && !seen.has(k) && out.length < limit) { seen.add(k); out.push(k); }
+  };
+  rankTags.slice(0, realCap).forEach(add); // proven ranking tags first (capped)
+  aiTags.forEach(add);                      // AI's product-specific tags fill in
+  rankTags.forEach(add);                    // top up with any leftover ranking tags
+  return out;
+}
+
 // "Talk it out" — turn a loose, freeform description into a concrete plan:
 // a design theme, 1-3 house styles (chosen from the ones the shop actually
 // has), and a few product types. Powers the Studio's conversational input.
@@ -153,7 +170,8 @@ async function generateListingContent({ theme, productType = 'art print', audien
     'You are an expert Etsy SEO copywriter for a small illustrated-goods shop.',
     'Write listing content that ranks and converts. Front-load the most-searched keywords.',
     'Hard rules: title MUST be <= 140 characters; provide EXACTLY 13 tags; each tag MUST be <= 20 characters and be a real multi-word buyer search phrase (no single generic words, no punctuation); description should be 2-4 short paragraphs, scannable, keyword-rich but human.',
-    'Return STRICT JSON: {"title": string, "tags": string[13], "description": string, "materials": string[] }.',
+    'Also return "primary_keyword": the single 2-4 word core Etsy search phrase a buyer would type to find this (used to look up real ranking data).',
+    'Return STRICT JSON: {"title": string, "tags": string[13], "description": string, "materials": string[], "primary_keyword": string }.',
   ].join(' ');
   const user = [
     `Product type: ${productType}.`,
@@ -165,7 +183,24 @@ async function generateListingContent({ theme, productType = 'art print', audien
     { role: 'system', content: sys },
     { role: 'user', content: user },
   ]);
-  return clampListing(raw);
+  const content = clampListing(raw);
+  // Ground the tags in what actually ranks on Etsy right now: pull the tags most
+  // used by the top-ranking listings for this product's core search phrase and
+  // blend them ahead of the AI's guesses. Fully automated; on any failure it
+  // silently keeps the AI tags so the flow never breaks.
+  try {
+    const seed = (raw.primary_keyword && String(raw.primary_keyword).trim()) || theme;
+    if (etsy && etsy.keywordResearch && seed) {
+      const kr = await etsy.keywordResearch(seed, { sample: 100 });
+      if (kr && kr.ok && Array.isArray(kr.top_tags) && kr.top_tags.length) {
+        content.tags = blendTags(content.tags, kr.top_tags.map(t => t.tag));
+        content.keyword_signal = { seed, competition: kr.competition };
+      }
+    }
+  } catch (err) {
+    console.warn('pipeline: keyword-research tag grounding skipped —', err.message);
+  }
+  return content;
 }
 
 // Map a product type to a sensible Etsy taxonomy leaf (a most-specific node,
