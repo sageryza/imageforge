@@ -21,11 +21,19 @@ just automates "grab these images and send them to my app."
 
 ## Use
 
-1. Go to midjourney.com and show the images you want (scroll them into view, or
-   open your likes / a keyword search).
+1. Go to midjourney.com and open what you want — your likes, or a keyword search.
 2. Click the floating **🌿 Send to Deck Factory** button (bottom-right).
-3. It sends every Midjourney image on the page into your batch and shows a toast
-   with the count. Then tell Claude the batch name and it'll review them.
+3. With **Auto-scroll** on (default), it scrolls the entire search/likes on its
+   own, collecting **every** image as it goes (robust even if Midjourney unloads
+   off-screen images — URLs are captured before they can drop out), then uploads
+   them in chunks. The button shows live progress; **click it again to stop** and
+   send what's been collected so far. With auto-scroll off, it grabs just what's
+   loaded on screen right now.
+4. When it finishes it shows a toast with the count. Tell Claude the batch name
+   and it'll review them and pick the on-style ones.
+
+Tip: use a keyword search (e.g. a plant name) so a batch is a focused set rather
+than your whole archive.
 
 ## Heads-up (first-run calibration)
 

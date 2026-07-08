@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Send to Deck Factory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One click to send your selected Midjourney images straight into the Deck Factory import pipeline.",
   "permissions": ["storage"],
   "host_permissions": [
