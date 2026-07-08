@@ -311,6 +311,10 @@ lifted into a standalone tool later.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
+- **End every reply with a verbatim audio version.** Generate a TTS (OpenAI
+  `gpt-4o-mini-tts`) reading the full message verbatim and attach it at the very
+  bottom, under the TLDR and below any images — it is the last thing in the
+  message. Strip markdown/URLs for the spoken version; keep the words.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
