@@ -115,6 +115,24 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Card-deck art generator (Midjourney via APIFRAME)
+- `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
+  which Sophie's original decks used. Midjourney has no official API, so this goes
+  through **APIFRAME** (`APIFRAME_KEY`), which runs its *own* MJ accounts and
+  exposes a REST API — no personal MJ account is involved or at risk. Base
+  `https://api.apiframe.ai/v2`, `X-API-Key` header. **Gotcha:** APIFRAME sits
+  behind Cloudflare bot-protection that 403s ("error code: 1010") any request
+  without a browser `User-Agent`, so the module always sends one.
+- **Routes:** `GET /status`; `POST /generate` (`{prompt}` or `{plant, style?}` +
+  optional `aspectRatio` default `5:7`, `styleRef` = a public image URL used as a
+  Midjourney `--sref` to lock Sophie's look) → `{jobId}`; `GET /job/:id` polls,
+  and on `COMPLETED` mirrors the **4** MJ options to Firebase (MJ CDN URLs expire;
+  `?save=0` to skip). `imagine()`/`job()` are exported helpers. STUDIO_TOKEN-gated.
+- **No text in the prompt** — Midjourney is unreliable at spelling; the plant-name
+  label is overlaid later in prep, not generated. Pricing: 16 credits per generate
+  (=4 options), 4 per upscale; ~6–8¢/generate on a paid plan.
+- Flow: generate (MJ) → pick 1 of 4 → label overlay + print prep → MPC fulfilment.
+
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
   a July 2026 prototyping run (~$1.35 for a 12-scene film with dream bridges).

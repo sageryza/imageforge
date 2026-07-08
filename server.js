@@ -108,6 +108,7 @@ loadConfig().then(() => {
   const stories = require('./stories');
   const mpc = require('./mpc');
   const mpcUpload = require('./mpc-upload');
+  const apiframe = require('./apiframe');
   const etsyReport = require('./etsy-report');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -122,6 +123,7 @@ loadConfig().then(() => {
   app.use('/api/stories', stories.router);
   app.use('/api/mpc', mpc.router);
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
+  app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
