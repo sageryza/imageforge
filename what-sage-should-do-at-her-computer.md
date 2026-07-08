@@ -63,8 +63,18 @@ time.
 
 ## Backlog (other computer-only tasks — add here)
 
-_Nothing yet. Chats: add items below with a one-line reason._
+_Chats: add items below with a one-line reason._
 
+- **Set up YouTube auto-upload (OAuth).** So a chat can push finished videos to
+  your channel as private drafts (you just tap Publish). One-time browser sign-in
+  only you can do. On the computer: create a Google Cloud project → enable
+  **YouTube Data API v3** → OAuth consent screen (External, add yourself as a Test
+  user, then Publish app to Production) → create an **OAuth client (Desktop app)**
+  → paste the Client ID + secret into chat. Start:
+  https://console.cloud.google.com/apis/credentials
+- **Add `ELEVENLABS_API_KEY` to the Claude Code environment settings.** So every
+  future chat can use the cloned "Voice A" for video voiceovers without you
+  re-pasting the key each session. (Same place `OPENAI_API_KEY` / `REPLICATE_API_TOKEN` live.)
 - _(example) Reconnect the Etsy app authorization at
   https://imageforge-q125.onrender.com/api/etsy/connect if the shop report ever
   shows a "reconnect" banner — needs a browser sign-in._
