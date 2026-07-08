@@ -132,6 +132,18 @@ lifted into a standalone tool later.
   label is overlaid later in prep, not generated. Pricing: 16 credits per generate
   (=4 options), 4 per upscale; ~6–8¢/generate on a paid plan.
 - Flow: generate (MJ) → pick 1 of 4 → label overlay + print prep → MPC fulfilment.
+- **Bring-your-own-Midjourney** (`ingest.js`, `/api/ingest`, page at `/import`):
+  the alternate art path — Sophie generates in her *own* MJ account and bulk-
+  downloads keepers by keyword with a browser export tool (that step runs on her
+  computer; the server can't automate MJ's download — no API, her account, needs
+  a browser). This module automates everything after: `POST /upload`
+  (`{batch, keyword?, images:[dataURL|url]}` → Firebase `ingest/<batch>/`, filename
+  keyword-tagged), `GET /batch/:batch?keyword=` (list a batch, keyword = filename
+  substring filter), `GET /batches`. The `/import` page (serveGated) is a phone/
+  desktop uploader. Batches feed the same review → prep → MPC flow. Trade-off vs
+  APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
+  computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
+  batch and picking the on-style option is the shared payoff of both paths.
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
