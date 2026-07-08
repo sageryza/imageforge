@@ -316,6 +316,30 @@ lifted into a standalone tool later.
   bottom, under the TLDR and below any images — it is the last thing in the
   message. Strip markdown/URLs for the spoken version; keep the words.
 
+## YouTube auto-upload (witchy video channel)
+- Finished videos post straight to Sophie's business YouTube channel as **private
+  drafts** — she reviews in YouTube Studio and taps Publish. Nothing goes public
+  automatically. Helper: `scripts/youtube_upload.py` (stdlib only, no deps).
+  `python3 scripts/youtube_upload.py clip.mp4 --title "…" --description "…"
+  --tags "a,b,c" [--privacy private|unlisted|public] [--short]`. Prints the video
+  id + a `studio.youtube.com/video/<id>/edit` review link. Importable: `from
+  youtube_upload import upload`.
+- **Auth** = one OAuth "Desktop app" client + a durable **refresh token**, read
+  from env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
+  The refresh token mints access tokens forever, so no re-auth per session. Scope
+  is **upload-only** (`youtube.upload`) — it can post but not read the channel, so
+  a `channels.list` call 403s by design. The OAuth app ("Secretly a Witch") is
+  published to Production (unverified) so tokens don't expire in 7 days. Re-auth
+  only needed if the token is revoked or a wider scope is required.
+- **Shorts** need no special call: a **vertical 9:16 clip that is short** is
+  auto-classified by YouTube as a Short. `--short` just appends `#Shorts`.
+- **Voiceovers** use Sophie's ElevenLabs Instant Voice Clone "Voice A"
+  (`voice_id` `TbXVSG5Ejm1c91umIzJN`, needs `ELEVENLABS_API_KEY`), model
+  `eleven_multilingual_v2`, punchy settings (stability ~0.34, style ~0.45) and
+  ~6% faster. Illustrated episodes render panels through the diary-comic style ref
+  `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
+  in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
+
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
   incaseofamnesia.com; Firebase Cloud Functions that read API keys from
