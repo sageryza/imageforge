@@ -71,7 +71,36 @@ lifted into a standalone tool later.
   client-credentials (`LULU_API_KEY`+`LULU_API_SECRET`), sandbox via
   `LULU_SANDBOX`/`LULU_API_BASE`. Routes: status, cost, print-jobs. Paper maxes
   ~90 GSM uncoated. *Built, not yet key-tested.*
-- Card decks (oracle/tarot) are **manual** fulfilment (Robinson Chen) — no API.
+- Card decks (oracle/tarot) print at **MakePlayingCards (MPC)** — no POD API, so
+  fulfilment is semi-automated (see `docs/mpc-fulfillment.md`). After an order
+  lands, `scripts/mpc_order_builder.py` turns a folder of card images (fronts/ +
+  a shared `back.png` or per-card backs/) into an MPC Autofill `order.xml`
+  (local-files dialect: `<sourceType>Local File</sourceType>`, comma-separated
+  `<slots>`, exact stock strings). The maintained community **MPC Autofill**
+  desktop tool (`autofill --directory my_deck`) then drives the browser upload
+  and auto-saves the project; Sophie reviews it in her MPC account and checks
+  out by hand. Bulk tiers are **per design** (one order = one deck × qty), so the
+  default is **one deck at a time / made-to-order**; batch a 6-pack (tier 2)
+  only for a proven repeat seller. `scripts/mpc_card_prep.py` (Pillow) is the
+  press-ready prep step run BEFORE the order builder — raw art → 825×1125 px @ 300
+  DPI incl. 1/8" bleed (cover/extend/fit modes, deck-folder aware, optional
+  trim/safe proof images, low-res warnings). Because the pipeline's card images
+  live as **URLs** (Firebase/Replicate), not files on a computer, `mpc.js`
+  (`/api/mpc`, `POST /prep-order`) is the cloud version of both scripts: it preps
+  from URLs + builds order.xml + bundles a downloadable **ZIP** hand-off (sharp +
+  jszip; STUDIO_TOKEN-gated; returns a Firebase link). The only step still needing
+  a computer is the desktop tool's browser upload — OR use `mpc-upload.js`
+  (`/api/mpc-upload`), the full auto-upload: a headless Playwright browser logs
+  into MPC, creates the project, uploads every prepped card, sets options, and
+  stops at the **cart** for Sophie to review + pay (payment never automated; a
+  payment-page guard hard-stops). Background job with per-step screenshots
+  (`POST /api/mpc-upload` → poll `GET /api/mpc-upload/:id`); creds via
+  `MPC_EMAIL`/`MPC_PASSWORD`. Two caveats: it needs a browser-capable host (NOT
+  the Render free web service; `playwright` is an optionalDependency, route
+  dormant/501 there), and the MPC selectors (`DEFAULT_FLOW`) need a live
+  calibration pass — the engine is mock-tested, the selectors aren't. The ZIP
+  hand-off stays the robust fallback; Robinson Chen remains the manual
+  hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates
@@ -85,6 +114,36 @@ lifted into a standalone tool later.
   `node scripts/set-pipeline-keys.js` (needs `FIREBASE_SERVICE_ACCOUNT` + the
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
+
+## Card-deck art generator (Midjourney via APIFRAME)
+- `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
+  which Sophie's original decks used. Midjourney has no official API, so this goes
+  through **APIFRAME** (`APIFRAME_KEY`), which runs its *own* MJ accounts and
+  exposes a REST API — no personal MJ account is involved or at risk. Base
+  `https://api.apiframe.ai/v2`, `X-API-Key` header. **Gotcha:** APIFRAME sits
+  behind Cloudflare bot-protection that 403s ("error code: 1010") any request
+  without a browser `User-Agent`, so the module always sends one.
+- **Routes:** `GET /status`; `POST /generate` (`{prompt}` or `{plant, style?}` +
+  optional `aspectRatio` default `5:7`, `styleRef` = a public image URL used as a
+  Midjourney `--sref` to lock Sophie's look) → `{jobId}`; `GET /job/:id` polls,
+  and on `COMPLETED` mirrors the **4** MJ options to Firebase (MJ CDN URLs expire;
+  `?save=0` to skip). `imagine()`/`job()` are exported helpers. STUDIO_TOKEN-gated.
+- **No text in the prompt** — Midjourney is unreliable at spelling; the plant-name
+  label is overlaid later in prep, not generated. Pricing: 16 credits per generate
+  (=4 options), 4 per upscale; ~6–8¢/generate on a paid plan.
+- Flow: generate (MJ) → pick 1 of 4 → label overlay + print prep → MPC fulfilment.
+- **Bring-your-own-Midjourney** (`ingest.js`, `/api/ingest`, page at `/import`):
+  the alternate art path — Sophie generates in her *own* MJ account and bulk-
+  downloads keepers by keyword with a browser export tool (that step runs on her
+  computer; the server can't automate MJ's download — no API, her account, needs
+  a browser). This module automates everything after: `POST /upload`
+  (`{batch, keyword?, images:[dataURL|url]}` → Firebase `ingest/<batch>/`, filename
+  keyword-tagged), `GET /batch/:batch?keyword=` (list a batch, keyword = filename
+  substring filter), `GET /batches`. The `/import` page (serveGated) is a phone/
+  desktop uploader. Batches feed the same review → prep → MPC flow. Trade-off vs
+  APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
+  computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
+  batch and picking the on-style option is the shared payoff of both paths.
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
@@ -249,6 +308,13 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **Delivered files/images go at the BOTTOM.** When sending or attaching any
+  file or image, place it at the very END of the message, after all the text —
+  never before or in the middle. Write the explanation first, deliver last.
+- **End every reply with a verbatim audio version.** Generate a TTS (OpenAI
+  `gpt-4o-mini-tts`) reading the full message verbatim and attach it at the very
+  bottom, under the TLDR and below any images — it is the last thing in the
+  message. Strip markdown/URLs for the spoken version; keep the words.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
