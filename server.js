@@ -328,6 +328,8 @@ app.get('/import', serveGated('ingest.html'));
 // which is how new LoRAs (e.g. HOONIE) can be added without pinning a hash.
 //   promptSuffix — appended to every prompt for this model (style anchor).
 //   defaultSteps — num_inference_steps to use when the client doesn't override.
+//   defaultLoraScale — lora_scale to use when the client doesn't override; a
+//     soft LoRA (e.g. Laureate) needs >1 to bring its bold linework through.
 const MODELS = {
   replicate: [
     { id: 'sageryza/gosh', version: 'd337796af9f1cc9566f378d2f78deff7864bd5439247935a9f651e5762cdfb39', name: 'Gouache', trigger: 'gosh' },
@@ -337,7 +339,7 @@ const MODELS = {
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
     { id: 'sageryza/hoonie', version: null, name: 'Hoonie Linocut', trigger: 'HOONIE', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
-    { id: 'sageryza/fluxlaureate', version: '4f3925e6063fb6480854e12093a3e176c0ec8a5e4b40212e0bac9bc7d6ecd1a9', name: 'Laureate', trigger: 'LAUREATE', promptSuffix: 'cute hand-drawn line art, pastel purple pink and mint palette, on a plain white background' },
+    { id: 'sageryza/fluxlaureate', version: '4f3925e6063fb6480854e12093a3e176c0ec8a5e4b40212e0bac9bc7d6ecd1a9', name: 'Laureate', trigger: 'LAUREATE', promptSuffix: 'cute hand-drawn line art, pastel purple pink and mint palette, on a plain white background', defaultLoraScale: 1.2 },
   ],
   // OpenAI image generation. The DALL·E 3 style presets were retired — a single
   // clean entry remains so OpenAI is still selectable alongside the LoRAs.
@@ -598,7 +600,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     if (known?.promptSuffix) fullPrompt = `${fullPrompt}, ${known.promptSuffix}`;
     const version = known ? `${known.id}:${await resolveReplicateVersion(known)}` : model;
 
-    const loraScale = settings.lora_scale ?? 1;
+    const loraScale = settings.lora_scale ?? known?.defaultLoraScale ?? 1;
     const megapixels = settings.megapixels ?? '1';
     const numOutputs = settings.num_outputs ?? 1;
     const outputFormat = settings.output_format ?? 'webp';
