@@ -144,6 +144,13 @@ lifted into a standalone tool later.
   APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
   computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
   batch and picking the on-style option is the shared payoff of both paths.
+  - **`browser-extension/`** (Chrome MV3, "Send to Deck Factory") kills the
+    export/import friction: a floating button on midjourney.com grabs the page's
+    MJ images and POSTs them straight to `/api/ingest/upload` (runs in Sophie's
+    own logged-in session — no MJ password, no server-side MJ automation). Load
+    unpacked; set the app URL + STUDIO_TOKEN + batch/keyword in the popup. The
+    image-grab (`collectMidjourneyImageUrls`/`toFullRes` in `content.js`) needs a
+    first-run calibration pass against MJ's live DOM (it logs what it finds).
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
