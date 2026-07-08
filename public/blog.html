@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blog Studio · ImageForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/forge.css" />
+<style>
+  .studio { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 14px; }
+  .sec { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
+  .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; }
+  .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .step { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--text-dim); font-weight: 600; margin-bottom: 8px; }
+  label.fld { display: block; font-size: 12px; color: var(--text-dim); margin: 10px 0 4px; }
+  input[type=text], textarea, select { width: 100%; box-sizing: border-box; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 9px 11px; font-family: inherit; font-size: 14px; color: var(--text); }
+  textarea { line-height: 1.5; resize: vertical; }
+  .btn { padding: 9px 15px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--accent-dim, #ccc); border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+  .chip { border: 1px solid var(--border); background: var(--surface-2); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; line-height: 1.3; }
+  .chip:hover { border-color: var(--accent); }
+  .chip .d { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; margin-left: 5px; }
+  .chip .d.low { color: #3a8a4a; } .chip .d.medium { color: #b8860b; } .chip .d.high { color: #b15049; }
+  .kw-why { font-size: 11px; color: var(--text-dim); }
+  .banner { border: 1px solid #f0d2cf; background: #fbeeed; color: #b15049; border-radius: 6px; padding: 11px 13px; font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+  .banner a { color: inherit; font-weight: 600; }
+  .ok { border-color: #cfe6d4; background: #eef7f0; color: #3a7d4c; }
+  .preview { border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; background: var(--surface-2); line-height: 1.6; }
+  .preview h2 { font-size: 17px; margin: 16px 0 6px; } .preview h3 { font-size: 14px; margin: 12px 0 4px; }
+  .preview p { margin: 8px 0; font-size: 14px; } .preview ul { margin: 8px 0 8px 18px; font-size: 14px; }
+  .imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+  .imgcard { border: 2px solid var(--border); border-radius: 6px; overflow: hidden; cursor: pointer; position: relative; }
+  .imgcard.sel { border-color: var(--accent); }
+  .imgcard img { width: 100%; display: block; }
+  .imgcard .tag { position: absolute; top: 6px; left: 6px; background: var(--accent); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+  .hidden { display: none; }
+  .recent a { color: var(--text); text-decoration: none; font-size: 13px; }
+  .recent a:hover { color: var(--accent); }
+  .recent .li { padding: 7px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; }
+  .recent .li:last-child { border-bottom: none; }
+  .pill-note { font-size: 11px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand" onclick="location.href='/'"><span class="brand-mark">◆</span><h1>ImageForge</h1></div>
+  <nav class="app-nav"><span class="tool-name">Blog Studio</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
+</header>
+
+<main class="studio">
+  <div id="status"></div>
+
+  <!-- Step 1 — topic → keywords -->
+  <section class="panel">
+    <div class="step">Step 1 · Find a keyword</div>
+    <div class="sub">Long-tail keywords (specific 3–6 word phrases) are how a small shop ranks — big sites don't bother with them and Google's AI Overviews can't fully answer them, so the click comes to you.</div>
+    <label class="fld">What's the post about? (a product, a theme, a question buyers ask)</label>
+    <input type="text" id="topic" placeholder="e.g. handmade linocut greeting cards" />
+    <label class="fld">Shop context (optional — helps aim the keywords)</label>
+    <input type="text" id="context" placeholder="e.g. small illustrated-goods shop, cards, prints, stickers" />
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="kwBtn" onclick="research()">Research keywords</button>
+    </div>
+    <div id="kwOut"></div>
+  </section>
+
+  <!-- Step 2 — write the post -->
+  <section class="panel">
+    <div class="step">Step 2 · Write the post</div>
+    <label class="fld">Target keyword</label>
+    <input type="text" id="keyword" placeholder="pick a keyword above, or type your own" />
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="draftBtn" onclick="writePost()">Write post</button>
+      <span class="muted">~900 words, SEO-structured, with an FAQ</span>
+    </div>
+    <div id="postWrap" class="hidden" style="margin-top:14px">
+      <label class="fld">Title</label>
+      <input type="text" id="title" />
+      <label class="fld">Meta description <span class="pill-note" id="metaCount"></span></label>
+      <textarea id="meta" rows="2" oninput="metaCountUpd()"></textarea>
+      <label class="fld">Tags (comma-separated)</label>
+      <input type="text" id="tags" />
+      <label class="fld">Body HTML (edit freely)</label>
+      <textarea id="body" rows="12"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost" onclick="renderPreview()">Refresh preview</button>
+      </div>
+      <div class="sub" style="margin-top:12px">Preview</div>
+      <div class="preview" id="preview"></div>
+    </div>
+  </section>
+
+  <!-- Step 3 — images -->
+  <section class="panel" id="imgPanel">
+    <div class="step">Step 3 · Add images</div>
+    <div class="sub">Generate illustrations with ChatGPT (gpt-image-2). Tap one to make it the post's featured image.</div>
+    <div id="imgPrompts"></div>
+    <label class="fld">Or write your own image prompt</label>
+    <div class="row">
+      <input type="text" id="customImg" placeholder="e.g. a cozy flatlay of linocut cards on a wooden desk" />
+      <button class="btn ghost" onclick="genImage(document.getElementById('customImg').value)">Generate</button>
+    </div>
+    <div class="imgs" id="imgOut"></div>
+  </section>
+
+  <!-- Step 4 — publish -->
+  <section class="panel">
+    <div class="step">Step 4 · Publish to your Shopify blog</div>
+    <div id="pubBanner"></div>
+    <label class="fld">Which blog?</label>
+    <select id="blogSel"><option value="">(default blog)</option></select>
+    <div class="row" style="margin-top:12px">
+      <button class="btn ghost" id="draftPubBtn" onclick="publish(false)">Save as hidden draft</button>
+      <button class="btn" id="livePubBtn" onclick="publish(true)">Publish live</button>
+    </div>
+    <div class="sub" style="margin-top:8px">A hidden draft lands in your Shopify admin for you to review before it goes public.</div>
+    <div id="pubOut"></div>
+  </section>
+
+  <!-- Recent drafts -->
+  <section class="panel recent">
+    <div class="sec">Recent drafts</div>
+    <div id="recent"><div class="muted">None yet.</div></div>
+  </section>
+</main>
+
+<script>
+const STUDIO_TOKEN = '__STUDIO_TOKEN__';
+const H = { 'Content-Type': 'application/json', ...(STUDIO_TOKEN ? { 'x-studio-token': STUDIO_TOKEN } : {}) };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+let current = { id: null, slug: '', excerpt: '', featured: '' };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: H, ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+function busy(btn, on, label) {
+  btn.disabled = on;
+  if (on) { btn.dataset.label = btn.textContent; btn.innerHTML = '<span class="spin"></span>' + (label || 'Working…'); }
+  else if (btn.dataset.label) btn.textContent = btn.dataset.label;
+}
+
+// ── status ──
+async function loadStatus() {
+  try {
+    const s = await api('/api/blog/status');
+    let h = '';
+    if (!s.ready) h += `<div class="banner">OpenAI isn't configured, so writing and images won't work yet.</div>`;
+    if (!s.shopify) h += `<div class="banner">Shopify isn't connected yet — you can still write &amp; preview posts, but publishing needs the Admin token (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN).</div>`;
+    if (!s.firebase) h += `<div class="banner">Firebase storage is off, so images won't get permanent URLs (needed for publishing images to Shopify).</div>`;
+    $('status').innerHTML = h;
+    if (s.shopify) loadBlogs();
+  } catch (e) { $('status').innerHTML = `<div class="banner">Status check failed: ${esc(e.message)}</div>`; }
+}
+
+async function loadBlogs() {
+  try {
+    const { blogs } = await api('/api/shopify/blogs');
+    if (blogs && blogs.length) {
+      $('blogSel').innerHTML = blogs.map(b => `<option value="${b.id}">${esc(b.title)}</option>`).join('');
+    }
+  } catch (e) { /* leave default option */ }
+}
+
+// ── step 1 ──
+async function research() {
+  const topic = $('topic').value.trim();
+  if (!topic) { $('topic').focus(); return; }
+  const btn = $('kwBtn'); busy(btn, true, 'Researching…');
+  $('kwOut').innerHTML = '';
+  try {
+    const r = await api('/api/blog/keywords', { method: 'POST', body: JSON.stringify({ topic, context: $('context').value.trim() }) });
+    let h = '';
+    if (r.pillar) h += `<div class="sub" style="margin-top:12px"><b>Pillar topic:</b> ${esc(r.pillar)} <span class="muted">— a broad hub page the posts below link back to.</span></div>`;
+    if (r.keywords.length) {
+      h += `<div class="muted" style="margin-top:8px">Keywords (tap to target):</div><div class="chips">`;
+      h += r.keywords.map(k => `<span class="chip" onclick="pickKw('${esc(k.phrase).replace(/'/g,"\\'")}')">${esc(k.phrase)}<span class="d ${esc(k.difficulty)}">${esc(k.difficulty)}</span></span>`).join('');
+      h += `</div>`;
+      const withWhy = r.keywords.filter(k => k.why);
+      if (withWhy.length) h += `<div class="kw-why" style="margin-top:8px">${withWhy.map(k => `<b>${esc(k.phrase)}</b> — ${esc(k.why)}`).join('<br>')}</div>`;
+    }
+    if (r.clusters.length) {
+      h += `<div class="muted" style="margin-top:12px">Post ideas (tap to target its keyword):</div><div class="chips">`;
+      h += r.clusters.map(c => `<span class="chip" onclick="pickKw('${esc(c.keyword || c.title).replace(/'/g,"\\'")}')">${esc(c.title)}</span>`).join('');
+      h += `</div>`;
+    }
+    $('kwOut').innerHTML = h;
+  } catch (e) { $('kwOut').innerHTML = `<div class="banner">${esc(e.message)}</div>`; }
+  finally { busy(btn, false); }
+}
+function pickKw(k) { $('keyword').value = k; $('keyword').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+// ── step 2 ──
+async function writePost() {
+  const keyword = $('keyword').value.trim();
+  const topic = $('topic').value.trim();
+  if (!keyword && !topic) { $('keyword').focus(); return; }
+  const btn = $('draftBtn'); busy(btn, true, 'Writing…');
+  try {
+    const p = await api('/api/blog/draft', { method: 'POST', body: JSON.stringify({ topic, keyword, context: $('context').value.trim() }) });
+    current.id = p.id; current.slug = p.slug || ''; current.excerpt = p.excerpt || '';
+    $('title').value = p.title || '';
+    $('meta').value = p.metaDescription || '';
+    $('tags').value = (p.tags || []).join(', ');
+    let body = p.bodyHtml || '';
+    if (p.faq && p.faq.length) body += '\n<h2>FAQ</h2>\n' + p.faq.map(f => `<h3>${f.q}</h3>\n<p>${f.a}</p>`).join('\n');
+    $('body').value = body;
+    $('postWrap').classList.remove('hidden');
+    metaCountUpd(); renderPreview();
+    // image prompt buttons
+    $('imgPrompts').innerHTML = (p.imagePrompts || []).map(pr =>
+      `<div class="row" style="margin-bottom:6px"><button class="btn ghost" onclick="genImage(this.dataset.p, this)" data-p="${esc(pr)}">🎨 Generate</button><span class="muted">${esc(pr)}</span></div>`
+    ).join('') || '<div class="muted">No image ideas suggested — use your own prompt below.</div>';
+    $('postWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    loadRecent();
+  } catch (e) { alert(e.message); }
+  finally { busy(btn, false); }
+}
+function metaCountUpd() { const n = $('meta').value.length; $('metaCount').textContent = `${n}/160 chars` + (n < 140 || n > 160 ? ' · aim for 140–160' : ' ✓'); }
+function renderPreview() {
+  $('preview').innerHTML = `<h1 style="font-size:20px;margin:0 0 6px">${esc($('title').value)}</h1>` + $('body').value;
+}
+
+// ── step 3 ──
+async function genImage(prompt, btn) {
+  prompt = (prompt || '').trim();
+  if (!prompt) return;
+  if (btn) busy(btn, true, 'Making…');
+  try {
+    const out = await api('/api/blog/image', { method: 'POST', body: JSON.stringify({ prompt, id: current.id }) });
+    const idx = document.querySelectorAll('#imgOut .imgcard').length;
+    const div = document.createElement('div');
+    div.className = 'imgcard';
+    div.innerHTML = `<img src="${esc(out.url)}" />`;
+    div.onclick = () => selectFeatured(div, out.url);
+    $('imgOut').appendChild(div);
+    if (idx === 0) selectFeatured(div, out.url); // first image becomes featured
+  } catch (e) { alert(e.message); }
+  finally { if (btn) busy(btn, false); }
+}
+function selectFeatured(div, url) {
+  document.querySelectorAll('#imgOut .imgcard').forEach(c => { c.classList.remove('sel'); const t = c.querySelector('.tag'); if (t) t.remove(); });
+  div.classList.add('sel');
+  const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'Featured'; div.appendChild(tag);
+  current.featured = url;
+}
+
+// ── step 4 ──
+async function publish(live) {
+  if (!$('title').value.trim()) { alert('Write a post first.'); return; }
+  const btn = live ? $('livePubBtn') : $('draftPubBtn'); busy(btn, true, live ? 'Publishing…' : 'Saving…');
+  $('pubOut').innerHTML = '';
+  try {
+    const out = await api('/api/blog/publish', { method: 'POST', body: JSON.stringify({
+      id: current.id,
+      blogId: $('blogSel').value || undefined,
+      title: $('title').value.trim(),
+      bodyHtml: $('body').value,
+      metaDescription: $('meta').value.trim(),
+      excerpt: current.excerpt,
+      slug: current.slug,
+      tags: $('tags').value.split(',').map(t => t.trim()).filter(Boolean),
+      imageUrl: current.featured || undefined,
+      published: live,
+    }) });
+    const links = [];
+    if (out.adminUrl) links.push(`<a href="${esc(out.adminUrl)}" target="_blank" rel="noopener">Open in Shopify admin</a>`);
+    if (out.liveUrl && live) links.push(`<a href="${esc(out.liveUrl)}" target="_blank" rel="noopener">View live post</a>`);
+    $('pubOut').innerHTML = `<div class="banner ok" style="margin-top:12px">${live ? 'Published! ' : 'Saved as a hidden draft in Shopify. '}${links.join(' · ')}</div>`;
+    loadRecent();
+  } catch (e) { $('pubOut').innerHTML = `<div class="banner" style="margin-top:12px">${esc(e.message)}</div>`; }
+  finally { busy(btn, false); }
+}
+
+// ── recent drafts ──
+async function loadRecent() {
+  try {
+    const { posts } = await api('/api/blog/posts');
+    if (!posts || !posts.length) { $('recent').innerHTML = '<div class="muted">None yet.</div>'; return; }
+    $('recent').innerHTML = posts.map(p =>
+      `<div class="li"><a href="#" onclick="openPost('${p.id}');return false">${esc(p.title || '(untitled)')}</a><span class="muted">${p.published ? 'published' : 'draft'}</span></div>`
+    ).join('');
+  } catch (e) { /* persistence may be off */ }
+}
+async function openPost(id) {
+  try {
+    const p = await api('/api/blog/' + id);
+    current.id = p.id; current.slug = p.slug || ''; current.excerpt = p.excerpt || '';
+    current.featured = (p.images && p.images[0]) || '';
+    $('keyword').value = p.keyword || '';
+    $('title').value = p.title || '';
+    $('meta').value = p.metaDescription || '';
+    $('tags').value = (p.tags || []).join(', ');
+    let body = p.bodyHtml || '';
+    if (p.faq && p.faq.length) body += '\n<h2>FAQ</h2>\n' + p.faq.map(f => `<h3>${f.q}</h3>\n<p>${f.a}</p>`).join('\n');
+    $('body').value = body;
+    $('postWrap').classList.remove('hidden');
+    $('imgOut').innerHTML = (p.images || []).map(u => `<div class="imgcard"><img src="${esc(u)}" /></div>`).join('');
+    document.querySelectorAll('#imgOut .imgcard').forEach(c => { c.onclick = () => selectFeatured(c, c.querySelector('img').src); });
+    metaCountUpd(); renderPreview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) { alert(e.message); }
+}
+
+loadStatus();
+loadRecent();
+</script>
+</body>
+</html>
