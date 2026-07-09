@@ -305,3 +305,6 @@ lifted into a standalone tool later.
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **Claude may merge its own PRs without asking** (standing permission, July
+  2026). When a PR is ready, merge it — then watch the Render deploy and fix
+  anything that breaks.
