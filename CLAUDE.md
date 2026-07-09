@@ -304,26 +304,50 @@ lifted into a standalone tool later.
   Subscribers/blog need an Admin custom-app token (`shpat_…`) with scopes
   `read_customers` + `read_content` + `write_content`, created in Shopify admin
   (Settings → Apps and sales channels → Develop apps → create app → Admin API).
-- **Two auth modes** (Shopify retired legacy admin-created custom apps on
-  2026-01-01, so new stores can't mint a static `shpat_…` token): (1) a static
-  `SHOPIFY_ADMIN_TOKEN` if the store still has one; (2) **client credentials** —
-  a **Dev Dashboard** app's `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`
-  (`shpss_…`) exchanged at `POST /admin/oauth/access_token`
-  (`grant_type=client_credentials`) for a short-lived (24h) access token, cached
-  and re-minted before expiry and on any 401. Client credentials only works when
-  the app + store are in the same Shopify org (true for a shop's own-store app).
+- **Three auth modes**, tried in order (Shopify retired legacy admin-created
+  custom apps on 2026-01-01, so new stores can't mint a static `shpat_…` token):
+  (1) a static `SHOPIFY_ADMIN_TOKEN` if the store still has one; (2) an **OAuth
+  offline token** from `/api/shopify/connect` (authorization code grant) — the
+  path that actually works for a **Dev Dashboard** app installed on a single
+  store; the offline token doesn't expire and is persisted to Firestore
+  (`config/shopify-tokens`, like `etsy-tokens`), so one `/connect` sticks;
+  (3) **client credentials** (`SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`
+  exchanged at `POST /admin/oauth/access_token`, 24h token) — kept as a fallback
+  but **it silently returns a token with EMPTY scope for single-store /
+  "custom-distribution" apps** (Shopify's docs: custom apps must use token
+  exchange or the authorization code grant). If subscribers/blogs 403 with
+  "requires merchant approval for … scope" and the token's `scope` is empty, that
+  is this trap — use the OAuth `/connect` flow instead.
+- **Dev Dashboard setup (current as of 2026-07 — verified live; re-verify the UI
+  before instructing, it changes):** the store's admin **Settings → Apps → Develop
+  apps** now only links out to the **Dev Dashboard** (dev.shopify.com) — legacy
+  custom apps are disabled. In the Dev Dashboard app: **Client ID + Secret** live
+  on the app's **overview/credentials** page (the `atkn_…` "app automation token"
+  there is CI/CD-only and does NOT work for the Admin API — ignore it). App
+  **config is versioned**: to change **scopes** or **redirect URLs** you tap
+  **Create/New version**, which *copies the current config* (so scopes carry
+  over — no need to re-pick), edit, then **Release**. **Scopes must be REQUIRED,
+  not "optional scopes"** — optional scopes are not granted and yield an
+  empty-scope token. **Redirect/allowed URLs** are in the same version config (or
+  under the app's Settings/URLs); the OAuth callback must be listed there. No
+  manual "install" step is needed for the OAuth path — visiting `/connect` and
+  approving IS the install/authorization.
 - **Env vars** (Render dashboard or Firestore config doc, `sync:false`, added to
   `config-loader.js` MANAGED_KEYS): `SHOPIFY_STORE` (e.g.
   `cod-god-inc.myshopify.com`), then EITHER `SHOPIFY_ADMIN_TOKEN` (`shpat_…`) OR
-  `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`; optional `SHOPIFY_API_VERSION`
-  (default `2025-01`).
-- **Routes:** `GET /status`, `GET /subscribers` (customers with
+  `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` (for the OAuth `/connect` flow);
+  optional `SHOPIFY_REDIRECT_URI` (defaults to `<RENDER_EXTERNAL_URL>/api/shopify/callback`),
+  `SHOPIFY_SCOPES`, `SHOPIFY_API_VERSION` (default `2025-01`).
+- **Routes:** `GET /status` (reports `configured`/`connected`/`authMode`),
+  `GET /connect` (start OAuth), `GET /callback` (verifies state + HMAC, stores the
+  offline token), `GET /subscribers` (customers with
   `email_marketing_state:subscribed`, GraphQL, paginated), `GET /subscribers.csv`
   (download for Shopify Email / Mailchimp — actual *sending* is still manual, no
   public campaign-send API), `GET /blogs`, `POST /blog-post` (REST article
   create; `published:false` = hidden draft to review in Shopify admin first).
   Customers via GraphQL Admin API (REST is being retired for customer data);
-  blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status` open).
+  blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status`,
+  `/connect`, `/callback` open — the last two are browser redirects).
 
 ## Blog Studio (SEO posts → Shopify blog)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
@@ -342,6 +366,14 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
 ## Design rules (forever)
+- **Research the CURRENT UI before giving click-by-click steps for any external
+  dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
+  buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
+  wastes her time (this rule was earned the hard way on the Shopify Dev Dashboard
+  — see the Shopify section). Look up the up-to-date flow (web search / official
+  docs), name the exact current labels, and when a deep link needs an account/app
+  ID you can't see, say so and ask her to paste the address-bar URL so you can
+  build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
