@@ -25,29 +25,82 @@ const express = require('express');
 const fetch = require('node-fetch');
 
 const STORE = (process.env.SHOPIFY_STORE || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
-const TOKEN = process.env.SHOPIFY_ADMIN_TOKEN || '';
+// Two ways to authenticate, checked in this order:
+//   1. A static Admin API access token (SHOPIFY_ADMIN_TOKEN) — the old
+//      "legacy custom app" shpat_… token, if a store still has one.
+//   2. Client credentials (SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET) — how the
+//      NEW Dev Dashboard apps work (Shopify retired legacy custom apps on
+//      2026-01-01). The Client ID + Secret are exchanged at
+//      /admin/oauth/access_token for a short-lived (24h) access token, which we
+//      cache and re-mint before it expires (and on any 401). Only works when the
+//      app and the store belong to the same Shopify org — which is the case for
+//      a shop making an app for its own store.
+const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN || '';
+const CLIENT_ID = process.env.SHOPIFY_CLIENT_ID || '';
+const CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET || '';
 const API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
 function configured() {
-  return Boolean(STORE && TOKEN);
+  return Boolean(STORE && (ADMIN_TOKEN || (CLIENT_ID && CLIENT_SECRET)));
+}
+
+function authMode() {
+  if (ADMIN_TOKEN) return 'admin_token';
+  if (CLIENT_ID && CLIENT_SECRET) return 'client_credentials';
+  return null;
 }
 
 function base() {
   return `https://${STORE}/admin/api/${API_VERSION}`;
 }
 
+// ─── Access token (static, or minted via client credentials) ────────
+let cachedToken = null; // { token, expiresAt }
+
+async function mintToken() {
+  const res = await fetch(`https://${STORE}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json', 'Connection': 'close' },
+    body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: 'client_credentials' }).toString(),
+    timeout: 20000,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Shopify token exchange failed: ${data.error_description || data.error || `HTTP ${res.status}`}`);
+  }
+  const ttlMs = (Number(data.expires_in) || 86400) * 1000;
+  cachedToken = { token: data.access_token, expiresAt: Date.now() + ttlMs - 5 * 60 * 1000 }; // refresh 5 min early
+  return cachedToken.token;
+}
+
+async function getToken({ force = false } = {}) {
+  if (ADMIN_TOKEN) return ADMIN_TOKEN;
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('Shopify not configured (need SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  }
+  if (!force && cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.token;
+  return mintToken();
+}
+
 // ─── Low-level Admin API callers ────────────────────────────────────
+// Both add the current access token and, on a 401 (expired/rotated token),
+// re-mint once and retry — so a stale cached token self-heals.
+async function shopifyFetch(url, opts, isRetry = false) {
+  const token = await getToken({ force: isRetry });
+  const res = await fetch(url, { ...opts, headers: { 'X-Shopify-Access-Token': token, ...opts.headers } });
+  if (res.status === 401 && !isRetry && authMode() === 'client_credentials') {
+    cachedToken = null;
+    return shopifyFetch(url, opts, true);
+  }
+  return res;
+}
+
 async function shopifyREST(path, { method = 'GET', body } = {}) {
-  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN)');
-  const res = await fetch(`${base()}${path}`, {
+  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  const res = await shopifyFetch(`${base()}${path}`, {
     method,
-    headers: {
-      'X-Shopify-Access-Token': TOKEN,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Connection': 'close',
-    },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Connection': 'close' },
     body: body ? JSON.stringify(body) : undefined,
     timeout: 30000,
   });
@@ -62,15 +115,10 @@ async function shopifyREST(path, { method = 'GET', body } = {}) {
 }
 
 async function shopifyGraphQL(query, variables = {}) {
-  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN)');
-  const res = await fetch(`${base()}/graphql.json`, {
+  if (!configured()) throw new Error('Shopify not configured (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  const res = await shopifyFetch(`${base()}/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Access-Token': TOKEN,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Connection': 'close',
-    },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Connection': 'close' },
     body: JSON.stringify({ query, variables }),
     timeout: 30000,
   });
@@ -171,7 +219,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/status', (req, res) => {
-  res.json({ configured: configured(), store: STORE || null, apiVersion: API_VERSION });
+  res.json({ configured: configured(), store: STORE || null, apiVersion: API_VERSION, authMode: authMode() });
 });
 
 // The newsletter audience. { count, subscribers:[{email,firstName,lastName}] }.

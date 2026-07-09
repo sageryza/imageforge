@@ -245,10 +245,19 @@ lifted into a standalone tool later.
   Subscribers/blog need an Admin custom-app token (`shpat_…`) with scopes
   `read_customers` + `read_content` + `write_content`, created in Shopify admin
   (Settings → Apps and sales channels → Develop apps → create app → Admin API).
+- **Two auth modes** (Shopify retired legacy admin-created custom apps on
+  2026-01-01, so new stores can't mint a static `shpat_…` token): (1) a static
+  `SHOPIFY_ADMIN_TOKEN` if the store still has one; (2) **client credentials** —
+  a **Dev Dashboard** app's `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`
+  (`shpss_…`) exchanged at `POST /admin/oauth/access_token`
+  (`grant_type=client_credentials`) for a short-lived (24h) access token, cached
+  and re-minted before expiry and on any 401. Client credentials only works when
+  the app + store are in the same Shopify org (true for a shop's own-store app).
 - **Env vars** (Render dashboard or Firestore config doc, `sync:false`, added to
   `config-loader.js` MANAGED_KEYS): `SHOPIFY_STORE` (e.g.
-  `cod-god-inc.myshopify.com`), `SHOPIFY_ADMIN_TOKEN` (`shpat_…`), optional
-  `SHOPIFY_API_VERSION` (default `2025-01`).
+  `cod-god-inc.myshopify.com`), then EITHER `SHOPIFY_ADMIN_TOKEN` (`shpat_…`) OR
+  `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`; optional `SHOPIFY_API_VERSION`
+  (default `2025-01`).
 - **Routes:** `GET /status`, `GET /subscribers` (customers with
   `email_marketing_state:subscribed`, GraphQL, paginated), `GET /subscribers.csv`
   (download for Shopify Email / Mailchimp — actual *sending* is still manual, no
