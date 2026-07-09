@@ -339,7 +339,7 @@ const MODELS = {
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
     { id: 'sageryza/hoonie', version: null, name: 'Hoonie Linocut', trigger: 'HOONIE', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
-    { id: 'sageryza/fluxlaureate', version: '4f3925e6063fb6480854e12093a3e176c0ec8a5e4b40212e0bac9bc7d6ecd1a9', name: 'Laureate', trigger: 'LAUREATE', promptSuffix: 'cute hand-drawn line art, pastel purple pink and mint palette, on a plain white background', defaultLoraScale: 1.2 },
+    { id: 'sageryza/fluxlaureate', version: '4f3925e6063fb6480854e12093a3e176c0ec8a5e4b40212e0bac9bc7d6ecd1a9', name: 'Laureate', trigger: 'LAUREATE', promptSuffix: 'cute hand-drawn line art, pastel purple pink and mint palette, on a plain white background', defaultLoraScale: 1.3 },
   ],
   // OpenAI image generation. The DALL·E 3 style presets were retired — a single
   // clean entry remains so OpenAI is still selectable alongside the LoRAs.
