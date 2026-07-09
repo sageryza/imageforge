@@ -157,7 +157,7 @@ async function loadStatus() {
     const s = await api('/api/blog/status');
     let h = '';
     if (!s.ready) h += `<div class="banner">OpenAI isn't configured, so writing and images won't work yet.</div>`;
-    if (!s.shopify) h += `<div class="banner">Shopify isn't connected yet — you can still write &amp; preview posts, but publishing needs the Admin token (SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN).</div>`;
+    if (!s.shopify) h += `<div class="banner">Shopify isn't connected yet — you can still write &amp; preview posts. To publish, <a href="/api/shopify/connect">connect your Shopify store</a> (one-time approval).</div>`;
     if (!s.firebase) h += `<div class="banner">Firebase storage is off, so images won't get permanent URLs (needed for publishing images to Shopify).</div>`;
     $('status').innerHTML = h;
     if (s.shopify) loadBlogs();

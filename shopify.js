@@ -23,42 +23,135 @@
 
 const express = require('express');
 const fetch = require('node-fetch');
+const crypto = require('crypto');
+const admin = require('firebase-admin');
 
 const STORE = (process.env.SHOPIFY_STORE || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
-// Two ways to authenticate, checked in this order:
+// Three ways to authenticate, checked in this order:
 //   1. A static Admin API access token (SHOPIFY_ADMIN_TOKEN) — the old
 //      "legacy custom app" shpat_… token, if a store still has one.
-//   2. Client credentials (SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET) — how the
-//      NEW Dev Dashboard apps work (Shopify retired legacy custom apps on
-//      2026-01-01). The Client ID + Secret are exchanged at
-//      /admin/oauth/access_token for a short-lived (24h) access token, which we
-//      cache and re-mint before it expires (and on any 401). Only works when the
-//      app and the store belong to the same Shopify org — which is the case for
-//      a shop making an app for its own store.
+//   2. An OAuth offline token from the /connect flow (authorization code grant).
+//      This is the path for NEW Dev Dashboard apps installed on a single store
+//      ("custom distribution"): Shopify docs require them to use token exchange
+//      or the authorization code grant — client credentials silently returns a
+//      token with NO scopes for these apps. The offline token doesn't expire, so
+//      a one-time /connect authorization sticks (persisted to Firestore).
+//   3. Client credentials (SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET) — only
+//      works for apps developed and installed inside your own org where scopes
+//      are attached to the token; kept as a fallback. Short-lived (24h), cached.
 const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN || '';
 const CLIENT_ID = process.env.SHOPIFY_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET || '';
 const API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
+const SCOPES = process.env.SHOPIFY_SCOPES || 'read_customers,read_content,write_content';
+const TOKENS_DOC = process.env.SHOPIFY_TOKENS_DOC || 'config/shopify-tokens';
 
-function configured() {
-  return Boolean(STORE && (ADMIN_TOKEN || (CLIENT_ID && CLIENT_SECRET)));
+function hasOAuthApp() {
+  return Boolean(CLIENT_ID && CLIENT_SECRET);
 }
-
-function authMode() {
-  if (ADMIN_TOKEN) return 'admin_token';
-  if (CLIENT_ID && CLIENT_SECRET) return 'client_credentials';
-  return null;
+function configured() {
+  return Boolean(STORE && (ADMIN_TOKEN || hasOAuthApp()));
 }
 
 function base() {
   return `https://${STORE}/admin/api/${API_VERSION}`;
 }
 
-// ─── Access token (static, or minted via client credentials) ────────
-let cachedToken = null; // { token, expiresAt }
+// ─── OAuth offline token: persisted to Firestore (survives Render restarts) ──
+// Mirrors etsy.js: one small doc holds { access_token, scope, shop }. Cached in
+// memory for the process lifetime once loaded.
+let oauthToken = null;     // { access_token, scope, shop }
+let oauthLoaded = false;
 
-async function mintToken() {
+function tokensDocRef() {
+  if (!admin.apps.length) return null;
+  try {
+    const slash = TOKENS_DOC.indexOf('/');
+    return admin.firestore().collection(TOKENS_DOC.slice(0, slash)).doc(TOKENS_DOC.slice(slash + 1));
+  } catch { return null; }
+}
+async function loadOAuthToken() {
+  if (oauthLoaded) return oauthToken;
+  const ref = tokensDocRef();
+  if (ref) {
+    try { const snap = await ref.get(); if (snap.exists) oauthToken = snap.data(); } catch (err) {
+      console.warn('shopify: token read failed —', err.message);
+    }
+  }
+  oauthLoaded = true;
+  return oauthToken;
+}
+async function saveOAuthToken(t) {
+  oauthToken = t; oauthLoaded = true;
+  const ref = tokensDocRef();
+  if (ref) { try { await ref.set(t); } catch (err) { console.warn('shopify: token write failed —', err.message); } }
+}
+
+// Connected = a usable Admin token exists (static, or a stored OAuth token).
+async function connected() {
+  if (ADMIN_TOKEN) return true;
+  return Boolean(await loadOAuthToken());
+}
+async function authMode() {
+  if (ADMIN_TOKEN) return 'admin_token';
+  if (await loadOAuthToken()) return 'oauth';
+  if (hasOAuthApp()) return 'client_credentials';
+  return null;
+}
+
+// ─── /connect + /callback (authorization code grant) ────────────────
+function redirectUri() {
+  if (process.env.SHOPIFY_REDIRECT_URI) return process.env.SHOPIFY_REDIRECT_URI;
+  const b = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL || 'http://localhost:3001';
+  return `${b.replace(/\/$/, '')}/api/shopify/callback`;
+}
+const pendingStates = new Set(); // short-lived CSRF nonces
+
+function buildAuthUrl() {
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingStates.add(state);
+  setTimeout(() => pendingStates.delete(state), 10 * 60 * 1000).unref?.();
+  const q = new URLSearchParams({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    redirect_uri: redirectUri(),
+    state,
+    // no grant_options[]=per-user → an OFFLINE token that doesn't expire
+  });
+  return `https://${STORE}/admin/oauth/authorize?${q.toString()}`;
+}
+
+// Verify Shopify's HMAC on the callback query (all params except hmac, sorted,
+// joined k=v with &, HMAC-SHA256 with the client secret).
+function validCallbackHmac(query) {
+  const { hmac, signature, ...rest } = query;
+  if (!hmac) return false;
+  const message = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('&');
+  const digest = crypto.createHmac('sha256', CLIENT_SECRET).update(message).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(digest, 'hex'), Buffer.from(hmac, 'hex')); } catch { return false; }
+}
+
+// Exchange the callback's authorization code for a permanent offline token.
+async function exchangeCode(shop, code) {
+  const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Connection': 'close' },
+    body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code }),
+    timeout: 20000,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Shopify code exchange failed: ${data.error_description || data.error || `HTTP ${res.status}`}`);
+  }
+  await saveOAuthToken({ access_token: data.access_token, scope: data.scope || '', shop });
+  return oauthToken;
+}
+
+// ─── Access token resolution ────────────────────────────────────────
+let ccToken = null; // client-credentials cache { token, expiresAt }
+
+async function mintClientCredentials() {
   const res = await fetch(`https://${STORE}/admin/oauth/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json', 'Connection': 'close' },
@@ -70,27 +163,29 @@ async function mintToken() {
     throw new Error(`Shopify token exchange failed: ${data.error_description || data.error || `HTTP ${res.status}`}`);
   }
   const ttlMs = (Number(data.expires_in) || 86400) * 1000;
-  cachedToken = { token: data.access_token, expiresAt: Date.now() + ttlMs - 5 * 60 * 1000 }; // refresh 5 min early
-  return cachedToken.token;
+  ccToken = { token: data.access_token, expiresAt: Date.now() + ttlMs - 5 * 60 * 1000 };
+  return ccToken.token;
 }
 
 async function getToken({ force = false } = {}) {
   if (ADMIN_TOKEN) return ADMIN_TOKEN;
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error('Shopify not configured (need SHOPIFY_STORE + SHOPIFY_ADMIN_TOKEN, or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET)');
+  const stored = await loadOAuthToken();
+  if (stored && stored.access_token) return stored.access_token;
+  if (!hasOAuthApp()) {
+    throw new Error('Shopify not connected — visit /api/shopify/connect to authorize, or set SHOPIFY_ADMIN_TOKEN');
   }
-  if (!force && cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.token;
-  return mintToken();
+  if (!force && ccToken && ccToken.expiresAt > Date.now()) return ccToken.token;
+  return mintClientCredentials();
 }
 
 // ─── Low-level Admin API callers ────────────────────────────────────
-// Both add the current access token and, on a 401 (expired/rotated token),
-// re-mint once and retry — so a stale cached token self-heals.
+// Add the current access token; on a 401 from a client-credentials token,
+// re-mint once and retry so a stale cached token self-heals.
 async function shopifyFetch(url, opts, isRetry = false) {
   const token = await getToken({ force: isRetry });
   const res = await fetch(url, { ...opts, headers: { 'X-Shopify-Access-Token': token, ...opts.headers } });
-  if (res.status === 401 && !isRetry && authMode() === 'client_credentials') {
-    cachedToken = null;
+  if (res.status === 401 && !isRetry && !ADMIN_TOKEN && !(await loadOAuthToken())) {
+    ccToken = null;
     return shopifyFetch(url, opts, true);
   }
   return res;
@@ -210,16 +305,54 @@ async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, auth
 const router = express.Router();
 
 // Same access gate as the rest of the studio: STUDIO_TOKEN required on
-// everything except the harmless status read.
+// everything except the harmless status read and the browser-facing OAuth
+// routes (which are redirects/callbacks and can't carry the header; the OAuth
+// `state` nonce + Shopify's HMAC are their protection).
+const OPEN_PATHS = new Set(['/status', '/connect', '/callback']);
 router.use((req, res, next) => {
   if (!STUDIO_TOKEN) return next();
-  if (req.method === 'GET' && req.path === '/status') return next();
+  if (req.method === 'GET' && OPEN_PATHS.has(req.path)) return next();
   if (req.get('x-studio-token') === STUDIO_TOKEN) return next();
   return res.status(401).json({ error: 'unauthorized' });
 });
 
-router.get('/status', (req, res) => {
-  res.json({ configured: configured(), store: STORE || null, apiVersion: API_VERSION, authMode: authMode() });
+router.get('/status', async (req, res) => {
+  res.json({
+    configured: configured(),
+    connected: await connected(),
+    store: STORE || null,
+    apiVersion: API_VERSION,
+    authMode: await authMode(),
+    scopes: SCOPES,
+  });
+});
+
+// Start the OAuth authorization-code flow — redirects to Shopify's consent
+// screen. A one-time authorization mints a permanent offline token.
+router.get('/connect', (req, res) => {
+  if (!STORE) return res.status(400).send('SHOPIFY_STORE not set');
+  if (!hasOAuthApp()) return res.status(400).send('SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET not set');
+  res.redirect(buildAuthUrl());
+});
+
+// Shopify redirects here after the merchant approves. Verify HMAC + state,
+// exchange the code for a permanent token, store it.
+router.get('/callback', async (req, res) => {
+  try {
+    const { code, state, shop } = req.query;
+    if (!code || !shop) return res.status(400).send('Missing code/shop.');
+    if (!state || !pendingStates.has(state)) return res.status(400).send('Invalid or expired state. Start again at /api/shopify/connect.');
+    pendingStates.delete(state);
+    if (!validCallbackHmac(req.query)) return res.status(400).send('HMAC validation failed.');
+    if (STORE && shop !== STORE) return res.status(400).send(`Unexpected shop "${shop}".`);
+    const tok = await exchangeCode(shop, code);
+    res.type('html').send(`<!doctype html><meta charset="utf-8"><body style="font-family:system-ui;max-width:520px;margin:60px auto;padding:0 20px;line-height:1.5">
+      <h2>✅ Shopify connected</h2>
+      <p>Granted scopes: <code>${(tok.scope || '(none)')}</code></p>
+      <p>You can close this tab and go back to <a href="/blog">Blog Studio</a>.</p></body>`);
+  } catch (err) {
+    res.status(502).send(`Connection failed: ${err.message}`);
+  }
 });
 
 // The newsletter audience. { count, subscribers:[{email,firstName,lastName}] }.
@@ -268,6 +401,7 @@ router.post('/blog-post', express.json({ limit: '2mb' }), async (req, res) => {
 module.exports = {
   router,
   configured,
+  connected,
   listSubscribers,
   listBlogs,
   publishArticle,

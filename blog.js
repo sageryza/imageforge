@@ -196,11 +196,16 @@ router.use((req, res, next) => {
   return res.status(401).json({ error: 'unauthorized' });
 });
 
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
+  let shopifyConnected = false;
+  try {
+    if (shopify && typeof shopify.connected === 'function') shopifyConnected = await shopify.connected();
+    else if (shopify && typeof shopify.configured === 'function') shopifyConnected = shopify.configured();
+  } catch { /* leave false */ }
   res.json({
     ready: Boolean(OPENAI_API_KEY),
     firebase: Boolean(bucket()),
-    shopify: shopify && typeof shopify.configured === 'function' ? shopify.configured() : false,
+    shopify: shopifyConnected,
   });
 });
 
