@@ -294,6 +294,53 @@ lifted into a standalone tool later.
   Firebase isn't initialized (local dev). So a one-time `/connect` authorization
   sticks across deploys instead of being wiped each time.
 
+## Shopify (Admin API — newsletter audience + blog destination)
+- `shopify.js` (`/api/shopify`) is a self-contained Shopify **Admin API** module.
+  ONE custom-app token powers two things: pulling the **newsletter audience**
+  (email subscribers) and **publishing blog posts** to the store's built-in blog.
+- **This is NOT the storefront token.** The site's Buy Button (on
+  thepeoplewatchingclub.com, store `cod-god-inc.myshopify.com`) uses the public
+  **Storefront** token — products + carts only, cannot read customers by design.
+  Subscribers/blog need an Admin custom-app token (`shpat_…`) with scopes
+  `read_customers` + `read_content` + `write_content`, created in Shopify admin
+  (Settings → Apps and sales channels → Develop apps → create app → Admin API).
+- **Two auth modes** (Shopify retired legacy admin-created custom apps on
+  2026-01-01, so new stores can't mint a static `shpat_…` token): (1) a static
+  `SHOPIFY_ADMIN_TOKEN` if the store still has one; (2) **client credentials** —
+  a **Dev Dashboard** app's `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`
+  (`shpss_…`) exchanged at `POST /admin/oauth/access_token`
+  (`grant_type=client_credentials`) for a short-lived (24h) access token, cached
+  and re-minted before expiry and on any 401. Client credentials only works when
+  the app + store are in the same Shopify org (true for a shop's own-store app).
+- **Env vars** (Render dashboard or Firestore config doc, `sync:false`, added to
+  `config-loader.js` MANAGED_KEYS): `SHOPIFY_STORE` (e.g.
+  `cod-god-inc.myshopify.com`), then EITHER `SHOPIFY_ADMIN_TOKEN` (`shpat_…`) OR
+  `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`; optional `SHOPIFY_API_VERSION`
+  (default `2025-01`).
+- **Routes:** `GET /status`, `GET /subscribers` (customers with
+  `email_marketing_state:subscribed`, GraphQL, paginated), `GET /subscribers.csv`
+  (download for Shopify Email / Mailchimp — actual *sending* is still manual, no
+  public campaign-send API), `GET /blogs`, `POST /blog-post` (REST article
+  create; `published:false` = hidden draft to review in Shopify admin first).
+  Customers via GraphQL Admin API (REST is being retired for customer data);
+  blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status` open).
+
+## Blog Studio (SEO posts → Shopify blog)
+- `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
+  into an SEO blog post and publishes it to the Shopify store blog — free organic
+  search traffic to the shop. Built around 2026 SEO reality: target **long-tail**
+  keywords (specific 3-6 word buyer phrases, KD low) that big sites ignore and
+  Google's AI Overviews can't fully answer, so the click still comes to you;
+  organize as topic clusters (a pillar + specific cluster posts).
+- **Flow:** `POST /keywords` (topic → long-tail keyword ideas w/ intent +
+  difficulty + a pillar/cluster shape, gpt-4o-mini) → `POST /draft` (full post:
+  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, gpt-4o-mini) →
+  `POST /image` (gpt-image-2 → permanent Firebase webp URL) → `POST /publish`
+  (reuses `shopify.publishArticle`; hidden draft or live). Generation endpoints
+  are stateless; drafts best-effort persist to Firestore (`forge-blog`) for a
+  "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
+  `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
+
 ## Design rules (forever)
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
@@ -348,3 +395,6 @@ lifted into a standalone tool later.
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **Claude may merge its own PRs without asking** (standing permission, July
+  2026). When a PR is ready, merge it — then watch the Render deploy and fix
+  anything that breaks.
