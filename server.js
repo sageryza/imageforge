@@ -309,6 +309,11 @@ app.get('/song', serveGated('song.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
+// Story view: the Evan & Charlie video asset board — approved art placed
+// inside the narration with missing beats flagged. A committed snapshot
+// (assets embedded as data URIs); regenerate when the asset set changes.
+// Same gate as the Studio.
+app.get('/story', serveGated('story.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
