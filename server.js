@@ -315,6 +315,22 @@ app.get('/report', serveGated('report.html'));
 // Same gate as the Studio.
 app.get('/story', serveGated('story.html'));
 
+// Story-board API: the same projects, served live from Firestore (synced by
+// scripts/sync-story.js) so the iOS app updates without an app build. Reads
+// the `forge-story` collection. Same x-studio-token gate as the pipeline.
+app.get('/api/story', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const snap = await admin.firestore().collection('forge-story').orderBy('order').get();
+    res.json({ projects: snap.docs.map((d) => d.data()) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
 // prepended to every prompt. `version` may be null — when so, the latest model
