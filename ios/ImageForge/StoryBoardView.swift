@@ -53,7 +53,7 @@ struct StoryBoardView: View {
             }
             .padding(.vertical, 18)
         }
-        .background(Color(red: 0.13, green: 0.10, blue: 0.09).ignoresSafeArea())
+        .background(Color(.systemBackground).ignoresSafeArea())
         .navigationDestination(for: String.self) { id in
             if let p = model.projects.first(where: { $0.id == id }) {
                 ProjectBoardView(project: p).navigationTitle(p.title)
@@ -122,7 +122,7 @@ private struct VHSBox: View {
         .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 3))
         .rotation3DEffect(.degrees(4), axis: (x: 0, y: 1, z: 0), perspective: 0.4)
-        .shadow(color: .black.opacity(0.55), radius: 7, x: 4, y: 6)
+        .shadow(color: .black.opacity(0.30), radius: 7, x: 4, y: 6)
         .frame(maxWidth: .infinity)
     }
 }

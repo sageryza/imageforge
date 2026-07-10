@@ -116,7 +116,7 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open)
+            HomeGrid(open: open, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
             ForEach(recents.recentThree) { t in
@@ -176,7 +176,19 @@ private struct BottomBar: View {
 /// into the recent slots).
 private struct HomeGrid: View {
     var open: (Tool) -> Void
+    @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    // Sophie's home order: Story Boards pinned first; greeting cards, stickers,
+    // storybooks, and coloring pages pinned last; everything in between rotates
+    // by most-recent use.
+    private var tools: [Tool] {
+        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
+        let middle = Tool.allCases.filter { $0 != .story && !pinnedBottom.contains($0) }
+        let ranked = recents.order.filter { middle.contains($0) }
+        let rest = middle.filter { !ranked.contains($0) }
+        return [.story] + ranked + rest + pinnedBottom
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -187,7 +199,7 @@ private struct HomeGrid: View {
             .padding(.bottom, 4)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(Tool.allCases) { t in
+                    ForEach(tools) { t in
                         Button { open(t) } label: {
                             HubCard(icon: t.icon, title: t.title, desc: t.desc)
                         }
