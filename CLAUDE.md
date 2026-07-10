@@ -207,6 +207,20 @@ lifted into a standalone tool later.
   `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
   the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
+- **Dreams (dream → comic):** the dream-illustration path — replicates the
+  daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
+  free breakdown: a dream's text → `dreamBreakdown()` (gpt-4o-mini decides how
+  many BEATS the dream needs — no padding, most are short — and for each writes
+  a self-contained panel prompt + a short caption in the dreamer's own voice,
+  minimal prompting) → a `forge-dreams` doc; nothing is drawn yet.
+  `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
+  2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
+  packs beats **four per image** (an 8-beat dream = two pages; a short tail
+  page lays out with fewer), captions = the beats' own lines (no cover),
+  ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
+  background job on the doc, `pageHistory` capped 3. Separate collection so
+  dreams never clutter the movies list. Same `STUDIO_TOKEN` gate. No web page —
+  iOS is the intended frontend, like the rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
