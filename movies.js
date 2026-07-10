@@ -222,6 +222,54 @@ async function deleteQuick(id) {
   else memQuick.delete(id);
 }
 
+// Dreams (dream text → hand-drawn comic pages) get their own collection so a
+// dream never clutters the movies list — it has no scenes, clips, or stitch.
+const DREAM_COLLECTION = process.env.DREAM_COLLECTION || 'forge-dreams';
+const memDream = new Map();
+
+async function saveDream(doc) {
+  doc.updatedAt = new Date().toISOString();
+  const db = firestore();
+  if (db) await db.collection(DREAM_COLLECTION).doc(doc.id).set(plain(doc));
+  else memDream.set(doc.id, plain(doc));
+  return doc;
+}
+
+async function loadDream(id) {
+  const db = firestore();
+  if (db) {
+    const snap = await db.collection(DREAM_COLLECTION).doc(id).get();
+    return snap.exists ? snap.data() : null;
+  }
+  return memDream.get(id) || null;
+}
+
+async function listDreams() {
+  const db = firestore();
+  let all;
+  if (db) {
+    const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(100).get();
+    all = snap.docs.map(d => d.data());
+  } else {
+    all = [...memDream.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  }
+  // Summaries only — the list stays light for the phone.
+  return all.map(d => ({
+    id: d.id, title: d.title, createdAt: d.createdAt, updatedAt: d.updatedAt,
+    beatCount: (d.beats || []).length,
+    pageCount: (d.pages || []).length,
+    poster: (d.pages || []).map(p => p.url).find(Boolean) || null,
+    spend: d.spend || 0,
+    job: d.job || null,
+  }));
+}
+
+async function deleteDream(id) {
+  const db = firestore();
+  if (db) await db.collection(DREAM_COLLECTION).doc(id).delete();
+  else memDream.delete(id);
+}
+
 // ─── Firebase Storage upload (permanent URLs) ───────────────────────
 // Replicate/OpenAI URLs expire (~1hr) — everything the movie keeps must go to
 // Firebase Storage. Mirrors server.js's saveToFirebase, kept local so the
@@ -568,6 +616,45 @@ HARD RULES:
   };
 }
 
+// ─── Dream breakdown ────────────────────────────────────────────────
+// A dream isn't a movie: it wants a few illustrated panels each with a short
+// hand-lettered caption beneath it, not 8-12 self-contained video scenes. So
+// this is its own one-shot call — read the dream, decide how many BEATS it
+// honestly needs (most are short; never pad), and for each write a panel's
+// image prompt plus the little caption line that sits under it. The renderer
+// packs the beats four-to-a-page (the style reference's 2x2 comic format), so
+// an 8-beat dream becomes two pages, a short tail page lays out with fewer.
+async function dreamBreakdown(dream) {
+  const sys = `You are illustrating someone's real dream as a short hand-drawn diary comic. Read the dream and break it into the visual BEATS it needs — one drawing per beat. Return STRICT JSON:
+{"title": a short 2-5 word title for the dream,
+ "characters": one compact phrase of visual continuity tokens for any recurring figure so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "a woman with a dark bob, wearing a green cardigan and jeans" (empty string if there is no recurring figure),
+ "beats": [{"imagePrompt": a full, SELF-CONTAINED image prompt for this one panel — name the setting, who is present with their continuity tokens, and what is happening; describe composition and content ONLY, no art-style words,
+   "caption": the short line hand-lettered under the panel — the dreamer's own voice, present tense, evocative not descriptive, at most about 8 words,
+   "hasText": true only if the drawing itself should contain written words (a sign, a screen, a speech bubble)}]}
+
+HARD RULES:
+- Use as many beats as the dream actually needs and NO MORE — do not pad. A simple dream may be 2-4 beats; a busy one 6-8. Go higher only if the dream truly earns it.
+- Every imagePrompt must stand completely alone: nothing implied from another beat. Repeat the character continuity tokens verbatim in each imagePrompt where that figure appears.
+- imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
+- A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".`;
+  const out = await openaiChatJSON([
+    { role: 'system', content: sys },
+    { role: 'user', content: `The dream:\n\n${dream}` },
+  ], { temperature: 0.75 });
+  const beats = (Array.isArray(out.beats) ? out.beats : []).map((b) => ({
+    id: 'b' + crypto.randomBytes(4).toString('hex'),
+    imagePrompt: String(b.imagePrompt || b.description || '').trim(),
+    caption: String(b.caption || '').trim(),
+    hasText: Boolean(b.hasText),
+  })).filter(b => b.imagePrompt);
+  if (!beats.length) throw new Error('dream breakdown produced no beats');
+  return {
+    title: String(out.title || 'Untitled dream').trim(),
+    characters: String(out.characters || '').trim(),
+    beats,
+  };
+}
+
 // A scene folded into the previous scene's clip (it's the "after" of a
 // before/after pair): it has a panel but never its own clip or stitch slot.
 function isMerged(movie, idx) {
@@ -861,6 +948,64 @@ async function makeZine(movie, quality, progress) {
   movie.zine = { pages, quality, madeAt: new Date().toISOString() };
   const failed = results.filter(r => !r.ok).length;
   if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; remake to fill the gaps`);
+}
+
+// ─── Dream pages: the beats drawn as a comic ────────────────────────
+// The same 2x2 style engine the zine uses, but the captions are the beats'
+// own caption lines (not scene titles) and there is no cover. Beats pack
+// four-to-a-page; a short tail page lays out with fewer. The dream doc is
+// shaped enough like a movie (characters, imageStyle, characterAnchor) that
+// zinePagePrompt / renderZinePage take it directly.
+async function makeDreamPages(dream, quality, progress) {
+  const items = (dream.beats || []).map(b => ({ id: b.id, imagePrompt: b.imagePrompt, title: b.caption || '' }));
+  const groups = [];
+  for (let i = 0; i < items.length; i += 4) groups.push(items.slice(i, i + 4));
+  const total = groups.length;
+  let done = 0;
+  await progress(0, total, 'drawing pages');
+  const results = await pool(groups, 2, async (group) => {
+    const page = await renderZinePage(dream, zinePagePrompt(dream, group), quality);
+    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+    await progress(++done, total, 'drawing pages');
+    return { url: page.url, promptUsed: page.prompt, beatIds: group.map(s => s.id) };
+  });
+  const pages = [];
+  results.forEach(r => { if (r.ok) pages.push(r.value); });
+  // Keep the previous render — re-rolls are never lost.
+  if (dream.pages?.length) {
+    dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
+  }
+  dream.pages = pages;
+  dream.pagesQuality = quality;
+  dream.pagesMadeAt = new Date().toISOString();
+  const failed = results.filter(r => !r.ok).length;
+  if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; re-render to fill the gaps`);
+}
+
+// Same background-job envelope as startJob, but persisted to the dreams
+// collection (a dream is not a movie, so it can't ride saveMovie).
+async function startDreamJob(dream, kind, fn) {
+  if (dream.job && dream.job.status === 'running') {
+    const age = Date.now() - new Date(dream.job.startedAt || 0).getTime();
+    if (age < 15 * 60 * 1000) throw new Error(`a "${dream.job.kind}" job is already running`);
+  }
+  dream.job = { kind, status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: new Date().toISOString() };
+  await saveDream(dream);
+  (async () => {
+    let lastSave = 0;
+    const progress = async (d, t, label) => {
+      dream.job = { ...dream.job, done: d, total: t, label };
+      if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await saveDream(dream).catch(() => {}); }
+    };
+    try {
+      await fn(progress);
+      dream.job = { ...dream.job, status: 'done', label: 'done' };
+    } catch (err) {
+      console.warn(`movies: dream job ${kind} failed —`, err.message);
+      dream.job = { ...dream.job, status: 'error', error: err.message };
+    }
+    await saveDream(dream).catch(e => console.warn('movies: dream save failed —', e.message));
+  })();
 }
 
 // The ordered list of clips that make the movie: enabled scenes (skipping
@@ -1167,6 +1312,75 @@ router.delete('/quick/:id', async (req, res) => {
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Dreams: dream text → hand-drawn comic pages ────────────────────
+// The dream-illustration path. `POST /dream` is the free breakdown — GPT reads
+// the dream and decides the beats + captions (minimal prompting); nothing is
+// drawn yet. `POST /dream/:id/render` draws them as 2x2 comic pages in the
+// diary-comic style reference. Registered BEFORE '/:id' so "/dream" isn't
+// swallowed by the movie-by-id route.
+router.get('/dream', async (req, res) => {
+  try { res.json({ dreams: await listDreams() }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/dream', async (req, res) => {
+  try {
+    const { dream, title } = req.body || {};
+    if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
+    const plan = await dreamBreakdown(String(dream).trim());
+    const doc = {
+      id: 'd' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+      title: (title && String(title).trim()) || plan.title,
+      dream: String(dream).trim(),
+      characters: plan.characters,
+      imageStyle: DEFAULT_IMAGE_STYLE,
+      characterAnchor: null,
+      beats: plan.beats,
+      pages: [],
+      pagesQuality: null,
+      pagesMadeAt: null,
+      pageHistory: [],
+      job: null,
+      spend: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveDream(doc);
+    res.json(doc);
+  } catch (err) {
+    res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
+  }
+});
+
+router.get('/dream/:id', async (req, res) => {
+  try {
+    const doc = await loadDream(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'dream not found' });
+    res.json(doc);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/dream/:id', async (req, res) => {
+  try { await deleteDream(req.params.id); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Draw the beats as comic pages (paid: ~PANEL_COST per 4-beat page). Runs as a
+// background job on the dream doc; poll GET /dream/:id.
+router.post('/dream/:id/render', async (req, res) => {
+  try {
+    const doc = await loadDream(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'dream not found' });
+    if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
+    const { quality = 'medium' } = req.body || {};
+    const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    await startDreamJob(doc, 'render', async (progress) => {
+      await makeDreamPages(doc, q, progress);
+    });
+    res.json({ ok: true, dream: doc });
+  } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
@@ -1459,6 +1673,8 @@ module.exports = {
   renderSketchGrid,
   generateClipFor,
   makeZine,
+  dreamBreakdown,
+  makeDreamPages,
   probe,
   extractLastFrame,
   normalizeClip,
