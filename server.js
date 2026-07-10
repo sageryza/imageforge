@@ -218,6 +218,10 @@ app.get('/test', (req, res) => { res.sendFile(__dirname + '/public/test.html'); 
 
 app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
 
+// Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
+// Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
+app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
+
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
 
@@ -516,6 +520,145 @@ Return valid JSON only, no markdown fences: an array of objects with "title", "t
     const parsed = JSON.parse(cleaned);
     const entries = Array.isArray(parsed) ? parsed : [parsed];
     res.json({ entries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Secretly a Witch — public witchy app (/witch)
+// A small set of stateless AI endpoints powering the public app: tarot
+// readings, spells/rituals, familiar names, and daily horoscopes. All reuse
+// openaiChat (gpt-4o-mini). The tarot DECK itself lives client-side; the
+// client sends the drawn cards and the server writes the interpretation.
+// ═══════════════════════════════════════════════════════════════════
+
+// Strip markdown fences and parse JSON from a chat completion.
+function parseJsonReply(data) {
+  const text = (data.choices?.[0]?.message?.content || '').trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  return JSON.parse(cleaned);
+}
+
+// ─── Tarot reading ──────────────────────────────────────────────────
+// Body: { question?, spread ("single"|"three"|"yesno"), cards:[{name, orientation, position?}] }
+app.post('/api/witch/tarot', async (req, res) => {
+  try {
+    const { question = '', spread = 'single', cards = [] } = req.body || {};
+    if (!Array.isArray(cards) || !cards.length) return res.status(400).json({ error: 'cards is required' });
+
+    const cardList = cards.map((c, i) =>
+      `${c.position ? c.position + ': ' : `Card ${i + 1}: `}${c.name} (${c.orientation || 'upright'})`
+    ).join('\n');
+
+    const system = `You are a warm, insightful tarot reader for an app called "Secretly a Witch". You give grounded, encouraging, non-fatalistic readings — tarot as a mirror for reflection, never doom or medical/financial/legal certainty. Speak directly to the querent as "you". Keep it intimate and a little luminous, never generic or preachy.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "cards": [{ "name": "...", "meaning": "1-2 sentences on what this card in this position/orientation says" }],
+  "reading": "2-3 short paragraphs weaving the cards together into one message",
+  "advice": "one short, actionable, gentle suggestion"
+}`;
+
+    const userMsg = `Spread: ${spread}${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}\nCards drawn:\n${cardList}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.85,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Spell / ritual generator ───────────────────────────────────────
+// Body: { intent, kind ("spell"|"ritual"|"blessing"|"protection") }
+app.post('/api/witch/spell', async (req, res) => {
+  try {
+    const { intent, kind = 'spell' } = req.body || {};
+    if (!intent || !intent.trim()) return res.status(400).json({ error: 'intent is required' });
+
+    const system = `You are a cozy, folk-magic witch writing gentle ${kind}s for an app called "Secretly a Witch". Your magic is symbolic, safe, and beginner-friendly: everyday household/kitchen/garden items, candles, herbs, intentions, journaling — never anything dangerous, never real medical/legal/financial claims, never harm to others. The tone is warm, a little whimsical, empowering.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "title": "a short evocative name for the ${kind}",
+  "best_time": "e.g. 'a waxing moon evening' or 'sunrise'",
+  "ingredients": ["4-6 simple, accessible items"],
+  "steps": ["4-6 clear, calm steps"],
+  "incantation": "2-4 lines to say aloud (gentle, rhythmic)",
+  "note": "one grounding sentence — the real magic is intention/attention"
+}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Intent: ${intent}. Write one ${kind}.` },
+      ],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Name your familiar ─────────────────────────────────────────────
+// Body: { animal?, vibe? }
+app.post('/api/witch/familiar', async (req, res) => {
+  try {
+    const { animal = '', vibe = '' } = req.body || {};
+    const system = `You name magical familiars for an app called "Secretly a Witch". Given an animal and/or a vibe, invent 4 evocative familiar names with tiny personalities. Names should feel witchy, folkloric, a little unexpected — not clichéd (avoid "Salem", "Luna", "Shadow" unless it truly fits).
+
+Return valid JSON only, no markdown fences, shaped:
+{ "familiars": [ { "name": "...", "species": "...", "trait": "2-4 word personality", "blurb": "one charming sentence about them" } ] }`;
+
+    const userMsg = `Animal: ${animal || 'any — you choose'}. Vibe: ${vibe || 'any — you choose'}.`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 1,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Daily witchy horoscope ─────────────────────────────────────────
+// Body: { sign, date? }  — date is a display string for flavor/variety.
+app.post('/api/witch/horoscope', async (req, res) => {
+  try {
+    const { sign, date = '' } = req.body || {};
+    if (!sign) return res.status(400).json({ error: 'sign is required' });
+
+    const system = `You write short daily horoscopes with a cozy-witch twist for an app called "Secretly a Witch". Warm, specific, encouraging — astrology as gentle reflection, never fatalistic or medical/financial certainty.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "horoscope": "2-3 sentences for the day",
+  "focus": "one word or short phrase — the day's theme",
+  "charm": "a tiny suggested small act of magic for the day (one sentence)",
+  "element_note": "one sentence tying it to the sign's element"
+}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Sign: ${sign}.${date ? ` Date: ${date}.` : ''} Write today's reading.` },
+      ],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
