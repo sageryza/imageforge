@@ -950,19 +950,53 @@ async function makeZine(movie, quality, progress) {
   if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; remake to fill the gaps`);
 }
 
+// ─── Character anchor for a dream ───────────────────────────────────
+// A dream has no key-scene approval step, so we automate the movies anchor
+// trick: if the dream has a recurring figure, draw it ONCE as a clean solo
+// reference and lock it. Every page render then attaches it (via panelRefs)
+// with the preserve-list restated, so the same face/hair/clothes carry across
+// all panels instead of drifting page to page.
+function dreamAnchorPrompt(dream) {
+  const who = dream.characters || 'the main character';
+  const base = `A single character reference sheet: ${who}, standing alone, front view, ` +
+    'full figure, neutral expression, plain flat background, no other characters and no text.';
+  if (styleRef) return STYLE_REF_PREFIX + base;
+  return `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${base}`;
+}
+
+async function ensureDreamAnchor(dream, quality) {
+  if (dream.characterAnchor?.url) return;   // already locked — reuse it across re-rolls
+  if (!dream.characters) return;            // no recurring figure to anchor to
+  const prompt = dreamAnchorPrompt(dream);
+  // No prior anchor to attach here — just the style page (if any).
+  const buf = styleRef
+    ? await openaiPanelEdit(prompt, [styleRef], quality)
+    : await openaiPanel(prompt, quality);
+  const url = await saveBufferToStorage(buf, 'image/webp', 'movies/dreams');
+  dream.characterAnchor = { url, prompt, madeAt: new Date().toISOString() };
+  dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+}
+
 // ─── Dream pages: the beats drawn as a comic ────────────────────────
 // The same 2x2 style engine the zine uses, but the captions are the beats'
 // own caption lines (not scene titles) and there is no cover. Beats pack
 // four-to-a-page; a short tail page lays out with fewer. The dream doc is
 // shaped enough like a movie (characters, imageStyle, characterAnchor) that
-// zinePagePrompt / renderZinePage take it directly.
+// zinePagePrompt / renderZinePage take it directly — and once the anchor is
+// set, panelRefs pins every page to the same character.
 async function makeDreamPages(dream, quality, progress) {
   const items = (dream.beats || []).map(b => ({ id: b.id, imagePrompt: b.imagePrompt, title: b.caption || '' }));
   const groups = [];
   for (let i = 0; i < items.length; i += 4) groups.push(items.slice(i, i + 4));
-  const total = groups.length;
+  const willAnchor = Boolean(dream.characters) && !dream.characterAnchor?.url;
+  const total = groups.length + (willAnchor ? 1 : 0);
   let done = 0;
-  await progress(0, total, 'drawing pages');
+  // Lock the character first so every page can pin to it.
+  await progress(done, total, willAnchor ? 'drawing the character' : 'drawing pages');
+  if (willAnchor) {
+    await ensureDreamAnchor(dream, quality);
+    await progress(++done, total, 'drawing pages');
+  }
   const results = await pool(groups, 2, async (group) => {
     const page = await renderZinePage(dream, zinePagePrompt(dream, group), quality);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
@@ -1372,8 +1406,9 @@ router.post('/dream/:id/render', async (req, res) => {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
     if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
-    const { quality = 'medium' } = req.body || {};
+    const { quality = 'medium', reanchor } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    if (reanchor) doc.characterAnchor = null; // re-roll the character's look on this render
     await startDreamJob(doc, 'render', async (progress) => {
       await makeDreamPages(doc, q, progress);
     });

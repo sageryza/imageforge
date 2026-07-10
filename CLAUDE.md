@@ -227,8 +227,13 @@ lifted into a standalone tool later.
   page lays out with fewer), captions = the beats' own lines (no cover),
   ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
   background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. Same `STUDIO_TOKEN` gate. No web page —
-  iOS is the intended frontend, like the rest of movies.
+  dreams never clutter the movies list. **Character anchor**: if the dream has
+  a recurring figure (`characters` tokens), the render first draws it as a solo
+  reference and locks it (`ensureDreamAnchor`), then pins every page to it (via
+  `panelRefs`) so the same face/hair/clothes hold across pages instead of
+  drifting; `POST .../render {reanchor:true}` re-rolls the look. Same
+  `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
+  rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
