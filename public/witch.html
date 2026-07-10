@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#161022">
+  <title>Secretly a Witch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #161022;
+      --bg-2: #1d1530;
+      --surface: #241a3a;
+      --surface-2: #2c2145;
+      --border: #392b57;
+      --border-soft: #2f2449;
+      --gold: #e6c281;
+      --gold-dim: #b8975c;
+      --moon: #c9bce8;
+      --text: #ece7f7;
+      --text-dim: #a99fc4;
+      --text-faint: #7c7298;
+      --danger: #e08a8a;
+      --green: #8fd0a6;
+      --radius: 6px;
+      --radius-lg: 14px;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --nav-h: 62px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 50% -10%, #2a1d44 0%, rgba(42,29,68,0) 60%),
+        radial-gradient(900px 500px at 90% 10%, #241a3a 0%, rgba(36,26,58,0) 55%),
+        var(--bg);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .app {
+      max-width: 640px;
+      margin: 0 auto;
+      min-height: 100%;
+      position: relative;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px 20px 14px;
+      background: linear-gradient(180deg, rgba(22,16,34,0.94), rgba(22,16,34,0.72));
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .brand { display: flex; align-items: center; gap: 9px; }
+    .brand .sigil { color: var(--gold); font-size: 15px; opacity: 0.9; }
+    .brand h1 {
+      font-family: var(--serif); font-style: italic; font-weight: 500;
+      font-size: 21px; letter-spacing: 0.4px; color: var(--gold);
+    }
+
+    /* ── Sections ── */
+    main { padding: 18px 16px 8px; }
+    .view { display: none; animation: fade 0.35s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .kicker {
+      font-size: 10.5px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--gold-dim); margin-bottom: 6px;
+    }
+    .section-title { font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.1; margin-bottom: 4px; }
+    .section-sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.55; margin-bottom: 18px; }
+
+    /* ── Cards ── */
+    .card {
+      background: linear-gradient(165deg, var(--surface), var(--bg-2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    }
+    .card.tight { padding: 16px; }
+    .card h2 { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 3px; }
+    .card .hint { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .card-head .k { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); }
+
+    /* ── Forms ── */
+    label { display: block; font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 7px; }
+    input, textarea, select {
+      width: 100%; padding: 12px 14px;
+      background: rgba(0,0,0,0.22);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-size: 15px; font-family: inherit; outline: none;
+      transition: border-color 0.15s ease;
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-faint); }
+    input:focus, textarea:focus, select:focus { border-color: var(--gold-dim); }
+    textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
+    select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a99fc4' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px; }
+    .field { margin-bottom: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 0; min-width: 0; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px 20px;
+      background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+      color: #241a12; border: none; border-radius: var(--radius);
+      font-size: 13.5px; font-weight: 600; font-family: inherit;
+      letter-spacing: 0.6px; text-transform: uppercase; cursor: pointer;
+      transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
+    }
+    .btn:active { transform: scale(0.985); }
+    .btn:hover { filter: brightness(1.06); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+    .btn-ghost {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      width: 100%; padding: 12px 18px;
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 13px; font-weight: 500; font-family: inherit; letter-spacing: 0.5px;
+      cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; text-decoration: none;
+    }
+    .btn-ghost:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .btn-row { display: flex; gap: 10px; }
+    .note { font-size: 12px; color: var(--text-faint); font-style: italic; margin-top: 10px; min-height: 16px; }
+
+    /* ── Chips (segmented) ── */
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .chip {
+      padding: 9px 15px; background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-dim); font-size: 12.5px; font-family: inherit; cursor: pointer;
+      transition: all 0.15s ease; letter-spacing: 0.3px;
+    }
+    .chip.active { background: rgba(230,194,129,0.14); border-color: var(--gold-dim); color: var(--gold); font-weight: 600; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; left: 50%; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+      transform: translateX(-50%) translateY(20px);
+      background: #3a2340; border: 1px solid var(--danger); color: #ffd9d9;
+      padding: 11px 16px; border-radius: var(--radius); font-size: 13px; max-width: 90%;
+      opacity: 0; pointer-events: none; transition: all 0.25s ease; z-index: 100; text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Today: moon ── */
+    .moon-card { text-align: center; padding: 26px 20px; }
+    .moon-glyph { font-size: 58px; line-height: 1; filter: drop-shadow(0 0 18px rgba(201,188,232,0.35)); }
+    .moon-phase { font-family: var(--serif); font-size: 25px; font-weight: 500; margin-top: 12px; color: var(--moon); }
+    .moon-meta { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; letter-spacing: 0.3px; }
+    .moon-line { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text); margin-top: 14px; line-height: 1.45; }
+
+    /* ── Tarot card visual ── */
+    .tcard {
+      position: relative; aspect-ratio: 5 / 8; border-radius: 10px;
+      background: linear-gradient(160deg, #2e2148, #201633);
+      border: 1px solid var(--gold-dim);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 12px 10px; overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 0 40px rgba(230,194,129,0.05);
+    }
+    .tcard::before, .tcard::after { content: '✦'; position: absolute; color: var(--gold-dim); font-size: 11px; opacity: 0.6; }
+    .tcard::before { top: 7px; left: 8px; }
+    .tcard::after { bottom: 7px; right: 8px; }
+    .tcard.rev .tcard-glyph, .tcard.rev .tcard-name { transform: rotate(180deg); }
+    .tcard-num { font-size: 10px; letter-spacing: 1.5px; color: var(--gold-dim); text-transform: uppercase; }
+    .tcard-glyph { font-size: 32px; margin: 8px 0; color: var(--gold); }
+    .tcard-name { font-family: var(--serif); font-size: 15px; font-weight: 500; line-height: 1.1; color: var(--text); }
+    .tcard-suit { font-size: 10px; color: var(--text-faint); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+    .tcard-pos { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-dim); text-align: center; margin-bottom: 7px; }
+    .tcard-orient { position: absolute; bottom: 8px; left: 0; right: 0; font-size: 9.5px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; }
+
+    .draw-grid { display: grid; gap: 12px; margin: 6px 0 4px; }
+    .draw-grid.one { grid-template-columns: minmax(0, 220px); justify-content: center; }
+    .draw-grid.three { grid-template-columns: repeat(3, 1fr); }
+    .draw-col { min-width: 0; }
+
+    .reading-block { margin-top: 6px; }
+    .reading-block h3 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin: 16px 0 6px; color: var(--gold); }
+    .reading-block p { font-size: 14.5px; line-height: 1.65; color: var(--text); margin-bottom: 10px; }
+    .reading-card-meaning { font-size: 13px; color: var(--text-dim); line-height: 1.55; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
+    .reading-card-meaning strong { color: var(--text); font-weight: 600; }
+    .advice-box { background: rgba(230,194,129,0.08); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; }
+    .advice-box .k { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .advice-box p { font-family: var(--serif); font-size: 16px; font-style: italic; line-height: 1.5; margin: 0; }
+
+    /* ── Spell result ── */
+    .spell h3 { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--gold); margin-bottom: 4px; }
+    .spell .when { font-size: 12px; color: var(--text-dim); font-style: italic; margin-bottom: 14px; }
+    .spell .sub { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin: 14px 0 8px; }
+    .spell ul, .spell ol { padding-left: 20px; }
+    .spell li { font-size: 14px; line-height: 1.6; margin-bottom: 6px; color: var(--text); }
+    .spell .incant { font-family: var(--serif); font-style: italic; font-size: 17px; line-height: 1.6; color: var(--moon); white-space: pre-line; padding: 12px 0; }
+    .spell .grounding { font-size: 12.5px; color: var(--text-faint); border-top: 1px solid var(--border-soft); padding-top: 12px; margin-top: 8px; }
+
+    /* ── Familiars ── */
+    .fam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fam {
+      background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 14px;
+    }
+    .fam .fname { font-family: var(--serif); font-size: 19px; font-weight: 600; color: var(--gold); }
+    .fam .fspecies { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin: 2px 0 8px; }
+    .fam .ftrait { font-size: 12px; color: var(--moon); margin-bottom: 6px; }
+    .fam .fblurb { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+
+    /* ── Generated image ── */
+    .gen-img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; margin-top: 4px; background: rgba(0,0,0,0.2); }
+    .img-loading { aspect-ratio: 1; border-radius: 10px; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 13px; }
+    .spin { display: inline-block; animation: spin 1.4s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Miracles: style picker + entries ── */
+    .style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .style-opt { padding: 11px 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all 0.15s ease; }
+    .style-opt.sel { border-color: var(--gold-dim); background: rgba(230,194,129,0.1); }
+    .style-opt .n { font-size: 13.5px; font-weight: 500; color: var(--text); }
+    .style-opt .p { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
+
+    .entry { display: flex; gap: 12px; align-items: center; padding: 10px; background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 9px; }
+    .entry .thumb { width: 54px; height: 54px; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); object-fit: cover; background: var(--bg-2); display: flex; align-items: center; justify-content: center; color: var(--gold-dim); font-size: 18px; }
+    .entry .eb { flex: 1; min-width: 0; }
+    .entry .et { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--text); }
+    .entry .ex { font-size: 11.5px; color: var(--text-dim); line-height: 1.4; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .entry .acts { display: flex; gap: 5px; flex-shrink: 0; }
+    .ibtn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 13px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+    .ibtn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .ibtn.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .ibtn:disabled { opacity: 0.35; }
+    .empty { text-align: center; padding: 26px 10px; color: var(--text-faint); font-size: 13px; }
+
+    /* ── Book read view ── */
+    .book-page {
+      background: linear-gradient(165deg, #efe7d8, #e6dcc7);
+      border-radius: 12px; overflow: hidden; color: #3a3025;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.4); border: 1px solid #d8cdb5;
+    }
+    .book-page .bimg { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: #ddd2bd; }
+    .book-page .bimg-ph { width: 100%; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; color: #b9a988; font-size: 36px; }
+    .book-page .btext { padding: 22px 22px 26px; }
+    .book-page .bk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #a9946a; margin-bottom: 10px; }
+    .book-page .btitle { font-family: var(--serif); font-size: 26px; font-weight: 600; line-height: 1.12; margin-bottom: 10px; }
+    .book-page .bbody { font-family: var(--serif); font-size: 18px; line-height: 1.5; color: #4a4030; }
+    .book-cover { text-align: center; padding: 54px 26px; }
+    .book-cover .orn { font-size: 26px; color: #a9946a; }
+    .book-cover .ck { font-size: 10.5px; letter-spacing: 3px; text-transform: uppercase; color: #a9946a; margin: 14px 0; }
+    .book-cover .ct { font-family: var(--serif); font-style: italic; font-size: 40px; font-weight: 600; line-height: 1.04; }
+    .book-cover .cs { font-family: var(--serif); font-size: 18px; color: #6b5f48; margin-top: 14px; }
+    .book-nav { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 16px; }
+    .book-nav .nbtn { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+    .book-nav .nbtn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .book-nav .nbtn:disabled { opacity: 0.3; }
+    .book-nav .ctr { font-size: 12px; color: var(--text-dim); min-width: 72px; text-align: center; }
+
+    /* ── Link tiles (More) ── */
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tile {
+      display: flex; flex-direction: column; gap: 6px; text-decoration: none;
+      background: linear-gradient(165deg, var(--surface), var(--bg-2));
+      border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px;
+      color: var(--text); transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .tile:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .tile .ti { font-size: 26px; }
+    .tile .tt { font-family: var(--serif); font-size: 18px; font-weight: 500; }
+    .tile .td { font-size: 12px; color: var(--text-dim); line-height: 1.45; }
+
+    .about { font-size: 14px; line-height: 1.7; color: var(--text-dim); }
+    .about b { color: var(--text); font-weight: 600; }
+
+    /* ── Bottom nav ── */
+    nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      display: flex; justify-content: center;
+      background: linear-gradient(180deg, rgba(22,16,34,0.82), rgba(18,13,28,0.98));
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .nav-inner { display: flex; width: 100%; max-width: 640px; height: var(--nav-h); }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      background: none; border: none; cursor: pointer; color: var(--text-faint);
+      font-family: inherit; transition: color 0.15s ease; position: relative; padding-top: 4px;
+    }
+    .nav-btn .ni { font-size: 20px; line-height: 1; transition: transform 0.15s ease; }
+    .nav-btn .nl { font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase; }
+    .nav-btn.active { color: var(--gold); }
+    .nav-btn.active .ni { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(230,194,129,0.5)); }
+    .nav-btn.active::after { content: ''; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--gold); }
+
+    @media (max-width: 380px) {
+      .fam-grid, .tiles { grid-template-columns: 1fr; }
+      .nav-btn .nl { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <span class="sigil">✦</span>
+        <h1>Secretly a Witch</h1>
+        <span class="sigil">✦</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- ═══════════ TODAY ═══════════ -->
+      <section class="view active" id="view-today">
+        <div class="kicker" id="today-date">Today</div>
+        <div class="section-title">Your daily magic</div>
+        <div class="section-sub">The moon, a card, and an intention — refreshed each day.</div>
+
+        <div class="card moon-card" id="moon-card">
+          <div class="moon-glyph" id="moon-glyph">🌙</div>
+          <div class="moon-phase" id="moon-phase">—</div>
+          <div class="moon-meta" id="moon-meta"></div>
+          <div class="moon-line" id="moon-line"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Card of the Day</h2><span class="k" id="cotd-orient"></span></div>
+          <div style="display:flex; gap:16px; align-items:stretch;">
+            <div style="flex:0 0 108px;"><div id="cotd-card"></div></div>
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center;">
+              <div style="font-family:var(--serif); font-size:22px; font-weight:600; line-height:1.1;" id="cotd-name">—</div>
+              <div style="font-size:12.5px; color:var(--text-dim); margin-top:6px; line-height:1.5;" id="cotd-keywords"></div>
+            </div>
+          </div>
+          <button class="btn-ghost" style="margin-top:16px;" id="cotd-reflect">✦ Reflect on this card</button>
+          <div class="note" id="cotd-note"></div>
+          <div id="cotd-reading" class="reading-block"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Today's Intention</h2></div>
+          <div class="moon-line" style="margin-top:0;" id="intention-text"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ BOOK OF MIRACLES ═══════════ -->
+      <section class="view" id="view-book">
+        <div class="kicker">Keep the wonder</div>
+        <div class="section-title">Little Book of Miracles</div>
+        <div class="section-sub">Small coincidences and quiet wonders — each becomes an illustrated page.</div>
+
+        <div class="chips">
+          <button class="chip active" data-bookview="write">Write</button>
+          <button class="chip" data-bookview="read">Read the book</button>
+        </div>
+
+        <!-- WRITE -->
+        <div id="book-write">
+          <div class="card tight">
+            <label>Your book</label>
+            <div class="field"><input type="text" id="book-title" placeholder="A Little Book of Miracles"></div>
+            <input type="text" id="book-subtitle" placeholder="everyday miracles & synchronicities">
+          </div>
+
+          <div class="card tight">
+            <div class="card-head"><span class="k">Illustration style</span></div>
+            <div class="style-grid" id="style-grid"></div>
+          </div>
+
+          <div class="card">
+            <h2>Add a miracle</h2>
+            <p class="hint">Write down a small wonder — exactly as it happened.</p>
+            <textarea id="capture-input" placeholder="I was just thinking about an old friend when she texted me out of nowhere..."></textarea>
+            <button class="btn" style="margin-top:12px;" id="capture-btn">Add to book</button>
+            <div class="note" id="capture-note"></div>
+          </div>
+
+          <div class="card">
+            <h2>Or imagine a few</h2>
+            <p class="hint">Give a theme and let it dream up a handful to start your book.</p>
+            <div class="field"><input type="text" id="imagine-input" placeholder="quiet mornings, small coincidences..."></div>
+            <div class="row" style="align-items:flex-end;">
+              <div style="flex:0 0 90px;">
+                <label>How many</label>
+                <select id="imagine-count"><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+              </div>
+              <div style="flex:1;"><button class="btn-ghost" id="imagine-btn">✦ Imagine</button></div>
+            </div>
+            <div class="note" id="imagine-note"></div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin:20px 2px 10px;">
+            <label style="margin:0;">Pages <span id="entry-count" style="color:var(--text-faint);"></span></label>
+          </div>
+          <div id="entry-list"></div>
+        </div>
+
+        <!-- READ -->
+        <div id="book-read" style="display:none;">
+          <div class="book-page" id="book-stage"></div>
+          <div class="book-nav">
+            <button class="nbtn" id="book-prev">‹</button>
+            <span class="ctr" id="book-ctr"></span>
+            <button class="nbtn" id="book-next">›</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ TAROT ═══════════ -->
+      <section class="view" id="view-tarot">
+        <div class="kicker">Ask the cards</div>
+        <div class="section-title">Tarot</div>
+        <div class="section-sub">Draw from a full 78-card deck and receive a gentle, reflective reading.</div>
+
+        <div class="card">
+          <label>Your question <span style="text-transform:none; letter-spacing:0; color:var(--text-faint);">(optional)</span></label>
+          <div class="field"><input type="text" id="tarot-q" placeholder="What should I focus on right now?"></div>
+          <label>Spread</label>
+          <div class="chips" id="spread-chips">
+            <button class="chip active" data-spread="single">One card</button>
+            <button class="chip" data-spread="three">Past · Present · Future</button>
+            <button class="chip" data-spread="yesno">Yes / No</button>
+          </div>
+          <button class="btn" id="tarot-draw">🔮 Draw the cards</button>
+          <div class="note" id="tarot-note"></div>
+        </div>
+
+        <div id="tarot-cards"></div>
+        <div class="card" id="tarot-reading-card" style="display:none;">
+          <div id="tarot-reading" class="reading-block"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ CONJURE ═══════════ -->
+      <section class="view" id="view-conjure">
+        <div class="kicker">Make a little magic</div>
+        <div class="section-title">Conjure</div>
+        <div class="section-sub">Spells, familiars, and hand-illustrated charms — conjured on demand.</div>
+
+        <div class="chips" id="conjure-chips">
+          <button class="chip active" data-conjure="spell">Spell</button>
+          <button class="chip" data-conjure="familiar">Familiar</button>
+          <button class="chip" data-conjure="image">Charm image</button>
+        </div>
+
+        <!-- SPELL -->
+        <div id="conjure-spell">
+          <div class="card">
+            <h2>Spell &amp; ritual maker</h2>
+            <p class="hint">Name an intention. Cozy, symbolic, beginner-friendly magic — nothing dangerous.</p>
+            <div class="field"><input type="text" id="spell-intent" placeholder="a calm mind before a big day"></div>
+            <label>Kind</label>
+            <div class="field">
+              <select id="spell-kind">
+                <option value="spell">Spell</option>
+                <option value="ritual">Ritual</option>
+                <option value="blessing">Blessing</option>
+                <option value="protection">Protection</option>
+              </select>
+            </div>
+            <button class="btn" id="spell-btn">🌙 Conjure it</button>
+            <div class="note" id="spell-note"></div>
+          </div>
+          <div class="card spell" id="spell-out" style="display:none;"></div>
+        </div>
+
+        <!-- FAMILIAR -->
+        <div id="conjure-familiar" style="display:none;">
+          <div class="card">
+            <h2>Name your familiar</h2>
+            <p class="hint">Your magical animal companion, named with a little personality.</p>
+            <div class="row">
+              <div class="field"><label>Animal</label><input type="text" id="fam-animal" placeholder="black cat, raven, toad..."></div>
+              <div class="field"><label>Vibe</label><input type="text" id="fam-vibe" placeholder="mischievous, ancient, gentle..."></div>
+            </div>
+            <button class="btn" id="fam-btn">✦ Summon names</button>
+            <div class="note" id="fam-note"></div>
+          </div>
+          <div class="fam-grid" id="fam-out"></div>
+        </div>
+
+        <!-- IMAGE -->
+        <div id="conjure-image" style="display:none;">
+          <div class="card">
+            <h2>Charm image maker</h2>
+            <p class="hint">Describe a charm, sigil, or creature. Rendered in one of the house styles.</p>
+            <div class="field"><textarea id="ci-prompt" placeholder="a pressed-flower moth beneath a crescent moon"></textarea></div>
+            <label>Style</label>
+            <div class="field"><select id="ci-style"></select></div>
+            <button class="btn" id="ci-btn">🌙 Illustrate it</button>
+            <div class="note" id="ci-note"></div>
+          </div>
+          <div id="ci-out"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ MORE ═══════════ -->
+      <section class="view" id="view-more">
+        <div class="kicker">Beyond the veil</div>
+        <div class="section-title">More</div>
+        <div class="section-sub">Watch, shop, and a daily reading in the stars.</div>
+
+        <div class="card">
+          <div class="card-head"><h2>Daily horoscope</h2></div>
+          <p class="hint">A cozy-witch reading for your sign.</p>
+          <div class="field"><select id="horo-sign"></select></div>
+          <button class="btn" id="horo-btn">✦ Read the stars</button>
+          <div class="note" id="horo-note"></div>
+          <div id="horo-out" style="display:none; margin-top:6px;"></div>
+        </div>
+
+        <div class="tiles" style="margin-bottom:16px;">
+          <a class="tile" id="tile-watch" href="#" target="_blank" rel="noopener">
+            <span class="ti">▶</span><span class="tt">Watch</span>
+            <span class="td">The Secretly a Witch video channel.</span>
+          </a>
+          <a class="tile" id="tile-shop" href="#" target="_blank" rel="noopener">
+            <span class="ti">🛍</span><span class="tt">Shop</span>
+            <span class="td">Charms, prints &amp; decks in the shop.</span>
+          </a>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>About</h2></div>
+          <p class="about">
+            <b>Secretly a Witch</b> is a small pocket of everyday magic — the phase of the moon,
+            a card to sit with, a book for your quiet miracles, and spells for the ordinary things.
+            None of it is doom or destiny. It's a mirror, a little ritual, a way to pay attention.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <nav>
+      <div class="nav-inner" id="nav">
+        <button class="nav-btn active" data-view="today"><span class="ni">✦</span><span class="nl">Today</span></button>
+        <button class="nav-btn" data-view="book"><span class="ni">📖</span><span class="nl">Miracles</span></button>
+        <button class="nav-btn" data-view="tarot"><span class="ni">🔮</span><span class="nl">Tarot</span></button>
+        <button class="nav-btn" data-view="conjure"><span class="ni">🌙</span><span class="nl">Conjure</span></button>
+        <button class="nav-btn" data-view="more"><span class="ni">✧</span><span class="nl">More</span></button>
+      </div>
+    </nav>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════
+     Secretly a Witch — client app
+     ═══════════════════════════════════════════════════════════════ */
+
+  // ── External links (set these to Sophie's real channel / shop) ──
+  const LINKS = {
+    // TODO: replace with the real "Secretly a Witch" YouTube channel + Etsy shop URLs.
+    youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
+    shop: 'https://www.etsy.com/',
+  };
+  document.getElementById('tile-watch').href = LINKS.youtube;
+  document.getElementById('tile-shop').href = LINKS.shop;
+
+  // ── Helpers ──
+  const $ = (id) => document.getElementById(id);
+  function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
+  }
+  async function api(url, body) {
+    const res = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    if (!res.ok) { const txt = await res.text(); throw new Error(`Server ${res.status}: ${txt.slice(0, 160)}`); }
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  }
+
+  // ── Navigation ──
+  const views = ['today', 'book', 'tarot', 'conjure', 'more'];
+  function go(view) {
+    views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  }
+  $('nav').addEventListener('click', (e) => {
+    const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
+  });
+
+  /* ══════════ TAROT DECK (78) ══════════ */
+  const MAJORS = [
+    ['0','The Fool','new beginnings, spontaneity, a leap of faith','recklessness, holding back, fear of the unknown'],
+    ['I','The Magician','manifestation, willpower, resourcefulness','untapped talent, scattered energy, self-doubt'],
+    ['II','The High Priestess','intuition, mystery, the inner voice','secrets kept, disconnection from instinct'],
+    ['III','The Empress','abundance, nurturing, creativity','creative block, over-giving, neglecting yourself'],
+    ['IV','The Emperor','structure, stability, steady authority','rigidity, control, needing to loosen the grip'],
+    ['V','The Hierophant','tradition, guidance, shared belief','breaking convention, finding your own way'],
+    ['VI','The Lovers','union, alignment, a meaningful choice','disharmony, values out of sync'],
+    ['VII','The Chariot','drive, focus, forward momentum','scattered effort, loss of direction'],
+    ['VIII','Strength','quiet courage, patience, gentle power','self-doubt, forcing what needs softness'],
+    ['IX','The Hermit','reflection, solitude, inner wisdom','isolation, avoiding needed answers'],
+    ['X','Wheel of Fortune','cycles, turning points, good fortune','resistance to change, a passing delay'],
+    ['XI','Justice','fairness, truth, cause and effect','avoidance, imbalance, owning a choice'],
+    ['XII','The Hanged Man','surrender, a new perspective, a pause','stalling, resisting the useful pause'],
+    ['XIII','Death','endings, transformation, release','clinging to what is already over'],
+    ['XIV','Temperance','balance, patience, gentle blending','excess, impatience, seeking the middle'],
+    ['XV','The Devil','attachment, temptation, the shadow','releasing a chain, reclaiming your power'],
+    ['XVI','The Tower','sudden change, revelation, a clearing','fear of change, disaster narrowly avoided'],
+    ['XVII','The Star','hope, renewal, gentle faith','doubt, disconnection, tending your spark'],
+    ['XVIII','The Moon','intuition, dreams, the unknown','clarity returning, releasing a fear'],
+    ['XIX','The Sun','joy, vitality, warmth, success','a passing cloud, delayed brightness'],
+    ['XX','Judgement','awakening, reckoning, a fresh call','self-doubt, avoiding an inner calling'],
+    ['XXI','The World','completion, wholeness, fulfillment','loose ends, one more step to close'],
+  ];
+  const SUITS = [
+    { name: 'Wands', glyph: '🔥', domain: 'passion, energy & creativity' },
+    { name: 'Cups', glyph: '💧', domain: 'emotion, love & intuition' },
+    { name: 'Swords', glyph: '🗡', domain: 'thought, truth & clarity' },
+    { name: 'Pentacles', glyph: '🪙', domain: 'work, home & the material' },
+  ];
+  const RANKS = [
+    ['Ace','pure potential'], ['Two','a balance or choice'], ['Three','growth and coming together'],
+    ['Four','stability and rest'], ['Five','a challenge or loss'], ['Six','harmony and progress'],
+    ['Seven','assessment and perseverance'], ['Eight','momentum and mastery'], ['Nine','near fulfillment'],
+    ['Ten','culmination and completion'], ['Page','curiosity and a message'], ['Knight','action and pursuit'],
+    ['Queen','nurturing mastery'], ['King','grounded authority'],
+  ];
+  function buildDeck() {
+    const deck = [];
+    MAJORS.forEach(([num, name, up, rev]) => deck.push({ name, num, glyph: '✦', suit: null, up, rev, arcana: 'major' }));
+    SUITS.forEach(s => RANKS.forEach(([rank, theme]) => {
+      deck.push({
+        name: `${rank} of ${s.name}`, num: '', glyph: s.glyph, suit: s.name,
+        up: `${theme} — in ${s.domain}`,
+        rev: `blocked or delayed ${theme.replace(/^(a |an )/, '')} — in ${s.domain}`,
+        arcana: 'minor',
+      });
+    }));
+    return deck;
+  }
+  const DECK = buildDeck();
+
+  function tarotCardHtml(card, orientation, position) {
+    const rev = orientation === 'reversed';
+    return `<div class="tcard ${rev ? 'rev' : ''}">
+      ${position ? `<div class="tcard-pos">${esc(position)}</div>` : ''}
+      <div class="tcard-num">${esc(card.num || card.suit || 'Arcana')}</div>
+      <div class="tcard-glyph">${card.glyph}</div>
+      <div class="tcard-name">${esc(card.name)}</div>
+      ${card.suit ? `<div class="tcard-suit">${esc(card.suit)}</div>` : ''}
+      <div class="tcard-orient">${rev ? 'reversed' : 'upright'}</div>
+    </div>`;
+  }
+
+  // Deterministic per-day hashing (card of the day + intention).
+  function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return Math.abs(h); }
+  function dayKey(d) { return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+
+  /* ══════════ TODAY ══════════ */
+  const INTENTIONS = [
+    'Notice one small beautiful thing and let it be enough.',
+    'Move slowly on purpose today.',
+    'Say the kind thing out loud.',
+    'Let something unfinished stay unfinished.',
+    'Drink water like it is a small spell of care.',
+    'Trust the first quiet answer you hear.',
+    'Make one ordinary task a tiny ritual.',
+    'Protect your energy like it is precious, because it is.',
+    'Let yourself want what you want without apology.',
+    'Rest before you are empty, not after.',
+    'Follow the thread of your curiosity.',
+    'Forgive yourself one old thing.',
+    'Light a candle and set an intention with it.',
+    'Speak to your future self with tenderness.',
+    'Let the moon remind you that phases are allowed.',
+    'Do the brave, small thing you keep avoiding.',
+    'Give yourself permission to change your mind.',
+    'Leave a little room for wonder.',
+    'Tend to something living today.',
+    'Close the day with three good things.',
+  ];
+
+  const LUNAR = 29.530588853;
+  const NEW_MOON_REF = Date.UTC(2000, 0, 6, 18, 14); // known new moon
+  function moonInfo(date) {
+    const days = (date.getTime() - NEW_MOON_REF) / 86400000;
+    const age = ((days % LUNAR) + LUNAR) % LUNAR;
+    const f = age / LUNAR;
+    const illum = Math.round((1 - Math.cos(2 * Math.PI * f)) / 2 * 100);
+    let name, glyph, line;
+    if (f < 0.02 || f > 0.98) { name = 'New Moon'; glyph = '🌑'; line = 'A clean slate. Plant an intention in the dark and let it root.'; }
+    else if (f < 0.24) { name = 'Waxing Crescent'; glyph = '🌒'; line = 'Something is beginning. Feed it gently.'; }
+    else if (f < 0.26) { name = 'First Quarter'; glyph = '🌓'; line = 'A moment to decide and push through the first resistance.'; }
+    else if (f < 0.49) { name = 'Waxing Gibbous'; glyph = '🌔'; line = 'Refine and tend. You are almost there.'; }
+    else if (f < 0.51) { name = 'Full Moon'; glyph = '🌕'; line = 'Everything is illuminated. Celebrate, release, give thanks.'; }
+    else if (f < 0.74) { name = 'Waning Gibbous'; glyph = '🌖'; line = 'Share what you have gathered. Gratitude softens everything.'; }
+    else if (f < 0.76) { name = 'Last Quarter'; glyph = '🌗'; line = 'Let go of what no longer fits. Forgive, and clear space.'; }
+    else { name = 'Waning Crescent'; glyph = '🌘'; line = 'Rest and surrender. The dark before the new is sacred too.'; }
+    return { name, glyph, line, illum, age: Math.round(age * 10) / 10 };
+  }
+
+  let cotd = null;
+  function renderToday() {
+    const now = new Date();
+    $('today-date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+    const m = moonInfo(now);
+    $('moon-glyph').textContent = m.glyph;
+    $('moon-phase').textContent = m.name;
+    $('moon-meta').textContent = `${m.illum}% illuminated · ${m.age} days into the cycle`;
+    $('moon-line').textContent = m.line;
+
+    // Card of the day (deterministic).
+    const key = dayKey(now);
+    const idx = hashStr(key) % DECK.length;
+    const orientation = (hashStr(key + '~o') % 100) < 28 ? 'reversed' : 'upright';
+    const card = DECK[idx];
+    cotd = { card, orientation };
+    $('cotd-card').innerHTML = tarotCardHtml(card, orientation);
+    $('cotd-name').textContent = card.name + (orientation === 'reversed' ? ' (reversed)' : '');
+    $('cotd-orient').textContent = card.arcana === 'major' ? 'Major Arcana' : card.suit;
+    $('cotd-keywords').textContent = orientation === 'reversed' ? card.rev : card.up;
+
+    // Intention of the day.
+    const start = new Date(now.getFullYear(), 0, 0);
+    const doy = Math.floor((now - start) / 86400000);
+    $('intention-text').textContent = INTENTIONS[doy % INTENTIONS.length];
+  }
+
+  $('cotd-reflect').addEventListener('click', async () => {
+    if (!cotd) return;
+    const btn = $('cotd-reflect'), note = $('cotd-note');
+    btn.disabled = true; note.textContent = 'Reading the card...';
+    try {
+      const data = await api('/api/witch/tarot', {
+        spread: 'single', question: '',
+        cards: [{ name: cotd.card.name, orientation: cotd.orientation, position: 'Card of the Day' }],
+      });
+      $('cotd-reading').innerHTML = renderReading(data, false);
+      note.textContent = '';
+    } catch (err) { toast(err.message); note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  function renderReading(data, withCards) {
+    let html = '';
+    if (withCards && Array.isArray(data.cards)) {
+      data.cards.forEach(c => {
+        html += `<div class="reading-card-meaning"><strong>${esc(c.name)}</strong> — ${esc(c.meaning)}</div>`;
+      });
+    }
+    if (data.reading) {
+      html += '<h3>The reading</h3>';
+      String(data.reading).split(/\n\n+/).forEach(p => { if (p.trim()) html += `<p>${esc(p.trim())}</p>`; });
+    }
+    if (data.advice) html += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(data.advice)}</p></div>`;
+    return html;
+  }
+
+  /* ══════════ TAROT ══════════ */
+  let spread = 'single';
+  $('spread-chips').addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    spread = c.dataset.spread;
+    $('spread-chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === c));
+  });
+
+  function drawCards(n) {
+    const picks = []; const used = new Set();
+    while (picks.length < n) {
+      const i = Math.floor(Math.random() * DECK.length);
+      if (used.has(i)) continue; used.add(i);
+      picks.push({ card: DECK[i], orientation: Math.random() < 0.3 ? 'reversed' : 'upright' });
+    }
+    return picks;
+  }
+
+  $('tarot-draw').addEventListener('click', async () => {
+    const btn = $('tarot-draw'), note = $('tarot-note');
+    const positions = spread === 'three' ? ['Past', 'Present', 'Future'] : spread === 'yesno' ? ['The card'] : ['Your card'];
+    const n = spread === 'three' ? 3 : 1;
+    const picks = drawCards(n);
+
+    // Render the cards immediately.
+    const grid = document.createElement('div');
+    grid.className = 'draw-grid ' + (n === 3 ? 'three' : 'one');
+    grid.innerHTML = picks.map((p, i) => `<div class="draw-col">${tarotCardHtml(p.card, p.orientation, positions[i])}</div>`).join('');
+    $('tarot-cards').innerHTML = '';
+    $('tarot-cards').appendChild(grid);
+    $('tarot-reading-card').style.display = 'none';
+
+    btn.disabled = true; note.textContent = 'The cards are speaking...';
+    try {
+      const data = await api('/api/witch/tarot', {
+        spread, question: $('tarot-q').value.trim(),
+        cards: picks.map((p, i) => ({ name: p.card.name, orientation: p.orientation, position: positions[i] })),
+      });
+      $('tarot-reading').innerHTML = renderReading(data, true);
+      $('tarot-reading-card').style.display = '';
+      note.textContent = '';
+    } catch (err) { toast(err.message); note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  /* ══════════ CONJURE ══════════ */
+  $('conjure-chips').addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    const which = c.dataset.conjure;
+    $('conjure-chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === c));
+    ['spell', 'familiar', 'image'].forEach(k => $('conjure-' + k).style.display = k === which ? '' : 'none');
+  });
+
+  // Spell
+  $('spell-btn').addEventListener('click', async () => {
+    const intent = $('spell-intent').value.trim();
+    if (!intent) { toast('Name an intention first'); return; }
+    const btn = $('spell-btn'), note = $('spell-note');
+    btn.disabled = true; note.textContent = 'Conjuring...';
+    try {
+      const d = await api('/api/witch/spell', { intent, kind: $('spell-kind').value });
+      const out = $('spell-out');
+      out.innerHTML = `
+        <h3>${esc(d.title || 'A spell')}</h3>
+        ${d.best_time ? `<div class="when">Best cast: ${esc(d.best_time)}</div>` : ''}
+        ${Array.isArray(d.ingredients) ? `<div class="sub">You'll need</div><ul>${d.ingredients.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${Array.isArray(d.steps) ? `<div class="sub">The working</div><ol>${d.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+        ${d.incantation ? `<div class="sub">Say aloud</div><div class="incant">${esc(d.incantation)}</div>` : ''}
+        ${d.note ? `<div class="grounding">${esc(d.note)}</div>` : ''}`;
+      out.style.display = ''; note.textContent = '';
+    } catch (err) { toast(err.message); note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  // Familiar
+  $('fam-btn').addEventListener('click', async () => {
+    const btn = $('fam-btn'), note = $('fam-note');
+    btn.disabled = true; note.textContent = 'Summoning...';
+    try {
+      const d = await api('/api/witch/familiar', { animal: $('fam-animal').value.trim(), vibe: $('fam-vibe').value.trim() });
+      $('fam-out').innerHTML = (d.familiars || []).map(f => `
+        <div class="fam">
+          <div class="fname">${esc(f.name)}</div>
+          <div class="fspecies">${esc(f.species)}</div>
+          <div class="ftrait">${esc(f.trait)}</div>
+          <div class="fblurb">${esc(f.blurb)}</div>
+        </div>`).join('');
+      note.textContent = '';
+    } catch (err) { toast(err.message); note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  // Charm image
+  $('ci-btn').addEventListener('click', async () => {
+    const prompt = $('ci-prompt').value.trim();
+    if (!prompt) { toast('Describe the charm first'); return; }
+    const btn = $('ci-btn'), note = $('ci-note'), out = $('ci-out');
+    btn.disabled = true; note.textContent = 'Illustrating (this takes ~20–40s)...';
+    out.innerHTML = '<div class="img-loading"><span class="spin">✦</span>&nbsp; painting...</div>';
+    try {
+      const style = $('ci-style').value;
+      let data;
+      if (style === 'dall-e-3') {
+        data = await api('/api/generate/dalle', { prompt });
+      } else {
+        data = await api('/api/generate/replicate', { prompt, model: style, settings: { num_inference_steps: 28 } });
+      }
+      out.innerHTML = `<img class="gen-img" src="${data.url}" alt="conjured charm">`;
+      note.textContent = '';
+    } catch (err) { toast(err.message); out.innerHTML = ''; note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  /* ══════════ MORE: horoscope ══════════ */
+  const SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+  $('horo-sign').innerHTML = SIGNS.map(s => `<option>${s}</option>`).join('');
+  $('horo-btn').addEventListener('click', async () => {
+    const btn = $('horo-btn'), note = $('horo-note'), out = $('horo-out');
+    btn.disabled = true; note.textContent = 'Reading the stars...';
+    try {
+      const d = await api('/api/witch/horoscope', {
+        sign: $('horo-sign').value,
+        date: new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' }),
+      });
+      out.innerHTML = `
+        <div class="moon-line" style="margin-top:0;">${esc(d.horoscope || '')}</div>
+        ${d.focus ? `<div style="margin-top:12px;"><span class="tcard-num">Today's focus</span><div style="font-family:var(--serif);font-size:19px;color:var(--gold);">${esc(d.focus)}</div></div>` : ''}
+        ${d.charm ? `<div class="advice-box" style="margin-top:12px;"><div class="k">A small charm</div><p>${esc(d.charm)}</p></div>` : ''}
+        ${d.element_note ? `<div class="grounding" style="border-top:1px solid var(--border-soft); padding-top:12px; margin-top:12px; font-size:12.5px; color:var(--text-faint);">${esc(d.element_note)}</div>` : ''}`;
+      out.style.display = ''; note.textContent = '';
+    } catch (err) { toast(err.message); note.textContent = ''; }
+    btn.disabled = false;
+  });
+
+  /* ══════════ BOOK OF MIRACLES ══════════ */
+  let mBook = loadBook();
+  let selModel = null, selProvider = 'replicate', selStylePrompt = '';
+  let modelsCache = null;
+  let bookPage = 0;
+
+  function loadBook() { try { const r = localStorage.getItem('imageforge_miracles_book'); if (r) return JSON.parse(r); } catch {} return { title: '', subtitle: '', entries: [] }; }
+  function saveBook() { try { localStorage.setItem('imageforge_miracles_book', JSON.stringify(mBook)); } catch {} }
+
+  const DEFAULT_SETTINGS = { suffix: '', lora_scale: 1, megapixels: '1', output_format: 'webp', num_outputs: 1, guidance_scale: 3, output_quality: 80, num_inference_steps: 28 };
+  function allSettings() { try { return JSON.parse(localStorage.getItem('imageforge_model_settings') || '{}'); } catch { return {}; } }
+  function modelSettings(id) { return { ...DEFAULT_SETTINGS, ...(allSettings()[id] || {}) }; }
+
+  async function getModels() {
+    if (modelsCache) return modelsCache;
+    const res = await fetch('/api/models'); const m = await res.json();
+    modelsCache = [
+      ...(m.replicate || []).map(x => ({ ...x, provider: 'replicate' })),
+      ...(m.dalle || []).map(x => ({ ...x, provider: 'dalle' })),
+    ];
+    return modelsCache;
+  }
+
+  async function renderStyleGrid() {
+    const all = await getModels();
+    if (!selModel) {
+      const pref = (mBook.styleModel && all.find(m => m.id === mBook.styleModel)) || all.find(m => /water/i.test(m.name)) || all[0];
+      if (pref) { selModel = pref.id; selStylePrompt = pref.stylePrompt || ''; selProvider = pref.provider; }
+    }
+    const grid = $('style-grid'); grid.innerHTML = '';
+    all.forEach(m => {
+      const d = document.createElement('div');
+      d.className = 'style-opt' + (selModel === m.id ? ' sel' : '');
+      d.innerHTML = `<div class="n">${esc(m.name)}</div><div class="p">${m.provider === 'dalle' ? 'DALL·E' : 'Replicate'}</div>`;
+      d.addEventListener('click', () => {
+        selModel = m.id; selStylePrompt = m.stylePrompt || ''; selProvider = m.provider;
+        mBook.styleModel = m.id; saveBook();
+        grid.querySelectorAll('.style-opt').forEach(o => o.classList.remove('sel')); d.classList.add('sel');
+      });
+      grid.appendChild(d);
+    });
+
+    // Also populate the Conjure charm-image style dropdown.
+    const sel = $('ci-style');
+    if (sel && !sel.dataset.filled) {
+      sel.innerHTML = all.map(m => `<option value="${m.id}">${esc(m.name)}${m.provider === 'dalle' ? ' (DALL·E)' : ''}</option>`).join('');
+      const hoonie = all.find(m => /hoonie/i.test(m.id)); if (hoonie) sel.value = hoonie.id;
+      sel.dataset.filled = '1';
+    }
+  }
+
+  async function genImage(prompt) {
+    if (selProvider === 'replicate') {
+      const s = modelSettings(selModel);
+      const parts = [prompt, s.suffix].filter(Boolean);
+      const d = await api('/api/generate/replicate', { prompt: parts.join(', '), model: selModel, settings: s });
+      return d.url;
+    } else {
+      const full = selStylePrompt ? `${selStylePrompt}. ${prompt}` : prompt;
+      const d = await api('/api/generate/dalle', { prompt: full });
+      return d.url;
+    }
+  }
+
+  $('capture-btn').addEventListener('click', async () => {
+    const seed = $('capture-input').value.trim(); if (!seed) return;
+    if (!selModel) { toast('Pick a style first'); return; }
+    const btn = $('capture-btn'), note = $('capture-note');
+    btn.disabled = true; note.textContent = 'Finding the words...';
+    try {
+      const data = await api('/api/generate/miracles', { seed, mode: 'capture' });
+      const e = data.entries[0];
+      const entry = { id: 'e_' + Date.now(), title: e.title, text: e.text, prompt: e.prompt, url: '' };
+      mBook.entries.push(entry); saveBook(); renderEntries();
+      $('capture-input').value = '';
+      note.textContent = 'Painting the illustration...';
+      try { entry.url = await genImage(e.prompt); } catch (err) { toast('Page saved, illustration failed: ' + err.message); }
+      saveBook(); renderEntries();
+    } catch (err) { toast(err.message); }
+    btn.disabled = false; note.textContent = '';
+  });
+
+  $('imagine-btn').addEventListener('click', async () => {
+    const seed = $('imagine-input').value.trim(); if (!seed) return;
+    if (!selModel) { toast('Pick a style first'); return; }
+    const count = parseInt($('imagine-count').value, 10) || 3;
+    const btn = $('imagine-btn'), note = $('imagine-note');
+    btn.disabled = true; note.textContent = 'Imagining little miracles...';
+    try {
+      const data = await api('/api/generate/miracles', { seed, mode: 'imagine', count });
+      const news = data.entries.map((e, i) => ({ id: 'e_' + Date.now() + '_' + i, title: e.title, text: e.text, prompt: e.prompt, url: '' }));
+      mBook.entries.push(...news); saveBook(); renderEntries();
+      $('imagine-input').value = '';
+      for (let i = 0; i < news.length; i++) {
+        note.textContent = `Painting illustration ${i + 1} of ${news.length}...`;
+        try { news[i].url = await genImage(news[i].prompt); } catch (err) { toast('Some illustrations failed: ' + err.message); }
+        saveBook(); renderEntries();
+      }
+    } catch (err) { toast(err.message); }
+    btn.disabled = false; note.textContent = '';
+  });
+
+  function renderEntries() {
+    $('book-title').value = mBook.title || '';
+    $('book-subtitle').value = mBook.subtitle || '';
+    $('entry-count').textContent = mBook.entries.length ? `(${mBook.entries.length})` : '';
+    const list = $('entry-list');
+    if (!mBook.entries.length) { list.innerHTML = '<div class="empty">No pages yet. Add a miracle above to begin your book.</div>'; return; }
+    list.innerHTML = '';
+    mBook.entries.forEach((e, i) => {
+      const row = document.createElement('div'); row.className = 'entry';
+      const thumb = e.url ? `<img class="thumb" src="${e.url}" alt="">` : `<div class="thumb">✦</div>`;
+      row.innerHTML = `${thumb}
+        <div class="eb"><div class="et">${esc(e.title)}</div><div class="ex">${esc(e.text)}</div></div>
+        <div class="acts">
+          <button class="ibtn" ${i === 0 ? 'disabled' : ''} data-act="up" data-i="${i}">↑</button>
+          <button class="ibtn" ${i === mBook.entries.length - 1 ? 'disabled' : ''} data-act="down" data-i="${i}">↓</button>
+          <button class="ibtn" data-act="repaint" data-i="${i}">↻</button>
+          <button class="ibtn danger" data-act="del" data-i="${i}">×</button>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+  $('entry-list').addEventListener('click', async (e) => {
+    const b = e.target.closest('.ibtn'); if (!b) return;
+    const i = +b.dataset.i, act = b.dataset.act;
+    if (act === 'up' || act === 'down') {
+      const j = i + (act === 'up' ? -1 : 1); if (j < 0 || j >= mBook.entries.length) return;
+      [mBook.entries[i], mBook.entries[j]] = [mBook.entries[j], mBook.entries[i]]; saveBook(); renderEntries();
+    } else if (act === 'del') {
+      if (confirm(`Remove "${mBook.entries[i].title}"?`)) { mBook.entries.splice(i, 1); saveBook(); renderEntries(); }
+    } else if (act === 'repaint') {
+      if (!selModel) { toast('Pick a style first'); return; }
+      const en = mBook.entries[i]; const prev = en.url; en.url = ''; renderEntries();
+      try { en.url = await genImage(en.prompt); } catch (err) { en.url = prev; toast('Repaint failed: ' + err.message); }
+      saveBook(); renderEntries();
+    }
+  });
+  $('book-title').addEventListener('input', e => { mBook.title = e.target.value; saveBook(); });
+  $('book-subtitle').addEventListener('input', e => { mBook.subtitle = e.target.value; saveBook(); });
+
+  // Book read view (one page at a time; cover + entries).
+  document.querySelectorAll('[data-bookview]').forEach(c => c.addEventListener('click', () => {
+    const v = c.dataset.bookview;
+    document.querySelectorAll('[data-bookview]').forEach(x => x.classList.toggle('active', x === c));
+    $('book-write').style.display = v === 'write' ? '' : 'none';
+    $('book-read').style.display = v === 'read' ? '' : 'none';
+    if (v === 'read') { bookPage = 0; renderBookPage(); }
+  }));
+  function bookTotal() { return 1 + mBook.entries.length; }
+  function renderBookPage() {
+    const stage = $('book-stage');
+    if (!mBook.entries.length) {
+      stage.className = 'book-page';
+      stage.innerHTML = `<div class="book-cover"><div class="orn">✦</div><div class="ck">a little book of</div><div class="ct">Miracles</div><div class="cs">Your book is empty — switch to Write to add a page.</div></div>`;
+      $('book-ctr').textContent = ''; $('book-prev').disabled = true; $('book-next').disabled = true; return;
+    }
+    stage.className = 'book-page';
+    if (bookPage === 0) {
+      stage.innerHTML = `<div class="book-cover"><div class="orn">✦</div><div class="ck">a little book of</div><div class="ct">${esc(mBook.title || 'Miracles')}</div><div class="cs">${esc(mBook.subtitle || 'everyday miracles & synchronicities')}</div></div>`;
+      $('book-ctr').textContent = 'Cover';
+    } else {
+      const e = mBook.entries[bookPage - 1];
+      const img = e.url ? `<img class="bimg" src="${e.url}" alt="">` : `<div class="bimg-ph">✦</div>`;
+      stage.innerHTML = `${img}<div class="btext"><div class="bk">no. ${bookPage}</div><div class="btitle">${esc(e.title)}</div><div class="bbody">${esc(e.text)}</div></div>`;
+      $('book-ctr').textContent = `${bookPage} / ${mBook.entries.length}`;
+    }
+    $('book-prev').disabled = bookPage === 0;
+    $('book-next').disabled = bookPage >= bookTotal() - 1;
+  }
+  $('book-prev').addEventListener('click', () => { if (bookPage > 0) { bookPage--; renderBookPage(); } });
+  $('book-next').addEventListener('click', () => { if (bookPage < bookTotal() - 1) { bookPage++; renderBookPage(); } });
+
+  /* ══════════ INIT ══════════ */
+  renderToday();
+  renderEntries();
+  renderStyleGrid().catch(() => toast('Could not load illustration styles'));
+  </script>
+</body>
+</html>
