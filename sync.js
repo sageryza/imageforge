@@ -23,16 +23,25 @@ const etsy = tryRequire('./etsy');
 const shopify = tryRequire('./shopify');
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
-// ─── Title matching (Etsy titles are long/keyword-stuffed; match on token
-// overlap rather than exact string) ────────────────────────────────────
+// ─── Title matching ─────────────────────────────────────────────────
+// Etsy titles are long/keyword-stuffed, so match on token overlap — but use
+// JACCARD (intersection / UNION), not intersection/min. The min-denominator
+// version falsely matched different card decks that merely share generic words
+// ("magic", "cards", "deck"); Jaccard penalises the words that DON'T overlap, so
+// "Magic Rituals Card Deck" no longer collides with "Magic of Flower Cards".
+// Generic filler words are dropped so distinctive nouns drive the score.
+const STOPWORDS = new Set(['the', 'and', 'for', 'with', 'set', 'kit', 'gift', 'witch', 'witchcraft', 'wiccan', 'pagan', 'witchy', 'magic', 'magical', 'supplies', 'handmade']);
 function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
-function tokenSet(s) { return new Set(norm(s).split(' ').filter(w => w.length > 2)); }
+function tokenSet(s) {
+  return new Set(norm(s).split(' ').filter(w => w.length > 2 && !STOPWORDS.has(w)));
+}
 function similarity(a, b) {
   const ta = tokenSet(a), tb = tokenSet(b);
   if (!ta.size || !tb.size) return 0;
   let inter = 0;
   for (const w of ta) if (tb.has(w)) inter++;
-  return inter / Math.min(ta.size, tb.size);
+  const union = ta.size + tb.size - inter;
+  return union ? inter / union : 0;
 }
 
 async function resolveShopId(explicit) {
@@ -48,8 +57,14 @@ function etsyPrice(p) {
   return Math.round((Number(p.amount) / Number(p.divisor || 100)) * 100) / 100;
 }
 
-// Compare Etsy active listings against Shopify products.
-async function audit({ shopId, threshold = 0.6 } = {}) {
+// Compare Etsy active listings against Shopify products. Returns a full,
+// reviewable per-listing breakdown — every Etsy listing with its best Shopify
+// match, the match confidence, and a price comparison — plus a verdict:
+//   match       — confident it's the same product
+//   review      — a weak/ambiguous match, eyeball it
+//   missing     — no real match in Shopify (needs importing)
+//   price_diff  — matched, but the Etsy vs Shopify price disagrees
+async function audit({ shopId, matchAt = 0.5, reviewAt = 0.28 } = {}) {
   if (!etsy) throw new Error('etsy module unavailable');
   if (!shopify) throw new Error('shopify module unavailable');
   shopId = await resolveShopId(shopId);
@@ -60,31 +75,49 @@ async function audit({ shopId, threshold = 0.6 } = {}) {
   if (!listingsR.ok) throw new Error(`Etsy listings fetch failed (${listingsR.status})`);
   const listings = listingsR.results || [];
 
-  const matched = [], missing = [];
+  const rows = [];
   for (const l of listings) {
     let best = null, bestScore = 0;
     for (const p of products) {
       const sc = similarity(l.title, p.title);
       if (sc > bestScore) { bestScore = sc; best = p; }
     }
-    if (bestScore >= threshold && best) {
-      matched.push({ etsy: l.title, shopify: best.title, score: Math.round(bestScore * 100) / 100, shopify_url: best.url });
-    } else {
-      missing.push({ title: l.title, url: l.url, price: etsyPrice(l.price), listing_id: l.listing_id, closest: best ? best.title : null, closest_score: Math.round(bestScore * 100) / 100 });
-    }
+    const ePrice = etsyPrice(l.price);
+    const sPrice = best && best.price != null ? Number(best.price) : null;
+    let verdict;
+    if (bestScore < reviewAt || !best) verdict = 'missing';
+    else if (bestScore < matchAt) verdict = 'review';
+    else if (ePrice != null && sPrice != null && Math.abs(ePrice - sPrice) / Math.max(ePrice, sPrice) > 0.15) verdict = 'price_diff';
+    else verdict = 'match';
+    rows.push({
+      etsy_title: l.title,
+      etsy_url: l.url,
+      etsy_price: ePrice,
+      shopify_title: verdict === 'missing' ? null : (best ? best.title : null),
+      shopify_price: verdict === 'missing' ? null : sPrice,
+      score: Math.round(bestScore * 100) / 100,
+      verdict,
+    });
   }
+
+  const by = v => rows.filter(r => r.verdict === v);
   return {
     etsy_shop_id: shopId,
     etsy_active_listings: listings.length,
     shopify_products: products.length,
-    matched: matched.length,
-    missing_from_shopify: missing.length,
-    missing,
-    matched_sample: matched.slice(0, 12),
+    summary: {
+      match: by('match').length,
+      review: by('review').length,
+      missing: by('missing').length,
+      price_diff: by('price_diff').length,
+    },
+    missing: by('missing'),
+    review: by('review'),
+    price_diff: by('price_diff'),
+    rows,
     can_import: canWrite(),
-    note: canWrite()
-      ? 'write_products scope present — /api/sync/import can create the missing products.'
-      : 'Add the Shopify write_products scope, then /api/sync/import can create the missing products as drafts.',
+    note: 'Only the connected Etsy shop + presence/price are checked; variation-level sync comes with the write phase. '
+      + (canWrite() ? 'write_products present — import can run.' : 'Add write_products to enable the create/update import.'),
   };
 }
 
