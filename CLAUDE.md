@@ -38,6 +38,11 @@ each opens a focused workflow that shares the same house styles.
   (vict), Watercolor Drawings (wtr), PWC Scans (tok), **HOONIE** linocut
   (`sageryza/hoonie`, trigger `HOONIE`, suffix "linocut relief print, white
   background", 40 inference steps — applied automatically server-side).
+- **LoRA scale default: 1.2.** When adding/testing a new Replicate LoRA style,
+  generate test samples at `lora_scale: 1.2` by default — it makes the trained
+  style come through more strongly and generally looks better. Also try `1.3` as
+  a comparison to see if the stronger pull helps that particular model, but 1.2
+  is the default to reach for.
 - Committed style previews live in `public/samples/<seg>.webp` (used by the Test
   Station tiles). Regenerate with `node scripts/gen-samples.js` against a running
   server (needs `REPLICATE_API_TOKEN`).
@@ -466,6 +471,10 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **End every message with a TLDR.** Every reply closes with a short **TLDR:**
+  line (a sentence or two) recapping the point / what to do next — it comes
+  after the main text, before any delivered files/images and the audio version.
+  Keep it plain and skimmable so the whole reply lands in one glance on a phone.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
