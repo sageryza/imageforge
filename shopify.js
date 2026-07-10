@@ -267,45 +267,34 @@ async function listSubscribers({ max = 5000 } = {}) {
 }
 
 // ─── Products (for in-post placement / clickable store links) ───────
-// Active products with their public storefront URL (GraphQL `onlineStoreUrl`,
-// so no domain guessing) + featured image + price. Lets the blog weave in a
-// clickable link to the relevant product.
-const PRODUCTS_QUERY = `
-  query Products($cursor: String) {
-    products(first: 100, after: $cursor, query: "status:active") {
-      edges {
-        cursor
-        node {
-          title
-          handle
-          onlineStoreUrl
-          featuredImage { url }
-          priceRangeV2 { minVariantPrice { amount currencyCode } }
-        }
-      }
-      pageInfo { hasNextPage }
-    }
-  }`;
-
+// Uses the store's PUBLIC `/products.json` (no auth, no `read_products` scope) —
+// the OAuth token here only carries customer/content scopes, and products are
+// public on the storefront anyway. Returns title / handle / public URL /
+// featured image / price so the blog can weave in a clickable product link.
 async function listProducts({ max = 250 } = {}) {
   const out = [];
-  let cursor = null, hasNext = true;
-  while (hasNext && out.length < max) {
-    const data = await shopifyGraphQL(PRODUCTS_QUERY, { cursor });
-    const conn = data.products;
-    for (const edge of conn.edges) {
-      const n = edge.node;
+  let page = 1;
+  while (out.length < max && page <= 20) {
+    const res = await fetch(`https://${STORE}/products.json?limit=250&page=${page}`, {
+      headers: { 'Accept': 'application/json', 'Connection': 'close' },
+      timeout: 30000,
+    });
+    if (!res.ok) throw new Error(`Shopify products.json ${res.status}`);
+    const data = await res.json().catch(() => ({}));
+    const products = Array.isArray(data.products) ? data.products : [];
+    if (!products.length) break;
+    for (const p of products) {
       out.push({
-        title: n.title,
-        handle: n.handle,
-        url: n.onlineStoreUrl || `https://${STORE}/products/${n.handle}`,
-        image: n.featuredImage ? n.featuredImage.url : null,
-        price: n.priceRangeV2 ? n.priceRangeV2.minVariantPrice.amount : null,
-        currency: n.priceRangeV2 ? n.priceRangeV2.minVariantPrice.currencyCode : null,
+        title: p.title,
+        handle: p.handle,
+        url: `https://${STORE}/products/${p.handle}`,
+        image: p.images && p.images[0] ? p.images[0].src : null,
+        price: p.variants && p.variants[0] ? p.variants[0].price : null,
+        productType: p.product_type || '',
       });
-      cursor = edge.cursor;
+      if (out.length >= max) break;
     }
-    hasNext = conn.pageInfo.hasNextPage;
+    page++;
   }
   return out;
 }
