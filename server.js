@@ -346,9 +346,9 @@ const MODELS = {
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
     { id: 'sageryza/hoonie', version: null, name: 'Hoonie Linocut', trigger: 'HOONIE', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
-    { id: 'sageryza/halfmagic', version: null, name: 'Half Magic', trigger: 'TOK', defaultLoraScale: 1.2 },
-    { id: 'sageryza/moth', version: null, name: 'Moth', trigger: 'TOK', defaultLoraScale: 1.2 },
-    { id: 'sageryza/nmboed', version: null, name: 'Storybook Sketch', trigger: 'TOK', defaultLoraScale: 1.2 },
+    { id: 'sageryza/halfmagic', version: null, name: 'Half Magic', trigger: 'TOK', promptSuffix: 'pen and ink engraving, white background', defaultLoraScale: 1.2 },
+    { id: 'sageryza/moth', version: null, name: 'Moth', trigger: 'TOK', promptSuffix: 'vintage pen and ink illustration, white background', defaultLoraScale: 1.3 },
+    { id: 'sageryza/nmboed', version: null, name: 'Storybook Sketch', trigger: 'TOK', promptSuffix: 'loose ink and watercolor illustration, white background', defaultLoraScale: 1.2 },
   ],
   // OpenAI image generation. The DALL·E 3 style presets were retired — a single
   // clean entry remains so OpenAI is still selectable alongside the LoRAs.
