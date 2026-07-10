@@ -298,11 +298,46 @@
       background: none; border: none; cursor: pointer; color: var(--text-faint);
       font-family: inherit; transition: color 0.15s ease; position: relative; padding-top: 4px;
     }
-    .nav-btn .ni { font-size: 20px; line-height: 1; transition: transform 0.15s ease; }
+    .nav-btn .ni { line-height: 0; transition: transform 0.15s ease; }
+    .nav-btn .ni svg { width: 23px; height: 23px; display: block; }
     .nav-btn .nl { font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase; }
     .nav-btn.active { color: var(--gold); }
     .nav-btn.active .ni { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(230,194,129,0.5)); }
     .nav-btn.active::after { content: ''; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--gold); }
+
+    .tile .ti { line-height: 0; color: var(--gold); }
+    .tile .ti svg { width: 25px; height: 25px; stroke-width: 1.7; }
+    .btn svg, .btn-ghost svg { width: 15px; height: 15px; }
+
+    /* ── Moon calendar ── */
+    .mcal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .mcal-title { font-family: var(--serif); font-size: 20px; color: var(--moon); }
+    .mcal-nav { display: flex; gap: 8px; }
+    .mcal-nav button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+    .mcal-nav button:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .mcal-nav svg { width: 16px; height: 16px; }
+    .mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .mcal-dow { text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); padding-bottom: 2px; }
+    .mcal-cell { aspect-ratio: 1; border-radius: 6px; border: 1px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: rgba(0,0,0,0.16); }
+    .mcal-cell.empty { background: transparent; }
+    .mcal-cell.today { border-color: var(--gold); background: rgba(230,194,129,0.13); }
+    .mcal-cell.key { border-color: var(--border); }
+    .mcal-cell .d { font-size: 10px; color: var(--text-dim); }
+    .mcal-cell.today .d { color: var(--gold); font-weight: 600; }
+    .mcal-cell .g { font-size: 15px; line-height: 1; }
+    .mcal-legend { display: flex; gap: 16px; justify-content: center; margin-top: 14px; font-size: 10.5px; color: var(--text-faint); }
+
+    /* ── Saved lists (readings / grimoire) ── */
+    .saved-item { background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 10px; }
+    .saved-item .si-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .saved-item .si-title { font-family: var(--serif); font-size: 17px; color: var(--gold); }
+    .saved-item .si-date { font-size: 10.5px; color: var(--text-faint); white-space: nowrap; }
+    .saved-item .si-meta { font-size: 12px; color: var(--text-dim); margin-top: 3px; line-height: 1.45; }
+    .saved-item .si-body { margin-top: 8px; }
+    .saved-item .si-actions { display: flex; gap: 14px; margin-top: 10px; }
+    .link-btn { background: none; border: none; color: var(--gold-dim); font-family: inherit; font-size: 12px; cursor: pointer; padding: 0; letter-spacing: 0.3px; }
+    .link-btn:hover { color: var(--gold); }
+    .link-btn.danger:hover { color: var(--danger); }
 
     @media (max-width: 380px) {
       .fam-grid, .tiles { grid-template-columns: 1fr; }
@@ -351,6 +386,19 @@
         <div class="card">
           <div class="card-head"><h2>Today's Intention</h2></div>
           <div class="moon-line" style="margin-top:0;" id="intention-text"></div>
+        </div>
+
+        <div class="card">
+          <div class="mcal-head">
+            <div class="mcal-title" id="mcal-title">Moon calendar</div>
+            <div class="mcal-nav">
+              <button id="mcal-prev" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button id="mcal-today" title="This month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></button>
+              <button id="mcal-next" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+          </div>
+          <div class="mcal-grid" id="mcal-grid"></div>
+          <div class="mcal-legend"><span>🌑 New</span><span>🌓 Quarter</span><span>🌕 Full</span></div>
         </div>
       </section>
 
@@ -423,23 +471,33 @@
         <div class="section-title">Tarot</div>
         <div class="section-sub">Draw from a full 78-card deck and receive a gentle, reflective reading.</div>
 
-        <div class="card">
-          <label>Your question <span style="text-transform:none; letter-spacing:0; color:var(--text-faint);">(optional)</span></label>
-          <div class="field"><input type="text" id="tarot-q" placeholder="What should I focus on right now?"></div>
-          <label>Spread</label>
-          <div class="chips" id="spread-chips">
-            <button class="chip active" data-spread="single">One card</button>
-            <button class="chip" data-spread="three">Past · Present · Future</button>
-            <button class="chip" data-spread="yesno">Yes / No</button>
-          </div>
-          <button class="btn" id="tarot-draw">🔮 Draw the cards</button>
-          <div class="note" id="tarot-note"></div>
+        <div class="chips" id="tarot-mode">
+          <button class="chip active" data-tmode="draw">Draw</button>
+          <button class="chip" data-tmode="saved">Saved <span id="saved-count"></span></button>
         </div>
 
-        <div id="tarot-cards"></div>
-        <div class="card" id="tarot-reading-card" style="display:none;">
-          <div id="tarot-reading" class="reading-block"></div>
+        <div id="tarot-draw-view">
+          <div class="card">
+            <label>Your question <span style="text-transform:none; letter-spacing:0; color:var(--text-faint);">(optional)</span></label>
+            <div class="field"><input type="text" id="tarot-q" placeholder="What should I focus on right now?"></div>
+            <label>Spread</label>
+            <div class="chips" id="spread-chips">
+              <button class="chip active" data-spread="single">One card</button>
+              <button class="chip" data-spread="three">Past · Present · Future</button>
+              <button class="chip" data-spread="yesno">Yes / No</button>
+            </div>
+            <button class="btn" id="tarot-draw">🔮 Draw the cards</button>
+            <div class="note" id="tarot-note"></div>
+          </div>
+
+          <div id="tarot-cards"></div>
+          <div class="card" id="tarot-reading-card" style="display:none;">
+            <div id="tarot-reading" class="reading-block"></div>
+            <button class="btn-ghost" id="tarot-save" style="margin-top:16px;">✦ Save this reading</button>
+          </div>
         </div>
+
+        <div id="tarot-saved-view" style="display:none;"></div>
       </section>
 
       <!-- ═══════════ CONJURE ═══════════ -->
@@ -456,23 +514,33 @@
 
         <!-- SPELL -->
         <div id="conjure-spell">
-          <div class="card">
-            <h2>Spell &amp; ritual maker</h2>
-            <p class="hint">Name an intention. Cozy, symbolic, beginner-friendly magic — nothing dangerous.</p>
-            <div class="field"><input type="text" id="spell-intent" placeholder="a calm mind before a big day"></div>
-            <label>Kind</label>
-            <div class="field">
-              <select id="spell-kind">
-                <option value="spell">Spell</option>
-                <option value="ritual">Ritual</option>
-                <option value="blessing">Blessing</option>
-                <option value="protection">Protection</option>
-              </select>
-            </div>
-            <button class="btn" id="spell-btn">🌙 Conjure it</button>
-            <div class="note" id="spell-note"></div>
+          <div class="chips" id="spell-mode">
+            <button class="chip active" data-smode="make">Conjure</button>
+            <button class="chip" data-smode="grimoire">Grimoire <span id="grimoire-count"></span></button>
           </div>
-          <div class="card spell" id="spell-out" style="display:none;"></div>
+
+          <div id="spell-make">
+            <div class="card">
+              <h2>Spell &amp; ritual maker</h2>
+              <p class="hint">Name an intention. Cozy, symbolic, beginner-friendly magic — nothing dangerous.</p>
+              <div class="field"><input type="text" id="spell-intent" placeholder="a calm mind before a big day"></div>
+              <label>Kind</label>
+              <div class="field">
+                <select id="spell-kind">
+                  <option value="spell">Spell</option>
+                  <option value="ritual">Ritual</option>
+                  <option value="blessing">Blessing</option>
+                  <option value="protection">Protection</option>
+                </select>
+              </div>
+              <button class="btn" id="spell-btn">🌙 Conjure it</button>
+              <div class="note" id="spell-note"></div>
+            </div>
+            <div class="card spell" id="spell-out" style="display:none;"></div>
+            <button class="btn-ghost" id="spell-save" style="display:none;">✦ Save to grimoire</button>
+          </div>
+
+          <div id="spell-grimoire" style="display:none;"></div>
         </div>
 
         <!-- FAMILIAR -->
@@ -522,12 +590,19 @@
 
         <div class="tiles" style="margin-bottom:16px;">
           <a class="tile" id="tile-watch" href="#" target="_blank" rel="noopener">
-            <span class="ti">▶</span><span class="tt">Watch</span>
+            <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z"/><path d="M12 17v4"/><path d="M8 21h8"/><rect x="2" y="3" width="20" height="14" rx="2"/></svg></span>
+            <span class="tt">Watch</span>
             <span class="td">The Secretly a Witch video channel.</span>
           </a>
           <a class="tile" id="tile-shop" href="#" target="_blank" rel="noopener">
-            <span class="ti">🛍</span><span class="tt">Shop</span>
-            <span class="td">Charms, prints &amp; decks in the shop.</span>
+            <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg></span>
+            <span class="tt">Shop</span>
+            <span class="td">Crystals, herbs &amp; ritual kits at secretlyawitch.com.</span>
+          </a>
+          <a class="tile" id="tile-instagram" href="#" target="_blank" rel="noopener">
+            <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></span>
+            <span class="tt">Follow</span>
+            <span class="td">Daily magic on Instagram, @moonsickbaby.</span>
           </a>
         </div>
 
@@ -544,11 +619,11 @@
 
     <nav>
       <div class="nav-inner" id="nav">
-        <button class="nav-btn active" data-view="today"><span class="ni">✦</span><span class="nl">Today</span></button>
-        <button class="nav-btn" data-view="book"><span class="ni">📖</span><span class="nl">Miracles</span></button>
-        <button class="nav-btn" data-view="tarot"><span class="ni">🔮</span><span class="nl">Tarot</span></button>
-        <button class="nav-btn" data-view="conjure"><span class="ni">🌙</span><span class="nl">Conjure</span></button>
-        <button class="nav-btn" data-view="more"><span class="ni">✧</span><span class="nl">More</span></button>
+        <button class="nav-btn active" data-view="today"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5h4"/><path d="M20 3v4"/><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></span><span class="nl">Today</span></button>
+        <button class="nav-btn" data-view="book"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></span><span class="nl">Miracles</span></button>
+        <button class="nav-btn" data-view="tarot"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></span><span class="nl">Tarot</span></button>
+        <button class="nav-btn" data-view="conjure"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></span><span class="nl">Conjure</span></button>
+        <button class="nav-btn" data-view="more"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span><span class="nl">More</span></button>
       </div>
     </nav>
   </div>
@@ -562,12 +637,15 @@
 
   // ── External links (set these to Sophie's real channel / shop) ──
   const LINKS = {
-    // TODO: replace with the real "Secretly a Witch" YouTube channel + Etsy shop URLs.
+    // TODO: replace `youtube` with the real channel URL (e.g. https://youtube.com/@handle).
+    // The backend YouTube token is upload-only scope, so it can't reveal the channel — needs the handle.
     youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
-    shop: 'https://www.etsy.com/',
+    shop: 'https://secretlyawitch.com',
+    instagram: 'https://instagram.com/moonsickbaby',
   };
   document.getElementById('tile-watch').href = LINKS.youtube;
   document.getElementById('tile-shop').href = LINKS.shop;
+  document.getElementById('tile-instagram').href = LINKS.instagram;
 
   // ── Helpers ──
   const $ = (id) => document.getElementById(id);
@@ -809,6 +887,12 @@
       });
       $('tarot-reading').innerHTML = renderReading(data, true);
       $('tarot-reading-card').style.display = '';
+      lastTarot = {
+        spread, question: $('tarot-q').value.trim(),
+        cards: picks.map((p, i) => ({ name: p.card.name, orientation: p.orientation, position: positions[i] })),
+        data,
+      };
+      const sv = $('tarot-save'); sv.disabled = false; sv.textContent = '✦ Save this reading';
       note.textContent = '';
     } catch (err) { toast(err.message); note.textContent = ''; }
     btn.disabled = false;
@@ -830,15 +914,11 @@
     btn.disabled = true; note.textContent = 'Conjuring...';
     try {
       const d = await api('/api/witch/spell', { intent, kind: $('spell-kind').value });
-      const out = $('spell-out');
-      out.innerHTML = `
-        <h3>${esc(d.title || 'A spell')}</h3>
-        ${d.best_time ? `<div class="when">Best cast: ${esc(d.best_time)}</div>` : ''}
-        ${Array.isArray(d.ingredients) ? `<div class="sub">You'll need</div><ul>${d.ingredients.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-        ${Array.isArray(d.steps) ? `<div class="sub">The working</div><ol>${d.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
-        ${d.incantation ? `<div class="sub">Say aloud</div><div class="incant">${esc(d.incantation)}</div>` : ''}
-        ${d.note ? `<div class="grounding">${esc(d.note)}</div>` : ''}`;
-      out.style.display = ''; note.textContent = '';
+      $('spell-out').innerHTML = spellHtml(d);
+      $('spell-out').style.display = '';
+      lastSpell = { intent, kind: $('spell-kind').value, data: d };
+      const sv = $('spell-save'); sv.style.display = ''; sv.disabled = false; sv.textContent = '✦ Save to grimoire';
+      note.textContent = '';
     } catch (err) { toast(err.message); note.textContent = ''; }
     btn.disabled = false;
   });
@@ -1076,9 +1156,124 @@
   $('book-prev').addEventListener('click', () => { if (bookPage > 0) { bookPage--; renderBookPage(); } });
   $('book-next').addEventListener('click', () => { if (bookPage < bookTotal() - 1) { bookPage++; renderBookPage(); } });
 
+  /* ══════════ MOON CALENDAR ══════════ */
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  let calY, calM;
+  function renderMoonCalendar() {
+    const now = new Date();
+    $('mcal-title').textContent = `${MONTHS[calM]} ${calY}`;
+    const first = new Date(calY, calM, 1).getDay();
+    const days = new Date(calY, calM + 1, 0).getDate();
+    let html = DOW.map(d => `<div class="mcal-dow">${d}</div>`).join('');
+    for (let i = 0; i < first; i++) html += '<div class="mcal-cell empty"></div>';
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(calY, calM, d);
+      const m = moonInfo(date);
+      const isToday = date.toDateString() === now.toDateString();
+      const isKey = /New|Full/.test(m.name);
+      html += `<div class="mcal-cell ${isToday ? 'today' : ''} ${isKey ? 'key' : ''}" title="${esc(m.name)}"><span class="g">${m.glyph}</span><span class="d">${d}</span></div>`;
+    }
+    $('mcal-grid').innerHTML = html;
+  }
+  function shiftMonth(n) { calM += n; if (calM < 0) { calM = 11; calY--; } else if (calM > 11) { calM = 0; calY++; } renderMoonCalendar(); }
+  $('mcal-prev').addEventListener('click', () => shiftMonth(-1));
+  $('mcal-next').addEventListener('click', () => shiftMonth(1));
+  $('mcal-today').addEventListener('click', () => { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); renderMoonCalendar(); });
+
+  /* ══════════ SAVED READINGS ══════════ */
+  let lastTarot = null;
+  function loadReadings() { try { return JSON.parse(localStorage.getItem('witch_saved_readings') || '[]'); } catch { return []; } }
+  function saveReadings(a) { try { localStorage.setItem('witch_saved_readings', JSON.stringify(a)); } catch {} }
+  function updateSavedCount() { const n = loadReadings().length; $('saved-count').textContent = n ? `(${n})` : ''; }
+  function nowStamp() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+
+  $('tarot-mode').addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    const mode = c.dataset.tmode;
+    $('tarot-mode').querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === c));
+    $('tarot-draw-view').style.display = mode === 'draw' ? '' : 'none';
+    $('tarot-saved-view').style.display = mode === 'saved' ? '' : 'none';
+    if (mode === 'saved') renderSavedReadings();
+  });
+  $('tarot-save').addEventListener('click', () => {
+    if (!lastTarot) return;
+    const all = loadReadings();
+    all.unshift({ id: 'r_' + Date.now(), date: nowStamp(), ...lastTarot });
+    saveReadings(all); updateSavedCount();
+    const b = $('tarot-save'); b.disabled = true; b.textContent = '✦ Saved to your readings';
+  });
+  function renderSavedReadings() {
+    const all = loadReadings(); const wrap = $('tarot-saved-view');
+    if (!all.length) { wrap.innerHTML = '<div class="empty">No saved readings yet. Draw the cards, then tap “Save this reading.”</div>'; return; }
+    wrap.innerHTML = all.map(r => {
+      const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
+      return `<div class="card saved-item" data-id="${r.id}">
+        <div class="si-top"><div class="si-title">${esc(r.question || 'A general reading')}</div><div class="si-date">${esc(r.date)}</div></div>
+        <div class="si-meta">${esc(r.spread === 'three' ? 'Past · Present · Future' : r.spread === 'yesno' ? 'Yes / No' : 'One card')} — ${esc(cards)}</div>
+        <div class="si-body">${renderReading(r.data, true)}</div>
+        <div class="si-actions"><button class="link-btn danger" data-del="${r.id}">Remove</button></div>
+      </div>`;
+    }).join('');
+  }
+  $('tarot-saved-view').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    saveReadings(loadReadings().filter(r => r.id !== b.dataset.del));
+    updateSavedCount(); renderSavedReadings();
+  });
+
+  /* ══════════ GRIMOIRE (saved spells) ══════════ */
+  let lastSpell = null;
+  function spellHtml(d) {
+    return `
+      <h3>${esc(d.title || 'A spell')}</h3>
+      ${d.best_time ? `<div class="when">Best cast: ${esc(d.best_time)}</div>` : ''}
+      ${Array.isArray(d.ingredients) ? `<div class="sub">You'll need</div><ul>${d.ingredients.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${Array.isArray(d.steps) ? `<div class="sub">The working</div><ol>${d.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+      ${d.incantation ? `<div class="sub">Say aloud</div><div class="incant">${esc(d.incantation)}</div>` : ''}
+      ${d.note ? `<div class="grounding">${esc(d.note)}</div>` : ''}`;
+  }
+  function loadGrimoire() { try { return JSON.parse(localStorage.getItem('witch_grimoire') || '[]'); } catch { return []; } }
+  function saveGrimoire(a) { try { localStorage.setItem('witch_grimoire', JSON.stringify(a)); } catch {} }
+  function updateGrimoireCount() { const n = loadGrimoire().length; $('grimoire-count').textContent = n ? `(${n})` : ''; }
+
+  $('spell-mode').addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    const mode = c.dataset.smode;
+    $('spell-mode').querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === c));
+    $('spell-make').style.display = mode === 'make' ? '' : 'none';
+    $('spell-grimoire').style.display = mode === 'grimoire' ? '' : 'none';
+    if (mode === 'grimoire') renderGrimoire();
+  });
+  $('spell-save').addEventListener('click', () => {
+    if (!lastSpell) return;
+    const all = loadGrimoire();
+    all.unshift({ id: 'g_' + Date.now(), date: nowStamp(), ...lastSpell });
+    saveGrimoire(all); updateGrimoireCount();
+    const b = $('spell-save'); b.disabled = true; b.textContent = '✦ Saved to your grimoire';
+  });
+  function renderGrimoire() {
+    const all = loadGrimoire(); const wrap = $('spell-grimoire');
+    if (!all.length) { wrap.innerHTML = '<div class="empty">Your grimoire is empty. Conjure a spell, then tap “Save to grimoire.”</div>'; return; }
+    wrap.innerHTML = all.map(g => `<div class="card spell saved-item" data-id="${g.id}">
+      <div class="si-top"><div></div><div class="si-date">${esc(g.date)}</div></div>
+      ${spellHtml(g.data || g)}
+      <div class="si-actions"><button class="link-btn danger" data-del="${g.id}">Remove</button></div>
+    </div>`).join('');
+  }
+  $('spell-grimoire').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    saveGrimoire(loadGrimoire().filter(g => g.id !== b.dataset.del));
+    updateGrimoireCount(); renderGrimoire();
+  });
+
   /* ══════════ INIT ══════════ */
+  const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();
   renderToday();
+  renderMoonCalendar();
   renderEntries();
+  updateSavedCount();
+  updateGrimoireCount();
   renderStyleGrid().catch(() => toast('Could not load illustration styles'));
   </script>
 </body>

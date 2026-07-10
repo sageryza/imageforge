@@ -7,6 +7,7 @@
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
+  - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
 
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
@@ -365,6 +366,34 @@ lifted into a standalone tool later.
   "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
+## Secretly a Witch (public witchy app)
+- `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
+  single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
+  mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
+  endpoints + a small set of stateless AI endpoints in `server.js`:
+  `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
+  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
+  - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
+    epoch, client-side), a deterministic **Card of the Day** (per-day hash into
+    a full 78-card deck built in JS: 22 majors w/ up/rev meanings + 56 minors by
+    suit×rank), an optional AI reflection, a daily **intention**, and a
+    **moon calendar** (month grid, glyph per day, new/full highlighted).
+  - **Miracles** — the Little Book of Miracles ported in full (capture/imagine →
+    illustrated pages → read view). Shares `localStorage['imageforge_miracles_book']`
+    with `/book`.
+  - **Tarot** — 1 / three-card / yes-no draws + AI reading; **save readings** to
+    `localStorage['witch_saved_readings']`.
+  - **Conjure** — spell/ritual maker (**save to grimoire**,
+    `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
+    maker over the house LoRA styles.
+  - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **External links** live in a `LINKS` const at the top of the client script.
+  Shop = `secretlyawitch.com` (Shopify), Instagram = `@moonsickbaby`. **Watch =
+  YouTube is still a placeholder search** — the channel URL isn't stored anywhere
+  (the YouTube token is upload-only scope and can't read the channel), so it
+  needs Sophie's `@handle` pasted in.
+
 ## Design rules (forever)
 - **Research the CURRENT UI before giving click-by-click steps for any external
   dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
@@ -376,6 +405,20 @@ lifted into a standalone tool later.
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
+  tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
+  `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
+  emoji. Pull exact paths from `unpkg.com/lucide-static@latest/icons/<name>.svg`
+  and inline them (CSP-safe, no external requests). Emoji are fine ONLY as
+  expressive *content* (moon phases 🌑🌕, a decorative ✦), never as the icon for
+  a control. (Lucide dropped brand glyphs like YouTube/Instagram for trademark
+  reasons — hand-inline a simple equivalent or use `monitor-play`/`camera`.)
+- **Each app may have its own visual identity — don't blanket-copy the warm-paper
+  studio look.** `forge.css` (warm paper, `--accent` tan) is the *studio/hub*
+  system; public apps can and should diverge. Example: **Secretly a Witch** uses
+  its own dark, mystical theme (ink/plum + gold + moonlight) defined inline in
+  `witch.html`, NOT `forge.css`. When starting a new surface, pick a palette that
+  fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
 - **Always include clickable testing links** when something is ready to test:
