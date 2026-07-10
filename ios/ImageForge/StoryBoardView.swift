@@ -86,40 +86,34 @@ private struct VHSBox: View {
     let project: StoryProject
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 7) {
             ZStack {
                 if let cover = project.cover {
                     AsyncImage(url: cover) { phase in
                         if case .success(let img) = phase { img.resizable().scaledToFill() }
-                        else { Color(white: 0.18) }
+                        else { Color(white: 0.88) }
                     }
                 } else {
                     ZStack {
-                        Color(white: 0.14)
-                        Text("?").font(.system(size: 40, design: .serif)).foregroundStyle(.tertiary)
+                        Color(white: 0.88)
+                        Text("?").font(.system(size: 34, design: .serif)).foregroundStyle(.secondary)
                     }
                 }
             }
             .aspectRatio(2 / 3, contentMode: .fit)
             .clipped()
-            .overlay(alignment: .leading) {
-                // plastic spine highlight
-                LinearGradient(colors: [.white.opacity(0.35), .clear], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: 7)
-            }
-            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.black.opacity(0.6), lineWidth: 1.5))
+            .overlay(Rectangle().strokeBorder(.black.opacity(0.25), lineWidth: 1))
 
-            // framed title plate on the case front
-            Text(project.title)
-                .font(.system(.caption, design: .serif).weight(.semibold))
-                .lineLimit(1).minimumScaleFactor(0.6)
-                .padding(.horizontal, 6).padding(.vertical, 4)
-                .frame(maxWidth: .infinity)
-                .background(Color(red: 0.93, green: 0.89, blue: 0.80))
-                .foregroundStyle(Color(red: 0.20, green: 0.16, blue: 0.13))
-                .overlay(Rectangle().strokeBorder(Color(red: 0.35, green: 0.28, blue: 0.20), lineWidth: 1.5))
+            Text(project.title.uppercased())
+                .font(.caption2.weight(.heavy))
+                .kerning(0.8)
+                .foregroundStyle(.black)
+                .lineLimit(1).minimumScaleFactor(0.5)
+                .padding(.bottom, 2)
         }
-        .background(Color.black)
+        .padding(7)
+        .background(Color(red: 0.96, green: 0.94, blue: 0.88))
+        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.black.opacity(0.55), lineWidth: 1.5))
         .clipShape(RoundedRectangle(cornerRadius: 3))
         .rotation3DEffect(.degrees(4), axis: (x: 0, y: 1, z: 0), perspective: 0.4)
         .shadow(color: .black.opacity(0.30), radius: 7, x: 4, y: 6)
@@ -256,12 +250,23 @@ final class StoryBoardModel: ObservableObject {
             loading = false
             return
         }
-        listener = Firestore.firestore().collection("forge-story").order(by: "order")
-            .addSnapshotListener { [weak self] snap, err in
-                guard let self else { return }
-                self.loading = false
-                if let err { self.error = err.localizedDescription; return }
-                self.projects = (snap?.documents ?? []).map { doc in
+        let query = Firestore.firestore().collection("forge-story").order(by: "order")
+        // The disk cache can hold pre-cover docs; force one server read so the
+        // shelf never renders stale data, then keep the live listener.
+        query.getDocuments(source: .server) { [weak self] snap, _ in
+            if let docs = snap?.documents { self?.apply(docs) }
+        }
+        listener = query.addSnapshotListener { [weak self] snap, err in
+            guard let self else { return }
+            self.loading = false
+            if let err { self.error = err.localizedDescription; return }
+            self.apply(snap?.documents ?? [])
+        }
+    }
+
+    private func apply(_ documents: [QueryDocumentSnapshot]) {
+        loading = false
+        projects = documents.map { doc in
                     let d = doc.data()
                     let beats = (d["beats"] as? [[String: Any]] ?? []).map { b in
                         StoryBeat(
@@ -282,8 +287,7 @@ final class StoryBoardModel: ObservableObject {
                         cover: (d["cover"] as? String).flatMap(URL.init(string:)),
                         beats: beats
                     )
-                }
-            }
+        }
     }
 
     deinit { listener?.remove() }
