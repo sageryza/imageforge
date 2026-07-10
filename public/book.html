@@ -199,6 +199,17 @@
 
     .empty-state { padding: 30px; text-align: center; color: var(--text-dim); font-size: 13px; }
 
+    /* Sticker sheets */
+    .sticker-sheets { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-top: 16px; }
+    .sheet-card { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+    .sheet-card .sheet-hd { padding: 8px 10px; font-size: 11px; color: var(--text-dim); border-bottom: 1px solid var(--border); }
+    .sheet-card .sheet-body { aspect-ratio: 2 / 3; display: flex; align-items: center; justify-content: center; background: #fff; }
+    .sheet-card .sheet-body img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .sheet-card .sheet-body .pending { font-size: 12px; color: var(--text-dim); font-style: italic; }
+    .sheet-card .sheet-body .failed { font-size: 12px; color: #b4442e; padding: 10px; text-align: center; }
+    .sheet-card .sheet-dl { display: block; padding: 8px 10px; font-size: 12px; text-align: center; color: var(--accent); text-decoration: none; border-top: 1px solid var(--border); }
+    .sheet-card .sheet-dl:hover { text-decoration: underline; }
+
     /* ── The book (read view) ── */
     .book-stage {
       display: flex; flex-direction: column; align-items: center; gap: 18px;
@@ -354,6 +365,25 @@
       <button class="btn-secondary btn-small" id="read-btn" onclick="setView('read')">Read book →</button>
     </div>
     <div class="entry-list" id="entry-list"></div>
+
+    <div class="compose-card" id="sticker-card" style="margin-top: 24px;">
+      <h2>Sticker sheets from your miracles</h2>
+      <p class="hint">Turn every miracle in your book into printable kiss-cut sticker sheets, spread across as many sheets as it takes with a set number of moments on each. Rendered with ChatGPT (gpt-image-2).</p>
+      <div class="row">
+        <div style="flex: 0 0 140px;">
+          <label>Moments per sheet</label>
+          <select id="sticker-per-sheet">
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6" selected>6</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <button class="btn" id="make-stickers-btn" onclick="makeStickerSheets()">Make sticker sheets</button>
+      </div>
+      <div class="progress-note" id="sticker-note" style="display:none;"></div>
+      <div class="sticker-sheets" id="sticker-sheets"></div>
+    </div>
   </div>
 
   <!-- ═══ READ ═══ -->
@@ -620,6 +650,82 @@
         e.url = prev; showError('Repaint failed: ' + err.message);
       }
       saveBook(); renderEntries();
+    }
+
+    // ── Sticker sheets from the miracles ──
+    // Pull the concrete visual out of an entry's watercolor illustration prompt
+    // (falls back to the title) so each miracle becomes one sticker on the sheet.
+    function stickerSubject(e) {
+      let s = (e.prompt || '').trim();
+      s = s.replace(/^soft watercolor illustration of\s*/i, '');
+      s = s.replace(/[,.]?\s*minimal background,?\s*gentle muted palette\.?\s*$/i, '');
+      s = s.replace(/\s+/g, ' ').trim().replace(/[.,]+$/, '');
+      return s || (e.title || '').trim();
+    }
+
+    // Split the whole book into batches and render one sticker sheet per batch,
+    // so all the miracles are spread across the right number of sheets.
+    function chunk(arr, size) {
+      const out = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    }
+
+    async function makeStickerSheets() {
+      hideError();
+      const entries = book.entries || [];
+      if (!entries.length) { showError('Add some miracles first — there is nothing to turn into stickers yet.'); return; }
+
+      const perSheet = parseInt(document.getElementById('sticker-per-sheet').value, 10) || 6;
+      const batches = chunk(entries, perSheet);
+
+      const btn = document.getElementById('make-stickers-btn');
+      const note = document.getElementById('sticker-note');
+      const wrap = document.getElementById('sticker-sheets');
+      btn.disabled = true; btn.textContent = 'Making…';
+      note.style.display = '';
+      wrap.innerHTML = '';
+
+      // Lay out a placeholder card per sheet up front so she can see the plan.
+      batches.forEach((batch, i) => {
+        const card = document.createElement('div');
+        card.className = 'sheet-card';
+        card.id = `sheet-${i}`;
+        card.innerHTML = `
+          <div class="sheet-hd">Sheet ${i + 1} · ${batch.length} moment${batch.length === 1 ? '' : 's'}</div>
+          <div class="sheet-body"><span class="pending">waiting…</span></div>`;
+        wrap.appendChild(card);
+      });
+
+      let done = 0;
+      for (let i = 0; i < batches.length; i++) {
+        note.textContent = `Rendering sheet ${i + 1} of ${batches.length}…`;
+        const body = document.querySelector(`#sheet-${i} .sheet-body`);
+        body.innerHTML = '<span class="pending">rendering…</span>';
+        const subjects = batches[i].map(stickerSubject).filter(Boolean);
+        const prompt = subjects.join('; ');
+        try {
+          const data = await safeFetchJson('/api/generate/sticker-page', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, refs: [], quality: 'medium', size: '1024x1536' }),
+          });
+          if (data.error) throw new Error(data.error);
+          body.innerHTML = `<img src="${data.url}" alt="Sticker sheet ${i + 1}">`;
+          const card = document.getElementById(`sheet-${i}`);
+          const dl = document.createElement('a');
+          dl.className = 'sheet-dl';
+          dl.href = data.url; dl.target = '_blank';
+          dl.setAttribute('download', `miracles-stickers-sheet-${i + 1}.webp`);
+          dl.textContent = '↓ Download sheet';
+          card.appendChild(dl);
+          done++;
+        } catch (err) {
+          body.innerHTML = `<span class="failed">Sheet ${i + 1} failed: ${escHtml(err.message)}</span>`;
+        }
+      }
+
+      note.textContent = `Done — ${done} of ${batches.length} sheet${batches.length === 1 ? '' : 's'} rendered from ${entries.length} miracle${entries.length === 1 ? '' : 's'}.`;
+      btn.disabled = false; btn.textContent = 'Make sticker sheets';
     }
 
     // ── Book title fields ──────────────
