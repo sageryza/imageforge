@@ -9,7 +9,6 @@ import FirebaseFirestore
 /// snapshot listener updates the screen the moment a sync lands.
 struct StoryBoardView: View {
     @StateObject private var model = StoryBoardModel()
-    @State private var selected: String?
 
     var body: some View {
         Group {
@@ -21,51 +20,129 @@ struct StoryBoardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                board
+                shelfWall
             }
         }
         .navigationTitle("Story Boards")
         .task { await model.start() }
     }
 
-    private var current: StoryProject? {
-        model.projects.first { $0.id == selected } ?? model.projects.first
+    /// The video-store wall: shelves scrolling down, three VHS cases per
+    /// shelf, each project a box with its cover shot and framed title.
+    private var shelfWall: some View {
+        ScrollView {
+            LazyVStack(spacing: 26) {
+                ForEach(Array(model.projects.chunked(3).enumerated()), id: \.offset) { _, row in
+                    VStack(spacing: 0) {
+                        HStack(alignment: .bottom, spacing: 14) {
+                            ForEach(row) { p in
+                                NavigationLink(value: p.id) { VHSBox(project: p) }
+                                    .buttonStyle(.plain)
+                            }
+                            if row.count < 3 {
+                                ForEach(0..<(3 - row.count), id: \.self) { _ in
+                                    Color.clear.frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 6)
+                        ShelfBar()
+                    }
+                }
+            }
+            .padding(.vertical, 18)
+        }
+        .background(Color(red: 0.13, green: 0.10, blue: 0.09).ignoresSafeArea())
+        .navigationDestination(for: String.self) { id in
+            if let p = model.projects.first(where: { $0.id == id }) {
+                ProjectBoardView(project: p).navigationTitle(p.title)
+            }
+        }
     }
 
-    private var board: some View {
+}
+
+/// One project's full beat board (the former tabbed view, now a detail page).
+private struct ProjectBoardView: View {
+    let project: StoryProject
+
+    var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 22, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    if let project = current {
-                        ForEach(Array(project.beats.enumerated()), id: \.offset) { _, beat in
-                            BeatView(beat: beat)
-                        }
-                    }
-                } header: {
-                    picker
+            LazyVStack(alignment: .leading, spacing: 22) {
+                ForEach(Array(project.beats.enumerated()), id: \.offset) { _, beat in
+                    BeatView(beat: beat)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 32)
+            .padding(.vertical, 20)
         }
     }
+}
 
-    private var picker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(model.projects) { p in
-                    let on = p.id == current?.id
-                    Button(p.title) { selected = p.id }
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(on ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.12),
-                                    in: RoundedRectangle(cornerRadius: 6))
-                        .foregroundStyle(on ? Color(.systemBackground) : .primary)
+/// A VHS case: cover art, dark plastic spine, framed title label — slightly
+/// angled so the wall reads like a rental-store shelf.
+private struct VHSBox: View {
+    let project: StoryProject
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                if let cover = project.cover {
+                    AsyncImage(url: cover) { phase in
+                        if case .success(let img) = phase { img.resizable().scaledToFill() }
+                        else { Color(white: 0.18) }
+                    }
+                } else {
+                    ZStack {
+                        Color(white: 0.14)
+                        Text("?").font(.system(size: 40, design: .serif)).foregroundStyle(.tertiary)
+                    }
                 }
             }
-            .padding(.vertical, 8)
+            .aspectRatio(2 / 3, contentMode: .fit)
+            .clipped()
+            .overlay(alignment: .leading) {
+                // plastic spine highlight
+                LinearGradient(colors: [.white.opacity(0.35), .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: 7)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.black.opacity(0.6), lineWidth: 1.5))
+
+            // framed title plate on the case front
+            Text(project.title)
+                .font(.system(.caption, design: .serif).weight(.semibold))
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .padding(.horizontal, 6).padding(.vertical, 4)
+                .frame(maxWidth: .infinity)
+                .background(Color(red: 0.93, green: 0.89, blue: 0.80))
+                .foregroundStyle(Color(red: 0.20, green: 0.16, blue: 0.13))
+                .overlay(Rectangle().strokeBorder(Color(red: 0.35, green: 0.28, blue: 0.20), lineWidth: 1.5))
         }
-        .background(.bar)
+        .background(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .rotation3DEffect(.degrees(4), axis: (x: 0, y: 1, z: 0), perspective: 0.4)
+        .shadow(color: .black.opacity(0.55), radius: 7, x: 4, y: 6)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// The wooden shelf plank a row of cases stands on.
+private struct ShelfBar: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.28, blue: 0.16),
+                                          Color(red: 0.25, green: 0.16, blue: 0.09)],
+                                 startPoint: .top, endPoint: .bottom))
+            .frame(height: 12)
+            .shadow(color: .black.opacity(0.6), radius: 5, y: 5)
+            .padding(.horizontal, 6)
+    }
+}
+
+private extension Array {
+    func chunked(_ size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map { Array(self[$0..<Swift.min($0 + size, count)]) }
     }
 }
 
@@ -148,6 +225,7 @@ struct StoryProject: Identifiable {
     let id: String
     let title: String
     let order: Int
+    let cover: URL?
     let beats: [StoryBeat]
 }
 
@@ -201,6 +279,7 @@ final class StoryBoardModel: ObservableObject {
                         id: doc.documentID,
                         title: d["title"] as? String ?? doc.documentID,
                         order: d["order"] as? Int ?? 99,
+                        cover: (d["cover"] as? String).flatMap(URL.init(string:)),
                         beats: beats
                     )
                 }

@@ -48,6 +48,10 @@ async function main() {
   }
 
   for (const p of projects) {
+    if (p.cover_file) {
+      p.cover = await upload(p.cover_file);
+      delete p.cover_file;
+    }
     for (const beat of p.beats) {
       for (const card of beat.cards) {
         if (card.file) {

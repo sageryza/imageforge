@@ -267,3 +267,29 @@ lifted into a standalone tool later.
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+
+## Story Boards (forge-story) — how ANY chat adds projects/assets
+The video-project asset boards (Evan, Charlie, Spellcasting, …) shown in the
+iOS app (Story Boards tile — a VHS-shelf wall, 3 covers per shelf, tap to open
+a project's beat board) and mirrored at `/story` (gated snapshot page).
+
+- **Data:** Firestore collection `forge-story`, one doc per project:
+  `{ id, title, order, cover, beats:[{ vo, cards:[{ label, status, url }] }] }`.
+  `status` ∈ `ok` (approved) | `cand` (candidate) | `draft` (storyboard
+  placeholder) | `miss` (no art yet — omit `url`). `vo` is Sophie's actual
+  narration for that beat. `cover` is REQUIRED for the shelf (pick one hero
+  shot; without it the case renders as a "?" box).
+- **To add/update:** build a manifest JSON (array of projects; use
+  `file`/`cover_file` with local paths for any new images — ~700px webp
+  preferred) and run `node scripts/sync-story.js manifest.json` with
+  `FIREBASE_SERVICE_ACCOUNT` (or `FIREBASE_KEY_FILE`) set. Images upload to
+  Storage `story/` (content-addressed by basename — reuse basenames to
+  overwrite) and docs are replaced wholesale, so ALWAYS write the full project,
+  not a partial. The iOS app updates live (snapshot listener) — no build.
+- **Clients are read-only** (Firestore rules in memory-library-react allow
+  authenticated reads only); all writes go through the sync script.
+- **iOS UI changes** (not content) need a TestFlight build: run the
+  `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
+  secrets; `imageforge_ref` input picks the imageforge branch). The
+  imageforge-local `ios-testflight.yml` is a placeholder without secrets.
+- Approvals happen in chat with Sophie; sync after flipping statuses.
