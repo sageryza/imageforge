@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>The Sophie Experiment — Scene Timelines</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  html, body { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    font-family: 'EB Garamond', serif;
+    padding: 60px 40px;
+    color: #2a2420;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.02em;
+    margin-bottom: 50px;
+    color: #5a4a3a;
+  }
+
+  .date-row {
+    margin-bottom: 36px;
+  }
+
+  .date-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: #7a6a5a;
+  }
+
+  .date-label span {
+    font-weight: 400;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 6px;
+    color: #9a8a7a;
+  }
+
+  .bar-wrapper {
+    position: relative;
+    width: 100%;
+    height: 52px;
+  }
+
+  /* The colored bar — gets the watercolor filter */
+  .bar-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    filter: none;
+  }
+
+  .segment {
+    position: relative;
+    overflow: hidden;
+    border-right: 2px solid #2a2420;
+    filter: url(#roughEdge);
+  }
+
+  .segment:last-child {
+    border-right: none;
+  }
+
+  /* Dark outline around entire bar */
+  .bar-wrapper {
+    border: 2px solid #2a2420;
+    border-radius: 3px;
+  }
+
+  /* Watercolor texture overlay */
+  .segment::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+    background-size: 150px;
+    opacity: 0.6;
+    mix-blend-mode: overlay;
+  }
+
+  .segment::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.08), inset 0 -1px 3px rgba(0,0,0,0.05);
+  }
+
+  /* Text overlay — sits on top, NOT filtered */
+  .text-overlay {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .text-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+  }
+
+  .segment-text {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 11px;
+    font-weight: 500;
+    color: #2a2420;
+    text-align: center;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* Griffin — valentine pinks and dusty rose */
+  .griffin .s1 { background: #c4887a; }
+  .griffin .s2 { background: #d4a08a; }
+  .griffin .s3 { background: #b86b78; }
+  .griffin .s4 { background: #c4887a; }
+  .griffin .s5 { background: #a0756e; }
+  .griffin .s6 { background: #d4b89a; }
+
+  /* Jon — muted museum tones */
+  .jon .s1 { background: #7a8e7a; }
+  .jon .s2 { background: #a3a08a; }
+  .jon .s3 { background: #6b7d80; }
+  .jon .s4 { background: #8a9a7a; }
+
+  /* Pratfaller — night blues and amber */
+  .pratfaller .s1 { background: #8a7a6a; }
+  .pratfaller .s2 { background: #6a7a8a; }
+  .pratfaller .s3 { background: #5a6a7a; }
+  .pratfaller .s4 { background: #7a7068; }
+  .pratfaller .s5 { background: #9a8a70; }
+
+  /* Sean — tense reds and greys */
+  .sean .s1 { background: #8a7a70; }
+  .sean .s2 { background: #a08070; }
+  .sean .s3 { background: #7a6a60; }
+  .sean .s4 { background: #6a7a6a; }
+  .sean .s5 { background: #8a6a60; }
+  .sean .s6 { background: #706a68; }
+
+  /* Matt — arcade neons muted */
+  .matt .s1 { background: #706a68; }
+  .matt .s2 { background: #8a7a60; }
+  .matt .s3 { background: #6a8a8a; }
+  .matt .s4 { background: #7a7a6a; }
+
+  /* Kyle — warm earth and ochre */
+  .kyle .s1 { background: #b09070; }
+  .kyle .s2 { background: #8a7a60; }
+  .kyle .s3 { background: #7a6a55; }
+  .kyle .s4 { background: #a08a60; }
+  .kyle .s5 { background: #c4a078; }
+
+  /* Jake — deep tones */
+  .jake .s1 { background: #7a7068; }
+  .jake .s2 { background: #8a7a6a; }
+  .jake .s3 { background: #6a6a7a; }
+  .jake .s4 { background: #8a7060; }
+  .jake .s5 { background: #5a5a6a; }
+  .jake .s6 { background: #9a8070; }
+  .jake .s7 { background: #706a60; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0">
+  <defs>
+    <filter id="roughEdge">
+      <feTurbulence type="turbulence" baseFrequency="0.015" numOctaves="3" result="noise" seed="2"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<h1>The Sophie Experiment — Scene Timelines</h1>
+
+<!-- #1 GRIFFIN -->
+<div class="date-row">
+  <div class="date-label">#1 Griffin <span>Valentine's Day</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container griffin">
+      <div class="segment s1" style="flex: 1.0;"></div>
+      <div class="segment s2" style="flex: 1.8;"></div>
+      <div class="segment s3" style="flex: 1.6;"></div>
+      <div class="segment s4" style="flex: 0.8;"></div>
+      <div class="segment s5" style="flex: 1.4;"></div>
+      <div class="segment s6" style="flex: 1.2;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">Bus</span></div>
+      <div class="text-cell" style="flex: 1.8;"><span class="segment-text">Cuddle Convention</span></div>
+      <div class="text-cell" style="flex: 1.6;"><span class="segment-text">Valentine's Day Dance</span></div>
+      <div class="text-cell" style="flex: 0.8;"><span class="segment-text">Bus</span></div>
+      <div class="text-cell" style="flex: 1.4;"><span class="segment-text">His House</span></div>
+      <div class="text-cell" style="flex: 1.2;"><span class="segment-text">Morning</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #2 JON -->
+<div class="date-row">
+  <div class="date-label">#2 Jon <span>Art Day</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container jon">
+      <div class="segment s1" style="flex: 1.3;"></div>
+      <div class="segment s2" style="flex: 1.0;"></div>
+      <div class="segment s3" style="flex: 1.6;"></div>
+      <div class="segment s4" style="flex: 0.8;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.3;"><span class="segment-text">Japanese Restaurant</span></div>
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">Library</span></div>
+      <div class="text-cell" style="flex: 1.6;"><span class="segment-text">Art Museum</span></div>
+      <div class="text-cell" style="flex: 0.8;"><span class="segment-text">Goodbye</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #3 PRATFALLER -->
+<div class="date-row">
+  <div class="date-label">#3 Pratfaller <span>Late Night</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container pratfaller">
+      <div class="segment s1" style="flex: 1.5;"></div>
+      <div class="segment s2" style="flex: 1.2;"></div>
+      <div class="segment s3" style="flex: 1.0;"></div>
+      <div class="segment s4" style="flex: 1.3;"></div>
+      <div class="segment s5" style="flex: 1.0;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.5;"><span class="segment-text">Sushi Bar (Alone)</span></div>
+      <div class="text-cell" style="flex: 1.2;"><span class="segment-text">Second Bar</span></div>
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">Walk</span></div>
+      <div class="text-cell" style="flex: 1.3;"><span class="segment-text">His Apartment</span></div>
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">Morning</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #4 SEAN -->
+<div class="date-row">
+  <div class="date-label">#4 Sean <span>Economics of Happiness</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container sean">
+      <div class="segment s1" style="flex: 1.3;"></div>
+      <div class="segment s2" style="flex: 0.9;"></div>
+      <div class="segment s3" style="flex: 0.8;"></div>
+      <div class="segment s4" style="flex: 1.2;"></div>
+      <div class="segment s5" style="flex: 1.1;"></div>
+      <div class="segment s6" style="flex: 1.0;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.3;"><span class="segment-text">Sports Bar (Alone)</span></div>
+      <div class="text-cell" style="flex: 0.9;"><span class="segment-text">Street Corner</span></div>
+      <div class="text-cell" style="flex: 0.8;"><span class="segment-text">His Car</span></div>
+      <div class="text-cell" style="flex: 1.2;"><span class="segment-text">Conference</span></div>
+      <div class="text-cell" style="flex: 1.1;"><span class="segment-text">Cheerful Tortoise</span></div>
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">Alone on Street</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #5 MATT -->
+<div class="date-row">
+  <div class="date-label">#5 Matt <span>Ground Kontrol</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container matt">
+      <div class="segment s1" style="flex: 0.9;"></div>
+      <div class="segment s2" style="flex: 1.3;"></div>
+      <div class="segment s3" style="flex: 1.5;"></div>
+      <div class="segment s4" style="flex: 1.0;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 0.9;"><span class="segment-text">Street Corner</span></div>
+      <div class="text-cell" style="flex: 1.3;"><span class="segment-text">Italian Restaurant</span></div>
+      <div class="text-cell" style="flex: 1.5;"><span class="segment-text">Ground Kontrol</span></div>
+      <div class="text-cell" style="flex: 1.0;"><span class="segment-text">His Car</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #6 KYLE -->
+<div class="date-row">
+  <div class="date-label">#6 Kyle <span>Drum Studio</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container kyle">
+      <div class="segment s1" style="flex: 1.1;"></div>
+      <div class="segment s2" style="flex: 0.9;"></div>
+      <div class="segment s3" style="flex: 1.5;"></div>
+      <div class="segment s4" style="flex: 0.8;"></div>
+      <div class="segment s5" style="flex: 1.2;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.1;"><span class="segment-text">Southeast Grind</span></div>
+      <div class="text-cell" style="flex: 0.9;"><span class="segment-text">Subway</span></div>
+      <div class="text-cell" style="flex: 1.5;"><span class="segment-text">Drum Studio</span></div>
+      <div class="text-cell" style="flex: 0.8;"><span class="segment-text">Walk Home</span></div>
+      <div class="text-cell" style="flex: 1.2;"><span class="segment-text">Her Bed</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- #7 JAKE -->
+<div class="date-row">
+  <div class="date-label">#7 Jake <span>Chess & Art Studio</span></div>
+  <div class="bar-wrapper">
+    <div class="bar-container jake">
+      <div class="segment s1" style="flex: 1.2;"></div>
+      <div class="segment s2" style="flex: 0.8;"></div>
+      <div class="segment s3" style="flex: 0.9;"></div>
+      <div class="segment s4" style="flex: 1.4;"></div>
+      <div class="segment s5" style="flex: 1.3;"></div>
+      <div class="segment s6" style="flex: 0.9;"></div>
+      <div class="segment s7" style="flex: 1.1;"></div>
+    </div>
+    <div class="text-overlay">
+      <div class="text-cell" style="flex: 1.2;"><span class="segment-text">Southeast Grind</span></div>
+      <div class="text-cell" style="flex: 0.8;"><span class="segment-text">Outside</span></div>
+      <div class="text-cell" style="flex: 0.9;"><span class="segment-text">Walk</span></div>
+      <div class="text-cell" style="flex: 1.4;"><span class="segment-text">Art Studio</span></div>
+      <div class="text-cell" style="flex: 1.3;"><span class="segment-text">The Loft</span></div>
+      <div class="text-cell" style="flex: 0.9;"><span class="segment-text">Morning</span></div>
+      <div class="text-cell" style="flex: 1.1;"><span class="segment-text">Chinese Food (Alone)</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

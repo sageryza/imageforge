@@ -8,6 +8,13 @@
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
 
+## Dating book — "The Sophie Experiment"
+Sophie's long-running dating-memoir project (square coffee-table book from ~50
+Portland dates). The full brief, her own planning docs/mockups, illustration
+**style prompt formulas**, essay & infographic lists, and prior-chat transcripts
+live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
+first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
+
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
 sheets, zines, single images). Home screen (`/`) is a grid of project types;
