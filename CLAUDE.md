@@ -387,6 +387,10 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **End every message with a TLDR.** Every reply closes with a short **TLDR:**
+  line (a sentence or two) recapping the point / what to do next — it comes
+  after the main text, before any delivered files/images and the audio version.
+  Keep it plain and skimmable so the whole reply lands in one glance on a phone.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
