@@ -146,12 +146,22 @@ lifted into a standalone tool later.
   computer; the server can't automate MJ's download — no API, her account, needs
   a browser). This module automates everything after: `POST /upload`
   (`{batch, keyword?, images:[dataURL|url]}` → Firebase `ingest/<batch>/`, filename
-  keyword-tagged), `GET /batch/:batch?keyword=` (list a batch, keyword = filename
-  substring filter), `GET /batches`. The `/import` page (serveGated) is a phone/
-  desktop uploader. Batches feed the same review → prep → MPC flow. Trade-off vs
+  keyword-tagged), `POST /upload-zip?batch=&keyword=` (the raw .zip as the request
+  body → unzips server-side and ingests every image, skipping `__MACOSX`/non-image
+  junk — so a bulk MJ export uploads in one shot, phone or desktop),
+  `GET /batch/:batch?keyword=` (list a batch, keyword = filename substring filter),
+  `GET /batches`. The `/import` page (serveGated) is a phone/desktop uploader
+  (individual images or a whole ZIP). Batches feed the same review → prep → MPC flow. Trade-off vs
   APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
   computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
   batch and picking the on-style option is the shared payoff of both paths.
+  - **`browser-extension/`** (Chrome MV3, "Send to Deck Factory") kills the
+    export/import friction: a floating button on midjourney.com grabs the page's
+    MJ images and POSTs them straight to `/api/ingest/upload` (runs in Sophie's
+    own logged-in session — no MJ password, no server-side MJ automation). Load
+    unpacked; set the app URL + STUDIO_TOKEN + batch/keyword in the popup. The
+    image-grab (`collectMidjourneyImageUrls`/`toFullRes` in `content.js`) needs a
+    first-run calibration pass against MJ's live DOM (it logs what it finds).
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
