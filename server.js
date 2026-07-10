@@ -113,6 +113,7 @@ loadConfig().then(() => {
   const etsyReport = require('./etsy-report');
   const shopify = require('./shopify');
   const blog = require('./blog');
+  const sync = require('./sync');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -130,6 +131,7 @@ loadConfig().then(() => {
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
+  app.use('/api/sync', sync.router);
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
