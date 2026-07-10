@@ -266,6 +266,50 @@ async function listSubscribers({ max = 5000 } = {}) {
   return out;
 }
 
+// ─── Products (for in-post placement / clickable store links) ───────
+// Active products with their public storefront URL (GraphQL `onlineStoreUrl`,
+// so no domain guessing) + featured image + price. Lets the blog weave in a
+// clickable link to the relevant product.
+const PRODUCTS_QUERY = `
+  query Products($cursor: String) {
+    products(first: 100, after: $cursor, query: "status:active") {
+      edges {
+        cursor
+        node {
+          title
+          handle
+          onlineStoreUrl
+          featuredImage { url }
+          priceRangeV2 { minVariantPrice { amount currencyCode } }
+        }
+      }
+      pageInfo { hasNextPage }
+    }
+  }`;
+
+async function listProducts({ max = 250 } = {}) {
+  const out = [];
+  let cursor = null, hasNext = true;
+  while (hasNext && out.length < max) {
+    const data = await shopifyGraphQL(PRODUCTS_QUERY, { cursor });
+    const conn = data.products;
+    for (const edge of conn.edges) {
+      const n = edge.node;
+      out.push({
+        title: n.title,
+        handle: n.handle,
+        url: n.onlineStoreUrl || `https://${STORE}/products/${n.handle}`,
+        image: n.featuredImage ? n.featuredImage.url : null,
+        price: n.priceRangeV2 ? n.priceRangeV2.minVariantPrice.amount : null,
+        currency: n.priceRangeV2 ? n.priceRangeV2.minVariantPrice.currencyCode : null,
+      });
+      cursor = edge.cursor;
+    }
+    hasNext = conn.pageInfo.hasNextPage;
+  }
+  return out;
+}
+
 // ─── Blogs + articles (the SEO destination) ─────────────────────────
 async function listBlogs() {
   const data = await shopifyREST('/blogs.json');
@@ -387,6 +431,16 @@ router.get('/blogs', async (req, res) => {
   }
 });
 
+// Active products + public URLs, for in-post product placement.
+router.get('/products', async (req, res) => {
+  try {
+    const products = await listProducts({ max: Math.min(Number(req.query.max) || 250, 1000) });
+    res.json({ count: products.length, products });
+  } catch (err) {
+    res.status(/not configured|not connected/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
 // Publish/draft an article. Body: { blogId?, title, bodyHtml, summaryHtml?,
 // tags?, author?, imageUrl?, published? }.
 router.post('/blog-post', express.json({ limit: '2mb' }), async (req, res) => {
@@ -403,6 +457,7 @@ module.exports = {
   configured,
   connected,
   listSubscribers,
+  listProducts,
   listBlogs,
   publishArticle,
 };
