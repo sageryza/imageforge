@@ -48,6 +48,13 @@
   <input type="file" id="pick" accept="image/*" multiple>
 
   <button id="go" disabled>Upload batch</button>
+
+  <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px;">
+    <label for="zip">Or upload a ZIP (a bulk export)</label>
+    <input type="file" id="zip" accept=".zip,application/zip">
+    <button id="zipgo" disabled>Upload ZIP</button>
+  </div>
+
   <div id="status"></div>
   <div class="grid" id="thumbs"></div>
 
@@ -62,7 +69,45 @@
   const go = document.getElementById('go');
   const statusEl = document.getElementById('status');
   const thumbs = document.getElementById('thumbs');
+  const zip = document.getElementById('zip');
+  const zipgo = document.getElementById('zipgo');
   let files = [];
+
+  function showResult(data) {
+    statusEl.textContent = 'Uploaded ' + data.count + ' to batch "' + data.batch + '"'
+      + (data.keyword ? ' (keyword: ' + data.keyword + ')' : '') + '.';
+    thumbs.innerHTML = '';
+    (data.images || []).slice(0, 60).forEach((u) => {
+      const img = document.createElement('img');
+      img.src = u;
+      thumbs.appendChild(img);
+    });
+  }
+
+  zip.addEventListener('change', () => { zipgo.disabled = !(zip.files && zip.files[0]); });
+
+  zipgo.addEventListener('click', async () => {
+    const f = zip.files && zip.files[0];
+    if (!f) return;
+    zipgo.disabled = true;
+    statusEl.textContent = 'Uploading ZIP (' + (f.size / 1048576).toFixed(1) + ' MB)…';
+    try {
+      const b = encodeURIComponent(document.getElementById('batch').value || 'default');
+      const k = encodeURIComponent(document.getElementById('keyword').value || '');
+      const resp = await fetch('/api/ingest/upload-zip?batch=' + b + '&keyword=' + k, {
+        method: 'POST',
+        headers: { 'x-studio-token': TOKEN, 'Content-Type': 'application/zip' },
+        body: f,
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+      showResult(data);
+    } catch (e) {
+      statusEl.textContent = 'Error: ' + e.message;
+    } finally {
+      zipgo.disabled = false;
+    }
+  });
 
   const readAsDataURL = (f) => new Promise((res, rej) => {
     const r = new FileReader();
