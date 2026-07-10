@@ -346,6 +346,7 @@ const MODELS = {
     { id: 'sageryza/watercolordrawings', version: 'a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f', name: 'Watercolor Drawings', trigger: 'wtr' },
     { id: 'sageryza/pwcscans', version: 'fdb33f8d1af98c2fd4e736c25d52e307ea88958729ce7319691e5d784f40d18b', name: 'PWC Scans', trigger: 'tok' },
     { id: 'sageryza/hoonie', version: null, name: 'Hoonie Linocut', trigger: 'HOONIE', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
+    { id: 'sageryza/hoonie2', version: null, name: 'Hoonie Linocut v2', trigger: 'HOONIE2', promptSuffix: 'linocut relief print, white background', defaultSteps: 40 },
   ],
   // OpenAI image generation. The DALL·E 3 style presets were retired — a single
   // clean entry remains so OpenAI is still selectable alongside the LoRAs.
