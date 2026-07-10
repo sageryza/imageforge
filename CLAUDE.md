@@ -236,6 +236,8 @@ lifted into a standalone tool later.
   sticks across deploys instead of being wiped each time.
 
 ## Design rules (forever)
+- **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
+  every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
 - **Always use full clickable links** in updates — app pages, the deployed URL,

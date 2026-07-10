@@ -125,9 +125,7 @@ private struct VHSBox: View {
 private struct ShelfBar: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
-            .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.28, blue: 0.16),
-                                          Color(red: 0.25, green: 0.16, blue: 0.09)],
-                                 startPoint: .top, endPoint: .bottom))
+            .fill(Color(red: 0.36, green: 0.24, blue: 0.14))
             .frame(height: 12)
             .shadow(color: .black.opacity(0.6), radius: 5, y: 5)
             .padding(.horizontal, 6)
