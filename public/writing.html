@@ -24,9 +24,11 @@ h1{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}
 .r-meta{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}
 .r-pg{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}
 .r-notes{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}
-.tabs{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 0; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}
+.tabs{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 58px; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}
+.seg{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}
 .tab{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
-  border:1.5px solid var(--ink); background:var(--paper); color:var(--ink); border-radius:999px; padding:9px 0; cursor:pointer;}
+  border:none; background:transparent; color:var(--ink); padding:9px 0; cursor:pointer;}
+.tab + .tab{border-left:1.5px solid var(--ink);}
 .tab.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}
 .tab:focus-visible{outline:2px solid var(--rose);}
 .legend{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em; margin:.6em 0 2em;}
@@ -101,7 +103,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-griffin" style="display:none">
 <header><div class="no">no.&#8201;01 · someone i met once</div><h1>Griffin</h1>
 <div class="rule"></div><div class="dek">Touch without meaning.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (61%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="griffin:c0"><p><mark>I met Griffin</mark> at <mark>a</mark> cuddle convention. <mark>The premise, supposedly, is that cuddling can be a platonic activity — “touch without meaning.” Well. I am here to report that a cuddle convention, put on by a lot of shitty people as a sad excuse for not having a valentine</mark> on Valentine’s Day, is <mark>not</mark> the <mark>place where this is likely to take place.</mark></p><button class="addnote" data-i="griffin:c0">+ note</button><div class="notewrap" id="nw-griffin-c0"></div></div>
@@ -143,7 +145,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-david" style="display:none">
 <header><div class="no">no.&#8201;02 · someone i met once</div><h1>David</h1>
 <div class="rule"></div><div class="dek">A cat between us.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (20%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="david:c0"><p>David’s photos were abnormal, emphasizing his creamy complexion. He seemed very young for a man <mark>— he</mark> was in fact two years younger than me <mark>—</mark> but after some banter about cats and dreams, we agreed to meet at an <mark>all-night</mark> coffee house I rarely visited during the day. When I arrived he had already ordered, and <mark>stood</mark> as far from the counter as <mark>humanly</mark> possible, so as not to be confused for the one paying.</p><button class="addnote" data-i="david:c0">+ note</button><div class="notewrap" id="nw-david-c0"></div></div>
@@ -181,7 +183,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-jake" style="display:none">
 <header><div class="no">no.&#8201;03 · someone i met once</div><h1>Jake</h1>
 <div class="rule"></div><div class="dek">A hot babe on my lap.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (24%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="jake:c0"><p>Through the window <mark>of the Southeast Grind</mark> I <mark>saw</mark> the most attractive person <mark>I had</mark> ever encountered, <mark>outside, having a cigarette. I</mark> figured he was passing through, and <mark>that</mark> I would never talk to him or anything. Instead he came <mark>and sat</mark> three seats away at the counter, drawing in a sketchbook. <mark>One by one, the people between us left.</mark></p><button class="addnote" data-i="jake:c0">+ note</button><div class="notewrap" id="nw-jake-c0"></div></div>
@@ -256,7 +258,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-blake" style="display:none">
 <header><div class="no">no.&#8201;04 · someone i met once</div><h1>Blake</h1>
 <div class="rule"></div><div class="dek">Points for pretending I didn’t speak Spanish.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (15%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="blake:c0"><p>My date with Blake was set up to take place in the middle of a forest. He gave me intentionally obscure directions to meet him on a fallen tree at a trail in downtown Portland <mark>—</mark> exactly the quirky premise I’d been hoping for, which is, of course, why I agreed. I didn’t let myself set an alarm, even though I was to meet him at <mark>ten</mark> in the morning, and I had my roommate plan my route <mark>on</mark> his computer, since Google Maps wasn’t working on my phone.</p><button class="addnote" data-i="blake:c0">+ note</button><div class="notewrap" id="nw-blake-c0"></div></div>
@@ -301,7 +303,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-louis" style="display:none">
 <header><div class="no">no.&#8201;05 · someone i met once</div><h1>Louis</h1>
 <div class="rule"></div><div class="dek">Caturday.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (14%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="louis:c0"><p>Louis was so very cute in all of his pictures, and I couldn’t believe <mark>he’d</mark> want to meet me. He said something about it being “Caturday” — the day for cats. When he arrived he was cute in person <mark>too,</mark> and very lovely, and casually <mark>claimed</mark> my roommate’s giant yoga ball, <mark>bouncing,</mark> while I took the rolly chair.</p><button class="addnote" data-i="louis:c0">+ note</button><div class="notewrap" id="nw-louis-c0"></div></div>
@@ -337,7 +339,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-patrick" style="display:none">
 <header><div class="no">no.&#8201;06 · someone i met once</div><h1>Patrick</h1>
 <div class="rule"></div><div class="dek">Like a tiger, or a man proving a point.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (13%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="patrick:c0"><p>I meet Patrick on the street; he has just come from the <mark>7-Eleven with</mark> a beer. <mark>His</mark> carefully constructed hipster outfit incorporates a lumberjack-like plaid flannel <mark>and</mark> large horn-rimmed frames, <mark>and</mark> atop his head sits a messy bun from his silky mane of light ginger strands. I am wearing my customary black tight dress with my black skeleton <mark>long-sleeve over it</mark> and my black <mark>Harley-Davidson</mark> boots <mark>—</mark> I’ve worn <mark>all of</mark> it for the past week and a half, <mark>because</mark> none of my other clothes are clean.</p><button class="addnote" data-i="patrick:c0">+ note</button><div class="notewrap" id="nw-patrick-c0"></div></div>
@@ -386,7 +388,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-trevor" style="display:none">
 <header><div class="no">no.&#8201;07 · someone i met once</div><h1>Trevor</h1>
 <div class="rule"></div><div class="dek">He smashed a beer bottle on his head.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (34%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="trevor:c0"><p>Trevor called before the date <mark>with a question: did</mark> I <mark>have</mark> any ex-boyfriends who might be out to get him? <mark>Someone had</mark> just <mark>phoned and threatened</mark> him not to go out with his girl. I told him I wasn’t sure who it could be, but assumed it wasn’t related to me. He <mark>didn’t sound convinced.</mark></p><button class="addnote" data-i="trevor:c0">+ note</button><div class="notewrap" id="nw-trevor-c0"></div></div>
@@ -444,7 +446,7 @@ body.reading .backwrap{display:block;}
 <section class="date" id="d-gabriel" style="display:none">
 <header><div class="no">no.&#8201;08 · someone i met once</div><h1>Gabriel</h1>
 <div class="rule"></div><div class="dek">A policy of not looking at anyone I find attractive.</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (22%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
 <div class="block" data-i="gabriel:c0"><p>We exchanged about six sentences on OkCupid <mark>before</mark> he asked if I wanted to hang out. <mark>The</mark> plan: wear overalls and go to Hot Topic, to be ironic. <mark>But</mark> on the day of our date he <mark>announced he’d</mark> been “just kidding” about the overalls, and I didn’t like that <mark>—</mark> he wasn’t taking our arrangement seriously, no matter how ridiculous <mark>it</mark> had <mark>been.</mark></p><button class="addnote" data-i="gabriel:c0">+ note</button><div class="notewrap" id="nw-gabriel-c0"></div></div>
