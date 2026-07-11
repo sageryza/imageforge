@@ -105,6 +105,10 @@ struct RootView: View {
             BottomBar(screen: $screen, recents: recents)
         }
         .background(Theme.bg.ignoresSafeArea())
+        // Keep the bottom bar pinned to the bottom edge — without this the
+        // keyboard's safe-area inset lifts the whole VStack, floating the bar
+        // above the keyboard. Each tool's own ScrollView still lifts its fields.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // Keep the three recent tools + gallery alive so their state (a generated

@@ -445,6 +445,15 @@ lifted into a standalone tool later.
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **iOS: pin bottom bars below the keyboard (never floating above it).** A
+  custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
+  keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
+  keeps recurring across apps. **The fix is one modifier** on the container that
+  holds the bar: `.ignoresSafeArea(.keyboard, edges: .bottom)` (e.g. on
+  `RootView`'s outer `VStack`). The bar then stays pinned to the bottom and the
+  keyboard covers it, while each screen's own `ScrollView` still lifts its text
+  fields. Any app with a persistent bottom bar MUST have this — add it when you
+  build the shell, and check for it whenever a keyboard-over-bar bug appears.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
