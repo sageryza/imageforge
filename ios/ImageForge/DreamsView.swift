@@ -44,6 +44,11 @@ struct DreamsView: View {
                     Image(systemName: "moon.stars").foregroundColor(Theme.accent)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink { DreamZineView() } label: {
+                    Image(systemName: "book.closed").foregroundColor(Theme.accent)
+                }
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focused = false }
