@@ -754,7 +754,7 @@
       <a class="project-card" href="/stickers">
         <span class="pc-icon">✷</span>
         <span class="pc-title">Sticker Page</span>
-        <span class="pc-desc">Describe a set and get one full-page sheet of kiss-cut stickers (ChatGPT), with reference images.</span>
+        <span class="pc-desc">Describe a set and get one full-page sheet in the house hand-drawn style (ChatGPT), with reference images.</span>
         <span class="pc-ext">Opens sticker page →</span>
       </a>
       <a class="project-card" href="/set">
@@ -1356,20 +1356,12 @@
       document.getElementById('sticker-result').innerHTML = '';
 
       try {
-        const settings = stickerSelectedProvider === 'replicate'
-          ? getModelSettings(stickerSelectedModel) : {};
-        const bgSuffix = getGlobalBgSuffix();
-        const data = await safeFetchJson('/api/generate/sticker-sheet', {
+        // One shared house-style generator (gpt-image-2 + committed style refs);
+        // the moment list becomes the subjects on the sheet.
+        const data = await safeFetchJson('/api/generate/sticker-page', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            moments,
-            provider: stickerSelectedProvider,
-            model: stickerSelectedModel,
-            stylePrompt: stickerSelectedStylePrompt,
-            bgSuffix,
-            settings,
-          }),
+          body: JSON.stringify({ prompt: moments.join('; '), quality: 'medium' }),
         });
         if (data.error) throw new Error(data.error);
         document.getElementById('sticker-result').innerHTML = `

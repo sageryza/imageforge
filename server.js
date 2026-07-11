@@ -901,35 +901,48 @@ app.post('/api/generate/deck-batch', async (req, res) => {
   }
 });
 
-// ─── Sticker sheet ──────────────────────────────────────────────────
-app.post('/api/generate/sticker-sheet', async (req, res) => {
-  try {
-    const { moments, provider = 'dalle', model, stylePrompt = '', bgSuffix = '', settings = {} } = req.body;
-    const basePrompt = `Create a sticker sheet with ${moments.length} individual stickers scattered across a white background. Each sticker should be a cute, kawaii-style illustration with pastel colors, white borders, and no text. The stickers represent these moments:\n${moments.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nStyle: Hand-drawn quality, soft muted colors (dusty pinks, sage greens, lavender, warm grays), organic scattered layout with varying sizes and angles. No text anywhere.`;
-    const parts = [stylePrompt, basePrompt, bgSuffix].filter(Boolean);
-    const prompt = parts.join('. ');
-    const endpoint = provider === 'replicate' ? '/api/generate/replicate' : '/api/generate/dalle';
-    const body = provider === 'replicate'
-      ? { prompt, model: model || 'sageryza/gosh', settings }
-      : { prompt };
-    const internal = await fetch(`http://localhost:${process.env.PORT || 3001}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await internal.json();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// ─── Sticker sheet house style ──────────────────────────────────────
+// The one true sticker look, shared with the iOS Deck Factory app (ported
+// from its Cloud Function `renderStickerSheet`): delicate hand-drawn fine
+// black line art, soft muted palette, free-form shapes sitting straight on
+// the page (no borders/shadows), plus small matching accent illustrations.
+// Two committed reference images (assets/sticker-ref*.jpg) lock the look;
+// they're attached to every render via the gpt-image-2 edits endpoint.
+const STICKER_SHEET_PROMPT =
+  'A sheet of individual illustrations on a plain white background. Use the '
+  + 'attached images ONLY as the art-style and palette reference — delicate '
+  + 'hand-drawn fine black line art with soft flat muted color fills (dusty '
+  + 'rose, sage, ochre, terracotta, lavender, pale blue). Do NOT copy their '
+  + 'content. Each illustration is free-form, following its own outline (not '
+  + 'inside a circle or badge). The illustrations sit directly on the white '
+  + 'page — NO white border, no outline, no halo and no drop shadow around '
+  + 'them, like art printed straight onto paper. Compose 6 to 8 normal-size '
+  + 'illustrations plus 6 to 8 smaller accent illustrations. The small accents '
+  + "must match the sheet's theme — little objects or details drawn from the "
+  + 'same subject — NOT generic sparkles or gems unless they fit the theme. '
+  + 'Spread everything out with breathing room, not crowded. Absolutely no '
+  + 'text, words, letters or watermarks anywhere. The illustrations depict: ';
+
+const STICKER_REF_FILES = ['sticker-ref1.jpg', 'sticker-ref2.jpg'];
+let stickerRefBuffers = null;
+function loadStickerRefs() {
+  if (stickerRefBuffers) return stickerRefBuffers;
+  stickerRefBuffers = STICKER_REF_FILES
+    .map((f) => {
+      try { return { buffer: fs.readFileSync(__dirname + '/assets/' + f), mime: 'image/jpeg' }; }
+      catch { return null; }
+    })
+    .filter(Boolean);
+  return stickerRefBuffers;
+}
 
 // ─── Sticker Page: full-page sticker sheet via gpt-image-2 ──────────
-// The new, richer sticker workflow (standalone /stickers page). One prompt
-// (+ optional reference images) becomes a single full-page sheet of kiss-cut
-// stickers. Reference images are sent as base64 in the JSON body and forwarded
-// to gpt-image-2's edits endpoint as visual references; with no references it
-// falls back to plain generation. quality defaults to "medium".
+// The single sticker generator for every web surface (hub, /stickers, /book).
+// One prompt (a list of subjects) becomes a full sheet in the shared house
+// style (STICKER_SHEET_PROMPT) — the committed reference images are ALWAYS
+// attached to gpt-image-2's edits endpoint so the web output matches the iOS
+// Deck Factory app. Optional user reference images (base64 in the JSON body)
+// are added on top. quality defaults to "medium".
 function decodeDataUrl(s) {
   if (!s) return null;
   const m = /^data:([^;]+);base64,(.*)$/.exec(s);
@@ -990,31 +1003,20 @@ app.post('/api/generate/sticker-page', async (req, res) => {
     if (!STICKER_QUALITIES.has(quality)) quality = 'medium';
     if (!STICKER_SIZES.has(size)) size = '1024x1536';
 
-    const refBuffers = (Array.isArray(refs) ? refs : [])
+    // The house style references (delicate line art, muted palette) go first so
+    // they lock the look; any user-supplied refs follow as extra guidance.
+    const houseRefs = loadStickerRefs();
+    const userRefs = (Array.isArray(refs) ? refs : [])
       .slice(0, 4)                      // keep the request sane
       .map(decodeDataUrl)
       .filter(Boolean);
-
-    // Base instruction that turns the user's idea into a printable sticker sheet:
-    // many separate die-cut stickers, thick white borders, scattered, no text.
-    const sheet =
-      'A full-page sticker sheet: a collection of separate die-cut (kiss-cut) ' +
-      'stickers arranged scattered across a plain white background, varied sizes ' +
-      'and slight rotations, each sticker with a clean thick white border and a ' +
-      'subtle drop shadow so it reads as a peel-off sticker. Cohesive set, ' +
-      'glossy vinyl look, vibrant and cute. Absolutely no text, words or letters. ' +
-      'The stickers depict: ' + prompt;
-    const refNote = refBuffers.length
-      ? ' Use the attached image(s) as reference for the subjects and overall look.'
-      : '';
-    const fullPrompt = sheet + refNote;
-
-    let data;
-    if (refBuffers.length) {
-      data = await openaiStickerEdit({ prompt: fullPrompt, refs: refBuffers, quality, size });
-    } else {
-      data = await openaiImage({ model: 'gpt-image-2', prompt: fullPrompt, n: 1, size, quality, output_format: 'webp' });
+    const allRefs = [...houseRefs, ...userRefs];
+    if (!allRefs.length) {
+      return res.status(500).json({ error: 'Sticker style references are missing from the deploy.' });
     }
+
+    const fullPrompt = STICKER_SHEET_PROMPT + prompt.slice(0, 1000);
+    const data = await openaiStickerEdit({ prompt: fullPrompt, refs: allRefs, quality, size });
     if (data.error) return res.status(400).json({ error: data.error.message || 'gpt-image-2 error' });
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
