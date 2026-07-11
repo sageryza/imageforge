@@ -192,6 +192,11 @@
     }
     /* Section label styled like the PAST · PRESENT · FUTURE labels (DM Sans). */
     .cards-title { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+
+    /* Quiz */
+    .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
+    .quiz-q { font-family: var(--serif); font-size: 21px; text-align: center; line-height: 1.2; margin: 0 0 16px; color: var(--text); }
+    .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
     .tcard.noimg .glyph { font-size: 30px; color: var(--gold); }
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
 
@@ -455,6 +460,17 @@
             <div class="note" id="astro-note"></div>
             <button class="btn-ghost" id="see-full-chart" style="margin-top:10px;">✦ See your full birth chart</button>
           </div>
+        </div>
+
+        <!-- Are you secretly a witch? quiz (playful funnel to the shop) -->
+        <div class="card" id="quiz-card">
+          <div class="cards-title">Are you secretly a witch?</div>
+          <div id="quiz-intro">
+            <p class="hint" style="text-align:center;">A very serious diagnostic. Answer honestly — the cards already know.</p>
+            <button class="btn" id="quiz-start">Take the quiz ✦</button>
+          </div>
+          <div id="quiz-body" style="display:none;"></div>
+          <div id="quiz-result" style="display:none;"></div>
         </div>
 
         <!-- Today's cards (tarot) -->
@@ -1303,6 +1319,60 @@
     openModal(`<h2 style="margin-bottom:12px;">Your birth chart</h2><div style="text-align:left;">${natalChartHtml}</div><button class="btn-ghost" id="chart-redo" style="margin-top:16px;">Use different birth details</button><button class="close-x" id="chart-close">close</button>`);
     $('chart-close').addEventListener('click', closeModal);
     $('chart-redo').addEventListener('click', () => { closeModal(); try { localStorage.removeItem('witch_natal'); } catch {} natalChartHtml = ''; cloudSyncSoon(); renderHome(); });
+  });
+
+  /* ══════════ QUIZ: Are you secretly a witch? (always yes → shop) ══════════ */
+  const QUIZ = [
+    { q: "Do you ever know who's calling before you look?", a: ['Every time', 'More than is normal', "I pretend I don't"] },
+    { q: 'Your relationship with the moon is…', a: ["We're close", 'It watches over me', 'Complicated but loving'] },
+    { q: 'Pick a companion:', a: ['A black cat', 'A raven', 'A very judgmental houseplant'] },
+    { q: 'How many crystals is too many?', a: ['No such thing', 'Asking for a friend', 'I can hear them calling'] },
+    { q: 'When something breaks, you…', a: ['Felt it coming', 'Feel it in your body', 'Blame Mercury'] },
+    { q: 'Be honest — candles are…', a: ['A love language', 'A whole personality', 'Practically a ritual'] },
+  ];
+  let quizStep = 0;
+  function renderQuizQuestion() {
+    const item = QUIZ[quizStep];
+    $('quiz-body').innerHTML =
+      `<div class="quiz-prog">Question ${quizStep + 1} of ${QUIZ.length}</div>
+       <div class="quiz-q">${esc(item.q)}</div>
+       <div class="quiz-opts">` +
+      item.a.map((opt, i) => `<button class="btn-ghost quiz-opt" data-i="${i}">${esc(opt)}</button>`).join('') +
+      `</div>`;
+  }
+  function showQuizResult() {
+    $('quiz-body').style.display = 'none';
+    $('quiz-result').style.display = '';
+    $('quiz-result').innerHTML =
+      `<div style="text-align:center; font-size:34px; line-height:1;">🔮</div>
+       <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">The power has always been within you</div>
+       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:10px;">There was never any doubt. You're a witch — you always have been. That prickle at the back of your neck, the way a room shifts when you walk in, the dreams that come true a little too often? That's the craft, awake in you.</p>
+       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:6px;">You can already:</p>
+       <ul style="font-size:14px; line-height:1.7; color:var(--text-dim); padding-left:20px; margin-bottom:14px;">
+         <li>read a room before you step into it</li>
+         <li>feel the weather turn in your bones</li>
+         <li>tell when someone isn't being honest</li>
+         <li>turn a whole bad day with one lit candle</li>
+         <li>find what's lost by going quiet</li>
+       </ul>
+       <div class="advice-box"><div class="k">One thing</div><p>A craft like yours deserves real tools — candles, crystals & herbs chosen with intention. Every witch needs her altar.</p></div>
+       <button class="btn" id="quiz-shop" style="margin-top:14px;">Gather your tools ✦</button>
+       <button class="btn-ghost" id="quiz-again" style="margin-top:10px;">Take it again</button>`;
+    $('quiz-shop').addEventListener('click', () => go('shop'));
+    $('quiz-again').addEventListener('click', () => { $('quiz-result').style.display = 'none'; $('quiz-intro').style.display = ''; });
+  }
+  $('quiz-start').addEventListener('click', () => {
+    quizStep = 0;
+    $('quiz-intro').style.display = 'none';
+    $('quiz-result').style.display = 'none';
+    $('quiz-body').style.display = '';
+    renderQuizQuestion();
+  });
+  $('quiz-body').addEventListener('click', (e) => {
+    const b = e.target.closest('.quiz-opt'); if (!b) return;
+    quizStep++;
+    if (quizStep < QUIZ.length) renderQuizQuestion();
+    else showQuizResult();
   });
 
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
