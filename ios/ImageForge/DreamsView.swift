@@ -27,7 +27,6 @@ struct DreamsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                StarTitle(text: "Dreams").frame(maxWidth: .infinity).padding(.top, 4)
                 inputSection
                 if reviewId != nil && current == nil {
                     chronologySection
@@ -49,6 +48,12 @@ struct DreamsView: View {
                 NavigationLink { DreamZineView() } label: {
                     Image(systemName: "book.closed").foregroundColor(Theme.accent)
                 }
+            }
+            ToolbarItem(placement: .principal) {
+                Text("Dreams")
+                    .font(Theme.serif(20).smallCaps())
+                    .tracking(1.5)
+                    .foregroundColor(Theme.text)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
