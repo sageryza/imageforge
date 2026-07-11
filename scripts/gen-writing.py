@@ -93,7 +93,7 @@ for no,name in enumerate(ORDER,1):
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
 <div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div></header>
-<div class="tabs"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div>
+<div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause autoscroll</div>
 <div class="verC">{chtml}</div>
 <div class="verO" style="display:none">{ohtml}</div>
@@ -128,9 +128,11 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .r-meta{{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}}
 .r-pg{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}}
 .r-notes{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}}
-.tabs{{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 0; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}}
+.tabs{{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 58px; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}}
+.seg{{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}}
 .tab{{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
-  border:1.5px solid var(--ink); background:var(--paper); color:var(--ink); border-radius:999px; padding:9px 0; cursor:pointer;}}
+  border:none; background:transparent; color:var(--ink); padding:9px 0; cursor:pointer;}}
+.tab + .tab{{border-left:1.5px solid var(--ink);}}
 .tab.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}}
 .tab:focus-visible{{outline:2px solid var(--rose);}}
 .legend{{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em; margin:.6em 0 2em;}}
