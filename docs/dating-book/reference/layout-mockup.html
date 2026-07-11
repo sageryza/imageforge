@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sophie Experiment — Layout Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-size: 680px;
+    --charcoal: #2a2522;
+    --cream: #f7f3ee;
+    --warm: #e8ddd0;
+    --text: #3d3530;
+    --light-text: #8a7e74;
+    --wash-tyler: #7ea8b8;
+    --wash-tyler-light: #c5dce4;
+    --wash-tyler-faint: #e8f0f4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #d4cdc4;
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--charcoal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+
+  .mockup-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    margin-bottom: 24px;
+  }
+
+  .page-spread {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 40px;
+  }
+
+  .page {
+    width: var(--page-size);
+    height: var(--page-size);
+    background: var(--cream);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+  }
+
+  /* === HEADER BAR === */
+  .header-bar {
+    position: relative;
+    height: 52px;
+    margin: 28px 36px 0 36px;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+  }
+
+  .header-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      var(--wash-tyler) 0%,
+      var(--wash-tyler-light) 35%,
+      var(--wash-tyler) 50%,
+      var(--wash-tyler-light) 70%,
+      var(--wash-tyler) 100%
+    );
+    opacity: 0.7;
+  }
+
+  /* Watercolor texture effect */
+  .header-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 30%, rgba(255,255,255,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 70%, var(--wash-tyler) 0%, transparent 40%);
+    mix-blend-mode: soft-light;
+  }
+
+  .header-name {
+    position: relative;
+    z-index: 1;
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .header-number {
+    position: relative;
+    z-index: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.8);
+    margin-left: auto;
+    text-transform: uppercase;
+  }
+
+  /* === PAGE 1 LAYOUT === */
+  .page-1-content {
+    padding: 24px 36px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 20px;
+    height: calc(100% - 80px);
+  }
+
+  .portrait-area {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .portrait-frame {
+    flex: 1;
+    background: var(--wash-tyler-faint);
+    border: 1px solid var(--warm);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 280px;
+  }
+
+  .placeholder-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--light-text);
+  }
+
+  .portrait-caption {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--light-text);
+    text-align: center;
+  }
+
+  .text-area {
+    grid-column: 2;
+    grid-row: 1;
+    padding-top: 4px;
+  }
+
+  .date-meta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    margin-bottom: 12px;
+  }
+
+  .date-text {
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .detail-drawings {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .detail-drawing {
+    flex: 1;
+    background: var(--wash-tyler-faint);
+    border: 1px solid var(--warm);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 80px;
+  }
+
+  .detail-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    position: absolute;
+    bottom: 6px;
+    right: 10px;
+  }
+
+  /* === TIMELINE STRIP === */
+  .timeline-strip {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    background: white;
+    border: 1px solid var(--warm);
+    border-radius: 3px;
+    padding: 14px 20px 12px;
+  }
+
+  .timeline-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    margin-bottom: 10px;
+  }
+
+  .timeline-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    height: 40px;
+  }
+
+  .timeline-line {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    right: 16px;
+    height: 1.5px;
+    background: var(--warm);
+    transform: translateY(-50%);
+  }
+
+  .timeline-node {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--wash-tyler);
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px var(--wash-tyler-light);
+  }
+
+  .timeline-text {
+    font-size: 9.5px;
+    color: var(--light-text);
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.3;
+  }
+
+  .timeline-time {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 8px;
+    color: var(--wash-tyler);
+    font-weight: 500;
+  }
+
+  /* === PAGE 2 — CHART PAGE === */
+  .page-2-content {
+    padding: 24px 36px 32px;
+    height: calc(100% - 80px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .chart-title {
+    font-size: 17px;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--text);
+    text-align: center;
+    max-width: 380px;
+    line-height: 1.5;
+  }
+
+  .chart-frame {
+    width: 400px;
+    height: 320px;
+    position: relative;
+  }
+
+  /* Tyler's age preference chart */
+  .age-chart {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .age-range-visual {
+    width: 340px;
+    height: 180px;
+    position: relative;
+  }
+
+  .age-axis {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    background: var(--warm);
+  }
+
+  .age-tick {
+    position: absolute;
+    bottom: -18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    color: var(--light-text);
+    transform: translateX(-50%);
+  }
+
+  .age-tick::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 1px;
+    height: 6px;
+    background: var(--warm);
+  }
+
+  .age-bar {
+    position: absolute;
+    bottom: 8px;
+    height: 100px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .tyler-bar {
+    /* His range: just 22 */
+    left: calc((22 - 18) / (50 - 18) * 100%);
+    width: 8px;
+    background: var(--wash-tyler);
+    opacity: 0.8;
+  }
+
+  .normal-bar {
+    /* "Normal" range: 25-35 */
+    left: calc((25 - 18) / (50 - 18) * 100%);
+    width: calc((35 - 25) / (50 - 18) * 100%);
+    background: var(--warm);
+    opacity: 0.5;
+    height: 60px;
+    bottom: 28px;
+  }
+
+  .bar-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    white-space: nowrap;
+    position: absolute;
+    top: -18px;
+  }
+
+  .tyler-annotation {
+    position: absolute;
+    left: calc((22 - 18) / (50 - 18) * 100% + 20px);
+    top: 20px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text);
+    max-width: 180px;
+    line-height: 1.5;
+  }
+
+  .chart-footnote {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    color: var(--light-text);
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* === PAGE NUMBER === */
+  .page-num {
+    position: absolute;
+    bottom: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    color: var(--light-text);
+    letter-spacing: 0.05em;
+  }
+  .page-num-left { left: 36px; }
+  .page-num-right { right: 36px; }
+
+  /* === SPREAD LABEL === */
+  .spread-divider {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    margin: 32px 0 16px;
+    text-align: center;
+    width: 100%;
+  }
+
+  @media (max-width: 1400px) {
+    .page-spread { flex-direction: column; }
+    :root { --page-size: min(680px, 95vw); }
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">The Sophie Experiment — Sample Date Layout · Date #14: Tyler</div>
+
+<div class="page-spread">
+
+  <!-- PAGE 1: Main content -->
+  <div class="page">
+    <div class="header-bar">
+      <span class="header-name">Tyler</span>
+      <span class="header-number">Date No. 14</span>
+    </div>
+
+    <div class="page-1-content">
+      <div class="portrait-area">
+        <div class="portrait-frame">
+          <span class="placeholder-label">Watercolor portrait</span>
+        </div>
+        <div class="portrait-caption">Tyler, 34, software engineer</div>
+      </div>
+
+      <div class="text-area">
+        <div class="date-meta">March 2024 · Coffee → His apartment · 4 hrs</div>
+        <p class="date-text">
+          Tyler picked a coffee shop near his apartment, which should have been the first clue. He talked about his
+          climbing gym for twenty minutes. When we walked back to his place he had a very specific system for
+          taking off shoes at the door. His cat, Chairman Meow, climbed into my lap immediately and stayed
+          there for three hours. Tyler made pasta with exactly two pots — he was very clear this was important.
+          At some point I noticed his Hinge profile was still open on his laptop. Age preference: 22–22.
+        </p>
+      </div>
+
+      <div class="detail-drawings">
+        <div class="detail-drawing">
+          <span class="placeholder-label">Drawing: Chairman Meow in my lap</span>
+          <span class="detail-label">Memory 1</span>
+        </div>
+        <div class="detail-drawing">
+          <span class="placeholder-label">Drawing: Two-pot pasta system</span>
+          <span class="detail-label">Memory 2</span>
+        </div>
+        <div class="detail-drawing">
+          <span class="placeholder-label">Drawing: Shoe removal protocol</span>
+          <span class="detail-label">Memory 3</span>
+        </div>
+      </div>
+
+      <div class="timeline-strip">
+        <div class="timeline-title">Timeline of Events</div>
+        <div class="timeline-track">
+          <div class="timeline-line"></div>
+          <div class="timeline-node">
+            <div class="timeline-time">2:00</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Coffee shop</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">2:45</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Climbing gym monologue</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">3:15</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Walk to his place</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">3:20</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Shoe protocol</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">3:30</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Chairman Meow</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">5:15</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Two-pot pasta</div>
+          </div>
+          <div class="timeline-node">
+            <div class="timeline-time">6:00</div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-text">Age pref: 22–22</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-num page-num-left">42</div>
+  </div>
+
+  <!-- PAGE 2: Data viz -->
+  <div class="page">
+    <div class="header-bar">
+      <span class="header-name">Tyler</span>
+      <span class="header-number">Data</span>
+    </div>
+
+    <div class="page-2-content">
+      <div class="chart-area">
+        <div class="chart-title">
+          "Tyler's Hinge Age Preference<br>vs. the Average 34-Year-Old Man"
+        </div>
+
+        <div class="chart-frame">
+          <div class="age-range-visual">
+            <div class="age-bar normal-bar">
+              <span class="bar-label">Average range</span>
+            </div>
+            <div class="age-bar tyler-bar">
+              <span class="bar-label">Tyler</span>
+            </div>
+            <div class="tyler-annotation">
+              Both his minimum<br>
+              <em>and</em> maximum age<br>
+              preference were set to 22.<br><br>
+              Tyler was 34.
+            </div>
+            <div class="age-axis">
+              <span class="age-tick" style="left: 0%">18</span>
+              <span class="age-tick" style="left: calc((22 - 18) / (50 - 18) * 100%)">22</span>
+              <span class="age-tick" style="left: calc((25 - 18) / (50 - 18) * 100%)">25</span>
+              <span class="age-tick" style="left: calc((30 - 18) / (50 - 18) * 100%)">30</span>
+              <span class="age-tick" style="left: calc((35 - 18) / (50 - 18) * 100%)">35</span>
+              <span class="age-tick" style="left: calc((40 - 18) / (50 - 18) * 100%)">40</span>
+              <span class="age-tick" style="left: calc((45 - 18) / (50 - 18) * 100%)">45</span>
+              <span class="age-tick" style="left: 100%">50</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-footnote">
+          Fig. 14 — Age preference data collected via accidental laptop sighting
+        </div>
+      </div>
+    </div>
+
+    <div class="page-num page-num-right">43</div>
+  </div>
+
+</div>
+
+<div class="spread-divider">Layout Notes</div>
+<div style="max-width: 700px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--light-text); line-height: 1.7; padding: 0 20px 60px; text-align: center;">
+  This is a two-page spread for a medium-length date. Shorter dates might be a single page (portrait + text + timeline, no separate chart page).
+  Longer dates could extend to three pages with more detail drawings or a longer timeline.
+  The watercolor wash color in the header bar would be unique per date.
+  All placeholder boxes would contain your watercolor + ink illustrations.
+</div>
+
+</body>
+</html>

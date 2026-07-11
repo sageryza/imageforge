@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero Image Comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'EB Garamond', Georgia, serif; background: #faf8f5; color: #3a3632; padding: 20px; }
+  h1 { font-size: 24px; margin-bottom: 6px; }
+  .subtitle { color: #9a8f85; font-size: 14px; margin-bottom: 24px; }
+  
+  .date-section { margin-bottom: 40px; border: 1px solid #e8e0d8; border-radius: 12px; padding: 20px; background: #fff; }
+  .date-header { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .date-moment { font-size: 13px; color: #9a8f85; margin-bottom: 16px; font-style: italic; }
+  
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .cell { border: 1px solid #e8e0d8; border-radius: 8px; overflow: hidden; background: #faf8f5; }
+  .cell-header { padding: 8px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9a8f85; border-bottom: 1px solid #e8e0d8; background: #f5f0eb; }
+  .cell-image { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #f0ebe5; position: relative; cursor: pointer; }
+  .cell-image img { width: 100%; height: 100%; object-fit: cover; }
+  .cell-prompt { padding: 8px 10px; font-size: 10px; color: #6b5e54; line-height: 1.4; max-height: 80px; overflow-y: auto; font-style: italic; border-top: 1px solid #e8e0d8; }
+  
+  .spinner { width: 24px; height: 24px; border: 3px solid #e8e0d8; border-top-color: #c17c60; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .status { font-size: 10px; color: #9a8f85; text-align: center; padding: 4px; }
+  .error { color: #c17c60; font-size: 10px; padding: 8px; text-align: center; }
+  
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; background: #c17c60; color: white; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.secondary { background: none; border: 1px solid #e8e0d8; color: #6b5e54; }
+  
+  .progress { font-size: 13px; color: #9a8f85; }
+  
+  .lightbox { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; cursor: pointer; padding: 20px; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+  .lightbox-info { position: absolute; bottom: 20px; left: 20px; right: 20px; color: white; font-size: 12px; text-align: center; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<h1>Hero Image Comparison</h1>
+<p class="subtitle">4 approaches × 3 dates — finding the best way to generate hero illustrations</p>
+
+<div class="controls">
+  <button onclick="runAll()" id="runBtn">Generate All (12 images)</button>
+  <button class="secondary" onclick="runOne(0)">Patrick only</button>
+  <button class="secondary" onclick="runOne(1)">Jake only</button>
+  <button class="secondary" onclick="runOne(2)">Gabriel only</button>
+  <span class="progress" id="progress"></span>
+</div>
+
+<div id="app"></div>
+<div id="lightbox" style="display:none" class="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-info" id="lightbox-info"></div>
+</div>
+
+<script>
+const IMAGEFORGE = 'https://imageforge-q125.onrender.com';
+
+const DATES = [
+  {
+    name: 'Patrick (Date 23)',
+    moment: 'The gas station standoff — Patrick stalking the stranger "like a tiger"',
+    myPrompt: 'Pen and ink illustration with watercolor washes. A gas station at night, fluorescent light overhead. A tall ginger-haired man in plaid flannel leans his face inches from a heavyset stranger in khaki shorts, staring him down with intense dark eyes. A tiger\'s shadow falls behind the ginger man. A young woman with curly brown hair and a man in a gray cardigan watch from nearby. Muted palette, warm amber light, loose brushwork.',
+    fullText: `I meet Patrick on the street, and he has just come from the 711 where he has gotten a beer for himself.
+Patrick's carefully constructed hipster outfit incorporates a lumberjack-like plaid flannel, as well as large horn-rimmed frames. Atop his head sits a messy bun from his silky mane of light ginger strands. I am wearing my customary black tight dress with my black skeleton long sleeve shirt on top and my black Harley Davidson boots.
+On our way, we pass a table where Michael is seated in front of an open laptop. He wears his signature gray cardigan.
+An overweight stranger pulls up in a beat up van and as his car fills with gas, he approaches me, and only me, asking if I have a cigarette.
+Patrick says he'll give him one for 50 cents. The stranger hands him 50 cents from his pocket.
+After he takes the cigarette, he goes back to ignoring my two companions. He looks straight at me, and asks, quite aggressively, who these two boys are. I answer frankly that I'm on a date with one and the other is my friend. He asks whether I feel safe with my date.
+"Look, you can't just like insult my date like that or whatever, ok. He's like a person and all."
+We pass around all the bottles at least once, through the circle, even though the boundaries in the circle feel like they are constructed from steel string.
+Michael says nothing and does nothing, with a shit-eating grin plastered across his face.
+"If we were to fight, just saying, you'd be dead. On the ground in one second."
+Michael and I sort of gasp. Chubby stranger looks at him a little more.
+Patrick stalks closer and closer to chubby stranger until he is only centimeters from his head, staring at him with his magnificent dark eyes. Like a tiger.
+Like a tiger, or like a man trying to prove a point.
+Patrick wraps his arm around Chubby Stranger's back lightly.`
+  },
+  {
+    name: 'Jake (Date 7)',
+    moment: 'The broken chess game — she plays by her own rules, he plays by the real ones',
+    myPrompt: 'Pen and ink illustration with watercolor washes. A young woman with curly brown hair sprawled across her elbows at a small café chess table, grinning, pieces scattered in wrong positions. Across from her, a brooding young man in a dark sweatshirt plays correctly, stone-faced. Late night café lighting, warm yellow glow from the window. Muted tones, loose ink lines.',
+    fullText: `I met Jake at the Southeast Grind at about ten o'clock at night. I was watching him through the window as he had a cigarette. I thought he was the most attractive person I'd ever encountered.
+Instead he came to sit three seats away from me at the counter. There were three people in between us but after they left, slowly, one by one, he and I were left, and I could see that he was drawing in a sketchbook.
+He got the board from the games closet and brought it to a two-person table and we set up the board together. He didn't ask me if I knew how to play, or if I was any good, but instead sat in a sort of interested silence.
+The strange dark essence weighing diagonally upon me from his long face held me and became liquid and I fell down, it was the weight of the anticipation.
+So though we started the game according to the rules of chess as I'd known them from a child, this oppressive interaction, our lack of explicit communication, caused me to act out, and rather than moving my pawn 2 spaces out, I moved it 3. He moved a piece on his side without looking at my side. I moved a knight into a cluster of pieces on his side. He moved his own pieces on his side of the board, I moved pieces into the border on the edge of the playing space, I moved his pieces, I moved two of my pieces at the same time, I slumped into my outstretched elbows with a huge smile on my face and he continued to play the game according to its rules.
+I moved pieces that had been dead back onto the game board, I killed my king with my queen and moved it off the board so that no one could win and we continued until he had about ten pieces left and I had only one white pawn that was darting around all of them.
+"You win." I said. He agreed and started setting up the pieces to play again.`
+  },
+  {
+    name: 'Gabriel (Date 30)',
+    moment: 'The forlorn goodbye — him behind his bike in the dark, her on the lit porch',
+    myPrompt: 'Pen and ink illustration with watercolor washes. Night scene on a front porch. A young woman with curly brown hair stands on the lit porch looking down. Below on the garden path, a young man stands behind his bicycle, barely visible, just a soft glowing silhouette in the dark. Warm porch light versus cool blue darkness. Muted watercolor palette, delicate ink work.',
+    fullText: `He finally called me back, saying that he was a few streets from me on his bike. I asked him where he was coming from and he said he'd been at work painting houses.
+I stopped myself in my own tracks, and left it at an invitation to my little intersection of white flowered grass, where I now felt at home.
+He came into view riding his bike like a steed since he was not leaning forward since he had been using his hands to cradle the phone.
+I told him I liked his pants. His pants were spattered with paint from his job.
+He told me a long story about a girl from the South he'd met on OkCupid.
+He told me it was late and that if he was planning to bike back to his house he had better get going right then.
+We went outside together and he got his bike and he was standing behind it on the path that leads to the steps that lead to the front door. It was dark and I couldn't see all of him, just a glowy outline of a person, a white one with not much height but nevertheless some sort of presence. He looked so forlorn where he was standing behind his bike and I was still standing on the porch, under the light I suppose, and I hadn't gone down with him when he went to get it and it left him without the opportunity to either hug or kiss me goodnight which is what I perhaps intended.
+I asked him once again if he felt safe biking so late and he said he did and I said "Alright, see you later." And he said "Alright see you later." and I said that if he really didn't want to bike right then, that he could sleep on the couch and he said he would feel degraded to sleep on the couch.`
+  }
+];
+
+const APPROACHES = [
+  { id: 'replicate-mine', label: 'My Prompt → Replicate', short: 'Replicate (mine)' },
+  { id: 'dalle-mine', label: 'My Prompt → DALL·E', short: 'DALL·E (mine)' },
+  { id: 'dalle-gpt-rewrite', label: 'GPT-4o rewrites → DALL·E', short: 'GPT rewrite' },
+  { id: 'dalle-gpt-extract', label: 'GPT-4o reads date → DALL·E', short: 'GPT from text' },
+];
+
+// State: results[dateIdx][approachIdx] = { status, prompt, url, error }
+const results = DATES.map(() => APPROACHES.map(() => ({ status: 'idle', prompt: '', url: null, error: null })));
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = DATES.map((date, di) => `
+    <div class="date-section">
+      <div class="date-header">${date.name}</div>
+      <div class="date-moment">${date.moment}</div>
+      <div class="grid">
+        ${APPROACHES.map((approach, ai) => {
+          const r = results[di][ai];
+          return `
+            <div class="cell">
+              <div class="cell-header">${approach.short}</div>
+              <div class="cell-image" onclick="openLightbox(${di}, ${ai})">
+                ${r.status === 'idle' ? '<span style="color:#ccc">—</span>' : ''}
+                ${r.status === 'prompting' ? '<div><div class="spinner"></div><div class="status">Writing prompt...</div></div>' : ''}
+                ${r.status === 'generating' ? '<div><div class="spinner"></div><div class="status">Generating...</div></div>' : ''}
+                ${r.status === 'done' && r.url ? `<img src="${r.url}" alt="">` : ''}
+                ${r.status === 'error' ? `<div class="error">${r.error}</div>` : ''}
+              </div>
+              ${r.prompt ? `<div class="cell-prompt">${r.prompt.replace(/</g, '&lt;')}</div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateProgress() {
+  const total = results.flat().length;
+  const done = results.flat().filter(r => r.status === 'done' || r.status === 'error').length;
+  const inProgress = results.flat().filter(r => r.status === 'generating' || r.status === 'prompting').length;
+  document.getElementById('progress').textContent = inProgress > 0 ? `${done}/${total} done, ${inProgress} in progress...` : done > 0 ? `${done}/${total} complete` : '';
+}
+
+async function generateImage(prompt, provider) {
+  if (provider === 'replicate') {
+    const res = await fetch(`${IMAGEFORGE}/api/generate/replicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        model: 'sageryza/watercolordrawings:a6749d940388a669f79efc36018b93436568ca6a6a59c57ddd87dc43fa3e6c1f',
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.url;
+  } else {
+    const res = await fetch(`${IMAGEFORGE}/api/generate/dalle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, quality: 'hd' }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.url;
+  }
+}
+
+async function getHeroPrompt(text, mode) {
+  const res = await fetch(`${IMAGEFORGE}/api/generate/hero-prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, mode }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function runApproach(di, ai) {
+  const date = DATES[di];
+  const approach = APPROACHES[ai];
+  const r = results[di][ai];
+
+  try {
+    let prompt;
+
+    if (approach.id === 'replicate-mine') {
+      r.status = 'generating'; r.prompt = date.myPrompt; render(); updateProgress();
+      r.url = await generateImage(date.myPrompt, 'replicate');
+      r.status = 'done';
+
+    } else if (approach.id === 'dalle-mine') {
+      r.status = 'generating'; r.prompt = date.myPrompt; render(); updateProgress();
+      r.url = await generateImage(date.myPrompt, 'dalle');
+      r.status = 'done';
+
+    } else if (approach.id === 'dalle-gpt-rewrite') {
+      r.status = 'prompting'; render(); updateProgress();
+      const result = await getHeroPrompt(date.myPrompt, 'rewrite');
+      prompt = result.prompt;
+      r.prompt = prompt;
+      r.status = 'generating'; render(); updateProgress();
+      r.url = await generateImage(prompt, 'dalle');
+      r.status = 'done';
+
+    } else if (approach.id === 'dalle-gpt-extract') {
+      r.status = 'prompting'; render(); updateProgress();
+      const result = await getHeroPrompt(date.fullText, 'extract');
+      prompt = result.prompt;
+      r.prompt = `[${result.moment}] ${prompt}`;
+      r.status = 'generating'; render(); updateProgress();
+      r.url = await generateImage(prompt, 'dalle');
+      r.status = 'done';
+    }
+  } catch (err) {
+    r.status = 'error';
+    r.error = err.message;
+  }
+
+  render();
+  updateProgress();
+}
+
+async function runOne(dateIdx) {
+  document.getElementById('runBtn').disabled = true;
+  // Run all 4 approaches for one date, 2 at a time to avoid rate limits
+  for (let batch = 0; batch < 2; batch++) {
+    await Promise.all([0, 1, 2, 3].slice(batch * 2, batch * 2 + 2).map(ai => runApproach(dateIdx, ai)));
+  }
+  document.getElementById('runBtn').disabled = false;
+}
+
+async function runAll() {
+  document.getElementById('runBtn').disabled = true;
+  // Run one date at a time, 2 approaches at a time within each date
+  for (let di = 0; di < DATES.length; di++) {
+    for (let batch = 0; batch < 2; batch++) {
+      await Promise.all([0, 1, 2, 3].slice(batch * 2, batch * 2 + 2).map(ai => runApproach(di, ai)));
+    }
+  }
+  document.getElementById('runBtn').disabled = false;
+}
+
+function openLightbox(di, ai) {
+  const r = results[di][ai];
+  if (!r.url) return;
+  document.getElementById('lightbox').style.display = 'flex';
+  document.getElementById('lightbox-img').src = r.url;
+  document.getElementById('lightbox-info').textContent = `${DATES[di].name} — ${APPROACHES[ai].label}`;
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+render();
+</script>
+</body>
+</html>

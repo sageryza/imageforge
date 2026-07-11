@@ -8,12 +8,20 @@
     "node": ">=18"
   },
   "dependencies": {
+    "astronomia": "^4.2.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",
     "firebase-admin": "^13.6.1",
     "form-data": "^4.0.6",
-    "node-fetch": "^2.7.0"
+    "https-proxy-agent": "^7.0.5",
+    "jszip": "^3.10.1",
+    "node-fetch": "^2.7.0",
+    "sharp": "^0.35.3",
+    "tz-lookup": "^6.1.25"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.48.0"
   }
 }

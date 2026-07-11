@@ -7,6 +7,14 @@
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
+  - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
+
+## Dating book — "The Sophie Experiment"
+Sophie's long-running dating-memoir project (square coffee-table book from ~50
+Portland dates). The full brief, her own planning docs/mockups, illustration
+**style prompt formulas**, essay & infographic lists, and prior-chat transcripts
+live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
+first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
 
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
@@ -71,7 +79,36 @@ lifted into a standalone tool later.
   client-credentials (`LULU_API_KEY`+`LULU_API_SECRET`), sandbox via
   `LULU_SANDBOX`/`LULU_API_BASE`. Routes: status, cost, print-jobs. Paper maxes
   ~90 GSM uncoated. *Built, not yet key-tested.*
-- Card decks (oracle/tarot) are **manual** fulfilment (Robinson Chen) — no API.
+- Card decks (oracle/tarot) print at **MakePlayingCards (MPC)** — no POD API, so
+  fulfilment is semi-automated (see `docs/mpc-fulfillment.md`). After an order
+  lands, `scripts/mpc_order_builder.py` turns a folder of card images (fronts/ +
+  a shared `back.png` or per-card backs/) into an MPC Autofill `order.xml`
+  (local-files dialect: `<sourceType>Local File</sourceType>`, comma-separated
+  `<slots>`, exact stock strings). The maintained community **MPC Autofill**
+  desktop tool (`autofill --directory my_deck`) then drives the browser upload
+  and auto-saves the project; Sophie reviews it in her MPC account and checks
+  out by hand. Bulk tiers are **per design** (one order = one deck × qty), so the
+  default is **one deck at a time / made-to-order**; batch a 6-pack (tier 2)
+  only for a proven repeat seller. `scripts/mpc_card_prep.py` (Pillow) is the
+  press-ready prep step run BEFORE the order builder — raw art → 825×1125 px @ 300
+  DPI incl. 1/8" bleed (cover/extend/fit modes, deck-folder aware, optional
+  trim/safe proof images, low-res warnings). Because the pipeline's card images
+  live as **URLs** (Firebase/Replicate), not files on a computer, `mpc.js`
+  (`/api/mpc`, `POST /prep-order`) is the cloud version of both scripts: it preps
+  from URLs + builds order.xml + bundles a downloadable **ZIP** hand-off (sharp +
+  jszip; STUDIO_TOKEN-gated; returns a Firebase link). The only step still needing
+  a computer is the desktop tool's browser upload — OR use `mpc-upload.js`
+  (`/api/mpc-upload`), the full auto-upload: a headless Playwright browser logs
+  into MPC, creates the project, uploads every prepped card, sets options, and
+  stops at the **cart** for Sophie to review + pay (payment never automated; a
+  payment-page guard hard-stops). Background job with per-step screenshots
+  (`POST /api/mpc-upload` → poll `GET /api/mpc-upload/:id`); creds via
+  `MPC_EMAIL`/`MPC_PASSWORD`. Two caveats: it needs a browser-capable host (NOT
+  the Render free web service; `playwright` is an optionalDependency, route
+  dormant/501 there), and the MPC selectors (`DEFAULT_FLOW`) need a live
+  calibration pass — the engine is mock-tested, the selectors aren't. The ZIP
+  hand-off stays the robust fallback; Robinson Chen remains the manual
+  hand-fulfilment fallback.
 
 ### Key loading (env vars OR Firestore)
 - `config-loader.js` runs at boot (after Firebase init) and hydrates
@@ -85,6 +122,46 @@ lifted into a standalone tool later.
   `node scripts/set-pipeline-keys.js` (needs `FIREBASE_SERVICE_ACCOUNT` + the
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
+
+## Card-deck art generator (Midjourney via APIFRAME)
+- `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
+  which Sophie's original decks used. Midjourney has no official API, so this goes
+  through **APIFRAME** (`APIFRAME_KEY`), which runs its *own* MJ accounts and
+  exposes a REST API — no personal MJ account is involved or at risk. Base
+  `https://api.apiframe.ai/v2`, `X-API-Key` header. **Gotcha:** APIFRAME sits
+  behind Cloudflare bot-protection that 403s ("error code: 1010") any request
+  without a browser `User-Agent`, so the module always sends one.
+- **Routes:** `GET /status`; `POST /generate` (`{prompt}` or `{plant, style?}` +
+  optional `aspectRatio` default `5:7`, `styleRef` = a public image URL used as a
+  Midjourney `--sref` to lock Sophie's look) → `{jobId}`; `GET /job/:id` polls,
+  and on `COMPLETED` mirrors the **4** MJ options to Firebase (MJ CDN URLs expire;
+  `?save=0` to skip). `imagine()`/`job()` are exported helpers. STUDIO_TOKEN-gated.
+- **No text in the prompt** — Midjourney is unreliable at spelling; the plant-name
+  label is overlaid later in prep, not generated. Pricing: 16 credits per generate
+  (=4 options), 4 per upscale; ~6–8¢/generate on a paid plan.
+- Flow: generate (MJ) → pick 1 of 4 → label overlay + print prep → MPC fulfilment.
+- **Bring-your-own-Midjourney** (`ingest.js`, `/api/ingest`, page at `/import`):
+  the alternate art path — Sophie generates in her *own* MJ account and bulk-
+  downloads keepers by keyword with a browser export tool (that step runs on her
+  computer; the server can't automate MJ's download — no API, her account, needs
+  a browser). This module automates everything after: `POST /upload`
+  (`{batch, keyword?, images:[dataURL|url]}` → Firebase `ingest/<batch>/`, filename
+  keyword-tagged), `POST /upload-zip?batch=&keyword=` (the raw .zip as the request
+  body → unzips server-side and ingests every image, skipping `__MACOSX`/non-image
+  junk — so a bulk MJ export uploads in one shot, phone or desktop),
+  `GET /batch/:batch?keyword=` (list a batch, keyword = filename substring filter),
+  `GET /batches`. The `/import` page (serveGated) is a phone/desktop uploader
+  (individual images or a whole ZIP). Batches feed the same review → prep → MPC flow. Trade-off vs
+  APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
+  computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
+  batch and picking the on-style option is the shared payoff of both paths.
+  - **`browser-extension/`** (Chrome MV3, "Send to Deck Factory") kills the
+    export/import friction: a floating button on midjourney.com grabs the page's
+    MJ images and POSTs them straight to `/api/ingest/upload` (runs in Sophie's
+    own logged-in session — no MJ password, no server-side MJ automation). Load
+    unpacked; set the app URL + STUDIO_TOKEN + batch/keyword in the popup. The
+    image-grab (`collectMidjourneyImageUrls`/`toFullRes` in `content.js`) needs a
+    first-run calibration pass against MJ's live DOM (it logs what it finds).
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
@@ -148,6 +225,29 @@ lifted into a standalone tool later.
   `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
   the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
+- **Dreams (dream → comic):** the dream-illustration path — replicates the
+  daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
+  free breakdown: a dream's text → `dreamBreakdown()` (gpt-4o-mini decides how
+  many BEATS the dream needs — no padding, most are short — and for each writes
+  a self-contained panel prompt + a short caption in the dreamer's own voice,
+  minimal prompting) → a `forge-dreams` doc; nothing is drawn yet. The breakdown
+  also reconstructs the dream's TRUE chronology from the dreamer's cues ("that
+  was before", "at first") and returns the beats already in order; the iOS
+  "check the chronology" step lets Sophie hand-tweak that order (▲▼) and
+  `POST .../render` accepts an `order:[beatId]` to draw in the confirmed sequence.
+  `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
+  2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
+  packs beats **four per image** (an 8-beat dream = two pages; a short tail
+  page lays out with fewer), captions = the beats' own lines (no cover),
+  ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
+  background job on the doc, `pageHistory` capped 3. Separate collection so
+  dreams never clutter the movies list. **Character anchor**: if the dream has
+  a recurring figure (`characters` tokens), the render first draws it as a solo
+  reference and locks it (`ensureDreamAnchor`), then pins every page to it (via
+  `panelRefs`) so the same face/hair/clothes hold across pages instead of
+  drifting; `POST .../render {reanchor:true}` re-rolls the look. Same
+  `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
+  rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
@@ -235,11 +335,141 @@ lifted into a standalone tool later.
   Firebase isn't initialized (local dev). So a one-time `/connect` authorization
   sticks across deploys instead of being wiped each time.
 
+## Shopify (Admin API — newsletter audience + blog destination)
+- `shopify.js` (`/api/shopify`) is a self-contained Shopify **Admin API** module.
+  ONE custom-app token powers two things: pulling the **newsletter audience**
+  (email subscribers) and **publishing blog posts** to the store's built-in blog.
+- **This is NOT the storefront token.** The site's Buy Button (on
+  thepeoplewatchingclub.com, store `cod-god-inc.myshopify.com`) uses the public
+  **Storefront** token — products + carts only, cannot read customers by design.
+  Subscribers/blog need an Admin custom-app token (`shpat_…`) with scopes
+  `read_customers` + `read_content` + `write_content`, created in Shopify admin
+  (Settings → Apps and sales channels → Develop apps → create app → Admin API).
+- **Three auth modes**, tried in order (Shopify retired legacy admin-created
+  custom apps on 2026-01-01, so new stores can't mint a static `shpat_…` token):
+  (1) a static `SHOPIFY_ADMIN_TOKEN` if the store still has one; (2) an **OAuth
+  offline token** from `/api/shopify/connect` (authorization code grant) — the
+  path that actually works for a **Dev Dashboard** app installed on a single
+  store; the offline token doesn't expire and is persisted to Firestore
+  (`config/shopify-tokens`, like `etsy-tokens`), so one `/connect` sticks;
+  (3) **client credentials** (`SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`
+  exchanged at `POST /admin/oauth/access_token`, 24h token) — kept as a fallback
+  but **it silently returns a token with EMPTY scope for single-store /
+  "custom-distribution" apps** (Shopify's docs: custom apps must use token
+  exchange or the authorization code grant). If subscribers/blogs 403 with
+  "requires merchant approval for … scope" and the token's `scope` is empty, that
+  is this trap — use the OAuth `/connect` flow instead.
+- **Dev Dashboard setup (current as of 2026-07 — verified live; re-verify the UI
+  before instructing, it changes):** the store's admin **Settings → Apps → Develop
+  apps** now only links out to the **Dev Dashboard** (dev.shopify.com) — legacy
+  custom apps are disabled. In the Dev Dashboard app: **Client ID + Secret** live
+  on the app's **overview/credentials** page (the `atkn_…` "app automation token"
+  there is CI/CD-only and does NOT work for the Admin API — ignore it). App
+  **config is versioned**: to change **scopes** or **redirect URLs** you tap
+  **Create/New version**, which *copies the current config* (so scopes carry
+  over — no need to re-pick), edit, then **Release**. **Scopes must be REQUIRED,
+  not "optional scopes"** — optional scopes are not granted and yield an
+  empty-scope token. **Redirect/allowed URLs** are in the same version config (or
+  under the app's Settings/URLs); the OAuth callback must be listed there. No
+  manual "install" step is needed for the OAuth path — visiting `/connect` and
+  approving IS the install/authorization.
+- **Env vars** (Render dashboard or Firestore config doc, `sync:false`, added to
+  `config-loader.js` MANAGED_KEYS): `SHOPIFY_STORE` (e.g.
+  `cod-god-inc.myshopify.com`), then EITHER `SHOPIFY_ADMIN_TOKEN` (`shpat_…`) OR
+  `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` (for the OAuth `/connect` flow);
+  optional `SHOPIFY_REDIRECT_URI` (defaults to `<RENDER_EXTERNAL_URL>/api/shopify/callback`),
+  `SHOPIFY_SCOPES`, `SHOPIFY_API_VERSION` (default `2025-01`).
+- **Routes:** `GET /status` (reports `configured`/`connected`/`authMode`),
+  `GET /connect` (start OAuth), `GET /callback` (verifies state + HMAC, stores the
+  offline token), `GET /subscribers` (customers with
+  `email_marketing_state:subscribed`, GraphQL, paginated), `GET /subscribers.csv`
+  (download for Shopify Email / Mailchimp — actual *sending* is still manual, no
+  public campaign-send API), `GET /blogs`, `POST /blog-post` (REST article
+  create; `published:false` = hidden draft to review in Shopify admin first).
+  Customers via GraphQL Admin API (REST is being retired for customer data);
+  blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status`,
+  `/connect`, `/callback` open — the last two are browser redirects).
+
+## Blog Studio (SEO posts → Shopify blog)
+- `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
+  into an SEO blog post and publishes it to the Shopify store blog — free organic
+  search traffic to the shop. Built around 2026 SEO reality: target **long-tail**
+  keywords (specific 3-6 word buyer phrases, KD low) that big sites ignore and
+  Google's AI Overviews can't fully answer, so the click still comes to you;
+  organize as topic clusters (a pillar + specific cluster posts).
+- **Flow:** `POST /keywords` (topic → long-tail keyword ideas w/ intent +
+  difficulty + a pillar/cluster shape, gpt-4o-mini) → `POST /draft` (full post:
+  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, gpt-4o-mini) →
+  `POST /image` (gpt-image-2 → permanent Firebase webp URL) → `POST /publish`
+  (reuses `shopify.publishArticle`; hidden draft or live). Generation endpoints
+  are stateless; drafts best-effort persist to Firestore (`forge-blog`) for a
+  "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
+  `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
+
+## Secretly a Witch (public witchy app)
+- `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
+  single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
+  mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
+  endpoints + a small set of stateless AI endpoints in `server.js`:
+  `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
+  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
+  - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
+    epoch, client-side), a deterministic **Card of the Day** (per-day hash into
+    a full 78-card deck built in JS: 22 majors w/ up/rev meanings + 56 minors by
+    suit×rank), an optional AI reflection, a daily **intention**, and a
+    **moon calendar** (month grid, glyph per day, new/full highlighted).
+  - **Miracles** — the Little Book of Miracles ported in full (capture/imagine →
+    illustrated pages → read view). Shares `localStorage['imageforge_miracles_book']`
+    with `/book`.
+  - **Tarot** — 1 / three-card / yes-no draws + AI reading; **save readings** to
+    `localStorage['witch_saved_readings']`.
+  - **Conjure** — spell/ritual maker (**save to grimoire**,
+    `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
+    maker over the house LoRA styles.
+  - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **External links** live in a `LINKS` const at the top of the client script.
+  Shop = `secretlyawitch.com` (Shopify), Instagram = `@moonsickbaby`. **Watch =
+  YouTube is still a placeholder search** — the channel URL isn't stored anywhere
+  (the YouTube token is upload-only scope and can't read the channel), so it
+  needs Sophie's `@handle` pasted in.
+
 ## Design rules (forever)
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
+- **Research the CURRENT UI before giving click-by-click steps for any external
+  dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
+  buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
+  wastes her time (this rule was earned the hard way on the Shopify Dev Dashboard
+  — see the Shopify section). Look up the up-to-date flow (web search / official
+  docs), name the exact current labels, and when a deep link needs an account/app
+  ID you can't see, say so and ask her to paste the address-bar URL so you can
+  build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **iOS: pin bottom bars below the keyboard (never floating above it).** A
+  custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
+  keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
+  keeps recurring across apps. **The fix is one modifier** on the container that
+  holds the bar: `.ignoresSafeArea(.keyboard, edges: .bottom)` (e.g. on
+  `RootView`'s outer `VStack`). The bar then stays pinned to the bottom and the
+  keyboard covers it, while each screen's own `ScrollView` still lifts its text
+  fields. Any app with a persistent bottom bar MUST have this — add it when you
+  build the shell, and check for it whenever a keyboard-over-bar bug appears.
+- **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
+  tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
+  `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
+  emoji. Pull exact paths from `unpkg.com/lucide-static@latest/icons/<name>.svg`
+  and inline them (CSP-safe, no external requests). Emoji are fine ONLY as
+  expressive *content* (moon phases 🌑🌕, a decorative ✦), never as the icon for
+  a control. (Lucide dropped brand glyphs like YouTube/Instagram for trademark
+  reasons — hand-inline a simple equivalent or use `monitor-play`/`camera`.)
+- **Each app may have its own visual identity — don't blanket-copy the warm-paper
+  studio look.** `forge.css` (warm paper, `--accent` tan) is the *studio/hub*
+  system; public apps can and should diverge. Example: **Secretly a Witch** uses
+  its own dark, mystical theme (ink/plum + gold + moonlight) defined inline in
+  `witch.html`, NOT `forge.css`. When starting a new surface, pick a palette that
+  fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
 - **Always include clickable testing links** when something is ready to test:
@@ -260,6 +490,37 @@ lifted into a standalone tool later.
   recording of it — OpenAI `gpt-4o-mini-tts` by default (cheap, reliable).
   Keep it faithful to the text, lightly adapted for listening (spell out URLs
   and numbers). Only render it in the F5 cloned voice when asked.
+- **Delivered files/images go at the BOTTOM.** When sending or attaching any
+  file or image, place it at the very END of the message, after all the text —
+  never before or in the middle. Write the explanation first, deliver last.
+- **End every reply with a verbatim audio version.** Generate a TTS (OpenAI
+  `gpt-4o-mini-tts`) reading the full message verbatim and attach it at the very
+  bottom, under the TLDR and below any images — it is the last thing in the
+  message. Strip markdown/URLs for the spoken version; keep the words.
+
+## YouTube auto-upload (witchy video channel)
+- Finished videos post straight to Sophie's business YouTube channel as **private
+  drafts** — she reviews in YouTube Studio and taps Publish. Nothing goes public
+  automatically. Helper: `scripts/youtube_upload.py` (stdlib only, no deps).
+  `python3 scripts/youtube_upload.py clip.mp4 --title "…" --description "…"
+  --tags "a,b,c" [--privacy private|unlisted|public] [--short]`. Prints the video
+  id + a `studio.youtube.com/video/<id>/edit` review link. Importable: `from
+  youtube_upload import upload`.
+- **Auth** = one OAuth "Desktop app" client + a durable **refresh token**, read
+  from env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
+  The refresh token mints access tokens forever, so no re-auth per session. Scope
+  is **upload-only** (`youtube.upload`) — it can post but not read the channel, so
+  a `channels.list` call 403s by design. The OAuth app ("Secretly a Witch") is
+  published to Production (unverified) so tokens don't expire in 7 days. Re-auth
+  only needed if the token is revoked or a wider scope is required.
+- **Shorts** need no special call: a **vertical 9:16 clip that is short** is
+  auto-classified by YouTube as a Short. `--short` just appends `#Shorts`.
+- **Voiceovers** use Sophie's ElevenLabs Instant Voice Clone "Voice A"
+  (`voice_id` `TbXVSG5Ejm1c91umIzJN`, needs `ELEVENLABS_API_KEY`), model
+  `eleven_multilingual_v2`, punchy settings (stability ~0.34, style ~0.45) and
+  ~6% faster. Illustrated episodes render panels through the diary-comic style ref
+  `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
+  in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
@@ -304,3 +565,6 @@ a project's beat board) and mirrored at `/story` (gated snapshot page).
   secrets; `imageforge_ref` input picks the imageforge branch). The
   imageforge-local `ios-testflight.yml` is a placeholder without secrets.
 - Approvals happen in chat with Sophie; sync after flipping statuses.
+- **Claude may merge its own PRs without asking** (standing permission, July
+  2026). When a PR is ready, merge it — then watch the Render deploy and fix
+  anything that breaks.
