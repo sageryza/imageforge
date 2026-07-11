@@ -22,6 +22,7 @@ struct DreamsView: View {
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
     @State private var showConsent = false
     @FocusState private var focused: Bool
+    @StateObject private var speech = DreamSpeech()
 
     var body: some View {
         ScrollView {
@@ -61,11 +62,15 @@ struct DreamsView: View {
             await loadDreams()
             scheduleNudgeIfNeeded()
         }
-        .onDisappear { pollGeneration += 1 }   // stop polling when we leave
+        .onDisappear { pollGeneration += 1; speech.stop() }   // stop polling + mic when we leave
         .alert("Couldn't illustrate",
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
+        .onChange(of: speech.transcript) { newValue in text = newValue }
+        .onChange(of: speech.errorText) { newValue in
+            if let e = newValue { errorText = e; speech.errorText = nil }
+        }
         .sheet(isPresented: $showConsent) {
             AIConsentSheet(
                 theme: .deckFactory,
@@ -84,9 +89,21 @@ struct DreamsView: View {
 
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("WHAT DID YOU DREAM?")
-                .font(.caption2.weight(.semibold)).tracking(1)
-                .foregroundColor(Theme.textDim)
+            HStack(spacing: 8) {
+                Text(speech.recording ? "LISTENING…" : "WHAT DID YOU DREAM?")
+                    .font(.caption2.weight(.semibold)).tracking(1)
+                    .foregroundColor(speech.recording ? Theme.danger : Theme.textDim)
+                Spacer()
+                Button {
+                    focused = false
+                    speech.toggle(seed: text)
+                } label: {
+                    Image(systemName: speech.recording ? "stop.circle.fill" : "mic.fill")
+                        .font(.system(size: 19))
+                        .foregroundColor(speech.recording ? Theme.danger : Theme.accent)
+                }
+                .accessibilityLabel(speech.recording ? "Stop recording" : "Record your dream")
+            }
             TextField("Last night I dreamed…", text: $text, axis: .vertical)
                 .lineLimit(3...8)
                 .font(.body)

@@ -21,6 +21,8 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Record your dream out loud so it can be transcribed and illustrated."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Turn your spoken dream into text as you talk."
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
     dependencies:
