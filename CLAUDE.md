@@ -270,11 +270,20 @@ lifted into a standalone tool later.
   page lays out with fewer), captions = the beats' own lines (no cover),
   ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
   background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Character anchor**: if the dream has
-  a recurring figure (`characters` tokens), the render first draws it as a solo
-  reference and locks it (`ensureDreamAnchor`), then pins every page to it (via
-  `panelRefs`) so the same face/hair/clothes hold across pages instead of
-  drifting; `POST .../render {reanchor:true}` re-rolls the look. Same
+  dreams never clutter the movies list. **Multi-character cast** (a dream
+  usually has several recurring people — dad, J, Sean — not one): the breakdown
+  returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
+  `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
+  cast member ONCE as a labelled solo reference sheet (`cast[i].url`), then
+  `renderDreamPage` attaches the style ref FIRST and the sheets for whoever
+  appears on that page after it, naming each by attachment position ("the #2
+  attached image is J (…)") so multiple characters stay consistent across
+  pages — the technique ChatGPT uses (named reference per character, all
+  attached, each named in the prompt; gpt-image-2 `edits` takes an image array,
+  up to ~16). Beats with no `who` fall back to attaching the whole cast; refs
+  are capped at 4/page (+style = 5). Legacy single-character dreams
+  (`characters` string / `characterAnchor`) auto-normalize to a one-member cast.
+  `POST .../render {reanchor:true}` re-rolls every cast member's look. Same
   `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
   rest of movies.
 

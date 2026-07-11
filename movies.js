@@ -627,31 +627,44 @@ HARD RULES:
 async function dreamBreakdown(dream) {
   const sys = `You are illustrating someone's real dream as a short hand-drawn diary comic. Read the dream and break it into the visual BEATS it needs — one drawing per beat. Return STRICT JSON:
 {"title": a short 2-5 word title for the dream,
- "characters": one compact phrase of visual continuity tokens for any recurring figure so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "a woman with a dark bob, wearing a green cardigan and jeans" (empty string if there is no recurring figure),
+ "cast": [{"name": a short label for one recurring figure the way the dreamer refers to them — "J", "Dad", "the boob girl", "the baby", "me",
+   "look": one compact phrase of visual continuity tokens so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "honey-blonde hair, glasses, wearing a green cardigan and jeans"}]  (list ONLY figures who appear in MORE THAN ONE beat or are central; empty array [] if none; at MOST 5),
  "beats": [{"imagePrompt": a full, SELF-CONTAINED image prompt for this one panel — name the setting, who is present with their continuity tokens, and what is happening; describe composition and content ONLY, no art-style words,
+   "who": [the exact cast "name" values of the figures who appear IN THIS PANEL] (empty [] if none of the cast are in this beat),
    "caption": the short line hand-lettered under the panel — the dreamer's own voice, present tense, evocative not descriptive, at most about 8 words,
    "hasText": true only if the drawing itself should contain written words (a sign, a screen, a speech bubble)}]}
 
 HARD RULES:
 - Return the beats in the TRUE chronological order the events happened IN the dream, NOT the order the dreamer narrated them. Dreams are told out of sequence — follow the dreamer's own cues ("actually that was before", "wait, before that", "earlier", "at first", "then", "after that", "which reminded me") to reconstruct the real sequence, and emit the beats already in that order.
 - Use as many beats as the dream actually needs and NO MORE — do not pad. A simple dream may be 2-4 beats; a busy one 6-8. Go higher only if the dream truly earns it.
-- Every imagePrompt must stand completely alone: nothing implied from another beat. Repeat the character continuity tokens verbatim in each imagePrompt where that figure appears.
+- Every imagePrompt must stand completely alone: nothing implied from another beat. For EACH figure present, repeat that figure's continuity tokens (their "look") verbatim in the imagePrompt — do not just write their name.
+- "who" must use the cast "name" values EXACTLY as written in the cast list, so the illustrator can attach the right reference for each figure.
 - imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
 - A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".`;
   const out = await openaiChatJSON([
     { role: 'system', content: sys },
     { role: 'user', content: `The dream:\n\n${dream}` },
   ], { temperature: 0.75 });
+  // The cast: named recurring figures, each drawn once as a labelled reference
+  // sheet and attached to every page they appear on (multi-character anchor).
+  const cast = (Array.isArray(out.cast) ? out.cast : [])
+    .map((c) => ({ name: String(c.name || '').trim(), look: String(c.look || '').trim(), url: null }))
+    .filter(c => c.name && c.look)
+    .slice(0, 5);
+  const castNames = new Set(cast.map(c => c.name));
   const beats = (Array.isArray(out.beats) ? out.beats : []).map((b) => ({
     id: 'b' + crypto.randomBytes(4).toString('hex'),
     imagePrompt: String(b.imagePrompt || b.description || '').trim(),
+    who: (Array.isArray(b.who) ? b.who : []).map(n => String(n).trim()).filter(n => castNames.has(n)),
     caption: String(b.caption || '').trim(),
     hasText: Boolean(b.hasText),
   })).filter(b => b.imagePrompt);
   if (!beats.length) throw new Error('dream breakdown produced no beats');
   return {
     title: String(out.title || 'Untitled dream').trim(),
-    characters: String(out.characters || '').trim(),
+    cast,
+    // A joined continuity phrase kept for any legacy reader (single-string field).
+    characters: cast.map(c => c.look).join('; '),
     beats,
   };
 }
@@ -683,14 +696,18 @@ function anchorClause(movie) {
     ', same proportions and color palette. Do not redesign the character. ';
 }
 
-// Resolve the anchor image to a buffer (data URL in dev, storage URL live).
-async function anchorBuffer(movie) {
-  const url = movie.characterAnchor?.url;
+// Resolve a reference image URL to a buffer (data URL in dev, storage URL live).
+async function refBufferFromUrl(url) {
   if (!url) return null;
   const m = /^data:[^;]+;base64,(.*)$/.exec(url);
   if (m) return Buffer.from(m[1], 'base64');
   try { return (await fetchBuffer(url)).buffer; }
-  catch (err) { console.warn('movies: anchor fetch failed —', err.message); return null; }
+  catch (err) { console.warn('movies: ref fetch failed —', err.message); return null; }
+}
+
+// Resolve the anchor image to a buffer (data URL in dev, storage URL live).
+async function anchorBuffer(movie) {
+  return refBufferFromUrl(movie.characterAnchor?.url);
 }
 
 // Compose the reference set + prompt for a panel-style render: style page
@@ -951,55 +968,136 @@ async function makeZine(movie, quality, progress) {
   if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; remake to fill the gaps`);
 }
 
-// ─── Character anchor for a dream ───────────────────────────────────
+// ─── Multi-character cast for a dream ───────────────────────────────
 // A dream has no key-scene approval step, so we automate the movies anchor
-// trick: if the dream has a recurring figure, draw it ONCE as a clean solo
-// reference and lock it. Every page render then attaches it (via panelRefs)
-// with the preserve-list restated, so the same face/hair/clothes carry across
-// all panels instead of drifting page to page.
-function dreamAnchorPrompt(dream) {
-  const who = dream.characters || 'the main character';
-  const base = `A single character reference sheet: ${who}, standing alone, front view, ` +
-    'full figure, neutral expression, plain flat background, no other characters and no text.';
+// trick — but a dream usually has SEVERAL recurring people (dad, J, Sean…),
+// not one. So each named cast member is drawn ONCE as a clean labelled
+// reference sheet, and every page attaches the sheets for whoever appears on
+// it, naming each by attachment position, so the same face/hair/clothes carry
+// across pages instead of drifting. (This mirrors how ChatGPT keeps multiple
+// characters consistent: a named reference per character, all attached, each
+// named in the prompt. gpt-image-2's edits endpoint takes an array of images.)
+
+// Normalize to a cast[] on the doc — synthesize one from the legacy single
+// `characters` string / `characterAnchor` for dreams made before the upgrade.
+function normalizeDreamCast(dream) {
+  if (Array.isArray(dream.cast) && dream.cast.length) return;
+  dream.cast = dream.characters
+    ? [{ name: 'the character', look: dream.characters, url: dream.characterAnchor?.url || null }]
+    : [];
+}
+
+function dreamMemberSheetPrompt(dream, member) {
+  const base = `A single character reference sheet: ${member.look || member.name}, standing alone, ` +
+    'front view, full figure, neutral expression, plain flat background, no other characters and no text.';
   if (styleRef) return STYLE_REF_PREFIX + base;
   return `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${base}`;
 }
 
-async function ensureDreamAnchor(dream, quality) {
-  if (dream.characterAnchor?.url) return;   // already locked — reuse it across re-rolls
-  if (!dream.characters) return;            // no recurring figure to anchor to
-  const prompt = dreamAnchorPrompt(dream);
-  // No prior anchor to attach here — just the style page (if any).
-  const buf = styleRef
-    ? await openaiPanelEdit(prompt, [styleRef], quality)
+// Draw a labelled reference sheet for each cast member that doesn't have one
+// yet (re-rolls reuse the locked look). `onDrawn` ticks the progress bar.
+async function ensureDreamCast(dream, quality, onDrawn) {
+  normalizeDreamCast(dream);
+  for (const member of dream.cast) {
+    if (member.url) continue;
+    const prompt = dreamMemberSheetPrompt(dream, member);
+    const buf = styleRef
+      ? await openaiPanelEdit(prompt, [styleRef], quality)
+      : await openaiPanel(prompt, quality);
+    member.url = await saveBufferToStorage(buf, 'image/webp', 'movies/dreams');
+    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+    if (onDrawn) await onDrawn();
+  }
+  // Mirror the first member onto characterAnchor for any legacy reader.
+  if (dream.cast[0]?.url) dream.characterAnchor = { url: dream.cast[0].url, madeAt: new Date().toISOString() };
+}
+
+// Which cast members appear on this page — the union of the group's beats'
+// `who`, mapped to members that have a reference sheet. If the beats never
+// named anyone (older docs), fall back to the whole cast. Capped so a page
+// never attaches more than four character refs (+ the style ref = five).
+function dreamPresentCast(dream, group) {
+  const cast = (dream.cast || []).filter(m => m.url);
+  if (!cast.length) return [];
+  const named = new Set();
+  let anyNamed = false;
+  for (const b of group) {
+    if (Array.isArray(b.who) && b.who.length) { anyNamed = true; b.who.forEach(n => named.add(String(n))); }
+  }
+  const present = anyNamed ? cast.filter(m => named.has(m.name)) : cast.slice();
+  return present.slice(0, 4);
+}
+
+// A dream comic page prompt: the 2x2 layout + captions (like the zine), plus a
+// preamble that names the style ref and each attached character ref by its
+// attachment position. Kept separate from the movie zine prompt so the movie
+// path (single anchor) is untouched.
+function dreamZinePagePrompt(dream, group, present) {
+  const positions = group.length === 4
+    ? ['top left', 'top right', 'bottom left', 'bottom right']
+    : group.length === 1 ? ['full page'] : group.map((_, i) => `position ${i + 1} from the top`);
+  const body = group.map((s, i) =>
+    `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}. Caption: "${String(s.title).toUpperCase()}"`).join(' ');
+  const layout = `${ZINE_LAYOUTS[group.length]}, each with a small hand-lettered caption box beneath it containing EXACTLY the given caption text, spelled exactly as written. `;
+  let refNote = '';
+  if (styleRef && present.length) {
+    const lines = present.map((m, i) => `the #${i + 2} attached image is ${m.name} (${m.look})`).join('; ');
+    refNote = 'The FIRST attached image is a STYLE reference — copy its hand-lettered drawing style exactly, ' +
+      `but do NOT copy its content or subjects. For character continuity, ${lines}; draw each of those ` +
+      'characters with the SAME face, hairstyle and clothing as their reference image wherever they appear, ' +
+      'and do not redesign them. ';
+  } else if (styleRef) {
+    refNote = 'Copy the styling of the attached image exactly — including its hand-lettered ' +
+      'caption boxes — but do NOT copy its content or subjects. ';
+  } else if (present.length) {
+    const lines = present.map((m, i) => `the #${i + 1} attached image is ${m.name} (${m.look})`).join('; ');
+    refNote = `For character continuity, ${lines}; draw each with the SAME face, hairstyle and clothing ` +
+      'as their reference image wherever they appear, and do not redesign them. ';
+  }
+  const stylePrefix = styleRef ? '' : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
+  return `${stylePrefix}${refNote}${layout}${body}`;
+}
+
+// Render one dream page: style ref first, then the present cast's reference
+// sheets, with the prompt naming each by position.
+async function renderDreamPage(dream, group, quality) {
+  const refs = [];
+  if (styleRef) refs.push(styleRef);
+  const present = [];
+  for (const m of dreamPresentCast(dream, group)) {
+    const buf = await refBufferFromUrl(m.url);
+    if (buf) { refs.push(buf); present.push(m); }
+  }
+  const prompt = dreamZinePagePrompt(dream, group, present);
+  const buf = refs.length
+    ? await openaiPanelEdit(prompt, refs, quality)
     : await openaiPanel(prompt, quality);
-  const url = await saveBufferToStorage(buf, 'image/webp', 'movies/dreams');
-  dream.characterAnchor = { url, prompt, madeAt: new Date().toISOString() };
-  dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
 }
 
 // ─── Dream pages: the beats drawn as a comic ────────────────────────
 // The same 2x2 style engine the zine uses, but the captions are the beats'
 // own caption lines (not scene titles) and there is no cover. Beats pack
-// four-to-a-page; a short tail page lays out with fewer. The dream doc is
-// shaped enough like a movie (characters, imageStyle, characterAnchor) that
-// zinePagePrompt / renderZinePage take it directly — and once the anchor is
-// set, panelRefs pins every page to the same character.
+// four-to-a-page; a short tail page lays out with fewer. Every named cast
+// member is locked as a reference sheet first, then each page pins to whoever
+// appears on it.
 async function makeDreamPages(dream, quality, progress) {
-  const items = (dream.beats || []).map(b => ({ id: b.id, imagePrompt: b.imagePrompt, title: b.caption || '' }));
+  const items = (dream.beats || []).map(b => ({
+    id: b.id, imagePrompt: b.imagePrompt, title: b.caption || '', who: Array.isArray(b.who) ? b.who : [],
+  }));
   const groups = [];
   for (let i = 0; i < items.length; i += 4) groups.push(items.slice(i, i + 4));
-  const willAnchor = Boolean(dream.characters) && !dream.characterAnchor?.url;
-  const total = groups.length + (willAnchor ? 1 : 0);
+  normalizeDreamCast(dream);
+  const toDraw = dream.cast.filter(m => !m.url).length;
+  const total = groups.length + toDraw;
   let done = 0;
-  // Lock the character first so every page can pin to it.
-  await progress(done, total, willAnchor ? 'drawing the character' : 'drawing pages');
-  if (willAnchor) {
-    await ensureDreamAnchor(dream, quality);
-    await progress(++done, total, 'drawing pages');
+  // Lock every cast member first so each page can pin to the ones it needs.
+  await progress(done, total, toDraw ? 'drawing the cast' : 'drawing pages');
+  if (toDraw) {
+    await ensureDreamCast(dream, quality, async () => { await progress(++done, total, 'drawing pages'); });
   }
   const results = await pool(groups, 2, async (group) => {
-    const page = await renderZinePage(dream, zinePagePrompt(dream, group), quality);
+    const page = await renderDreamPage(dream, group, quality);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
     await progress(++done, total, 'drawing pages');
     return { url: page.url, promptUsed: page.prompt, beatIds: group.map(s => s.id) };
@@ -1368,6 +1466,7 @@ router.post('/dream', async (req, res) => {
       title: (title && String(title).trim()) || plan.title,
       dream: String(dream).trim(),
       characters: plan.characters,
+      cast: plan.cast,
       imageStyle: DEFAULT_IMAGE_STYLE,
       characterAnchor: null,
       beats: plan.beats,
@@ -1416,7 +1515,10 @@ router.post('/dream/:id/render', async (req, res) => {
       doc.beats.forEach(b => { if (!order.includes(b.id)) reordered.push(b); }); // keep any not named
       if (reordered.length) doc.beats = reordered;
     }
-    if (reanchor) doc.characterAnchor = null; // re-roll the character's look on this render
+    if (reanchor) { // re-roll every cast member's look on this render
+      doc.characterAnchor = null;
+      (doc.cast || []).forEach(m => { m.url = null; });
+    }
     await startDreamJob(doc, 'render', async (progress) => {
       await makeDreamPages(doc, q, progress);
     });
@@ -1718,6 +1820,9 @@ module.exports = {
   makeZine,
   dreamBreakdown,
   makeDreamPages,
+  normalizeDreamCast,
+  dreamPresentCast,
+  dreamZinePagePrompt,
   probe,
   extractLastFrame,
   normalizeClip,
