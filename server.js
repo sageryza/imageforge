@@ -184,6 +184,7 @@ loadConfig().then(() => {
   const shopify = require('./shopify');
   const blog = require('./blog');
   const sync = require('./sync');
+  const writing = require('./writing');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -202,7 +203,8 @@ loadConfig().then(() => {
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   app.use('/api/sync', sync.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog)');
+  app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -418,6 +420,13 @@ app.get('/api/story', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Writing Room: the dating-book working drafts — every date in two versions
+// (Sophie's original journal + the current draft with Claude's changes in
+// red), autoscroll reading, and review notes (text or voice memo) that persist
+// to Firestore (`forge-writing-notes`) so any chat can pull and apply them.
+// Page + data regenerate with scripts/gen-writing.py. Same gate as the Studio.
+app.get('/writing', serveGated('writing.html'));
+
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
 app.get('/blog', serveGated('blog.html'));

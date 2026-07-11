@@ -130,6 +130,28 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Writing Room (dating-book drafts on the phone)
+- `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —
+  the dating-book working drafts as a reviewable module. Every date in two
+  versions: "Claude's" (current draft) and "Mine" (Sophie's raw journal), with
+  every changed/added word marked red (word-level diff, precomputed). Autoscroll
+  up/down arrows (0.1×–2× speed), tap text to pause, per-paragraph notes (text
+  or voice memo; auto-save on tap-away).
+- **Notes → Firestore `forge-writing-notes`** (deterministic doc id per block),
+  voice memos to Storage `writing-notes/`. ANY chat can read them
+  (`GET /api/writing/notes`, x-studio-token) and apply the edits, then
+  `DELETE /api/writing/notes/:id`. This is the review loop: Sophie annotates on
+  the couch, a chat applies.
+- **Source of truth for the text** is
+  `docs/dating-book/working-drafts/featured2.json` (current draft pages +
+  moments) and `originals.json` (raw journal). After editing them run
+  `python3 scripts/gen-writing.py` → regenerates `public/writing.html` (the
+  gated page, font embedded) and `working-drafts/dates.json`
+  (`GET /api/writing/dates`, for a future native reader). Commit all three.
+- iOS: `WritingRoomView.swift` = a WKWebView on `/writing` that answers the
+  HTTP Basic gate with the studio token and grants mic capture for voice notes.
+  Content changes ship via Render deploy — no TestFlight build needed.
+
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
   which Sophie's original decks used. Midjourney has no official API, so this goes
