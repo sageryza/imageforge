@@ -413,12 +413,23 @@ app.get('/api/story', async (req, res) => {
   }
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
-    const snap = await admin.firestore().collection('forge-story').orderBy('order').get();
-    res.json({ projects: snap.docs.map((d) => d.data()) });
+    // No orderBy: Firestore's orderBy silently drops docs missing the field,
+    // which made boards without an `order` invisible here (the iOS snapshot
+    // listener never filtered, so the app showed them). Sort in code instead.
+    const snap = await admin.firestore().collection('forge-story').get();
+    const projects = snap.docs.map((d) => d.data())
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    res.json({ projects });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+// Story Room: the movie asset boards in the Writing Room's frame — narration
+// with the art in place, live from /api/story (no deploy needed for content),
+// notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
+// Regenerate with scripts/gen-storyroom.py. Same gate as the Studio.
+app.get('/storyroom', serveGated('storyroom.html'));
+
 // Writing Room: the dating-book working drafts — every date in two versions
 // (Sophie's original journal + the current draft with Claude's changes in
 // red), autoscroll reading, and review notes (text or voice memo) that persist
