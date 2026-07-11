@@ -169,11 +169,17 @@ private struct CardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let url = card.url {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().scaledToFill()
-                    case .failure: Color.secondary.opacity(0.1)
-                    default: ZStack { Color.secondary.opacity(0.06); ProgressView() }
+                // Every card is the same 2:3 box; art that isn't 2:3 (square
+                // grids, wide panels) scales DOWN to fit inside it instead of
+                // overflowing onto neighboring cards.
+                ZStack {
+                    Color.secondary.opacity(0.06)
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img): img.resizable().scaledToFit()
+                        case .failure: Color.secondary.opacity(0.1)
+                        default: ProgressView()
+                        }
                     }
                 }
                 .aspectRatio(2 / 3, contentMode: .fit)
