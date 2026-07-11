@@ -102,7 +102,10 @@ for no,name in enumerate(ORDER,1):
 <button class="btn primary copybtn" data-d="{key}" style="margin-top:.5em">Copy notes</button></div>
 </section>\n"""
 
-page=f"""<title>Someone I Met Once — read &amp; note</title>
+page=f"""<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Someone I Met Once — read &amp; note</title>
 <style>
 @font-face{{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,{font}) format('truetype');}}
 :root{{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7; }}
