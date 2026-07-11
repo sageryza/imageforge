@@ -671,6 +671,25 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
+// ─── Firebase web config for the public app (Secretly a Witch accounts) ──
+// Returns the PUBLIC Firebase web config (safe to expose) so the client can
+// use Firebase Auth + Firestore. Reads from env; returns { configured:false }
+// until the web-app keys are set, so the app runs fine with accounts dormant.
+// Same Firebase project powers a future native iOS app (shared users/data).
+app.get('/api/witch/firebase-config', (req, res) => {
+  const apiKey = process.env.FIREBASE_WEB_API_KEY || '';
+  const appId = process.env.FIREBASE_WEB_APP_ID || '';
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'membry-df528';
+  if (!apiKey || !appId) return res.json({ configured: false });
+  res.json({
+    configured: true,
+    apiKey, appId, projectId,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+  });
+});
+
 // ─── Natal chart + reading ──────────────────────────────────────────
 // Real astronomy → real chart (astro.js) → AI interpretation. Body:
 // { date:"YYYY-MM-DD", time:"HH:MM" (optional), place:"City, Country" }.
