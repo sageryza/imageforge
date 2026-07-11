@@ -435,6 +435,8 @@ lifted into a standalone tool later.
   needs Sophie's `@handle` pasted in.
 
 ## Design rules (forever)
+- **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
+  every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **Research the CURRENT UI before giving click-by-click steps for any external
   dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
   buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
@@ -479,6 +481,15 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **Deliverables go last.** When a message includes a generated file — audio,
+  image, video, or any downloadable deliverable — send it as the final item,
+  after all explanatory text, so it's easy to find and never buried
+  mid-message.
+- **Long replies get an audio version.** When a chat reply runs longer than
+  about one phone screen (~2–3 paragraphs), also attach a text-to-speech
+  recording of it — OpenAI `gpt-4o-mini-tts` by default (cheap, reliable).
+  Keep it faithful to the text, lightly adapted for listening (spell out URLs
+  and numbers). Only render it in the F5 cloned voice when asked.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
@@ -519,6 +530,41 @@ lifted into a standalone tool later.
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **Claude merges its own PRs — always, without asking.** Standing permission
+  (July 2026). When the work is ready, merge it, then watch the post-merge
+  deploys/TestFlight and fix anything that breaks.
+- **Multiple Claude chats work these repos in parallel.** Another chat may
+  push, merge, or ship a TestFlight build at any moment — main moves under
+  you, TestFlight build numbers race, and code you wrote can get rewritten.
+  Re-fetch main before merging, never assume the latest build is yours, and
+  re-dispatch from your branch (`imageforge_ref` input) if a main build
+  buries it.
+
+## Story Boards (forge-story) — how ANY chat adds projects/assets
+The video-project asset boards (Evan, Charlie, Spellcasting, …) shown in the
+iOS app (Story Boards tile — a VHS-shelf wall, 3 covers per shelf, tap to open
+a project's beat board) and mirrored at `/story` (gated snapshot page).
+
+- **Data:** Firestore collection `forge-story`, one doc per project:
+  `{ id, title, order, cover, beats:[{ vo, cards:[{ label, status, url }] }] }`.
+  `status` ∈ `ok` (approved) | `cand` (candidate) | `draft` (storyboard
+  placeholder) | `miss` (no art yet — omit `url`). `vo` is Sophie's actual
+  narration for that beat. `cover` is REQUIRED for the shelf (pick one hero
+  shot; without it the case renders as a "?" box).
+- **To add/update:** build a manifest JSON (array of projects; use
+  `file`/`cover_file` with local paths for any new images — ~700px webp
+  preferred) and run `node scripts/sync-story.js manifest.json` with
+  `FIREBASE_SERVICE_ACCOUNT` (or `FIREBASE_KEY_FILE`) set. Images upload to
+  Storage `story/` (content-addressed by basename — reuse basenames to
+  overwrite) and docs are replaced wholesale, so ALWAYS write the full project,
+  not a partial. The iOS app updates live (snapshot listener) — no build.
+- **Clients are read-only** (Firestore rules in memory-library-react allow
+  authenticated reads only); all writes go through the sync script.
+- **iOS UI changes** (not content) need a TestFlight build: run the
+  `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
+  secrets; `imageforge_ref` input picks the imageforge branch). The
+  imageforge-local `ios-testflight.yml` is a placeholder without secrets.
+- Approvals happen in chat with Sophie; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix
   anything that breaks.

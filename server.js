@@ -397,6 +397,27 @@ app.get('/song', serveGated('song.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
+// Story view: the Evan & Charlie video asset board — approved art placed
+// inside the narration with missing beats flagged. A committed snapshot
+// (assets embedded as data URIs); regenerate when the asset set changes.
+// Same gate as the Studio.
+app.get('/story', serveGated('story.html'));
+
+// Story-board API: the same projects, served live from Firestore (synced by
+// scripts/sync-story.js) so the iOS app updates without an app build. Reads
+// the `forge-story` collection. Same x-studio-token gate as the pipeline.
+app.get('/api/story', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const snap = await admin.firestore().collection('forge-story').orderBy('order').get();
+    res.json({ projects: snap.docs.map((d) => d.data()) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
 app.get('/blog', serveGated('blog.html'));

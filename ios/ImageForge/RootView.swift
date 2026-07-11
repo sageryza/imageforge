@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, test
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, test
     var id: String { rawValue }
 
     var title: String {
@@ -17,6 +17,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Dreams"
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
+        case .story:     return "Story Boards"
         case .test:      return "Test Station"
         }
     }
@@ -31,6 +32,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Illustrate last night's dream — and keep a journal."
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
+        case .story:     return "The video asset boards — live from the studio."
         case .test:      return "Run one prompt through the house styles."
         }
     }
@@ -45,6 +47,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "moon.stars"
         case .instagram: return "camera"
         case .ads:       return "megaphone"
+        case .story:     return "rectangle.grid.2x2"
         case .test:      return "wand.and.stars"
         }
     }
@@ -59,6 +62,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
+        case .story:     StoryBoardView()
         case .test:      TestStationView()
         }
     }
@@ -116,7 +120,7 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open)
+            HomeGrid(open: open, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
             ForEach(recents.recentThree) { t in
@@ -176,7 +180,19 @@ private struct BottomBar: View {
 /// into the recent slots).
 private struct HomeGrid: View {
     var open: (Tool) -> Void
+    @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    // Sophie's home order: Story Boards pinned first; greeting cards, stickers,
+    // storybooks, and coloring pages pinned last; everything in between rotates
+    // by most-recent use.
+    private var tools: [Tool] {
+        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
+        let middle = Tool.allCases.filter { $0 != .story && !pinnedBottom.contains($0) }
+        let ranked = recents.order.filter { middle.contains($0) }
+        let rest = middle.filter { !ranked.contains($0) }
+        return [.story] + ranked + rest + pinnedBottom
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -187,7 +203,7 @@ private struct HomeGrid: View {
             .padding(.bottom, 4)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(Tool.allCases) { t in
+                    ForEach(tools) { t in
                         Button { open(t) } label: {
                             HubCard(icon: t.icon, title: t.title, desc: t.desc)
                         }
