@@ -208,6 +208,17 @@ final class MovieService {
         _ = try await data("DELETE", "/dream/\(id)")
     }
 
+    /// Every dream with its pages loaded (summaries carry only a poster) — for
+    /// the past-dreams archive and the printable zine.
+    func allDreamsFull() async -> [Dream] {
+        guard let summaries = try? await dreamList() else { return [] }
+        var out: [Dream] = []
+        for s in summaries {
+            if let d = try? await dream(s.id) { out.append(d) }
+        }
+        return out
+    }
+
     // MARK: Quick animate (one image → one clip, no movie)
 
     /// Kick off a quick animation. `jpeg` is the picked image, already

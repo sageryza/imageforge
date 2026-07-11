@@ -39,6 +39,11 @@ struct DreamsView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink { DreamArchiveView() } label: {
+                    Image(systemName: "moon.stars").foregroundColor(Theme.accent)
+                }
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focused = false }
@@ -87,13 +92,16 @@ struct DreamsView: View {
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
                 .cornerRadius(Theme.radius)
             Button { run() } label: {
-                Text(busy ? "Illustrating…" : "Illustrate this dream")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Theme.mauve)
-                    .foregroundColor(.white)
-                    .cornerRadius(Theme.radius)
+                HStack(spacing: 7) {
+                    Image(systemName: "sparkles")
+                    Text(busy ? "Illustrating…" : "Illustrate")
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(Theme.lightGold)
+                .foregroundColor(Theme.ink)
+                .cornerRadius(Theme.radius)
             }
             .disabled(busy)
             .opacity(busy ? 0.6 : 1)
