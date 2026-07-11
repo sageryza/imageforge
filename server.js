@@ -70,6 +70,49 @@ async function openaiChat(body, retries = 3) {
   throw lastErr;
 }
 
+// Call the Anthropic Messages API (raw fetch — mirrors openaiChat, the house
+// pattern for AI calls). Used by "Secretly a Witch" for the once-a-day, higher
+// quality reading (Claude Opus 4.8). Key is read at call time from process.env
+// because config-loader.js hydrates ANTHROPIC_API_KEY from Firestore AFTER boot.
+// 'Connection: close' avoids stale keep-alive sockets ("Premature close").
+async function anthropicChat({ system, messages, max_tokens = 2000, temperature, model = 'claude-opus-4-8' }, retries = 2) {
+  const key = process.env.ANTHROPIC_API_KEY || '';
+  if (!key) throw new Error('ANTHROPIC_API_KEY not set');
+  const body = { model, max_tokens, messages };
+  if (system) body.system = system;
+  if (typeof temperature === 'number') body.temperature = temperature;
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'connection': 'close',
+        },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+// Extract the concatenated text of an Anthropic response (ignores any
+// thinking/tool blocks), then strip markdown fences and JSON.parse it.
+function anthropicText(data) {
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+function parseAnthropicJson(data) {
+  const t = anthropicText(data).replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  return JSON.parse(t);
+}
+
 // ─── Firebase Setup ─────────────────────────────────────────────────
 let bucket = null;
 try {
@@ -752,6 +795,215 @@ Give 3 to 5 sections on the most striking placements, houses, and aspects.`;
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     res.json({ chart, reading: parseJsonReply(data), place: placeName, coords: { lat, lon }, tz: zone, hasTime });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Daily reading (ONE Claude Opus 4.8 call, cached per user per day) ──
+// The Home screen of "Secretly a Witch". A single Opus call writes the whole
+// day at once: a Co-Star-style personalized astrology reading (from the user's
+// real natal chart + today's transits), the interpretation of their daily
+// 3-card past/present/future tarot pull, and a one-line intention. Cached in
+// Firestore (forge-witch-daily/{uid}_{date}) so it costs ~1 call/user/day; the
+// client sends the deterministic-for-today cards so the reading matches them.
+//
+// Body: {
+//   uid?, date:"YYYY-MM-DD" (client's LOCAL day), moonPhase?,
+//   cards:[{name, orientation, position:"Past"|"Present"|"Future"}],
+//   birth?: { date:"YYYY-MM-DD", time?:"HH:MM", place?, lat?, lon?, tz? },
+//   force?  // regenerate even if cached
+// }
+const TRANSIT_ASPECTS = [
+  { name: 'conjunction', angle: 0, orb: 4 },
+  { name: 'sextile', angle: 60, orb: 3 },
+  { name: 'square', angle: 90, orb: 4 },
+  { name: 'trine', angle: 120, orb: 4 },
+  { name: 'opposition', angle: 180, orb: 4 },
+];
+function transitAspects(transit, natal) {
+  const out = [];
+  for (const t of transit) {
+    for (const n of natal) {
+      let diff = Math.abs(t.lon - n.lon) % 360;
+      if (diff > 180) diff = 360 - diff;
+      for (const a of TRANSIT_ASPECTS) {
+        if (Math.abs(diff - a.angle) <= a.orb) { out.push({ t: t.name, aspect: a.name, n: n.name, orb: +Math.abs(diff - a.angle).toFixed(1) }); break; }
+      }
+    }
+  }
+  return out.sort((x, y) => x.orb - y.orb);
+}
+app.post('/api/witch/daily', async (req, res) => {
+  try {
+    const { uid, date, cards = [], moonPhase = '', birth = null, force = false } = req.body || {};
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date (YYYY-MM-DD) is required' });
+    if (!Array.isArray(cards) || cards.length !== 3) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
+
+    const db = admin.apps.length ? admin.firestore() : null;
+
+    // Resolve the natal chart if birth details are available (personalizes the
+    // astrology). lat/lon/tz can be passed by the client (cached from /natal) to
+    // skip geocoding; otherwise geocode once here.
+    let natal = null, bigThree = null, transitList = null, tAspects = null, birthErr = null;
+    if (birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
+      try {
+        const [by, bm, bd] = birth.date.split('-').map(Number);
+        let lat = Number(birth.lat), lon = Number(birth.lon), zone = birth.tz;
+        if (!isFinite(lat) || !isFinite(lon)) {
+          const gq = birth.place || '';
+          const geoRes = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(gq), { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (daily reading)' } });
+          const geo = await geoRes.json();
+          if (Array.isArray(geo) && geo.length) { lat = +geo[0].lat; lon = +geo[0].lon; }
+        }
+        if (isFinite(lat) && isFinite(lon)) {
+          if (!zone) zone = tzlookup(lat, lon);
+          const hasTime = Boolean(birth.time && /^\d{1,2}:\d{2}$/.test(birth.time));
+          const [hh, mm] = hasTime ? birth.time.split(':').map(Number) : [12, 0];
+          const localAsUTC = Date.UTC(by, bm - 1, bd, hh, mm);
+          const off = tzOffsetHours(zone, new Date(localAsUTC));
+          const ut = new Date(localAsUTC - off * 3600000);
+          const utHours = ut.getUTCHours() + ut.getUTCMinutes() / 60;
+          natal = astro.computeChart({ y: ut.getUTCFullYear(), m: ut.getUTCMonth() + 1, d: ut.getUTCDate(), utHours, lat, lon, withAngles: hasTime });
+          const sun = natal.bodies.find(b => b.name === 'Sun');
+          const moon = natal.bodies.find(b => b.name === 'Moon');
+          bigThree = { sun: sun && sun.sign, moon: moon && moon.sign, rising: natal.ascendant && natal.ascendant.sign };
+
+          // Today's transiting positions (geocentric — location-independent).
+          const now = new Date();
+          const tChart = astro.computeChart({ y: now.getUTCFullYear(), m: now.getUTCMonth() + 1, d: now.getUTCDate(), utHours: now.getUTCHours() + now.getUTCMinutes() / 60, lat, lon, withAngles: false });
+          transitList = tChart.bodies;
+          tAspects = transitAspects(tChart.bodies, natal.bodies).slice(0, 8);
+        }
+      } catch (e) { birthErr = e.message; }
+    }
+
+    // Cache key includes an input hash so a changed birthday / new cards
+    // regenerate instead of serving a stale reading.
+    const crypto = require('crypto');
+    const inputHash = crypto.createHash('sha1').update(JSON.stringify({
+      b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+    })).digest('hex').slice(0, 12);
+    const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
+    if (docRef && !force) {
+      const snap = await docRef.get();
+      if (snap.exists && snap.data().inputHash === inputHash) {
+        return res.json({ ...snap.data().reading, cached: true, date });
+      }
+    }
+
+    // ── Build the single prompt ──
+    const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
+    let astroContext;
+    if (natal && bigThree) {
+      const placements = natal.bodies.map(b => `${b.name} in ${b.sign}${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' rx' : ''}`).join(', ');
+      const transits = transitList.map(b => `${b.name} in ${b.sign}${b.retro ? ' rx' : ''}`).join(', ');
+      const asp = (tAspects || []).map(a => `transiting ${a.t} ${a.aspect} natal ${a.n}`).join('; ') || 'none tight today';
+      astroContext = `They HAVE a birth chart (interpret it, never recompute):
+Big three: Sun ${bigThree.sun}, Moon ${bigThree.moon}${bigThree.rising ? `, Rising ${bigThree.rising}` : ' (no birth time — no rising)'}.
+Natal placements: ${placements}.
+TODAY's sky (transits): ${transits}.
+Today's tightest transits to their chart: ${asp}.`;
+    } else {
+      astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
+    }
+
+    const system = `You are the daily oracle for "Secretly a Witch", a cozy modern witchcraft app. Once a day you write one person's whole reading in a warm, intimate, a-little-luminous voice — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.
+
+You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Also interpret their daily 3-card tarot pull (Rider-Waite), weaving past/present/future together.
+
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "astrology": {
+    "headline": "one vivid sentence — today's cosmic weather for them",
+    "reading": "2-3 short paragraphs, personalized to their chart + today's transits (or general if no chart)",
+    "focus": "1-3 word theme for the day",
+    "invite": ""
+  },
+  "tarot": {
+    "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
+    "reading": "2 short paragraphs weaving the three cards into one throughline for today",
+    "advice": "one gentle, actionable suggestion"
+  },
+  "intention": "one short first-person intention for the day, e.g. 'Today I move gently and trust my timing.'"
+}
+Set astrology.invite to "" unless they have no birth chart, in which case put the invitation there.`;
+
+    const user = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
+${astroContext}
+
+Their daily 3-card tarot pull (past / present / future):
+${cardLines}
+
+Write today's reading now.`;
+
+    const data = await anthropicChat({
+      system,
+      messages: [{ role: 'user', content: user }],
+      max_tokens: 3000,
+      temperature: 1,
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message || 'anthropic error' });
+
+    let reading;
+    try { reading = parseAnthropicJson(data); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the reading — try again.', detail: e.message }); }
+
+    reading.hasChart = Boolean(natal && bigThree);
+    if (bigThree) reading.bigThree = bigThree;
+
+    if (docRef) {
+      docRef.set({ reading, inputHash, date, uid, createdAt: new Date().toISOString() }).catch(() => {});
+    }
+    res.json({ ...reading, cached: false, date });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Rider-Waite-Smith (1909, public domain) tarot deck manifest ────────
+// Card display name → permanent Firebase image URL. The 78 scans were mirrored
+// from Wikimedia Commons to Firebase Storage (witch-tarot/) once; this just
+// serves the committed name→URL map so the client can show real card art.
+let TAROT_DECK = null;
+try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* manifest optional */ }
+app.get('/api/witch/tarot-deck', (req, res) => {
+  if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
+  res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
+});
+
+// ─── Shop proxy (secretlyawitch.com Shopify storefront) ─────────────────
+// Pulls the public products.json so the app's Shop tab shows real products
+// (image, title, price, link) without any storefront token. Cached in memory
+// ~10 min. Every product's own URL still opens the real Shopify checkout.
+let SHOP_CACHE = { at: 0, data: null };
+app.get('/api/witch/shop', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
+    const base = 'https://secretlyawitch.com';
+    const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
+    if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
+    const j = await r.json();
+    const products = (j.products || []).map(p => {
+      const v = (p.variants || [])[0] || {};
+      const img = (p.images || [])[0] || {};
+      const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));
+      return {
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        url: `${base}/products/${p.handle}`,
+        image: img.src || null,
+        price: v.price || null,
+        priceMin: prices.length ? Math.min(...prices).toFixed(2) : null,
+        available: (p.variants || []).some(x => x.available),
+        type: p.product_type || '',
+      };
+    });
+    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, products };
+    SHOP_CACHE = { at: now, data: out };
+    res.json(out);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
