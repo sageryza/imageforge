@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, test
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, test
     var id: String { rawValue }
 
     var title: String {
@@ -18,6 +18,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
         case .story:     return "Story Boards"
+        case .writing:   return "Writing Room"
         case .test:      return "Test Station"
         }
     }
@@ -33,6 +34,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .story:     return "The video asset boards — live from the studio."
+        case .writing:   return "Read the dating-book drafts — leave notes as you go."
         case .test:      return "Run one prompt through the house styles."
         }
     }
@@ -48,6 +50,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "camera"
         case .ads:       return "megaphone"
         case .story:     return "rectangle.grid.2x2"
+        case .writing:   return "text.book.closed"
         case .test:      return "wand.and.stars"
         }
     }
@@ -63,6 +66,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: InstagramView()
         case .ads:       AdsView()
         case .story:     StoryBoardView()
+        case .writing:   WritingRoomView()
         case .test:      TestStationView()
         }
     }
