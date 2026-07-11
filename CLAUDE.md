@@ -230,7 +230,11 @@ lifted into a standalone tool later.
   free breakdown: a dream's text → `dreamBreakdown()` (gpt-4o-mini decides how
   many BEATS the dream needs — no padding, most are short — and for each writes
   a self-contained panel prompt + a short caption in the dreamer's own voice,
-  minimal prompting) → a `forge-dreams` doc; nothing is drawn yet.
+  minimal prompting) → a `forge-dreams` doc; nothing is drawn yet. The breakdown
+  also reconstructs the dream's TRUE chronology from the dreamer's cues ("that
+  was before", "at first") and returns the beats already in order; the iOS
+  "check the chronology" step lets Sophie hand-tweak that order (▲▼) and
+  `POST .../render` accepts an `order:[beatId]` to draw in the confirmed sequence.
   `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
   2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
   packs beats **four per image** (an 8-beat dream = two pages; a short tail
