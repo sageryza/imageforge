@@ -173,19 +173,30 @@
       text-align: center;
     }
     .tcard-pos { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 6px; }
+    /* Fixed aspect + cover so all three cards are identical size and centered,
+       regardless of the small per-scan margin differences. Radius kept small to
+       match the near-square card corners. */
     .tcard-face {
-      width: 100%; height: auto; display: block; border-radius: 9px;
+      width: 100%; aspect-ratio: 100 / 172; object-fit: cover; object-position: center;
+      display: block; border-radius: 4px;
       border: 1px solid var(--gold-dim); background: var(--panel);
-      box-shadow: 0 6px 16px rgba(120,90,40,0.18);
+      box-shadow: 0 4px 12px rgba(120,90,40,0.16);
     }
     .tcard.rev .tcard-face { transform: rotate(180deg); }
     .tcard-name { font-family: var(--serif); font-size: 14.5px; font-weight: 500; line-height: 1.12; color: var(--text); margin-top: 8px; }
     .tcard-orient { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
     /* glyph fallback (no image yet) */
     .tcard.noimg .tcard-face {
-      aspect-ratio: 5 / 8; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       background: #f5ead2; padding: 12px 8px;
     }
+    /* Section label styled like the PAST · PRESENT · FUTURE labels (DM Sans). */
+    .cards-title { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+
+    /* Quiz */
+    .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
+    .quiz-q { font-family: var(--serif); font-size: 21px; text-align: center; line-height: 1.2; margin: 0 0 16px; color: var(--text); }
+    .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
     .tcard.noimg .glyph { font-size: 30px; color: var(--gold); }
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
 
@@ -382,7 +393,7 @@
     .acct-btn .av { width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #fffbf3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
     .modal-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 22px; }
     .modal-bg.show { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 24px; max-width: 360px; width: 100%; box-shadow: 0 20px 50px rgba(48,30,20,0.28); text-align: center; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 24px; max-width: 360px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(48,30,20,0.28); text-align: center; }
     .modal h2 { font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--gold); margin-bottom: 6px; }
     .modal p.sub { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 18px; }
     .modal .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; font-weight: 500; color: #3a3a3a; cursor: pointer; margin-bottom: 14px; }
@@ -417,25 +428,55 @@
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">The sky, the cards, and an intention — written fresh for you each day.</div>
 
-        <!-- Moon -->
-        <div class="card moon-card">
-          <div class="moon-glyph" id="moon-glyph">🌙</div>
-          <div class="moon-phase" id="moon-phase">—</div>
-          <div class="moon-meta" id="moon-meta"></div>
-          <div class="moon-line" id="moon-line"></div>
+        <!-- Daily reading (FIRST): account gate → birthday → reading -->
+        <div class="card" id="daily-card">
+          <!-- not signed in -->
+          <div id="daily-gate" style="display:none; text-align:center; padding:6px 4px;">
+            <div style="font-size:34px; line-height:1;">🔮</div>
+            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">See your daily horoscope</div>
+            <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">Make a free account to unlock your personalized reading — the stars and the cards, written fresh for you each day.</p>
+            <button class="btn" id="daily-signin">Enter the circle</button>
+          </div>
+
+          <!-- signed in, no birthday yet -->
+          <div id="daily-birthday" style="display:none;">
+            <div class="cards-title" style="font-size:15px; color:var(--gold);">See your daily horoscope</div>
+            <p class="hint" style="text-align:center;">Add your birth details once, and every day you'll get a reading from your real chart. A birth time also gives your rising sign &amp; houses.</p>
+            <div id="natal-form">
+              <div class="row">
+                <div class="field" style="flex:2 1 160px;"><label>Birth date</label><input type="date" id="natal-date"></div>
+                <div class="field" style="flex:1 1 110px;"><label>Time (optional)</label><input type="time" id="natal-time"></div>
+              </div>
+              <div class="field"><label>Birth city</label><input type="text" id="natal-place" placeholder="Los Angeles, USA"></div>
+              <button class="btn" id="natal-btn">✦ See my daily reading</button>
+              <div class="note" id="natal-note"></div>
+            </div>
+          </div>
+
+          <!-- reading -->
+          <div id="daily-reading" style="display:none;">
+            <div class="card-head"><h2>Your stars today</h2><span class="k" id="astro-focus"></span></div>
+            <div id="astro-body"></div>
+            <div class="note" id="astro-note"></div>
+            <button class="btn-ghost" id="see-full-chart" style="margin-top:10px;">✦ See your full birth chart</button>
+          </div>
         </div>
 
-        <!-- Daily horoscope / astrology -->
-        <div class="card">
-          <div class="card-head"><h2>Your stars today</h2><span class="k" id="astro-focus"></span></div>
-          <div id="astro-body"></div>
-          <div class="note" id="astro-note"></div>
+        <!-- Are you secretly a witch? quiz (playful funnel to the shop) -->
+        <div class="card" id="quiz-card">
+          <div class="cards-title">Are you secretly a witch?</div>
+          <div id="quiz-intro">
+            <p class="hint" style="text-align:center;">A very serious diagnostic. Answer honestly — the cards already know.</p>
+            <button class="btn" id="quiz-start">Take the quiz ✦</button>
+          </div>
+          <div id="quiz-body" style="display:none;"></div>
+          <div id="quiz-result" style="display:none;"></div>
         </div>
 
-        <!-- Daily 3-card tarot pull (hidden behind reveal) -->
-        <div class="card">
-          <div class="card-head"><h2>Daily tarot</h2><span class="k">Past · Present · Future</span></div>
-          <p class="hint">Three cards drawn just for you today — from the Rider-Waite deck.</p>
+        <!-- Today's cards (tarot) -->
+        <div class="card" id="tarot-card" style="display:none;">
+          <div class="cards-title">Today's Cards</div>
+          <p class="hint" style="text-align:center;">Three cards drawn just for you today — from the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs">
             <div class="tback">✦</div><div class="tback">✦</div><div class="tback">✦</div>
           </div>
@@ -446,25 +487,17 @@
         </div>
 
         <!-- Intention -->
-        <div class="card">
+        <div class="card" id="intention-card" style="display:none;">
           <div class="card-head"><h2>Today's intention</h2></div>
           <div class="moon-line" style="margin-top:0;" id="intention-text"></div>
         </div>
 
-        <!-- Birth chart -->
-        <div class="card">
-          <div class="card-head"><h2>Your birth chart</h2></div>
-          <p class="hint">Your real natal chart, computed from the actual sky at your birth. It personalizes the daily reading above. Add a birth time for your rising sign &amp; houses.</p>
-          <div id="natal-form">
-            <div class="row">
-              <div class="field" style="flex:2 1 160px;"><label>Birth date</label><input type="date" id="natal-date"></div>
-              <div class="field" style="flex:1 1 110px;"><label>Time (optional)</label><input type="time" id="natal-time"></div>
-            </div>
-            <div class="field"><label>Birth city</label><input type="text" id="natal-place" placeholder="Los Angeles, USA"></div>
-            <button class="btn" id="natal-btn">✦ Cast my chart</button>
-            <div class="note" id="natal-note"></div>
-          </div>
-          <div id="natal-out" style="display:none;"></div>
+        <!-- Moon -->
+        <div class="card moon-card">
+          <div class="moon-glyph" id="moon-glyph">🌙</div>
+          <div class="moon-phase" id="moon-phase">—</div>
+          <div class="moon-meta" id="moon-meta"></div>
+          <div class="moon-line" id="moon-line"></div>
         </div>
 
         <!-- Moon calendar -->
@@ -1199,6 +1232,9 @@
   });
 
   /* ══════════ NATAL CHART ══════════ */
+  // Builds the full-chart HTML and stashes it for the "See your full birth
+  // chart" modal (the chart is no longer shown inline on the daily screen).
+  let natalChartHtml = '';
   function renderNatal(data) {
     const c = data.chart, r = data.reading || {};
     const find = n => c.bodies.find(b => b.name === n) || {};
@@ -1227,14 +1263,9 @@
     if (r.closing) reading += `<div class="reading-block"><p style="font-family:var(--serif); font-style:italic; color:var(--moon);">${esc(r.closing)}</p></div>`;
     const meta = `<div class="chart-meta">${esc(data.place || '')}${data.hasTime ? '' : ' — no birth time given, so rising sign & houses are omitted'}.</div>
       <div class="chart-meta"><b>About houses:</b> this uses the <b>whole-sign</b> system — each house is one whole zodiac sign (the oldest, simplest method: your rising sign = the whole 1st house). Many apps use <b>Placidus</b> instead, which splits signs across houses by time, so a planet can land one house over. Neither is “more correct” — just different lenses.</div>`;
-    $('natal-out').innerHTML = big3 + angleRows + plc
+    natalChartHtml = big3 + angleRows + plc
       + (aspects ? `<div class="chart-meta">Aspects</div><div class="aspect-line">${aspects}</div>` : '')
-      + reading + meta
-      + `<button class="btn-ghost" id="natal-recast" style="margin-top:14px;">Cast a different chart</button>`;
-    $('natal-out').style.display = '';
-    $('natal-form').style.display = 'none';
-    const rc = $('natal-recast');
-    if (rc) rc.addEventListener('click', () => { $('natal-out').style.display = 'none'; $('natal-form').style.display = ''; });
+      + reading + meta;
   }
   async function castChart() {
     const date = $('natal-date').value, time = $('natal-time').value, place = $('natal-place').value.trim();
@@ -1247,21 +1278,102 @@
       cloudSyncSoon();
       renderNatal(data);
       note.textContent = '';
-      // Birth details changed → regenerate today's personalized reading.
-      loadDaily(true);
+      renderHome();        // flip to the reading state
+      loadDaily(true);     // birth details set → generate the personalized reading
     } catch (e) { toast(e.message); note.textContent = ''; }
     btn.disabled = false;
   }
-  $('natal-btn').addEventListener('click', castChart);
   function loadSavedNatal() {
     try {
       const s = JSON.parse(localStorage.getItem('witch_natal') || 'null');
       if (s && s.data && s.data.chart) {
-        if (s.input) { $('natal-date').value = s.input.date || ''; $('natal-time').value = s.input.time || ''; $('natal-place').value = s.input.place || ''; }
+        const nd = $('natal-date'), nt = $('natal-time'), np = $('natal-place');
+        if (s.input && nd) { nd.value = s.input.date || ''; nt.value = s.input.time || ''; np.value = s.input.place || ''; }
         renderNatal(s.data);
       }
     } catch {}
   }
+
+  /* ══════════ HOME STATE (account gate → birthday → reading) ══════════ */
+  // accountsConfigured: null=unknown (assume gated), true=Firebase live, false=off.
+  let accountsConfigured = null;
+  function homeState() {
+    if (accountsConfigured !== false && !fbUser) return 'gate';   // require an account
+    if (!savedBirth()) return 'birthday';                          // then a birthday
+    return 'ready';
+  }
+  function renderHome() {
+    const s = homeState();
+    $('daily-gate').style.display = s === 'gate' ? '' : 'none';
+    $('daily-birthday').style.display = s === 'birthday' ? '' : 'none';
+    $('daily-reading').style.display = s === 'ready' ? '' : 'none';
+    $('tarot-card').style.display = s === 'ready' ? '' : 'none';
+    $('intention-card').style.display = s === 'ready' ? '' : 'none';
+    const fc = $('see-full-chart'); if (fc) fc.style.display = natalChartHtml ? '' : 'none';
+    if (s === 'ready') loadDaily(false);
+  }
+  $('natal-btn').addEventListener('click', castChart);
+  $('daily-signin').addEventListener('click', () => showSignIn());
+  $('see-full-chart').addEventListener('click', () => {
+    if (!natalChartHtml) return;
+    openModal(`<h2 style="margin-bottom:12px;">Your birth chart</h2><div style="text-align:left;">${natalChartHtml}</div><button class="btn-ghost" id="chart-redo" style="margin-top:16px;">Use different birth details</button><button class="close-x" id="chart-close">close</button>`);
+    $('chart-close').addEventListener('click', closeModal);
+    $('chart-redo').addEventListener('click', () => { closeModal(); try { localStorage.removeItem('witch_natal'); } catch {} natalChartHtml = ''; cloudSyncSoon(); renderHome(); });
+  });
+
+  /* ══════════ QUIZ: Are you secretly a witch? (always yes → shop) ══════════ */
+  const QUIZ = [
+    { q: "Do you ever know who's calling before you look?", a: ['Every time', 'More than is normal', "I pretend I don't"] },
+    { q: 'Your relationship with the moon is…', a: ["We're close", 'It watches over me', 'Complicated but loving'] },
+    { q: 'Pick a companion:', a: ['A black cat', 'A raven', 'A very judgmental houseplant'] },
+    { q: 'How many crystals is too many?', a: ['No such thing', 'Asking for a friend', 'I can hear them calling'] },
+    { q: 'When something breaks, you…', a: ['Felt it coming', 'Feel it in your body', 'Blame Mercury'] },
+    { q: 'Be honest — candles are…', a: ['A love language', 'A whole personality', 'Practically a ritual'] },
+  ];
+  let quizStep = 0;
+  function renderQuizQuestion() {
+    const item = QUIZ[quizStep];
+    $('quiz-body').innerHTML =
+      `<div class="quiz-prog">Question ${quizStep + 1} of ${QUIZ.length}</div>
+       <div class="quiz-q">${esc(item.q)}</div>
+       <div class="quiz-opts">` +
+      item.a.map((opt, i) => `<button class="btn-ghost quiz-opt" data-i="${i}">${esc(opt)}</button>`).join('') +
+      `</div>`;
+  }
+  function showQuizResult() {
+    $('quiz-body').style.display = 'none';
+    $('quiz-result').style.display = '';
+    $('quiz-result').innerHTML =
+      `<div style="text-align:center; font-size:34px; line-height:1;">🔮</div>
+       <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">The power has always been within you</div>
+       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:10px;">There was never any doubt. You're a witch — you always have been. That prickle at the back of your neck, the way a room shifts when you walk in, the dreams that come true a little too often? That's the craft, awake in you.</p>
+       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:6px;">You can already:</p>
+       <ul style="font-size:14px; line-height:1.7; color:var(--text-dim); padding-left:20px; margin-bottom:14px;">
+         <li>read a room before you step into it</li>
+         <li>feel the weather turn in your bones</li>
+         <li>tell when someone isn't being honest</li>
+         <li>turn a whole bad day with one lit candle</li>
+         <li>find what's lost by going quiet</li>
+       </ul>
+       <div class="advice-box"><div class="k">One thing</div><p>A craft like yours deserves real tools — candles, crystals & herbs chosen with intention. Every witch needs her altar.</p></div>
+       <button class="btn" id="quiz-shop" style="margin-top:14px;">Gather your tools ✦</button>
+       <button class="btn-ghost" id="quiz-again" style="margin-top:10px;">Take it again</button>`;
+    $('quiz-shop').addEventListener('click', () => go('shop'));
+    $('quiz-again').addEventListener('click', () => { $('quiz-result').style.display = 'none'; $('quiz-intro').style.display = ''; });
+  }
+  $('quiz-start').addEventListener('click', () => {
+    quizStep = 0;
+    $('quiz-intro').style.display = 'none';
+    $('quiz-result').style.display = 'none';
+    $('quiz-body').style.display = '';
+    renderQuizQuestion();
+  });
+  $('quiz-body').addEventListener('click', (e) => {
+    const b = e.target.closest('.quiz-opt'); if (!b) return;
+    quizStep++;
+    if (quizStep < QUIZ.length) renderQuizQuestion();
+    else showQuizResult();
+  });
 
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
@@ -1274,6 +1386,7 @@
     try { renderEntries(); } catch {}
     try { updateSavedCount(); } catch {}
     try { loadSavedNatal(); } catch {}
+    try { renderHome(); } catch {}
   }
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); }); }
 
@@ -1347,8 +1460,9 @@
     } catch (e) { if (m) m.textContent = e.message; }
   }
   async function initAccounts() {
-    let cfg; try { cfg = await (await fetch('/api/witch/firebase-config')).json(); } catch { return; }
-    if (!cfg || !cfg.configured) return; // accounts stay dormant; app unaffected
+    let cfg; try { cfg = await (await fetch('/api/witch/firebase-config')).json(); } catch { cfg = null; }
+    if (!cfg || !cfg.configured) { accountsConfigured = false; renderHome(); return; } // ungated fallback
+    accountsConfigured = true; renderHome();
     try {
       const base = 'https://www.gstatic.com/firebasejs/10.12.0/';
       await loadScript(base + 'firebase-app-compat.js');
@@ -1364,10 +1478,9 @@
         if (email) { try { await fbAuth.signInWithEmailLink(email, location.href); history.replaceState(null, '', location.pathname); } catch (e) { toast('Sign-in link error: ' + e.message); } }
       }
       fbAuth.onAuthStateChanged(async (user) => {
-        const was = fbUser ? fbUser.uid : null;
         fbUser = user || null; renderAcctBtn();
-        if (fbUser) { await pullCloud(); }
-        if ((fbUser ? fbUser.uid : null) !== was) loadDaily(false); // seed changes with account
+        if (fbUser) { await pullCloud(); loadSavedNatal(); } // pull may bring their saved birthday
+        renderHome();
       });
     } catch (e) { console.warn('accounts init failed', e.message); }
   }
@@ -1381,9 +1494,9 @@
   loadSavedNatal();
   renderStyleGrid().catch(() => toast('Could not load illustration styles'));
   initAccounts();
-  // Load the real Rider-Waite art first, then the daily reading (so the
-  // revealed cards show art immediately).
-  loadDeckImages().finally(() => loadDaily(false));
+  // Load the real Rider-Waite art first, then render the home state (which
+  // calls the daily reading once signed in + birthday is set).
+  loadDeckImages().finally(() => renderHome());
   </script>
 </body>
 </html>
