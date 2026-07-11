@@ -216,6 +216,59 @@ struct MoviesStatus: Codable {
     var gated: Bool
 }
 
+// ─── Dreams (dream text → hand-drawn comic pages) ────────────────────
+// Mirrors movies.js /api/movies/dream. A dream breaks into beats (one panel +
+// caption each), then renders as 2x2 comic pages in the baked diary-comic
+// style; a character anchor keeps the recurring figure consistent across pages.
+
+/// A dream in the journal list (server sends summaries only).
+struct DreamSummary: Codable, Identifiable {
+    let id: String
+    var title: String
+    var createdAt: String?
+    var updatedAt: String?
+    var beatCount: Int?
+    var pageCount: Int?
+    var poster: String?
+    var spend: Double?
+    var job: MovieJob?
+
+    var posterURL: URL? { poster.flatMap(URL.init(string:)) }
+}
+
+/// The full dream doc: the text, the beats GPT decided, and the rendered pages.
+struct Dream: Codable, Identifiable {
+    let id: String
+    var title: String
+    var dream: String                 // the dream text the dreamer wrote
+    var characters: String?
+    var beats: [DreamBeat]
+    var pages: [DreamPage]?
+    var pagesQuality: String?
+    var pagesMadeAt: String?
+    var characterAnchor: CharacterAnchor?
+    var job: MovieJob?
+    var spend: Double?
+    var createdAt: String?
+    var updatedAt: String?
+}
+
+struct DreamBeat: Codable, Identifiable {
+    let id: String
+    var imagePrompt: String
+    var caption: String?
+    var hasText: Bool?
+}
+
+struct DreamPage: Codable, Identifiable {
+    var url: String
+    var promptUsed: String?
+    var beatIds: [String]?
+
+    var id: String { url }
+    var pageURL: URL? { URL(string: url) }
+}
+
 // ─── Cost chips (mirror movies.js constants) ─────────────────────────
 enum MovieCosts {
     static let panel: [String: Double] = ["sketch": 0.005, "low": 0.02, "medium": 0.06, "high": 0.25]
