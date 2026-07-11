@@ -192,10 +192,13 @@ final class MovieService {
     }
 
     /// Draw the beats as 2x2 comic pages — a background job; poll `dream(id)`.
+    /// `order` draws the beats in that sequence (the chronology check);
     /// `reanchor` re-rolls the locked character's look.
-    func renderDream(_ id: String, quality: String = "medium", reanchor: Bool = false) async throws -> Dream {
+    func renderDream(_ id: String, quality: String = "medium", reanchor: Bool = false,
+                     order: [String]? = nil) async throws -> Dream {
         var body: [String: Any] = ["quality": quality]
         if reanchor { body["reanchor"] = true }
+        if let order, !order.isEmpty { body["order"] = order }
         let raw = try await data("POST", "/dream/\(id)/render", body: body)
         if let env = try? decoder.decode(DreamEnvelope.self, from: raw) { return env.dream }
         return try decoder.decode(Dream.self, from: raw)

@@ -633,6 +633,7 @@ async function dreamBreakdown(dream) {
    "hasText": true only if the drawing itself should contain written words (a sign, a screen, a speech bubble)}]}
 
 HARD RULES:
+- Return the beats in the TRUE chronological order the events happened IN the dream, NOT the order the dreamer narrated them. Dreams are told out of sequence — follow the dreamer's own cues ("actually that was before", "wait, before that", "earlier", "at first", "then", "after that", "which reminded me") to reconstruct the real sequence, and emit the beats already in that order.
 - Use as many beats as the dream actually needs and NO MORE — do not pad. A simple dream may be 2-4 beats; a busy one 6-8. Go higher only if the dream truly earns it.
 - Every imagePrompt must stand completely alone: nothing implied from another beat. Repeat the character continuity tokens verbatim in each imagePrompt where that figure appears.
 - imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
@@ -1406,8 +1407,15 @@ router.post('/dream/:id/render', async (req, res) => {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
     if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
-    const { quality = 'medium', reanchor } = req.body || {};
+    const { quality = 'medium', reanchor, order } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    // The chronology check: reorder the beats to the order the app sends before drawing.
+    if (Array.isArray(order) && order.length) {
+      const byId = new Map(doc.beats.map(b => [b.id, b]));
+      const reordered = order.map(id => byId.get(id)).filter(Boolean);
+      doc.beats.forEach(b => { if (!order.includes(b.id)) reordered.push(b); }); // keep any not named
+      if (reordered.length) doc.beats = reordered;
+    }
     if (reanchor) doc.characterAnchor = null; // re-roll the character's look on this render
     await startDreamJob(doc, 'render', async (progress) => {
       await makeDreamPages(doc, q, progress);

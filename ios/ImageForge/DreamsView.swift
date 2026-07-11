@@ -2,15 +2,17 @@ import SwiftUI
 import UserNotifications
 
 /// Dreams — write down a dream and it's illustrated as a short hand-drawn
-/// diary comic: GPT decides the beats + captions, and the pages render as 2x2
-/// panels in the baked style with a locked character so the recurring figure
-/// stays consistent. Kept as a journal. A daily ~11am local notification
-/// nudges "What did you dream last night?".
+/// diary comic: GPT breaks it into beats + captions AND reconstructs the true
+/// chronology from your cues, you get a quick "check the chronology" step to
+/// nudge the order, then it renders as 2x2 comic pages in the baked style with
+/// a locked character. Kept as a journal, with a daily ~11am nudge.
 struct DreamsView: View {
     @State private var text = ""
     @State private var busy = false
     @State private var statusLabel = ""
-    @State private var current: Dream?           // the dream being illustrated now
+    @State private var review: [DreamBeat] = []   // beats to check the chronology of
+    @State private var reviewId: String?          // the dream being reviewed
+    @State private var current: Dream?            // rendering / finished pages
     @State private var dreams: [DreamSummary] = []
     @State private var loading = true
     @State private var errorText: String?
@@ -26,7 +28,11 @@ struct DreamsView: View {
             VStack(alignment: .leading, spacing: 22) {
                 StarTitle(text: "Dreams").frame(maxWidth: .infinity).padding(.top, 4)
                 inputSection
-                if busy || current != nil { currentSection }
+                if reviewId != nil && current == nil {
+                    chronologySection
+                } else if busy || current != nil {
+                    currentSection
+                }
                 journalSection
             }
             .padding()
@@ -94,8 +100,69 @@ struct DreamsView: View {
         }
     }
 
-    /// The dream being illustrated right now: its pages once they land, with a
-    /// progress note while the beats are still drawing.
+    /// The chronology check — dreams come out of order, so the breakdown's best
+    /// guess at the real sequence, with ▲▼ to nudge any beat before drawing.
+    private var chronologySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CHECK THE CHRONOLOGY")
+                .font(.caption2.weight(.semibold)).tracking(1)
+                .foregroundColor(Theme.textDim)
+            Text("Dreams come out of order. Nudge any beat into place, then draw.")
+                .font(.footnote).foregroundColor(Theme.textDim)
+            ForEach(Array(review.enumerated()), id: \.element.id) { idx, beat in
+                beatRow(idx: idx, beat: beat)
+            }
+            Button { draw() } label: {
+                Text("Draw it")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.mauve)
+                    .foregroundColor(.white)
+                    .cornerRadius(Theme.radius)
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private func beatRow(idx: Int, beat: DreamBeat) -> some View {
+        let label = (beat.caption?.isEmpty == false) ? (beat.caption ?? "") : beat.imagePrompt
+        return HStack(spacing: 12) {
+            Text("\(idx + 1)")
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .foregroundColor(Theme.mauve)
+                .frame(width: 20)
+            Text(label)
+                .font(.callout).foregroundColor(Theme.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(2)
+            VStack(spacing: 6) {
+                arrowButton("chevron.up", disabled: idx == 0) { moveBeat(idx, -1) }
+                arrowButton("chevron.down", disabled: idx == review.count - 1) { moveBeat(idx, 1) }
+            }
+        }
+        .padding(12)
+        .background(Theme.surface)
+        .cornerRadius(Theme.radius)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+    }
+
+    private func arrowButton(_ icon: String, disabled: Bool, _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(disabled ? Theme.textDim.opacity(0.4) : Theme.mauve)
+                .frame(width: 32, height: 24)
+                .background(Theme.bg)
+                .cornerRadius(6)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+    }
+
+    /// The dream being illustrated: its pages once they land, plus a progress
+    /// note while the beats draw.
     @ViewBuilder private var currentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let pages = current?.pages, !pages.isEmpty {
@@ -157,16 +224,34 @@ struct DreamsView: View {
         busy = true
         statusLabel = "Reading your dream…"
         current = nil
+        reviewId = nil
+        review = []
         Task {
             do {
-                // 1. Breakdown (free): dream → beats + captions.
+                // Breakdown (free): dream → beats + captions, already in the
+                // AI's best chronological order.
                 let created = try await MovieService.shared.createDream(text: body)
-                current = created
-                // 2. Render the beats as comic pages (background job).
-                statusLabel = "Drawing the character…"
-                current = try await MovieService.shared.renderDream(created.id)
-                // 3. Poll until the pages are done.
-                await pollDream(created.id)
+                review = created.beats
+                reviewId = created.id
+            } catch {
+                errorText = error.localizedDescription
+            }
+            busy = false
+            statusLabel = ""
+        }
+    }
+
+    /// Draw the reviewed beats in the confirmed order.
+    private func draw() {
+        guard let id = reviewId else { return }
+        let order = review.map { $0.id }
+        busy = true
+        statusLabel = "Drawing the character…"
+        reviewId = nil
+        Task {
+            do {
+                current = try await MovieService.shared.renderDream(id, order: order)
+                await pollDream(id)
                 text = ""
                 await loadDreams()
                 current = nil                 // it's in the journal now
@@ -175,6 +260,7 @@ struct DreamsView: View {
             }
             busy = false
             statusLabel = ""
+            review = []
         }
     }
 
@@ -200,6 +286,12 @@ struct DreamsView: View {
             }
             try? await Task.sleep(nanoseconds: 3_200_000_000)
         }
+    }
+
+    private func moveBeat(_ i: Int, _ dir: Int) {
+        let j = i + dir
+        guard j >= 0, j < review.count else { return }
+        review.swapAt(i, j)
     }
 
     private func loadDreams() async {
