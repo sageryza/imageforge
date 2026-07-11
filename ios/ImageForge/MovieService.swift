@@ -173,6 +173,38 @@ final class MovieService {
         try await movieCall("POST", "/\(id)/zine", body: ["quality": quality])
     }
 
+    // MARK: Dreams (dream text → hand-drawn comic pages)
+
+    private struct DreamList: Decodable { let dreams: [DreamSummary] }
+    private struct DreamEnvelope: Decodable { let dream: Dream }
+
+    func dreamList() async throws -> [DreamSummary] {
+        try await fetch(DreamList.self, "GET", "/dream", timeout: 75).dreams
+    }
+
+    /// Dream text → beats + captions (one GPT call, synchronous). Nothing drawn yet.
+    func createDream(text: String) async throws -> Dream {
+        try await fetch(Dream.self, "POST", "/dream", body: ["dream": text], timeout: 120)
+    }
+
+    func dream(_ id: String) async throws -> Dream {
+        try await fetch(Dream.self, "GET", "/dream/\(id)")
+    }
+
+    /// Draw the beats as 2x2 comic pages — a background job; poll `dream(id)`.
+    /// `reanchor` re-rolls the locked character's look.
+    func renderDream(_ id: String, quality: String = "medium", reanchor: Bool = false) async throws -> Dream {
+        var body: [String: Any] = ["quality": quality]
+        if reanchor { body["reanchor"] = true }
+        let raw = try await data("POST", "/dream/\(id)/render", body: body)
+        if let env = try? decoder.decode(DreamEnvelope.self, from: raw) { return env.dream }
+        return try decoder.decode(Dream.self, from: raw)
+    }
+
+    func deleteDream(_ id: String) async throws {
+        _ = try await data("DELETE", "/dream/\(id)")
+    }
+
     // MARK: Quick animate (one image → one clip, no movie)
 
     /// Kick off a quick animation. `jpeg` is the picked image, already

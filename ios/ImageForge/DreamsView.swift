@@ -1,15 +1,20 @@
 import SwiftUI
 import UserNotifications
 
-/// Dreams — write down a dream and it's illustrated in the fixed moody
-/// diary-comic style, then kept as a journal. A daily ~11am local notification
+/// Dreams — write down a dream and it's illustrated as a short hand-drawn
+/// diary comic: GPT decides the beats + captions, and the pages render as 2x2
+/// panels in the baked style with a locked character so the recurring figure
+/// stays consistent. Kept as a journal. A daily ~11am local notification
 /// nudges "What did you dream last night?".
 struct DreamsView: View {
     @State private var text = ""
     @State private var busy = false
-    @State private var dreams: [Creation] = []
+    @State private var statusLabel = ""
+    @State private var current: Dream?           // the dream being illustrated now
+    @State private var dreams: [DreamSummary] = []
     @State private var loading = true
     @State private var errorText: String?
+    @State private var pollGeneration = 0
 
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
@@ -21,7 +26,7 @@ struct DreamsView: View {
             VStack(alignment: .leading, spacing: 22) {
                 StarTitle(text: "Dreams").frame(maxWidth: .infinity).padding(.top, 4)
                 inputSection
-                if busy { loadingCard }
+                if busy || current != nil { currentSection }
                 journalSection
             }
             .padding()
@@ -40,6 +45,7 @@ struct DreamsView: View {
             await loadDreams()
             scheduleNudgeIfNeeded()
         }
+        .onDisappear { pollGeneration += 1 }   // stop polling when we leave
         .alert("Couldn't illustrate",
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
@@ -88,13 +94,27 @@ struct DreamsView: View {
         }
     }
 
-    private var loadingCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Theme.radiusLg).fill(Color.white)
-            GIFView(name: "loading-anim", ext: "png", speed: 0.35).frame(width: 150, height: 150)
+    /// The dream being illustrated right now: its pages once they land, with a
+    /// progress note while the beats are still drawing.
+    @ViewBuilder private var currentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let pages = current?.pages, !pages.isEmpty {
+                ForEach(pages) { page in pageImage(page.pageURL) }
+            }
+            if busy { progressCard }
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
+    }
+
+    private var progressCard: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(statusLabel.isEmpty ? "Illustrating…" : statusLabel)
+                .font(.callout).foregroundColor(Theme.textDim)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
@@ -108,29 +128,20 @@ struct DreamsView: View {
             if loading && dreams.isEmpty {
                 ProgressView().frame(maxWidth: .infinity).padding(.top, 20)
             }
-            ForEach(dreams) { dream in dreamCard(dream) }
+            ForEach(dreams) { dream in DreamJournalCard(summary: dream) }
         }
     }
 
-    private func dreamCard(_ dream: Creation) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AsyncImage(url: dream.url) { phase in
-                switch phase {
-                case .success(let image): image.resizable().scaledToFit()
-                case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-                default: ProgressView().frame(height: 120)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .background(Color.white)
-            if let p = dream.prompt, !p.isEmpty {
-                Text(p)
-                    .font(.callout).foregroundColor(Theme.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
+    private func pageImage(_ url: URL?) -> some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image): image.resizable().scaledToFit()
+            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+            default: ProgressView().frame(height: 160)
             }
         }
-        .background(Theme.surface)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
         .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
@@ -144,23 +155,56 @@ struct DreamsView: View {
         guard !busy else { return }
         guard aiConsentAccepted else { showConsent = true; return }
         busy = true
+        statusLabel = "Reading your dream…"
+        current = nil
         Task {
             do {
-                let url = try await ForgeService.shared.generateDream(text: body)
-                dreams.insert(Creation(id: UUID().uuidString, type: "dream", url: url, prompt: body), at: 0)
+                // 1. Breakdown (free): dream → beats + captions.
+                let created = try await MovieService.shared.createDream(text: body)
+                current = created
+                // 2. Render the beats as comic pages (background job).
+                statusLabel = "Drawing the character…"
+                current = try await MovieService.shared.renderDream(created.id)
+                // 3. Poll until the pages are done.
+                await pollDream(created.id)
                 text = ""
+                await loadDreams()
+                current = nil                 // it's in the journal now
             } catch {
                 errorText = error.localizedDescription
             }
             busy = false
+            statusLabel = ""
+        }
+    }
+
+    /// Poll the dream doc until its render job finishes, surfacing the job's
+    /// own label ("drawing the character" → "drawing pages") as it goes.
+    private func pollDream(_ id: String) async {
+        pollGeneration += 1
+        let generation = pollGeneration
+        while generation == pollGeneration {
+            do {
+                let d = try await MovieService.shared.dream(id)
+                current = d
+                guard let job = d.job, job.isRunning else {
+                    if d.job?.status == "error" { errorText = d.job?.error ?? "The render didn't finish." }
+                    return
+                }
+                if let label = job.label, !label.isEmpty {
+                    statusLabel = "\(label.prefix(1).uppercased())\(label.dropFirst())…"
+                }
+            } catch {
+                errorText = error.localizedDescription
+                return
+            }
+            try? await Task.sleep(nanoseconds: 3_200_000_000)
         }
     }
 
     private func loadDreams() async {
         loading = true
-        if let all = try? await ForgeService.shared.fetchCreations(limit: 80) {
-            dreams = all.filter { $0.type == "dream" }
-        }
+        if let all = try? await MovieService.shared.dreamList() { dreams = all }
         loading = false
     }
 
@@ -181,5 +225,50 @@ struct DreamsView: View {
             center.add(req)
             DispatchQueue.main.async { nudgeScheduled = true }
         }
+    }
+}
+
+/// A dream in the journal — lazy-loads its full pages, shows them stacked, with
+/// the dream text beneath (tap to expand).
+private struct DreamJournalCard: View {
+    let summary: DreamSummary
+    @State private var full: Dream?
+    @State private var expanded = false
+
+    private var caption: String { full?.dream ?? summary.title }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let pages = full?.pages, !pages.isEmpty {
+                ForEach(pages) { page in pageImage(page.pageURL) }
+            } else {
+                // Poster (or a placeholder) while the full pages load.
+                pageImage(summary.posterURL)
+            }
+            if !caption.isEmpty {
+                Text(caption)
+                    .font(.callout).foregroundColor(Theme.text)
+                    .lineLimit(expanded ? nil : 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .onTapGesture { withAnimation { expanded.toggle() } }
+            }
+        }
+        .background(Theme.surface)
+        .cornerRadius(Theme.radiusLg)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+        .task { if full == nil { full = try? await MovieService.shared.dream(summary.id) } }
+    }
+
+    private func pageImage(_ url: URL?) -> some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image): image.resizable().scaledToFit()
+            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+            default: ProgressView().frame(height: 160)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
     }
 }
