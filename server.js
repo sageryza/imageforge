@@ -7,6 +7,13 @@ const fs = require('fs');
 const FormData = require('form-data');
 const admin = require('firebase-admin');
 
+// Natal-chart deps (Secretly a Witch). Guarded so a missing/broken install
+// degrades ONLY the /api/witch/natal endpoint instead of crashing the whole
+// server at boot (astro.js pulls in the astronomia ephemeris).
+let tzlookup = null, astro = null;
+try { tzlookup = require('tz-lookup'); astro = require('./astro'); }
+catch (e) { console.error('Natal-chart engine unavailable:', e.message); }
+
 const app = express();
 
 // ─── CORS ───────────────────────────────────────────────────────────
@@ -659,6 +666,69 @@ Return valid JSON only, no markdown fences, shaped:
     });
     if (data.error) return res.status(400).json({ error: data.error.message });
     res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Natal chart + reading ──────────────────────────────────────────
+// Real astronomy → real chart (astro.js) → AI interpretation. Body:
+// { date:"YYYY-MM-DD", time:"HH:MM" (optional), place:"City, Country" }.
+// Without a time, planet signs still compute but rising/houses are omitted.
+function tzOffsetHours(zone, dateUTC) {
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const p = dtf.formatToParts(dateUTC).reduce((a, x) => (a[x.type] = x.value, a), {});
+  const asUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  return (asUTC - dateUTC.getTime()) / 3600000;
+}
+app.post('/api/witch/natal', async (req, res) => {
+  try {
+    if (!astro || !tzlookup) return res.status(503).json({ error: 'The astrology engine is still warming up on the server — try again shortly.' });
+    const { date, time, place } = req.body || {};
+    if (!date || !place) return res.status(400).json({ error: 'date and place are required' });
+    const [y, m, d] = String(date).split('-').map(Number);
+    if (!y || !m || !d) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+
+    // Geocode the birthplace (OpenStreetMap Nominatim — free, no key needed).
+    const geoRes = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(place), { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (natal chart feature)' } });
+    const geo = await geoRes.json();
+    if (!Array.isArray(geo) || !geo.length) return res.status(400).json({ error: `Couldn't find "${place}" — try "City, Country".` });
+    const lat = +geo[0].lat, lon = +geo[0].lon, placeName = geo[0].display_name;
+
+    // Timezone + historical (DST-aware) UTC offset for the birth moment.
+    const zone = tzlookup(lat, lon);
+    const hasTime = Boolean(time && /^\d{1,2}:\d{2}$/.test(time));
+    const [hh, mm] = hasTime ? time.split(':').map(Number) : [12, 0];
+    const localAsUTC = Date.UTC(y, m - 1, d, hh, mm);
+    const off = tzOffsetHours(zone, new Date(localAsUTC));
+    const ut = new Date(localAsUTC - off * 3600000);
+    const utHours = ut.getUTCHours() + ut.getUTCMinutes() / 60 + ut.getUTCSeconds() / 3600;
+
+    const chart = astro.computeChart({ y: ut.getUTCFullYear(), m: ut.getUTCMonth() + 1, d: ut.getUTCDate(), utHours, lat, lon, withAngles: hasTime });
+
+    // Interpret the computed placements (never recompute in the model).
+    const placements = chart.bodies.map(b => `${b.name} in ${b.sign} ${Math.round(b.degInSign)}°${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' retrograde' : ''}`).join('\n');
+    const angles = hasTime
+      ? `Ascendant/Rising: ${chart.ascendant.sign} ${Math.round(chart.ascendant.degInSign)}°\nMidheaven: ${chart.midheaven.sign} ${Math.round(chart.midheaven.degInSign)}°\n`
+      : '(No birth time provided — rising sign and houses omitted; note this gently.)\n';
+    const aspects = chart.aspects.slice(0, 8).map(a => `${a.a} ${a.aspect} ${a.b}`).join(', ') || 'none notable';
+
+    const system = `You are a warm, insightful astrologer for the app "Secretly a Witch". You are handed a REAL, accurately computed natal chart — interpret it, never recompute or contradict the given positions. Grounded, specific, encouraging; astrology as a reflective mirror, never fatalistic and never medical/financial/legal certainty. Speak directly to them as "you"; cozy, a little luminous, never generic.
+
+Return valid JSON only, no markdown fences:
+{
+  "headline": "one evocative sentence for the whole chart",
+  "big_three": "2-3 sentences weaving Sun + Moon + Rising",
+  "sections": [ { "title": "short title", "text": "2-3 sentences" } ],
+  "closing": "one warm, grounding sentence"
+}
+Give 3 to 5 sections on the most striking placements, houses, and aspects.`;
+    const user = `Natal chart (already computed — interpret only):\n${angles}${placements}\nTightest aspects: ${aspects}.`;
+
+    const data = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.85, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    res.json({ chart, reading: parseJsonReply(data), place: placeName, coords: { lat, lon }, tz: zone, hasTime });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
