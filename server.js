@@ -75,8 +75,24 @@ async function openaiChat(body, retries = 3) {
 // quality reading (Claude Opus 4.8). Key is read at call time from process.env
 // because config-loader.js hydrates ANTHROPIC_API_KEY from Firestore AFTER boot.
 // 'Connection: close' avoids stale keep-alive sockets ("Premature close").
+// Resolve the Anthropic key: env first (config-loader hydrates it from
+// Firestore config/anthropic at boot), else read that doc directly on demand
+// and cache it — so the feature works even if boot hydration was skipped.
+let _anthropicKey = null;
+async function getAnthropicKey() {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
+  if (_anthropicKey) return _anthropicKey;
+  try {
+    if (admin.apps.length) {
+      const snap = await admin.firestore().doc('config/anthropic').get();
+      const k = snap.exists ? String(snap.data().key || '') : '';
+      if (k) { _anthropicKey = k; process.env.ANTHROPIC_API_KEY = k; return k; }
+    }
+  } catch (e) { console.warn('getAnthropicKey: Firestore read failed —', e.message); }
+  return '';
+}
 async function anthropicChat({ system, messages, max_tokens = 2000, temperature, model = 'claude-opus-4-8' }, retries = 2) {
-  const key = process.env.ANTHROPIC_API_KEY || '';
+  const key = await getAnthropicKey();
   if (!key) throw new Error('ANTHROPIC_API_KEY not set');
   const body = { model, max_tokens, messages };
   if (system) body.system = system;
