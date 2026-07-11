@@ -34,7 +34,13 @@ each opens a focused workflow that shares the same house styles.
   `talking.html`, `gallery.html`); shared design system in `public/forge.css`.
 - Deployed on Render via `render.yaml`. Env vars set in the Render dashboard
   (all `sync:false`): `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`,
-  `FIREBASE_SERVICE_ACCOUNT`. Firebase project id: `membry-df528`.
+  `FIREBASE_SERVICE_ACCOUNT`. **The server's Firebase project is
+  `deckfactory-43176`** (verified 2026-07-11 via a Storage upload URL) — NOT
+  membry-df528 as previously documented. The iOS app's direct Firestore reads
+  (Story Boards, GoogleService-Info.plist) use `membry-df528`, so data written
+  by the server and data read directly by the app live in DIFFERENT projects.
+  `/api/story` bridges this with `STORY_FIREBASE_SERVICE_ACCOUNT` (a membry
+  service-account JSON) — set it in Render or the boards read as empty.
 
 ## Image generation
 - OpenAI `gpt-image-2` (the zine; single/sticker can also use DALL·E 3).

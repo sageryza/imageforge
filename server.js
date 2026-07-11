@@ -407,19 +407,39 @@ app.get('/story', serveGated('story.html'));
 // Story-board API: the same projects, served live from Firestore (synced by
 // scripts/sync-story.js) so the iOS app updates without an app build. Reads
 // the `forge-story` collection. Same x-studio-token gate as the pipeline.
+// GOTCHA (discovered 2026-07-11): this server's FIREBASE_SERVICE_ACCOUNT is the
+// deckfactory-43176 project, but the story boards (and the iOS app's direct
+// Firestore reads) live in membry-df528. Set STORY_FIREBASE_SERVICE_ACCOUNT to
+// a membry service-account JSON to read the real boards; without it this
+// endpoint can only see the (empty) local project's collection.
+let storyApp = null;
+function storyDb() {
+  const raw = process.env.STORY_FIREBASE_SERVICE_ACCOUNT;
+  if (raw && !storyApp) {
+    try {
+      storyApp = admin.initializeApp(
+        { credential: admin.credential.cert(JSON.parse(raw)) }, 'story');
+      console.log('Story boards: secondary Firebase app initialized');
+    } catch (err) {
+      console.error('STORY_FIREBASE_SERVICE_ACCOUNT invalid:', err.message);
+    }
+  }
+  if (storyApp) return storyApp.firestore();
+  if (!admin.apps.length) return null;
+  return admin.firestore();
+}
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
-    // No orderBy: Firestore's orderBy silently drops docs missing the field,
-    // which made boards without an `order` invisible here (the iOS snapshot
-    // listener never filtered, so the app showed them). Sort in code instead.
-    const snap = await admin.firestore().collection('forge-story').get();
+    const db = storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    // No orderBy: Firestore's orderBy silently drops docs missing the field.
+    const snap = await db.collection('forge-story').get();
     const projects = snap.docs.map((d) => d.data())
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-    res.json({ projects });
+    res.json({ projects, source: storyApp ? 'membry (STORY_FIREBASE_SERVICE_ACCOUNT)' : 'local project' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
