@@ -356,6 +356,24 @@
     .aspect-line { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
     .aspect-line b { color: var(--moon); font-weight: 500; }
 
+    /* ── Accounts ── */
+    .acct-btn { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-family: inherit; font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all 0.15s ease; }
+    .acct-btn.show { display: flex; }
+    .acct-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .acct-btn .av { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, var(--gold), var(--gold-dim)); color: #fffbf3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 22px; }
+    .modal-bg.show { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 24px; max-width: 360px; width: 100%; box-shadow: 0 20px 50px rgba(48,30,20,0.28); text-align: center; }
+    .modal h2 { font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--gold); margin-bottom: 6px; }
+    .modal p.sub { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 18px; }
+    .modal .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; font-weight: 500; color: #3a3a3a; cursor: pointer; margin-bottom: 14px; }
+    .modal .gbtn:hover { border-color: var(--text-dim); }
+    .modal .gbtn svg { width: 17px; height: 17px; }
+    .modal .divider { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin: 4px 0 14px; }
+    .modal .close-x { background: none; border: none; color: var(--text-faint); font-size: 13px; cursor: pointer; margin-top: 14px; font-family: inherit; }
+    .modal .acct-email { font-size: 13px; color: var(--text); margin-bottom: 2px; word-break: break-all; }
+    .modal .acct-note { font-size: 11.5px; color: var(--text-faint); margin-bottom: 18px; }
+
     @media (max-width: 380px) {
       .fam-grid, .tiles { grid-template-columns: 1fr; }
       .nav-btn .nl { font-size: 9px; }
@@ -370,6 +388,7 @@
         <h1>Secretly a Witch</h1>
         <span class="sigil">✦</span>
       </div>
+      <button class="acct-btn" id="acct-btn"></button>
     </header>
 
     <main>
@@ -661,6 +680,10 @@
   </div>
 
   <div id="toast"></div>
+
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal" id="modal"></div>
+  </div>
 
   <script>
   /* ═══════════════════════════════════════════════════════════════
@@ -1022,7 +1045,7 @@
   let bookPage = 0;
 
   function loadBook() { try { const r = localStorage.getItem('imageforge_miracles_book'); if (r) return JSON.parse(r); } catch {} return { title: '', subtitle: '', entries: [] }; }
-  function saveBook() { try { localStorage.setItem('imageforge_miracles_book', JSON.stringify(mBook)); } catch {} }
+  function saveBook() { try { localStorage.setItem('imageforge_miracles_book', JSON.stringify(mBook)); } catch {} cloudSyncSoon(); }
 
   const DEFAULT_SETTINGS = { suffix: '', lora_scale: 1, megapixels: '1', output_format: 'webp', num_outputs: 1, guidance_scale: 3, output_quality: 80, num_inference_steps: 28 };
   function allSettings() { try { return JSON.parse(localStorage.getItem('imageforge_model_settings') || '{}'); } catch { return {}; } }
@@ -1216,7 +1239,7 @@
   /* ══════════ SAVED READINGS ══════════ */
   let lastTarot = null;
   function loadReadings() { try { return JSON.parse(localStorage.getItem('witch_saved_readings') || '[]'); } catch { return []; } }
-  function saveReadings(a) { try { localStorage.setItem('witch_saved_readings', JSON.stringify(a)); } catch {} }
+  function saveReadings(a) { try { localStorage.setItem('witch_saved_readings', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function updateSavedCount() { const n = loadReadings().length; $('saved-count').textContent = n ? `(${n})` : ''; }
   function nowStamp() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 
@@ -1266,7 +1289,7 @@
       ${d.note ? `<div class="grounding">${esc(d.note)}</div>` : ''}`;
   }
   function loadGrimoire() { try { return JSON.parse(localStorage.getItem('witch_grimoire') || '[]'); } catch { return []; } }
-  function saveGrimoire(a) { try { localStorage.setItem('witch_grimoire', JSON.stringify(a)); } catch {} }
+  function saveGrimoire(a) { try { localStorage.setItem('witch_grimoire', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function updateGrimoireCount() { const n = loadGrimoire().length; $('grimoire-count').textContent = n ? `(${n})` : ''; }
 
   $('spell-mode').addEventListener('click', (e) => {
@@ -1345,6 +1368,7 @@
     try {
       const data = await api('/api/witch/natal', { date, time, place });
       try { localStorage.setItem('witch_natal', JSON.stringify({ input: { date, time, place }, data })); } catch {}
+      cloudSyncSoon();
       renderNatal(data);
       const sun = data.chart.bodies.find(b => b.name === 'Sun'); if (sun && $('horo-sign')) $('horo-sign').value = sun.sign;
       note.textContent = '';
@@ -1352,7 +1376,7 @@
     btn.disabled = false;
   }
   $('natal-btn').addEventListener('click', castChart);
-  (function initNatal() {
+  function loadSavedNatal() {
     try {
       const s = JSON.parse(localStorage.getItem('witch_natal') || 'null');
       if (s && s.data && s.data.chart) {
@@ -1361,9 +1385,116 @@
         const sun = s.data.chart.bodies.find(b => b.name === 'Sun'); if (sun && $('horo-sign')) $('horo-sign').value = sun.sign;
       }
     } catch {}
-  })();
+  }
+  loadSavedNatal();
+
+  /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
+  // Dormant until /api/witch/firebase-config returns configured:true. Same
+  // Firebase project will back a future native iOS app (shared users + data).
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal'];
+  let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
+
+  function refreshAllFromStorage() {
+    try { mBook = loadBook(); } catch {}
+    try { renderEntries(); } catch {}
+    try { updateSavedCount(); } catch {}
+    try { updateGrimoireCount(); } catch {}
+    try { loadSavedNatal(); } catch {}
+  }
+  function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); }); }
+
+  async function pushCloud() {
+    if (!fbUser || !fbDb) return;
+    const data = {};
+    WITCH_KEYS.forEach(k => { try { const v = localStorage.getItem(k); data[k] = v ? JSON.parse(v) : null; } catch { data[k] = null; } });
+    try { await fbDb.collection('users').doc(fbUser.uid).set({ data, updatedAt: Date.now() }, { merge: true }); }
+    catch (e) { console.warn('cloud push failed', e.message); }
+  }
+  function cloudSyncSoon() { if (!fbUser || !fbDb) return; clearTimeout(cloudTimer); cloudTimer = setTimeout(pushCloud, 1200); }
+  async function pullCloud() {
+    if (!fbUser || !fbDb) return;
+    let snap; try { snap = await fbDb.collection('users').doc(fbUser.uid).get(); } catch (e) { console.warn('cloud pull failed', e.message); return; }
+    const remote = snap.exists ? (snap.data().data || {}) : {};
+    let changed = false, seed = !snap.exists;
+    WITCH_KEYS.forEach(k => {
+      if (remote[k] != null) { try { localStorage.setItem(k, JSON.stringify(remote[k])); changed = true; } catch {} }
+      else if (localStorage.getItem(k)) seed = true; // remote missing but we have local -> upload
+    });
+    if (changed) refreshAllFromStorage();
+    if (seed) pushCloud();
+  }
+
+  const GOOGLE_G = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16z"/><path fill="#FBBC05" d="M10.3 28.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.5l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.5 2.1-7.9 2.1-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>`;
+  function openModal(html) { $('modal').innerHTML = html; $('modal-bg').classList.add('show'); }
+  function closeModal() { $('modal-bg').classList.remove('show'); }
+  $('modal-bg').addEventListener('click', e => { if (e.target === $('modal-bg')) closeModal(); });
+
+  function renderAcctBtn() {
+    const b = $('acct-btn'); if (!b) return;
+    b.classList.add('show');
+    if (fbUser) { b.innerHTML = `<span class="av">${esc((fbUser.email || '?').trim().charAt(0).toUpperCase())}</span>`; }
+    else { b.textContent = 'Sign in'; }
+  }
+  function showSignIn() {
+    openModal(`
+      <h2>Enter the circle</h2>
+      <p class="sub">A free account saves your chart, readings &amp; grimoire — and unlocks a fresh daily reading.</p>
+      <button class="gbtn" id="btn-google">${GOOGLE_G} Continue with Google</button>
+      <div class="divider">or</div>
+      <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
+      <button class="btn" id="btn-email">Email me a magic link</button>
+      <div class="note" id="acct-msg" style="text-align:center;"></div>
+      <button class="close-x" id="acct-close">maybe later</button>`);
+    $('acct-close').addEventListener('click', closeModal);
+    $('btn-google').addEventListener('click', signInGoogle);
+    $('btn-email').addEventListener('click', signInEmail);
+  }
+  function showAccount() {
+    openModal(`
+      <h2>Your circle</h2>
+      <div class="acct-email">${esc(fbUser.email || 'Signed in')}</div>
+      <div class="acct-note">Your chart, readings &amp; grimoire sync to this account.</div>
+      <button class="btn-ghost" id="btn-signout">Sign out</button>
+      <button class="close-x" id="acct-close">close</button>`);
+    $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });
+    $('acct-close').addEventListener('click', closeModal);
+  }
+  async function signInGoogle() {
+    try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); closeModal(); }
+    catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
+  }
+  async function signInEmail() {
+    const email = ($('acct-email').value || '').trim(), m = $('acct-msg');
+    if (!email) { if (m) m.textContent = 'Enter your email first'; return; }
+    try {
+      await fbAuth.sendSignInLinkToEmail(email, { url: location.origin + location.pathname, handleCodeInApp: true });
+      try { localStorage.setItem('witch_emailForSignIn', email); } catch {}
+      if (m) m.textContent = 'Check your email for the magic link ✦';
+    } catch (e) { if (m) m.textContent = e.message; }
+  }
+  async function initAccounts() {
+    let cfg; try { cfg = await (await fetch('/api/witch/firebase-config')).json(); } catch { return; }
+    if (!cfg || !cfg.configured) return; // accounts stay dormant; app unaffected
+    try {
+      const base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+      await loadScript(base + 'firebase-app-compat.js');
+      await loadScript(base + 'firebase-auth-compat.js');
+      await loadScript(base + 'firebase-firestore-compat.js');
+      firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId, storageBucket: cfg.storageBucket, messagingSenderId: cfg.messagingSenderId, appId: cfg.appId });
+      fbAuth = firebase.auth(); fbDb = firebase.firestore();
+      renderAcctBtn();
+      $('acct-btn').addEventListener('click', () => { if (fbUser) showAccount(); else showSignIn(); });
+      if (fbAuth.isSignInWithEmailLink(location.href)) {
+        let email = null; try { email = localStorage.getItem('witch_emailForSignIn'); } catch {}
+        if (!email) email = window.prompt('Confirm your email to finish signing in:');
+        if (email) { try { await fbAuth.signInWithEmailLink(email, location.href); history.replaceState(null, '', location.pathname); } catch (e) { toast('Sign-in link error: ' + e.message); } }
+      }
+      fbAuth.onAuthStateChanged(async (user) => { fbUser = user || null; renderAcctBtn(); if (fbUser) await pullCloud(); });
+    } catch (e) { console.warn('accounts init failed', e.message); }
+  }
 
   /* ══════════ INIT ══════════ */
+  initAccounts();
   const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();
   renderToday();
   renderMoonCalendar();
