@@ -677,16 +677,20 @@ Return valid JSON only, no markdown fences, shaped:
 // until the web-app keys are set, so the app runs fine with accounts dormant.
 // Same Firebase project powers a future native iOS app (shared users/data).
 app.get('/api/witch/firebase-config', (req, res) => {
-  const apiKey = process.env.FIREBASE_WEB_API_KEY || '';
-  const appId = process.env.FIREBASE_WEB_APP_ID || '';
+  // These are the PUBLIC Firebase web config values for project membry-df528
+  // (the same project the games app uses). A web apiKey is designed to be
+  // exposed in the browser — real security is Firebase Auth authorized domains
+  // + Firestore rules, not secrecy of this key. Env vars override if ever needed.
+  const apiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCA04ReaTAoNDUgUCuBS-ti0Jkfl-16h_s';
+  const appId = process.env.FIREBASE_WEB_APP_ID || '1:513384339473:web:8f46c5915a949c93a8b9b0';
   const projectId = process.env.FIREBASE_PROJECT_ID || 'membry-df528';
   if (!apiKey || !appId) return res.json({ configured: false });
   res.json({
     configured: true,
     apiKey, appId, projectId,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'membry-df528.firebasestorage.app',
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '513384339473',
   });
 });
 
