@@ -16,6 +16,13 @@ Portland dates). The full brief, her own planning docs/mockups, illustration
 live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
 first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
 
+## Dating book — "The Sophie Experiment"
+Sophie's long-running dating-memoir project (square coffee-table book from ~50
+Portland dates). The full brief, her own planning docs/mockups, illustration
+**style prompt formulas**, essay & infographic lists, and prior-chat transcripts
+live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
+first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
+
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
 sheets, zines, single images). Home screen (`/`) is a grid of project types;
@@ -493,10 +500,19 @@ lifted into a standalone tool later.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
-- **End every reply with a verbatim audio version.** Generate a TTS (OpenAI
-  `gpt-4o-mini-tts`) reading the full message verbatim and attach it at the very
-  bottom, under the TLDR and below any images — it is the last thing in the
-  message. Strip markdown/URLs for the spoken version; keep the words.
+- **TLDR + audio replies (Sophie's rule, July 2026 — applies in every chat).**
+  - **TLDR at the end of every reply, no matter what** — the only exception is
+    a really quick reply that fits in ONE iPhone screen (she has an iPhone 13).
+  - **Attach an audio version (voice memo)** — TTS via OpenAI `gpt-4o-mini-tts`
+    reading the message verbatim (strip markdown/URLs, keep the words) —
+    whenever the reply is longer than one iPhone-13 screen (she'd have to
+    scroll) OR says something important for her to know: answers to her
+    questions, questions for her, new findings, decisions she needs to make.
+  - **Skip the audio** when the reply just confirms work she asked for or is
+    technical detail with no new information ("built it — here's what
+    changed"). TLDR still required.
+  - Audio is the LAST thing in the message — after the TLDR and any
+    files/images.
 
 ## YouTube auto-upload (witchy video channel)
 - Finished videos post straight to Sophie's business YouTube channel as **private
