@@ -7,7 +7,7 @@ WD=os.path.join(ROOT,'docs','dating-book','working-drafts')
 feat=json.load(open(os.path.join(WD,'featured2.json')))
 orig=json.load(open(os.path.join(WD,'originals.json')))
 font=base64.b64encode(open(os.path.join(ROOT,'ios','ImageForge','EBGaramond.ttf'),'rb').read()).decode()
-ORDER=["Griffin","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel"]
+ORDER=["Griffin","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
 byname={e["name"]:e for e in feat}
 
 def smart(s):
@@ -169,10 +169,13 @@ mark{{background:none; color:var(--chg);}}
 .endmark{{text-align:center; color:var(--ink2); margin-top:3.5em; font-size:1.2em;}}
 .float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:none; flex-direction:column; gap:8px; align-items:center;}}
 body.reading .float{{display:flex;}}
-.fbtn{{width:48px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink);
-  font-size:17px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:flex; align-items:center; justify-content:center;}}
-.fbtn.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); border-color:var(--chg); color:var(--chg);}}
-.fbtn.small{{width:48px; height:32px; font-size:15px; color:var(--ink2);}}
+.vseg{{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px;
+  overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}}
+.vseg button{{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;}}
+.vseg button + button{{border-top:1.5px solid var(--ink);}}
+.vseg button.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}}
+.vseg button:focus-visible{{outline:2px solid var(--rose); outline-offset:-2px;}}
 .fbtn:focus-visible{{outline:2px solid var(--rose);}}
 #spd{{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); font-variant-numeric:tabular-nums;}}
 .backwrap{{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}}
@@ -186,11 +189,12 @@ body.reading .backwrap{{display:block;}}
 </style>
 <div class="backwrap"><button id="back" aria-label="Back to the list">&#8249;</button></div>
 <div class="float">
-  <button class="fbtn" id="up" aria-label="Scroll up"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
-  <button class="fbtn" id="down" aria-label="Scroll down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-  <button class="fbtn small" id="slow" aria-label="Slower">&minus;</button>
+  <div class="vseg">
+    <button id="vtop" aria-label="Scroll up / faster"></button>
+    <button id="vmid" aria-label="Play or pause autoscroll"></button>
+    <button id="vbot" aria-label="Scroll down / slower"></button>
+  </div>
   <span id="spd">0.6&times;</span>
-  <button class="fbtn small" id="fast" aria-label="Faster">+</button>
 </div>
 <div class="wrap">
 <section id="home">
@@ -355,7 +359,15 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
 }});
 
 var playing=false, raf=null, last=null, speed=0.6, dir=1, acc=0;
-var upBtn=document.getElementById('up'), downBtn=document.getElementById('down');
+var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
+var I={{
+ up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+ down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+ play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+ pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+ plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+}};
 function step(ts){{
   if(!playing) return;
   if(last!=null){{
@@ -366,16 +378,22 @@ function step(ts){{
     if(atEnd) stop(); }}
   last=ts; raf=requestAnimationFrame(step);
 }}
-function paint(){{ upBtn.classList.toggle('on', playing&&dir<0); downBtn.classList.toggle('on', playing&&dir>0); }}
+function showSpd(){{ document.getElementById('spd').textContent=speed.toFixed(1)+'\u00d7'; }}
+function paint(){{
+  if(playing){{ vtop.innerHTML=I.plus; vbot.innerHTML=I.minus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }}
+  else{{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }}
+  showSpd();
+}}
 function start(d){{ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }}
 function stop(){{ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }}
-upBtn.onclick=function(){{ (playing&&dir<0)?stop():start(-1); }};
-downBtn.onclick=function(){{ (playing&&dir>0)?stop():start(1); }};
+vtop.onclick=function(){{ if(playing){{ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); }} else start(-1); }};
+vbot.onclick=function(){{ if(playing){{ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); }} else start(1); }};
+vmid.onclick=function(){{ playing? stop() : start(dir||1); }};
+paint();
 document.querySelector('.wrap').addEventListener('click',function(e){{
   if(playing && !e.target.closest('button') && !e.target.closest('.notebox')) stop();
 }});
-document.getElementById('slow').onclick=function(){{ speed=Math.max(.1,+(speed-0.1).toFixed(1)); document.getElementById('spd').textContent=speed.toFixed(1)+'\\u00d7'; }};
-document.getElementById('fast').onclick=function(){{ speed=Math.min(2,+(speed+0.1).toFixed(1)); document.getElementById('spd').textContent=speed.toFixed(1)+'\\u00d7'; }};
+
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
 document.querySelectorAll('.copybtn').forEach(function(b){{
   b.onclick=function(){{
