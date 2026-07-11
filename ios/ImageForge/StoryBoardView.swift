@@ -52,6 +52,8 @@ struct StoryBoardView: View {
                 }
             }
             .padding(.vertical, 18)
+            Text("data: \(model.projects.count) projects · covers \(model.projects.filter { $0.cover != nil }.count)/\(model.projects.count)")
+                .font(.caption2).foregroundStyle(.tertiary).padding(.bottom, 10)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .navigationDestination(for: String.self) { id in
@@ -88,7 +90,7 @@ private struct VHSBox: View {
     var body: some View {
         VStack(spacing: 7) {
             ZStack {
-                if let cover = project.cover {
+                if let cover = project.displayCover {
                     AsyncImage(url: cover) { phase in
                         if case .success(let img) = phase { img.resizable().scaledToFill() }
                         else { Color(white: 0.88) }
@@ -219,6 +221,12 @@ struct StoryProject: Identifiable {
     let order: Int
     let cover: URL?
     let beats: [StoryBeat]
+
+    /// The cover, or the first panel image anywhere in the beats — a case
+    /// should never render empty while the project has any art at all.
+    var displayCover: URL? {
+        cover ?? beats.lazy.flatMap(\.cards).compactMap(\.url).first
+    }
 }
 
 struct StoryBeat {
