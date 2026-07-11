@@ -34,11 +34,7 @@
 
     html, body { height: 100%; }
     body {
-      background:
-        radial-gradient(1200px 600px at 50% -10%, #fcf7ec 0%, rgba(252,247,236,0) 60%),
-        radial-gradient(900px 500px at 90% 10%, #f3ead6 0%, rgba(243,234,214,0) 55%),
-        var(--bg);
-      background-attachment: fixed;
+      background: var(--bg);
       color: var(--text);
       font-family: 'DM Sans', sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -58,7 +54,7 @@
       position: sticky; top: 0; z-index: 40;
       display: flex; align-items: center; justify-content: center;
       padding: 16px 20px 14px;
-      background: linear-gradient(180deg, rgba(245,239,226,0.95), rgba(245,239,226,0.72));
+      background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border-soft);
     }
@@ -84,7 +80,7 @@
 
     /* ── Cards ── */
     .card {
-      background: linear-gradient(165deg, var(--surface), var(--bg-2));
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 20px;
@@ -118,8 +114,8 @@
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 13px 20px;
-      background: linear-gradient(180deg, var(--gold), var(--gold-dim));
-      color: #241a12; border: none; border-radius: var(--radius);
+      background: var(--gold);
+      color: #fffbf3; border: none; border-radius: var(--radius);
       font-size: 13.5px; font-weight: 600; font-family: inherit;
       letter-spacing: 0.6px; text-transform: uppercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
@@ -188,7 +184,7 @@
     /* glyph fallback (no image yet) */
     .tcard.noimg .tcard-face {
       aspect-ratio: 5 / 8; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: linear-gradient(160deg, #fdf6e6, #f2e7cf); padding: 12px 8px;
+      background: #f5ead2; padding: 12px 8px;
     }
     .tcard.noimg .glyph { font-size: 30px; color: var(--gold); }
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
@@ -197,9 +193,7 @@
     .backs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 16px; }
     .tback {
       aspect-ratio: 5 / 8; border-radius: 10px; min-width: 0;
-      background:
-        radial-gradient(circle at 50% 38%, rgba(230,194,129,0.35), rgba(230,194,129,0) 62%),
-        repeating-linear-gradient(45deg, #6b4f86 0 6px, #5c4374 6px 12px);
+      background: var(--moon);
       border: 1px solid var(--gold-dim);
       display: flex; align-items: center; justify-content: center;
       color: rgba(255,247,230,0.9); font-size: 26px;
@@ -215,9 +209,9 @@
     .advice-box .k { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
     .advice-box p { font-family: var(--serif); font-size: 16px; font-style: italic; line-height: 1.5; margin: 0; }
 
-    /* ── Shimmer (daily loading) ── */
-    .shimmer { border-radius: 6px; background: linear-gradient(90deg, var(--panel) 25%, #f6efe0 50%, var(--panel) 75%); background-size: 200% 100%; animation: sh 1.3s infinite; }
-    @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    /* ── Loading placeholder (flat, pulsing — no gradient) ── */
+    .shimmer { border-radius: 6px; background: var(--panel); animation: sh 1.2s ease-in-out infinite; }
+    @keyframes sh { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
     .sh-line { height: 13px; margin-bottom: 9px; }
     .spin { display: inline-block; animation: spin 1.4s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -247,7 +241,7 @@
 
     /* ── Book read view ── */
     .book-page {
-      background: linear-gradient(165deg, #efe7d8, #e6dcc7);
+      background: #e9e0cd;
       border-radius: 12px; overflow: hidden; color: #3a3025;
       box-shadow: 0 10px 26px rgba(120,90,40,0.18); border: 1px solid #d8cdb5;
     }
@@ -272,7 +266,7 @@
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .tile {
       display: flex; flex-direction: column; gap: 6px; text-decoration: none;
-      background: linear-gradient(165deg, var(--surface), var(--bg-2));
+      background: var(--surface);
       border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px;
       color: var(--text); transition: border-color 0.15s ease, transform 0.15s ease;
     }
@@ -316,7 +310,7 @@
     nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
       display: flex; justify-content: center;
-      background: linear-gradient(180deg, rgba(245,239,226,0.85), rgba(240,231,214,0.98));
+      background: rgba(241,233,216,0.96);
       backdrop-filter: blur(14px);
       border-top: 1px solid var(--border);
       padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -385,7 +379,7 @@
     .acct-btn { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-family: inherit; font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all 0.15s ease; }
     .acct-btn.show { display: flex; }
     .acct-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
-    .acct-btn .av { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, var(--gold), var(--gold-dim)); color: #fffbf3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+    .acct-btn .av { width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #fffbf3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
     .modal-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 22px; }
     .modal-bg.show { display: flex; }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 24px; max-width: 360px; width: 100%; box-shadow: 0 20px 50px rgba(48,30,20,0.28); text-align: center; }

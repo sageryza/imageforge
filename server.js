@@ -79,19 +79,18 @@ async function openaiChat(body, retries = 3) {
 // Firestore config/anthropic at boot), else read that doc directly on demand
 // and cache it — so the feature works even if boot hydration was skipped.
 let _anthropicKey = null;
-let _anthropicDiag = { source: null, error: null };
 async function getAnthropicKey() {
-  if (process.env.ANTHROPIC_API_KEY) { _anthropicDiag.source = 'env'; return process.env.ANTHROPIC_API_KEY; }
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
   if (_anthropicKey) return _anthropicKey;
-  if (!admin.apps.length) { _anthropicDiag.error = 'no-firebase'; return ''; }
+  if (!admin.apps.length) return '';
   const db = admin.firestore();
   // Try both the dedicated doc and the pipeline config doc.
   for (const [path, field] of [['config/anthropic', 'key'], ['config/pipeline', 'ANTHROPIC_API_KEY']]) {
     try {
       const snap = await db.doc(path).get();
       const k = snap.exists ? String(snap.data()[field] || '') : '';
-      if (k) { _anthropicKey = k; process.env.ANTHROPIC_API_KEY = k; _anthropicDiag.source = path; return k; }
-    } catch (e) { _anthropicDiag.error = `${path}: ${e.message}`; console.warn('getAnthropicKey read failed —', e.message); }
+      if (k) { _anthropicKey = k; process.env.ANTHROPIC_API_KEY = k; return k; }
+    } catch (e) { console.warn('getAnthropicKey read failed —', e.message); }
   }
   return '';
 }
@@ -1011,22 +1010,6 @@ try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* mani
 app.get('/api/witch/tarot-deck', (req, res) => {
   if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
   res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
-});
-
-// Diagnostic: is the Anthropic key resolvable on this host? Reports only
-// booleans / lengths / error strings — NEVER the key value. (Temporary aid.)
-app.get('/api/witch/_diag', async (req, res) => {
-  const out = { hasFirebase: admin.apps.length > 0, envKey: !!process.env.ANTHROPIC_API_KEY };
-  try { out.keyResolved = (await getAnthropicKey()).length > 0; } catch (e) { out.resolveError = e.message; }
-  out.source = _anthropicDiag.source; out.lastError = _anthropicDiag.error;
-  if (admin.apps.length) {
-    try {
-      const a = await admin.firestore().doc('config/anthropic').get();
-      out.anthropicDocExists = a.exists;
-      out.anthropicKeyLen = a.exists ? String(a.data().key || '').length : 0;
-    } catch (e) { out.firestoreReadError = e.message; }
-  }
-  res.json(out);
 });
 
 // ─── Shop proxy (secretlyawitch.com Shopify storefront) ─────────────────
