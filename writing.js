@@ -77,10 +77,34 @@ router.post('/notes', async (req, res) => {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
       if (bucket && m) {
         const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+        const buf = Buffer.from(m[2], 'base64');
         const file = bucket.file(`writing-notes/${id}.${ext}`);
-        await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+        await file.save(buf, { contentType: m[1], resumable: false });
         await file.makePublic();
         doc.audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+        // The note IS the transcript: transcribe on save (~0.5c/min) so chats
+        // read words instantly; the recording stays underneath as the source
+        // of truth for misheard names. Best-effort — a failed transcription
+        // never blocks the note.
+        if (process.env.OPENAI_API_KEY) {
+          try {
+            const form = new FormData();
+            form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `note.${ext}`);
+            form.append('model', 'gpt-4o-mini-transcribe');
+            const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+              body: form,
+            });
+            const t = await r.json();
+            if (t && t.text) {
+              doc.transcript = String(t.text).slice(0, 4000);
+              if (!doc.text) doc.text = doc.transcript;
+            }
+          } catch (err) {
+            console.error('voice-note transcription failed:', err.message);
+          }
+        }
       } else if (audio.length < 400000) {
         doc.audioData = audio; // small memo, no bucket — keep inline
       }
