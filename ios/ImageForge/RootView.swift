@@ -121,6 +121,26 @@ struct RootView: View {
         // keyboard's safe-area inset lifts the whole VStack, floating the bar
         // above the keyboard. Each tool's own ScrollView still lifts its fields.
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        // Deep links: deckfactory://writing, ://chats, ://story, ://dreams,
+        // ://movie, … (any Tool rawValue), plus ://gallery and ://home. Opens
+        // Deck Factory straight to that tab. Scheme registered in Info.plist.
+        .onOpenURL { url in handleDeepLink(url) }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme?.lowercased() == "deckfactory" else { return }
+        // accept deckfactory://writing and deckfactory:///writing alike
+        let dest = (url.host ?? url.path)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
+        switch dest {
+        case "", "home":
+            screen = .home
+        case "gallery", "creations":
+            screen = .gallery
+        default:
+            if let t = Tool(rawValue: dest) { open(t) }
+        }
     }
 
     // Keep the three recent tools + gallery alive so their state (a generated
