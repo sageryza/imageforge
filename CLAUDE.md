@@ -158,6 +158,22 @@ lifted into a standalone tool later.
   HTTP Basic gate with the studio token and grants mic capture for voice notes.
   Content changes ship via Render deploy — no TestFlight build needed.
 
+## The Chat app (forge-chat-feed) — every chat posts its replies
+- `chatfeed.js` (`/api/chatfeed`, page at `/chats`, iOS tile "Chats") — one
+  feed of every project chat's replies so Sophie can read/listen in one place
+  (picture icon per chat, tap-to-expand, free device-voice read-aloud, polished
+  memo attached when one exists, reply box).
+- **STANDING RULE (all chats, July 2026): after finishing each substantive
+  reply to Sophie** (anything with a TLDR), POST it to the feed:
+  `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
+  `{ "chat": "<short-chat-name>", "text": "<the reply text>",
+     "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
+  (x-studio-token header when the studio is gated). Pick ONE short, stable
+  chat name and keep using it (e.g. "dating-book", "story-boards").
+- **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) —
+  chats should check for replies addressed to their chat name on their hourly
+  self-check-ins (`GET /api/chatfeed?limit=50`) and act on them.
+
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
   which Sophie's original decks used. Midjourney has no official API, so this goes
