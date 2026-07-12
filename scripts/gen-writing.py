@@ -193,8 +193,7 @@ mark{{background:none; color:var(--chg);}}
 .gal-fig{{margin:0;}}
 .gal-fig img{{width:100%; display:block; mix-blend-mode:multiply;}}
 .gal-fig figcaption{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); text-align:center; margin-top:6px;}}
-.float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:none; flex-direction:column; gap:8px; align-items:center;}}
-body.reading .float{{display:flex;}}
+.float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}}
 .vseg{{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px;
   overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}}
 .vseg button{{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer;
@@ -424,7 +423,6 @@ vmid.onclick=function(){{ playing? stop() : start(dir||1); }};
 paint();
 document.querySelector('.wrap').addEventListener('click',function(e){{
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  if(!document.body.classList.contains('reading')) return;
   playing? stop() : start(1);
 }});
 

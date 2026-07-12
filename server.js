@@ -472,6 +472,33 @@ app.post('/api/story/credential', express.json({ limit: '64kb' }), async (req, r
     res.status(500).json({ error: err.message });
   }
 });
+// Flip a card's status from the Story Room (tap-to-approve).
+app.post('/api/story/status', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, card, status } = req.body || {};
+    if (!['ok', 'cand', 'draft', 'miss'].includes(status)) {
+      return res.status(400).json({ error: 'status must be ok|cand|draft|miss' });
+    }
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    const c = b && (b.cards || [])[Number(card)];
+    if (!c) return res.status(404).json({ error: 'unknown beat/card' });
+    c.status = status;
+    await ref.set(data);
+    res.json({ ok: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
