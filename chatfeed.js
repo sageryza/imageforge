@@ -8,9 +8,16 @@
 //   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr? }
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
+//   POST /api/chatfeed/polish    → { id } — render the message in the polished
+//                                  onyx-British neural voice (~1¢), cached forever
 
 const express = require('express');
 const admin = require('firebase-admin');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn } = require('child_process');
+const fetch = require('node-fetch');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -90,6 +97,81 @@ router.post('/icon', async (req, res) => {
     const icon = `https://storage.googleapis.com/${bucket.name}/${file.name}?v=${Date.now()}`;
     await db().collection(REG).doc(String(chat).slice(0, 60)).set({ icon }, { merge: true });
     res.json({ ok: true, icon });
+  } catch (err) { fail(res, err); }
+});
+
+// Render a message in the polished neural voice (same onyx-British read as
+// the Writing Room's Listen button). Result is cached on the message doc as
+// audioUrl, so each message costs at most one render (~1¢).
+const polishJobs = new Set();
+router.post('/polish', async (req, res) => {
+  try {
+    const id = String((req.body || {}).id || '');
+    if (!id) return res.status(400).json({ error: 'id required' });
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'openai not configured' });
+    const ref = db().collection(MSGS).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown message' });
+    const data = doc.data();
+    if (data.audioUrl) return res.json({ ok: true, url: data.audioUrl, cached: true });
+    if (polishJobs.has(id)) return res.json({ ok: false, rendering: true });
+    polishJobs.add(id);
+    try {
+      // verbatim, lightly adapted for listening: drop URLs and markdown marks
+      const text = String(data.text || '')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/[*#`_]/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .slice(0, 16000);
+      if (!text) return res.status(400).json({ error: 'nothing to read' });
+      const sentences = text.replace(/\n+/g, ' ').match(/[^.!?…]+[.!?…]+["”']?\s*/g) || [text];
+      const chunks = []; let cur = '';
+      for (const s of sentences) {
+        if (cur && (cur + s).length > 3200) { chunks.push(cur.trim()); cur = ''; }
+        cur += s;
+      }
+      if (cur.trim()) chunks.push(cur.trim());
+      const bufs = [];
+      for (const chunk of chunks) {
+        const r = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini-tts', voice: 'onyx', input: chunk,
+            instructions: 'Read warmly and naturally in a British accent, conversational and unhurried.',
+          }),
+        });
+        if (!r.ok) throw new Error('tts: ' + r.status + ' ' + (await r.text()).slice(0, 150));
+        bufs.push(Buffer.from(await r.arrayBuffer()));
+      }
+      let out;
+      if (bufs.length === 1) out = bufs[0];
+      else {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'polish-'));
+        const files = bufs.map((b, i) => {
+          const f = path.join(tmp, `c${i}.mp3`); fs.writeFileSync(f, b); return f;
+        });
+        const listFile = path.join(tmp, 'list.txt');
+        fs.writeFileSync(listFile, files.map((f) => `file '${f}'`).join('\n'));
+        const mp3 = path.join(tmp, 'out.mp3');
+        const ffmpeg = require('ffmpeg-static');
+        await new Promise((resolve, reject) => {
+          const p = spawn(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', mp3]);
+          let err = ''; p.stderr.on('data', (c) => err += c);
+          p.on('close', (code) => (code === 0 ? resolve() : reject(new Error('ffmpeg: ' + err.slice(-200)))));
+        });
+        out = fs.readFileSync(mp3);
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+      const bucket = admin.storage().bucket();
+      const dest = bucket.file(`chat-feed/polish/${id}.mp3`);
+      await dest.save(out, { contentType: 'audio/mpeg', resumable: false });
+      await dest.makePublic();
+      const url = `https://storage.googleapis.com/${bucket.name}/${dest.name}`;
+      await ref.set({ audioUrl: url }, { merge: true });
+      res.json({ ok: true, url });
+    } finally { polishJobs.delete(id); }
   } catch (err) { fail(res, err); }
 });
 
