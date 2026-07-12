@@ -106,7 +106,9 @@ for no,name in enumerate(ORDER,1):
                  f'<span class="r-notes" id="cnt-{key}"></span></span></button>\n')
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
-<div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div></header>
+<div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div>
+<button class="btn listen" data-d="{key}"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-{key}"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause autoscroll</div>
 <div class="verC">{chtml}</div>
@@ -154,6 +156,10 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .tab.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}}
 .tab:focus-visible{{outline:2px solid var(--rose);}}
 .legend{{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em; margin:.6em 0 2em;}}
+.listen{{margin-top:1em; border-color:var(--rose); color:var(--rose);}}
+.listenwrap{{margin-top:.7em;}}
+.listenwrap .lstate{{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em;}}
+.listenwrap audio{{width:100%; margin-top:.4em;}}
 .legend mark{{background:none; color:var(--chg); font-family:'EBGaramond',serif; font-size:14px; font-style:italic;}}
 mark{{background:none; color:var(--chg);}}
 .pagemark{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.3em; color:var(--ink2); margin:3em 0 1.4em; text-transform:uppercase;}}
@@ -423,6 +429,33 @@ document.querySelector('.wrap').addEventListener('click',function(e){{
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
+var listenTimers={{}};
+document.querySelectorAll('.listen').forEach(function(b){{
+  b.onclick=function(){{
+    stop();
+    var key=b.dataset.d, wrap=document.getElementById('lw-'+key);
+    function poll(){{
+      api('/api/writing/audio',{{method:'POST',body:JSON.stringify({{dateId:key}})}})
+        .then(function(r){{return r.json()}})
+        .then(function(d){{
+          if(d.status==='ready'&&d.url){{
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='';
+            var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
+            wrap.appendChild(au); b.style.display='none';
+          }} else if(d.error){{
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='<span class="lstate">couldn\u2019t render: '+String(d.error).slice(0,80)+'</span>';
+          }} else {{
+            var prog=(d.chunksTotal? ' ('+(d.chunksDone||0)+'/'+d.chunksTotal+')':'');
+            wrap.innerHTML='<span class="lstate">recording this in your voice\u2026'+prog+' \u2014 first time takes a few minutes</span>';
+          }}
+        }}).catch(function(){{}});
+    }}
+    if(listenTimers[key]) return;
+    poll(); listenTimers[key]=setInterval(poll,6000);
+  }};
+}});
 document.querySelectorAll('.copybtn').forEach(function(b){{
   b.onclick=function(){{
     var key=b.dataset.d;
