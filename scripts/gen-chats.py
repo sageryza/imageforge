@@ -108,12 +108,36 @@ function markSeen(name){
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
 }
 
+// The free device engine defaults to its most robotic voice — ask for the
+// best installed one instead: enhanced/premium British first, then any
+// British, then any enhanced English. (getVoices() fills in asynchronously,
+// so re-pick on voiceschanged.)
+var bestVoice=null;
+function pickVoice(){
+  var vs=(speechSynthesis.getVoices()||[]);
+  var best=null, bestScore=0;
+  vs.forEach(function(v){
+    if(!/^en/i.test(v.lang||'')) return;
+    var s=1;
+    if(/en[-_]GB/i.test(v.lang)) s+=4;
+    if(/enhanced|premium|natural/i.test(v.name||'')) s+=2;
+    if(v.localService) s+=1;
+    if(s>bestScore){ bestScore=s; best=v; }
+  });
+  bestVoice=best;
+}
+if('speechSynthesis' in window){
+  pickVoice();
+  speechSynthesis.onvoiceschanged=pickVoice;
+}
 function speak(text,btn){
   if(!('speechSynthesis' in window)){ toast('Voice not available here'); return; }
   if(speaking===btn){ speechSynthesis.cancel(); speaking=null; btn.classList.remove('on'); btn.textContent='\\u25b6 hear it'; return; }
   speechSynthesis.cancel();
   document.querySelectorAll('.tbtn.on').forEach(function(b){ b.classList.remove('on'); b.textContent='\\u25b6 hear it'; });
   var u=new SpeechSynthesisUtterance(text);
+  if(!bestVoice) pickVoice();
+  if(bestVoice){ u.voice=bestVoice; u.lang=bestVoice.lang; }
   u.rate=1.05;
   u.onend=function(){ if(speaking===btn){ speaking=null; btn.classList.remove('on'); btn.textContent='\\u25b6 hear it'; } };
   speaking=btn; btn.classList.add('on'); btn.textContent='\\u25a0 stop';
