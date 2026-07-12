@@ -67,8 +67,8 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .zgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
 .zgrid.z8{grid-template-columns:repeat(8,1fr); gap:4px;}
 .zcell{position:relative; margin:0; cursor:pointer; border:none; background:none; padding:0;}
-.zcell img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px; display:block;}
-.zcell .zph{width:100%; aspect-ratio:1/1; border:1px dashed var(--line); border-radius:4px;}
+.zcell img{width:100%; aspect-ratio:5/7; object-fit:cover; border-radius:4px; display:block;}
+.zcell .zph{width:100%; aspect-ratio:5/7; border:1px dashed var(--line); border-radius:4px; box-sizing:border-box;}
 .zcell .zno{position:absolute; left:3px; bottom:3px; font-family:-apple-system,sans-serif; font-size:9px;
   color:#fff; background:rgba(20,18,14,.55); padding:1px 4px; border-radius:3px; letter-spacing:.06em;}
 .zoombtn{margin:0 0 12px auto; display:block;}
@@ -126,6 +126,8 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 
 var projects=[], notes={}, cur=null;
 var STATUS={ok:'approved', cand:'candidate', draft:'storyboard', miss:'no art yet'};
+// some boards store the full words — fold them back to the short codes
+var NORM={approved:'ok', candidate:'cand', storyboard:'draft', 'no art yet':'miss'};
 
 function noteKey(pid,bi){ return 'story-'+pid+':b'+bi; }
 function docId(id){ return id.replace(/[^a-zA-Z0-9_-]/g,'_'); }
@@ -271,6 +273,7 @@ function openProj(p, jumpBeat){
     var cards=document.createElement('div'); cards.className='cards';
     (beat.cards||[]).forEach(function(c){
       var f=document.createElement('figure'); f.className='card';
+      if(NORM[c.status]) c.status=NORM[c.status];
       var st=c.status||'miss';
       f.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="ph">no art yet</div>');
       var cap=document.createElement('figcaption'); cap.textContent=c.label||'';
