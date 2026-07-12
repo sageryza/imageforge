@@ -65,6 +65,13 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .savednote .del{background:none; border:none; color:var(--ink2); font-size:11px; cursor:pointer; margin-left:8px; font-family:-apple-system,sans-serif; text-transform:uppercase; letter-spacing:.1em;}
 .endmark{text-align:center; color:var(--ink2); margin-top:3.5em; font-size:1.2em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
+.player{width:100%; border-radius:6px; background:#000; display:block;}
+.cutrow{display:flex; align-items:baseline; gap:10px; width:100%; text-align:left; background:none; border:none;
+  border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.cutrow.on .c-name{color:var(--rose); font-weight:600;}
+.cutrow:focus-visible{outline:2px solid var(--rose);}
+.c-name{font-size:1.05em; flex:1;}
+.c-meta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; color:var(--ink2); text-transform:uppercase;}
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}
 .vseg{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
@@ -95,6 +102,8 @@ body.reading .backwrap{display:block;}
     <div class="rule"></div>
     <div class="sub">Tap a project to read it through &mdash; your narration with the art in place. &ldquo;+ note&rdquo; under any beat sends me a comment.</div>
     <div id="shelf"><div class="state">Loading the boards&hellip;</div></div>
+    <div class="pagemark" id="filmsmark" style="display:none">THE FILMS</div>
+    <div id="films"></div>
   </section>
   <section id="proj" style="display:none"></section>
 </div>
@@ -332,19 +341,81 @@ document.querySelector('.wrap').addEventListener('click',function(e){
   playing? stop() : start(1);
 });
 
-// boot: boards + existing story notes
+function renderFilms(films){
+  var mark=document.getElementById('filmsmark'), el=document.getElementById('films');
+  el.innerHTML='';
+  if(!films.length){ mark.style.display='none'; return; }
+  mark.style.display='';
+  films.forEach(function(m){
+    var b=document.createElement('button'); b.className='row';
+    b.innerHTML=(m.poster? '<img class="r-cover" alt="" src="'+esc(m.poster)+'">' : '<div class="r-cover ph">?</div>')
+      +'<span class="r-body"><span class="r-name">'+esc(m.title||m.id)+'</span>'
+      +'<span class="r-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' \u00b7 no film yet')+'</span></span>';
+    b.onclick=function(){ openFilm(m); };
+    el.appendChild(b);
+  });
+}
+function openFilm(m){
+  cur={film:m.id};
+  var sec=document.getElementById('proj'); sec.innerHTML='';
+  var head=document.createElement('header');
+  head.innerHTML='<div class="no">the films</div><h1>'+esc(m.title||m.id)+'</h1><div class="rule"></div>';
+  sec.appendChild(head);
+  var video=document.createElement('video'); video.className='player'; video.controls=true;
+  video.playsInline=true; video.setAttribute('playsinline','');
+  if(m.poster) video.poster=m.poster;
+  sec.appendChild(video);
+  var list=document.createElement('div'); sec.appendChild(list);
+  var noteWrap=document.createElement('div');
+  var noteBtn=document.createElement('button'); noteBtn.className='addnote'; noteBtn.textContent='+ note';
+  var nid='movie-'+m.id+':cut';
+  noteBtn.onclick=function(){ openEditor(noteWrap,nid,(m.title||'film').slice(0,70)); };
+  sec.appendChild(noteBtn); sec.appendChild(noteWrap);
+  renderNoteInto(noteWrap,nid,(m.title||'').slice(0,70));
+  var em=document.createElement('div'); em.className='endmark'; em.innerHTML='&#10086;'; sec.appendChild(em);
+  document.getElementById('home').style.display='none';
+  sec.style.display='';
+  document.body.classList.add('reading');
+  window.scrollTo(0,0);
+  function fmt(iso){ try{ var d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
+  function fmtDur(s){ return s? Math.round(s)+'s':''; }
+  api('/api/movies/'+m.id).then(function(r){return r.json()}).then(function(doc){
+    var cuts=(doc&&doc.cuts)||[];
+    var latest=cuts.length? cuts[cuts.length-1] : null;
+    var src=(latest&&latest.url)||m.movieUrl;
+    if(src) video.src=src; else video.replaceWith(Object.assign(document.createElement('div'),{className:'state',textContent:'No film stitched yet.'}));
+    if(cuts.length>1){
+      var mk=document.createElement('div'); mk.className='pagemark'; mk.textContent='EARLIER CUTS'; list.appendChild(mk);
+      cuts.slice().reverse().forEach(function(c,idx){
+        var row=document.createElement('button'); row.className='cutrow'+(idx===0?' on':'');
+        row.innerHTML='<span class="c-name">'+esc(c.name||('cut '+(cuts.length-idx)))+'</span>'
+          +'<span class="c-meta">'+fmtDur(c.duration)+(c.stitchedAt?' \u00b7 '+fmt(c.stitchedAt):'')+'</span>';
+        row.onclick=function(){
+          video.src=c.url; video.play().catch(function(){});
+          list.querySelectorAll('.cutrow').forEach(function(x){x.classList.remove('on')});
+          row.classList.add('on');
+        };
+        list.appendChild(row);
+      });
+    }
+  }).catch(function(){ if(m.movieUrl) video.src=m.movieUrl; });
+}
+// boot: boards + films + existing story notes
 Promise.all([
   api('/api/story').then(function(r){return r.json()}).catch(function(){return {projects:[]}}),
-  api('/api/writing/notes').then(function(r){return r.json()}).catch(function(){return {notes:[]}})
+  api('/api/writing/notes').then(function(r){return r.json()}).catch(function(){return {notes:[]}}),
+  api('/api/movies').then(function(r){return r.json()}).catch(function(){return {movies:[]}})
 ]).then(function(res){
   projects=(res[0]&&res[0].projects)||[];
   ((res[1]&&res[1].notes)||[]).forEach(function(n){
-    if(String(n.dateId).indexOf('story-')!==0) return;
+    var did=String(n.dateId);
+    if(did.indexOf('story-')!==0 && did.indexOf('movie-')!==0) return;
     var id=n.dateId+':'+n.blockId;
     notes[id]={ t:n.text||'', a:n.audioUrl||n.audioData||null };
     if(!notes[id].a) notes[id]=notes[id].t;
   });
   renderShelf();
+  renderFilms(((res[2]&&res[2].movies)||[]).filter(function(m){return m.movieUrl||m.poster;}));
 });
 })();
 </script>
