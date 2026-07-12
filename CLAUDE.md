@@ -13,6 +13,36 @@ A hub for making illustrated projects (card decks, picture books, sticker
 sheets, zines, single images). Home screen (`/`) is a grid of project types;
 each opens a focused workflow that shares the same house styles.
 
+## Deliverables → the in-app gallery (ALWAYS)
+- **Any image deliverable made for Sophie — in a chat, via the web generator, a
+  pipeline, anything — goes into the iOS app's "My Creations" gallery**
+  (`CreationsView.swift`) so she sees it on her phone next to everything else.
+  This is the default hand-off surface; don't leave deliverables only as chat
+  attachments or web-gallery entries.
+- **How the gallery works:** it reads Firestore `users/{uid}/creations` in
+  project `membry-df528`, ordered by `createdAt` **DESC**. Normally those docs
+  are written by the app's Cloud Functions under the device's **anonymous-auth**
+  uid, so images made outside the app never appear on their own — you must write
+  the doc yourself with the Admin SDK.
+- **Do it with `GALLERY_UID=<uid> node scripts/post-to-gallery.js --url … --prompt …`**
+  (needs the `membry-df528` Admin service account via `FIREBASE_SERVICE_ACCOUNT`
+  or `GOOGLE_APPLICATION_CREDENTIALS`, and the target uid — neither is in the
+  repo). Doc shape:
+  `{ type, url, prompt, stickers:null, createdAt:Timestamp, source, style? }`.
+- **The target uid is Sophie's device anonymous-auth id** — a personal
+  identifier, so it's kept OUT of the repo (pass `--uid` or set `GALLERY_UID`;
+  store it in Render env / a local `.env`, or Sophie shares it in-session).
+  Anonymous uids change on reinstall — re-find by scanning every user's
+  creations (collectionGroup) for the device with recent real activity.
+- **Timestamps = when the image was actually made.** The app sorts by
+  `createdAt`, and multiple chats post concurrently, so pass the true generation
+  time (`--created <ms>`) — that's what keeps everyone's deliverables in correct
+  chronological order (and puts a genuinely-fresh batch at the top). Don't reuse
+  a stale/skewed server clock just because it's embedded in a filename.
+- **Images must live at a public URL** the app can fetch (Firebase Storage in
+  either project, made public). Temporary Replicate/OpenAI URLs expire — upload
+  to Storage first (`saveToFirebase()` in `server.js`, or `bucket.upload()`).
+
 ## Stack
 - Single-file Node/Express backend: `server.js` (~"v11").
 - Static frontend in `public/` (`index.html` = hub, `test.html`, `book.html`,
@@ -366,6 +396,9 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
 ## Design rules (forever)
+- **Every image deliverable goes into the in-app gallery.** See "Deliverables →
+  the in-app gallery (ALWAYS)" near the top — post it with
+  `scripts/post-to-gallery.js`, stamped with its true make-time.
 - **Research the CURRENT UI before giving click-by-click steps for any external
   dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
   buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
