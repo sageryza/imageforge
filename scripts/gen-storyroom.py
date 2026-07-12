@@ -45,7 +45,8 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .card .ph{width:100%; aspect-ratio:1/1; border:1px dashed var(--line); border-radius:4px; display:flex; align-items:center; justify-content:center;
   color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;}
 .card figcaption{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); text-align:center; margin-top:6px;}
-.st{display:inline-block; margin-left:6px;}
+.st{display:inline-block; margin-left:6px; background:none; border:none; font:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer; padding:2px 4px; border-radius:4px;}
+.st:focus-visible{outline:2px solid var(--rose);}
 .st.ok{color:var(--ok);} .st.cand{color:var(--cand);} .st.draft{color:var(--ink2);} .st.miss{color:var(--chg);}
 .addnote{display:block; margin:.2em 0 0 auto; background:none; border:none; color:var(--ink2); opacity:.55;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:4px 2px;}
@@ -64,8 +65,7 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .savednote .del{background:none; border:none; color:var(--ink2); font-size:11px; cursor:pointer; margin-left:8px; font-family:-apple-system,sans-serif; text-transform:uppercase; letter-spacing:.1em;}
 .endmark{text-align:center; color:var(--ink2); margin-top:3.5em; font-size:1.2em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
-.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:none; flex-direction:column; gap:8px; align-items:center;}
-body.reading .float{display:flex;}
+.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}
 .vseg{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
 .vseg button + button{border-top:1.5px solid var(--ink);}
@@ -220,8 +220,22 @@ function openProj(p){
     (beat.cards||[]).forEach(function(c){
       var f=document.createElement('figure'); f.className='card';
       var st=c.status||'miss';
-      f.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="ph">no art yet</div>')
-        +'<figcaption>'+esc(c.label||'')+'<span class="st '+esc(st)+'">&middot; '+esc(STATUS[st]||st)+'</span></figcaption>';
+      f.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="ph">no art yet</div>');
+      var cap=document.createElement('figcaption'); cap.textContent=c.label||'';
+      var stb=document.createElement('button'); stb.className='st '+st; stb.textContent='\u00b7 '+(STATUS[st]||st);
+      stb.title='Tap to change status';
+      stb.onclick=function(ev){
+        ev.stopPropagation();
+        var order=['ok','cand','draft','miss'];
+        var cur=order.indexOf(c.status||'miss');
+        var next=order[(cur+1)%order.length];
+        var prev=c.status; c.status=next;
+        stb.className='st '+next; stb.textContent='\u00b7 '+(STATUS[next]||next);
+        api('/api/story/status',{method:'POST',body:JSON.stringify({projectId:p.id, beat:bi, card:(beat.cards||[]).indexOf(c), status:next})})
+          .then(function(r){ if(!r.ok) throw 0; })
+          .catch(function(){ c.status=prev; stb.className='st '+(prev||'miss'); stb.textContent='\u00b7 '+(STATUS[prev]||prev||'no art yet'); toast('Couldn\u2019t save the status'); });
+      };
+      cap.appendChild(stb); f.appendChild(cap);
       cards.appendChild(f);
     });
     if((beat.cards||[]).length) sec.appendChild(cards);
