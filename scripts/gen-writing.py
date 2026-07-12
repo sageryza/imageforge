@@ -7,7 +7,7 @@ WD=os.path.join(ROOT,'docs','dating-book','working-drafts')
 feat=json.load(open(os.path.join(WD,'featured2.json')))
 orig=json.load(open(os.path.join(WD,'originals.json')))
 font=base64.b64encode(open(os.path.join(ROOT,'ios','ImageForge','EBGaramond.ttf'),'rb').read()).decode()
-ORDER=["Griffin","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
+ORDER=["Griffin","Jon","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
 # Staged dates (raw journal in both versions, drafting status) follow the
 # drafted nine in journal order — appended to featured2.json with staged:True.
 byname={e["name"]:e for e in feat}
