@@ -5,3 +5,8 @@ node_modules/
 .DS_Store
 .etsy-tokens.json
 .gdrive-tokens.json
+
+# Firebase Admin service-account keys (never commit)
+sa.json
+*firebase-adminsdk*.json
+*service*account*.json
