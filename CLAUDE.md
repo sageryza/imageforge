@@ -349,7 +349,14 @@ lifted into a standalone tool later.
   page lays out with fewer), captions = the beats' own lines (no cover),
   ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
   background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Multi-character cast** (a dream
+  dreams never clutter the movies list. **Render survives leaving the app:** the
+  render is a fire-and-forget server job, and iOS `DreamsView` records the
+  rendering dream ids in `@AppStorage("dreams.activeRenderIDs")`, so closing the
+  app or leaving the screen never stops the draw — on return, `resumeActiveRenders`
+  re-polls those ids and shows the pages as they land. Polling is resilient to
+  dropped connections (phone locked / Render cold start) — a transient failure
+  retries instead of surfacing "Couldn't illustrate"; only a real job error does.
+  **Multi-character cast** (a dream
   usually has several recurring people — dad, J, Sean — not one): the breakdown
   returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
   `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
