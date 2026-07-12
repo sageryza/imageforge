@@ -66,6 +66,21 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .endmark{text-align:center; color:var(--ink2); margin-top:3.5em; font-size:1.2em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 .player{width:100%; border-radius:6px; background:#000; display:block;}
+.tabs{display:flex; gap:8px; padding:12px 62px 12px 58px; position:sticky; top:0; z-index:5;
+  background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}
+.seg{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}
+.tab{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+  border:none; background:transparent; color:var(--ink); padding:9px 0; cursor:pointer;}
+.tab + .tab{border-left:1.5px solid var(--ink);}
+.tab.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}
+.zgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+.zgrid.z8{grid-template-columns:repeat(8,1fr); gap:4px;}
+.zcell{position:relative; margin:0; cursor:pointer; border:none; background:none; padding:0;}
+.zcell img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px; display:block;}
+.zcell .zph{width:100%; aspect-ratio:1/1; border:1px dashed var(--line); border-radius:4px;}
+.zcell .zno{position:absolute; left:3px; bottom:3px; font-family:-apple-system,sans-serif; font-size:9px;
+  color:#fff; background:rgba(20,18,14,.55); padding:1px 4px; border-radius:3px; letter-spacing:.06em;}
+.zoombtn{margin:0 0 12px auto; display:block;}
 .cutrow{display:flex; align-items:baseline; gap:10px; width:100%; text-align:left; background:none; border:none;
   border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .cutrow.on .c-name{color:var(--rose); font-weight:600;}
@@ -214,17 +229,50 @@ function openEditor(wrap,id,excerpt){
 }
 function renderShelfCountsOnly(){ if(!cur) return; /* refreshed on back */ }
 
-function openProj(p){
+function openProj(p, jumpBeat){
   cur=p;
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var head=document.createElement('header');
   head.innerHTML='<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div><h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
+  // Beats / Grid pill
+  var tabs=document.createElement('div'); tabs.className='tabs';
+  var seg=document.createElement('div'); seg.className='seg';
+  var tb=document.createElement('button'); tb.className='tab on'; tb.textContent='Beats';
+  var tg=document.createElement('button'); tg.className='tab'; tg.textContent='Grid';
+  seg.appendChild(tb); seg.appendChild(tg); tabs.appendChild(seg); sec.appendChild(tabs);
+  var beatsView=document.createElement('div');
+  var gridView=document.createElement('div'); gridView.style.display='none';
+  sec.appendChild(beatsView); sec.appendChild(gridView);
+  tb.onclick=function(){ stop(); tb.classList.add('on'); tg.classList.remove('on'); beatsView.style.display=''; gridView.style.display='none'; };
+  tg.onclick=function(){ stop(); tg.classList.add('on'); tb.classList.remove('on'); gridView.style.display=''; beatsView.style.display='none'; };
+  // Grid view: every card, 4 per row (zoomable to 8)
+  var zoom=document.createElement('button'); zoom.className='btn zoombtn'; zoom.textContent='Smaller';
+  var zg=document.createElement('div'); zg.className='zgrid';
+  zoom.onclick=function(){ var small=zg.classList.toggle('z8'); zoom.textContent=small?'Bigger':'Smaller'; };
+  gridView.appendChild(zoom); gridView.appendChild(zg);
   (p.beats||[]).forEach(function(beat,bi){
-    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='BEAT '+String(bi+1).padStart(2,'0'); sec.appendChild(pm);
+    var cs=beat.cards||[];
+    if(!cs.length){
+      var cell=document.createElement('button'); cell.className='zcell';
+      cell.innerHTML='<div class="zph"></div><span class="zno">'+(bi+1)+'</span>';
+      cell.onclick=function(){ tb.onclick(); var t=beatsView.querySelector('[data-beat="'+bi+'"]'); if(t) t.scrollIntoView({block:'start'}); };
+      zg.appendChild(cell);
+      return;
+    }
+    cs.forEach(function(c){
+      var cell=document.createElement('button'); cell.className='zcell';
+      cell.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="zph"></div>')
+        +'<span class="zno">'+(bi+1)+'</span>';
+      cell.onclick=function(){ tb.onclick(); var t=beatsView.querySelector('[data-beat="'+bi+'"]'); if(t) t.scrollIntoView({block:'start'}); };
+      zg.appendChild(cell);
+    });
+  });
+  (p.beats||[]).forEach(function(beat,bi){
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='BEAT '+String(bi+1).padStart(2,'0'); pm.setAttribute('data-beat',bi); beatsView.appendChild(pm);
     var vo=document.createElement('p');
     if(beat.vo){ vo.className='vo'; vo.textContent=beat.vo; } else { vo.className='vo none'; vo.textContent='(no narration for this beat)'; }
-    sec.appendChild(vo);
+    beatsView.appendChild(vo);
     var cards=document.createElement('div'); cards.className='cards';
     (beat.cards||[]).forEach(function(c){
       var f=document.createElement('figure'); f.className='card';
@@ -247,7 +295,7 @@ function openProj(p){
       cap.appendChild(stb); f.appendChild(cap);
       cards.appendChild(f);
     });
-    if((beat.cards||[]).length) sec.appendChild(cards);
+    if((beat.cards||[]).length) beatsView.appendChild(cards);
     var id=noteKey(p.id,bi);
     var artBtn=document.createElement('button'); artBtn.className='addnote'; artBtn.textContent='+ art';
     artBtn.onclick=function(){
@@ -283,7 +331,7 @@ function openProj(p){
     var btnrow=document.createElement('div'); btnrow.style.display='flex'; btnrow.style.justifyContent='flex-end'; btnrow.style.gap='4px';
     artBtn.style.margin='0'; btn.style.margin='0';
     btnrow.appendChild(artBtn); btnrow.appendChild(btn);
-    sec.appendChild(btnrow); sec.appendChild(wrap);
+    beatsView.appendChild(btnrow); beatsView.appendChild(wrap);
     renderNoteInto(wrap,id,(beat.vo||'').slice(0,70));
   });
   var em=document.createElement('div'); em.className='endmark'; em.innerHTML='&#10086;'; sec.appendChild(em);
@@ -291,6 +339,7 @@ function openProj(p){
   sec.style.display='';
   document.body.classList.add('reading');
   window.scrollTo(0,0);
+  if(jumpBeat!==undefined){ var t=beatsView.querySelector('[data-beat="'+jumpBeat+'"]'); if(t) t.scrollIntoView({block:'start'}); }
 }
 function goHome(){
   stop(); cur=null;
