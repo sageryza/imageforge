@@ -7,6 +7,10 @@ import UIKit
 /// contentOffset with a CADisplayLink. Idle: ▲ up / ▶ play / ▼ down; playing:
 /// − slower / ‖ pause / + faster. Default 1.0×, range 0.1–2×.
 final class AutoScrollDriver: ObservableObject {
+    /// Shared instance so screens can stop autoscroll on interaction (e.g. the
+    /// gallery halts it when you tap an image to open the preview).
+    static let shared = AutoScrollDriver()
+
     @Published var playing = false
     @Published var speed: Double = 1.0
     var direction: Double = 1
@@ -84,7 +88,7 @@ final class AutoScrollDriver: ObservableObject {
 }
 
 struct AutoScrollPill: View {
-    @StateObject private var driver = AutoScrollDriver()
+    @ObservedObject private var driver = AutoScrollDriver.shared
 
     var body: some View {
         VStack(spacing: 6) {
