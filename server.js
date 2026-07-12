@@ -185,6 +185,7 @@ loadConfig().then(() => {
   const sync = require('./sync');
   const writing = require('./writing');
   const gdrive = require('./gdrive');
+  const chatfeed = require('./chatfeed');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -205,7 +206,8 @@ loadConfig().then(() => {
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive)');
+  app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -418,7 +420,8 @@ let storyApp = null;
 let storyCredChecked = false;
 function initStoryApp(saJson) {
   storyApp = admin.initializeApp(
-    { credential: admin.credential.cert(saJson) }, 'story');
+    { credential: admin.credential.cert(saJson),
+      storageBucket: `${saJson.project_id}.firebasestorage.app` }, 'story');
   console.log('Story boards: secondary Firebase app initialized (' + saJson.project_id + ')');
 }
 async function storyDb() {
@@ -474,6 +477,67 @@ app.post('/api/story/credential', express.json({ limit: '64kb' }), async (req, r
     res.status(500).json({ error: err.message });
   }
 });
+// Upload art for a beat from the Story Room — image goes straight to the
+// boards' Storage as a CANDIDATE card; no chat tokens spent looking at it.
+app.post('/api/story/art', express.json({ limit: '14mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, label, image } = req.body || {};
+    const m = String(image || '').match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+    if (!m) return res.status(400).json({ error: 'image must be a data URL' });
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    if (!b) return res.status(404).json({ error: 'unknown beat' });
+    const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+    const name = `story/upload-${projectId}-b${beat}-${Date.now()}.${ext}`;
+    const bucket = storyApp.storage().bucket();
+    const file = bucket.file(name);
+    await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+    await file.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    b.cards = b.cards || [];
+    b.cards.push({ label: String(label || 'uploaded art').slice(0, 80), status: 'cand', url });
+    await ref.set(data);
+    res.json({ ok: true, url, card: b.cards.length - 1 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Flip a card's status from the Story Room (tap-to-approve).
+app.post('/api/story/status', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, card, status } = req.body || {};
+    if (!['ok', 'cand', 'draft', 'miss'].includes(status)) {
+      return res.status(400).json({ error: 'status must be ok|cand|draft|miss' });
+    }
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    const c = b && (b.cards || [])[Number(card)];
+    if (!c) return res.status(404).json({ error: 'unknown beat/card' });
+    c.status = status;
+    await ref.set(data);
+    res.json({ ok: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -490,6 +554,94 @@ app.get('/api/story', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Thumbnails for the Story Room: the boards' card images are full-res
+// (~3MB PNGs), which made the grid crawl on the phone. Resize once with
+// sharp, cache the webp in THIS project's Storage (`thumbs/`), and
+// 302-redirect there ever after. No token gate — <img> tags can't send
+// headers — but it only re-serves already-public images from Google
+// storage hosts, so it can't be used as an open proxy. Any failure falls
+// back to redirecting to the original image rather than a broken cell.
+const THUMB_HOSTS = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
+const thumbHot = new Map(); // url|w → cached public URL (per-process)
+app.get('/api/story/thumb', async (req, res) => {
+  const url = String(req.query.url || '');
+  try {
+    const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
+    if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
+    if (!admin.apps.length) return res.redirect(302, url);
+    const key = url + '|' + w;
+    if (thumbHot.has(key)) return res.redirect(302, thumbHot.get(key));
+    const name = 'thumbs/' + require('crypto').createHash('sha1').update(key).digest('hex') + '.webp';
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(name);
+    const [exists] = await file.exists();
+    if (!exists) {
+      const r = await fetch(url);
+      if (!r.ok) return res.redirect(302, url);
+      const out = await require('sharp')(await r.buffer())
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: 75 })
+        .toBuffer();
+      await file.save(out, { contentType: 'image/webp', resumable: false });
+      await file.makePublic();
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    res.redirect(302, pub);
+  } catch (err) {
+    console.error('thumb failed:', err.message);
+    if (THUMB_HOSTS.test(url)) return res.redirect(302, url);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── The Wall: everything every chat produced, in one live feed ─────
+// Merges this project's Storage (generated images, movie panels, zine
+// pages, dream comics) with the story boards' art (membry bucket) into
+// one newest-first list for the /wall page. Same gate as the pipeline.
+app.get('/api/wall', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const limit = Math.min(500, parseInt(req.query.limit, 10) || 200);
+    const out = [];
+    // derived/plumbing folders, not art
+    const SKIP = /^(thumbs|writing-audio|writing-notes|chat-feed|songs|ingest)\//;
+    if (bucket) {
+      const [files] = await bucket.getFiles();
+      files.forEach((f) => {
+        if (SKIP.test(f.name) || !/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+        out.push({
+          url: `https://storage.googleapis.com/${bucket.name}/${f.name}`,
+          folder: f.name.split('/')[0] || 'studio',
+          created: f.metadata.timeCreated,
+        });
+      });
+    }
+    try {
+      await storyDb(); // initializes storyApp when a credential is configured
+      if (storyApp) {
+        const sb = storyApp.storage().bucket();
+        const [sfiles] = await sb.getFiles({ prefix: 'story/' });
+        sfiles.forEach((f) => {
+          if (!/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+          out.push({
+            url: `https://storage.googleapis.com/${sb.name}/${f.name}`,
+            folder: 'story boards',
+            created: f.metadata.timeCreated,
+          });
+        });
+      }
+    } catch (err) { console.warn('wall: story bucket unavailable:', err.message); }
+    out.sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ images: out.slice(0, limit), total: out.length, newest: out[0] ? out[0].created : null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/wall', serveGated('wall.html'));
+
 // Story Room: the movie asset boards in the Writing Room's frame — narration
 // with the art in place, live from /api/story (no deploy needed for content),
 // notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
@@ -502,6 +654,12 @@ app.get('/storyroom', serveGated('storyroom.html'));
 // to Firestore (`forge-writing-notes`) so any chat can pull and apply them.
 // Page + data regenerate with scripts/gen-writing.py. Same gate as the Studio.
 app.get('/writing', serveGated('writing.html'));
+
+// The Chat app: every project chat's replies in one feed — picture icon per
+// chat, tap to expand, free device-voice read-aloud, polished memos when
+// attached, and a reply box (chats pick replies up on their hourly checks).
+// Regenerate with scripts/gen-chats.py. Same gate as the Studio.
+app.get('/chats', serveGated('chats.html'));
 
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
@@ -1018,7 +1176,9 @@ app.post('/api/witch/daily', async (req, res) => {
       }
     }
 
-    // ── Build the single prompt ──
+    // ── Two INDEPENDENT calls (run in parallel) so the tarot and the
+    // astrology never influence each other: astrology sees ONLY the chart,
+    // tarot sees ONLY the cards. Same JSON shape assembled from both. ──
     const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
     let astroContext;
     if (natal && bigThree) {
@@ -1034,47 +1194,57 @@ Today's tightest transits to their chart: ${asp}.`;
       astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
     }
 
-    const system = `You are the daily oracle for "Secretly a Witch", a cozy modern witchcraft app. Once a day you write one person's whole reading in a warm, intimate, a-little-luminous voice — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.
+    const voice = `warm, intimate, a-little-luminous — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.`;
 
-You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Also interpret their daily 3-card tarot pull (Rider-Waite), weaving past/present/future together.
-
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it punchy and direct — short sentences, a little tough-love, no filler.
+You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
-  "astrology": {
-    "headline": "one vivid sentence — today's cosmic weather for them",
-    "reading": "2-3 short paragraphs, personalized to their chart + today's transits (or general if no chart)",
-    "focus": "1-3 word theme for the day",
-    "invite": ""
-  },
-  "tarot": {
-    "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
-    "reading": "2 short paragraphs weaving the three cards into one throughline for today",
-    "advice": "one gentle, actionable suggestion"
-  },
-  "intention": "one short first-person intention for the day, e.g. 'Today I move gently and trust my timing.'"
+  "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
+  "reading": "ONE tight paragraph (3-5 sentences), personalized to their chart + today's transits (or general if no chart)",
+  "focus": "1-3 word theme for the day",
+  "invite": "",
+  "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
+  "ritual": "one tiny, doable ritual for today — a single sentence (a candle, a written line, a small deliberate act)",
+  "ingredients": ["EXACTLY 3 short 'ingredients' for the day, like a witch's recipe — 2-4 words each, evocative and concrete (a feeling, an action, a small comfort), e.g. 'a pinch of patience'"],
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
 }
-Set astrology.invite to "" unless they have no birth chart, in which case put the invitation there.`;
-
-    const user = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
+Give EXACTLY 2 omens. Keep ingredients and omens specific and a little witchy, never generic. Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+    const astroUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
 ${astroContext}
 
+Write today's astrology reading now.`;
+
+    const tarotSystem = `You are a warm tarot reader for "Secretly a Witch". Your voice is ${voice}
+Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT mention astrology, transits, or the moon.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
+  "advice": "one gentle, actionable suggestion"
+}`;
+    const tarotUser = `Date: ${date}.
 Their daily 3-card tarot pull (past / present / future):
 ${cardLines}
 
-Write today's reading now.`;
+Write the reading now.`;
 
-    const data = await anthropicChat({
-      system,
-      messages: [{ role: 'user', content: user }],
-      max_tokens: 3000,
-      temperature: 1,
-    });
-    if (data.error) return res.status(400).json({ error: data.error.message || 'anthropic error' });
+    const [aData, tData] = await Promise.all([
+      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1900, temperature: 1 }),
+      anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
+    ]);
+    if (aData.error) return res.status(400).json({ error: (aData.error.message || 'anthropic error') + ' (astrology)' });
+    if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
 
-    let reading;
-    try { reading = parseAnthropicJson(data); }
-    catch (e) { return res.status(502).json({ error: 'Could not parse the reading — try again.', detail: e.message }); }
+    let astrology, tarot;
+    try { astrology = parseAnthropicJson(aData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the astrology reading — try again.', detail: e.message }); }
+    try { tarot = parseAnthropicJson(tData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
 
+    const intention = astrology.intention || '';
+    delete astrology.intention;
+    const reading = { astrology, tarot, intention };
     reading.hasChart = Boolean(natal && bigThree);
     if (bigThree) reading.bigThree = bigThree;
 

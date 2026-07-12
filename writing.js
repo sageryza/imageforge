@@ -77,10 +77,34 @@ router.post('/notes', async (req, res) => {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
       if (bucket && m) {
         const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+        const buf = Buffer.from(m[2], 'base64');
         const file = bucket.file(`writing-notes/${id}.${ext}`);
-        await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+        await file.save(buf, { contentType: m[1], resumable: false });
         await file.makePublic();
         doc.audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+        // The note IS the transcript: transcribe on save (~0.5c/min) so chats
+        // read words instantly; the recording stays underneath as the source
+        // of truth for misheard names. Best-effort — a failed transcription
+        // never blocks the note.
+        if (process.env.OPENAI_API_KEY) {
+          try {
+            const form = new FormData();
+            form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `note.${ext}`);
+            form.append('model', 'gpt-4o-mini-transcribe');
+            const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+              body: form,
+            });
+            const t = await r.json();
+            if (t && t.text) {
+              doc.transcript = String(t.text).slice(0, 4000);
+              if (!doc.text) doc.text = doc.transcript;
+            }
+          } catch (err) {
+            console.error('voice-note transcription failed:', err.message);
+          }
+        }
       } else if (audio.length < 400000) {
         doc.audioData = audio; // small memo, no bucket — keep inline
       }
@@ -92,10 +116,227 @@ router.post('/notes', async (req, res) => {
   }
 });
 
+// Deleting a note archives it to `forge-writing-applied` first (provenance:
+// which note produced which edit). A chat that applies a note passes what it
+// did via ?summary= (and optionally ?commit=); Sophie deleting her own note
+// from the page archives as dismissed instead.
+const APPLIED_COLLECTION = 'forge-writing-applied';
 router.delete('/notes/:id', async (req, res) => {
   try {
-    await db().collection(COLLECTION).doc(req.params.id).delete();
+    const ref = db().collection(COLLECTION).doc(req.params.id);
+    const doc = await ref.get();
+    if (doc.exists) {
+      const archive = {
+        note: doc.data(),
+        outcome: req.query.summary ? 'applied' : 'dismissed',
+        summary: String(req.query.summary || '').slice(0, 500),
+        commit: String(req.query.commit || '').slice(0, 80),
+        archived: new Date().toISOString(),
+      };
+      await db().collection(APPLIED_COLLECTION).doc(`${req.params.id}_${Date.now()}`).set(archive);
+    }
+    await ref.delete();
     res.json({ ok: true });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+
+// The provenance trail: every note that was ever applied (or dismissed),
+// with what changed and in which commit. ?dateId= filters to one date.
+router.get('/applied', async (req, res) => {
+  try {
+    let q = db().collection(APPLIED_COLLECTION);
+    if (req.query.dateId) q = q.where('note.dateId', '==', String(req.query.dateId));
+    const snap = await q.get();
+    const applied = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.archived < b.archived ? 1 : -1));
+    res.json({ applied });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+
+// ─── Per-date workflow status (drafting → reviewing → approved) ─────────────
+const STATUS_COLLECTION = 'forge-writing-status';
+router.get('/status-all', async (req, res) => {
+  try {
+    const snap = await db().collection(STATUS_COLLECTION).get();
+    const statuses = {};
+    snap.docs.forEach((d) => { statuses[d.id] = d.data().status; });
+    res.json({ statuses });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+router.post('/status', async (req, res) => {
+  try {
+    const { dateId, status } = req.body || {};
+    if (!['drafting', 'reviewing', 'approved'].includes(status)) {
+      return res.status(400).json({ error: 'status must be drafting|reviewing|approved' });
+    }
+    await db().collection(STATUS_COLLECTION).doc(String(dateId)).set(
+      { status, updated: new Date().toISOString() });
+    res.json({ ok: true, status });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+
+// ─── Read-aloud: a date's text in Sophie's own voice (F5-TTS) ───────────────
+// On-demand + cached: the first "Listen" tap renders the audio via Replicate
+// F5 (~1¢ per 10-15s of speech, so ~30-50¢ for a full date) and saves the mp3
+// to Storage; every later tap plays the cached file until the text changes
+// (cache key includes a hash of the text). Voice = voices/sophie-f5 preset.
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+const os = require('os');
+
+const F5_VERSION = '87faf6dd7a692dd82043f662e76369cab126a2cf1937e25a9d41e0b834fd230e';
+const AUDIO_COLLECTION = 'forge-writing-audio';
+const audioJobs = new Map(); // docId -> true while rendering
+
+function refAudio() {
+  const wav = fs.readFileSync(path.join(__dirname, 'voices', 'sophie-f5', 'reference.wav'));
+  const txt = fs.readFileSync(path.join(__dirname, 'voices', 'sophie-f5', 'reference.txt'), 'utf8').trim();
+  return { dataUri: 'data:audio/wav;base64,' + wav.toString('base64'), refText: txt };
+}
+
+function dateText(dateId) {
+  const data = JSON.parse(fs.readFileSync(DATES_FILE, 'utf8'));
+  const d = (data.dates || []).find((x) => x.id === dateId);
+  if (!d) return null;
+  const blocks = (d.claudeBlocks || []).map((b) => (b.spans || []).map((sp) => sp.t).join(' '));
+  return { name: d.name, no: d.no, text: blocks.join('\n\n') };
+}
+
+// F5 handles short passages best — split at sentence ends, ~600 chars each.
+function chunkText(t, maxLen = 600) {
+  const sentences = t.replace(/\n+/g, ' ').match(/[^.!?…]+[.!?…]+["”']?\s*/g) || [t];
+  const chunks = []; let cur = '';
+  for (const s of sentences) {
+    if (cur && (cur + s).length > maxLen) { chunks.push(cur.trim()); cur = ''; }
+    cur += s;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
+}
+
+function replicateCreate(input, tries = 3) {
+  const body = JSON.stringify({ version: F5_VERSION, input });
+  return new Promise((resolve, reject) => {
+    const attempt = (n) => {
+      const req = require('https').request('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      }, (res) => {
+        let buf = ''; res.on('data', (c) => buf += c);
+        res.on('end', () => {
+          try {
+            const d = JSON.parse(buf);
+            if (res.statusCode === 429 && n < tries) return setTimeout(() => attempt(n + 1), 4000 * n);
+            if (!d.urls || !d.urls.get) return reject(new Error(d.detail || d.error || ('replicate ' + res.statusCode)));
+            resolve(d);
+          } catch (e) { reject(e); }
+        });
+      });
+      req.on('error', (e) => n < tries ? setTimeout(() => attempt(n + 1), 3000 * n) : reject(e));
+      req.write(body); req.end();
+    };
+    attempt(1);
+  });
+}
+function replicateGet(url) {
+  return new Promise((resolve, reject) => {
+    require('https').get(url, { headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}` } }, (res) => {
+      let buf = ''; res.on('data', (c) => buf += c);
+      res.on('end', () => { try { resolve(JSON.parse(buf)); } catch (e) { reject(e); } });
+    }).on('error', reject);
+  });
+}
+function download(url, file, tries = 3) {
+  return new Promise((resolve, reject) => {
+    const attempt = (n) => {
+      const out = fs.createWriteStream(file);
+      require('https').get(url, (res) => {
+        if (res.statusCode >= 300 && res.headers.location) return require('https').get(res.headers.location, (r2) => r2.pipe(out));
+        res.pipe(out);
+      }).on('error', (e) => n < tries ? setTimeout(() => attempt(n + 1), 2000) : reject(e));
+      out.on('finish', () => resolve(file));
+      out.on('error', reject);
+    };
+    attempt(1);
+  });
+}
+
+async function renderDateAudio(docId, dateId) {
+  const db = admin.firestore();
+  const ref = db.collection(AUDIO_COLLECTION).doc(docId);
+  try {
+    const d = dateText(dateId);
+    // Voice: OpenAI onyx with a British read (Sophie's pick — she passed on the
+    // F5 clone of her own voice; that path stays in git history + voices/).
+    const chunks = chunkText(d.text, 3200);
+    await ref.set({ status: 'rendering', chunksTotal: chunks.length, chunksDone: 0 }, { merge: true });
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'read-'));
+    const files = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const r = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini-tts', voice: 'onyx', input: chunks[i],
+          instructions: 'Read warmly and naturally in a British accent, like reading a personal memoir aloud. Unhurried, a little wry, deadpan on the punchlines.',
+        }),
+      });
+      if (!r.ok) throw new Error('tts chunk ' + i + ': ' + r.status + ' ' + (await r.text()).slice(0, 150));
+      const buf = Buffer.from(await r.arrayBuffer());
+      const f = path.join(tmp, `c${String(i).padStart(3, '0')}.mp3`);
+      fs.writeFileSync(f, buf);
+      files.push(f);
+      await ref.set({ chunksDone: i + 1 }, { merge: true });
+    }
+    const listFile = path.join(tmp, 'list.txt');
+    fs.writeFileSync(listFile, files.map((f) => `file '${f}'`).join('\n'));
+    const mp3 = path.join(tmp, 'date.mp3');
+    const ffmpeg = require('ffmpeg-static');
+    await new Promise((resolve, reject) => {
+      const p = spawn(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-ar', '24000', '-b:a', '96k', mp3]);
+      let err = ''; p.stderr.on('data', (c) => err += c);
+      p.on('close', (code) => code === 0 ? resolve() : reject(new Error('ffmpeg: ' + err.slice(-300))));
+    });
+    const bucket = admin.storage().bucket();
+    const dest = bucket.file(`writing-audio/${docId}.mp3`);
+    await dest.save(fs.readFileSync(mp3), { contentType: 'audio/mpeg', resumable: false });
+    await dest.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${dest.name}`;
+    await ref.set({ status: 'ready', url, updated: new Date().toISOString() }, { merge: true });
+    fs.rmSync(tmp, { recursive: true, force: true });
+  } catch (err) {
+    await ref.set({ status: 'error', error: String(err.message || err) }, { merge: true }).catch(() => {});
+  } finally {
+    audioJobs.delete(docId);
+  }
+}
+
+// POST /api/writing/audio { dateId } → { status: ready|rendering, url? }
+router.post('/audio', async (req, res) => {
+  try {
+    const dateId = String((req.body || {}).dateId || '');
+    const d = dateText(dateId);
+    if (!d) return res.status(404).json({ error: 'unknown dateId' });
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'openai not configured' });
+    const hash = crypto.createHash('sha1').update(d.text).digest('hex').slice(0, 10);
+    const docId = `${dateId}_c_onyx_${hash}`;
+    const doc = await db().collection(AUDIO_COLLECTION).doc(docId).get();
+    const cur = doc.exists ? doc.data() : null;
+    if (cur && cur.status === 'ready' && cur.url) return res.json({ status: 'ready', url: cur.url });
+    if (audioJobs.has(docId) || (cur && cur.status === 'rendering')) {
+      return res.json({ status: 'rendering', chunksDone: cur ? cur.chunksDone : 0, chunksTotal: cur ? cur.chunksTotal : null });
+    }
+    audioJobs.set(docId, true);
+    renderDateAudio(docId, dateId); // background
+    res.json({ status: 'rendering', started: true });
   } catch (err) {
     res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
   }

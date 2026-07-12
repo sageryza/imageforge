@@ -177,14 +177,16 @@ final class MovieService {
 
     private struct DreamList: Decodable { let dreams: [DreamSummary] }
     private struct DreamEnvelope: Decodable { let dream: Dream }
+    private struct DreamsResult: Decodable { let dreams: [Dream] }
 
     func dreamList() async throws -> [DreamSummary] {
         try await fetch(DreamList.self, "GET", "/dream", timeout: 75).dreams
     }
 
-    /// Dream text → beats + captions (one GPT call, synchronous). Nothing drawn yet.
-    func createDream(text: String) async throws -> Dream {
-        try await fetch(Dream.self, "POST", "/dream", body: ["dream": text], timeout: 120)
+    /// A dream recording → one or more dreams, each already split out and put in
+    /// chronological order by Claude (one call, synchronous). Nothing drawn yet.
+    func createDream(text: String) async throws -> [Dream] {
+        try await fetch(DreamsResult.self, "POST", "/dream", body: ["dream": text], timeout: 180).dreams
     }
 
     func dream(_ id: String) async throws -> Dream {

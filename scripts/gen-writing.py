@@ -7,8 +7,11 @@ WD=os.path.join(ROOT,'docs','dating-book','working-drafts')
 feat=json.load(open(os.path.join(WD,'featured2.json')))
 orig=json.load(open(os.path.join(WD,'originals.json')))
 font=base64.b64encode(open(os.path.join(ROOT,'ios','ImageForge','EBGaramond.ttf'),'rb').read()).decode()
-ORDER=["Griffin","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
+ORDER=["Griffin","Jon","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
+# Staged dates (raw journal in both versions, drafting status) follow the
+# drafted nine in journal order — appended to featured2.json with staged:True.
 byname={e["name"]:e for e in feat}
+ORDER=ORDER+[e["name"] for e in feat if e.get("staged")]
 
 def smart(s):
     s=s.replace('...','…')
@@ -25,6 +28,21 @@ def sentences(t):
     return [p.strip() for p in parts if p.strip()]
 PN=["PAGE ONE","PAGE TWO","PAGE THREE"]
 
+def thumb_b64(fp, size=340):
+    # small square cover for the index tiles; falls back to the full file
+    # when Pillow isn't installed so the script still runs anywhere
+    try:
+        from PIL import Image
+        import io
+        im=Image.open(fp).convert('RGB')
+        w,h=im.size; side=min(w,h)
+        im=im.crop(((w-side)//2,(h-side)//2,(w-side)//2+side,(h-side)//2+side)).resize((size,size),Image.LANCZOS)
+        buf=io.BytesIO(); im.save(buf,'WEBP',quality=72)
+        return base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        try: return base64.b64encode(open(fp,'rb').read()).decode()
+        except Exception: return None
+
 def render_marked(words,flags):
     out=[];i=0
     while i<len(words):
@@ -36,7 +54,7 @@ def render_marked(words,flags):
 
 sections=""; index_rows=""; DATES=[]
 for no,name in enumerate(ORDER,1):
-    e=byname[name]; key=name.lower()
+    e=byname[name]; key=e.get("key") or name.lower()
     pages=[smart(p) for p in e["pages"]]
     blocks=[]
     for pi,page in enumerate(pages):
@@ -55,7 +73,8 @@ for no,name in enumerate(ORDER,1):
     pct=round(100*sum(flags)/max(1,len(flags)))
     chtml=""; lastp=-1; pos=0; bi=0
     for pi,ws in blocks:
-        if pi!=lastp: chtml+=f'<div class="pagemark">{PN[pi]}</div>\n'; lastp=pi
+        pn=PN[pi] if pi<len(PN) else f"PAGE {pi+1}"
+        if pi!=lastp: chtml+=f'<div class="pagemark">{pn}</div>\n'; lastp=pi
         f=flags[pos:pos+len(ws)]; pos+=len(ws)
         nid=f"{key}:c{bi}"
         chtml+=(f'<div class="block" data-i="{nid}"><p>{render_marked(ws,f)}</p>'
@@ -98,15 +117,23 @@ for no,name in enumerate(ORDER,1):
                 pass
         if figs:
             gallery=f'<div class="gallery"><div class="pagemark">THE DRAWINGS</div><div class="gal-grid">{figs}</div></div>'
-    npages=len(pages)
-    index_rows+=(f'<button class="row" data-d="{key}"><span class="r-no">no.&#8201;{no:02d}</span>'
-                 f'<span class="r-body"><span class="r-name">{esc(name)}</span>'
-                 f'<span class="r-dek">{esc(smart(e["dek"]))}</span></span>'
-                 f'<span class="r-meta"><span class="r-pg">{npages} {"page" if npages==1 else "pages"}</span>'
+    cover_fp=None
+    for mi,m in enumerate(e.get("moments") or []):
+        fp=IMGDIR+"/"+str(e["_idx"])+"_"+str(m.get("img",mi))+".webp"
+        if os.path.exists(fp): cover_fp=fp; break
+    cb64=thumb_b64(cover_fp) if cover_fp else None
+    cover=(f'<span class="t-cover"><img alt="" src="data:image/webp;base64,{cb64}"></span>' if cb64
+           else f'<span class="t-cover t-blank"><span>{esc(name[0])}</span></span>')
+    index_rows+=(f'<button class="row tile" data-d="{key}">{cover}'
+                 f'<span class="t-no">no.&#8201;{no:02d}</span>'
+                 f'<span class="t-name">{esc(name)}</span>'
+                 f'<span class="t-meta"><span class="r-status" data-d="{key}" role="button" tabindex="0">drafting</span>'
                  f'<span class="r-notes" id="cnt-{key}"></span></span></button>\n')
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
-<div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div></header>
+<div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div>
+<button class="btn listen" data-d="{key}"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen</button>
+<div class="listenwrap" id="lw-{key}"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause autoscroll</div>
 <div class="verC">{chtml}</div>
@@ -117,6 +144,8 @@ for no,name in enumerate(ORDER,1):
 <button class="btn primary copybtn" data-d="{key}" style="margin-top:.5em">Copy notes</button></div>
 </section>\n"""
 
+total_dates=len(ORDER)
+drafted_count=sum(1 for n in ORDER if not byname[n].get("staged"))
 page=f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -136,16 +165,24 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .dek{{font-style:italic; color:var(--ink2); font-size:1.1em;}}
 #home h1{{font-size:2.2em; margin:.2em 0 .1em;}}
 #home .sub{{font-style:italic; color:var(--ink2); margin-bottom:2.2em;}}
-.row{{display:flex; gap:14px; align-items:baseline; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line);
-  padding:18px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}}
-.row:focus-visible{{outline:2px solid var(--rose);}}
-.r-no{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.25em; color:var(--ink2); text-transform:uppercase; min-width:3.4em;}}
-.r-body{{flex:1; display:flex; flex-direction:column; gap:2px;}}
-.r-name{{font-size:1.45em; font-weight:600;}}
-.r-dek{{font-style:italic; color:var(--ink2); font-size:.98em;}}
-.r-meta{{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}}
-.r-pg{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}}
+#dategrid{{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}}
+.tile{{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
+  color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}}
+.tile:focus-visible{{outline:2px solid var(--rose); border-radius:4px;}}
+.t-cover{{display:block; aspect-ratio:1; border:1px solid var(--line); background:var(--barbg); border-radius:4px; overflow:hidden;}}
+.t-cover img{{width:100%; height:100%; object-fit:cover; display:block;}}
+.t-blank{{display:flex; align-items:center; justify-content:center;}}
+.t-blank span{{font-size:2.4em; font-style:italic; color:var(--ink2);}}
+.t-no{{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.22em; color:var(--ink2); text-transform:uppercase; margin-top:8px;}}
+.t-name{{font-size:1.18em; font-weight:600; line-height:1.15; margin-top:1px;}}
+.t-meta{{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-top:2px; flex-wrap:wrap;}}
 .r-notes{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}}
+.r-status{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:2px 4px; border-radius:4px;}}
+.r-status.drafting{{color:var(--ink2);}} .r-status.reviewing{{color:var(--cand,#a3822f);}} .r-status.approved{{color:var(--ok,#5d7a5a);}}
+.r-status:focus-visible{{outline:2px solid var(--rose);}}
+.progress{{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em; color:var(--ink2); margin:-1.2em 0 1.6em;}}
+:root{{--ok:#5d7a5a; --cand:#a3822f;}}
+@media (prefers-color-scheme: dark){{:root{{--ok:#8fae8b; --cand:#c9a95a;}}}}
 .tabs{{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 58px; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}}
 .seg{{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}}
 .tab{{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
@@ -154,6 +191,10 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .tab.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}}
 .tab:focus-visible{{outline:2px solid var(--rose);}}
 .legend{{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em; margin:.6em 0 2em;}}
+.listen{{margin-top:1em; border-color:var(--rose); color:var(--rose);}}
+.listenwrap{{margin-top:.7em;}}
+.listenwrap .lstate{{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em;}}
+.listenwrap audio{{width:100%; margin-top:.4em;}}
 .legend mark{{background:none; color:var(--chg); font-family:'EBGaramond',serif; font-size:14px; font-style:italic;}}
 mark{{background:none; color:var(--chg);}}
 .pagemark{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.3em; color:var(--ink2); margin:3em 0 1.4em; text-transform:uppercase;}}
@@ -187,8 +228,7 @@ mark{{background:none; color:var(--chg);}}
 .gal-fig{{margin:0;}}
 .gal-fig img{{width:100%; display:block; mix-blend-mode:multiply;}}
 .gal-fig figcaption{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); text-align:center; margin-top:6px;}}
-.float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:none; flex-direction:column; gap:8px; align-items:center;}}
-body.reading .float{{display:flex;}}
+.float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}}
 .vseg{{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px;
   overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}}
 .vseg button{{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer;
@@ -214,14 +254,17 @@ body.reading .backwrap{{display:block;}}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down / slower"></button>
   </div>
-  <span id="spd">0.6&times;</span>
+  <span id="spd">1.0&times;</span>
 </div>
 <div class="wrap">
 <section id="home">
   <div class="no">someone i met once · working drafts</div>
   <h1>The Dates</h1>
   <div class="sub">Tap a date to read. Two versions inside — mine and Claude&rsquo;s, with every change in red.</div>
+  <div class="progress" id="progress"></div>
+  <div id="dategrid">
   {index_rows}
+  </div>
 </section>
 {sections}
 </div>
@@ -384,7 +427,7 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
   }});
 }});
 
-var playing=false, raf=null, last=null, speed=0.6, dir=1, acc=0;
+var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={{
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -406,23 +449,78 @@ function step(ts){{
 }}
 function showSpd(){{ document.getElementById('spd').textContent=speed.toFixed(1)+'\u00d7'; }}
 function paint(){{
-  if(playing){{ vtop.innerHTML=I.plus; vbot.innerHTML=I.minus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }}
+  if(playing){{ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }}
   else{{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }}
   showSpd();
 }}
 function start(d){{ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }}
 function stop(){{ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }}
-vtop.onclick=function(){{ if(playing){{ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); }} else start(-1); }};
-vbot.onclick=function(){{ if(playing){{ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); }} else start(1); }};
+vtop.onclick=function(){{ if(playing){{ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); }} else start(-1); }};
+vbot.onclick=function(){{ if(playing){{ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); }} else start(1); }};
 vmid.onclick=function(){{ playing? stop() : start(dir||1); }};
 paint();
 document.querySelector('.wrap').addEventListener('click',function(e){{
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  if(!document.body.classList.contains('reading')) return;
   playing? stop() : start(1);
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
+// per-date workflow status (tap to cycle) + progress line
+var dateStatuses={{}};
+var TOTAL_TARGET={total_dates};
+var DRAFTED={drafted_count}; // dates with a real Claude draft (the rest are staged raw journal)
+function paintStatuses(){{
+  var counts={{drafting:0,reviewing:0,approved:0}};
+  document.querySelectorAll('.r-status').forEach(function(el){{
+    var st=dateStatuses[el.dataset.d]||'drafting';
+    el.textContent=st; el.className='r-status '+st;
+    counts[st]=(counts[st]||0)+1;
+  }});
+  document.getElementById('progress').textContent=
+    counts.approved+' approved \u00b7 '+counts.reviewing+' reviewing \u00b7 '+DRAFTED+' of '+TOTAL_TARGET+' drafted \u00b7 the rest staged raw';
+}}
+api('/api/writing/status-all').then(function(r){{return r.json()}}).then(function(d){{
+  dateStatuses=(d&&d.statuses)||{{}}; paintStatuses();
+}}).catch(function(){{ paintStatuses(); }});
+document.querySelectorAll('.r-status').forEach(function(el){{
+  el.addEventListener('click',function(ev){{
+    ev.stopPropagation();
+    var key=el.dataset.d;
+    var order=['drafting','reviewing','approved'];
+    var next=order[(order.indexOf(dateStatuses[key]||'drafting')+1)%3];
+    var prev=dateStatuses[key]; dateStatuses[key]=next; paintStatuses();
+    api('/api/writing/status',{{method:'POST',body:JSON.stringify({{dateId:key,status:next}})}})
+      .then(function(r){{ if(!r.ok) throw 0; }})
+      .catch(function(){{ dateStatuses[key]=prev; paintStatuses(); toast('Couldn\u2019t save the status'); }});
+  }});
+}});
+var listenTimers={{}};
+document.querySelectorAll('.listen').forEach(function(b){{
+  b.onclick=function(){{
+    stop();
+    var key=b.dataset.d, wrap=document.getElementById('lw-'+key);
+    function poll(){{
+      api('/api/writing/audio',{{method:'POST',body:JSON.stringify({{dateId:key}})}})
+        .then(function(r){{return r.json()}})
+        .then(function(d){{
+          if(d.status==='ready'&&d.url){{
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='';
+            var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
+            wrap.appendChild(au); b.style.display='none';
+          }} else if(d.error){{
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='<span class="lstate">couldn\u2019t render: '+String(d.error).slice(0,80)+'</span>';
+          }} else {{
+            var prog=(d.chunksTotal? ' ('+(d.chunksDone||0)+'/'+d.chunksTotal+')':'');
+            wrap.innerHTML='<span class="lstate">recording this in your voice\u2026'+prog+' \u2014 first time takes a few minutes</span>';
+          }}
+        }}).catch(function(){{}});
+    }}
+    if(listenTimers[key]) return;
+    poll(); listenTimers[key]=setInterval(poll,6000);
+  }};
+}});
 document.querySelectorAll('.copybtn').forEach(function(b){{
   b.onclick=function(){{
     var key=b.dataset.d;
