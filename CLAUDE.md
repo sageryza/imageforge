@@ -1,5 +1,15 @@
 # ImageForge — project notes
 
+## Models — always use the newest (forever)
+- **Never use `gpt-4`, `gpt-4-turbo`, `gpt-4o`, or `gpt-4o-mini` for any
+  reasoning, text-generation, or vision/handwriting task — they are outdated and
+  off-limits.** Always default to the **newest available frontier model**. As of
+  July 2026 that is **`gpt-5.1`** (use **`gpt-5-pro`** for the hardest jobs).
+  Never reach for a familiar old model out of habit; if unsure what's newest,
+  check `GET https://api.openai.com/v1/models`. (Specialized audio/image
+  endpoints like `gpt-4o-mini-tts` / `gpt-image` are exempt only where no newer
+  equivalent exists — check first.)
+
 ## Live app
 - **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
   - Hub: https://imageforge-q125.onrender.com/
