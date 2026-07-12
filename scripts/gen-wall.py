@@ -5,6 +5,7 @@
 # boards' art (membry Storage), newest first, via /api/wall. Images load as
 # small server-side thumbnails (/api/story/thumb); tap for full resolution.
 import base64, os
+from pill import PILL_CSS, PILL_HTML, PILL_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 font = base64.b64encode(open(os.path.join(ROOT, 'ios', 'ImageForge', 'EBGaramond.ttf'), 'rb').read()).decode()
@@ -38,7 +39,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 #lightbox .cap{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; color:#d8d2c6; text-transform:uppercase;}
 #more{display:block; margin:1.6em auto 0; font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;
   border:1px solid var(--line); background:var(--barbg); color:var(--ink); border-radius:6px; padding:9px 16px; cursor:pointer;}
+__PILL_CSS__
 </style>
+__PILL_HTML__
 <div class="wrap">
   <header>
     <div class="no">deck factory &middot; everything the chats made</div>
@@ -52,6 +55,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
+__PILL_JS__
 function api(path){ return fetch(path,{headers:{'x-studio-token':TOKEN}}); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function thumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
@@ -109,6 +113,7 @@ setInterval(load, 60000);
 """
 
 page = page.replace('__FONT__', font)
+page = page.replace('__PILL_CSS__', PILL_CSS).replace('__PILL_HTML__', PILL_HTML).replace('__PILL_JS__', PILL_JS)
 out = os.path.join(ROOT, 'public', 'wall.html')
 open(out, 'w', encoding='utf-8').write(page)
 print('built public/wall.html', round(len(page) / 1024), 'KB')

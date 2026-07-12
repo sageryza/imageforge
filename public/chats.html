@@ -58,7 +58,25 @@ body.reading .replybar{display:flex;}
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
+
+.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}
+.vseg{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.vseg button{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
+.vseg button + button{border-top:1.5px solid var(--ink);}
+.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
+#spd{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); font-variant-numeric:tabular-nums;}
+
 </style>
+
+<div class="float">
+  <div class="vseg">
+    <button id="vtop" aria-label="Scroll up / slower"></button>
+    <button id="vmid" aria-label="Play or pause autoscroll"></button>
+    <button id="vbot" aria-label="Scroll down / faster"></button>
+  </div>
+  <span id="spd">1.0&times;</span>
+</div>
+
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div class="wrap">
   <section id="home">
@@ -89,48 +107,47 @@ function ago(iso){
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
 }
-var chats={}, msgs=[], cur=null, speaking=null, seen={};
+
+var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
+var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
+var I={
+ up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+ down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+ play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+ pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+ plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+};
+function showSpd(){ document.getElementById('spd').textContent=speed.toFixed(1)+'\u00d7'; }
+function paintPill(){
+  if(playing){ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
+  else{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }
+  showSpd();
+}
+function stepPill(ts){
+  if(!playing) return;
+  if(last!=null){
+    acc += dir*(ts-last)/1000*42*speed;
+    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
+    if(move!==0){ window.scrollBy(0,move); acc-=move; }
+    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
+    if(atEnd) scrollStop(); }
+  last=ts; raf=requestAnimationFrame(stepPill);
+}
+function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
+window.__scrollStop=scrollStop;
+vtop.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else scrollStart(-1); };
+vbot.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else scrollStart(1); };
+vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+paintPill();
+
+var chats={}, msgs=[], cur=null, seen={};
 try{ seen=JSON.parse(localStorage.getItem('chats-seen-v1')||'{}'); }catch(e){}
 function markSeen(name){
   var g=groups()[name]; if(!g||!g.length) return;
   seen[name]=g[g.length-1].created||'';
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
-}
-
-// The free device engine defaults to its most robotic voice — ask for the
-// best installed one instead: enhanced/premium British first, then any
-// British, then any enhanced English. (getVoices() fills in asynchronously,
-// so re-pick on voiceschanged.)
-var bestVoice=null;
-function pickVoice(){
-  var vs=(speechSynthesis.getVoices()||[]);
-  var best=null, bestScore=0;
-  vs.forEach(function(v){
-    if(!/^en/i.test(v.lang||'')) return;
-    var s=1;
-    if(/en[-_]GB/i.test(v.lang)) s+=4;
-    if(/enhanced|premium|natural/i.test(v.name||'')) s+=2;
-    if(v.localService) s+=1;
-    if(s>bestScore){ bestScore=s; best=v; }
-  });
-  bestVoice=best;
-}
-if('speechSynthesis' in window){
-  pickVoice();
-  speechSynthesis.onvoiceschanged=pickVoice;
-}
-function speak(text,btn){
-  if(!('speechSynthesis' in window)){ toast('Voice not available here'); return; }
-  if(speaking===btn){ speechSynthesis.cancel(); speaking=null; btn.classList.remove('on'); btn.textContent='\u25b6 hear it'; return; }
-  speechSynthesis.cancel();
-  document.querySelectorAll('.tbtn.on').forEach(function(b){ b.classList.remove('on'); b.textContent='\u25b6 hear it'; });
-  var u=new SpeechSynthesisUtterance(text);
-  if(!bestVoice) pickVoice();
-  if(bestVoice){ u.voice=bestVoice; u.lang=bestVoice.lang; }
-  u.rate=1.05;
-  u.onend=function(){ if(speaking===btn){ speaking=null; btn.classList.remove('on'); btn.textContent='\u25b6 hear it'; } };
-  speaking=btn; btn.classList.add('on'); btn.textContent='\u25a0 stop';
-  speechSynthesis.speak(u);
 }
 
 function setIcon(chat){
@@ -197,9 +214,6 @@ function renderMsg(m){
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
     +'<div class="m-full">'+esc(m.text)+'</div>';
   var tools=document.createElement('div'); tools.className='m-tools';
-  var hear=document.createElement('button'); hear.className='tbtn'; hear.innerHTML='\u25b6 hear it';
-  hear.onclick=function(e){ e.stopPropagation(); speak(m.text,hear); };
-  tools.appendChild(hear);
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
   else if(m.from!=='sophie'){
     // one-tap neural render (~1¢), cached on the message forever after
@@ -226,7 +240,7 @@ function renderMsg(m){
 }
 
 function openChat(name, keepScroll){
-  cur=name;
+  scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
@@ -244,8 +258,7 @@ function openChat(name, keepScroll){
   if(!keepScroll) window.scrollTo(0,document.body.scrollHeight);
 }
 function goHome(){
-  cur=null;
-  if(speaking){ speechSynthesis.cancel(); speaking=null; }
+  scrollStop(); cur=null;
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
 # Home is a grid of chat tiles (picture icon, name, last activity); tapping a
-# tile opens that chat's thread — its replies oldest-to-newest with free
-# device-voice read-aloud and polished memos — with the reply bar pre-targeted
-# to that chat (replies are picked up on chats' hourly checks).
+# tile opens that chat's thread — its replies oldest-to-newest, each with a
+# one-tap "polish" render in the neural onyx-British voice (cached; the free
+# device voice was retired — Sophie found it robotic) — with the reply bar
+# pre-targeted to that chat (replies are picked up on chats' hourly checks).
 import base64, os
+from pill import PILL_CSS, PILL_HTML, PILL_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 font = base64.b64encode(open(os.path.join(ROOT, 'ios', 'ImageForge', 'EBGaramond.ttf'), 'rb').read()).decode()
@@ -69,7 +71,9 @@ body.reading .replybar{display:flex;}
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
+__PILL_CSS__
 </style>
+__PILL_HTML__
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div class="wrap">
   <section id="home">
@@ -100,48 +104,13 @@ function ago(iso){
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
 }
-var chats={}, msgs=[], cur=null, speaking=null, seen={};
+__PILL_JS__
+var chats={}, msgs=[], cur=null, seen={};
 try{ seen=JSON.parse(localStorage.getItem('chats-seen-v1')||'{}'); }catch(e){}
 function markSeen(name){
   var g=groups()[name]; if(!g||!g.length) return;
   seen[name]=g[g.length-1].created||'';
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
-}
-
-// The free device engine defaults to its most robotic voice — ask for the
-// best installed one instead: enhanced/premium British first, then any
-// British, then any enhanced English. (getVoices() fills in asynchronously,
-// so re-pick on voiceschanged.)
-var bestVoice=null;
-function pickVoice(){
-  var vs=(speechSynthesis.getVoices()||[]);
-  var best=null, bestScore=0;
-  vs.forEach(function(v){
-    if(!/^en/i.test(v.lang||'')) return;
-    var s=1;
-    if(/en[-_]GB/i.test(v.lang)) s+=4;
-    if(/enhanced|premium|natural/i.test(v.name||'')) s+=2;
-    if(v.localService) s+=1;
-    if(s>bestScore){ bestScore=s; best=v; }
-  });
-  bestVoice=best;
-}
-if('speechSynthesis' in window){
-  pickVoice();
-  speechSynthesis.onvoiceschanged=pickVoice;
-}
-function speak(text,btn){
-  if(!('speechSynthesis' in window)){ toast('Voice not available here'); return; }
-  if(speaking===btn){ speechSynthesis.cancel(); speaking=null; btn.classList.remove('on'); btn.textContent='\\u25b6 hear it'; return; }
-  speechSynthesis.cancel();
-  document.querySelectorAll('.tbtn.on').forEach(function(b){ b.classList.remove('on'); b.textContent='\\u25b6 hear it'; });
-  var u=new SpeechSynthesisUtterance(text);
-  if(!bestVoice) pickVoice();
-  if(bestVoice){ u.voice=bestVoice; u.lang=bestVoice.lang; }
-  u.rate=1.05;
-  u.onend=function(){ if(speaking===btn){ speaking=null; btn.classList.remove('on'); btn.textContent='\\u25b6 hear it'; } };
-  speaking=btn; btn.classList.add('on'); btn.textContent='\\u25a0 stop';
-  speechSynthesis.speak(u);
 }
 
 function setIcon(chat){
@@ -208,9 +177,6 @@ function renderMsg(m){
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\\u2026':'')+'</div>'
     +'<div class="m-full">'+esc(m.text)+'</div>';
   var tools=document.createElement('div'); tools.className='m-tools';
-  var hear=document.createElement('button'); hear.className='tbtn'; hear.innerHTML='\\u25b6 hear it';
-  hear.onclick=function(e){ e.stopPropagation(); speak(m.text,hear); };
-  tools.appendChild(hear);
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
   else if(m.from!=='sophie'){
     // one-tap neural render (~1¢), cached on the message forever after
@@ -237,7 +203,7 @@ function renderMsg(m){
 }
 
 function openChat(name, keepScroll){
-  cur=name;
+  scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
@@ -255,8 +221,7 @@ function openChat(name, keepScroll){
   if(!keepScroll) window.scrollTo(0,document.body.scrollHeight);
 }
 function goHome(){
-  cur=null;
-  if(speaking){ speechSynthesis.cancel(); speaking=null; }
+  scrollStop(); cur=null;
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
@@ -292,6 +257,7 @@ setInterval(function(){
 """
 
 page = page.replace('__FONT__', font)
+page = page.replace('__PILL_CSS__', PILL_CSS).replace('__PILL_HTML__', PILL_HTML).replace('__PILL_JS__', PILL_JS)
 out = os.path.join(ROOT, 'public', 'chats.html')
 open(out, 'w', encoding='utf-8').write(page)
 print('built public/chats.html', round(len(page) / 1024), 'KB')
