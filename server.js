@@ -1106,17 +1106,20 @@ Today's tightest transits to their chart: ${asp}.`;
 
     const voice = `warm, intimate, a-little-luminous — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.`;
 
-    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice}
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it punchy and direct — short sentences, a little tough-love, no filler.
 You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
-  "headline": "one vivid sentence — today's cosmic weather for them",
-  "reading": "2-3 short paragraphs, personalized to their chart + today's transits (or general if no chart)",
+  "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
+  "reading": "ONE tight paragraph (3-5 sentences), personalized to their chart + today's transits (or general if no chart)",
   "focus": "1-3 word theme for the day",
   "invite": "",
-  "intention": "one short first-person intention for the day, e.g. 'Today I move gently and trust my timing.'"
+  "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
+  "ritual": "one tiny, doable ritual for today — a single sentence (a candle, a written line, a small deliberate act)",
+  "ingredients": ["EXACTLY 3 short 'ingredients' for the day, like a witch's recipe — 2-4 words each, evocative and concrete (a feeling, an action, a small comfort), e.g. 'a pinch of patience'"],
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
 }
-Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+Give EXACTLY 2 omens. Keep ingredients and omens specific and a little witchy, never generic. Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
     const astroUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
 ${astroContext}
 
@@ -1137,7 +1140,7 @@ ${cardLines}
 Write the reading now.`;
 
     const [aData, tData] = await Promise.all([
-      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1600, temperature: 1 }),
+      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1900, temperature: 1 }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
     if (aData.error) return res.status(400).json({ error: (aData.error.message || 'anthropic error') + ' (astrology)' });

@@ -197,6 +197,19 @@
     .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
     .quiz-q { font-family: var(--serif); font-size: 21px; text-align: center; line-height: 1.2; margin: 0 0 16px; color: var(--text); }
     .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
+
+    /* Day at a glance */
+    .glance-headline { font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.14; color: var(--text); margin: 4px 0 14px; }
+    .glance-p { font-size: 14.5px; line-height: 1.6; color: var(--text); margin-bottom: 10px; }
+    .glance-sec { margin-top: 18px; }
+    .glance-label { font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 9px; }
+    .ingredients { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ingredient { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; font-size: 13px; color: var(--text); }
+    .omen { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+    .omen:last-child { border-bottom: none; }
+    .omen-sign { flex: 1; font-size: 13.5px; color: var(--text); }
+    .omen-mean { flex: 1; font-size: 13px; color: var(--text-dim); font-style: italic; }
+    .ritual-line { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.5; color: var(--moon); }
     .tcard.noimg .glyph { font-size: 30px; color: var(--gold); }
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
 
@@ -457,10 +470,12 @@
 
           <!-- reading -->
           <div id="daily-reading" style="display:none;">
-            <div class="card-head"><h2>Your stars today</h2><span class="k" id="astro-focus"></span></div>
+            <div class="kicker">Your day at a glance</div>
+            <div class="glance-headline" id="astro-headline"></div>
             <div id="astro-body"></div>
+            <div id="astro-extra"></div>
             <div class="note" id="astro-note"></div>
-            <button class="btn-ghost" id="see-full-chart" style="margin-top:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> See your full birth chart</button>
+            <button class="btn-ghost" id="see-full-chart" style="margin-top:14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Dive deeper</button>
           </div>
         </div>
 
@@ -898,6 +913,8 @@
   }
 
   function setAstroLoading() {
+    $('astro-headline').textContent = '';
+    $('astro-extra').innerHTML = '';
     $('astro-body').innerHTML = `<div class="shimmer sh-line" style="width:90%"></div><div class="shimmer sh-line" style="width:100%"></div><div class="shimmer sh-line" style="width:96%"></div><div class="shimmer sh-line" style="width:70%"></div>`;
     $('astro-note').textContent = 'Reading the sky for you… (this takes a few seconds)';
     $('intention-text').textContent = INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
@@ -923,6 +940,8 @@
       try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
       renderDaily();
     } catch (e) {
+      $('astro-headline').textContent = '';
+      $('astro-extra').innerHTML = '';
       $('astro-note').textContent = '';
       $('astro-body').innerHTML = `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The stars are quiet right now — <button class="link-btn" id="astro-retry">try again</button>.</p>`;
       const rb = $('astro-retry'); if (rb) rb.addEventListener('click', () => loadDaily(true));
@@ -932,12 +951,27 @@
 
   function renderDaily() {
     const a = dailyData.astrology || {};
-    $('astro-focus').textContent = a.focus || '';
+    $('astro-headline').textContent = a.headline || '';
+
     let html = '';
-    if (a.headline) html += `<div class="advice-box" style="margin-top:0;margin-bottom:12px;"><p>${esc(a.headline)}</p></div>`;
-    if (a.reading) String(a.reading).split(/\n\n+/).forEach(p => { if (p.trim()) html += `<p style="font-size:14.5px;line-height:1.65;color:var(--text);margin-bottom:10px;">${esc(p.trim())}</p>`; });
-    if (a.invite && !dailyData.hasChart) html += `<button class="btn-ghost" id="astro-add-birth" style="margin-top:6px;">✦ ${esc(a.invite.length > 60 ? 'Add your birthday for a personal reading' : a.invite)}</button>`;
+    if (a.reading) String(a.reading).split(/\n\n+/).forEach(p => { if (p.trim()) html += `<p class="glance-p">${esc(p.trim())}</p>`; });
+    if (a.invite && !dailyData.hasChart) html += `<button class="btn-ghost" id="astro-add-birth" style="margin-top:6px;">${esc(a.invite.length > 60 ? 'Add your birthday for a personal reading' : a.invite)}</button>`;
     $('astro-body').innerHTML = html;
+
+    // Signature glance bits: the day's ingredients, omens to watch for, a tiny ritual.
+    let ex = '';
+    if (Array.isArray(a.ingredients) && a.ingredients.length) {
+      ex += `<div class="glance-sec"><div class="glance-label">The day's ingredients</div><div class="ingredients">`
+        + a.ingredients.map(x => `<span class="ingredient">${esc(x)}</span>`).join('') + `</div></div>`;
+    }
+    if (Array.isArray(a.omens) && a.omens.length) {
+      ex += `<div class="glance-sec"><div class="glance-label">Omens to watch for</div>`
+        + a.omens.map(o => `<div class="omen"><span class="omen-sign">${esc(o.sign)}</span><span class="omen-mean">${esc(o.meaning)}</span></div>`).join('') + `</div>`;
+    }
+    if (a.ritual) {
+      ex += `<div class="glance-sec"><div class="glance-label">A tiny ritual</div><div class="ritual-line">${esc(a.ritual)}</div></div>`;
+    }
+    $('astro-extra').innerHTML = ex;
     $('astro-note').textContent = '';
     const ab = $('astro-add-birth');
     if (ab) ab.addEventListener('click', () => { $('natal-date').scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('natal-date').focus(), 400); });
