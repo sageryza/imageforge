@@ -70,6 +70,8 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .zcell .zno{position:absolute; left:3px; bottom:3px; font-family:-apple-system,sans-serif; font-size:9px;
   color:#fff; background:rgba(20,18,14,.55); padding:1px 4px; border-radius:3px; letter-spacing:.06em;}
 .zoombtn{margin:0 0 12px auto; display:block;}
+#lightbox{position:fixed; inset:0; background:rgba(15,13,10,.92); z-index:20; display:none; align-items:center; justify-content:center; padding:20px;}
+#lightbox img{max-width:100%; max-height:90vh; border-radius:6px;}
 .cutrow{display:flex; align-items:baseline; gap:10px; width:100%; text-align:left; background:none; border:none;
   border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .cutrow.on .c-name{color:var(--rose); font-weight:600;}
@@ -111,6 +113,7 @@ body.reading .backwrap{display:block;}
   </section>
   <section id="proj" style="display:none"></section>
 </div>
+<div id="lightbox"></div>
 <div id="toast"></div>
 <script>
 (function(){
@@ -418,6 +421,36 @@ function openFilm(m){
   function fmt(iso){ try{ var d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
   function fmtDur(s){ return s? Math.round(s)+'s':''; }
   api('/api/movies/'+m.id).then(function(r){return r.json()}).then(function(doc){
+    // Rejected art: every superseded panel is kept in scene.panelHistory —
+    // show them as a History tab (the images we decided against).
+    var hist=[];
+    ((doc&&doc.scenes)||[]).forEach(function(sc,si){
+      ((sc&&sc.panelHistory)||[]).forEach(function(h){ if(h&&h.url) hist.push({url:h.url, no:si+1}); });
+    });
+    if(hist.length){
+      var tabs=document.createElement('div'); tabs.className='tabs';
+      var seg=document.createElement('div'); seg.className='seg';
+      var tf=document.createElement('button'); tf.className='tab on'; tf.textContent='Film';
+      var th=document.createElement('button'); th.className='tab'; th.textContent='Rejected art';
+      seg.appendChild(tf); seg.appendChild(th); tabs.appendChild(seg);
+      sec.insertBefore(tabs, video);
+      var hv=document.createElement('div'); hv.style.display='none';
+      var hg=document.createElement('div'); hg.className='zgrid'; hv.appendChild(hg);
+      sec.insertBefore(hv, list.nextSibling);
+      hist.forEach(function(h){
+        var cell=document.createElement('button'); cell.className='zcell';
+        cell.innerHTML='<img alt="" loading="lazy" src="'+esc(h.url)+'"><span class="zno">sc '+h.no+'</span>';
+        cell.onclick=function(){
+          var lb=document.getElementById('lightbox');
+          lb.innerHTML='<img alt="" src="'+esc(h.url)+'">';
+          lb.style.display='flex';
+          lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; };
+        };
+        hg.appendChild(cell);
+      });
+      tf.onclick=function(){ tf.classList.add('on'); th.classList.remove('on'); hv.style.display='none'; video.style.display=''; list.style.display=''; };
+      th.onclick=function(){ th.classList.add('on'); tf.classList.remove('on'); hv.style.display=''; video.pause&&video.pause(); video.style.display='none'; list.style.display='none'; };
+    }
     var cuts=(doc&&doc.cuts)||[];
     var latest=cuts.length? cuts[cuts.length-1] : null;
     var src=(latest&&latest.url)||m.movieUrl;
