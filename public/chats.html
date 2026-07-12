@@ -201,6 +201,24 @@ function renderMsg(m){
   hear.onclick=function(e){ e.stopPropagation(); speak(m.text,hear); };
   tools.appendChild(hear);
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
+  else if(m.from!=='sophie'){
+    // one-tap neural render (~1¢), cached on the message forever after
+    var pol=document.createElement('button'); pol.className='tbtn'; pol.textContent='\u2726 polish';
+    pol.onclick=function(e){
+      e.stopPropagation();
+      pol.disabled=true; pol.textContent='polishing\u2026';
+      api('/api/chatfeed/polish',{method:'POST',body:JSON.stringify({id:m.id})})
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(!d.ok||!d.url) throw 0;
+          m.audioUrl=d.url;
+          var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
+          tools.replaceChild(au,pol);
+        })
+        .catch(function(){ pol.disabled=false; pol.textContent='\u2726 polish'; toast('Couldn\u2019t polish that one'); });
+    };
+    tools.appendChild(pol);
+  }
   row.appendChild(tools);
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
   row.querySelector('.m-full').onclick=function(){ row.classList.remove('open'); };
