@@ -308,7 +308,7 @@ router.post('/publish', express.json({ limit: '2mb' }), async (req, res) => {
   const body = req.body || {};
   try {
     const bodyHtml = body.faq ? composeBodyHtml(body) : (body.bodyHtml || '');
-    const result = await shopify.publishArticle({
+    const fields = {
       blogId: body.blogId,
       title: body.title,
       bodyHtml,
@@ -317,7 +317,13 @@ router.post('/publish', express.json({ limit: '2mb' }), async (req, res) => {
       imageUrl: body.imageUrl,
       published: Boolean(body.published),
       handle: body.slug,
-    });
+      publishedAt: body.publishedAt,
+    };
+    // With `articleId`, edit that article in place instead of creating a new
+    // draft — so revisions replace the existing post rather than piling up.
+    const result = body.articleId
+      ? await shopify.updateArticle({ ...fields, articleId: body.articleId })
+      : await shopify.publishArticle(fields);
     const store = db();
     if (store && body.id) {
       try {
@@ -329,6 +335,17 @@ router.post('/publish', express.json({ limit: '2mb' }), async (req, res) => {
       } catch (e) { console.warn('blog: publish mark failed —', e.message); }
     }
     res.json(result);
+  } catch (err) {
+    res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
+// Delete a Shopify article (draft or live). Body: { articleId, blogId? }.
+router.post('/delete-article', express.json(), async (req, res) => {
+  if (!shopify || !shopify.deleteArticle) return res.status(400).json({ error: 'shopify module unavailable' });
+  if (!shopify.configured()) return res.status(400).json({ error: 'Shopify not connected' });
+  try {
+    res.json(await shopify.deleteArticle(req.body || {}));
   } catch (err) {
     res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
   }

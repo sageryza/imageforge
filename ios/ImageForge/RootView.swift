@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, test
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test
     var id: String { rawValue }
 
     var title: String {
@@ -19,6 +19,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       return "Ads"
         case .story:     return "Story Boards"
         case .writing:   return "Writing Room"
+        case .chats:     return "Chats"
         case .test:      return "Test Station"
         }
     }
@@ -35,6 +36,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .story:     return "The video asset boards — live from the studio."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
+        case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         }
     }
@@ -51,6 +53,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       return "megaphone"
         case .story:     return "rectangle.grid.2x2"
         case .writing:   return "text.book.closed"
+        case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "wand.and.stars"
         }
     }
@@ -67,6 +70,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       AdsView()
         case .story:     StoryBoardView()
         case .writing:   WritingRoomView()
+        case .chats:     ChatFeedView()
         case .test:      TestStationView()
         }
     }
@@ -117,6 +121,26 @@ struct RootView: View {
         // keyboard's safe-area inset lifts the whole VStack, floating the bar
         // above the keyboard. Each tool's own ScrollView still lifts its fields.
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        // Deep links: deckfactory://writing, ://chats, ://story, ://dreams,
+        // ://movie, … (any Tool rawValue), plus ://gallery and ://home. Opens
+        // Deck Factory straight to that tab. Scheme registered in Info.plist.
+        .onOpenURL { url in handleDeepLink(url) }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme?.lowercased() == "deckfactory" else { return }
+        // accept deckfactory://writing and deckfactory:///writing alike
+        let dest = (url.host ?? url.path)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
+        switch dest {
+        case "", "home":
+            screen = .home
+        case "gallery", "creations":
+            screen = .gallery
+        default:
+            if let t = Tool(rawValue: dest) { open(t) }
+        }
     }
 
     // Keep the three recent tools + gallery alive so their state (a generated
@@ -135,6 +159,22 @@ struct RootView: View {
             NavigationStack { CreationsView() }
                 .opacity(screen == .gallery ? 1 : 0)
                 .allowsHitTesting(screen == .gallery)
+            // The autoscroll pill, on every native scrollable screen. The
+            // web-view tools (Writing Room, Chats) carry their own in-page.
+            if showAutoScroll {
+                AutoScrollPill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.top, 64)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
+    private var showAutoScroll: Bool {
+        switch screen {
+        case .home: return false
+        case .gallery: return true
+        case .tool(let t): return t != .writing && t != .chats
         }
     }
 

@@ -12,6 +12,7 @@ struct CreationsView: View {
     @State private var filter: String? = nil   // nil = show everything
     @State private var editable: EditableSheet?
     @State private var openingEditor = false
+    @State private var toast: String?
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 10)]
 
@@ -52,7 +53,10 @@ struct CreationsView: View {
                 } else {
                     LazyVGrid(columns: grid, spacing: 10) {
                         ForEach(filtered) { c in
-                            Button { preview = c } label: { tile(c) }
+                            Button {
+                                AutoScrollDriver.shared.stop()   // stop autoscroll on tap
+                                preview = c
+                            } label: { tile(c) }
                                 .buttonStyle(.plain)
                         }
                     }
@@ -74,7 +78,8 @@ struct CreationsView: View {
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
-        .sheet(item: $preview) { c in previewSheet(c) }
+        .overlay { previewPopup }
+        .overlay(alignment: .bottom) { toastView }
         .fullScreenCover(item: $editable) { e in
             StickerEditor(
                 sheetImage: e.image,
@@ -145,29 +150,43 @@ struct CreationsView: View {
     }
 
     private func tile(_ c: Creation) -> some View {
-        AsyncImage(url: c.url) { phase in
-            switch phase {
-            case .success(let img): img.resizable().scaledToFill()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView()
-            }
-        }
-        .frame(height: 150).frame(maxWidth: .infinity).clipped()
-        .background(Color.white)
-        .cornerRadius(Theme.radius)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+        // Uniform square tile: the cell is a square sized to the grid column, and
+        // the image fills it (center-cropped). Any aspect ratio — square, wide
+        // banner, or tall — tiles cleanly instead of breaking the grid.
+        Color.white
+            .aspectRatio(1, contentMode: .fit)
+            .overlay(CachedImageView(url: c.url, contentMode: .fill))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
 
-    private func previewSheet(_ c: Creation) -> some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
-                    AsyncImage(url: c.url) { phase in
-                        switch phase {
-                        case .success(let img): img.resizable().scaledToFit().background(Color.white).cornerRadius(Theme.radius)
-                        default: ProgressView().padding(40)
+    // Centered popup module (a framed card on a dimmed backdrop) instead of a
+    // bottom sheet. Tap the backdrop or the ✕ to close; one Save button at the
+    // top downloads the image straight to Photos.
+    @ViewBuilder private var previewPopup: some View {
+        if let c = preview {
+            ZStack {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                    .onTapGesture { preview = nil }
+                VStack(spacing: 12) {
+                    HStack {
+                        Button { savePreview(c) } label: {
+                            Label("Save", systemImage: "arrow.down.to.line")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        Spacer()
+                        Button { preview = nil } label: {
+                            Image(systemName: "xmark").font(.system(size: 15, weight: .semibold))
                         }
                     }
+                    .tint(Theme.accent)
+
+                    CachedImageView(url: c.url, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: 420)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+
                     if let p = c.prompt, !p.isEmpty {
                         Text(p).font(.caption).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -183,23 +202,50 @@ struct CreationsView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    ShareLink(item: c.url) {
-                        Label("Share / Save", systemImage: "square.and.arrow.up")
-                            .font(.subheadline.weight(.medium)).foregroundColor(Theme.accent)
-                    }
                 }
-                .padding()
-            }
-            .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle(c.type.capitalized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { preview = nil }
-                }
+                .padding(16)
+                .frame(maxWidth: 360)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+                .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+                .shadow(color: .black.opacity(0.25), radius: 20, y: 8)
+                .padding(24)
             }
         }
-        .tint(Theme.accent)
+    }
+
+    @ViewBuilder private var toastView: some View {
+        if let t = toast {
+            Text(t)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .background(Theme.text.opacity(0.9))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                .padding(.bottom, 40)
+                .transition(.opacity)
+        }
+    }
+
+    /// Download the image (from cache when we have it) and save it to Photos.
+    private func savePreview(_ c: Creation) {
+        Task {
+            var image = ImageCache.shared.object(forKey: c.url as NSURL)
+            if image == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
+                image = UIImage(data: data)
+            }
+            guard let image else { showToast("Couldn’t load that image"); return }
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+            showToast("Saved to Photos")
+        }
+    }
+
+    private func showToast(_ message: String) {
+        withAnimation { toast = message }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            withAnimation { toast = nil }
+        }
     }
 
     /// Pull a saved sheet back out: download it, re-detect the sticker boxes
@@ -237,5 +283,46 @@ struct CreationsView: View {
         }
         catch { errorText = error.localizedDescription }
         loading = false
+    }
+}
+
+/// In-memory cache of decoded images, so the grid tile and the preview popup
+/// share one download and re-opening the same image shows instantly.
+enum ImageCache {
+    static let shared = NSCache<NSURL, UIImage>()
+}
+
+/// Loads a remote image once, caches the decoded `UIImage`, and reuses it on
+/// every later request for the same URL.
+struct CachedImageView: View {
+    let url: URL
+    var contentMode: ContentMode = .fill
+    @State private var image: UIImage?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
+            } else if failed {
+                Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+            } else {
+                ProgressView()
+            }
+        }
+        .task(id: url) { await load() }
+    }
+
+    private func load() async {
+        if let cached = ImageCache.shared.object(forKey: url as NSURL) {
+            image = cached; return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let img = UIImage(data: data) {
+                ImageCache.shared.setObject(img, forKey: url as NSURL)
+                image = img
+            } else { failed = true }
+        } catch { failed = true }
     }
 }

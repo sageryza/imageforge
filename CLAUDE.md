@@ -1,5 +1,18 @@
 # ImageForge — project notes
 
+## Never block the turn on a wait — always background it
+- **Any "wait for X" step MUST run as a background task**, never a foreground
+  blocking wait. This includes waiting on a Render deploy, CI, a build, a
+  long poll loop, or anything that doesn't return in a second or two. Use a
+  background Bash task (`run_in_background`) or a Monitor, hand the turn back
+  immediately, and report when the watcher fires.
+- **Why it matters:** a foreground wait holds the turn open, so anything Sophie
+  types while it runs is queued but **silently swallowed — her message never
+  sends** (this actually happened; she lost a message she'd written). Blocking
+  also makes it look like she can't talk to you when she always can.
+- Deploys are never worth blocking on: the change is already merged and safe;
+  the watcher just tells you when it's live.
+
 ## Live app
 - **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
   - Hub: https://imageforge-q125.onrender.com/
@@ -28,13 +41,59 @@ A hub for making illustrated projects (card decks, picture books, sticker
 sheets, zines, single images). Home screen (`/`) is a grid of project types;
 each opens a focused workflow that shares the same house styles.
 
+## Deliverables → the in-app gallery (ALWAYS)
+- **Any image deliverable made for Sophie — in a chat, via the web generator, a
+  pipeline, anything — goes into the iOS app's "My Creations" gallery**
+  (`CreationsView.swift`) so she sees it on her phone next to everything else.
+  This is the default hand-off surface; don't leave deliverables only as chat
+  attachments or web-gallery entries.
+- **No exceptions, and never withhold a batch to avoid "cluttering" it.** If
+  Sophie asked for images — a set, options, a 20-image backlog, anything — EVERY
+  one goes in. She decides what's too much for her gallery, not you. The only
+  things that stay out are genuine throwaways she didn't ask to keep (failed
+  tests, rejected re-rolls). When in doubt, post it. (The gallery tiles are
+  uniform squares, so batch size never breaks the layout — that's not a reason
+  to hold anything back.)
+- **How the gallery works:** it reads Firestore `users/{uid}/creations` in
+  project `membry-df528`, ordered by `createdAt` **DESC**. Normally those docs
+  are written by the app's Cloud Functions under the device's **anonymous-auth**
+  uid, so images made outside the app never appear on their own — you must write
+  the doc yourself with the Admin SDK.
+- **One command does upload + post:**
+  `GALLERY_UID=<uid> node scripts/post-to-gallery.js --file ./image.png --prompt "…"`
+  uploads the local file to membry Storage, makes it public, and writes the
+  gallery doc — so generate → post is a single step (use `--url` instead for an
+  already-hosted image). Needs the `membry-df528` Admin service account via
+  `FIREBASE_SERVICE_ACCOUNT`/`GOOGLE_APPLICATION_CREDENTIALS` and the target uid
+  (neither in the repo). Doc shape:
+  `{ type, url, prompt, stickers:null, createdAt:Timestamp, source, style? }`.
+- **The target uid is Sophie's device anonymous-auth id** — a personal
+  identifier, so it's kept OUT of the repo (pass `--uid` or set `GALLERY_UID`;
+  store it in Render env / a local `.env`, or Sophie shares it in-session).
+  Anonymous uids change on reinstall — re-find by scanning every user's
+  creations (collectionGroup) for the device with recent real activity.
+- **Timestamps = when the image was actually made.** The app sorts by
+  `createdAt`, and multiple chats post concurrently, so pass the true generation
+  time (`--created <ms>`) — that's what keeps everyone's deliverables in correct
+  chronological order (and puts a genuinely-fresh batch at the top). Don't reuse
+  a stale/skewed server clock just because it's embedded in a filename.
+- **Images must live at a public URL** the app can fetch (Firebase Storage in
+  either project, made public). Temporary Replicate/OpenAI URLs expire — upload
+  to Storage first (`saveToFirebase()` in `server.js`, or `bucket.upload()`).
+
 ## Stack
 - Single-file Node/Express backend: `server.js` (~"v11").
 - Static frontend in `public/` (`index.html` = hub, `test.html`, `book.html`,
   `talking.html`, `gallery.html`); shared design system in `public/forge.css`.
 - Deployed on Render via `render.yaml`. Env vars set in the Render dashboard
   (all `sync:false`): `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`,
-  `FIREBASE_SERVICE_ACCOUNT`. Firebase project id: `membry-df528`.
+  `FIREBASE_SERVICE_ACCOUNT`. **The server's Firebase project is
+  `deckfactory-43176`** (verified 2026-07-11 via a Storage upload URL) — NOT
+  membry-df528 as previously documented. The iOS app's direct Firestore reads
+  (Story Boards, GoogleService-Info.plist) use `membry-df528`, so data written
+  by the server and data read directly by the app live in DIFFERENT projects.
+  `/api/story` bridges this with `STORY_FIREBASE_SERVICE_ACCOUNT` (a membry
+  service-account JSON) — set it in Render or the boards read as empty.
 
 ## Image generation
 - OpenAI `gpt-image-2` (the zine; single/sticker can also use DALL·E 3).
@@ -152,6 +211,27 @@ lifted into a standalone tool later.
   HTTP Basic gate with the studio token and grants mic capture for voice notes.
   Content changes ship via Render deploy — no TestFlight build needed.
 
+## The Chat app (forge-chat-feed) — every chat posts its replies
+- `chatfeed.js` (`/api/chatfeed`, page at `/chats`, iOS tile "Chats") — one
+  feed of every project chat's replies so Sophie can read/listen in one place
+  (picture icon per chat, tap-to-expand, free device-voice read-aloud, polished
+  memo attached when one exists, reply box).
+- **STANDING RULE (all chats, July 2026): after finishing each substantive
+  reply to Sophie** (anything with a TLDR), POST it to the feed:
+  `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
+  `{ "chat": "<short-chat-name>", "text": "<the reply text>",
+     "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
+  (x-studio-token header when the studio is gated). Pick ONE short, stable
+  chat name and keep using it (e.g. "dating-book", "story-boards").
+- **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
+  chat picks up replies addressed to its chat name the next time Sophie messages
+  it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
+  set up a chat to wake itself every hour to poll for notes/replies/PRs — that
+  pattern spread across chats and kept pinging Sophie, and it's been turned off.
+  Only schedule a recurring wake-up if Sophie explicitly asks for one in that
+  chat; otherwise pick things up when she next messages you.
+
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
   which Sophie's original decks used. Midjourney has no official API, so this goes
@@ -256,25 +336,43 @@ lifted into a standalone tool later.
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
 - **Dreams (dream → comic):** the dream-illustration path — replicates the
   daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
-  free breakdown: a dream's text → `dreamBreakdown()` (gpt-4o-mini decides how
-  many BEATS the dream needs — no padding, most are short — and for each writes
-  a self-contained panel prompt + a short caption in the dreamer's own voice,
-  minimal prompting) → a `forge-dreams` doc; nothing is drawn yet. The breakdown
-  also reconstructs the dream's TRUE chronology from the dreamer's cues ("that
-  was before", "at first") and returns the beats already in order; the iOS
-  "check the chronology" step lets Sophie hand-tweak that order (▲▼) and
-  `POST .../render` accepts an `order:[beatId]` to draw in the confirmed sequence.
+  free breakdown, and it runs on **Claude Opus** (`anthropicChatJSON`,
+  `ANTHROPIC_API_KEY`, model `DREAM_MODEL`=`claude-opus-4-8`) — a small model
+  can't split/segment/order a rambling recording, so this is deliberately the
+  smart tier. **By explicit request there is NO OpenAI fallback**: no key or a
+  failed call → the breakdown errors and surfaces that (it does not silently
+  drop to gpt-4o-mini). `ANTHROPIC_API_KEY` is a `config-loader` MANAGED_KEY, so
+  it can live in Render env OR the Firestore config doc. **One recording → one
+  or MORE dreams:** `dreamBreakdown()` first SPLITS the recording into the
+  distinct dreams (on the dreamer's boundary cues — "that was that dream", "the
+  next dream", "yesterday I had a dream") and returns `{dreams:[{title,cast,
+  beats}]}`; `POST /dream` creates one `forge-dreams` doc per dream (staggered
+  `createdAt` so array order = time) and returns `{dreams:[doc,…]}`. Within each
+  dream it reconstructs TRUE chronology from the cues ("that was before", "at
+  first", "at the very end", "right before I woke up") and emits coarse beats
+  already in order. iOS `createDream` returns `[Dream]`; the "check the
+  chronology" step shows each split dream as its own titled group (▲▼ within it)
+  and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
   `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
   2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
   packs beats **four per image** (an 8-beat dream = two pages; a short tail
   page lays out with fewer), captions = the beats' own lines (no cover),
   ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
   background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Character anchor**: if the dream has
-  a recurring figure (`characters` tokens), the render first draws it as a solo
-  reference and locks it (`ensureDreamAnchor`), then pins every page to it (via
-  `panelRefs`) so the same face/hair/clothes hold across pages instead of
-  drifting; `POST .../render {reanchor:true}` re-rolls the look. Same
+  dreams never clutter the movies list. **Multi-character cast** (a dream
+  usually has several recurring people — dad, J, Sean — not one): the breakdown
+  returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
+  `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
+  cast member ONCE as a labelled solo reference sheet (`cast[i].url`), then
+  `renderDreamPage` attaches the style ref FIRST and the sheets for whoever
+  appears on that page after it, naming each by attachment position ("the #2
+  attached image is J (…)") so multiple characters stay consistent across
+  pages — the technique ChatGPT uses (named reference per character, all
+  attached, each named in the prompt; gpt-image-2 `edits` takes an image array,
+  up to ~16). Beats with no `who` fall back to attaching the whole cast; refs
+  are capped at 4/page (+style = 5). Legacy single-character dreams
+  (`characters` string / `characterAnchor`) auto-normalize to a one-member cast.
+  `POST .../render {reanchor:true}` re-rolls every cast member's look. Same
   `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
   rest of movies.
 
@@ -464,6 +562,9 @@ lifted into a standalone tool later.
   needs Sophie's `@handle` pasted in.
 
 ## Design rules (forever)
+- **Every image deliverable goes into the in-app gallery.** See "Deliverables →
+  the in-app gallery (ALWAYS)" near the top — post it with
+  `scripts/post-to-gallery.js`, stamped with its true make-time.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **Research the CURRENT UI before giving click-by-click steps for any external
@@ -476,6 +577,11 @@ lifted into a standalone tool later.
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **Opening an image freezes the page behind it.** Tapping/clicking a picture
+  (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
+  background scroll (`document.body.style.overflow='hidden'`), restoring on
+  close. The page must never scroll or jump while you're looking at an image.
+  Applies to every app and every gallery.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -533,9 +639,11 @@ lifted into a standalone tool later.
   - **Skip the audio** when the reply just confirms work she asked for or is
     technical detail with no new information ("built it — here's what
     changed"). TLDR still required.
-  - **Answer questions FIRST.** If Sophie's message contains a question, answer
-    it at the top of the reply, before doing or reporting on any tasks from the
-    same message.
+  - **Answer questions FIRST — as a one-line TLDR — then do the task.** If
+    Sophie's message contains a question, lead the reply with a short TLDR answer
+    to it (not a jump straight into doing/reporting the task, and not a long
+    build-up before the answer). Answer crisply up top, THEN carry out any task
+    from the same message.
   - **Small question → short answer.** When Sophie asks a quick or small
     question, reply with just the answer — no suggestions about what to do
     next, no updates on work already done, no recaps. Save those for when she

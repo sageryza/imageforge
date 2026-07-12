@@ -17,12 +17,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge
         GENERATE_INFOPLIST_FILE: YES
+        # Base plist merged on top of the generated keys — carries the
+        # deckfactory:// URL scheme (CFBundleURLTypes) for deep links.
+        INFOPLIST_FILE: ImageForge/Info.plist
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Record your dream out loud so it can be transcribed and illustrated."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Turn your spoken dream into text as you talk."
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Save your creations to your photo library."
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
     dependencies:
