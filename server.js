@@ -1016,7 +1016,9 @@ app.post('/api/witch/daily', async (req, res) => {
       }
     }
 
-    // ── Build the single prompt ──
+    // ── Two INDEPENDENT calls (run in parallel) so the tarot and the
+    // astrology never influence each other: astrology sees ONLY the chart,
+    // tarot sees ONLY the cards. Same JSON shape assembled from both. ──
     const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
     let astroContext;
     if (natal && bigThree) {
@@ -1032,47 +1034,54 @@ Today's tightest transits to their chart: ${asp}.`;
       astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
     }
 
-    const system = `You are the daily oracle for "Secretly a Witch", a cozy modern witchcraft app. Once a day you write one person's whole reading in a warm, intimate, a-little-luminous voice — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.
+    const voice = `warm, intimate, a-little-luminous — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.`;
 
-You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Also interpret their daily 3-card tarot pull (Rider-Waite), weaving past/present/future together.
-
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice}
+You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
-  "astrology": {
-    "headline": "one vivid sentence — today's cosmic weather for them",
-    "reading": "2-3 short paragraphs, personalized to their chart + today's transits (or general if no chart)",
-    "focus": "1-3 word theme for the day",
-    "invite": ""
-  },
-  "tarot": {
-    "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
-    "reading": "2 short paragraphs weaving the three cards into one throughline for today",
-    "advice": "one gentle, actionable suggestion"
-  },
+  "headline": "one vivid sentence — today's cosmic weather for them",
+  "reading": "2-3 short paragraphs, personalized to their chart + today's transits (or general if no chart)",
+  "focus": "1-3 word theme for the day",
+  "invite": "",
   "intention": "one short first-person intention for the day, e.g. 'Today I move gently and trust my timing.'"
 }
-Set astrology.invite to "" unless they have no birth chart, in which case put the invitation there.`;
-
-    const user = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
+Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+    const astroUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
 ${astroContext}
 
+Write today's astrology reading now.`;
+
+    const tarotSystem = `You are a warm tarot reader for "Secretly a Witch". Your voice is ${voice}
+Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT mention astrology, transits, or the moon.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
+  "advice": "one gentle, actionable suggestion"
+}`;
+    const tarotUser = `Date: ${date}.
 Their daily 3-card tarot pull (past / present / future):
 ${cardLines}
 
-Write today's reading now.`;
+Write the reading now.`;
 
-    const data = await anthropicChat({
-      system,
-      messages: [{ role: 'user', content: user }],
-      max_tokens: 3000,
-      temperature: 1,
-    });
-    if (data.error) return res.status(400).json({ error: data.error.message || 'anthropic error' });
+    const [aData, tData] = await Promise.all([
+      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1600, temperature: 1 }),
+      anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
+    ]);
+    if (aData.error) return res.status(400).json({ error: (aData.error.message || 'anthropic error') + ' (astrology)' });
+    if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
 
-    let reading;
-    try { reading = parseAnthropicJson(data); }
-    catch (e) { return res.status(502).json({ error: 'Could not parse the reading — try again.', detail: e.message }); }
+    let astrology, tarot;
+    try { astrology = parseAnthropicJson(aData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the astrology reading — try again.', detail: e.message }); }
+    try { tarot = parseAnthropicJson(tData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
 
+    const intention = astrology.intention || '';
+    delete astrology.intention;
+    const reading = { astrology, tarot, intention };
     reading.hasChart = Boolean(natal && bigThree);
     if (bigThree) reading.bigThree = bigThree;
 
