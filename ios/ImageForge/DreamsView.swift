@@ -13,8 +13,6 @@ struct DreamsView: View {
     @State private var review: [DreamBeat] = []   // beats to check the chronology of
     @State private var reviewId: String?          // the dream being reviewed
     @State private var current: Dream?            // rendering / finished pages
-    @State private var dreams: [DreamSummary] = []
-    @State private var loading = true
     @State private var errorText: String?
     @State private var pollGeneration = 0
 
@@ -32,8 +30,9 @@ struct DreamsView: View {
                     chronologySection
                 } else if busy || current != nil {
                     currentSection
+                } else {
+                    sunflowerEmptyState
                 }
-                journalSection
             }
             .padding()
         }
@@ -46,7 +45,7 @@ struct DreamsView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink { DreamZineView() } label: {
-                    Image(systemName: "book.closed").foregroundColor(Theme.accent)
+                    SpiralNotebookIcon(size: 22, color: Theme.accent)
                 }
             }
             ToolbarItem(placement: .principal) {
@@ -64,7 +63,6 @@ struct DreamsView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await loadDreams()
             scheduleNudgeIfNeeded()
         }
         .onDisappear { pollGeneration += 1; speech.stop() }   // stop polling + mic when we leave
@@ -220,18 +218,16 @@ struct DreamsView: View {
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 
-    private var journalSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if !dreams.isEmpty {
-                Text("YOUR DREAM JOURNAL")
-                    .font(.caption2.weight(.semibold)).tracking(1)
-                    .foregroundColor(Theme.textDim)
-            }
-            if loading && dreams.isEmpty {
-                ProgressView().frame(maxWidth: .infinity).padding(.top, 20)
-            }
-            ForEach(dreams) { dream in DreamJournalCard(summary: dream) }
-        }
+    /// The friendly idle state: a little hand-drawn sunflower asking what you
+    /// dreamed. Your past dreams live in the moon archive (top-left), so the
+    /// Illustrate page stays just the prompt.
+    private var sunflowerEmptyState: some View {
+        Image("DreamSunflowers")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
+            .accessibilityLabel("What did you dream last night?")
     }
 
     private func pageImage(_ url: URL?) -> some View {
@@ -288,8 +284,8 @@ struct DreamsView: View {
                 current = try await MovieService.shared.renderDream(id, order: order)
                 await pollDream(id)
                 text = ""
-                await loadDreams()
-                current = nil                 // it's in the journal now
+                // Leave the finished pages on screen; the dream is saved to the
+                // moon archive automatically.
             } catch {
                 errorText = error.localizedDescription
             }
@@ -329,12 +325,6 @@ struct DreamsView: View {
         review.swapAt(i, j)
     }
 
-    private func loadDreams() async {
-        loading = true
-        if let all = try? await MovieService.shared.dreamList() { dreams = all }
-        loading = false
-    }
-
     /// Ask for notification permission once and schedule a daily 11am nudge.
     private func scheduleNudgeIfNeeded() {
         guard !nudgeScheduled else { return }
@@ -355,47 +345,37 @@ struct DreamsView: View {
     }
 }
 
-/// A dream in the journal — lazy-loads its full pages, shows them stacked, with
-/// the dream text beneath (tap to expand).
-private struct DreamJournalCard: View {
-    let summary: DreamSummary
-    @State private var full: Dream?
-    @State private var expanded = false
-
-    private var caption: String { full?.dream ?? summary.title }
+/// A little spiral-bound notebook glyph for the zine button — friendlier and
+/// less "official" than a closed book. Drawn so it tints with the toolbar.
+struct SpiralNotebookIcon: View {
+    var size: CGFloat = 22
+    var color: Color = Theme.accent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let pages = full?.pages, !pages.isEmpty {
-                ForEach(pages) { page in pageImage(page.pageURL) }
-            } else {
-                // Poster (or a placeholder) while the full pages load.
-                pageImage(summary.posterURL)
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            let lw = max(1.3, w * 0.07)
+            let topY = h * 0.26
+            // The notebook page block.
+            let body = Path(roundedRect: CGRect(x: w * 0.17, y: topY, width: w * 0.66, height: h * 0.60),
+                            cornerRadius: w * 0.10)
+            ctx.stroke(body, with: .color(color), lineWidth: lw)
+            // A couple of faint page lines.
+            for f: CGFloat in [0.50, 0.66, 0.80] {
+                var line = Path()
+                line.move(to: CGPoint(x: w * 0.31, y: h * f))
+                line.addLine(to: CGPoint(x: w * 0.69, y: h * f))
+                ctx.stroke(line, with: .color(color.opacity(0.65)), lineWidth: lw * 0.7)
             }
-            if !caption.isEmpty {
-                Text(caption)
-                    .font(.callout).foregroundColor(Theme.text)
-                    .lineLimit(expanded ? nil : 3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .onTapGesture { withAnimation { expanded.toggle() } }
-            }
-        }
-        .background(Theme.surface)
-        .cornerRadius(Theme.radiusLg)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-        .task { if full == nil { full = try? await MovieService.shared.dream(summary.id) } }
-    }
-
-    private func pageImage(_ url: URL?) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image): image.resizable().scaledToFit()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView().frame(height: 160)
+            // Spiral rings straddling the top edge.
+            let rings = 4
+            let r = w * 0.055
+            for i in 0..<rings {
+                let x = w * (0.30 + 0.40 * CGFloat(i) / CGFloat(rings - 1))
+                let loop = Path(ellipseIn: CGRect(x: x - r, y: topY - r, width: 2 * r, height: 2 * r))
+                ctx.stroke(loop, with: .color(color), lineWidth: lw)
             }
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
+        .frame(width: size, height: size)
     }
 }
