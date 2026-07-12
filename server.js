@@ -184,6 +184,7 @@ loadConfig().then(() => {
   const blog = require('./blog');
   const sync = require('./sync');
   const writing = require('./writing');
+  const chatfeed = require('./chatfeed');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -203,6 +204,7 @@ loadConfig().then(() => {
   app.use('/api/blog', blog.router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
+  app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
@@ -562,6 +564,12 @@ app.get('/storyroom', serveGated('storyroom.html'));
 // to Firestore (`forge-writing-notes`) so any chat can pull and apply them.
 // Page + data regenerate with scripts/gen-writing.py. Same gate as the Studio.
 app.get('/writing', serveGated('writing.html'));
+
+// The Chat app: every project chat's replies in one feed — picture icon per
+// chat, tap to expand, free device-voice read-aloud, polished memos when
+// attached, and a reply box (chats pick replies up on their hourly checks).
+// Regenerate with scripts/gen-chats.py. Same gate as the Studio.
+app.get('/chats', serveGated('chats.html'));
 
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
