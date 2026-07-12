@@ -134,6 +134,7 @@ struct AutoScrollPill: View {
                 .foregroundColor(accent ? Theme.danger : Theme.text.opacity(dim ? 0.3 : 1))
                 .frame(width: 46, height: 46)
                 .background(accent ? Theme.danger.opacity(0.16) : Color.clear)
+                .contentShape(Rectangle())   // whole 46×46 is tappable, not just the glyph
         }
         .buttonStyle(.plain)
     }
