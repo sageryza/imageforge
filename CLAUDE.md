@@ -213,9 +213,14 @@ lifted into a standalone tool later.
      "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
   (x-studio-token header when the studio is gated). Pick ONE short, stable
   chat name and keep using it (e.g. "dating-book", "story-boards").
-- **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) —
-  chats should check for replies addressed to their chat name on their hourly
-  self-check-ins (`GET /api/chatfeed?limit=50`) and act on them.
+- **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
+  chat picks up replies addressed to its chat name the next time Sophie messages
+  it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
+  set up a chat to wake itself every hour to poll for notes/replies/PRs — that
+  pattern spread across chats and kept pinging Sophie, and it's been turned off.
+  Only schedule a recurring wake-up if Sophie explicitly asks for one in that
+  chat; otherwise pick things up when she next messages you.
 
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
