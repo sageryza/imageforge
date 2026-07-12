@@ -145,17 +145,22 @@ struct CreationsView: View {
     }
 
     private func tile(_ c: Creation) -> some View {
-        AsyncImage(url: c.url) { phase in
-            switch phase {
-            case .success(let img): img.resizable().scaledToFill()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView()
-            }
-        }
-        .frame(height: 150).frame(maxWidth: .infinity).clipped()
-        .background(Color.white)
-        .cornerRadius(Theme.radius)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+        // Uniform square tile: the cell is a square sized to the grid column, and
+        // the image fills it (center-cropped). Any aspect ratio — square, wide
+        // banner, or tall — tiles cleanly instead of breaking the grid.
+        Color.white
+            .aspectRatio(1, contentMode: .fit)
+            .overlay(
+                AsyncImage(url: c.url) { phase in
+                    switch phase {
+                    case .success(let img): img.resizable().scaledToFill()
+                    case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
+                    default: ProgressView()
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
 
     private func previewSheet(_ c: Creation) -> some View {
