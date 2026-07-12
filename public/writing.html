@@ -27,6 +27,12 @@ h1{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}
 .r-meta{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}
 .r-pg{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}
 .r-notes{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}
+.r-status{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:2px 4px; border-radius:4px;}
+.r-status.drafting{color:var(--ink2);} .r-status.reviewing{color:var(--cand,#a3822f);} .r-status.approved{color:var(--ok,#5d7a5a);}
+.r-status:focus-visible{outline:2px solid var(--rose);}
+.progress{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em; color:var(--ink2); margin:-1.2em 0 1.6em;}
+:root{--ok:#5d7a5a; --cand:#a3822f;}
+@media (prefers-color-scheme: dark){:root{--ok:#8fae8b; --cand:#c9a95a;}}
 .tabs{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 58px; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}
 .seg{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}
 .tab{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
@@ -105,15 +111,16 @@ body.reading .backwrap{display:block;}
   <div class="no">someone i met once · working drafts</div>
   <h1>The Dates</h1>
   <div class="sub">Tap a date to read. Two versions inside — mine and Claude&rsquo;s, with every change in red.</div>
-  <button class="row" data-d="griffin"><span class="r-no">no.&#8201;01</span><span class="r-body"><span class="r-name">Griffin</span><span class="r-dek">Touch without meaning.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-notes" id="cnt-griffin"></span></span></button>
-<button class="row" data-d="david"><span class="r-no">no.&#8201;02</span><span class="r-body"><span class="r-name">David</span><span class="r-dek">A cat between us.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-notes" id="cnt-david"></span></span></button>
-<button class="row" data-d="jake"><span class="r-no">no.&#8201;03</span><span class="r-body"><span class="r-name">Jake</span><span class="r-dek">A hot babe on my lap.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-notes" id="cnt-jake"></span></span></button>
-<button class="row" data-d="blake"><span class="r-no">no.&#8201;04</span><span class="r-body"><span class="r-name">Blake</span><span class="r-dek">Points for pretending I didn’t speak Spanish.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-notes" id="cnt-blake"></span></span></button>
-<button class="row" data-d="louis"><span class="r-no">no.&#8201;05</span><span class="r-body"><span class="r-name">Louis</span><span class="r-dek">Caturday.</span></span><span class="r-meta"><span class="r-pg">1 page</span><span class="r-notes" id="cnt-louis"></span></span></button>
-<button class="row" data-d="patrick"><span class="r-no">no.&#8201;06</span><span class="r-body"><span class="r-name">Patrick</span><span class="r-dek">Like a tiger, or a man proving a point.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-notes" id="cnt-patrick"></span></span></button>
-<button class="row" data-d="trevor"><span class="r-no">no.&#8201;07</span><span class="r-body"><span class="r-name">Trevor</span><span class="r-dek">He smashed a beer bottle on his head.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-notes" id="cnt-trevor"></span></span></button>
-<button class="row" data-d="gabriel"><span class="r-no">no.&#8201;08</span><span class="r-body"><span class="r-name">Gabriel</span><span class="r-dek">A policy of not looking at anyone I find attractive.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-notes" id="cnt-gabriel"></span></span></button>
-<button class="row" data-d="michael"><span class="r-no">no.&#8201;09</span><span class="r-body"><span class="r-name">Michael</span><span class="r-dek">His profile picture was blurry.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-notes" id="cnt-michael"></span></span></button>
+  <div class="progress" id="progress"></div>
+  <button class="row" data-d="griffin"><span class="r-no">no.&#8201;01</span><span class="r-body"><span class="r-name">Griffin</span><span class="r-dek">Touch without meaning.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-status" data-d="griffin" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-griffin"></span></span></button>
+<button class="row" data-d="david"><span class="r-no">no.&#8201;02</span><span class="r-body"><span class="r-name">David</span><span class="r-dek">A cat between us.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-status" data-d="david" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-david"></span></span></button>
+<button class="row" data-d="jake"><span class="r-no">no.&#8201;03</span><span class="r-body"><span class="r-name">Jake</span><span class="r-dek">A hot babe on my lap.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-status" data-d="jake" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-jake"></span></span></button>
+<button class="row" data-d="blake"><span class="r-no">no.&#8201;04</span><span class="r-body"><span class="r-name">Blake</span><span class="r-dek">Points for pretending I didn’t speak Spanish.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-status" data-d="blake" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-blake"></span></span></button>
+<button class="row" data-d="louis"><span class="r-no">no.&#8201;05</span><span class="r-body"><span class="r-name">Louis</span><span class="r-dek">Caturday.</span></span><span class="r-meta"><span class="r-pg">1 page</span><span class="r-status" data-d="louis" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-louis"></span></span></button>
+<button class="row" data-d="patrick"><span class="r-no">no.&#8201;06</span><span class="r-body"><span class="r-name">Patrick</span><span class="r-dek">Like a tiger, or a man proving a point.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-status" data-d="patrick" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-patrick"></span></span></button>
+<button class="row" data-d="trevor"><span class="r-no">no.&#8201;07</span><span class="r-body"><span class="r-name">Trevor</span><span class="r-dek">He smashed a beer bottle on his head.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-status" data-d="trevor" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-trevor"></span></span></button>
+<button class="row" data-d="gabriel"><span class="r-no">no.&#8201;08</span><span class="r-body"><span class="r-name">Gabriel</span><span class="r-dek">A policy of not looking at anyone I find attractive.</span></span><span class="r-meta"><span class="r-pg">3 pages</span><span class="r-status" data-d="gabriel" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-gabriel"></span></span></button>
+<button class="row" data-d="michael"><span class="r-no">no.&#8201;09</span><span class="r-body"><span class="r-name">Michael</span><span class="r-dek">His profile picture was blurry.</span></span><span class="r-meta"><span class="r-pg">2 pages</span><span class="r-status" data-d="michael" role="button" tabindex="0">drafting</span><span class="r-notes" id="cnt-michael"></span></span></button>
 
 </section>
 <section class="date" id="d-griffin" style="display:none">
@@ -799,6 +806,35 @@ document.querySelector('.wrap').addEventListener('click',function(e){
 });
 
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+// per-date workflow status (tap to cycle) + progress line
+var dateStatuses={};
+var TOTAL_TARGET=41;
+function paintStatuses(){
+  var counts={drafting:0,reviewing:0,approved:0};
+  document.querySelectorAll('.r-status').forEach(function(el){
+    var st=dateStatuses[el.dataset.d]||'drafting';
+    el.textContent=st; el.className='r-status '+st;
+    counts[st]=(counts[st]||0)+1;
+  });
+  var drafted=document.querySelectorAll('.r-status').length;
+  document.getElementById('progress').textContent=
+    counts.approved+' approved · '+counts.reviewing+' reviewing · '+counts.drafting+' drafting · '+drafted+' of '+TOTAL_TARGET+' dates drafted';
+}
+api('/api/writing/status-all').then(function(r){return r.json()}).then(function(d){
+  dateStatuses=(d&&d.statuses)||{}; paintStatuses();
+}).catch(function(){ paintStatuses(); });
+document.querySelectorAll('.r-status').forEach(function(el){
+  el.addEventListener('click',function(ev){
+    ev.stopPropagation();
+    var key=el.dataset.d;
+    var order=['drafting','reviewing','approved'];
+    var next=order[(order.indexOf(dateStatuses[key]||'drafting')+1)%3];
+    var prev=dateStatuses[key]; dateStatuses[key]=next; paintStatuses();
+    api('/api/writing/status',{method:'POST',body:JSON.stringify({dateId:key,status:next})})
+      .then(function(r){ if(!r.ok) throw 0; })
+      .catch(function(){ dateStatuses[key]=prev; paintStatuses(); toast('Couldn’t save the status'); });
+  });
+});
 var listenTimers={};
 document.querySelectorAll('.listen').forEach(function(b){
   b.onclick=function(){

@@ -103,6 +103,7 @@ for no,name in enumerate(ORDER,1):
                  f'<span class="r-body"><span class="r-name">{esc(name)}</span>'
                  f'<span class="r-dek">{esc(smart(e["dek"]))}</span></span>'
                  f'<span class="r-meta"><span class="r-pg">{npages} {"page" if npages==1 else "pages"}</span>'
+                 f'<span class="r-status" data-d="{key}" role="button" tabindex="0">drafting</span>'
                  f'<span class="r-notes" id="cnt-{key}"></span></span></button>\n')
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
@@ -148,6 +149,12 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .r-meta{{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}}
 .r-pg{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}}
 .r-notes{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}}
+.r-status{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:2px 4px; border-radius:4px;}}
+.r-status.drafting{{color:var(--ink2);}} .r-status.reviewing{{color:var(--cand,#a3822f);}} .r-status.approved{{color:var(--ok,#5d7a5a);}}
+.r-status:focus-visible{{outline:2px solid var(--rose);}}
+.progress{{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em; color:var(--ink2); margin:-1.2em 0 1.6em;}}
+:root{{--ok:#5d7a5a; --cand:#a3822f;}}
+@media (prefers-color-scheme: dark){{:root{{--ok:#8fae8b; --cand:#c9a95a;}}}}
 .tabs{{position:sticky; top:0; z-index:5; display:flex; gap:8px; padding:12px 62px 12px 58px; background:color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter:blur(6px);}}
 .seg{{flex:1; display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper);}}
 .tab{{flex:1; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
@@ -226,6 +233,7 @@ body.reading .backwrap{{display:block;}}
   <div class="no">someone i met once · working drafts</div>
   <h1>The Dates</h1>
   <div class="sub">Tap a date to read. Two versions inside — mine and Claude&rsquo;s, with every change in red.</div>
+  <div class="progress" id="progress"></div>
   {index_rows}
 </section>
 {sections}
@@ -427,6 +435,35 @@ document.querySelector('.wrap').addEventListener('click',function(e){{
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
+// per-date workflow status (tap to cycle) + progress line
+var dateStatuses={{}};
+var TOTAL_TARGET=41;
+function paintStatuses(){{
+  var counts={{drafting:0,reviewing:0,approved:0}};
+  document.querySelectorAll('.r-status').forEach(function(el){{
+    var st=dateStatuses[el.dataset.d]||'drafting';
+    el.textContent=st; el.className='r-status '+st;
+    counts[st]=(counts[st]||0)+1;
+  }});
+  var drafted=document.querySelectorAll('.r-status').length;
+  document.getElementById('progress').textContent=
+    counts.approved+' approved \u00b7 '+counts.reviewing+' reviewing \u00b7 '+counts.drafting+' drafting \u00b7 '+drafted+' of '+TOTAL_TARGET+' dates drafted';
+}}
+api('/api/writing/status-all').then(function(r){{return r.json()}}).then(function(d){{
+  dateStatuses=(d&&d.statuses)||{{}}; paintStatuses();
+}}).catch(function(){{ paintStatuses(); }});
+document.querySelectorAll('.r-status').forEach(function(el){{
+  el.addEventListener('click',function(ev){{
+    ev.stopPropagation();
+    var key=el.dataset.d;
+    var order=['drafting','reviewing','approved'];
+    var next=order[(order.indexOf(dateStatuses[key]||'drafting')+1)%3];
+    var prev=dateStatuses[key]; dateStatuses[key]=next; paintStatuses();
+    api('/api/writing/status',{{method:'POST',body:JSON.stringify({{dateId:key,status:next}})}})
+      .then(function(r){{ if(!r.ok) throw 0; }})
+      .catch(function(){{ dateStatuses[key]=prev; paintStatuses(); toast('Couldn\u2019t save the status'); }});
+  }});
+}});
 var listenTimers={{}};
 document.querySelectorAll('.listen').forEach(function(b){{
   b.onclick=function(){{

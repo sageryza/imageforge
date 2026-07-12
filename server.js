@@ -416,7 +416,8 @@ let storyApp = null;
 let storyCredChecked = false;
 function initStoryApp(saJson) {
   storyApp = admin.initializeApp(
-    { credential: admin.credential.cert(saJson) }, 'story');
+    { credential: admin.credential.cert(saJson),
+      storageBucket: `${saJson.project_id}.firebasestorage.app` }, 'story');
   console.log('Story boards: secondary Firebase app initialized (' + saJson.project_id + ')');
 }
 async function storyDb() {
@@ -472,6 +473,40 @@ app.post('/api/story/credential', express.json({ limit: '64kb' }), async (req, r
     res.status(500).json({ error: err.message });
   }
 });
+// Upload art for a beat from the Story Room — image goes straight to the
+// boards' Storage as a CANDIDATE card; no chat tokens spent looking at it.
+app.post('/api/story/art', express.json({ limit: '14mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, label, image } = req.body || {};
+    const m = String(image || '').match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+    if (!m) return res.status(400).json({ error: 'image must be a data URL' });
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    if (!b) return res.status(404).json({ error: 'unknown beat' });
+    const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+    const name = `story/upload-${projectId}-b${beat}-${Date.now()}.${ext}`;
+    const bucket = storyApp.storage().bucket();
+    const file = bucket.file(name);
+    await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+    await file.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    b.cards = b.cards || [];
+    b.cards.push({ label: String(label || 'uploaded art').slice(0, 80), status: 'cand', url });
+    await ref.set(data);
+    res.json({ ok: true, url, card: b.cards.length - 1 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Flip a card's status from the Story Room (tap-to-approve).
 app.post('/api/story/status', express.json(), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
