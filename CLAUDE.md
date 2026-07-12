@@ -47,6 +47,13 @@ each opens a focused workflow that shares the same house styles.
   (`CreationsView.swift`) so she sees it on her phone next to everything else.
   This is the default hand-off surface; don't leave deliverables only as chat
   attachments or web-gallery entries.
+- **No exceptions, and never withhold a batch to avoid "cluttering" it.** If
+  Sophie asked for images — a set, options, a 20-image backlog, anything — EVERY
+  one goes in. She decides what's too much for her gallery, not you. The only
+  things that stay out are genuine throwaways she didn't ask to keep (failed
+  tests, rejected re-rolls). When in doubt, post it. (The gallery tiles are
+  uniform squares, so batch size never breaks the layout — that's not a reason
+  to hold anything back.)
 - **How the gallery works:** it reads Firestore `users/{uid}/creations` in
   project `membry-df528`, ordered by `createdAt` **DESC**. Normally those docs
   are written by the app's Cloud Functions under the device's **anonymous-auth**
@@ -624,9 +631,11 @@ lifted into a standalone tool later.
   - **Skip the audio** when the reply just confirms work she asked for or is
     technical detail with no new information ("built it — here's what
     changed"). TLDR still required.
-  - **Answer questions FIRST.** If Sophie's message contains a question, answer
-    it at the top of the reply, before doing or reporting on any tasks from the
-    same message.
+  - **Answer questions FIRST — as a one-line TLDR — then do the task.** If
+    Sophie's message contains a question, lead the reply with a short TLDR answer
+    to it (not a jump straight into doing/reporting the task, and not a long
+    build-up before the answer). Answer crisply up top, THEN carry out any task
+    from the same message.
   - **Small question → short answer.** When Sophie asks a quick or small
     question, reply with just the answer — no suggestions about what to do
     next, no updates on work already done, no recaps. Save those for when she
