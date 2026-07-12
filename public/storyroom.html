@@ -16,15 +16,17 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .rule{height:1px; background:var(--line); margin:1.1em 0;}
 .sub{font-style:italic; color:var(--ink2); margin-bottom:2em;}
-.row{display:flex; gap:14px; align-items:center; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line);
-  padding:16px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
-.row:focus-visible{outline:2px solid var(--rose);}
-.r-cover{width:52px; height:70px; object-fit:cover; border-radius:4px; background:var(--line); flex:none;}
-.r-cover.ph{display:flex; align-items:center; justify-content:center; color:var(--ink2); font-size:1.3em;}
-.r-body{flex:1; display:flex; flex-direction:column; gap:2px;}
-.r-name{font-size:1.35em; font-weight:600;}
-.r-meta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}
-.r-notes{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}
+.shelfgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
+.tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
+  color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}
+.tile:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
+.t-cover{display:block; aspect-ratio:5/7; border:1px solid var(--line); background:var(--barbg); border-radius:4px; overflow:hidden;}
+.t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
+.t-blank{display:flex; align-items:center; justify-content:center;}
+.t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
+.t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px;}
+.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:2px;}
+.r-notes{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose); display:block; margin-top:1px;}
 .pagemark{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.3em; color:var(--ink2); margin:3em 0 1.2em; text-transform:uppercase;}
 .vo{font-size:19px; line-height:1.7; margin:0 0 1em;}
 .vo.none{font-style:italic; color:var(--ink2); font-size:16px;}
@@ -145,17 +147,18 @@ function renderShelf(){
   var el=document.getElementById('shelf');
   if(!projects.length){ el.innerHTML='<div class="state">No boards synced yet — they\u2019ll appear here as soon as a project lands in the studio.</div>'; return; }
   el.innerHTML='';
+  var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
   projects.forEach(function(p){
     var beats=(p.beats||[]).length;
     var n=Object.keys(notes).filter(function(id){return id.split(':')[0]==='story-'+p.id}).length;
-    var b=document.createElement('button'); b.className='row';
-    b.innerHTML=(p.cover? '<img class="r-cover" alt="" src="'+esc(p.cover)+'">'
-                        : '<div class="r-cover ph">?</div>')
-      +'<span class="r-body"><span class="r-name">'+esc(p.title||p.id)+'</span>'
-      +'<span class="r-meta">'+beats+(beats===1?' beat':' beats')+'</span>'
+    var b=document.createElement('button'); b.className='tile';
+    b.innerHTML=(p.cover? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(p.cover)+'"></span>'
+                        : '<span class="t-cover t-blank"><span>'+esc((p.title||p.id||'?').slice(0,1))+'</span></span>')
+      +'<span class="t-name">'+esc(p.title||p.id)+'</span>'
+      +'<span class="t-meta">'+beats+(beats===1?' beat':' beats')
       +(n? '<span class="r-notes">'+n+(n===1?' note':' notes')+'</span>':'')+'</span>';
     b.onclick=function(){ openProj(p); };
-    el.appendChild(b);
+    grid.appendChild(b);
   });
 }
 
@@ -387,13 +390,15 @@ function renderFilms(films){
   el.innerHTML='';
   if(!films.length){ mark.style.display='none'; return; }
   mark.style.display='';
+  var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
   films.forEach(function(m){
-    var b=document.createElement('button'); b.className='row';
-    b.innerHTML=(m.poster? '<img class="r-cover" alt="" src="'+esc(m.poster)+'">' : '<div class="r-cover ph">?</div>')
-      +'<span class="r-body"><span class="r-name">'+esc(m.title||m.id)+'</span>'
-      +'<span class="r-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' · no film yet')+'</span></span>';
+    var b=document.createElement('button'); b.className='tile';
+    b.innerHTML=(m.poster? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(m.poster)+'"></span>'
+                         : '<span class="t-cover t-blank"><span>'+esc((m.title||m.id||'?').slice(0,1))+'</span></span>')
+      +'<span class="t-name">'+esc(m.title||m.id)+'</span>'
+      +'<span class="t-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' · no film yet')+'</span>';
     b.onclick=function(){ openFilm(m); };
-    el.appendChild(b);
+    grid.appendChild(b);
   });
 }
 function openFilm(m){

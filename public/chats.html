@@ -15,10 +15,23 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .rule{height:1px; background:var(--line); margin:1em 0 1.6em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
-.msg{display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); align-items:flex-start;}
-.avatar{width:42px; height:42px; border-radius:50%; object-fit:cover; background:var(--line); flex:none; border:none; padding:0; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; font-family:-apple-system,sans-serif; font-size:15px; color:var(--ink2);}
-.m-body{flex:1; min-width:0;}
+#chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
+.tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
+  color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}
+.tile:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
+.t-cover{display:block; aspect-ratio:1; border:1px solid var(--line); background:var(--barbg); border-radius:4px; overflow:hidden; position:relative;}
+.t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
+.t-blank{display:flex; align-items:center; justify-content:center;}
+.t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
+.t-new{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
+.t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
+.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:2px;}
+.thread-head{display:flex; align-items:center; gap:12px; margin-bottom:.4em;}
+.thread-head img,.thread-head .t-blank{width:46px; height:46px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
+.thread-head .t-blank{display:flex; font-size:1.3em;}
+.seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
+.msg{padding:14px 0; border-bottom:1px solid var(--line);}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); font-weight:600;}
 .m-chat.sophie{color:var(--rose);}
@@ -32,9 +45,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
 .m-tools audio{flex:1; height:32px; min-width:0;}
+.backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
+body.reading .backwrap{display:block;}
+#back{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .replybar{position:fixed; left:0; right:0; bottom:0; background:color-mix(in srgb, var(--barbg) 94%, transparent); backdrop-filter:blur(6px);
-  border-top:1px solid var(--line); padding:10px max(4vw,12px) calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px;}
-.replybar select{font-family:-apple-system,sans-serif; font-size:12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:8px; max-width:34%;}
+  border-top:1px solid var(--line); padding:10px max(4vw,12px) calc(10px + env(safe-area-inset-bottom)); display:none; gap:8px;}
+body.reading .replybar{display:flex;}
 .replybar input{flex:1; font-family:'EBGaramond',Georgia,serif; font-size:17px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:8px 10px; min-width:0;}
 .replybar button{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
   border:1px solid var(--rose); color:var(--rose); background:var(--barbg); border-radius:6px; padding:8px 14px; cursor:pointer;}
@@ -43,16 +59,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
 </style>
+<div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div class="wrap">
-  <header>
-    <div class="no">deck factory &middot; every chat, one place</div>
-    <h1>Chats</h1>
-    <div class="rule"></div>
-  </header>
-  <div id="feed"><div class="state">Loading&hellip;</div></div>
+  <section id="home">
+    <header>
+      <div class="no">deck factory &middot; every chat, one place</div>
+      <h1>Chats</h1>
+      <div class="rule"></div>
+    </header>
+    <div id="grid"><div class="state">Loading&hellip;</div></div>
+  </section>
+  <section id="thread" style="display:none"></section>
 </div>
 <div class="replybar">
-  <select id="rchat"></select>
   <input id="rtext" placeholder="Reply&hellip; (chats check hourly)">
   <button id="rsend">Send</button>
 </div>
@@ -70,7 +89,13 @@ function ago(iso){
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
 }
-var chats={}, speaking=null;
+var chats={}, msgs=[], cur=null, speaking=null, seen={};
+try{ seen=JSON.parse(localStorage.getItem('chats-seen-v1')||'{}'); }catch(e){}
+function markSeen(name){
+  var g=groups()[name]; if(!g||!g.length) return;
+  seen[name]=g[g.length-1].created||'';
+  try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
+}
 
 function speak(text,btn){
   if(!('speechSynthesis' in window)){ toast('Voice not available here'); return; }
@@ -103,57 +128,111 @@ function setIcon(chat){
   inp.click();
 }
 
-function render(data){
-  chats=data.chats||{};
-  var feed=document.getElementById('feed'); feed.innerHTML='';
-  var msgs=data.messages||[];
-  if(!msgs.length){ feed.innerHTML='<div class="state">Nothing yet — messages appear here as chats finish replies.</div>'; }
-  msgs.forEach(function(m){
-    var row=document.createElement('div'); row.className='msg';
-    var av=document.createElement('button'); av.className='avatar'; av.title='Tap to set this chat\u2019s picture';
-    var icon=chats[m.chat]&&chats[m.chat].icon;
-    if(icon){ var im=document.createElement('img'); im.src=icon; im.className='avatar'; im.style.cursor='pointer'; im.onclick=function(){setIcon(m.chat)}; row.appendChild(im); }
-    else { av.textContent=(m.chat||'?').slice(0,2).toUpperCase(); av.onclick=function(){setIcon(m.chat)}; row.appendChild(av); }
-    var body=document.createElement('div'); body.className='m-body';
-    var firstLine=(m.tldr||m.text||'').split('\n')[0].slice(0,140);
-    body.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
-      +(m.from==='sophie'?'me \u2192 ':'')+esc(m.chat)+'</span><span class="m-time">'+ago(m.created)+'</span></div>'
-      +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
-      +'<div class="m-full">'+esc(m.text)+'</div>';
-    var tools=document.createElement('div'); tools.className='m-tools';
-    var hear=document.createElement('button'); hear.className='tbtn'; hear.innerHTML='\u25b6 hear it';
-    hear.onclick=function(e){ e.stopPropagation(); speak(m.text,hear); };
-    tools.appendChild(hear);
-    if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
-    body.appendChild(tools);
-    body.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-    body.querySelector('.m-full').onclick=function(){ row.classList.remove('open'); };
-    row.appendChild(body);
-    feed.appendChild(row);
-  });
-  // reply target options
-  var sel=document.getElementById('rchat'); sel.innerHTML='';
-  var names={}; msgs.forEach(function(m){ if(m.from!=='sophie') names[m.chat]=1; });
-  Object.keys(names).sort().forEach(function(n){
-    var o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
-  });
-  if(!sel.children.length){ var o=document.createElement('option'); o.value='general'; o.textContent='general'; sel.appendChild(o); }
+// messages grouped per chat, oldest first
+function groups(){
+  var g={};
+  msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?-1:1; })
+    .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
+  return g;
+}
+function iconHtml(name, cls){
+  var icon=chats[name]&&chats[name].icon;
+  if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
+  return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((name||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
+function renderHome(){
+  var el=document.getElementById('grid'); el.innerHTML='';
+  var g=groups();
+  var names=Object.keys(g);
+  Object.keys(chats).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
+  if(!names.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
+  names.sort(function(a,b){
+    var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
+    return la<lb?1:-1;
+  });
+  var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
+  names.forEach(function(name){
+    var list=g[name]||[];
+    var last=list.length? list[list.length-1] : null;
+    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    var b=document.createElement('button'); b.className='tile';
+    b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
+      +'<span class="t-name">'+esc(name)+'</span>'
+      +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
+    b.onclick=function(){ openChat(name); };
+    grid.appendChild(b);
+  });
+}
+
+function renderMsg(m){
+  var row=document.createElement('div'); row.className='msg';
+  var firstLine=(m.tldr||m.text||'').split('\n')[0].slice(0,140);
+  row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
+    +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span></div>'
+    +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
+    +'<div class="m-full">'+esc(m.text)+'</div>';
+  var tools=document.createElement('div'); tools.className='m-tools';
+  var hear=document.createElement('button'); hear.className='tbtn'; hear.innerHTML='\u25b6 hear it';
+  hear.onclick=function(e){ e.stopPropagation(); speak(m.text,hear); };
+  tools.appendChild(hear);
+  if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
+  row.appendChild(tools);
+  row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
+  row.querySelector('.m-full').onclick=function(){ row.classList.remove('open'); };
+  return row;
+}
+
+function openChat(name, keepScroll){
+  cur=name;
+  var sec=document.getElementById('thread'); sec.innerHTML='';
+  var head=document.createElement('header');
+  head.innerHTML='<div class="no">chats</div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1 style="margin:0">'+esc(name)+'</h1></div>'
+    +'<button class="seticon">change picture</button><div class="rule"></div>';
+  head.querySelector('.seticon').onclick=function(){ setIcon(name); };
+  sec.appendChild(head);
+  var list=(groups()[name])||[];
+  if(!list.length) sec.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  list.forEach(function(m){ sec.appendChild(renderMsg(m)); });
+  markSeen(name);
+  document.getElementById('home').style.display='none';
+  sec.style.display='';
+  document.body.classList.add('reading');
+  if(!keepScroll) window.scrollTo(0,document.body.scrollHeight);
+}
+function goHome(){
+  cur=null;
+  if(speaking){ speechSynthesis.cancel(); speaking=null; }
+  document.getElementById('thread').style.display='none';
+  document.getElementById('home').style.display='';
+  document.body.classList.remove('reading');
+  renderHome();
+  window.scrollTo(0,0);
+}
+document.getElementById('back').onclick=goHome;
+
 function load(){
-  api('/api/chatfeed').then(function(r){return r.json()}).then(render)
-    .catch(function(){ document.getElementById('feed').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>'; });
+  api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){
+    chats=data.chats||{}; msgs=data.messages||[];
+    if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
+  }).catch(function(){
+    if(!cur) document.getElementById('grid').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>';
+  });
 }
 document.getElementById('rsend').onclick=function(){
   var text=document.getElementById('rtext').value.trim();
-  var chat=document.getElementById('rchat').value;
-  if(!text) return;
-  api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:chat,text:text})})
+  if(!text||!cur) return;
+  api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:cur,text:text})})
     .then(function(r){return r.json()})
-    .then(function(d){ if(!d.ok) throw 0; document.getElementById('rtext').value=''; toast('Sent \u2014 '+chat+' will see it on its next check'); load(); })
+    .then(function(d){ if(!d.ok) throw 0; document.getElementById('rtext').value=''; toast('Sent \u2014 '+cur+' will see it on its next check'); load(); })
     .catch(function(){ toast('Couldn\u2019t send'); });
 };
 load();
-setInterval(load, 60000);
+setInterval(function(){
+  if(document.getElementById('rtext').value) return;
+  if(cur && document.querySelector('.msg.open')) return;
+  load();
+}, 60000);
 })();
 </script>
