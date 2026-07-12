@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, test
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test
     var id: String { rawValue }
 
     var title: String {
@@ -17,6 +17,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Dreams"
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
+        case .story:     return "Story Boards"
+        case .writing:   return "Writing Room"
+        case .chats:     return "Chats"
         case .test:      return "Test Station"
         }
     }
@@ -31,6 +34,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Illustrate last night's dream — and keep a journal."
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
+        case .story:     return "The video asset boards — live from the studio."
+        case .writing:   return "Read the dating-book drafts — leave notes as you go."
+        case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         }
     }
@@ -45,6 +51,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "moon.stars"
         case .instagram: return "camera"
         case .ads:       return "megaphone"
+        case .story:     return "rectangle.grid.2x2"
+        case .writing:   return "text.book.closed"
+        case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "wand.and.stars"
         }
     }
@@ -59,6 +68,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
+        case .story:     StoryBoardView()
+        case .writing:   WritingRoomView()
+        case .chats:     ChatFeedView()
         case .test:      TestStationView()
         }
     }
@@ -105,6 +117,10 @@ struct RootView: View {
             BottomBar(screen: $screen, recents: recents)
         }
         .background(Theme.bg.ignoresSafeArea())
+        // Keep the bottom bar pinned to the bottom edge — without this the
+        // keyboard's safe-area inset lifts the whole VStack, floating the bar
+        // above the keyboard. Each tool's own ScrollView still lifts its fields.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // Keep the three recent tools + gallery alive so their state (a generated
@@ -112,7 +128,7 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open)
+            HomeGrid(open: open, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
             ForEach(recents.recentThree) { t in
@@ -123,6 +139,22 @@ struct RootView: View {
             NavigationStack { CreationsView() }
                 .opacity(screen == .gallery ? 1 : 0)
                 .allowsHitTesting(screen == .gallery)
+            // The autoscroll pill, on every native scrollable screen. The
+            // web-view tools (Writing Room, Chats) carry their own in-page.
+            if showAutoScroll {
+                AutoScrollPill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.top, 64)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
+    private var showAutoScroll: Bool {
+        switch screen {
+        case .home: return false
+        case .gallery: return true
+        case .tool(let t): return t != .writing && t != .chats
         }
     }
 
@@ -172,7 +204,19 @@ private struct BottomBar: View {
 /// into the recent slots).
 private struct HomeGrid: View {
     var open: (Tool) -> Void
+    @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    // Sophie's home order: Story Boards pinned first; greeting cards, stickers,
+    // storybooks, and coloring pages pinned last; everything in between rotates
+    // by most-recent use.
+    private var tools: [Tool] {
+        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
+        let middle = Tool.allCases.filter { $0 != .story && !pinnedBottom.contains($0) }
+        let ranked = recents.order.filter { middle.contains($0) }
+        let rest = middle.filter { !ranked.contains($0) }
+        return [.story] + ranked + rest + pinnedBottom
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -183,7 +227,7 @@ private struct HomeGrid: View {
             .padding(.bottom, 4)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(Tool.allCases) { t in
+                    ForEach(tools) { t in
                         Button { open(t) } label: {
                             HubCard(icon: t.icon, title: t.title, desc: t.desc)
                         }

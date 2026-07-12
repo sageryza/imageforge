@@ -34,8 +34,37 @@ const MANAGED_KEYS = [
   'LULU_API_KEY', 'LULU_API_SECRET', 'LULU_BASE64', 'LULU_SANDBOX', 'LULU_API_BASE',
   'SHOPIFY_STORE', 'SHOPIFY_ADMIN_TOKEN', 'SHOPIFY_API_VERSION',
   'SHOPIFY_CLIENT_ID', 'SHOPIFY_CLIENT_SECRET',
-  'OPENAI_API_KEY', 'REPLICATE_API_TOKEN',
+  'OPENAI_API_KEY', 'REPLICATE_API_TOKEN', 'ANTHROPIC_API_KEY',
+  'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REDIRECT_URI',
 ];
+
+// The Anthropic key already lives in its OWN Firestore doc (`config/anthropic`,
+// field `key`) shared with the sibling repos, so we also read it from there
+// instead of forcing a duplicate into config/pipeline. Field name → env name.
+// Env vars still win (checked in loadExtraDoc). Same shape as `config/openai`
+// etc. that the games app uses.
+const EXTRA_DOCS = [
+  { path: 'config/anthropic', fields: { key: 'ANTHROPIC_API_KEY' } },
+];
+
+// Read one extra Firestore doc and map its fields onto env names (gap-fill only).
+async function loadExtraDoc(spec, loaded) {
+  try {
+    const slash = spec.path.indexOf('/');
+    const snap = await admin.firestore().collection(spec.path.slice(0, slash)).doc(spec.path.slice(slash + 1)).get();
+    if (!snap.exists) return;
+    const data = snap.data() || {};
+    for (const [field, envName] of Object.entries(spec.fields)) {
+      const val = data[field];
+      if (val == null || String(val).length === 0) continue;
+      if (process.env[envName]) continue; // env wins
+      process.env[envName] = String(val);
+      loaded.push(envName);
+    }
+  } catch (err) {
+    console.warn(`config-loader: read of ${spec.path} failed — ${err.message}`);
+  }
+}
 
 // Read the Firestore config doc and populate process.env for any managed key
 // that isn't already set. Returns a small summary for logging. Never throws —
@@ -55,20 +84,22 @@ async function loadConfig() {
     console.warn(`config-loader: Firestore read of ${CONFIG_PATH} failed — ${err.message}. Using env vars only.`);
     return { source: 'env', loaded: [], error: err.message };
   }
-  if (!snap.exists) {
-    console.log(`config-loader: no Firestore doc at ${CONFIG_PATH} — using host env vars only`);
-    return { source: 'env', loaded: [] };
-  }
-  const data = snap.data() || {};
   const loaded = [];
   const skipped = [];
-  for (const key of MANAGED_KEYS) {
-    const val = data[key];
-    if (val == null || String(val).length === 0) continue;
-    if (process.env[key]) { skipped.push(key); continue; } // env wins
-    process.env[key] = String(val);
-    loaded.push(key);
+  if (snap.exists) {
+    const data = snap.data() || {};
+    for (const key of MANAGED_KEYS) {
+      const val = data[key];
+      if (val == null || String(val).length === 0) continue;
+      if (process.env[key]) { skipped.push(key); continue; } // env wins
+      process.env[key] = String(val);
+      loaded.push(key);
+    }
+  } else {
+    console.log(`config-loader: no Firestore doc at ${CONFIG_PATH}`);
   }
+  // Pull keys that live in their own sibling-repo docs (e.g. config/anthropic).
+  for (const spec of EXTRA_DOCS) await loadExtraDoc(spec, loaded);
   console.log(
     `config-loader: hydrated ${loaded.length} key(s) from ${CONFIG_PATH}` +
     (loaded.length ? ` [${loaded.join(', ')}]` : '') +

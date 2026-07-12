@@ -7,6 +7,13 @@ const fs = require('fs');
 const FormData = require('form-data');
 const admin = require('firebase-admin');
 
+// Natal-chart deps (Secretly a Witch). Guarded so a missing/broken install
+// degrades ONLY the /api/witch/natal endpoint instead of crashing the whole
+// server at boot (astro.js pulls in the astronomia ephemeris).
+let tzlookup = null, astro = null;
+try { tzlookup = require('tz-lookup'); astro = require('./astro'); }
+catch (e) { console.error('Natal-chart engine unavailable:', e.message); }
+
 const app = express();
 
 // ─── CORS ───────────────────────────────────────────────────────────
@@ -63,6 +70,68 @@ async function openaiChat(body, retries = 3) {
   throw lastErr;
 }
 
+// Call the Anthropic Messages API (raw fetch — mirrors openaiChat, the house
+// pattern for AI calls). Used by "Secretly a Witch" for the once-a-day, higher
+// quality reading (Claude Opus 4.8). Key is read at call time from process.env
+// because config-loader.js hydrates ANTHROPIC_API_KEY from Firestore AFTER boot.
+// 'Connection: close' avoids stale keep-alive sockets ("Premature close").
+// Resolve the Anthropic key: env first (config-loader hydrates it from
+// Firestore config/anthropic at boot), else read that doc directly on demand
+// and cache it — so the feature works even if boot hydration was skipped.
+let _anthropicKey = null;
+async function getAnthropicKey() {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
+  if (_anthropicKey) return _anthropicKey;
+  if (!admin.apps.length) return '';
+  const db = admin.firestore();
+  // Try both the dedicated doc and the pipeline config doc.
+  for (const [path, field] of [['config/anthropic', 'key'], ['config/pipeline', 'ANTHROPIC_API_KEY']]) {
+    try {
+      const snap = await db.doc(path).get();
+      const k = snap.exists ? String(snap.data()[field] || '') : '';
+      if (k) { _anthropicKey = k; process.env.ANTHROPIC_API_KEY = k; return k; }
+    } catch (e) { console.warn('getAnthropicKey read failed —', e.message); }
+  }
+  return '';
+}
+async function anthropicChat({ system, messages, max_tokens = 2000, temperature, model = 'claude-opus-4-8' }, retries = 2) {
+  const key = await getAnthropicKey();
+  if (!key) throw new Error('ANTHROPIC_API_KEY not set');
+  const body = { model, max_tokens, messages };
+  if (system) body.system = system;
+  if (typeof temperature === 'number') body.temperature = temperature;
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'connection': 'close',
+        },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+// Extract the concatenated text of an Anthropic response (ignores any
+// thinking/tool blocks), then strip markdown fences and JSON.parse it.
+function anthropicText(data) {
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+function parseAnthropicJson(data) {
+  const t = anthropicText(data).replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  return JSON.parse(t);
+}
+
 // ─── Firebase Setup ─────────────────────────────────────────────────
 let bucket = null;
 try {
@@ -114,6 +183,9 @@ loadConfig().then(() => {
   const shopify = require('./shopify');
   const blog = require('./blog');
   const sync = require('./sync');
+  const writing = require('./writing');
+  const gdrive = require('./gdrive');
+  const chatfeed = require('./chatfeed');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -132,7 +204,10 @@ loadConfig().then(() => {
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   app.use('/api/sync', sync.router);
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog)');
+  app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
+  app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
+  app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -217,6 +292,10 @@ app.get('/gallery', (req, res) => { res.sendFile(__dirname + '/public/gallery.ht
 app.get('/test', (req, res) => { res.sendFile(__dirname + '/public/test.html'); });
 
 app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
+
+// Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
+// Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
+app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
@@ -323,6 +402,265 @@ app.get('/song', serveGated('song.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
+// Story view: the Evan & Charlie video asset board — approved art placed
+// inside the narration with missing beats flagged. A committed snapshot
+// (assets embedded as data URIs); regenerate when the asset set changes.
+// Same gate as the Studio.
+app.get('/story', serveGated('story.html'));
+
+// Story-board API: the same projects, served live from Firestore (synced by
+// scripts/sync-story.js) so the iOS app updates without an app build. Reads
+// the `forge-story` collection. Same x-studio-token gate as the pipeline.
+// GOTCHA (discovered 2026-07-11): this server's FIREBASE_SERVICE_ACCOUNT is the
+// deckfactory-43176 project, but the story boards (and the iOS app's direct
+// Firestore reads) live in membry-df528. Set STORY_FIREBASE_SERVICE_ACCOUNT to
+// a membry service-account JSON to read the real boards; without it this
+// endpoint can only see the (empty) local project's collection.
+let storyApp = null;
+let storyCredChecked = false;
+function initStoryApp(saJson) {
+  storyApp = admin.initializeApp(
+    { credential: admin.credential.cert(saJson),
+      storageBucket: `${saJson.project_id}.firebasestorage.app` }, 'story');
+  console.log('Story boards: secondary Firebase app initialized (' + saJson.project_id + ')');
+}
+async function storyDb() {
+  if (storyApp) return storyApp.firestore();
+  const raw = process.env.STORY_FIREBASE_SERVICE_ACCOUNT;
+  if (raw) {
+    try { initStoryApp(JSON.parse(raw)); return storyApp.firestore(); }
+    catch (err) { console.error('STORY_FIREBASE_SERVICE_ACCOUNT invalid:', err.message); }
+  }
+  // Fall back to a credential stored in THIS project's Firestore (set once via
+  // POST /api/story/credential — same survival-across-deploys trick as the
+  // Etsy tokens in config/etsy-tokens).
+  if (!storyCredChecked && admin.apps.length) {
+    storyCredChecked = true;
+    try {
+      const doc = await admin.firestore().doc('config/story-credential').get();
+      if (doc.exists && doc.data().serviceAccount) {
+        initStoryApp(JSON.parse(doc.data().serviceAccount));
+        return storyApp.firestore();
+      }
+    } catch (err) { console.error('story credential load failed:', err.message); }
+  }
+  if (!admin.apps.length) return null;
+  return admin.firestore();
+}
+// Store the membry service-account JSON once; write-once (409 on repeat)
+// unless ?force=1, and only accepted after a live test read of forge-story.
+app.post('/api/story/credential', express.json({ limit: '64kb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const sa = req.body && req.body.serviceAccount;
+    if (!sa || sa.type !== 'service_account' || !sa.project_id || !sa.private_key) {
+      return res.status(400).json({ error: 'serviceAccount must be a service_account JSON object' });
+    }
+    const ref = admin.firestore().doc('config/story-credential');
+    if ((await ref.get()).exists && req.query.force !== '1') {
+      return res.status(409).json({ error: 'credential already set (use ?force=1 to replace)' });
+    }
+    // Prove it works before saving: read forge-story with a throwaway app.
+    const testApp = admin.initializeApp({ credential: admin.credential.cert(sa) }, 'story-test-' + Date.now());
+    let count;
+    try {
+      count = (await testApp.firestore().collection('forge-story').get()).size;
+    } finally { await testApp.delete(); }
+    await ref.set({ serviceAccount: JSON.stringify(sa), projectId: sa.project_id, updated: new Date().toISOString() });
+    if (storyApp) { await storyApp.delete().catch(() => {}); storyApp = null; }
+    storyCredChecked = false;
+    res.json({ ok: true, projectId: sa.project_id, boardsVisible: count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Upload art for a beat from the Story Room — image goes straight to the
+// boards' Storage as a CANDIDATE card; no chat tokens spent looking at it.
+app.post('/api/story/art', express.json({ limit: '14mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, label, image } = req.body || {};
+    const m = String(image || '').match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+    if (!m) return res.status(400).json({ error: 'image must be a data URL' });
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    if (!b) return res.status(404).json({ error: 'unknown beat' });
+    const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+    const name = `story/upload-${projectId}-b${beat}-${Date.now()}.${ext}`;
+    const bucket = storyApp.storage().bucket();
+    const file = bucket.file(name);
+    await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+    await file.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    b.cards = b.cards || [];
+    b.cards.push({ label: String(label || 'uploaded art').slice(0, 80), status: 'cand', url });
+    await ref.set(data);
+    res.json({ ok: true, url, card: b.cards.length - 1 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Flip a card's status from the Story Room (tap-to-approve).
+app.post('/api/story/status', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, beat, card, status } = req.body || {};
+    if (!['ok', 'cand', 'draft', 'miss'].includes(status)) {
+      return res.status(400).json({ error: 'status must be ok|cand|draft|miss' });
+    }
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const b = (data.beats || [])[Number(beat)];
+    const c = b && (b.cards || [])[Number(card)];
+    if (!c) return res.status(404).json({ error: 'unknown beat/card' });
+    c.status = status;
+    await ref.set(data);
+    res.json({ ok: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/story', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    // No orderBy: Firestore's orderBy silently drops docs missing the field.
+    const snap = await db.collection('forge-story').get();
+    const projects = snap.docs.map((d) => d.data())
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    res.json({ projects, source: storyApp ? 'membry (STORY_FIREBASE_SERVICE_ACCOUNT)' : 'local project' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Thumbnails for the Story Room: the boards' card images are full-res
+// (~3MB PNGs), which made the grid crawl on the phone. Resize once with
+// sharp, cache the webp in THIS project's Storage (`thumbs/`), and
+// 302-redirect there ever after. No token gate — <img> tags can't send
+// headers — but it only re-serves already-public images from Google
+// storage hosts, so it can't be used as an open proxy. Any failure falls
+// back to redirecting to the original image rather than a broken cell.
+const THUMB_HOSTS = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
+const thumbHot = new Map(); // url|w → cached public URL (per-process)
+app.get('/api/story/thumb', async (req, res) => {
+  const url = String(req.query.url || '');
+  try {
+    const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
+    if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
+    if (!admin.apps.length) return res.redirect(302, url);
+    const key = url + '|' + w;
+    if (thumbHot.has(key)) return res.redirect(302, thumbHot.get(key));
+    const name = 'thumbs/' + require('crypto').createHash('sha1').update(key).digest('hex') + '.webp';
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(name);
+    const [exists] = await file.exists();
+    if (!exists) {
+      const r = await fetch(url);
+      if (!r.ok) return res.redirect(302, url);
+      const out = await require('sharp')(await r.buffer())
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: 75 })
+        .toBuffer();
+      await file.save(out, { contentType: 'image/webp', resumable: false });
+      await file.makePublic();
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    res.redirect(302, pub);
+  } catch (err) {
+    console.error('thumb failed:', err.message);
+    if (THUMB_HOSTS.test(url)) return res.redirect(302, url);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── The Wall: everything every chat produced, in one live feed ─────
+// Merges this project's Storage (generated images, movie panels, zine
+// pages, dream comics) with the story boards' art (membry bucket) into
+// one newest-first list for the /wall page. Same gate as the pipeline.
+app.get('/api/wall', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const limit = Math.min(500, parseInt(req.query.limit, 10) || 200);
+    const out = [];
+    // derived/plumbing folders, not art
+    const SKIP = /^(thumbs|writing-audio|writing-notes|chat-feed|songs|ingest)\//;
+    if (bucket) {
+      const [files] = await bucket.getFiles();
+      files.forEach((f) => {
+        if (SKIP.test(f.name) || !/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+        out.push({
+          url: `https://storage.googleapis.com/${bucket.name}/${f.name}`,
+          folder: f.name.split('/')[0] || 'studio',
+          created: f.metadata.timeCreated,
+        });
+      });
+    }
+    try {
+      await storyDb(); // initializes storyApp when a credential is configured
+      if (storyApp) {
+        const sb = storyApp.storage().bucket();
+        const [sfiles] = await sb.getFiles({ prefix: 'story/' });
+        sfiles.forEach((f) => {
+          if (!/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+          out.push({
+            url: `https://storage.googleapis.com/${sb.name}/${f.name}`,
+            folder: 'story boards',
+            created: f.metadata.timeCreated,
+          });
+        });
+      }
+    } catch (err) { console.warn('wall: story bucket unavailable:', err.message); }
+    out.sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ images: out.slice(0, limit), total: out.length, newest: out[0] ? out[0].created : null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/wall', serveGated('wall.html'));
+
+// Story Room: the movie asset boards in the Writing Room's frame — narration
+// with the art in place, live from /api/story (no deploy needed for content),
+// notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
+// Regenerate with scripts/gen-storyroom.py. Same gate as the Studio.
+app.get('/storyroom', serveGated('storyroom.html'));
+
+// Writing Room: the dating-book working drafts — every date in two versions
+// (Sophie's original journal + the current draft with Claude's changes in
+// red), autoscroll reading, and review notes (text or voice memo) that persist
+// to Firestore (`forge-writing-notes`) so any chat can pull and apply them.
+// Page + data regenerate with scripts/gen-writing.py. Same gate as the Studio.
+app.get('/writing', serveGated('writing.html'));
+
+// The Chat app: every project chat's replies in one feed — picture icon per
+// chat, tap to expand, free device-voice read-aloud, polished memos when
+// attached, and a reply box (chats pick replies up on their hourly checks).
+// Regenerate with scripts/gen-chats.py. Same gate as the Studio.
+app.get('/chats', serveGated('chats.html'));
+
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
 app.get('/blog', serveGated('blog.html'));
@@ -516,6 +854,452 @@ Return valid JSON only, no markdown fences: an array of objects with "title", "t
     const parsed = JSON.parse(cleaned);
     const entries = Array.isArray(parsed) ? parsed : [parsed];
     res.json({ entries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Secretly a Witch — public witchy app (/witch)
+// A small set of stateless AI endpoints powering the public app: tarot
+// readings, spells/rituals, familiar names, and daily horoscopes. All reuse
+// openaiChat (gpt-4o-mini). The tarot DECK itself lives client-side; the
+// client sends the drawn cards and the server writes the interpretation.
+// ═══════════════════════════════════════════════════════════════════
+
+// Strip markdown fences and parse JSON from a chat completion.
+function parseJsonReply(data) {
+  const text = (data.choices?.[0]?.message?.content || '').trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  return JSON.parse(cleaned);
+}
+
+// ─── Tarot reading ──────────────────────────────────────────────────
+// Body: { question?, spread ("single"|"three"|"yesno"), cards:[{name, orientation, position?}] }
+app.post('/api/witch/tarot', async (req, res) => {
+  try {
+    const { question = '', spread = 'single', cards = [] } = req.body || {};
+    if (!Array.isArray(cards) || !cards.length) return res.status(400).json({ error: 'cards is required' });
+
+    const cardList = cards.map((c, i) =>
+      `${c.position ? c.position + ': ' : `Card ${i + 1}: `}${c.name} (${c.orientation || 'upright'})`
+    ).join('\n');
+
+    const system = `You are a warm, insightful tarot reader for an app called "Secretly a Witch". You give grounded, encouraging, non-fatalistic readings — tarot as a mirror for reflection, never doom or medical/financial/legal certainty. Speak directly to the querent as "you". Keep it intimate and a little luminous, never generic or preachy.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "cards": [{ "name": "...", "meaning": "1-2 sentences on what this card in this position/orientation says" }],
+  "reading": "2-3 short paragraphs weaving the cards together into one message",
+  "advice": "one short, actionable, gentle suggestion"
+}`;
+
+    const userMsg = `Spread: ${spread}${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}\nCards drawn:\n${cardList}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.85,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Spell / ritual generator ───────────────────────────────────────
+// Body: { intent, kind ("spell"|"ritual"|"blessing"|"protection") }
+app.post('/api/witch/spell', async (req, res) => {
+  try {
+    const { intent, kind = 'spell' } = req.body || {};
+    if (!intent || !intent.trim()) return res.status(400).json({ error: 'intent is required' });
+
+    const system = `You are a cozy, folk-magic witch writing gentle ${kind}s for an app called "Secretly a Witch". Your magic is symbolic, safe, and beginner-friendly: everyday household/kitchen/garden items, candles, herbs, intentions, journaling — never anything dangerous, never real medical/legal/financial claims, never harm to others. The tone is warm, a little whimsical, empowering.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "title": "a short evocative name for the ${kind}",
+  "best_time": "e.g. 'a waxing moon evening' or 'sunrise'",
+  "ingredients": ["4-6 simple, accessible items"],
+  "steps": ["4-6 clear, calm steps"],
+  "incantation": "2-4 lines to say aloud (gentle, rhythmic)",
+  "note": "one grounding sentence — the real magic is intention/attention"
+}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Intent: ${intent}. Write one ${kind}.` },
+      ],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Name your familiar ─────────────────────────────────────────────
+// Body: { animal?, vibe? }
+app.post('/api/witch/familiar', async (req, res) => {
+  try {
+    const { animal = '', vibe = '' } = req.body || {};
+    const system = `You name magical familiars for an app called "Secretly a Witch". Given an animal and/or a vibe, invent 4 evocative familiar names with tiny personalities. Names should feel witchy, folkloric, a little unexpected — not clichéd (avoid "Salem", "Luna", "Shadow" unless it truly fits).
+
+Return valid JSON only, no markdown fences, shaped:
+{ "familiars": [ { "name": "...", "species": "...", "trait": "2-4 word personality", "blurb": "one charming sentence about them" } ] }`;
+
+    const userMsg = `Animal: ${animal || 'any — you choose'}. Vibe: ${vibe || 'any — you choose'}.`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 1,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Daily witchy horoscope ─────────────────────────────────────────
+// Body: { sign, date? }  — date is a display string for flavor/variety.
+app.post('/api/witch/horoscope', async (req, res) => {
+  try {
+    const { sign, date = '' } = req.body || {};
+    if (!sign) return res.status(400).json({ error: 'sign is required' });
+
+    const system = `You write short daily horoscopes with a cozy-witch twist for an app called "Secretly a Witch". Warm, specific, encouraging — astrology as gentle reflection, never fatalistic or medical/financial certainty.
+
+Return valid JSON only, no markdown fences, shaped:
+{
+  "horoscope": "2-3 sentences for the day",
+  "focus": "one word or short phrase — the day's theme",
+  "charm": "a tiny suggested small act of magic for the day (one sentence)",
+  "element_note": "one sentence tying it to the sign's element"
+}`;
+
+    const data = await openaiChat({
+      model: 'gpt-4o-mini',
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Sign: ${sign}.${date ? ` Date: ${date}.` : ''} Write today's reading.` },
+      ],
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json(parseJsonReply(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Firebase web config for the public app (Secretly a Witch accounts) ──
+// Returns the PUBLIC Firebase web config (safe to expose) so the client can
+// use Firebase Auth + Firestore. Reads from env; returns { configured:false }
+// until the web-app keys are set, so the app runs fine with accounts dormant.
+// Same Firebase project powers a future native iOS app (shared users/data).
+app.get('/api/witch/firebase-config', (req, res) => {
+  // These are the PUBLIC Firebase web config values for project membry-df528
+  // (the same project the games app uses). A web apiKey is designed to be
+  // exposed in the browser — real security is Firebase Auth authorized domains
+  // + Firestore rules, not secrecy of this key. Env vars override if ever needed.
+  const apiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCA04ReaTAoNDUgUCuBS-ti0Jkfl-16h_s';
+  const appId = process.env.FIREBASE_WEB_APP_ID || '1:513384339473:web:8f46c5915a949c93a8b9b0';
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'membry-df528';
+  if (!apiKey || !appId) return res.json({ configured: false });
+  res.json({
+    configured: true,
+    apiKey, appId, projectId,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'membry-df528.firebasestorage.app',
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '513384339473',
+  });
+});
+
+// ─── Natal chart + reading ──────────────────────────────────────────
+// Real astronomy → real chart (astro.js) → AI interpretation. Body:
+// { date:"YYYY-MM-DD", time:"HH:MM" (optional), place:"City, Country" }.
+// Without a time, planet signs still compute but rising/houses are omitted.
+function tzOffsetHours(zone, dateUTC) {
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const p = dtf.formatToParts(dateUTC).reduce((a, x) => (a[x.type] = x.value, a), {});
+  const asUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  return (asUTC - dateUTC.getTime()) / 3600000;
+}
+app.post('/api/witch/natal', async (req, res) => {
+  try {
+    if (!astro || !tzlookup) return res.status(503).json({ error: 'The astrology engine is still warming up on the server — try again shortly.' });
+    const { date, time, place } = req.body || {};
+    if (!date || !place) return res.status(400).json({ error: 'date and place are required' });
+    const [y, m, d] = String(date).split('-').map(Number);
+    if (!y || !m || !d) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+
+    // Geocode the birthplace (OpenStreetMap Nominatim — free, no key needed).
+    const geoRes = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(place), { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (natal chart feature)' } });
+    const geo = await geoRes.json();
+    if (!Array.isArray(geo) || !geo.length) return res.status(400).json({ error: `Couldn't find "${place}" — try "City, Country".` });
+    const lat = +geo[0].lat, lon = +geo[0].lon, placeName = geo[0].display_name;
+
+    // Timezone + historical (DST-aware) UTC offset for the birth moment.
+    const zone = tzlookup(lat, lon);
+    const hasTime = Boolean(time && /^\d{1,2}:\d{2}$/.test(time));
+    const [hh, mm] = hasTime ? time.split(':').map(Number) : [12, 0];
+    const localAsUTC = Date.UTC(y, m - 1, d, hh, mm);
+    const off = tzOffsetHours(zone, new Date(localAsUTC));
+    const ut = new Date(localAsUTC - off * 3600000);
+    const utHours = ut.getUTCHours() + ut.getUTCMinutes() / 60 + ut.getUTCSeconds() / 3600;
+
+    const chart = astro.computeChart({ y: ut.getUTCFullYear(), m: ut.getUTCMonth() + 1, d: ut.getUTCDate(), utHours, lat, lon, withAngles: hasTime });
+
+    // Interpret the computed placements (never recompute in the model).
+    const placements = chart.bodies.map(b => `${b.name} in ${b.sign} ${Math.round(b.degInSign)}°${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' retrograde' : ''}`).join('\n');
+    const angles = hasTime
+      ? `Ascendant/Rising: ${chart.ascendant.sign} ${Math.round(chart.ascendant.degInSign)}°\nMidheaven: ${chart.midheaven.sign} ${Math.round(chart.midheaven.degInSign)}°\n`
+      : '(No birth time provided — rising sign and houses omitted; note this gently.)\n';
+    const aspects = chart.aspects.slice(0, 8).map(a => `${a.a} ${a.aspect} ${a.b}`).join(', ') || 'none notable';
+
+    const system = `You are a warm, insightful astrologer for the app "Secretly a Witch". You are handed a REAL, accurately computed natal chart — interpret it, never recompute or contradict the given positions. Grounded, specific, encouraging; astrology as a reflective mirror, never fatalistic and never medical/financial/legal certainty. Speak directly to them as "you"; cozy, a little luminous, never generic.
+
+Return valid JSON only, no markdown fences:
+{
+  "headline": "one evocative sentence for the whole chart",
+  "big_three": "2-3 sentences weaving Sun + Moon + Rising",
+  "sections": [ { "title": "short title", "text": "2-3 sentences" } ],
+  "closing": "one warm, grounding sentence"
+}
+Give 3 to 5 sections on the most striking placements, houses, and aspects.`;
+    const user = `Natal chart (already computed — interpret only):\n${angles}${placements}\nTightest aspects: ${aspects}.`;
+
+    const data = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.85, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    res.json({ chart, reading: parseJsonReply(data), place: placeName, coords: { lat, lon }, tz: zone, hasTime });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Daily reading (ONE Claude Opus 4.8 call, cached per user per day) ──
+// The Home screen of "Secretly a Witch". A single Opus call writes the whole
+// day at once: a Co-Star-style personalized astrology reading (from the user's
+// real natal chart + today's transits), the interpretation of their daily
+// 3-card past/present/future tarot pull, and a one-line intention. Cached in
+// Firestore (forge-witch-daily/{uid}_{date}) so it costs ~1 call/user/day; the
+// client sends the deterministic-for-today cards so the reading matches them.
+//
+// Body: {
+//   uid?, date:"YYYY-MM-DD" (client's LOCAL day), moonPhase?,
+//   cards:[{name, orientation, position:"Past"|"Present"|"Future"}],
+//   birth?: { date:"YYYY-MM-DD", time?:"HH:MM", place?, lat?, lon?, tz? },
+//   force?  // regenerate even if cached
+// }
+const TRANSIT_ASPECTS = [
+  { name: 'conjunction', angle: 0, orb: 4 },
+  { name: 'sextile', angle: 60, orb: 3 },
+  { name: 'square', angle: 90, orb: 4 },
+  { name: 'trine', angle: 120, orb: 4 },
+  { name: 'opposition', angle: 180, orb: 4 },
+];
+function transitAspects(transit, natal) {
+  const out = [];
+  for (const t of transit) {
+    for (const n of natal) {
+      let diff = Math.abs(t.lon - n.lon) % 360;
+      if (diff > 180) diff = 360 - diff;
+      for (const a of TRANSIT_ASPECTS) {
+        if (Math.abs(diff - a.angle) <= a.orb) { out.push({ t: t.name, aspect: a.name, n: n.name, orb: +Math.abs(diff - a.angle).toFixed(1) }); break; }
+      }
+    }
+  }
+  return out.sort((x, y) => x.orb - y.orb);
+}
+app.post('/api/witch/daily', async (req, res) => {
+  try {
+    const { uid, date, cards = [], moonPhase = '', birth = null, force = false } = req.body || {};
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date (YYYY-MM-DD) is required' });
+    if (!Array.isArray(cards) || cards.length !== 3) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
+
+    const db = admin.apps.length ? admin.firestore() : null;
+
+    // Resolve the natal chart if birth details are available (personalizes the
+    // astrology). lat/lon/tz can be passed by the client (cached from /natal) to
+    // skip geocoding; otherwise geocode once here.
+    let natal = null, bigThree = null, transitList = null, tAspects = null, birthErr = null;
+    if (birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
+      try {
+        const [by, bm, bd] = birth.date.split('-').map(Number);
+        let lat = Number(birth.lat), lon = Number(birth.lon), zone = birth.tz;
+        if (!isFinite(lat) || !isFinite(lon)) {
+          const gq = birth.place || '';
+          const geoRes = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(gq), { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (daily reading)' } });
+          const geo = await geoRes.json();
+          if (Array.isArray(geo) && geo.length) { lat = +geo[0].lat; lon = +geo[0].lon; }
+        }
+        if (isFinite(lat) && isFinite(lon)) {
+          if (!zone) zone = tzlookup(lat, lon);
+          const hasTime = Boolean(birth.time && /^\d{1,2}:\d{2}$/.test(birth.time));
+          const [hh, mm] = hasTime ? birth.time.split(':').map(Number) : [12, 0];
+          const localAsUTC = Date.UTC(by, bm - 1, bd, hh, mm);
+          const off = tzOffsetHours(zone, new Date(localAsUTC));
+          const ut = new Date(localAsUTC - off * 3600000);
+          const utHours = ut.getUTCHours() + ut.getUTCMinutes() / 60;
+          natal = astro.computeChart({ y: ut.getUTCFullYear(), m: ut.getUTCMonth() + 1, d: ut.getUTCDate(), utHours, lat, lon, withAngles: hasTime });
+          const sun = natal.bodies.find(b => b.name === 'Sun');
+          const moon = natal.bodies.find(b => b.name === 'Moon');
+          bigThree = { sun: sun && sun.sign, moon: moon && moon.sign, rising: natal.ascendant && natal.ascendant.sign };
+
+          // Today's transiting positions (geocentric — location-independent).
+          const now = new Date();
+          const tChart = astro.computeChart({ y: now.getUTCFullYear(), m: now.getUTCMonth() + 1, d: now.getUTCDate(), utHours: now.getUTCHours() + now.getUTCMinutes() / 60, lat, lon, withAngles: false });
+          transitList = tChart.bodies;
+          tAspects = transitAspects(tChart.bodies, natal.bodies).slice(0, 8);
+        }
+      } catch (e) { birthErr = e.message; }
+    }
+
+    // Cache key includes an input hash so a changed birthday / new cards
+    // regenerate instead of serving a stale reading.
+    const crypto = require('crypto');
+    const inputHash = crypto.createHash('sha1').update(JSON.stringify({
+      b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+    })).digest('hex').slice(0, 12);
+    const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
+    if (docRef && !force) {
+      const snap = await docRef.get();
+      if (snap.exists && snap.data().inputHash === inputHash) {
+        return res.json({ ...snap.data().reading, cached: true, date });
+      }
+    }
+
+    // ── Two INDEPENDENT calls (run in parallel) so the tarot and the
+    // astrology never influence each other: astrology sees ONLY the chart,
+    // tarot sees ONLY the cards. Same JSON shape assembled from both. ──
+    const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
+    let astroContext;
+    if (natal && bigThree) {
+      const placements = natal.bodies.map(b => `${b.name} in ${b.sign}${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' rx' : ''}`).join(', ');
+      const transits = transitList.map(b => `${b.name} in ${b.sign}${b.retro ? ' rx' : ''}`).join(', ');
+      const asp = (tAspects || []).map(a => `transiting ${a.t} ${a.aspect} natal ${a.n}`).join('; ') || 'none tight today';
+      astroContext = `They HAVE a birth chart (interpret it, never recompute):
+Big three: Sun ${bigThree.sun}, Moon ${bigThree.moon}${bigThree.rising ? `, Rising ${bigThree.rising}` : ' (no birth time — no rising)'}.
+Natal placements: ${placements}.
+TODAY's sky (transits): ${transits}.
+Today's tightest transits to their chart: ${asp}.`;
+    } else {
+      astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
+    }
+
+    const voice = `warm, intimate, a-little-luminous — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.`;
+
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it punchy and direct — short sentences, a little tough-love, no filler.
+You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
+  "reading": "ONE tight paragraph (3-5 sentences), personalized to their chart + today's transits (or general if no chart)",
+  "focus": "1-3 word theme for the day",
+  "invite": "",
+  "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
+  "ritual": "one tiny, doable ritual for today — a single sentence (a candle, a written line, a small deliberate act)",
+  "ingredients": ["EXACTLY 3 short 'ingredients' for the day, like a witch's recipe — 2-4 words each, evocative and concrete (a feeling, an action, a small comfort), e.g. 'a pinch of patience'"],
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
+}
+Give EXACTLY 2 omens. Keep ingredients and omens specific and a little witchy, never generic. Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+    const astroUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
+${astroContext}
+
+Write today's astrology reading now.`;
+
+    const tarotSystem = `You are a warm tarot reader for "Secretly a Witch". Your voice is ${voice}
+Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT mention astrology, transits, or the moon.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
+  "advice": "one gentle, actionable suggestion"
+}`;
+    const tarotUser = `Date: ${date}.
+Their daily 3-card tarot pull (past / present / future):
+${cardLines}
+
+Write the reading now.`;
+
+    const [aData, tData] = await Promise.all([
+      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1900, temperature: 1 }),
+      anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
+    ]);
+    if (aData.error) return res.status(400).json({ error: (aData.error.message || 'anthropic error') + ' (astrology)' });
+    if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
+
+    let astrology, tarot;
+    try { astrology = parseAnthropicJson(aData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the astrology reading — try again.', detail: e.message }); }
+    try { tarot = parseAnthropicJson(tData); }
+    catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
+
+    const intention = astrology.intention || '';
+    delete astrology.intention;
+    const reading = { astrology, tarot, intention };
+    reading.hasChart = Boolean(natal && bigThree);
+    if (bigThree) reading.bigThree = bigThree;
+
+    if (docRef) {
+      docRef.set({ reading, inputHash, date, uid, createdAt: new Date().toISOString() }).catch(() => {});
+    }
+    res.json({ ...reading, cached: false, date });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Rider-Waite-Smith (1909, public domain) tarot deck manifest ────────
+// Card display name → permanent Firebase image URL. The 78 scans were mirrored
+// from Wikimedia Commons to Firebase Storage (witch-tarot/) once; this just
+// serves the committed name→URL map so the client can show real card art.
+let TAROT_DECK = null;
+try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* manifest optional */ }
+app.get('/api/witch/tarot-deck', (req, res) => {
+  if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
+  res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
+});
+
+// ─── Shop proxy (secretlyawitch.com Shopify storefront) ─────────────────
+// Pulls the public products.json so the app's Shop tab shows real products
+// (image, title, price, link) without any storefront token. Cached in memory
+// ~10 min. Every product's own URL still opens the real Shopify checkout.
+let SHOP_CACHE = { at: 0, data: null };
+app.get('/api/witch/shop', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
+    const base = 'https://secretlyawitch.com';
+    const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
+    if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
+    const j = await r.json();
+    const products = (j.products || []).map(p => {
+      const v = (p.variants || [])[0] || {};
+      const img = (p.images || [])[0] || {};
+      const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));
+      return {
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        url: `${base}/products/${p.handle}`,
+        image: img.src || null,
+        price: v.price || null,
+        priceMin: prices.length ? Math.min(...prices).toFixed(2) : null,
+        available: (p.variants || []).some(x => x.available),
+        type: p.product_type || '',
+      };
+    });
+    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, products };
+    SHOP_CACHE = { at: now, data: out };
+    res.json(out);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

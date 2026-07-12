@@ -7,6 +7,21 @@
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
+  - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
+
+## Dating book — "The Sophie Experiment"
+Sophie's long-running dating-memoir project (square coffee-table book from ~50
+Portland dates). The full brief, her own planning docs/mockups, illustration
+**style prompt formulas**, essay & infographic lists, and prior-chat transcripts
+live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
+first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
+
+## Dating book — "The Sophie Experiment"
+Sophie's long-running dating-memoir project (square coffee-table book from ~50
+Portland dates). The full brief, her own planning docs/mockups, illustration
+**style prompt formulas**, essay & infographic lists, and prior-chat transcripts
+live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
+first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
 
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
@@ -49,7 +64,13 @@ each opens a focused workflow that shares the same house styles.
   `talking.html`, `gallery.html`); shared design system in `public/forge.css`.
 - Deployed on Render via `render.yaml`. Env vars set in the Render dashboard
   (all `sync:false`): `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`,
-  `FIREBASE_SERVICE_ACCOUNT`. Firebase project id: `membry-df528`.
+  `FIREBASE_SERVICE_ACCOUNT`. **The server's Firebase project is
+  `deckfactory-43176`** (verified 2026-07-11 via a Storage upload URL) — NOT
+  membry-df528 as previously documented. The iOS app's direct Firestore reads
+  (Story Boards, GoogleService-Info.plist) use `membry-df528`, so data written
+  by the server and data read directly by the app live in DIFFERENT projects.
+  `/api/story` bridges this with `STORY_FIREBASE_SERVICE_ACCOUNT` (a membry
+  service-account JSON) — set it in Render or the boards read as empty.
 
 ## Image generation
 - OpenAI `gpt-image-2` (the zine; single/sticker can also use DALL·E 3).
@@ -145,6 +166,44 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Writing Room (dating-book drafts on the phone)
+- `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —
+  the dating-book working drafts as a reviewable module. Every date in two
+  versions: "Claude's" (current draft) and "Mine" (Sophie's raw journal), with
+  every changed/added word marked red (word-level diff, precomputed). Autoscroll
+  up/down arrows (0.1×–2× speed), tap text to pause, per-paragraph notes (text
+  or voice memo; auto-save on tap-away).
+- **Notes → Firestore `forge-writing-notes`** (deterministic doc id per block),
+  voice memos to Storage `writing-notes/`. ANY chat can read them
+  (`GET /api/writing/notes`, x-studio-token) and apply the edits, then
+  `DELETE /api/writing/notes/:id`. This is the review loop: Sophie annotates on
+  the couch, a chat applies.
+- **Source of truth for the text** is
+  `docs/dating-book/working-drafts/featured2.json` (current draft pages +
+  moments) and `originals.json` (raw journal). After editing them run
+  `python3 scripts/gen-writing.py` → regenerates `public/writing.html` (the
+  gated page, font embedded) and `working-drafts/dates.json`
+  (`GET /api/writing/dates`, for a future native reader). Commit all three.
+- iOS: `WritingRoomView.swift` = a WKWebView on `/writing` that answers the
+  HTTP Basic gate with the studio token and grants mic capture for voice notes.
+  Content changes ship via Render deploy — no TestFlight build needed.
+
+## The Chat app (forge-chat-feed) — every chat posts its replies
+- `chatfeed.js` (`/api/chatfeed`, page at `/chats`, iOS tile "Chats") — one
+  feed of every project chat's replies so Sophie can read/listen in one place
+  (picture icon per chat, tap-to-expand, free device-voice read-aloud, polished
+  memo attached when one exists, reply box).
+- **STANDING RULE (all chats, July 2026): after finishing each substantive
+  reply to Sophie** (anything with a TLDR), POST it to the feed:
+  `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
+  `{ "chat": "<short-chat-name>", "text": "<the reply text>",
+     "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
+  (x-studio-token header when the studio is gated). Pick ONE short, stable
+  chat name and keep using it (e.g. "dating-book", "story-boards").
+- **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) —
+  chats should check for replies addressed to their chat name on their hourly
+  self-check-ins (`GET /api/chatfeed?limit=50`) and act on them.
+
 ## Card-deck art generator (Midjourney via APIFRAME)
 - `apiframe.js` (`/api/apiframe`) generates the deck card art with **Midjourney**,
   which Sophie's original decks used. Midjourney has no official API, so this goes
@@ -168,12 +227,22 @@ lifted into a standalone tool later.
   computer; the server can't automate MJ's download — no API, her account, needs
   a browser). This module automates everything after: `POST /upload`
   (`{batch, keyword?, images:[dataURL|url]}` → Firebase `ingest/<batch>/`, filename
-  keyword-tagged), `GET /batch/:batch?keyword=` (list a batch, keyword = filename
-  substring filter), `GET /batches`. The `/import` page (serveGated) is a phone/
-  desktop uploader. Batches feed the same review → prep → MPC flow. Trade-off vs
+  keyword-tagged), `POST /upload-zip?batch=&keyword=` (the raw .zip as the request
+  body → unzips server-side and ingests every image, skipping `__MACOSX`/non-image
+  junk — so a bulk MJ export uploads in one shot, phone or desktop),
+  `GET /batch/:batch?keyword=` (list a batch, keyword = filename substring filter),
+  `GET /batches`. The `/import` page (serveGated) is a phone/desktop uploader
+  (individual images or a whole ZIP). Batches feed the same review → prep → MPC flow. Trade-off vs
   APIFRAME: own-account is cheaper (flat MJ sub, exact personal style) but manual +
   computer-bound; APIFRAME is fully cloud-automated (~7¢/img). Claude reviewing a
   batch and picking the on-style option is the shared payoff of both paths.
+  - **`browser-extension/`** (Chrome MV3, "Send to Deck Factory") kills the
+    export/import friction: a floating button on midjourney.com grabs the page's
+    MJ images and POSTs them straight to `/api/ingest/upload` (runs in Sophie's
+    own logged-in session — no MJ password, no server-side MJ automation). Load
+    unpacked; set the app URL + STUDIO_TOKEN + batch/keyword in the popup. The
+    image-grab (`collectMidjourneyImageUrls`/`toFullRes` in `content.js`) needs a
+    first-run calibration pass against MJ's live DOM (it logs what it finds).
 
 ## Movies (the newest medium — iOS is the frontend)
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
@@ -237,6 +306,47 @@ lifted into a standalone tool later.
   `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
   the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
+- **Dreams (dream → comic):** the dream-illustration path — replicates the
+  daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
+  free breakdown, and it runs on **Claude Opus** (`anthropicChatJSON`,
+  `ANTHROPIC_API_KEY`, model `DREAM_MODEL`=`claude-opus-4-8`) — a small model
+  can't split/segment/order a rambling recording, so this is deliberately the
+  smart tier. **By explicit request there is NO OpenAI fallback**: no key or a
+  failed call → the breakdown errors and surfaces that (it does not silently
+  drop to gpt-4o-mini). `ANTHROPIC_API_KEY` is a `config-loader` MANAGED_KEY, so
+  it can live in Render env OR the Firestore config doc. **One recording → one
+  or MORE dreams:** `dreamBreakdown()` first SPLITS the recording into the
+  distinct dreams (on the dreamer's boundary cues — "that was that dream", "the
+  next dream", "yesterday I had a dream") and returns `{dreams:[{title,cast,
+  beats}]}`; `POST /dream` creates one `forge-dreams` doc per dream (staggered
+  `createdAt` so array order = time) and returns `{dreams:[doc,…]}`. Within each
+  dream it reconstructs TRUE chronology from the cues ("that was before", "at
+  first", "at the very end", "right before I woke up") and emits coarse beats
+  already in order. iOS `createDream` returns `[Dream]`; the "check the
+  chronology" step shows each split dream as its own titled group (▲▼ within it)
+  and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
+  `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
+  2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
+  packs beats **four per image** (an 8-beat dream = two pages; a short tail
+  page lays out with fewer), captions = the beats' own lines (no cover),
+  ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
+  background job on the doc, `pageHistory` capped 3. Separate collection so
+  dreams never clutter the movies list. **Multi-character cast** (a dream
+  usually has several recurring people — dad, J, Sean — not one): the breakdown
+  returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
+  `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
+  cast member ONCE as a labelled solo reference sheet (`cast[i].url`), then
+  `renderDreamPage` attaches the style ref FIRST and the sheets for whoever
+  appears on that page after it, naming each by attachment position ("the #2
+  attached image is J (…)") so multiple characters stay consistent across
+  pages — the technique ChatGPT uses (named reference per character, all
+  attached, each named in the prompt; gpt-image-2 `edits` takes an image array,
+  up to ~16). Beats with no `who` fall back to attaching the whole cast; refs
+  are capped at 4/page (+style = 5). Legacy single-character dreams
+  (`characters` string / `characterAnchor`) auto-normalize to a one-member cast.
+  `POST .../render {reanchor:true}` re-rolls every cast member's look. Same
+  `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
+  rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
@@ -395,10 +505,40 @@ lifted into a standalone tool later.
   "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
+## Secretly a Witch (public witchy app)
+- `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
+  single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
+  mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
+  endpoints + a small set of stateless AI endpoints in `server.js`:
+  `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
+  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
+  - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
+    epoch, client-side), a deterministic **Card of the Day** (per-day hash into
+    a full 78-card deck built in JS: 22 majors w/ up/rev meanings + 56 minors by
+    suit×rank), an optional AI reflection, a daily **intention**, and a
+    **moon calendar** (month grid, glyph per day, new/full highlighted).
+  - **Miracles** — the Little Book of Miracles ported in full (capture/imagine →
+    illustrated pages → read view). Shares `localStorage['imageforge_miracles_book']`
+    with `/book`.
+  - **Tarot** — 1 / three-card / yes-no draws + AI reading; **save readings** to
+    `localStorage['witch_saved_readings']`.
+  - **Conjure** — spell/ritual maker (**save to grimoire**,
+    `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
+    maker over the house LoRA styles.
+  - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **External links** live in a `LINKS` const at the top of the client script.
+  Shop = `secretlyawitch.com` (Shopify), Instagram = `@moonsickbaby`. **Watch =
+  YouTube is still a placeholder search** — the channel URL isn't stored anywhere
+  (the YouTube token is upload-only scope and can't read the channel), so it
+  needs Sophie's `@handle` pasted in.
+
 ## Design rules (forever)
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.
+- **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
+  every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **Research the CURRENT UI before giving click-by-click steps for any external
   dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
   buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
@@ -409,6 +549,29 @@ lifted into a standalone tool later.
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **iOS: pin bottom bars below the keyboard (never floating above it).** A
+  custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
+  keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
+  keeps recurring across apps. **The fix is one modifier** on the container that
+  holds the bar: `.ignoresSafeArea(.keyboard, edges: .bottom)` (e.g. on
+  `RootView`'s outer `VStack`). The bar then stays pinned to the bottom and the
+  keyboard covers it, while each screen's own `ScrollView` still lifts its text
+  fields. Any app with a persistent bottom bar MUST have this — add it when you
+  build the shell, and check for it whenever a keyboard-over-bar bug appears.
+- **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
+  tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
+  `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
+  emoji. Pull exact paths from `unpkg.com/lucide-static@latest/icons/<name>.svg`
+  and inline them (CSP-safe, no external requests). Emoji are fine ONLY as
+  expressive *content* (moon phases 🌑🌕, a decorative ✦), never as the icon for
+  a control. (Lucide dropped brand glyphs like YouTube/Instagram for trademark
+  reasons — hand-inline a simple equivalent or use `monitor-play`/`camera`.)
+- **Each app may have its own visual identity — don't blanket-copy the warm-paper
+  studio look.** `forge.css` (warm paper, `--accent` tan) is the *studio/hub*
+  system; public apps can and should diverge. Example: **Secretly a Witch** uses
+  its own dark, mystical theme (ink/plum + gold + moonlight) defined inline in
+  `witch.html`, NOT `forge.css`. When starting a new surface, pick a palette that
+  fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
 - **Always include clickable testing links** when something is ready to test:
@@ -420,13 +583,38 @@ lifted into a standalone tool later.
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
+- **Deliverables go last.** When a message includes a generated file — audio,
+  image, video, or any downloadable deliverable — send it as the final item,
+  after all explanatory text, so it's easy to find and never buried
+  mid-message.
+- **Long replies get an audio version.** When a chat reply runs longer than
+  about one phone screen (~2–3 paragraphs), also attach a text-to-speech
+  recording of it — OpenAI `gpt-4o-mini-tts` by default (cheap, reliable).
+  Keep it faithful to the text, lightly adapted for listening (spell out URLs
+  and numbers). Only render it in the F5 cloned voice when asked.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
-- **End every reply with a verbatim audio version.** Generate a TTS (OpenAI
-  `gpt-4o-mini-tts`) reading the full message verbatim and attach it at the very
-  bottom, under the TLDR and below any images — it is the last thing in the
-  message. Strip markdown/URLs for the spoken version; keep the words.
+- **TLDR + audio replies (Sophie's rule, July 2026 — applies in every chat).**
+  - **TLDR at the end of every reply, no matter what** — the only exception is
+    a really quick reply that fits in ONE iPhone screen (she has an iPhone 13).
+  - **Attach an audio version (voice memo)** — TTS via OpenAI `gpt-4o-mini-tts`
+    reading the message verbatim (strip markdown/URLs, keep the words) —
+    whenever the reply is longer than one iPhone-13 screen (she'd have to
+    scroll) OR says something important for her to know: answers to her
+    questions, questions for her, new findings, decisions she needs to make.
+  - **Skip the audio** when the reply just confirms work she asked for or is
+    technical detail with no new information ("built it — here's what
+    changed"). TLDR still required.
+  - **Answer questions FIRST.** If Sophie's message contains a question, answer
+    it at the top of the reply, before doing or reporting on any tasks from the
+    same message.
+  - **Small question → short answer.** When Sophie asks a quick or small
+    question, reply with just the answer — no suggestions about what to do
+    next, no updates on work already done, no recaps. Save those for when she
+    asks for them.
+  - Audio is the LAST thing in the message — after the TLDR and any
+    files/images.
 
 ## YouTube auto-upload (witchy video channel)
 - Finished videos post straight to Sophie's business YouTube channel as **private
@@ -460,6 +648,41 @@ lifted into a standalone tool later.
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **Claude merges its own PRs — always, without asking.** Standing permission
+  (July 2026). When the work is ready, merge it, then watch the post-merge
+  deploys/TestFlight and fix anything that breaks.
+- **Multiple Claude chats work these repos in parallel.** Another chat may
+  push, merge, or ship a TestFlight build at any moment — main moves under
+  you, TestFlight build numbers race, and code you wrote can get rewritten.
+  Re-fetch main before merging, never assume the latest build is yours, and
+  re-dispatch from your branch (`imageforge_ref` input) if a main build
+  buries it.
+
+## Story Boards (forge-story) — how ANY chat adds projects/assets
+The video-project asset boards (Evan, Charlie, Spellcasting, …) shown in the
+iOS app (Story Boards tile — a VHS-shelf wall, 3 covers per shelf, tap to open
+a project's beat board) and mirrored at `/story` (gated snapshot page).
+
+- **Data:** Firestore collection `forge-story`, one doc per project:
+  `{ id, title, order, cover, beats:[{ vo, cards:[{ label, status, url }] }] }`.
+  `status` ∈ `ok` (approved) | `cand` (candidate) | `draft` (storyboard
+  placeholder) | `miss` (no art yet — omit `url`). `vo` is Sophie's actual
+  narration for that beat. `cover` is REQUIRED for the shelf (pick one hero
+  shot; without it the case renders as a "?" box).
+- **To add/update:** build a manifest JSON (array of projects; use
+  `file`/`cover_file` with local paths for any new images — ~700px webp
+  preferred) and run `node scripts/sync-story.js manifest.json` with
+  `FIREBASE_SERVICE_ACCOUNT` (or `FIREBASE_KEY_FILE`) set. Images upload to
+  Storage `story/` (content-addressed by basename — reuse basenames to
+  overwrite) and docs are replaced wholesale, so ALWAYS write the full project,
+  not a partial. The iOS app updates live (snapshot listener) — no build.
+- **Clients are read-only** (Firestore rules in memory-library-react allow
+  authenticated reads only); all writes go through the sync script.
+- **iOS UI changes** (not content) need a TestFlight build: run the
+  `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
+  secrets; `imageforge_ref` input picks the imageforge branch). The
+  imageforge-local `ios-testflight.yml` is a placeholder without secrets.
+- Approvals happen in chat with Sophie; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix
   anything that breaks.

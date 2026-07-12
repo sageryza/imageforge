@@ -14,8 +14,21 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
+let JSZip = null;
+try { JSZip = require('jszip'); } catch { /* zip upload disabled */ }
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
+const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i;
+
+function ctForName(name) {
+  const n = name.toLowerCase();
+  if (/\.jpe?g$/.test(n)) return 'image/jpeg';
+  if (n.endsWith('.webp')) return 'image/webp';
+  if (n.endsWith('.gif')) return 'image/gif';
+  if (n.endsWith('.bmp')) return 'image/bmp';
+  if (/\.tiff?$/.test(n)) return 'image/tiff';
+  return 'image/png';
+}
 
 let proxyAgent = null;
 if (process.env.HTTPS_PROXY) {
@@ -90,6 +103,45 @@ router.post('/upload', async (req, res) => {
     res.json({
       ok: true, batch: slug(b.batch) || 'default', keyword: b.keyword || null,
       count: out.length, images: out.map((o) => o.url), files: out,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /upload-zip?batch=&keyword= — the whole ZIP as the raw request body
+// (Content-Type anything). Unzips server-side and ingests every image inside as
+// one batch, so a bulk-downloaded MJ export (a .zip) uploads in one shot — no
+// manual unzipping, works from phone or desktop.
+router.post('/upload-zip', express.raw({ type: () => true, limit: '256mb' }), async (req, res) => {
+  try {
+    if (!JSZip) return res.status(501).json({ error: 'jszip not installed' });
+    if (!req.body || !req.body.length) {
+      return res.status(400).json({ error: 'empty body — POST the .zip file as the request body' });
+    }
+    let zip;
+    try { zip = await JSZip.loadAsync(req.body); }
+    catch (e) { return res.status(400).json({ error: 'not a valid zip file: ' + e.message }); }
+    const entries = Object.values(zip.files).filter(
+      (f) => !f.dir && IMAGE_RE.test(f.name) && !/(^|\/)__MACOSX\//.test(f.name));
+    if (!entries.length) return res.status(400).json({ error: 'no images found in the zip' });
+
+    const bucket = bucketOrNull();
+    if (!bucket) {
+      return res.status(501).json({
+        error: `Firebase Storage not configured — cannot store the ${entries.length} image(s) in the zip`,
+      });
+    }
+    const batch = req.query.batch || 'default';
+    const keyword = req.query.keyword || '';
+    const out = [];
+    let i = 0;
+    for (const entry of entries) {
+      // process one at a time so we don't hold every image in memory at once
+      const buf = await entry.async('nodebuffer');
+      out.push(await saveOne(bucket, batch, keyword, buf, ctForName(entry.name), i++));
+    }
+    res.json({
+      ok: true, batch: slug(batch) || 'default', keyword: keyword || null,
+      count: out.length, images: out.map((o) => o.url),
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
