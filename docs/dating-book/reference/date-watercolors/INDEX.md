@@ -20,25 +20,32 @@ Sophie Experiment*), pulled from Google Drive at full resolution.
 | `gwyn-alt.png` | Gwyn (alt version) | 1826×2129 (3.9 MP) |
 | `david-and-alex.png` | David & Alex | 1972×2034 (4.0 MP) |
 | `temescal.jpg` | Temescal date | 3590×6069 (21.8 MP) |
+| `sean-sebastian.png` | Sean Sebastian | 3400×4680 (15.9 MP) |
+| `sage-and-chris.png` | Sage & Chris | 3619×3619 (13.1 MP) |
+| `sage-and-blake.png` | Sage & Blake | 3727×3888 (14.5 MP) |
+| `josie.png` | Josie | 2830×3888 (11.0 MP) |
+| `josiah.png` | Josiah | 2000×2000 (4.0 MP) |
 
-## Not yet pulled — over the Drive connector's 10 MB limit
+The larger scans (Sean, Chris, Blake, Josie, Josiah) were pulled via a direct
+Google Drive OAuth token, which lifts the 10 MB limit of the earlier connector.
 
-The Google Drive connector used here caps downloads at 10 MB, so these larger
-scans couldn't be fetched automatically. They live at full resolution in Drive
-and need a manual download (or a direct Drive-API pull) to land here.
+## Known dates still missing a located full-size original
 
-- Sage & Chris — `edited sage chris watercolor date scan2.png` (~11 MB) — https://drive.google.com/file/d/1_MsTeCoW5O-DhIX0rQtkmPHpoF1MigeI/view
-- Sage & Blake — `sage and blake date watercolor.png` (~25 MB) — https://drive.google.com/file/d/1ClyYHX4ss041-XgnGuY-IWNnxT_6RLur/view
-- Sage & Blake (insta crop) — `sage and blake date watercolor insta.png` (~20 MB) — https://drive.google.com/file/d/185NPt53ixwnnkybn8g2qok6Ni9ZvIIPf/view
-- Josie — `watercolor date josie.png` (~22 MB) — https://drive.google.com/file/d/16rMKHs6NqhW79AoAxlu7TjwJcwwqsPdo/view
-- Sean Sebastian — `sean sebastian watercolor.png` (~19 MB) — https://drive.google.com/file/d/1GXMcwV7TbBPfU93otuHwEKaQzR6KBwwZ/view
-- Josiah — `josiah sage like and share bathtub saturation watercolor small.png` (~6 MB, under the limit but the connector session dropped mid-pull; retryable) — https://drive.google.com/file/d/1vrcw5D72Ds-2TWct_xpYS_ILzEYKtldi/view
+Identified inside the `date mini watercolor zine` layout but with no full-size
+scan found yet (may be filed under a different name, or only survive at the
+zine's ~1 MP size). Candidates for the Drive-wide visual (perceptual-hash)
+sweep:
+
+- **Trevor** (the one in the captain's hat)
+- **Travis** (previously mislabeled "Cody" — a distinct person from `cody-lee-roberts`)
+- **Steve** (arms raised)
+- blue-shirt date (name TBD)
+- **Sean (Niessen)** — lead: a `sean niessen` Google Drawing (2016); distinct from `sean-sebastian` above
 
 ## Raw scan / outline archive (Drive folders)
 
 The full working archive — raw flatbed scans (`Scan_*`, `datescan*`), inked
-outline tracings (`outline*`), a Photoshop file, and other pieces. ~45 files,
-many 10–90 MB, so most are over the connector's limit. Kept in Drive:
+outline tracings (`outline*`), a Photoshop file, and other pieces. Kept in Drive:
 
 - Dates / watercolor scans: https://drive.google.com/drive/folders/1i5zpdO8WroTylXHy7GEOzAXcbKyjvRP6
 - Watercolor (mixed — some dates, plus self-portraits): https://drive.google.com/drive/folders/1iM_Ha6Dey1AWmBepI02o29dYJhfCONKg
