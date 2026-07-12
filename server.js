@@ -413,27 +413,71 @@ app.get('/story', serveGated('story.html'));
 // a membry service-account JSON to read the real boards; without it this
 // endpoint can only see the (empty) local project's collection.
 let storyApp = null;
-function storyDb() {
-  const raw = process.env.STORY_FIREBASE_SERVICE_ACCOUNT;
-  if (raw && !storyApp) {
-    try {
-      storyApp = admin.initializeApp(
-        { credential: admin.credential.cert(JSON.parse(raw)) }, 'story');
-      console.log('Story boards: secondary Firebase app initialized');
-    } catch (err) {
-      console.error('STORY_FIREBASE_SERVICE_ACCOUNT invalid:', err.message);
-    }
-  }
+let storyCredChecked = false;
+function initStoryApp(saJson) {
+  storyApp = admin.initializeApp(
+    { credential: admin.credential.cert(saJson) }, 'story');
+  console.log('Story boards: secondary Firebase app initialized (' + saJson.project_id + ')');
+}
+async function storyDb() {
   if (storyApp) return storyApp.firestore();
+  const raw = process.env.STORY_FIREBASE_SERVICE_ACCOUNT;
+  if (raw) {
+    try { initStoryApp(JSON.parse(raw)); return storyApp.firestore(); }
+    catch (err) { console.error('STORY_FIREBASE_SERVICE_ACCOUNT invalid:', err.message); }
+  }
+  // Fall back to a credential stored in THIS project's Firestore (set once via
+  // POST /api/story/credential — same survival-across-deploys trick as the
+  // Etsy tokens in config/etsy-tokens).
+  if (!storyCredChecked && admin.apps.length) {
+    storyCredChecked = true;
+    try {
+      const doc = await admin.firestore().doc('config/story-credential').get();
+      if (doc.exists && doc.data().serviceAccount) {
+        initStoryApp(JSON.parse(doc.data().serviceAccount));
+        return storyApp.firestore();
+      }
+    } catch (err) { console.error('story credential load failed:', err.message); }
+  }
   if (!admin.apps.length) return null;
   return admin.firestore();
 }
+// Store the membry service-account JSON once; write-once (409 on repeat)
+// unless ?force=1, and only accepted after a live test read of forge-story.
+app.post('/api/story/credential', express.json({ limit: '64kb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const sa = req.body && req.body.serviceAccount;
+    if (!sa || sa.type !== 'service_account' || !sa.project_id || !sa.private_key) {
+      return res.status(400).json({ error: 'serviceAccount must be a service_account JSON object' });
+    }
+    const ref = admin.firestore().doc('config/story-credential');
+    if ((await ref.get()).exists && req.query.force !== '1') {
+      return res.status(409).json({ error: 'credential already set (use ?force=1 to replace)' });
+    }
+    // Prove it works before saving: read forge-story with a throwaway app.
+    const testApp = admin.initializeApp({ credential: admin.credential.cert(sa) }, 'story-test-' + Date.now());
+    let count;
+    try {
+      count = (await testApp.firestore().collection('forge-story').get()).size;
+    } finally { await testApp.delete(); }
+    await ref.set({ serviceAccount: JSON.stringify(sa), projectId: sa.project_id, updated: new Date().toISOString() });
+    if (storyApp) { await storyApp.delete().catch(() => {}); storyApp = null; }
+    storyCredChecked = false;
+    res.json({ ok: true, projectId: sa.project_id, boardsVisible: count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const db = storyDb();
+    const db = await storyDb();
     if (!db) return res.status(503).json({ error: 'firebase not configured' });
     // No orderBy: Firestore's orderBy silently drops docs missing the field.
     const snap = await db.collection('forge-story').get();
