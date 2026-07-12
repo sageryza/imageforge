@@ -577,6 +577,11 @@ lifted into a standalone tool later.
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception.
+- **Opening an image freezes the page behind it.** Tapping/clicking a picture
+  (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
+  background scroll (`document.body.style.overflow='hidden'`), restoring on
+  close. The page must never scroll or jump while you're looking at an image.
+  Applies to every app and every gallery.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This

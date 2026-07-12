@@ -278,6 +278,7 @@ app.get('/api/gallery', async (req, res) => {
         url: `https://storage.googleapis.com/${bucket.name}/${f.name}`,
         folder: f.name.split('/')[0] || 'uncategorized',
         created: f.metadata.timeCreated,
+        meta: f.metadata.metadata || {}, // custom metadata: { model, quality, ... }
       }))
       .sort((a, b) => new Date(b.created) - new Date(a.created));
     res.json({ images });
