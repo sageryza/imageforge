@@ -1,5 +1,18 @@
 # ImageForge — project notes
 
+## Never block the turn on a wait — always background it
+- **Any "wait for X" step MUST run as a background task**, never a foreground
+  blocking wait. This includes waiting on a Render deploy, CI, a build, a
+  long poll loop, or anything that doesn't return in a second or two. Use a
+  background Bash task (`run_in_background`) or a Monitor, hand the turn back
+  immediately, and report when the watcher fires.
+- **Why it matters:** a foreground wait holds the turn open, so anything Sophie
+  types while it runs is queued but **silently swallowed — her message never
+  sends** (this actually happened; she lost a message she'd written). Blocking
+  also makes it look like she can't talk to you when she always can.
+- Deploys are never worth blocking on: the change is already merged and safe;
+  the watcher just tells you when it's live.
+
 ## Live app
 - **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
   - Hub: https://imageforge-q125.onrender.com/
