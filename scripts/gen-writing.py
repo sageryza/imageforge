@@ -25,6 +25,21 @@ def sentences(t):
     return [p.strip() for p in parts if p.strip()]
 PN=["PAGE ONE","PAGE TWO","PAGE THREE"]
 
+def thumb_b64(fp, size=340):
+    # small square cover for the index tiles; falls back to the full file
+    # when Pillow isn't installed so the script still runs anywhere
+    try:
+        from PIL import Image
+        import io
+        im=Image.open(fp).convert('RGB')
+        w,h=im.size; side=min(w,h)
+        im=im.crop(((w-side)//2,(h-side)//2,(w-side)//2+side,(h-side)//2+side)).resize((size,size),Image.LANCZOS)
+        buf=io.BytesIO(); im.save(buf,'WEBP',quality=72)
+        return base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        try: return base64.b64encode(open(fp,'rb').read()).decode()
+        except Exception: return None
+
 def render_marked(words,flags):
     out=[];i=0
     while i<len(words):
@@ -98,12 +113,17 @@ for no,name in enumerate(ORDER,1):
                 pass
         if figs:
             gallery=f'<div class="gallery"><div class="pagemark">THE DRAWINGS</div><div class="gal-grid">{figs}</div></div>'
-    npages=len(pages)
-    index_rows+=(f'<button class="row" data-d="{key}"><span class="r-no">no.&#8201;{no:02d}</span>'
-                 f'<span class="r-body"><span class="r-name">{esc(name)}</span>'
-                 f'<span class="r-dek">{esc(smart(e["dek"]))}</span></span>'
-                 f'<span class="r-meta"><span class="r-pg">{npages} {"page" if npages==1 else "pages"}</span>'
-                 f'<span class="r-status" data-d="{key}" role="button" tabindex="0">drafting</span>'
+    cover_fp=None
+    for mi,m in enumerate(e.get("moments") or []):
+        fp=IMGDIR+"/"+str(e["_idx"])+"_"+str(m.get("img",mi))+".webp"
+        if os.path.exists(fp): cover_fp=fp; break
+    cb64=thumb_b64(cover_fp) if cover_fp else None
+    cover=(f'<span class="t-cover"><img alt="" src="data:image/webp;base64,{cb64}"></span>' if cb64
+           else f'<span class="t-cover t-blank"><span>{esc(name[0])}</span></span>')
+    index_rows+=(f'<button class="row tile" data-d="{key}">{cover}'
+                 f'<span class="t-no">no.&#8201;{no:02d}</span>'
+                 f'<span class="t-name">{esc(name)}</span>'
+                 f'<span class="t-meta"><span class="r-status" data-d="{key}" role="button" tabindex="0">drafting</span>'
                  f'<span class="r-notes" id="cnt-{key}"></span></span></button>\n')
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
@@ -139,15 +159,17 @@ h1{{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}}
 .dek{{font-style:italic; color:var(--ink2); font-size:1.1em;}}
 #home h1{{font-size:2.2em; margin:.2em 0 .1em;}}
 #home .sub{{font-style:italic; color:var(--ink2); margin-bottom:2.2em;}}
-.row{{display:flex; gap:14px; align-items:baseline; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line);
-  padding:18px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}}
-.row:focus-visible{{outline:2px solid var(--rose);}}
-.r-no{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.25em; color:var(--ink2); text-transform:uppercase; min-width:3.4em;}}
-.r-body{{flex:1; display:flex; flex-direction:column; gap:2px;}}
-.r-name{{font-size:1.45em; font-weight:600;}}
-.r-dek{{font-style:italic; color:var(--ink2); font-size:.98em;}}
-.r-meta{{display:flex; flex-direction:column; align-items:flex-end; gap:3px;}}
-.r-pg{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase;}}
+#dategrid{{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}}
+.tile{{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
+  color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}}
+.tile:focus-visible{{outline:2px solid var(--rose); border-radius:4px;}}
+.t-cover{{display:block; aspect-ratio:1; border:1px solid var(--line); background:var(--barbg); border-radius:4px; overflow:hidden;}}
+.t-cover img{{width:100%; height:100%; object-fit:cover; display:block;}}
+.t-blank{{display:flex; align-items:center; justify-content:center;}}
+.t-blank span{{font-size:2.4em; font-style:italic; color:var(--ink2);}}
+.t-no{{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.22em; color:var(--ink2); text-transform:uppercase; margin-top:8px;}}
+.t-name{{font-size:1.18em; font-weight:600; line-height:1.15; margin-top:1px;}}
+.t-meta{{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-top:2px; flex-wrap:wrap;}}
 .r-notes{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose);}}
 .r-status{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:2px 4px; border-radius:4px;}}
 .r-status.drafting{{color:var(--ink2);}} .r-status.reviewing{{color:var(--cand,#a3822f);}} .r-status.approved{{color:var(--ok,#5d7a5a);}}
@@ -234,7 +256,9 @@ body.reading .backwrap{{display:block;}}
   <h1>The Dates</h1>
   <div class="sub">Tap a date to read. Two versions inside — mine and Claude&rsquo;s, with every change in red.</div>
   <div class="progress" id="progress"></div>
+  <div id="dategrid">
   {index_rows}
+  </div>
 </section>
 {sections}
 </div>
