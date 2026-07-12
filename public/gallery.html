@@ -271,27 +271,40 @@ paintPill();
       filtered.forEach(img => {
         const div = document.createElement('div');
         div.className = 'gallery-item';
-        const date = new Date(img.created);
-        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const m = img.meta || {};
+        const modelLabel = prettyModel(m.model);
+        // Show "ChatGPT 2 · medium" when we know model/quality; else the folder.
+        const label = modelLabel
+          ? `${modelLabel}${m.quality ? ' · ' + m.quality : ''}`
+          : img.folder;
         div.innerHTML = `
           <img src="${img.url}" alt="${img.name}" onclick="openLightbox('${img.url}')">
           <div class="gallery-item-info">
-            <span>${img.folder}</span>
-            <span>${dateStr}</span>
+            <span>${label}</span>
           </div>
         `;
         grid.appendChild(div);
       });
     }
 
+    // "gpt-image-2" -> "ChatGPT 2", "gpt-image-1.5" -> "ChatGPT 1.5", etc.
+    function prettyModel(model) {
+      if (!model) return '';
+      const m = String(model).match(/gpt-image-([\d.]+)/i);
+      return m ? `ChatGPT ${m[1]}` : model;
+    }
+
     function openLightbox(url) {
+      if (window.__scrollStop) window.__scrollStop(); // stop autoscroll while viewing
       document.getElementById('lightbox-img').src = url;
       document.getElementById('lightbox-download').href = url;
       document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden'; // lock background scroll too
     }
 
     function closeLightbox() {
       document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = ''; // restore scrolling (autoscroll stays paused)
     }
 
     document.addEventListener('keydown', (e) => {
