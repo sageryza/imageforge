@@ -139,6 +139,22 @@ struct RootView: View {
             NavigationStack { CreationsView() }
                 .opacity(screen == .gallery ? 1 : 0)
                 .allowsHitTesting(screen == .gallery)
+            // The autoscroll pill, on every native scrollable screen. The
+            // web-view tools (Writing Room, Chats) carry their own in-page.
+            if showAutoScroll {
+                AutoScrollPill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.top, 64)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
+    private var showAutoScroll: Bool {
+        switch screen {
+        case .home: return false
+        case .gallery: return true
+        case .tool(let t): return t != .writing && t != .chats
         }
     }
 
