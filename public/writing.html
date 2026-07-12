@@ -35,6 +35,10 @@ h1{font-weight:600; font-size:2.7em; line-height:1; margin:.15em 0 .3em;}
 .tab.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}
 .tab:focus-visible{outline:2px solid var(--rose);}
 .legend{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em; margin:.6em 0 2em;}
+.listen{margin-top:1em; border-color:var(--rose); color:var(--rose);}
+.listenwrap{margin-top:.7em;}
+.listenwrap .lstate{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.05em;}
+.listenwrap audio{width:100%; margin-top:.4em;}
 .legend mark{background:none; color:var(--chg); font-family:'EBGaramond',serif; font-size:14px; font-style:italic;}
 mark{background:none; color:var(--chg);}
 .pagemark{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.3em; color:var(--ink2); margin:3em 0 1.4em; text-transform:uppercase;}
@@ -115,7 +119,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-griffin" style="display:none">
 <header><div class="no">no.&#8201;01 · someone i met once</div><h1>Griffin</h1>
-<div class="rule"></div><div class="dek">Touch without meaning.</div></header>
+<div class="rule"></div><div class="dek">Touch without meaning.</div>
+<button class="btn listen" data-d="griffin"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-griffin"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (61%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -158,7 +164,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-david" style="display:none">
 <header><div class="no">no.&#8201;02 · someone i met once</div><h1>David</h1>
-<div class="rule"></div><div class="dek">A cat between us.</div></header>
+<div class="rule"></div><div class="dek">A cat between us.</div>
+<button class="btn listen" data-d="david"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-david"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (20%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -197,7 +205,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-jake" style="display:none">
 <header><div class="no">no.&#8201;03 · someone i met once</div><h1>Jake</h1>
-<div class="rule"></div><div class="dek">A hot babe on my lap.</div></header>
+<div class="rule"></div><div class="dek">A hot babe on my lap.</div>
+<button class="btn listen" data-d="jake"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-jake"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (24%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -273,7 +283,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-blake" style="display:none">
 <header><div class="no">no.&#8201;04 · someone i met once</div><h1>Blake</h1>
-<div class="rule"></div><div class="dek">Points for pretending I didn’t speak Spanish.</div></header>
+<div class="rule"></div><div class="dek">Points for pretending I didn’t speak Spanish.</div>
+<button class="btn listen" data-d="blake"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-blake"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (15%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -319,7 +331,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-louis" style="display:none">
 <header><div class="no">no.&#8201;05 · someone i met once</div><h1>Louis</h1>
-<div class="rule"></div><div class="dek">Caturday.</div></header>
+<div class="rule"></div><div class="dek">Caturday.</div>
+<button class="btn listen" data-d="louis"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-louis"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (14%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -356,7 +370,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-patrick" style="display:none">
 <header><div class="no">no.&#8201;06 · someone i met once</div><h1>Patrick</h1>
-<div class="rule"></div><div class="dek">Like a tiger, or a man proving a point.</div></header>
+<div class="rule"></div><div class="dek">Like a tiger, or a man proving a point.</div>
+<button class="btn listen" data-d="patrick"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-patrick"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (13%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -406,7 +422,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-trevor" style="display:none">
 <header><div class="no">no.&#8201;07 · someone i met once</div><h1>Trevor</h1>
-<div class="rule"></div><div class="dek">He smashed a beer bottle on his head.</div></header>
+<div class="rule"></div><div class="dek">He smashed a beer bottle on his head.</div>
+<button class="btn listen" data-d="trevor"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-trevor"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (34%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -465,7 +483,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-gabriel" style="display:none">
 <header><div class="no">no.&#8201;08 · someone i met once</div><h1>Gabriel</h1>
-<div class="rule"></div><div class="dek">A policy of not looking at anyone I find attractive.</div></header>
+<div class="rule"></div><div class="dek">A policy of not looking at anyone I find attractive.</div>
+<button class="btn listen" data-d="gabriel"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-gabriel"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (22%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -545,7 +565,9 @@ body.reading .backwrap{display:block;}
 </section>
 <section class="date" id="d-michael" style="display:none">
 <header><div class="no">no.&#8201;09 · someone i met once</div><h1>Michael</h1>
-<div class="rule"></div><div class="dek">His profile picture was blurry.</div></header>
+<div class="rule"></div><div class="dek">His profile picture was blurry.</div>
+<button class="btn listen" data-d="michael"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<div class="listenwrap" id="lw-michael"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added (34%) · tap text to pause autoscroll</div>
 <div class="verC"><div class="pagemark">PAGE ONE</div>
@@ -779,6 +801,33 @@ document.querySelector('.wrap').addEventListener('click',function(e){
 });
 
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+var listenTimers={};
+document.querySelectorAll('.listen').forEach(function(b){
+  b.onclick=function(){
+    stop();
+    var key=b.dataset.d, wrap=document.getElementById('lw-'+key);
+    function poll(){
+      api('/api/writing/audio',{method:'POST',body:JSON.stringify({dateId:key})})
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(d.status==='ready'&&d.url){
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='';
+            var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
+            wrap.appendChild(au); b.style.display='none';
+          } else if(d.error){
+            clearInterval(listenTimers[key]); delete listenTimers[key];
+            wrap.innerHTML='<span class="lstate">couldn’t render: '+String(d.error).slice(0,80)+'</span>';
+          } else {
+            var prog=(d.chunksTotal? ' ('+(d.chunksDone||0)+'/'+d.chunksTotal+')':'');
+            wrap.innerHTML='<span class="lstate">recording this in your voice…'+prog+' — first time takes a few minutes</span>';
+          }
+        }).catch(function(){});
+    }
+    if(listenTimers[key]) return;
+    poll(); listenTimers[key]=setInterval(poll,6000);
+  };
+});
 document.querySelectorAll('.copybtn').forEach(function(b){
   b.onclick=function(){
     var key=b.dataset.d;
