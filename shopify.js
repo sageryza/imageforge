@@ -308,7 +308,7 @@ async function listBlogs() {
 // Publish (or draft) a blog article. `published:false` creates a hidden draft
 // Sophie can review in the Shopify admin before it goes live — same
 // review-before-publish philosophy as the Etsy pipeline.
-async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, author, imageUrl, published = false, handle } = {}) {
+async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, author, imageUrl, published = false, handle, publishedAt } = {}) {
   if (!blogId) {
     // Default to the first blog on the store ("News" exists by default).
     const blogs = await listBlogs();
@@ -321,6 +321,9 @@ async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, auth
     body_html: bodyHtml || '',
     published: Boolean(published),
   };
+  // Backdate a published post (for building out an archive that looks
+  // established). Only meaningful when published:true.
+  if (publishedAt) article.published_at = new Date(publishedAt).toISOString();
   if (summaryHtml) article.summary_html = summaryHtml;
   if (author) article.author = author;
   if (handle) article.handle = handle;
@@ -337,7 +340,7 @@ async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, auth
 // Edit an existing article in place instead of creating a new one — the same
 // review-before-publish draft is updated. Only the fields you pass change;
 // `published:true` makes a draft live, `false` reverts it to a hidden draft.
-async function updateArticle({ blogId, articleId, title, bodyHtml, summaryHtml, tags, author, imageUrl, published, handle } = {}) {
+async function updateArticle({ blogId, articleId, title, bodyHtml, summaryHtml, tags, author, imageUrl, published, handle, publishedAt } = {}) {
   if (!articleId) throw new Error('articleId required');
   if (!blogId) {
     const blogs = await listBlogs();
@@ -345,6 +348,7 @@ async function updateArticle({ blogId, articleId, title, bodyHtml, summaryHtml, 
     blogId = blogs[0].id;
   }
   const article = { id: Number(articleId) };
+  if (publishedAt) article.published_at = new Date(publishedAt).toISOString();
   if (title !== undefined) article.title = title;
   if (bodyHtml !== undefined) article.body_html = bodyHtml;
   if (summaryHtml !== undefined) article.summary_html = summaryHtml;

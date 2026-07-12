@@ -317,6 +317,7 @@ router.post('/publish', express.json({ limit: '2mb' }), async (req, res) => {
       imageUrl: body.imageUrl,
       published: Boolean(body.published),
       handle: body.slug,
+      publishedAt: body.publishedAt,
     };
     // With `articleId`, edit that article in place instead of creating a new
     // draft — so revisions replace the existing post rather than piling up.
