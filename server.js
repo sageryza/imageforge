@@ -552,6 +552,47 @@ app.get('/api/story', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Thumbnails for the Story Room: the boards' card images are full-res
+// (~3MB PNGs), which made the grid crawl on the phone. Resize once with
+// sharp, cache the webp in THIS project's Storage (`thumbs/`), and
+// 302-redirect there ever after. No token gate — <img> tags can't send
+// headers — but it only re-serves already-public images from Google
+// storage hosts, so it can't be used as an open proxy. Any failure falls
+// back to redirecting to the original image rather than a broken cell.
+const THUMB_HOSTS = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
+const thumbHot = new Map(); // url|w → cached public URL (per-process)
+app.get('/api/story/thumb', async (req, res) => {
+  const url = String(req.query.url || '');
+  try {
+    const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
+    if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
+    if (!admin.apps.length) return res.redirect(302, url);
+    const key = url + '|' + w;
+    if (thumbHot.has(key)) return res.redirect(302, thumbHot.get(key));
+    const name = 'thumbs/' + require('crypto').createHash('sha1').update(key).digest('hex') + '.webp';
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(name);
+    const [exists] = await file.exists();
+    if (!exists) {
+      const r = await fetch(url);
+      if (!r.ok) return res.redirect(302, url);
+      const out = await require('sharp')(await r.buffer())
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: 75 })
+        .toBuffer();
+      await file.save(out, { contentType: 'image/webp', resumable: false });
+      await file.makePublic();
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    res.redirect(302, pub);
+  } catch (err) {
+    console.error('thumb failed:', err.message);
+    if (THUMB_HOSTS.test(url)) return res.redirect(302, url);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Story Room: the movie asset boards in the Writing Room's frame — narration
 // with the art in place, live from /api/story (no deploy needed for content),
 // notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").

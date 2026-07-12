@@ -106,7 +106,7 @@ body.reading .backwrap{display:block;}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down / slower"></button>
   </div>
-  <span id="spd">0.6&times;</span>
+  <span id="spd">1.0&times;</span>
 </div>
 <div class="wrap">
 <section id="home">
@@ -773,7 +773,7 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){
   });
 });
 
-var playing=false, raf=null, last=null, speed=0.6, dir=1, acc=0;
+var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -795,14 +795,14 @@ function step(ts){
 }
 function showSpd(){ document.getElementById('spd').textContent=speed.toFixed(1)+'×'; }
 function paint(){
-  if(playing){ vtop.innerHTML=I.plus; vbot.innerHTML=I.minus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
+  if(playing){ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
   else{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }
   showSpd();
 }
 function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
 function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }
-vtop.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else start(-1); };
-vbot.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else start(1); };
+vtop.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else start(-1); };
+vbot.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else start(1); };
 vmid.onclick=function(){ playing? stop() : start(dir||1); };
 paint();
 document.querySelector('.wrap').addEventListener('click',function(e){

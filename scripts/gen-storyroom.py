@@ -112,7 +112,7 @@ body.reading .backwrap{display:block;}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down / slower"></button>
   </div>
-  <span id="spd">0.6&times;</span>
+  <span id="spd">1.0&times;</span>
 </div>
 <div class="wrap">
   <section id="home">
@@ -140,6 +140,12 @@ var STATUS={ok:'approved', cand:'candidate', draft:'storyboard', miss:'no art ye
 // some boards store the full words — fold them back to the short codes
 var NORM={approved:'ok', candidate:'cand', storyboard:'draft', 'no art yet':'miss'};
 
+// grid cells and shelf covers load small server-side thumbnails (the raw
+// card images are ~3MB PNGs); the beats view keeps the full-res originals
+function thumb(u,w){
+  if(!u || u.slice(0,5)==='data:') return u;
+  return '/api/story/thumb?w='+(w||480)+'&url='+encodeURIComponent(u);
+}
 function noteKey(pid,bi){ return 'story-'+pid+':b'+bi; }
 function docId(id){ return id.replace(/[^a-zA-Z0-9_-]/g,'_'); }
 function noteText(id){ var n=notes[id]; return (typeof n==='string')? n : (n&&n.t||''); }
@@ -165,7 +171,7 @@ function renderShelf(){
     var beats=(p.beats||[]).length;
     var n=Object.keys(notes).filter(function(id){return id.split(':')[0]==='story-'+p.id}).length;
     var b=document.createElement('button'); b.className='tile';
-    b.innerHTML=(p.cover? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(p.cover)+'"></span>'
+    b.innerHTML=(p.cover? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(p.cover))+'"></span>'
                         : '<span class="t-cover t-blank"><span>'+esc((p.title||p.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(p.title||p.id)+'</span>'
       +'<span class="t-meta">'+beats+(beats===1?' beat':' beats')
@@ -270,7 +276,7 @@ function openProj(p, jumpBeat){
     }
     cs.forEach(function(c){
       var cell=document.createElement('button'); cell.className='zcell';
-      cell.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="zph"></div>')
+      cell.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(thumb(c.url))+'">' : '<div class="zph"></div>')
         +'<span class="zno">'+(bi+1)+'</span>';
       cell.onclick=function(){ tb.onclick(); var t=beatsView.querySelector('[data-beat="'+bi+'"]'); if(t) t.scrollIntoView({block:'start'}); };
       zg.appendChild(cell);
@@ -361,7 +367,7 @@ function goHome(){
 document.getElementById('back').onclick=goHome;
 
 // autoscroll pill (same as the Writing Room)
-var playing=false, raf=null, last=null, speed=0.6, dir=1, acc=0;
+var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -373,7 +379,7 @@ var I={
 };
 function showSpd(){ document.getElementById('spd').textContent=speed.toFixed(1)+'\\u00d7'; }
 function paint(){
-  if(playing){ vtop.innerHTML=I.plus; vbot.innerHTML=I.minus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
+  if(playing){ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
   else{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }
   showSpd();
 }
@@ -389,8 +395,8 @@ function step(ts){
 }
 function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
 function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }
-vtop.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else start(-1); };
-vbot.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else start(1); };
+vtop.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else start(-1); };
+vbot.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else start(1); };
 vmid.onclick=function(){ playing? stop() : start(dir||1); };
 paint();
 document.querySelector('.wrap').addEventListener('click',function(e){
@@ -407,7 +413,7 @@ function renderFilms(films){
   var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
   films.forEach(function(m){
     var b=document.createElement('button'); b.className='tile';
-    b.innerHTML=(m.poster? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(m.poster)+'"></span>'
+    b.innerHTML=(m.poster? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(m.poster))+'"></span>'
                          : '<span class="t-cover t-blank"><span>'+esc((m.title||m.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(m.title||m.id)+'</span>'
       +'<span class="t-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' \u00b7 no film yet')+'</span>';
@@ -458,7 +464,7 @@ function openFilm(m){
       sec.insertBefore(hv, list.nextSibling);
       hist.forEach(function(h){
         var cell=document.createElement('button'); cell.className='zcell';
-        cell.innerHTML='<img alt="" loading="lazy" src="'+esc(h.url)+'"><span class="zno">sc '+h.no+'</span>';
+        cell.innerHTML='<img alt="" loading="lazy" src="'+esc(thumb(h.url))+'"><span class="zno">sc '+h.no+'</span>';
         cell.onclick=function(){
           var lb=document.getElementById('lightbox');
           lb.innerHTML='<img alt="" src="'+esc(h.url)+'">';
