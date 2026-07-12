@@ -8,7 +8,10 @@ feat=json.load(open(os.path.join(WD,'featured2.json')))
 orig=json.load(open(os.path.join(WD,'originals.json')))
 font=base64.b64encode(open(os.path.join(ROOT,'ios','ImageForge','EBGaramond.ttf'),'rb').read()).decode()
 ORDER=["Griffin","David","Jake","Blake","Louis","Patrick","Trevor","Gabriel","Michael"]
+# Staged dates (raw journal in both versions, drafting status) follow the
+# drafted nine in journal order — appended to featured2.json with staged:True.
 byname={e["name"]:e for e in feat}
+ORDER=ORDER+[e["name"] for e in feat if e.get("staged")]
 
 def smart(s):
     s=s.replace('...','…')
@@ -51,7 +54,7 @@ def render_marked(words,flags):
 
 sections=""; index_rows=""; DATES=[]
 for no,name in enumerate(ORDER,1):
-    e=byname[name]; key=name.lower()
+    e=byname[name]; key=e.get("key") or name.lower()
     pages=[smart(p) for p in e["pages"]]
     blocks=[]
     for pi,page in enumerate(pages):
@@ -70,7 +73,8 @@ for no,name in enumerate(ORDER,1):
     pct=round(100*sum(flags)/max(1,len(flags)))
     chtml=""; lastp=-1; pos=0; bi=0
     for pi,ws in blocks:
-        if pi!=lastp: chtml+=f'<div class="pagemark">{PN[pi]}</div>\n'; lastp=pi
+        pn=PN[pi] if pi<len(PN) else f"PAGE {pi+1}"
+        if pi!=lastp: chtml+=f'<div class="pagemark">{pn}</div>\n'; lastp=pi
         f=flags[pos:pos+len(ws)]; pos+=len(ws)
         nid=f"{key}:c{bi}"
         chtml+=(f'<div class="block" data-i="{nid}"><p>{render_marked(ws,f)}</p>'
@@ -140,6 +144,8 @@ for no,name in enumerate(ORDER,1):
 <button class="btn primary copybtn" data-d="{key}" style="margin-top:.5em">Copy notes</button></div>
 </section>\n"""
 
+total_dates=len(ORDER)
+drafted_count=sum(1 for n in ORDER if not byname[n].get("staged"))
 page=f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -461,7 +467,8 @@ document.querySelector('.wrap').addEventListener('click',function(e){{
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
 // per-date workflow status (tap to cycle) + progress line
 var dateStatuses={{}};
-var TOTAL_TARGET=41;
+var TOTAL_TARGET={total_dates};
+var DRAFTED={drafted_count}; // dates with a real Claude draft (the rest are staged raw journal)
 function paintStatuses(){{
   var counts={{drafting:0,reviewing:0,approved:0}};
   document.querySelectorAll('.r-status').forEach(function(el){{
@@ -469,9 +476,8 @@ function paintStatuses(){{
     el.textContent=st; el.className='r-status '+st;
     counts[st]=(counts[st]||0)+1;
   }});
-  var drafted=document.querySelectorAll('.r-status').length;
   document.getElementById('progress').textContent=
-    counts.approved+' approved \u00b7 '+counts.reviewing+' reviewing \u00b7 '+counts.drafting+' drafting \u00b7 '+drafted+' of '+TOTAL_TARGET+' dates drafted';
+    counts.approved+' approved \u00b7 '+counts.reviewing+' reviewing \u00b7 '+DRAFTED+' of '+TOTAL_TARGET+' drafted \u00b7 the rest staged raw';
 }}
 api('/api/writing/status-all').then(function(r){{return r.json()}}).then(function(d){{
   dateStatuses=(d&&d.statuses)||{{}}; paintStatuses();
