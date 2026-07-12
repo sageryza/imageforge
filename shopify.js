@@ -334,6 +334,46 @@ async function publishArticle({ blogId, title, bodyHtml, summaryHtml, tags, auth
   return { ok: true, id: a.id, blog_id: a.blog_id, handle: a.handle, published: Boolean(a.published_at), adminUrl, liveUrl };
 }
 
+// Edit an existing article in place instead of creating a new one — the same
+// review-before-publish draft is updated. Only the fields you pass change;
+// `published:true` makes a draft live, `false` reverts it to a hidden draft.
+async function updateArticle({ blogId, articleId, title, bodyHtml, summaryHtml, tags, author, imageUrl, published, handle } = {}) {
+  if (!articleId) throw new Error('articleId required');
+  if (!blogId) {
+    const blogs = await listBlogs();
+    if (!blogs.length) throw new Error('no blog found on the store');
+    blogId = blogs[0].id;
+  }
+  const article = { id: Number(articleId) };
+  if (title !== undefined) article.title = title;
+  if (bodyHtml !== undefined) article.body_html = bodyHtml;
+  if (summaryHtml !== undefined) article.summary_html = summaryHtml;
+  if (author !== undefined) article.author = author;
+  if (handle !== undefined) article.handle = handle;
+  if (published !== undefined) article.published = Boolean(published);
+  if (Array.isArray(tags) && tags.length) article.tags = tags.join(', ');
+  else if (typeof tags === 'string' && tags.trim()) article.tags = tags;
+  if (imageUrl) article.image = { src: imageUrl };
+  const data = await shopifyREST(`/blogs/${blogId}/articles/${articleId}.json`, { method: 'PUT', body: { article } });
+  const a = data.article || {};
+  const adminUrl = `https://${STORE}/admin/articles/${a.id}`;
+  const liveUrl = a.handle ? `https://${STORE}/blogs/${a.blog_id}/${a.handle}` : null;
+  return { ok: true, id: a.id, blog_id: a.blog_id, handle: a.handle, published: Boolean(a.published_at), adminUrl, liveUrl };
+}
+
+// Delete an article (draft or live). Needs its blog + article id; blogId
+// defaults to the store's first blog, matching publishArticle.
+async function deleteArticle({ blogId, articleId } = {}) {
+  if (!articleId) throw new Error('articleId required');
+  if (!blogId) {
+    const blogs = await listBlogs();
+    if (!blogs.length) throw new Error('no blog found on the store');
+    blogId = blogs[0].id;
+  }
+  await shopifyREST(`/blogs/${blogId}/articles/${articleId}.json`, { method: 'DELETE' });
+  return { ok: true, id: Number(articleId), deleted: true };
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
@@ -441,6 +481,24 @@ router.post('/blog-post', express.json({ limit: '2mb' }), async (req, res) => {
   }
 });
 
+// Edit an existing article in place. Body: { articleId, blogId?, ...fields }.
+router.post('/article/update', express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    res.json(await updateArticle(req.body || {}));
+  } catch (err) {
+    res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
+// Delete an article (draft or live). Body: { articleId, blogId? }.
+router.post('/article/delete', express.json(), async (req, res) => {
+  try {
+    res.json(await deleteArticle(req.body || {}));
+  } catch (err) {
+    res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
 module.exports = {
   router,
   configured,
@@ -449,4 +507,6 @@ module.exports = {
   listProducts,
   listBlogs,
   publishArticle,
+  updateArticle,
+  deleteArticle,
 };
