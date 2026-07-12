@@ -59,10 +59,13 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
-- **Do it with `GALLERY_UID=<uid> node scripts/post-to-gallery.js --url … --prompt …`**
-  (needs the `membry-df528` Admin service account via `FIREBASE_SERVICE_ACCOUNT`
-  or `GOOGLE_APPLICATION_CREDENTIALS`, and the target uid — neither is in the
-  repo). Doc shape:
+- **One command does upload + post:**
+  `GALLERY_UID=<uid> node scripts/post-to-gallery.js --file ./image.png --prompt "…"`
+  uploads the local file to membry Storage, makes it public, and writes the
+  gallery doc — so generate → post is a single step (use `--url` instead for an
+  already-hosted image). Needs the `membry-df528` Admin service account via
+  `FIREBASE_SERVICE_ACCOUNT`/`GOOGLE_APPLICATION_CREDENTIALS` and the target uid
+  (neither in the repo). Doc shape:
   `{ type, url, prompt, stickers:null, createdAt:Timestamp, source, style? }`.
 - **The target uid is Sophie's device anonymous-auth id** — a personal
   identifier, so it's kept OUT of the repo (pass `--uid` or set `GALLERY_UID`;
