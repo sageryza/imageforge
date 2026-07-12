@@ -12,8 +12,15 @@ final class AutoScrollDriver: ObservableObject {
     static let shared = AutoScrollDriver()
 
     @Published var playing = false
-    @Published var speed: Double = 1.0
+    @Published var speedIndex = 1               // 0 slow · 1 medium · 2 fast
     var direction: Double = 1
+
+    /// Three discrete speeds instead of a continuous dial.
+    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9)]
+    var speed: Double { Self.speeds[speedIndex].value }
+    var speedLabel: String { Self.speeds[speedIndex].label }
+    func slower() { speedIndex = max(0, speedIndex - 1) }
+    func faster() { speedIndex = min(Self.speeds.count - 1, speedIndex + 1) }
 
     private var link: CADisplayLink?
     private var lastTime: CFTimeInterval?
@@ -93,18 +100,18 @@ struct AutoScrollPill: View {
     var body: some View {
         VStack(spacing: 6) {
             VStack(spacing: 0) {
-                pillButton(driver.playing ? "minus" : "chevron.up") {
-                    if driver.playing { driver.speed = max(0.1, (driver.speed - 0.1).rounded(toPlaces: 1)) }
-                    else { driver.start(-1) }
+                pillButton(driver.playing ? "minus" : "chevron.up",
+                           dim: driver.playing && driver.speedIndex == 0) {
+                    if driver.playing { driver.slower() } else { driver.start(-1) }
                 }
                 Rectangle().fill(Theme.text).frame(width: 46, height: 1.5)
                 pillButton(driver.playing ? "pause.fill" : "play.fill", accent: driver.playing) {
                     driver.toggle()
                 }
                 Rectangle().fill(Theme.text).frame(width: 46, height: 1.5)
-                pillButton(driver.playing ? "plus" : "chevron.down") {
-                    if driver.playing { driver.speed = min(2.0, (driver.speed + 0.1).rounded(toPlaces: 1)) }
-                    else { driver.start(1) }
+                pillButton(driver.playing ? "plus" : "chevron.down",
+                           dim: driver.playing && driver.speedIndex == AutoScrollDriver.speeds.count - 1) {
+                    if driver.playing { driver.faster() } else { driver.start(1) }
                 }
             }
             .background(Theme.bg)
@@ -112,28 +119,22 @@ struct AutoScrollPill: View {
             .overlay(Capsule().stroke(Theme.text, lineWidth: 1.5))
             .shadow(color: .black.opacity(0.09), radius: 5, y: 2)
 
-            Text(String(format: "%.1f\u{00d7}", driver.speed))
-                .font(.system(size: 10).monospacedDigit())
+            Text(driver.speedLabel)
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(Theme.textDim)
         }
         .onDisappear { driver.stop() }
     }
 
-    private func pillButton(_ icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {
+    private func pillButton(_ icon: String, accent: Bool = false, dim: Bool = false,
+                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(accent ? Theme.danger : Theme.text)
+                .foregroundColor(accent ? Theme.danger : Theme.text.opacity(dim ? 0.3 : 1))
                 .frame(width: 46, height: 46)
                 .background(accent ? Theme.danger.opacity(0.16) : Color.clear)
         }
         .buttonStyle(.plain)
-    }
-}
-
-private extension Double {
-    func rounded(toPlaces places: Int) -> Double {
-        let m = pow(10.0, Double(places))
-        return (self * m).rounded() / m
     }
 }

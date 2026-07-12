@@ -14,6 +14,7 @@ struct DreamsView: View {
     @State private var current: Dream?              // the dream currently rendering
     @State private var finished: [Dream] = []       // dreams already drawn this run (pages kept on screen)
     @State private var errorText: String?
+    @State private var selectedPage: DreamPageRef?   // tapped page → enlarge + read the words
     @State private var renderSession = 0
 
     // Dreams still drawing on the server — persisted so closing the app or
@@ -63,6 +64,7 @@ struct DreamsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
+        .overlay { if let sel = selectedPage { DreamPagePopup(ref: sel) { selectedPage = nil } } }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -214,13 +216,23 @@ struct DreamsView: View {
     @ViewBuilder private var currentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(finished) { dream in
-                ForEach(dream.pages ?? []) { page in pageImage(page.pageURL) }
+                ForEach(dream.pages ?? []) { page in pageButton(page, dream) }
             }
-            if let pages = current?.pages, !pages.isEmpty {
-                ForEach(pages) { page in pageImage(page.pageURL) }
+            if let cur = current, let pages = cur.pages, !pages.isEmpty {
+                ForEach(pages) { page in pageButton(page, cur) }
             }
             if busy { progressCard }
         }
+    }
+
+    /// A drawn page — tap to enlarge it and read the dream behind it.
+    private func pageButton(_ page: DreamPage, _ dream: Dream) -> some View {
+        Button {
+            AutoScrollDriver.shared.stop()
+            selectedPage = DreamPageRef(id: page.id, url: page.pageURL,
+                                        title: dream.title, dreamText: dream.dream)
+        } label: { pageImage(page.pageURL) }
+        .buttonStyle(.plain)
     }
 
     private var progressCard: some View {
@@ -249,14 +261,11 @@ struct DreamsView: View {
     }
 
     private func pageImage(_ url: URL?) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image): image.resizable().scaledToFit()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView().frame(height: 160)
-            }
+        Group {
+            if let url { CachedImageView(url: url, contentMode: .fit) }
+            else { Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger) }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 200)
         .background(Color.white)
         .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
