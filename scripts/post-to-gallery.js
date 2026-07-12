@@ -26,7 +26,10 @@
  *
  * IMAGES MUST BE AT A PUBLIC URL the app can fetch. Firebase Storage in either
  * project works (make the object public). Temporary Replicate/OpenAI URLs
- * expire — upload to Storage first.
+ * expire — upload to Storage first. Pass `--file ./local.png` and this script
+ * uploads it to membry Storage (`claude-deliveries/`), makes it public, and
+ * uses that URL — so a chat can generate → post in ONE command, no separate
+ * upload step. (`--url` still works for an already-hosted image.)
  *
  * TARGET UID — the gallery is keyed to Sophie's device anonymous-auth uid. It is
  * a personal identifier, so it is NOT stored in this repo. Provide it per-run
@@ -36,37 +39,62 @@
  * real activity.
  *
  * USAGE
+ *   # one-command: upload a local image AND post it
  *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js \
- *     --url https://…/image.png \
- *     --prompt "Kitchen Witchery — hero image (watercolor)" \
- *     [--type image] [--style "Watercolor Drawings"] \
- *     [--uid <deviceUid>] [--created 1783823417742] [--source claude]
+ *     --file ./image.png --prompt "Kitchen Witchery — hero image" \
+ *     [--type image] [--style "Lavender Witch"] [--uid <deviceUid>] [--source claude]
+ *   # or post an already-hosted URL
+ *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js --url https://…/image.png --prompt "…"
  */
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 
 function arg(name, def) {
   const i = process.argv.indexOf(`--${name}`);
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : def;
 }
 
+function projectId() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (raw) { try { return JSON.parse(raw).project_id; } catch {} }
+  const p = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')).project_id; } catch {} }
+  return process.env.GOOGLE_CLOUD_PROJECT || null;
+}
+
 function initAdmin() {
   if (admin.apps.length) return;
+  const pid = projectId();
+  const opts = pid ? { storageBucket: `${pid}.firebasestorage.app` } : {};
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (raw) {
-    const sa = JSON.parse(raw);
-    admin.initializeApp({ credential: admin.credential.cert(sa) });
+    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)), ...opts });
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    admin.initializeApp({ credential: admin.credential.applicationDefault(), ...opts });
   } else {
     console.error('No credentials: set FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS.');
     process.exit(1);
   }
 }
 
+// Upload a local file to membry Storage under claude-deliveries/, make it
+// public, and return its URL. Lets `--file` be a one-step generate→post.
+async function uploadFile(file, createdMs) {
+  const bucket = admin.storage().bucket();
+  const ext = path.extname(file) || '.png';
+  const dest = `claude-deliveries/${createdMs}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const contentType = ext === '.webp' ? 'image/webp' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+  await bucket.upload(file, { destination: dest, metadata: { contentType } });
+  await bucket.file(dest).makePublic();
+  return `https://storage.googleapis.com/${bucket.name}/${dest}`;
+}
+
 async function main() {
-  const url = arg('url');
   const prompt = arg('prompt', '');
-  if (!url) { console.error('Missing --url'); process.exit(1); }
+  const file = arg('file');
+  let url = arg('url');
+  if (!url && !file) { console.error('Missing --url or --file'); process.exit(1); }
 
   const type = arg('type', 'image');
   const style = arg('style');
@@ -76,6 +104,7 @@ async function main() {
   const createdMs = Number(arg('created', String(Date.now())));
 
   initAdmin();
+  if (file) url = await uploadFile(file, createdMs);
   const db = admin.firestore();
   const doc = {
     type,
