@@ -116,10 +116,42 @@ router.post('/notes', async (req, res) => {
   }
 });
 
+// Deleting a note archives it to `forge-writing-applied` first (provenance:
+// which note produced which edit). A chat that applies a note passes what it
+// did via ?summary= (and optionally ?commit=); Sophie deleting her own note
+// from the page archives as dismissed instead.
+const APPLIED_COLLECTION = 'forge-writing-applied';
 router.delete('/notes/:id', async (req, res) => {
   try {
-    await db().collection(COLLECTION).doc(req.params.id).delete();
+    const ref = db().collection(COLLECTION).doc(req.params.id);
+    const doc = await ref.get();
+    if (doc.exists) {
+      const archive = {
+        note: doc.data(),
+        outcome: req.query.summary ? 'applied' : 'dismissed',
+        summary: String(req.query.summary || '').slice(0, 500),
+        commit: String(req.query.commit || '').slice(0, 80),
+        archived: new Date().toISOString(),
+      };
+      await db().collection(APPLIED_COLLECTION).doc(`${req.params.id}_${Date.now()}`).set(archive);
+    }
+    await ref.delete();
     res.json({ ok: true });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+
+// The provenance trail: every note that was ever applied (or dismissed),
+// with what changed and in which commit. ?dateId= filters to one date.
+router.get('/applied', async (req, res) => {
+  try {
+    let q = db().collection(APPLIED_COLLECTION);
+    if (req.query.dateId) q = q.where('note.dateId', '==', String(req.query.dateId));
+    const snap = await q.get();
+    const applied = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.archived < b.archived ? 1 : -1));
+    res.json({ applied });
   } catch (err) {
     res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
   }

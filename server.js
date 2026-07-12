@@ -593,6 +593,53 @@ app.get('/api/story/thumb', async (req, res) => {
   }
 });
 
+// ─── The Wall: everything every chat produced, in one live feed ─────
+// Merges this project's Storage (generated images, movie panels, zine
+// pages, dream comics) with the story boards' art (membry bucket) into
+// one newest-first list for the /wall page. Same gate as the pipeline.
+app.get('/api/wall', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const limit = Math.min(500, parseInt(req.query.limit, 10) || 200);
+    const out = [];
+    // derived/plumbing folders, not art
+    const SKIP = /^(thumbs|writing-audio|writing-notes|chat-feed|songs|ingest)\//;
+    if (bucket) {
+      const [files] = await bucket.getFiles();
+      files.forEach((f) => {
+        if (SKIP.test(f.name) || !/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+        out.push({
+          url: `https://storage.googleapis.com/${bucket.name}/${f.name}`,
+          folder: f.name.split('/')[0] || 'studio',
+          created: f.metadata.timeCreated,
+        });
+      });
+    }
+    try {
+      await storyDb(); // initializes storyApp when a credential is configured
+      if (storyApp) {
+        const sb = storyApp.storage().bucket();
+        const [sfiles] = await sb.getFiles({ prefix: 'story/' });
+        sfiles.forEach((f) => {
+          if (!/\.(png|jpe?g|webp)$/i.test(f.name)) return;
+          out.push({
+            url: `https://storage.googleapis.com/${sb.name}/${f.name}`,
+            folder: 'story boards',
+            created: f.metadata.timeCreated,
+          });
+        });
+      }
+    } catch (err) { console.warn('wall: story bucket unavailable:', err.message); }
+    out.sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ images: out.slice(0, limit), total: out.length, newest: out[0] ? out[0].created : null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/wall', serveGated('wall.html'));
+
 // Story Room: the movie asset boards in the Writing Room's frame — narration
 // with the art in place, live from /api/story (no deploy needed for content),
 // notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
