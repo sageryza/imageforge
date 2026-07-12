@@ -179,11 +179,11 @@ function dateText(dateId) {
 }
 
 // F5 handles short passages best — split at sentence ends, ~600 chars each.
-function chunkText(t) {
+function chunkText(t, maxLen = 600) {
   const sentences = t.replace(/\n+/g, ' ').match(/[^.!?…]+[.!?…]+["”']?\s*/g) || [t];
   const chunks = []; let cur = '';
   for (const s of sentences) {
-    if (cur && (cur + s).length > 600) { chunks.push(cur.trim()); cur = ''; }
+    if (cur && (cur + s).length > maxLen) { chunks.push(cur.trim()); cur = ''; }
     cur += s;
   }
   if (cur.trim()) chunks.push(cur.trim());
@@ -242,20 +242,26 @@ async function renderDateAudio(docId, dateId) {
   const ref = db.collection(AUDIO_COLLECTION).doc(docId);
   try {
     const d = dateText(dateId);
-    const { dataUri, refText } = refAudio();
-    const chunks = chunkText(d.text);
+    // Voice: OpenAI onyx with a British read (Sophie's pick — she passed on the
+    // F5 clone of her own voice; that path stays in git history + voices/).
+    const chunks = chunkText(d.text, 3200);
     await ref.set({ status: 'rendering', chunksTotal: chunks.length, chunksDone: 0 }, { merge: true });
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'read-'));
     const files = [];
     for (let i = 0; i < chunks.length; i++) {
-      let pred = await replicateCreate({ ref_audio: dataUri, ref_text: refText, gen_text: chunks[i], remove_silence: true });
-      while (!['succeeded', 'failed', 'canceled'].includes(pred.status)) {
-        await new Promise((r) => setTimeout(r, 2500));
-        pred = await replicateGet(pred.urls.get);
-      }
-      if (pred.status !== 'succeeded') throw new Error('chunk ' + i + ' ' + pred.status + ': ' + (pred.error || ''));
-      const out = Array.isArray(pred.output) ? pred.output[0] : pred.output;
-      files.push(await download(out, path.join(tmp, `c${String(i).padStart(3, '0')}.wav`)));
+      const r = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini-tts', voice: 'onyx', input: chunks[i],
+          instructions: 'Read warmly and naturally in a British accent, like reading a personal memoir aloud. Unhurried, a little wry, deadpan on the punchlines.',
+        }),
+      });
+      if (!r.ok) throw new Error('tts chunk ' + i + ': ' + r.status + ' ' + (await r.text()).slice(0, 150));
+      const buf = Buffer.from(await r.arrayBuffer());
+      const f = path.join(tmp, `c${String(i).padStart(3, '0')}.mp3`);
+      fs.writeFileSync(f, buf);
+      files.push(f);
       await ref.set({ chunksDone: i + 1 }, { merge: true });
     }
     const listFile = path.join(tmp, 'list.txt');
@@ -287,9 +293,9 @@ router.post('/audio', async (req, res) => {
     const dateId = String((req.body || {}).dateId || '');
     const d = dateText(dateId);
     if (!d) return res.status(404).json({ error: 'unknown dateId' });
-    if (!process.env.REPLICATE_API_TOKEN) return res.status(503).json({ error: 'replicate not configured' });
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'openai not configured' });
     const hash = crypto.createHash('sha1').update(d.text).digest('hex').slice(0, 10);
-    const docId = `${dateId}_c_${hash}`;
+    const docId = `${dateId}_c_onyx_${hash}`;
     const doc = await db().collection(AUDIO_COLLECTION).doc(docId).get();
     const cur = doc.exists ? doc.data() : null;
     if (cur && cur.status === 'ready' && cur.url) return res.json({ status: 'ready', url: cur.url });

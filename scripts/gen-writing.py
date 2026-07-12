@@ -108,7 +108,7 @@ for no,name in enumerate(ORDER,1):
     sections+=f"""<section class="date" id="d-{key}" style="display:none">
 <header><div class="no">no.&#8201;{no:02d} · someone i met once</div><h1>{esc(name)}</h1>
 <div class="rule"></div><div class="dek">{esc(smart(e["dek"]))}</div>
-<button class="btn listen" data-d="{key}"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen &middot; my voice</button>
+<button class="btn listen" data-d="{key}"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen</button>
 <div class="listenwrap" id="lw-{key}"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
 <div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause autoscroll</div>
