@@ -240,10 +240,41 @@ function openProj(p){
     });
     if((beat.cards||[]).length) sec.appendChild(cards);
     var id=noteKey(p.id,bi);
+    var artBtn=document.createElement('button'); artBtn.className='addnote'; artBtn.textContent='+ art';
+    artBtn.onclick=function(){
+      stop();
+      var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+      inp.onchange=function(){
+        var f=inp.files&&inp.files[0]; if(!f) return;
+        var img=new Image();
+        img.onload=function(){
+          var max=1400, sc=Math.min(1, max/Math.max(img.width,img.height));
+          var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+          var dataUrl=cv.toDataURL('image/jpeg',0.88);
+          toast('Uploading art\u2026');
+          api('/api/story/art',{method:'POST',body:JSON.stringify({projectId:p.id, beat:bi, label:f.name.replace(/\.[^.]+$/,''), image:dataUrl})})
+            .then(function(r){return r.json()})
+            .then(function(d){
+              if(!d.ok) throw new Error(d.error||'failed');
+              beat.cards=beat.cards||[];
+              beat.cards.push({label:f.name.replace(/\.[^.]+$/,''), status:'cand', url:d.url});
+              toast('Art added as candidate');
+              openProj(p);
+            })
+            .catch(function(e){ toast('Upload failed: '+String(e.message||e).slice(0,60)); });
+        };
+        img.src=URL.createObjectURL(f);
+      };
+      inp.click();
+    };
     var btn=document.createElement('button'); btn.className='addnote'; btn.textContent='+ note';
     var wrap=document.createElement('div');
     btn.onclick=function(){ openEditor(wrap,id,(beat.vo||'beat '+(bi+1)).slice(0,70)); };
-    sec.appendChild(btn); sec.appendChild(wrap);
+    var btnrow=document.createElement('div'); btnrow.style.display='flex'; btnrow.style.justifyContent='flex-end'; btnrow.style.gap='4px';
+    artBtn.style.margin='0'; btn.style.margin='0';
+    btnrow.appendChild(artBtn); btnrow.appendChild(btn);
+    sec.appendChild(btnrow); sec.appendChild(wrap);
     renderNoteInto(wrap,id,(beat.vo||'').slice(0,70));
   });
   var em=document.createElement('div'); em.className='endmark'; em.innerHTML='&#10086;'; sec.appendChild(em);

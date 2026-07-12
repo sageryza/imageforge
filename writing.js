@@ -125,6 +125,32 @@ router.delete('/notes/:id', async (req, res) => {
   }
 });
 
+// ─── Per-date workflow status (drafting → reviewing → approved) ─────────────
+const STATUS_COLLECTION = 'forge-writing-status';
+router.get('/status-all', async (req, res) => {
+  try {
+    const snap = await db().collection(STATUS_COLLECTION).get();
+    const statuses = {};
+    snap.docs.forEach((d) => { statuses[d.id] = d.data().status; });
+    res.json({ statuses });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+router.post('/status', async (req, res) => {
+  try {
+    const { dateId, status } = req.body || {};
+    if (!['drafting', 'reviewing', 'approved'].includes(status)) {
+      return res.status(400).json({ error: 'status must be drafting|reviewing|approved' });
+    }
+    await db().collection(STATUS_COLLECTION).doc(String(dateId)).set(
+      { status, updated: new Date().toISOString() });
+    res.json({ ok: true, status });
+  } catch (err) {
+    res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
+  }
+});
+
 // ─── Read-aloud: a date's text in Sophie's own voice (F5-TTS) ───────────────
 // On-demand + cached: the first "Listen" tap renders the audio via Replicate
 // F5 (~1¢ per 10-15s of speech, so ~30-50¢ for a full date) and saves the mp3
