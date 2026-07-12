@@ -10,9 +10,9 @@ struct DreamsView: View {
     @State private var text = ""
     @State private var busy = false
     @State private var statusLabel = ""
-    @State private var review: [DreamBeat] = []   // beats to check the chronology of
-    @State private var reviewId: String?          // the dream being reviewed
-    @State private var current: Dream?            // rendering / finished pages
+    @State private var reviewDreams: [Dream] = []   // dreams split from the recording, to check the chronology of
+    @State private var current: Dream?              // the dream currently rendering
+    @State private var finished: [Dream] = []       // dreams already drawn this run (pages kept on screen)
     @State private var errorText: String?
     @State private var pollGeneration = 0
 
@@ -26,9 +26,9 @@ struct DreamsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 inputSection
-                if reviewId != nil && current == nil {
+                if !reviewDreams.isEmpty {
                     chronologySection
-                } else if busy || current != nil {
+                } else if busy || current != nil || !finished.isEmpty {
                     currentSection
                 } else {
                     sunflowerEmptyState
@@ -136,17 +136,28 @@ struct DreamsView: View {
     /// The chronology check — dreams come out of order, so the breakdown's best
     /// guess at the real sequence, with ▲▼ to nudge any beat before drawing.
     private var chronologySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("CHECK THE CHRONOLOGY")
+        VStack(alignment: .leading, spacing: 16) {
+            Text(reviewDreams.count > 1 ? "\(reviewDreams.count) DREAMS — CHECK THE CHRONOLOGY" : "CHECK THE CHRONOLOGY")
                 .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
-            Text("Dreams come out of order. Nudge any beat into place, then draw.")
+            Text(reviewDreams.count > 1
+                 ? "That recording was more than one dream. Each is split out and put in order — nudge any beat, then draw them all."
+                 : "Dreams come out of order. Nudge any beat into place, then draw.")
                 .font(.footnote).foregroundColor(Theme.textDim)
-            ForEach(Array(review.enumerated()), id: \.element.id) { idx, beat in
-                beatRow(idx: idx, beat: beat)
+            ForEach(Array(reviewDreams.enumerated()), id: \.element.id) { di, dream in
+                VStack(alignment: .leading, spacing: 8) {
+                    if reviewDreams.count > 1 {
+                        Text(dream.title)
+                            .font(Theme.serif(17)).foregroundColor(Theme.text)
+                            .padding(.top, di == 0 ? 0 : 6)
+                    }
+                    ForEach(Array(dream.beats.enumerated()), id: \.element.id) { bi, beat in
+                        beatRow(dreamIndex: di, beatIndex: bi, beat: beat, count: dream.beats.count)
+                    }
+                }
             }
             Button { draw() } label: {
-                Text("Draw it")
+                Text(reviewDreams.count > 1 ? "Draw all \(reviewDreams.count)" : "Draw it")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
@@ -158,10 +169,10 @@ struct DreamsView: View {
         }
     }
 
-    private func beatRow(idx: Int, beat: DreamBeat) -> some View {
+    private func beatRow(dreamIndex di: Int, beatIndex bi: Int, beat: DreamBeat, count: Int) -> some View {
         let label = (beat.caption?.isEmpty == false) ? (beat.caption ?? "") : beat.imagePrompt
         return HStack(spacing: 12) {
-            Text("\(idx + 1)")
+            Text("\(bi + 1)")
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .foregroundColor(Theme.mauve)
                 .frame(width: 20)
@@ -170,8 +181,8 @@ struct DreamsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(2)
             VStack(spacing: 6) {
-                arrowButton("chevron.up", disabled: idx == 0) { moveBeat(idx, -1) }
-                arrowButton("chevron.down", disabled: idx == review.count - 1) { moveBeat(idx, 1) }
+                arrowButton("chevron.up", disabled: bi == 0) { moveBeat(di, bi, -1) }
+                arrowButton("chevron.down", disabled: bi == count - 1) { moveBeat(di, bi, 1) }
             }
         }
         .padding(12)
@@ -198,6 +209,9 @@ struct DreamsView: View {
     /// note while the beats draw.
     @ViewBuilder private var currentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            ForEach(finished) { dream in
+                ForEach(dream.pages ?? []) { page in pageImage(page.pageURL) }
+            }
             if let pages = current?.pages, !pages.isEmpty {
                 ForEach(pages) { page in pageImage(page.pageURL) }
             }
@@ -255,15 +269,13 @@ struct DreamsView: View {
         busy = true
         statusLabel = "Reading your dream…"
         current = nil
-        reviewId = nil
-        review = []
+        finished = []
+        reviewDreams = []
         Task {
             do {
-                // Breakdown (free): dream → beats + captions, already in the
-                // AI's best chronological order.
-                let created = try await MovieService.shared.createDream(text: body)
-                review = created.beats
-                reviewId = created.id
+                // Breakdown (free): the recording → one or more dreams, each
+                // split out and already in Claude's best chronological order.
+                reviewDreams = try await MovieService.shared.createDream(text: body)
             } catch {
                 errorText = error.localizedDescription
             }
@@ -272,26 +284,30 @@ struct DreamsView: View {
         }
     }
 
-    /// Draw the reviewed beats in the confirmed order.
+    /// Draw each reviewed dream in turn, in its confirmed beat order.
     private func draw() {
-        guard let id = reviewId else { return }
-        let order = review.map { $0.id }
+        let dreams = reviewDreams
+        guard !dreams.isEmpty else { return }
+        reviewDreams = []
+        finished = []
         busy = true
-        statusLabel = "Drawing the character…"
-        reviewId = nil
         Task {
-            do {
-                current = try await MovieService.shared.renderDream(id, order: order)
-                await pollDream(id)
-                text = ""
-                // Leave the finished pages on screen; the dream is saved to the
-                // moon archive automatically.
-            } catch {
-                errorText = error.localizedDescription
+            for (i, dream) in dreams.enumerated() {
+                statusLabel = dreams.count > 1 ? "Drawing dream \(i + 1) of \(dreams.count)…" : "Drawing the character…"
+                do {
+                    let order = dream.beats.map { $0.id }
+                    current = try await MovieService.shared.renderDream(dream.id, order: order)
+                    await pollDream(dream.id)
+                    if let done = current { finished.append(done) }
+                    current = nil
+                } catch {
+                    errorText = error.localizedDescription
+                    break
+                }
             }
+            text = ""            // the dreams are saved to the moon archive
             busy = false
             statusLabel = ""
-            review = []
         }
     }
 
@@ -319,10 +335,11 @@ struct DreamsView: View {
         }
     }
 
-    private func moveBeat(_ i: Int, _ dir: Int) {
-        let j = i + dir
-        guard j >= 0, j < review.count else { return }
-        review.swapAt(i, j)
+    private func moveBeat(_ di: Int, _ bi: Int, _ dir: Int) {
+        guard di >= 0, di < reviewDreams.count else { return }
+        let j = bi + dir
+        guard j >= 0, j < reviewDreams[di].beats.count else { return }
+        reviewDreams[di].beats.swapAt(bi, j)
     }
 
     /// Ask for notification permission once and schedule a daily 11am nudge.

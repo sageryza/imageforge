@@ -37,6 +37,13 @@ const admin = require('firebase-admin');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
+// The dream breakdown (reading a recording, splitting it into separate dreams,
+// and reconstructing each dream's true chronology) is smart work a small model
+// can't do well, so it runs on Claude Opus. By explicit request there is NO
+// fallback to a cheaper model: if ANTHROPIC_API_KEY is missing or the call
+// fails, the breakdown errors and surfaces that to the app.
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const DREAM_MODEL = process.env.DREAM_MODEL || 'claude-opus-4-8';
 // Same access gate as the POD pipeline: when set, everything but GET /status
 // requires the x-studio-token header. Generation costs real money.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -352,6 +359,44 @@ async function openaiChatJSON(messages, { temperature = 0.8, retries = 2 } = {})
   throw lastErr;
 }
 
+// Claude Opus, JSON out. Used for the dream breakdown — no OpenAI fallback by
+// request. Opus 4.8 rejects assistant prefill and `temperature`, so we ask for
+// strict JSON in the system prompt and parse the text (fences stripped).
+async function anthropicChatJSON(system, user, { maxTokens = 8000, retries = 2 } = {}) {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not set — the dream breakdown runs on Claude Opus; add the key to enable it');
+  }
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: DREAM_MODEL,
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: 'user', content: user }],
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'anthropic error');
+      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+      if (!text) throw new Error('empty response from Claude');
+      const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      return JSON.parse(cleaned);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 // Panel render — gpt-image-2 portrait, timeout scaled by quality (high takes
 // minutes at OpenAI's end; see server.js's OPENAI_IMAGE_TIMEOUTS).
 const IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000 };
@@ -624,49 +669,56 @@ HARD RULES:
 // image prompt plus the little caption line that sits under it. The renderer
 // packs the beats four-to-a-page (the style reference's 2x2 comic format), so
 // an 8-beat dream becomes two pages, a short tail page lays out with fewer.
-async function dreamBreakdown(dream) {
-  const sys = `You are illustrating someone's real dream as a short hand-drawn diary comic. Read the dream and break it into the visual BEATS it needs — one drawing per beat. Return STRICT JSON:
-{"title": a short 2-5 word title for the dream,
- "cast": [{"name": a short label for one recurring figure the way the dreamer refers to them — "J", "Dad", "the boob girl", "the baby", "me",
-   "look": one compact phrase of visual continuity tokens so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "honey-blonde hair, glasses, wearing a green cardigan and jeans"}]  (list ONLY figures who appear in MORE THAN ONE beat or are central; empty array [] if none; at MOST 5),
- "beats": [{"imagePrompt": a full, SELF-CONTAINED image prompt for this one panel — name the setting, who is present with their continuity tokens, and what is happening; describe composition and content ONLY, no art-style words,
-   "who": [the exact cast "name" values of the figures who appear IN THIS PANEL] (empty [] if none of the cast are in this beat),
-   "caption": the short line hand-lettered under the panel — the dreamer's own voice, present tense, evocative not descriptive, at most about 8 words,
-   "hasText": true only if the drawing itself should contain written words (a sign, a screen, a speech bubble)}]}
-
-HARD RULES:
-- Return the beats in the TRUE chronological order the events happened IN the dream, NOT the order the dreamer narrated them. Dreams are told out of sequence — follow the dreamer's own cues ("actually that was before", "wait, before that", "earlier", "at first", "then", "after that", "which reminded me") to reconstruct the real sequence, and emit the beats already in that order.
-- Use as many beats as the dream actually needs and NO MORE — do not pad. A simple dream may be 2-4 beats; a busy one 6-8. Go higher only if the dream truly earns it.
-- Every imagePrompt must stand completely alone: nothing implied from another beat. For EACH figure present, repeat that figure's continuity tokens (their "look") verbatim in the imagePrompt — do not just write their name.
-- "who" must use the cast "name" values EXACTLY as written in the cast list, so the illustrator can attach the right reference for each figure.
-- imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
-- A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".`;
-  const out = await openaiChatJSON([
-    { role: 'system', content: sys },
-    { role: 'user', content: `The dream:\n\n${dream}` },
-  ], { temperature: 0.75 });
-  // The cast: named recurring figures, each drawn once as a labelled reference
-  // sheet and attached to every page they appear on (multi-character anchor).
-  const cast = (Array.isArray(out.cast) ? out.cast : [])
+// Normalize one raw dream object from the model into our stored shape.
+function normalizeBreakdownDream(d) {
+  const cast = (Array.isArray(d.cast) ? d.cast : [])
     .map((c) => ({ name: String(c.name || '').trim(), look: String(c.look || '').trim(), url: null }))
     .filter(c => c.name && c.look)
     .slice(0, 5);
   const castNames = new Set(cast.map(c => c.name));
-  const beats = (Array.isArray(out.beats) ? out.beats : []).map((b) => ({
+  const beats = (Array.isArray(d.beats) ? d.beats : []).map((b) => ({
     id: 'b' + crypto.randomBytes(4).toString('hex'),
     imagePrompt: String(b.imagePrompt || b.description || '').trim(),
     who: (Array.isArray(b.who) ? b.who : []).map(n => String(n).trim()).filter(n => castNames.has(n)),
     caption: String(b.caption || '').trim(),
     hasText: Boolean(b.hasText),
   })).filter(b => b.imagePrompt);
-  if (!beats.length) throw new Error('dream breakdown produced no beats');
   return {
-    title: String(out.title || 'Untitled dream').trim(),
+    title: String(d.title || 'Untitled dream').trim(),
     cast,
     // A joined continuity phrase kept for any legacy reader (single-string field).
     characters: cast.map(c => c.look).join('; '),
     beats,
   };
+}
+
+async function dreamBreakdown(dream) {
+  const sys = `You are illustrating someone's real dream recordings as short hand-drawn diary comics. A single recording is often SEVERAL separate dreams told in one breath, out of order. First split it into the distinct dreams, then break each dream into the visual BEATS it needs — one drawing per beat. Return STRICT JSON and nothing else:
+{"dreams": [
+  {"title": a short 2-5 word title for THIS dream,
+   "cast": [{"name": a short label for one recurring figure the way the dreamer refers to them — "J", "Dad", "the boob girl", "the baby", "me",
+     "look": one compact phrase of visual continuity tokens so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "honey-blonde hair, glasses, wearing a green cardigan and jeans"}]  (ONLY figures who appear in MORE THAN ONE beat of THIS dream or are central; [] if none; at MOST 5),
+   "beats": [{"imagePrompt": a full, SELF-CONTAINED image prompt for this one panel — name the setting, who is present with their continuity tokens, and what is happening; describe composition and content ONLY, no art-style words,
+     "who": [the exact cast "name" values of the figures who appear IN THIS PANEL] ([] if none of the cast are in this beat),
+     "caption": the short line hand-lettered under the panel — the dreamer's own voice, present tense, evocative not descriptive, at most about 8 words,
+     "hasText": true only if the drawing itself should contain written words (a sign, a screen, a speech bubble)}]}
+]}
+
+HARD RULES:
+- SPLIT into separate dreams. A recording usually contains more than one dream. Start a new dream at the dreamer's own boundary cues: "that was that dream", "the next dream", "another dream I had", "then yesterday I had a dream", "the night before" introducing a wholly separate scene, or an unmistakable change of setting/cast with no continuity. When unsure whether two stretches are one dream or two, prefer keeping a coherent continuous scene together. Emit the dreams in the order they were dreamt (earliest first) when the dreamer gives day cues ("the night before", "yesterday"); otherwise keep their narrated order.
+- WITHIN each dream, return the beats in the TRUE chronological order events happened IN that dream, NOT the order narrated. Follow the dreamer's cues ("actually that was before", "wait, before that", "earlier", "at first", "then", "after that", "at the very end", "right before I woke up", "which reminded me") to reconstruct the real sequence, and emit beats already in that order.
+- Keep beats COARSE: one beat per meaningful moment, not per sentence. Use as few beats as capture the dream and NO MORE — do not pad. A simple dream may be 2-4 beats; a busy one 6-8. Merge tiny adjacent details into one beat rather than splitting hairs.
+- Every imagePrompt must stand completely alone: nothing implied from another beat. For EACH figure present, repeat that figure's continuity tokens (their "look") verbatim in the imagePrompt — do not just write their name.
+- "who" must use the cast "name" values EXACTLY as written in that dream's cast list.
+- imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
+- A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".`;
+  const out = await anthropicChatJSON(sys, `The dream recording:\n\n${dream}`, { maxTokens: 8000 });
+  const raw = Array.isArray(out.dreams) ? out.dreams
+    : Array.isArray(out.beats) ? [out]   // tolerate a single-dream shape
+    : [];
+  const dreams = raw.map(normalizeBreakdownDream).filter(d => d.beats.length);
+  if (!dreams.length) throw new Error('dream breakdown produced no beats');
+  return { dreams };
 }
 
 // A scene folded into the previous scene's clip (it's the "after" of a
@@ -1460,27 +1512,40 @@ router.post('/dream', async (req, res) => {
   try {
     const { dream, title } = req.body || {};
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
-    const plan = await dreamBreakdown(String(dream).trim());
-    const doc = {
-      id: 'd' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
-      title: (title && String(title).trim()) || plan.title,
-      dream: String(dream).trim(),
-      characters: plan.characters,
-      cast: plan.cast,
-      imageStyle: DEFAULT_IMAGE_STYLE,
-      characterAnchor: null,
-      beats: plan.beats,
-      pages: [],
-      pagesQuality: null,
-      pagesMadeAt: null,
-      pageHistory: [],
-      job: null,
-      spend: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await saveDream(doc);
-    res.json(doc);
+    const text = String(dream).trim();
+    // One recording can hold several dreams — the breakdown splits them, and
+    // each becomes its own journal entry.
+    const { dreams: plans } = await dreamBreakdown(text);
+    const now = Date.now();
+    const docs = [];
+    for (let i = 0; i < plans.length; i++) {
+      const plan = plans[i];
+      // Stagger timestamps so the array order (earliest dreamt first) maps to
+      // time — the last dream sorts newest in the journal.
+      const ts = new Date(now + i * 1000).toISOString();
+      const doc = {
+        id: 'd' + (now + i).toString(36) + crypto.randomBytes(3).toString('hex'),
+        // Only honor a client-supplied title when the recording is a single dream.
+        title: (plans.length === 1 && title && String(title).trim()) || plan.title,
+        dream: text,
+        characters: plan.characters,
+        cast: plan.cast,
+        imageStyle: DEFAULT_IMAGE_STYLE,
+        characterAnchor: null,
+        beats: plan.beats,
+        pages: [],
+        pagesQuality: null,
+        pagesMadeAt: null,
+        pageHistory: [],
+        job: null,
+        spend: 0,
+        createdAt: ts,
+        updatedAt: ts,
+      };
+      await saveDream(doc);
+      docs.push(doc);
+    }
+    res.json({ dreams: docs });
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
   }
