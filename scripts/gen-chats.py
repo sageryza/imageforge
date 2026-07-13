@@ -38,10 +38,17 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
 .t-new{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
-.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:2px;}
+.t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
+.t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:4px;}
+.abouted{display:block; width:100%; margin:2px 0 0; font-family:'EBGaramond',Georgia,serif; font-size:16px; box-sizing:border-box;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:7px 9px;}
 .thread-head{display:flex; align-items:center; gap:12px; margin-bottom:.4em;}
 .thread-head img,.thread-head .t-blank{width:46px; height:46px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.3em;}
+.aboutrow{margin:-2px 0 6px;}
+.aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
 .msg{padding:14px 0; border-bottom:1px solid var(--line);}
@@ -113,6 +120,28 @@ function markSeen(name){
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
 }
 
+function editAbout(chat, row, current){
+  // inline editor (WKWebView blocks window.prompt), saves to /about
+  var inp=document.createElement('input'); inp.type='text'; inp.className='abouted';
+  inp.value=current||''; inp.placeholder='What is this project? (one line)'; inp.maxLength=140;
+  row.innerHTML=''; row.appendChild(inp); inp.focus();
+  var done=false;
+  function save(){
+    if(done) return; done=true;
+    var v=inp.value.trim();
+    api('/api/chatfeed/about',{method:'POST',body:JSON.stringify({chat:chat,about:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        chats[chat]=chats[chat]||{}; chats[chat].about=v;
+        row.innerHTML='<span class="aboutshow">'+(v?esc(v):'add a description')+'</span>';
+        row.querySelector('.aboutshow').onclick=function(){ editAbout(chat,row,v); };
+        toast('Saved'); })
+      .catch(function(){ done=false; toast('Couldn\\u2019t save'); });
+  }
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
+}
+
 function setIcon(chat){
   var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
   inp.onchange=function(){
@@ -160,9 +189,17 @@ function renderHome(){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    // status line = the latest message that carries a TLDR (what the project
+    // last did); fall back to the last message's first line
+    var tldrs=list.filter(function(m){return m.tldr;});
+    var statusMsg=tldrs.length? tldrs[tldrs.length-1] : last;
+    var status=statusMsg? (statusMsg.tldr||(statusMsg.text||'').split('\\n')[0]) : '';
+    var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(name)+'</span>'
+      +(about? '<span class="t-about">'+esc(about)+'</span>':'')
+      +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
@@ -206,10 +243,14 @@ function openChat(name, keepScroll){
   scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var head=document.createElement('header');
+  var about=(chats[name]&&chats[name].about)||'';
   head.innerHTML='<div class="no">chats</div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1 style="margin:0">'+esc(name)+'</h1></div>'
+    +'<div class="aboutrow"><span class="aboutshow">'+(about?esc(about):'add a description')+'</span></div>'
     +'<button class="seticon">change picture</button><div class="rule"></div>';
   head.querySelector('.seticon').onclick=function(){ setIcon(name); };
+  var arow=head.querySelector('.aboutrow');
+  arow.querySelector('.aboutshow').onclick=function(){ editAbout(name, arow, about); };
   sec.appendChild(head);
   var list=(groups()[name])||[];
   if(!list.length) sec.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
