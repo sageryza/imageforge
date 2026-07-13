@@ -34,8 +34,14 @@ struct DreamZineView: View {
                         Text("Print double-sided (flip on long edge), fold in half, and staple.")
                             .font(.caption).foregroundColor(Theme.textDim)
                             .padding(.horizontal, 12).padding(.bottom, 8)
+                    } else {
+                        Text("Tap the right or left side to turn the page.")
+                            .font(.caption).foregroundColor(Theme.textDim)
+                            .padding(.horizontal, 12).padding(.bottom, 8)
                     }
-                    ZinePDFView(url: url)
+                    // Reading view = an open book (two pages at a time). The
+                    // booklet layout is a print imposition, shown one sheet at a time.
+                    ZinePDFView(url: url, twoUp: !booklet)
                 }
             } else {
                 Text("No dream pages to bind yet — illustrate a dream first.")
@@ -154,21 +160,42 @@ enum ZineBuilder {
     }
 }
 
-/// A PDF shown page-by-page so it reads like a book you flip through.
+/// A PDF shown like a book you flip through. `twoUp` shows an open two-page
+/// spread (the reading view); otherwise one sheet at a time (the print booklet).
+/// Tap the right/left half to turn the page.
 struct ZinePDFView: UIViewRepresentable {
     let url: URL
+    var twoUp = false
 
     func makeUIView(context: Context) -> PDFView {
         let view = PDFView()
         view.document = PDFDocument(url: url)
         view.autoScales = true
-        view.displayMode = .singlePage
-        view.displayDirection = .horizontal
         view.usePageViewController(true, withViewOptions:
             [UIPageViewController.OptionsKey.interPageSpacing: 8])
+        view.displayMode = twoUp ? .twoUp : .singlePage
+        view.displayDirection = .horizontal
         view.backgroundColor = .clear
+
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.onTap(_:)))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+        context.coordinator.pdf = view
         return view
     }
 
-    func updateUIView(_ view: PDFView, context: Context) {}
+    func updateUIView(_ view: PDFView, context: Context) {
+        view.displayMode = twoUp ? .twoUp : .singlePage
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator: NSObject {
+        weak var pdf: PDFView?
+        @objc func onTap(_ g: UITapGestureRecognizer) {
+            guard let pdf else { return }
+            if g.location(in: pdf).x < pdf.bounds.width / 2 { pdf.goToPreviousPage(nil) }
+            else { pdf.goToNextPage(nil) }
+        }
+    }
 }
