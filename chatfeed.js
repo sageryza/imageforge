@@ -100,6 +100,19 @@ router.post('/icon', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Set a chat's one-line "what this is" — shown on its tile so the Chats grid
+// reads like a project directory. Sophie sets it in the app; a chat can also
+// set its own. Stored on the registry doc next to the icon.
+router.post('/about', async (req, res) => {
+  try {
+    const { chat, about } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    await db().collection(REG).doc(String(chat).slice(0, 60))
+      .set({ about: String(about || '').slice(0, 140) }, { merge: true });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
 // Render a message in the polished neural voice (same onyx-British read as
 // the Writing Room's Listen button). Result is cached on the message doc as
 // audioUrl, so each message costs at most one render (~1¢).
