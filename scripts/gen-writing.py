@@ -1,5 +1,6 @@
 import json, base64, re, html
 from difflib import SequenceMatcher
+from pill import PILL_CSS, PILL_HTML, PILL_JS
 
 import os
 ROOT=os.path.join(os.path.dirname(__file__),'..')
@@ -228,16 +229,8 @@ mark{{background:none; color:var(--chg);}}
 .gal-fig{{margin:0;}}
 .gal-fig img{{width:100%; display:block; mix-blend-mode:multiply;}}
 .gal-fig figcaption{{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); text-align:center; margin-top:6px;}}
-.float{{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}}
-.vseg{{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px;
-  overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}}
-.vseg button{{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;}}
-.vseg button + button{{border-top:1.5px solid var(--ink);}}
-.vseg button.on{{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}}
-.vseg button:focus-visible{{outline:2px solid var(--rose); outline-offset:-2px;}}
+__PILL_CSS__
 .fbtn:focus-visible{{outline:2px solid var(--rose);}}
-#spd{{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); font-variant-numeric:tabular-nums;}}
 .backwrap{{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}}
 body.reading .backwrap{{display:block;}}
 #back{{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2);
@@ -248,14 +241,7 @@ body.reading .backwrap{{display:block;}}
 @media (prefers-reduced-motion: reduce){{ #toast{{transition:none;}} }}
 </style>
 <div class="backwrap"><button id="back" aria-label="Back to the list">&#8249;</button></div>
-<div class="float">
-  <div class="vseg">
-    <button id="vtop" aria-label="Scroll up / faster"></button>
-    <button id="vmid" aria-label="Play or pause autoscroll"></button>
-    <button id="vbot" aria-label="Scroll down / slower"></button>
-  </div>
-  <span id="spd">1.0&times;</span>
-</div>
+__PILL_HTML__
 <div class="wrap">
 <section id="home">
   <div class="no">someone i met once · working drafts</div>
@@ -343,7 +329,7 @@ function renderCounts(){{
 }}
 document.querySelectorAll('.addnote').forEach(function(btn){{
   btn.onclick=function(){{
-    stop();
+    window.__scrollStop();
     var id=btn.dataset.i, wrap=document.getElementById(nwId(id));
     if(wrap.querySelector('.notebox')){{ wrap.querySelector('textarea').focus(); return; }}
     var box=document.createElement('div'); box.className='notebox';
@@ -406,7 +392,7 @@ function open(key){{
   window.scrollTo(0,0);
 }}
 function goHome(){{
-  stop(); cur=null;
+  window.__scrollStop(); cur=null;
   document.querySelectorAll('section.date').forEach(function(s){{ s.style.display='none'; }});
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
@@ -418,7 +404,7 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
   var sec=tabs.closest('section');
   tabs.querySelectorAll('.tab').forEach(function(t){{
     t.onclick=function(){{
-      stop();
+      window.__scrollStop();
       tabs.querySelectorAll('.tab').forEach(function(x){{x.classList.toggle('on',x===t)}});
       sec.querySelector('.verC').style.display = t.dataset.v==='c'?'':'none';
       sec.querySelector('.verO').style.display = t.dataset.v==='o'?'':'none';
@@ -427,41 +413,10 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
   }});
 }});
 
-var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
-var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
-var I={{
- up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
- down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
- play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
- pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
- plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
- minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
-}};
-function step(ts){{
-  if(!playing) return;
-  if(last!=null){{
-    acc += dir*(ts-last)/1000*42*speed;
-    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
-    if(move!==0){{ window.scrollBy(0,move); acc-=move; }}
-    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
-    if(atEnd) stop(); }}
-  last=ts; raf=requestAnimationFrame(step);
-}}
-function showSpd(){{ document.getElementById('spd').textContent=speed.toFixed(1)+'\u00d7'; }}
-function paint(){{
-  if(playing){{ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }}
-  else{{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }}
-  showSpd();
-}}
-function start(d){{ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }}
-function stop(){{ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }}
-vtop.onclick=function(){{ if(playing){{ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); }} else start(-1); }};
-vbot.onclick=function(){{ if(playing){{ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); }} else start(1); }};
-vmid.onclick=function(){{ playing? stop() : start(dir||1); }};
-paint();
+__PILL_JS__
 document.querySelector('.wrap').addEventListener('click',function(e){{
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  playing? stop() : start(1);
+  window.__scrollToggle();
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
@@ -497,7 +452,7 @@ document.querySelectorAll('.r-status').forEach(function(el){{
 var listenTimers={{}};
 document.querySelectorAll('.listen').forEach(function(b){{
   b.onclick=function(){{
-    stop();
+    window.__scrollStop();
     var key=b.dataset.d, wrap=document.getElementById('lw-'+key);
     function poll(){{
       api('/api/writing/audio',{{method:'POST',body:JSON.stringify({{dateId:key}})}})
@@ -539,6 +494,7 @@ document.querySelectorAll('.copybtn').forEach(function(b){{
 }})();
 </script>
 """
+page=page.replace('__PILL_CSS__',PILL_CSS).replace('__PILL_HTML__',PILL_HTML).replace('__PILL_JS__',PILL_JS)
 open(os.path.join(ROOT,'public','writing.html'),'w',encoding='utf-8').write(page)
 json.dump({"updated":None,"dates":DATES}, open(os.path.join(WD,'dates.json'),'w',encoding='utf-8'), ensure_ascii=False)
 print("built public/writing.html", round(len(page)/1024),"KB and dates.json")
