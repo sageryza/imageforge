@@ -1166,8 +1166,10 @@ app.post('/api/witch/daily', async (req, res) => {
     // Cache key includes an input hash so a changed birthday / new cards
     // regenerate instead of serving a stale reading.
     const crypto = require('crypto');
+    // Bump `v` whenever the reading's prompt/shape changes so cached readings
+    // regenerate same-day instead of waiting for the next date.
     const inputHash = crypto.createHash('sha1').update(JSON.stringify({
-      b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+      v: 2, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
     })).digest('hex').slice(0, 12);
     const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
     if (docRef && !force) {
@@ -1202,7 +1204,7 @@ You are given a REAL, accurately computed chart and today's REAL transits — in
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
-  "reading": "ONE tight paragraph (3-5 sentences), personalized to their chart + today's transits (or general if no chart)",
+  "reading": "ONE short paragraph, 2-3 sentences MAX. Be CONCRETE and grounded — name a real, specific situation or action for today (a conversation, a text, a task, a person, money, sleep, a feeling in the body), not vague mystical abstraction. Tell them plainly what to actually do or notice. No 'the universe', no 'energy', no cosmic platitudes, no astrology jargon in the sentence itself.",
   "focus": "1-3 word theme for the day",
   "invite": "",
   "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
