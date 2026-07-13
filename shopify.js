@@ -365,6 +365,31 @@ async function updateArticle({ blogId, articleId, title, bodyHtml, summaryHtml, 
   return { ok: true, id: a.id, blog_id: a.blog_id, handle: a.handle, published: Boolean(a.published_at), adminUrl, liveUrl };
 }
 
+// Fetch a single article (incl. its raw body_html) so a caller can read the
+// current content — e.g. to append internal links for topic-cluster
+// interlinking — then PUT it back via updateArticle.
+async function getArticle({ blogId, articleId } = {}) {
+  if (!articleId) throw new Error('articleId required');
+  if (!blogId) {
+    const blogs = await listBlogs();
+    if (!blogs.length) throw new Error('no blog found on the store');
+    blogId = blogs[0].id;
+  }
+  const data = await shopifyREST(`/blogs/${blogId}/articles/${articleId}.json`, { method: 'GET' });
+  const a = data.article || {};
+  return {
+    ok: true,
+    id: a.id,
+    blog_id: a.blog_id,
+    handle: a.handle,
+    title: a.title,
+    bodyHtml: a.body_html || '',
+    tags: a.tags || '',
+    publishedAt: a.published_at || null,
+    published: Boolean(a.published_at),
+  };
+}
+
 // Delete an article (draft or live). Needs its blog + article id; blogId
 // defaults to the store's first blog, matching publishArticle.
 async function deleteArticle({ blogId, articleId } = {}) {
@@ -485,6 +510,15 @@ router.post('/blog-post', express.json({ limit: '2mb' }), async (req, res) => {
   }
 });
 
+// Read a single article (incl. raw body_html). Query: ?blogId=&articleId=.
+router.get('/article', async (req, res) => {
+  try {
+    res.json(await getArticle({ blogId: req.query.blogId, articleId: req.query.articleId }));
+  } catch (err) {
+    res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
 // Edit an existing article in place. Body: { articleId, blogId?, ...fields }.
 router.post('/article/update', express.json({ limit: '2mb' }), async (req, res) => {
   try {
@@ -512,5 +546,6 @@ module.exports = {
   listBlogs,
   publishArticle,
   updateArticle,
+  getArticle,
   deleteArticle,
 };
