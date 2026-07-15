@@ -366,21 +366,25 @@ lifted into a standalone tool later.
   re-polls those ids and shows the pages as they land. Polling is resilient to
   dropped connections (phone locked / Render cold start) — a transient failure
   retries instead of surfacing "Couldn't illustrate"; only a real job error does.
-  **Multi-character cast** (a dream
-  usually has several recurring people — dad, J, Sean — not one): the breakdown
-  returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
-  `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
-  cast member ONCE as a labelled solo reference sheet (`cast[i].url`), then
-  `renderDreamPage` attaches the style ref FIRST and the sheets for whoever
-  appears on that page after it, naming each by attachment position ("the #2
-  attached image is J (…)") so multiple characters stay consistent across
-  pages — the technique ChatGPT uses (named reference per character, all
-  attached, each named in the prompt; gpt-image-2 `edits` takes an image array,
-  up to ~16). Beats with no `who` fall back to attaching the whole cast; refs
-  are capped at 4/page (+style = 5). Legacy single-character dreams
-  (`characters` string / `characterAnchor`) auto-normalize to a one-member cast.
-  `POST .../render {reanchor:true}` re-rolls every cast member's look. Same
-  `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
+  **Multi-character consistency by reusing earlier pages** (a dream usually has
+  several recurring people — dad, J, Sean — not one): the breakdown returns a
+  `cast:[{name,look}]` (≤5 named figures) and each beat carries a `who:[name]`
+  of who appears in it. Pages render **in order** (`makeDreamPages`, a
+  sequential loop — dreams are short); each page feeds the **already-drawn
+  earlier pages** back in as the reference, NOT freshly-generated solo sheets.
+  For every recurring character on a page, `dreamPageRefs` finds the earliest
+  page that showed them and attaches it (style ref FIRST, then up to 3 earlier
+  pages), and `dreamZinePagePrompt` names each by attachment position ("the #2
+  attached image is an EARLIER PAGE — draw J with the exact same face/hair/
+  clothing"). A character's FIRST appearance has no earlier page and is drawn
+  fresh; the page it lands on then anchors it everywhere after. This is the
+  cheaper, more faithful version of the ChatGPT technique — reuse an existing
+  image of the character instead of inventing a reference sheet (gpt-image-2
+  `edits` attends to the attached images; array up to ~16, we cap at style + 3).
+  So an N-character dream generates **only** its comic pages — 0 extra images
+  (previously it drew one solo sheet per character, ~$0.06 each). Legacy dreams
+  with no `who` fall back to anchoring each page to the most recent earlier one.
+  Same `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
   rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)
