@@ -308,12 +308,12 @@ struct MovieMakerHome: View {
                         .background(Reel.surface)
                         .cornerRadius(Theme.radius)
                         .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                    reelButton(quickBusy ? "Animating…" : "▶︎ Animate · \(MovieCosts.chip(0.16))", prominent: true) {
+                    reelButton(quickBusy ? "Sending…" : "▶︎ Animate · \(MovieCosts.chip(0.16))", prominent: true) {
                         startQuickAnimate()
                     }
                     .disabled(quickImageData == nil || quickBusy)
                     .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
-                    Text("wan 720p, ~5s clip, about a minute").font(.system(size: 10)).foregroundColor(Reel.dim)
+                    Text("wan 720p, ~5s clip, about a minute — queue as many as you like").font(.system(size: 10)).foregroundColor(Reel.dim)
                 }
             }
             if let job = quickJob {
@@ -343,7 +343,7 @@ struct MovieMakerHome: View {
     private func quickJobRow(_ job: QuickClip) -> some View {
         HStack(spacing: 10) {
             if job.status == "running" { ReelSpinner(size: 18) }
-            Text(job.status == "running" ? "animating — hang tight…"
+            Text(job.status == "running" ? "animating — pick another image to queue the next one"
                  : job.status == "error" ? "animation failed: \(job.error ?? "unknown")"
                  : "done! it's in the row below — tap to play")
                 .font(.caption)
@@ -393,24 +393,41 @@ struct MovieMakerHome: View {
         guard let data = quickImageData, !quickBusy else { return }
         guard aiConsentAccepted else { pendingQuick = true; showConsent = true; return }
         quickBusy = true
+        let prompt = quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         Task {
             do {
-                var job = try await MovieService.shared.animate(jpeg: data, prompt: quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines))
+                // The POST returns as soon as the server accepts the job — the
+                // clip renders in the background. Clear the form right away so
+                // the next image can be picked while this one renders; any
+                // number can run at once.
+                let job = try await MovieService.shared.animate(jpeg: data, prompt: prompt)
                 quickJob = job
                 quickClips.insert(job, at: 0)
-                while job.status == "running" {
-                    try await Task.sleep(nanoseconds: 4_000_000_000)
-                    job = try await MovieService.shared.quickGet(job.id)
-                    quickJob = job
-                    if let i = quickClips.firstIndex(where: { $0.id == job.id }) { quickClips[i] = job }
-                }
-                if job.status == "done" {
-                    quickPickerItem = nil
-                    quickImageData = nil
-                    quickPrompt = ""
-                }
+                quickPickerItem = nil
+                quickImageData = nil
+                quickPrompt = ""
+                pollQuick(job.id)
             } catch { errorText = error.localizedDescription }
             quickBusy = false
+        }
+    }
+
+    /// One independent poller per queued clip, so several can render at once.
+    private func pollQuick(_ id: String) {
+        Task {
+            var misses = 0
+            while true {
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                guard let job = try? await MovieService.shared.quickGet(id) else {
+                    misses += 1
+                    if misses > 30 { return }   // ~2 min of dead network — give up quietly
+                    continue
+                }
+                misses = 0
+                if quickJob?.id == id { quickJob = job }
+                if let i = quickClips.firstIndex(where: { $0.id == job.id }) { quickClips[i] = job }
+                if job.status != "running" { return }
+            }
         }
     }
 
