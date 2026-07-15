@@ -1462,23 +1462,28 @@ router.post('/', async (req, res) => {
 // NOTE: registered before '/:id' so the path wins the route match.
 router.post('/animate', async (req, res) => {
   try {
-    const { image, prompt = '', resolution = '720p', frames } = req.body || {};
+    const { image, prompt = '', resolution = '720p', frames, tier: tierIn = 'draft' } = req.body || {};
     if (!image || !/^data:image\//.test(image)) return res.status(400).json({ error: 'image (data URL) required' });
     if (!REPLICATE_API_TOKEN) return res.status(400).json({ error: 'REPLICATE_API_TOKEN not set' });
+    const tier = ['draft', 'standard', 'pro'].includes(tierIn) ? tierIn : 'draft';
     const m = /^data:([^;]+);base64,(.*)$/.exec(image);
     if (!m) return res.status(400).json({ error: 'bad image data URL' });
     const imageUrl = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1], 'movies/quick');
     if (imageUrl.startsWith('data:')) return res.status(400).json({ error: 'quick animate needs Firebase Storage (public image URLs)' });
 
+    // draft = wan (480p/720p); standard/pro = kling (720p/1080p, fixed 5s).
     const res720 = resolution === '480p' ? '480p' : '720p';
-    const numFrames = frames === 121 ? 121 : 81;
-    const cost = res720 === '720p' ? (numFrames > 81 ? 0.24 : 0.16) : (numFrames > 81 ? 0.08 : 0.06);
+    const numFrames = tier === 'draft' ? (frames === 121 ? 121 : 81) : null;
+    const cost = tier === 'standard' ? 0.25
+               : tier === 'pro' ? 0.55
+               : res720 === '720p' ? (numFrames > 81 ? 0.24 : 0.16) : (numFrames > 81 ? 0.08 : 0.06);
     const quick = {
       id: 'q' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
       status: 'running', error: null,
       prompt: String(prompt).trim(),
       imageUrl, clipUrl: null,
-      resolution: res720, frames: numFrames, cost,
+      resolution: tier === 'standard' ? '720p' : tier === 'pro' ? '1080p' : res720,
+      frames: numFrames, cost, tier,
       createdAt: new Date().toISOString(),
     };
     await saveQuick(quick);
@@ -1488,15 +1493,26 @@ router.post('/animate', async (req, res) => {
       try {
         const fullPrompt = (quick.prompt || 'subtle natural motion, gentle ambient movement') +
           '. The subject, style and composition of the image are preserved exactly.';
-        const p = await replicatePredict(VIDEO_MODELS.draft.version, {
-          image: imageUrl,
-          prompt: fullPrompt,
-          resolution: res720,
-          num_frames: numFrames,
-          frames_per_second: 16,
-          interpolate_output: true,
-          go_fast: true,
-        });
+        let p;
+        if (tier === 'draft') {
+          p = await replicatePredict(VIDEO_MODELS.draft.version, {
+            image: imageUrl,
+            prompt: fullPrompt,
+            resolution: res720,
+            num_frames: numFrames,
+            frames_per_second: 16,
+            interpolate_output: true,
+            go_fast: true,
+          });
+        } else {
+          p = await replicatePredict(VIDEO_MODELS[tier].version, {
+            start_image: imageUrl,
+            prompt: fullPrompt,
+            negative_prompt: DEFAULT_NEGATIVE,
+            duration: 5,
+            mode: tier === 'pro' ? 'pro' : 'standard',
+          }, { pollMs: 6000, maxPolls: 120 });
+        }
         const output = Array.isArray(p.output) ? p.output[0] : p.output;
         if (!output) throw new Error('video model produced no output');
         quick.clipUrl = await saveUrlToStorage(output, 'movies/quick', 'video/mp4');

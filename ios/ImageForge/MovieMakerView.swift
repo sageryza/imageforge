@@ -86,7 +86,6 @@ struct MovieMakerHome: View {
     @State private var creating = false
     @State private var loading = true
     @State private var errorText: String?
-    @State private var showSettings = false
     @State private var openedMovie: Movie?
     @State private var openAutopilot = false
     @State private var showDetail = false
@@ -96,19 +95,21 @@ struct MovieMakerHome: View {
     @State private var pendingMode: CreateMode = .autopilot
     @State private var pendingQuick = false
 
-    // Shared story library
-    @State private var showStoryLibrary = false
+    // Story Room (the movie boards webpage) + the bookmark save
+    @State private var showStoryRoom = false
     @State private var storySaved = false
 
-    // Quick animate (one image → one clip, wan 720p)
+    // Quick animate (one image → one clip)
     @State private var quickPickerItem: PhotosPickerItem?
     @State private var quickImageData: Data?
     @State private var quickPrompt = ""
+    @State private var quickQuality: QuickQuality = .p720
     @State private var quickBusy = false
     @State private var quickJob: QuickClip?
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
     @FocusState private var inputFocused: Bool
+    @Environment(\.goHome) private var goHome
 
     // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
@@ -134,10 +135,13 @@ struct MovieMakerHome: View {
                     Spacer()
                     Button("Done") { inputFocused = false }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showSettings = true } label: {
-                        Image(systemName: "gearshape").foregroundColor(Reel.dim)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { goHome() } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundColor(Reel.ink)
                     }
+                    .accessibilityLabel("Back to all the modules")
                 }
             }
             .toolbarBackground(Reel.base, for: .navigationBar)
@@ -147,12 +151,9 @@ struct MovieMakerHome: View {
                     MovieDetailView(movieId: movie.id, initial: movie, autopilot: openAutopilot)
                 }
             }
-            .sheet(isPresented: $showSettings) { MovieSettingsSheet() }
-            .sheet(isPresented: $showStoryLibrary) {
-                StoryPickerSheet { text in
-                    story = text
-                    storySaved = true   // it came from the library
-                }
+            .sheet(isPresented: $showStoryRoom) {
+                StoryRoomView()
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
@@ -209,15 +210,15 @@ struct MovieMakerHome: View {
                     }
                     .accessibilityLabel("Save this story to the library")
                 }
-                // Pull a story from the shared library.
-                Button { showStoryLibrary = true } label: {
+                // Open the Story Room — the movie boards webpage.
+                Button { showStoryRoom = true } label: {
                     Image(systemName: "books.vertical")
                         .font(.body.weight(.semibold))
                         .foregroundColor(Reel.amber)
                         .padding(6)
                         .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                 }
-                .accessibilityLabel("Use a saved story")
+                .accessibilityLabel("Open the Story Room")
                 // Blank-page antidote: prefill with an example story to riff on.
                 Button {
                     story = StorySeeds.random(avoiding: story)
@@ -308,12 +309,28 @@ struct MovieMakerHome: View {
                         .background(Reel.surface)
                         .cornerRadius(Theme.radius)
                         .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                    reelButton(quickBusy ? "Sending…" : "▶︎ Animate · \(MovieCosts.chip(0.16))", prominent: true) {
-                        startQuickAnimate()
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(QuickQuality.allCases) { q in
+                                Button(q.label) { quickQuality = q }
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(quickQuality.label).font(.caption.weight(.semibold)).foregroundColor(Reel.ink)
+                                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundColor(Reel.dim)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 9)
+                            .background(Reel.surface)
+                            .cornerRadius(Theme.radius)
+                            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                        }
+                        reelButton(quickBusy ? "Sending…" : "▶︎ Animate", prominent: true) {
+                            startQuickAnimate()
+                        }
+                        .disabled(quickImageData == nil || quickBusy)
+                        .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
                     }
-                    .disabled(quickImageData == nil || quickBusy)
-                    .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
-                    Text("wan 720p, ~5s clip, about a minute — queue as many as you like").font(.system(size: 10)).foregroundColor(Reel.dim)
+                    Text("~5s clip — queue as many as you like").font(.system(size: 10)).foregroundColor(Reel.dim)
                 }
             }
             if let job = quickJob {
@@ -394,13 +411,16 @@ struct MovieMakerHome: View {
         guard aiConsentAccepted else { pendingQuick = true; showConsent = true; return }
         quickBusy = true
         let prompt = quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let quality = quickQuality
         Task {
             do {
                 // The POST returns as soon as the server accepts the job — the
                 // clip renders in the background. Clear the form right away so
                 // the next image can be picked while this one renders; any
                 // number can run at once.
-                let job = try await MovieService.shared.animate(jpeg: data, prompt: prompt)
+                let job = try await MovieService.shared.animate(jpeg: data, prompt: prompt,
+                                                                resolution: quality.resolution,
+                                                                tier: quality.tier)
                 quickJob = job
                 quickClips.insert(job, at: 0)
                 quickPickerItem = nil
@@ -444,6 +464,29 @@ struct MovieMakerHome: View {
     }
 
     enum CreateMode { case autopilot, character, storyboard(String) }
+
+    /// The quick-animate quality menu: resolution + price only (first two are
+    /// wan, last two kling — deliberately unlabeled, Sophie knows which).
+    enum QuickQuality: String, CaseIterable, Identifiable {
+        case p480, p720, kling720, kling1080
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .p480:      return "480p · 6¢"
+            case .p720:      return "720p · 16¢"
+            case .kling720:  return "720p · 25¢"
+            case .kling1080: return "1080p · 55¢"
+            }
+        }
+        var tier: String {
+            switch self {
+            case .p480, .p720: return "draft"
+            case .kling720:    return "standard"
+            case .kling1080:   return "pro"
+            }
+        }
+        var resolution: String { self == .p480 ? "480p" : "720p" }
+    }
 
     private func requestCreate(mode: CreateMode) {
         let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
