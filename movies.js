@@ -163,13 +163,32 @@ async function saveMovie(movie) {
   return movie;
 }
 
+// Movies written by older prototypes / other tools can miss fields the iOS
+// decoder treats as required (the Jonas prototype's scenes had no
+// `description`), which makes the whole movie fail to open with "the data
+// couldn't be read". Backfill on every read so legacy docs always decode.
+function normalizeMovie(movie) {
+  if (!movie) return movie;
+  movie.title = movie.title || movie.id || 'untitled';
+  movie.story = movie.story || '';
+  (movie.scenes || []).forEach((s, i) => {
+    s.id = s.id || `s${i + 1}`;
+    s.title = s.title || `Scene ${i + 1}`;
+    s.description = s.description || s.motionPrompt || s.imagePrompt || s.title;
+    s.imagePrompt = s.imagePrompt || '';
+    s.motionPrompt = s.motionPrompt || '';
+  });
+  (movie.cuts || []).forEach((c, i) => { c.name = c.name || `cut ${i + 1}`; });
+  return movie;
+}
+
 async function loadMovie(id) {
   const db = firestore();
   if (db) {
     const snap = await db.collection(COLLECTION).doc(id).get();
-    return snap.exists ? snap.data() : null;
+    return snap.exists ? normalizeMovie(snap.data()) : null;
   }
-  return memStore.get(id) || null;
+  return normalizeMovie(memStore.get(id)) || null;
 }
 
 async function listMovies() {
