@@ -167,6 +167,7 @@
     const body = (S.text||'').trim();
     if(!body){ showToast('Write down your dream first.'); return; }
     if(S.busy) return;
+    try{ localStorage.setItem('dreams_last', body); }catch{}   // remember it so it prefills next time
     if(S.recording){ recog && recog.stop(); }
     S.busy = true; S.statusLabel = 'Reading your dream…'; S.current=null; S.finished=[]; S.reviewDreams=[]; renderMain();
     const r = await jpost('/dream', { dream: body });
@@ -391,6 +392,12 @@
   // ── Nav ──
   $('navLeft').onclick = ()=>{ if(S.view==='main'){ S.view='archive'; loadArchive(); } else { S.view='main'; render(); } };
   $('navRight').onclick = ()=>{ if(S.view==='main'){ S.view='zine'; loadZine(); } else { S.view='main'; render(); } };
+
+  // Wake Render's free tier the moment the page opens, so the server is warm by
+  // the time you hit Illustrate (mirrors the iOS app's launch ping).
+  api('/status').catch(()=>{});
+  // Prefill your last dream so you can just tap Illustrate to re-run it.
+  try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
 
   render();
 </script>
