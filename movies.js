@@ -49,6 +49,10 @@ const DREAM_MODEL = process.env.DREAM_MODEL || 'claude-opus-4-8';
 // does BOTH the splitting and the descriptions (its image model draws them). Set
 // to a `claude-*` id to route the breakdown back through Anthropic instead.
 const DREAM_BREAKDOWN_MODEL = process.env.DREAM_BREAKDOWN_MODEL || 'gpt-5.6-sol';
+// Reasoning effort for the OpenAI breakdown ('none'|'low'|'medium'|'high').
+// 'low' keeps the split/order/drift quality while cutting the breakdown from
+// ~60s to ~30s, so the synchronous request survives on mobile / Render.
+const DREAM_BREAKDOWN_EFFORT = process.env.DREAM_BREAKDOWN_EFFORT || 'low';
 // Same access gate as the POD pipeline: when set, everything but GET /status
 // requires the x-studio-token header. Generation costs real money.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -353,14 +357,18 @@ async function saveUrlToStorage(url, folder, fallbackType) {
 }
 
 // ─── OpenAI helpers ─────────────────────────────────────────────────
-async function openaiChatJSON(messages, { model = 'gpt-4o-mini', temperature = 0.8, retries = 2 } = {}) {
+async function openaiChatJSON(messages, { model = 'gpt-4o-mini', temperature = 0.8, reasoningEffort = null, retries = 2 } = {}) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       // GPT-5 reasoning models only accept the default temperature — omit it.
+      // reasoningEffort ('none'|'low'|'medium'|'high') trades thinking time for
+      // latency; a lower setting keeps the synchronous request short enough that
+      // mobile/Render doesn't drop the connection mid-request.
       const body = { model, messages, response_format: { type: 'json_object' } };
       if (!/^gpt-5/.test(model)) body.temperature = temperature;
+      if (reasoningEffort && /^gpt-5/.test(model)) body.reasoning_effort = reasoningEffort;
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -750,7 +758,10 @@ HARD RULES:
     ? await anthropicChatJSON(sys, user, { maxTokens: 8000 })
     : await openaiChatJSON(
         [{ role: 'system', content: sys }, { role: 'user', content: user }],
-        { model: DREAM_BREAKDOWN_MODEL, retries: 2 });
+        // 'low' effort halves the latency (~60s → ~30s) while still splitting,
+        // ordering and flagging drift correctly — short enough that the phone /
+        // Render don't drop the synchronous request.
+        { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: DREAM_BREAKDOWN_EFFORT, retries: 2 });
   const raw = Array.isArray(out.dreams) ? out.dreams
     : Array.isArray(out.beats) ? [out]   // tolerate a single-dream shape
     : [];
