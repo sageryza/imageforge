@@ -44,6 +44,11 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || '';
 // fails, the breakdown errors and surfaces that to the app.
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const DREAM_MODEL = process.env.DREAM_MODEL || 'claude-opus-4-8';
+// The dream breakdown model — splits a recording into dreams + writes the beats
+// and image descriptions. Experiment (July 2026): OpenAI's frontier gpt-5.6-sol
+// does BOTH the splitting and the descriptions (its image model draws them). Set
+// to a `claude-*` id to route the breakdown back through Anthropic instead.
+const DREAM_BREAKDOWN_MODEL = process.env.DREAM_BREAKDOWN_MODEL || 'gpt-5.6-sol';
 // Same access gate as the POD pipeline: when set, everything but GET /status
 // requires the x-studio-token header. Generation costs real money.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -329,11 +334,14 @@ async function saveUrlToStorage(url, folder, fallbackType) {
 }
 
 // ─── OpenAI helpers ─────────────────────────────────────────────────
-async function openaiChatJSON(messages, { temperature = 0.8, retries = 2 } = {}) {
+async function openaiChatJSON(messages, { model = 'gpt-4o-mini', temperature = 0.8, retries = 2 } = {}) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // GPT-5 reasoning models only accept the default temperature — omit it.
+      const body = { model, messages, response_format: { type: 'json_object' } };
+      if (!/^gpt-5/.test(model)) body.temperature = temperature;
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -341,12 +349,7 @@ async function openaiChatJSON(messages, { temperature = 0.8, retries = 2 } = {})
           'Content-Type': 'application/json',
           'Connection': 'close',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          response_format: { type: 'json_object' },
-          temperature,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
@@ -685,6 +688,11 @@ function normalizeBreakdownDream(d) {
   })).filter(b => b.imagePrompt);
   return {
     title: String(d.title || 'Untitled dream').trim(),
+    // The dreamer's own words for THIS dream (the block shown in review), plus
+    // the verbatim phrases where they narrated out of order (to highlight).
+    text: String(d.text || '').trim(),
+    driftCues: (Array.isArray(d.driftCues) ? d.driftCues : [])
+      .map(s => String(s).trim()).filter(Boolean).slice(0, 12),
     cast,
     // A joined continuity phrase kept for any legacy reader (single-string field).
     characters: cast.map(c => c.look).join('; '),
@@ -696,6 +704,8 @@ async function dreamBreakdown(dream) {
   const sys = `You are illustrating someone's real dream recordings as short hand-drawn diary comics. A single recording is often SEVERAL separate dreams told in one breath, out of order. First split it into the distinct dreams, then break each dream into the visual BEATS it needs — one drawing per beat. Return STRICT JSON and nothing else:
 {"dreams": [
   {"title": a short 2-5 word title for THIS dream,
+   "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), so it can be shown to the dreamer as a block,
+   "driftCues": [the exact short phrases WITHIN "text" where the dreamer told events OUT OF chronological order — the cues you had to follow to reorder, e.g. "before that", "at first", "actually that was earlier", "right before I woke up". Verbatim substrings of "text". [] if this dream was narrated in the order it happened],
    "cast": [{"name": a short label for one recurring figure the way the dreamer refers to them — "J", "Dad", "the boob girl", "the baby", "me",
      "look": one compact phrase of visual continuity tokens so they look the SAME in every panel — hairstyle, face, AND the exact clothing, e.g. "honey-blonde hair, glasses, wearing a green cardigan and jeans"}]  (ONLY figures who appear in MORE THAN ONE beat of THIS dream or are central; [] if none; at MOST 5),
    "beats": [{"imagePrompt": a full, SELF-CONTAINED image prompt for this one panel — name the setting, who is present with their continuity tokens, and what is happening; describe composition and content ONLY, no art-style words,
@@ -711,8 +721,17 @@ HARD RULES:
 - Every imagePrompt must stand completely alone: nothing implied from another beat. For EACH figure present, repeat that figure's continuity tokens (their "look") verbatim in the imagePrompt — do not just write their name.
 - "who" must use the cast "name" values EXACTLY as written in that dream's cast list.
 - imagePrompts describe content and composition only — the drawing style is applied separately, so never mention style, medium, ink, watercolor, paper, etc.
-- A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".`;
-  const out = await anthropicChatJSON(sys, `The dream recording:\n\n${dream}`, { maxTokens: 8000 });
+- A caption is a caption, not a description of the picture: short, in the dreamer's voice ("then I was falling", "the house wasn't the house"), never "a panel showing…".
+- "text" must be a verbatim slice of the recording (the dreamer's own words for that dream). "driftCues" must be exact substrings of that "text" — never paraphrased — so they can be highlighted in place.`;
+  const user = `The dream recording:\n\n${dream}`;
+  // Experiment: OpenAI's frontier model does the whole breakdown (split +
+  // describe); a `claude-*` id routes back through Anthropic. No silent
+  // fallback between them — whichever is configured either works or errors.
+  const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
+    ? await anthropicChatJSON(sys, user, { maxTokens: 8000 })
+    : await openaiChatJSON(
+        [{ role: 'system', content: sys }, { role: 'user', content: user }],
+        { model: DREAM_BREAKDOWN_MODEL, retries: 2 });
   const raw = Array.isArray(out.dreams) ? out.dreams
     : Array.isArray(out.beats) ? [out]   // tolerate a single-dream shape
     : [];
@@ -1521,6 +1540,11 @@ router.post('/dream', async (req, res) => {
         // Only honor a client-supplied title when the recording is a single dream.
         title: (plans.length === 1 && title && String(title).trim()) || plan.title,
         dream: text,
+        // This dream's own slice of the recording (for the review block) +
+        // the out-of-order cue phrases to highlight in it. Falls back to the
+        // whole recording when the model didn't split out a per-dream text.
+        dreamText: plan.text || text,
+        driftCues: plan.driftCues || [],
         characters: plan.characters,
         cast: plan.cast,
         imageStyle: DEFAULT_IMAGE_STYLE,
