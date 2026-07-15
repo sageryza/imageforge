@@ -53,6 +53,7 @@ struct StorybookView: View {
             .padding()
         }
         .scrollDismissesKeyboard(.interactively)
+        .simultaneousGesture(TapGesture().onEnded { focusedField = nil })
         .toolbar(.hidden, for: .navigationBar)   // keep the header at the very top
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
