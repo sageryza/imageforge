@@ -108,6 +108,7 @@ struct MovieMakerHome: View {
     @State private var quickJob: QuickClip?
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
+    @FocusState private var inputFocused: Bool
 
     // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
@@ -124,6 +125,12 @@ struct MovieMakerHome: View {
             .navigationTitle("Movies")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // The multiline fields' return key types a newline, so the
+                // keyboard needs its own way out.
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { inputFocused = false }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showSettings = true } label: {
                         Image(systemName: "gearshape").foregroundColor(Reel.dim)
@@ -221,6 +228,7 @@ struct MovieMakerHome: View {
                 .accessibilityLabel("Surprise me with an example story")
             }
             TextEditor(text: $story)
+                .focused($inputFocused)
                 .frame(minHeight: 110)
                 .scrollContentBackground(.hidden)
                 .padding(10)
@@ -289,6 +297,7 @@ struct MovieMakerHome: View {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("What should move? (optional)", text: $quickPrompt, axis: .vertical)
+                        .focused($inputFocused)
                         .lineLimit(1...3)
                         .font(.caption)
                         .foregroundColor(Reel.ink)
