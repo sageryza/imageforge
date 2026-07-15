@@ -336,21 +336,30 @@ lifted into a standalone tool later.
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
 - **Dreams (dream → comic):** the dream-illustration path — replicates the
   daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
-  free breakdown, and it runs on **Claude Opus** (`anthropicChatJSON`,
-  `ANTHROPIC_API_KEY`, model `DREAM_MODEL`=`claude-opus-4-8`) — a small model
-  can't split/segment/order a rambling recording, so this is deliberately the
-  smart tier. **By explicit request there is NO OpenAI fallback**: no key or a
-  failed call → the breakdown errors and surfaces that (it does not silently
-  drop to gpt-4o-mini). `ANTHROPIC_API_KEY` is a `config-loader` MANAGED_KEY, so
-  it can live in Render env OR the Firestore config doc. **One recording → one
-  or MORE dreams:** `dreamBreakdown()` first SPLITS the recording into the
-  distinct dreams (on the dreamer's boundary cues — "that was that dream", "the
-  next dream", "yesterday I had a dream") and returns `{dreams:[{title,cast,
-  beats}]}`; `POST /dream` creates one `forge-dreams` doc per dream (staggered
-  `createdAt` so array order = time) and returns `{dreams:[doc,…]}`. Within each
-  dream it reconstructs TRUE chronology from the cues ("that was before", "at
-  first", "at the very end", "right before I woke up") and emits coarse beats
-  already in order. iOS `createDream` returns `[Dream]`; the "check the
+  free breakdown. **Model (experiment, July 2026): OpenAI frontier
+  `gpt-5.6-sol`** does the WHOLE breakdown — splitting AND the image
+  descriptions — set by `DREAM_BREAKDOWN_MODEL` (default `gpt-5.6-sol`; set a
+  `claude-*` id to route back through `anthropicChatJSON`/Claude Opus, the prior
+  default, for comparison). Chosen deliberately as the smart tier — a small
+  model can't split/segment/order a rambling recording — and to test whether the
+  model that owns the image generator writes descriptions its own image model
+  draws better. **There is NO silent fallback between providers**: whichever
+  `DREAM_BREAKDOWN_MODEL` names either works or errors (no drop to gpt-4o-mini).
+  `openaiChatJSON` takes a `model` and omits temperature for `gpt-5*` reasoning
+  models; ~$0.066 and ~60s per breakdown on Sol. `OPENAI_API_KEY`/
+  `ANTHROPIC_API_KEY` are `config-loader` MANAGED_KEYs (Render env OR the
+  Firestore config doc). **One recording → one or MORE dreams:**
+  `dreamBreakdown()` first SPLITS the recording into the distinct dreams (on the
+  dreamer's boundary cues — "that was that dream", "the next dream", "yesterday
+  I had a dream") and returns `{dreams:[{title,text,driftCues,cast,beats}]}`;
+  `POST /dream` creates one `forge-dreams` doc per dream (staggered `createdAt`
+  so array order = time; each stores `dreamText` = its own verbatim slice and
+  `driftCues` = the verbatim out-of-order phrases to highlight) and returns
+  `{dreams:[doc,…]}`. Within each dream it reconstructs TRUE chronology from the
+  cues ("that was before", "at first", "at the very end", "right before I woke
+  up"), emits coarse beats already in order, and lists in `driftCues` the exact
+  phrases where the narration drifted from chronological (for the review UI to
+  highlight; `[]` when told in order). iOS `createDream` returns `[Dream]`; the "check the
   chronology" step shows each split dream as its own titled group (▲▼ within it)
   and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
   `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
