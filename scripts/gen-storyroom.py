@@ -5,6 +5,7 @@
 # board changes need no deploy at all. Notes reuse /api/writing/notes with
 # keys "story-<project>:b<beat>" so any chat can read and apply them.
 import base64, os
+from pill import PILL_CSS, PILL_HTML, PILL_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 font = base64.b64encode(open(os.path.join(ROOT, 'ios', 'ImageForge', 'EBGaramond.ttf'), 'rb').read()).decode()
@@ -91,12 +92,17 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .cutrow:focus-visible{outline:2px solid var(--rose);}
 .c-name{font-size:1.05em; flex:1;}
 .c-meta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; color:var(--ink2); text-transform:uppercase;}
-.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center;}
-.vseg{display:flex; flex-direction:column; width:46px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
-.vseg button{border:none; background:transparent; color:var(--ink); height:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
-.vseg button + button{border-top:1.5px solid var(--ink);}
-.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
-#spd{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); font-variant-numeric:tabular-nums;}
+.newrow{display:flex; gap:8px; margin:0 0 1.6em; flex-wrap:wrap;}
+.modal{position:fixed; inset:0; background:rgba(15,13,10,.55); z-index:30; display:flex; align-items:center; justify-content:center; padding:20px;}
+.sheet{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:20px; width:100%; max-width:23em; max-height:82vh; overflow:auto; box-shadow:0 8px 30px rgba(0,0,0,.22);}
+.sheet h2{font-size:1.5em; font-weight:600; margin:0 0 .7em;}
+.field{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:18px; background:var(--barbg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px; margin-bottom:12px;}
+textarea.field{min-height:80px; line-height:1.5;}
+.filelbl{display:block; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-bottom:14px;}
+.filelbl input{display:block; margin-top:8px; font-family:inherit; color:var(--ink);}
+.sheetact{display:flex; gap:8px; justify-content:flex-end; margin-top:4px;}
+.pickrow{display:block; width:100%; text-align:left; margin-bottom:6px;}
+__PILL_CSS__
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
 #back{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09);}
@@ -106,20 +112,14 @@ body.reading .backwrap{display:block;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
 </style>
 <div class="backwrap"><button id="back" aria-label="Back to the shelf">&#8249;</button></div>
-<div class="float">
-  <div class="vseg">
-    <button id="vtop" aria-label="Scroll up / faster"></button>
-    <button id="vmid" aria-label="Play or pause autoscroll"></button>
-    <button id="vbot" aria-label="Scroll down / slower"></button>
-  </div>
-  <span id="spd">1.0&times;</span>
-</div>
+__PILL_HTML__
 <div class="wrap">
   <section id="home">
     <div class="no">deck factory &middot; story room</div>
     <h1>The Boards</h1>
     <div class="rule"></div>
     <div class="sub">Tap a project to read it through &mdash; your narration with the art in place. &ldquo;+ note&rdquo; under any beat sends me a comment.</div>
+    <div class="newrow"><button id="newstory" class="btn primary">+ New story</button></div>
     <div id="shelf"><div class="state">Loading the boards&hellip;</div></div>
     <div class="pagemark" id="filmsmark" style="display:none">THE FILMS</div>
     <div id="films"></div>
@@ -192,7 +192,7 @@ function renderNoteInto(wrap,id,excerpt){
   }
 }
 function openEditor(wrap,id,excerpt){
-  stop();
+  window.__scrollStop();
   if(wrap.querySelector('.notebox')){ wrap.querySelector('textarea').focus(); return; }
   var box=document.createElement('div'); box.className='notebox';
   var head=document.createElement('div'); head.className='notehead';
@@ -249,6 +249,11 @@ function openProj(p, jumpBeat){
   var head=document.createElement('header');
   head.innerHTML='<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div><h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
+  // New-story tools: add a beat, or dump a pile of art into the inbox
+  var tools=document.createElement('div'); tools.className='newrow';
+  var abtn=document.createElement('button'); abtn.className='btn'; abtn.textContent='+ Add beat'; abtn.onclick=function(){ addBeat(p); };
+  var dbtn=document.createElement('button'); dbtn.className='btn'; dbtn.textContent='+ Dump art'; dbtn.onclick=function(){ dumpArt(p); };
+  tools.appendChild(abtn); tools.appendChild(dbtn); sec.appendChild(tools);
   // Beats / Grid pill
   var tabs=document.createElement('div'); tabs.className='tabs';
   var seg=document.createElement('div'); seg.className='seg';
@@ -258,8 +263,8 @@ function openProj(p, jumpBeat){
   var beatsView=document.createElement('div');
   var gridView=document.createElement('div'); gridView.style.display='none';
   sec.appendChild(beatsView); sec.appendChild(gridView);
-  tb.onclick=function(){ stop(); tb.classList.add('on'); tg.classList.remove('on'); beatsView.style.display=''; gridView.style.display='none'; };
-  tg.onclick=function(){ stop(); tg.classList.add('on'); tb.classList.remove('on'); gridView.style.display=''; beatsView.style.display='none'; };
+  tb.onclick=function(){ window.__scrollStop(); tb.classList.add('on'); tg.classList.remove('on'); beatsView.style.display=''; gridView.style.display='none'; };
+  tg.onclick=function(){ window.__scrollStop(); tg.classList.add('on'); tb.classList.remove('on'); gridView.style.display=''; beatsView.style.display='none'; };
   // Grid view: every card, 4 per row (zoomable to 8)
   var zoom=document.createElement('button'); zoom.className='btn zoombtn'; zoom.textContent='Smaller';
   var zg=document.createElement('div'); zg.className='zgrid';
@@ -282,6 +287,22 @@ function openProj(p, jumpBeat){
       zg.appendChild(cell);
     });
   });
+  // Inbox: unsorted art dumped for this story — tap a piece to file it away
+  var inbox=p.inbox||[];
+  if(inbox.length){
+    var im=document.createElement('div'); im.className='pagemark'; im.textContent='INBOX — '+inbox.length+' TO SORT'; beatsView.appendChild(im);
+    var ihint=document.createElement('p'); ihint.className='vo none'; ihint.textContent='Tap a piece to file it into a beat.'; beatsView.appendChild(ihint);
+    var izoom=document.createElement('button'); izoom.className='btn zoombtn'; izoom.textContent='Smaller';
+    var ig=document.createElement('div'); ig.className='zgrid';
+    izoom.onclick=function(){ var s=ig.classList.toggle('z8'); izoom.textContent=s?'Bigger':'Smaller'; };
+    beatsView.appendChild(izoom); beatsView.appendChild(ig);
+    inbox.forEach(function(it,ii){
+      var cell=document.createElement('button'); cell.className='zcell';
+      cell.innerHTML=(it.url? '<img alt="" loading="lazy" src="'+esc(thumb(it.url))+'">' : '<div class="zph"></div>');
+      cell.onclick=function(){ moveChooser(p, {inbox:ii}); };
+      ig.appendChild(cell);
+    });
+  }
   (p.beats||[]).forEach(function(beat,bi){
     var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='BEAT '+String(bi+1).padStart(2,'0'); pm.setAttribute('data-beat',bi); beatsView.appendChild(pm);
     var vo=document.createElement('p');
@@ -307,36 +328,33 @@ function openProj(p, jumpBeat){
           .then(function(r){ if(!r.ok) throw 0; })
           .catch(function(){ c.status=prev; stb.className='st '+(prev||'miss'); stb.textContent='\u00b7 '+(STATUS[prev]||prev||'no art yet'); toast('Couldn\u2019t save the status'); });
       };
-      cap.appendChild(stb); f.appendChild(cap);
+      cap.appendChild(stb);
+      var mv=document.createElement('button'); mv.className='st'; mv.textContent='· move'; mv.title='Move this art to another beat or the inbox';
+      mv.onclick=function(ev){ ev.stopPropagation(); moveChooser(p, {beat:bi, card:(beat.cards||[]).indexOf(c)}); };
+      cap.appendChild(mv); f.appendChild(cap);
       cards.appendChild(f);
     });
     if((beat.cards||[]).length) beatsView.appendChild(cards);
     var id=noteKey(p.id,bi);
     var artBtn=document.createElement('button'); artBtn.className='addnote'; artBtn.textContent='+ art';
     artBtn.onclick=function(){
-      stop();
+      window.__scrollStop();
       var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
       inp.onchange=function(){
         var f=inp.files&&inp.files[0]; if(!f) return;
-        var img=new Image();
-        img.onload=function(){
-          var max=1400, sc=Math.min(1, max/Math.max(img.width,img.height));
-          var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
-          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-          var dataUrl=cv.toDataURL('image/jpeg',0.88);
+        resizeToDataUrl(f,function(dataUrl,label){
           toast('Uploading art\u2026');
-          api('/api/story/art',{method:'POST',body:JSON.stringify({projectId:p.id, beat:bi, label:f.name.replace(/\.[^.]+$/,''), image:dataUrl})})
+          api('/api/story/art',{method:'POST',body:JSON.stringify({projectId:p.id, beat:bi, label:label, image:dataUrl})})
             .then(function(r){return r.json()})
             .then(function(d){
               if(!d.ok) throw new Error(d.error||'failed');
               beat.cards=beat.cards||[];
-              beat.cards.push({label:f.name.replace(/\.[^.]+$/,''), status:'cand', url:d.url});
+              beat.cards.push({label:label, status:'cand', url:d.url});
               toast('Art added as candidate');
               openProj(p);
             })
             .catch(function(e){ toast('Upload failed: '+String(e.message||e).slice(0,60)); });
-        };
-        img.src=URL.createObjectURL(f);
+        });
       };
       inp.click();
     };
@@ -350,6 +368,8 @@ function openProj(p, jumpBeat){
     renderNoteInto(wrap,id,(beat.vo||'').slice(0,70));
   });
   var em=document.createElement('div'); em.className='endmark'; em.innerHTML='&#10086;'; sec.appendChild(em);
+  var dz=document.createElement('button'); dz.className='addnote'; dz.style.margin='2.4em auto 0'; dz.style.color='var(--chg)'; dz.style.opacity='.75';
+  dz.textContent='Delete this story'; dz.onclick=function(){ deleteStory(p); }; sec.appendChild(dz);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
@@ -357,7 +377,7 @@ function openProj(p, jumpBeat){
   if(jumpBeat!==undefined){ var t=beatsView.querySelector('[data-beat="'+jumpBeat+'"]'); if(t) t.scrollIntoView({block:'start'}); }
 }
 function goHome(){
-  stop(); cur=null;
+  window.__scrollStop(); cur=null;
   document.getElementById('proj').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
@@ -366,43 +386,173 @@ function goHome(){
 }
 document.getElementById('back').onclick=goHome;
 
-// autoscroll pill (same as the Writing Room)
-var playing=false, raf=null, last=null, speed=1, dir=1, acc=0;
-var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
-var I={
- up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
- down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
- play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
- pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
- plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
- minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
-};
-function showSpd(){ document.getElementById('spd').textContent=speed.toFixed(1)+'\\u00d7'; }
-function paint(){
-  if(playing){ vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on'); }
-  else{ vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on'); }
-  showSpd();
+// ── Self-serve story building: new story, add beat, dump + sort art ──
+// Client-side downscale to ≤1400px JPEG (same as the old + art path), shared
+// by + art, cover upload, and the bulk dump.
+function resizeToDataUrl(file, cb){
+  var img=new Image();
+  img.onload=function(){
+    var max=1400, sc=Math.min(1, max/Math.max(img.width,img.height));
+    var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    cb(cv.toDataURL('image/jpeg',0.88), (file.name||'art').replace(/\\.[^.]+$/,''));
+  };
+  img.src=URL.createObjectURL(file);
 }
-function step(ts){
-  if(!playing) return;
-  if(last!=null){
-    acc += dir*(ts-last)/1000*42*speed;
-    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
-    if(move!==0){ window.scrollBy(0,move); acc-=move; }
-    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
-    if(atEnd) stop(); }
-  last=ts; raf=requestAnimationFrame(step);
+// WKWebView-safe input (window.prompt is unreliable in the app's web view):
+// build a small DOM sheet. fields:[{key,type:'text'|'textarea'|'file',label,placeholder,multiple}]
+function showModal(opts){
+  var ov=document.createElement('div'); ov.className='modal';
+  var sheet=document.createElement('div'); sheet.className='sheet';
+  var h=document.createElement('h2'); h.textContent=opts.title; sheet.appendChild(h);
+  var inputs={};
+  (opts.fields||[]).forEach(function(f){
+    if(f.type==='file'){
+      var lbl=document.createElement('label'); lbl.className='filelbl'; lbl.textContent=f.label||'';
+      var i=document.createElement('input'); i.type='file'; i.accept='image/*'; if(f.multiple) i.multiple=true;
+      lbl.appendChild(i); sheet.appendChild(lbl); inputs[f.key]=i;
+    } else if(f.type==='textarea'){
+      var t=document.createElement('textarea'); t.className='field'; t.placeholder=f.placeholder||''; sheet.appendChild(t); inputs[f.key]=t;
+    } else {
+      var x=document.createElement('input'); x.className='field'; x.type='text'; x.placeholder=f.placeholder||''; sheet.appendChild(x); inputs[f.key]=x;
+    }
+  });
+  var act=document.createElement('div'); act.className='sheetact';
+  var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
+  var ok=document.createElement('button'); ok.className='btn primary'; ok.textContent=opts.okLabel||'Save';
+  ok.onclick=function(){
+    var v={}; (opts.fields||[]).forEach(function(f){ v[f.key]= f.type==='file'? inputs[f.key].files : inputs[f.key].value; });
+    opts.onOk(v, function(){ ov.remove(); });
+  };
+  act.appendChild(cancel); act.appendChild(ok); sheet.appendChild(act);
+  ov.appendChild(sheet); document.body.appendChild(ov);
+  var first=sheet.querySelector('.field'); if(first) first.focus();
 }
-function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
-function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }
-vtop.onclick=function(){ if(playing){ speed=Math.max(.1,+(speed-0.1).toFixed(1)); showSpd(); } else start(-1); };
-vbot.onclick=function(){ if(playing){ speed=Math.min(2,+(speed+0.1).toFixed(1)); showSpd(); } else start(1); };
-vmid.onclick=function(){ playing? stop() : start(dir||1); };
-paint();
+// Re-fetch the boards and re-open a project (the inbox endpoints return counts,
+// not per-item URLs — a reload is the simplest way to show the new art).
+function reloadProject(id, jumpBeat){
+  api('/api/story').then(function(r){return r.json()}).then(function(res){
+    projects=(res&&res.projects)||projects;
+    var p=projects.filter(function(x){return x.id===id})[0];
+    if(p) openProj(p, jumpBeat);
+  }).catch(function(){});
+}
+// A picker of where to move one piece of art: any other beat, or (from a beat)
+// back to the inbox. `from` is {inbox:i} or {beat,card}.
+function moveChooser(p, from){
+  var beats=p.beats||[];
+  if(from.inbox!=null && !beats.length){ toast('Add a beat first'); return; }
+  var ov=document.createElement('div'); ov.className='modal';
+  var sheet=document.createElement('div'); sheet.className='sheet';
+  var h=document.createElement('h2'); h.textContent= from.inbox!=null? 'File into which beat?' : 'Move to…'; sheet.appendChild(h);
+  function go(to){
+    ov.remove(); toast('Moving…');
+    api('/api/story/assign',{method:'POST',body:JSON.stringify({projectId:p.id, from:from, to:to})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw new Error(d.error||'failed'); toast('Moved'); reloadProject(p.id); })
+      .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+  }
+  beats.forEach(function(b,bi){
+    if(from.beat!=null && Number(from.beat)===bi) return;
+    var btn=document.createElement('button'); btn.className='btn pickrow';
+    btn.textContent='Beat '+(bi+1)+(b.vo?' — '+b.vo.slice(0,34):'');
+    btn.onclick=function(){ go({beat:bi}); }; sheet.appendChild(btn);
+  });
+  if(from.inbox==null){
+    var ib=document.createElement('button'); ib.className='btn pickrow'; ib.textContent='↩ Back to inbox';
+    ib.onclick=function(){ go({inbox:true}); }; sheet.appendChild(ib);
+  }
+  var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
+  sheet.appendChild(cancel); ov.appendChild(sheet); document.body.appendChild(ov);
+}
+function newStory(){
+  showModal({ title:'New story', okLabel:'Create',
+    fields:[ {key:'title', type:'text', placeholder:'Story title'},
+             {key:'cover', type:'file', label:'Cover photo (optional)'} ],
+    onOk:function(v, close){
+      var title=(v.title||'').trim();
+      if(!title){ toast('Give it a title'); return; }
+      function create(cover){
+        api('/api/story/project',{method:'POST',body:JSON.stringify({title:title, cover:cover||undefined})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+            close(); toast('Story created');
+            d.project.beats=d.project.beats||[]; projects.push(d.project); openProj(d.project);
+          })
+          .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+      }
+      var f=v.cover&&v.cover[0];
+      if(f) resizeToDataUrl(f,function(dataUrl){ toast('Creating…'); create(dataUrl); });
+      else { toast('Creating…'); create(null); }
+    }
+  });
+}
+function addBeat(p){
+  showModal({ title:'Add a beat', okLabel:'Add',
+    fields:[ {key:'vo', type:'textarea', placeholder:'Narration for this beat (optional)'} ],
+    onOk:function(v, close){
+      api('/api/story/beat',{method:'POST',body:JSON.stringify({projectId:p.id, vo:v.vo||''})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+          p.beats=p.beats||[]; p.beats.push({vo:(v.vo||''), cards:[]});
+          close(); toast('Beat added'); openProj(p, p.beats.length-1);
+        })
+        .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+    }
+  });
+}
+function dumpArt(p){
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true;
+  inp.onchange=function(){
+    var files=Array.prototype.slice.call(inp.files||[]); if(!files.length) return;
+    toast('Preparing '+files.length+' image'+(files.length>1?'s':'')+'…');
+    var out=[], done=0;
+    files.forEach(function(f){
+      resizeToDataUrl(f,function(dataUrl){
+        out.push(dataUrl); done++;
+        if(done===files.length){
+          toast('Uploading '+out.length+'…');
+          api('/api/story/inbox',{method:'POST',body:JSON.stringify({projectId:p.id, images:out})})
+            .then(function(r){return r.json()})
+            .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+              toast(d.added+' added to inbox'); reloadProject(p.id);
+            })
+            .catch(function(e){ toast('Upload failed: '+String(e.message||e).slice(0,50)); });
+        }
+      });
+    });
+  };
+  inp.click();
+}
+function deleteStory(p){
+  var ov=document.createElement('div'); ov.className='modal';
+  var sheet=document.createElement('div'); sheet.className='sheet';
+  var h=document.createElement('h2'); h.textContent='Delete this story?'; sheet.appendChild(h);
+  var msg=document.createElement('p'); msg.className='vo none'; msg.style.margin='.2em 0 1em';
+  msg.textContent='“'+(p.title||p.id)+'” and its beats will be removed from the boards. This can’t be undone.';
+  sheet.appendChild(msg);
+  var act=document.createElement('div'); act.className='sheetact';
+  var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
+  var del=document.createElement('button'); del.className='btn primary'; del.textContent='Delete';
+  del.onclick=function(){ ov.remove(); toast('Deleting…');
+    api('/api/story/project/'+encodeURIComponent(p.id),{method:'DELETE'})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+        projects=projects.filter(function(x){return x.id!==p.id}); toast('Story deleted'); goHome();
+      })
+      .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+  };
+  act.appendChild(cancel); act.appendChild(del); sheet.appendChild(act);
+  ov.appendChild(sheet); document.body.appendChild(ov);
+}
+var nsBtn=document.getElementById('newstory'); if(nsBtn) nsBtn.onclick=newStory;
+
+// autoscroll pill — shared component (scripts/pill.py)
+__PILL_JS__
 document.querySelector('.wrap').addEventListener('click',function(e){
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')||e.target.closest('img')) return;
   if(!document.body.classList.contains('reading')) return;
-  playing? stop() : start(1);
+  window.__scrollToggle();
 });
 
 function renderFilms(films){
@@ -518,6 +668,7 @@ Promise.all([
 """
 
 page = page.replace('__FONT__', font)
+page = page.replace('__PILL_CSS__', PILL_CSS).replace('__PILL_HTML__', PILL_HTML).replace('__PILL_JS__', PILL_JS)
 out = os.path.join(ROOT, 'public', 'storyroom.html')
 open(out, 'w', encoding='utf-8').write(page)
 print('built public/storyroom.html', round(len(page) / 1024), 'KB')

@@ -924,7 +924,7 @@
     dailyPicks = dailyPull();
     resetDailyTarot();
     const date = todayISO();
-    const cacheKey = 'witch_daily_' + date + '_' + (fbUser ? fbUser.uid : 'anon');
+    const cacheKey = 'witch_daily_v2_' + date + '_' + (fbUser ? fbUser.uid : 'anon');
     if (!force) {
       try { const c = JSON.parse(localStorage.getItem(cacheKey) || 'null'); if (c && c.astrology) { dailyData = c; renderDaily(); return; } } catch {}
     }

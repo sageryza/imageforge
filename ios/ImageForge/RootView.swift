@@ -79,6 +79,16 @@ enum Tool: String, CaseIterable, Identifiable {
 /// Which screen the bottom bar is showing.
 enum Screen: Hashable { case home, tool(Tool), gallery }
 
+/// Lets any tool screen pop back to the Home grid (the back arrow in a
+/// tool's top-left corner). RootView injects the real action.
+private struct GoHomeKey: EnvironmentKey { static let defaultValue: () -> Void = {} }
+extension EnvironmentValues {
+    var goHome: () -> Void {
+        get { self[GoHomeKey.self] }
+        set { self[GoHomeKey.self] = newValue }
+    }
+}
+
 /// Tracks most-recently-used tools so the three middle bar slots rotate.
 final class Recents: ObservableObject {
     @Published private(set) var order: [Tool]
@@ -153,6 +163,7 @@ struct RootView: View {
                 .allowsHitTesting(screen == .home)
             ForEach(recents.recentThree) { t in
                 NavigationStack { t.view }
+                    .environment(\.goHome, { screen = .home })
                     .opacity(screen == .tool(t) ? 1 : 0)
                     .allowsHitTesting(screen == .tool(t))
             }

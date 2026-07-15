@@ -56,7 +56,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr } = req.body || {};
+    const { chat, title, text, audio, tldr, url } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -66,6 +66,8 @@ router.post('/', async (req, res) => {
       from: 'claude',
       created: new Date().toISOString(),
     };
+    // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
+    if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
     if (audio && /^https?:\/\//.test(audio)) doc.audioUrl = String(audio);
     else if (audio && /^data:audio\//.test(audio)) {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
@@ -79,7 +81,9 @@ router.post('/', async (req, res) => {
       }
     }
     const ref = await db().collection(MSGS).add(doc);
-    await db().collection(REG).doc(doc.chat).set({ lastSeen: doc.created }, { merge: true });
+    const reg = { lastSeen: doc.created };
+    if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
+    await db().collection(REG).doc(doc.chat).set(reg, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });
@@ -97,6 +101,19 @@ router.post('/icon', async (req, res) => {
     const icon = `https://storage.googleapis.com/${bucket.name}/${file.name}?v=${Date.now()}`;
     await db().collection(REG).doc(String(chat).slice(0, 60)).set({ icon }, { merge: true });
     res.json({ ok: true, icon });
+  } catch (err) { fail(res, err); }
+});
+
+// Set a chat's one-line "what this is" — shown on its tile so the Chats grid
+// reads like a project directory. Sophie sets it in the app; a chat can also
+// set its own. Stored on the registry doc next to the icon.
+router.post('/about', async (req, res) => {
+  try {
+    const { chat, about } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    await db().collection(REG).doc(String(chat).slice(0, 60))
+      .set({ about: String(about || '').slice(0, 140) }, { merge: true });
+    res.json({ ok: true });
   } catch (err) { fail(res, err); }
 });
 

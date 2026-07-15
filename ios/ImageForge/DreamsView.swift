@@ -14,8 +14,12 @@ struct DreamsView: View {
     @State private var current: Dream?              // the dream currently rendering
     @State private var finished: [Dream] = []       // dreams already drawn this run (pages kept on screen)
     @State private var errorText: String?
-    @State private var pollGeneration = 0
+    @State private var selectedPage: DreamPageRef?   // tapped page → enlarge + read the words
+    @State private var renderSession = 0
 
+    // Dreams still drawing on the server — persisted so closing the app or
+    // leaving the screen doesn't lose them. We resume polling these on return.
+    @AppStorage("dreams.activeRenderIDs") private var activeRenderIDsRaw = ""
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
     @State private var showConsent = false
@@ -60,12 +64,14 @@ struct DreamsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
+        .overlay { if let sel = selectedPage { DreamPagePopup(ref: sel) { selectedPage = nil } } }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             scheduleNudgeIfNeeded()
+            await resumeActiveRenders()   // pick up any dream still drawing from before
         }
-        .onDisappear { pollGeneration += 1; speech.stop() }   // stop polling + mic when we leave
+        .onDisappear { renderSession += 1; speech.stop() }   // stop polling + mic when we leave (server keeps drawing)
         .alert("Couldn't illustrate",
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
@@ -210,13 +216,23 @@ struct DreamsView: View {
     @ViewBuilder private var currentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(finished) { dream in
-                ForEach(dream.pages ?? []) { page in pageImage(page.pageURL) }
+                ForEach(dream.pages ?? []) { page in pageButton(page, dream) }
             }
-            if let pages = current?.pages, !pages.isEmpty {
-                ForEach(pages) { page in pageImage(page.pageURL) }
+            if let cur = current, let pages = cur.pages, !pages.isEmpty {
+                ForEach(pages) { page in pageButton(page, cur) }
             }
             if busy { progressCard }
         }
+    }
+
+    /// A drawn page — tap to enlarge it and read the dream behind it.
+    private func pageButton(_ page: DreamPage, _ dream: Dream) -> some View {
+        Button {
+            AutoScrollDriver.shared.stop()
+            selectedPage = DreamPageRef(id: page.id, url: page.pageURL,
+                                        title: dream.title, dreamText: dream.dream)
+        } label: { pageImage(page.pageURL) }
+        .buttonStyle(.plain)
     }
 
     private var progressCard: some View {
@@ -245,14 +261,11 @@ struct DreamsView: View {
     }
 
     private func pageImage(_ url: URL?) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image): image.resizable().scaledToFit()
-            case .failure: Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger)
-            default: ProgressView().frame(height: 160)
-            }
+        Group {
+            if let url { CachedImageView(url: url, contentMode: .fit) }
+            else { Image(systemName: "exclamationmark.triangle").foregroundColor(Theme.danger) }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 200)
         .background(Color.white)
         .cornerRadius(Theme.radiusLg)
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
@@ -284,55 +297,103 @@ struct DreamsView: View {
         }
     }
 
-    /// Draw each reviewed dream in turn, in its confirmed beat order.
+    /// Draw each reviewed dream in its confirmed beat order. The renders are
+    /// kicked off on the server FIRST (recording their ids), then polled — so if
+    /// the app closes or you leave the screen, they finish server-side and are
+    /// picked back up when you return.
     private func draw() {
         let dreams = reviewDreams
         guard !dreams.isEmpty else { return }
         reviewDreams = []
         finished = []
+        current = nil
         busy = true
+        renderSession += 1
+        let session = renderSession
         Task {
-            for (i, dream) in dreams.enumerated() {
-                statusLabel = dreams.count > 1 ? "Drawing dream \(i + 1) of \(dreams.count)…" : "Drawing the character…"
+            statusLabel = "Drawing the character…"
+            var started: [String] = []
+            for dream in dreams {
+                guard session == renderSession else { return }   // left the screen — server keeps going
                 do {
-                    let order = dream.beats.map { $0.id }
-                    current = try await MovieService.shared.renderDream(dream.id, order: order)
-                    await pollDream(dream.id)
-                    if let done = current { finished.append(done) }
-                    current = nil
+                    _ = try await MovieService.shared.renderDream(dream.id, order: dream.beats.map { $0.id })
+                    started.append(dream.id)
+                    activeRenderIDsRaw = started.joined(separator: ",")
                 } catch {
                     errorText = error.localizedDescription
-                    break
                 }
             }
-            text = ""            // the dreams are saved to the moon archive
-            busy = false
-            statusLabel = ""
+            await drainActiveRenders(started, total: dreams.count, session: session)
         }
     }
 
-    /// Poll the dream doc until its render job finishes, surfacing the job's
-    /// own label ("drawing the character" → "drawing pages") as it goes.
-    private func pollDream(_ id: String) async {
-        pollGeneration += 1
-        let generation = pollGeneration
-        while generation == pollGeneration {
+    /// Coming back to the screen (or relaunching the app): if a render was still
+    /// going, pick it up — the server never stopped drawing.
+    private func resumeActiveRenders() async {
+        let ids = activeRenderIDsRaw.split(separator: ",").map(String.init)
+        guard !ids.isEmpty, !busy, reviewDreams.isEmpty else { return }
+        finished = []
+        current = nil
+        busy = true
+        renderSession += 1
+        await drainActiveRenders(ids, total: ids.count, session: renderSession)
+    }
+
+    /// Poll each active dream to completion, moving finished ones onto the page
+    /// and dropping their ids from the persisted set as they land.
+    private func drainActiveRenders(_ ids: [String], total: Int, session: Int) async {
+        var remaining = ids
+        var doneCount = total - ids.count
+        while !remaining.isEmpty, session == renderSession {
+            let id = remaining.removeFirst()
+            doneCount += 1
+            statusLabel = total > 1 ? "Drawing dream \(doneCount) of \(total)…" : statusLabel
+            let ok = await pollDream(id, session: session)
+            if session != renderSession { return }   // left the screen mid-poll
+            if ok, let done = current, done.id == id { finished.append(done) }
+            current = nil
+            activeRenderIDsRaw = remaining.joined(separator: ",")   // this one's saved to the archive now
+        }
+        if session == renderSession {
+            busy = false
+            statusLabel = ""
+            text = ""            // the dreams are saved to the moon archive
+        }
+    }
+
+    /// Poll the dream doc until its render job finishes, surfacing the job's own
+    /// label ("drawing the character" → "drawing pages") as it goes. Resilient
+    /// to dropped connections (phone locked, Render waking) — the render runs
+    /// server-side no matter what, so a transient failure just retries rather
+    /// than aborting. Returns true when the dream finished drawing.
+    @discardableResult
+    private func pollDream(_ id: String, session: Int) async -> Bool {
+        var transientFails = 0
+        while session == renderSession {
             do {
                 let d = try await MovieService.shared.dream(id)
                 current = d
-                guard let job = d.job, job.isRunning else {
-                    if d.job?.status == "error" { errorText = d.job?.error ?? "The render didn't finish." }
-                    return
+                transientFails = 0
+                if d.job?.status == "error" {
+                    errorText = d.job?.error ?? "The render didn't finish."
+                    return false
                 }
-                if let label = job.label, !label.isEmpty {
+                if !(d.job?.isRunning ?? false) {
+                    return d.job?.status == "done" || (d.pages?.isEmpty == false)
+                }
+                if let label = d.job?.label, !label.isEmpty {
                     statusLabel = "\(label.prefix(1).uppercased())\(label.dropFirst())…"
                 }
             } catch {
-                errorText = error.localizedDescription
-                return
+                // Dropped connection / cold start — keep trying; the server is
+                // still drawing. Give up quietly only after a long dry spell
+                // (we'll resume from the saved id next time the screen opens).
+                transientFails += 1
+                if transientFails >= 25 { return false }
             }
             try? await Task.sleep(nanoseconds: 3_200_000_000)
         }
+        return false   // view went away; the render continues server-side
     }
 
     private func moveBeat(_ di: Int, _ bi: Int, _ dir: Int) {

@@ -214,15 +214,30 @@ lifted into a standalone tool later.
 ## The Chat app (forge-chat-feed) — every chat posts its replies
 - `chatfeed.js` (`/api/chatfeed`, page at `/chats`, iOS tile "Chats") — one
   feed of every project chat's replies so Sophie can read/listen in one place
-  (picture icon per chat, tap-to-expand, free device-voice read-aloud, polished
-  memo attached when one exists, reply box).
-- **STANDING RULE (all chats, July 2026): after finishing each substantive
-  reply to Sophie** (anything with a TLDR), POST it to the feed:
-  `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
-  `{ "chat": "<short-chat-name>", "text": "<the reply text>",
-     "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
-  (x-studio-token header when the studio is gated). Pick ONE short, stable
-  chat name and keep using it (e.g. "dating-book", "story-boards").
+  (picture icon per chat, tap-to-expand, ▶ Play renders the neural voice on
+  tap (cached), orange "Open" button deep-links back to the Claude session,
+  List/Tiles view toggle, newest message at the top, reply box).
+- **Auto-posting (July 2026):** a Stop hook (`post-to-feed.sh`) posts each
+  finished reply automatically — full text + TLDR + `url` (the
+  `claude.ai/code/session_…` deep link built from
+  `CLAUDE_CODE_REMOTE_SESSION_ID`), zero model tokens, de-duped per message.
+  **GOTCHA (verified live 2026-07-15): repo-committed `.claude/settings.json`
+  hooks DO NOT LOAD in these sessions** — the session's starting folder is
+  `/home/user` (four repos side by side), and Claude Code only loads project
+  settings from the starting folder. The working install path is the cloud
+  environment's **Setup script** (environment settings dialog), which writes
+  the hook + `/home/user/.claude/settings.json` before Claude Code launches —
+  paste `docs/chats-autopost-setup-script.sh` there (kept in sync with
+  `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
+  **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
+  chat's tile appeared on its own (verified live).
+- **Do NOT also post replies by hand** — the hook already does it, and manual
+  posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
+  only if it's MISSING (hook absent in your session) fall back to the old
+  manual post: `POST https://imageforge-q125.onrender.com/api/chatfeed` with
+  `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
+  (x-studio-token header when gated). The hook names the chat from the git
+  branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
@@ -336,21 +351,30 @@ lifted into a standalone tool later.
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
 - **Dreams (dream → comic):** the dream-illustration path — replicates the
   daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
-  free breakdown, and it runs on **Claude Opus** (`anthropicChatJSON`,
-  `ANTHROPIC_API_KEY`, model `DREAM_MODEL`=`claude-opus-4-8`) — a small model
-  can't split/segment/order a rambling recording, so this is deliberately the
-  smart tier. **By explicit request there is NO OpenAI fallback**: no key or a
-  failed call → the breakdown errors and surfaces that (it does not silently
-  drop to gpt-4o-mini). `ANTHROPIC_API_KEY` is a `config-loader` MANAGED_KEY, so
-  it can live in Render env OR the Firestore config doc. **One recording → one
-  or MORE dreams:** `dreamBreakdown()` first SPLITS the recording into the
-  distinct dreams (on the dreamer's boundary cues — "that was that dream", "the
-  next dream", "yesterday I had a dream") and returns `{dreams:[{title,cast,
-  beats}]}`; `POST /dream` creates one `forge-dreams` doc per dream (staggered
-  `createdAt` so array order = time) and returns `{dreams:[doc,…]}`. Within each
-  dream it reconstructs TRUE chronology from the cues ("that was before", "at
-  first", "at the very end", "right before I woke up") and emits coarse beats
-  already in order. iOS `createDream` returns `[Dream]`; the "check the
+  free breakdown. **Model (experiment, July 2026): OpenAI frontier
+  `gpt-5.6-sol`** does the WHOLE breakdown — splitting AND the image
+  descriptions — set by `DREAM_BREAKDOWN_MODEL` (default `gpt-5.6-sol`; set a
+  `claude-*` id to route back through `anthropicChatJSON`/Claude Opus, the prior
+  default, for comparison). Chosen deliberately as the smart tier — a small
+  model can't split/segment/order a rambling recording — and to test whether the
+  model that owns the image generator writes descriptions its own image model
+  draws better. **There is NO silent fallback between providers**: whichever
+  `DREAM_BREAKDOWN_MODEL` names either works or errors (no drop to gpt-4o-mini).
+  `openaiChatJSON` takes a `model` and omits temperature for `gpt-5*` reasoning
+  models; ~$0.066 and ~60s per breakdown on Sol. `OPENAI_API_KEY`/
+  `ANTHROPIC_API_KEY` are `config-loader` MANAGED_KEYs (Render env OR the
+  Firestore config doc). **One recording → one or MORE dreams:**
+  `dreamBreakdown()` first SPLITS the recording into the distinct dreams (on the
+  dreamer's boundary cues — "that was that dream", "the next dream", "yesterday
+  I had a dream") and returns `{dreams:[{title,text,driftCues,cast,beats}]}`;
+  `POST /dream` creates one `forge-dreams` doc per dream (staggered `createdAt`
+  so array order = time; each stores `dreamText` = its own verbatim slice and
+  `driftCues` = the verbatim out-of-order phrases to highlight) and returns
+  `{dreams:[doc,…]}`. Within each dream it reconstructs TRUE chronology from the
+  cues ("that was before", "at first", "at the very end", "right before I woke
+  up"), emits coarse beats already in order, and lists in `driftCues` the exact
+  phrases where the narration drifted from chronological (for the review UI to
+  highlight; `[]` when told in order). iOS `createDream` returns `[Dream]`; the "check the
   chronology" step shows each split dream as its own titled group (▲▼ within it)
   and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
   `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
@@ -359,21 +383,32 @@ lifted into a standalone tool later.
   page lays out with fewer), captions = the beats' own lines (no cover),
   ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
   background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Multi-character cast** (a dream
-  usually has several recurring people — dad, J, Sean — not one): the breakdown
-  returns a `cast:[{name,look}]` (≤5 named figures) and each beat carries a
-  `who:[name]` of who appears in it. On render, `ensureDreamCast` draws each
-  cast member ONCE as a labelled solo reference sheet (`cast[i].url`), then
-  `renderDreamPage` attaches the style ref FIRST and the sheets for whoever
-  appears on that page after it, naming each by attachment position ("the #2
-  attached image is J (…)") so multiple characters stay consistent across
-  pages — the technique ChatGPT uses (named reference per character, all
-  attached, each named in the prompt; gpt-image-2 `edits` takes an image array,
-  up to ~16). Beats with no `who` fall back to attaching the whole cast; refs
-  are capped at 4/page (+style = 5). Legacy single-character dreams
-  (`characters` string / `characterAnchor`) auto-normalize to a one-member cast.
-  `POST .../render {reanchor:true}` re-rolls every cast member's look. Same
-  `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
+  dreams never clutter the movies list. **Render survives leaving the app:** the
+  render is a fire-and-forget server job, and iOS `DreamsView` records the
+  rendering dream ids in `@AppStorage("dreams.activeRenderIDs")`, so closing the
+  app or leaving the screen never stops the draw — on return, `resumeActiveRenders`
+  re-polls those ids and shows the pages as they land. Polling is resilient to
+  dropped connections (phone locked / Render cold start) — a transient failure
+  retries instead of surfacing "Couldn't illustrate"; only a real job error does.
+  **Multi-character consistency by reusing earlier pages** (a dream usually has
+  several recurring people — dad, J, Sean — not one): the breakdown returns a
+  `cast:[{name,look}]` (≤5 named figures) and each beat carries a `who:[name]`
+  of who appears in it. Pages render **in order** (`makeDreamPages`, a
+  sequential loop — dreams are short); each page feeds the **already-drawn
+  earlier pages** back in as the reference, NOT freshly-generated solo sheets.
+  For every recurring character on a page, `dreamPageRefs` finds the earliest
+  page that showed them and attaches it (style ref FIRST, then up to 3 earlier
+  pages), and `dreamZinePagePrompt` names each by attachment position ("the #2
+  attached image is an EARLIER PAGE — draw J with the exact same face/hair/
+  clothing"). A character's FIRST appearance has no earlier page and is drawn
+  fresh; the page it lands on then anchors it everywhere after. This is the
+  cheaper, more faithful version of the ChatGPT technique — reuse an existing
+  image of the character instead of inventing a reference sheet (gpt-image-2
+  `edits` attends to the attached images; array up to ~16, we cap at style + 3).
+  So an N-character dream generates **only** its comic pages — 0 extra images
+  (previously it drew one solo sheet per character, ~$0.06 each). Legacy dreams
+  with no `who` fall back to anchoring each page to the most recent earlier one.
+  Same `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
   rest of movies.
 
 ## Songs (phone recording → real song, keeping the real voice)

@@ -38,10 +38,17 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
 .t-new{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
-.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:2px;}
+.t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
+.t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:4px;}
+.abouted{display:block; width:100%; margin:2px 0 0; font-family:'EBGaramond',Georgia,serif; font-size:16px; box-sizing:border-box;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:7px 9px;}
 .thread-head{display:flex; align-items:center; gap:12px; margin-bottom:.4em;}
 .thread-head img,.thread-head .t-blank{width:46px; height:46px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.3em;}
+.aboutrow{margin:-2px 0 6px;}
+.aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
 .msg{padding:14px 0; border-bottom:1px solid var(--line);}
@@ -58,6 +65,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
 .m-tools audio{flex:1; height:32px; min-width:0;}
+/* view toggle (List / Tiles) */
+.viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
+.viewtog button{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase; border:none; background:transparent; color:var(--ink); padding:7px 16px; cursor:pointer;}
+.viewtog button + button{border-left:1.5px solid var(--ink);}
+.viewtog button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}
+/* list view */
+.clist{display:flex; flex-direction:column;}
+.crow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.crow .cr-ic{width:46px; height:46px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
+.crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
+.cr-body{flex:1; min-width:0;}
+.cr-name{font-size:1.15em; font-weight:600; line-height:1.12;}
+.cr-sub{font-size:.95em; color:var(--ink2); line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
+.cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
+/* Open-in-Claude button — Claude orange, white starburst + text */
+.openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
+.openclaude svg{width:15px; height:15px; display:block; stroke:#fff;}
+.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0;}
+.tbtn.play{display:inline-flex; align-items:center; gap:6px;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
 #back{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09);}
@@ -82,6 +110,7 @@ __PILL_HTML__
       <h1>Chats</h1>
       <div class="rule"></div>
     </header>
+    <div class="viewtog"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
   <section id="thread" style="display:none"></section>
@@ -106,11 +135,47 @@ function ago(iso){
 }
 __PILL_JS__
 var chats={}, msgs=[], cur=null, seen={};
+var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
+// Claude "spark" mark (simple hand-inlined equivalent, white on orange)
+var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
+function claudeUrlFor(name, list){
+  var u=(chats[name]&&chats[name].url)||'';
+  if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
+  return u;
+}
+function openClaudeBtn(url){
+  var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
+  a.innerHTML=CLAUDE_STAR+'<span>Open</span>';
+  a.onclick=function(e){ e.stopPropagation(); };
+  return a;
+}
 try{ seen=JSON.parse(localStorage.getItem('chats-seen-v1')||'{}'); }catch(e){}
 function markSeen(name){
   var g=groups()[name]; if(!g||!g.length) return;
   seen[name]=g[g.length-1].created||'';
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
+}
+
+function editAbout(chat, row, current){
+  // inline editor (WKWebView blocks window.prompt), saves to /about
+  var inp=document.createElement('input'); inp.type='text'; inp.className='abouted';
+  inp.value=current||''; inp.placeholder='What is this project? (one line)'; inp.maxLength=140;
+  row.innerHTML=''; row.appendChild(inp); inp.focus();
+  var done=false;
+  function save(){
+    if(done) return; done=true;
+    var v=inp.value.trim();
+    api('/api/chatfeed/about',{method:'POST',body:JSON.stringify({chat:chat,about:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        chats[chat]=chats[chat]||{}; chats[chat].about=v;
+        row.innerHTML='<span class="aboutshow">'+(v?esc(v):'add a description')+'</span>';
+        row.querySelector('.aboutshow').onclick=function(){ editAbout(chat,row,v); };
+        toast('Saved'); })
+      .catch(function(){ done=false; toast('Couldn\\u2019t save'); });
+  }
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
 }
 
 function setIcon(chat){
@@ -145,27 +210,66 @@ function iconHtml(name, cls){
   return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((name||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
-function renderHome(){
-  var el=document.getElementById('grid'); el.innerHTML='';
-  var g=groups();
+function sortedChatNames(g){
+  // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
   Object.keys(chats).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
-  if(!names.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   names.sort(function(a,b){
     var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
     return la<lb?1:-1;
   });
+  return names;
+}
+// status line = the latest message that carries a TLDR (what the project last
+// did); fall back to the last message's first line
+function statusFor(list){
+  var last=list.length? list[list.length-1] : null;
+  var tldrs=list.filter(function(m){return m.tldr;});
+  var sm=tldrs.length? tldrs[tldrs.length-1] : last;
+  return sm? (sm.tldr||(sm.text||'').split('\\n')[0]) : '';
+}
+function renderHome(){
+  document.getElementById('v-list').classList.toggle('on', view==='list');
+  document.getElementById('v-tiles').classList.toggle('on', view==='tiles');
+  var el=document.getElementById('grid'); el.innerHTML='';
+  var g=groups();
+  var names=sortedChatNames(g);
+  if(!names.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
+  if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+}
+function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    var status=statusFor(list);
+    var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(name)+'</span>'
+      +(about? '<span class="t-about">'+esc(about)+'</span>':'')
+      +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
+  });
+}
+function renderList(el,g,names){
+  var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
+  names.forEach(function(name){
+    var list=g[name]||[];
+    var last=list.length? list[list.length-1] : null;
+    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
+    var row=document.createElement('button'); row.className='crow';
+    row.innerHTML=iconHtml(name,'cr-ic')
+      +'<span class="cr-body"><span class="cr-name">'+esc(name)+'</span>'
+      +'<span class="cr-sub">'+esc(status)+'</span></span>'
+      +(unread?'<span class="cr-dot"></span>':'')
+      +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
+    row.onclick=function(){ openChat(name); };
+    wrap.appendChild(row);
   });
 }
 
@@ -179,11 +283,13 @@ function renderMsg(m){
   var tools=document.createElement('div'); tools.className='m-tools';
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
   else if(m.from!=='sophie'){
-    // one-tap neural render (~1¢), cached on the message forever after
-    var pol=document.createElement('button'); pol.className='tbtn'; pol.textContent='\\u2726 polish';
+    // Play = generate the neural voice on demand (~1¢), cached forever after.
+    // Sophie taps it when she wants to listen — she stays in control.
+    var PLAY='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+    var pol=document.createElement('button'); pol.className='tbtn play'; pol.innerHTML=PLAY+'<span>Play</span>';
     pol.onclick=function(e){
       e.stopPropagation();
-      pol.disabled=true; pol.textContent='polishing\\u2026';
+      pol.disabled=true; pol.innerHTML=PLAY+'<span>making\\u2026</span>';
       api('/api/chatfeed/polish',{method:'POST',body:JSON.stringify({id:m.id})})
         .then(function(r){return r.json()})
         .then(function(d){
@@ -192,7 +298,7 @@ function renderMsg(m){
           var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
           tools.replaceChild(au,pol);
         })
-        .catch(function(){ pol.disabled=false; pol.textContent='\\u2726 polish'; toast('Couldn\\u2019t polish that one'); });
+        .catch(function(){ pol.disabled=false; pol.innerHTML=PLAY+'<span>Play</span>'; toast('Couldn\\u2019t make that one'); });
     };
     tools.appendChild(pol);
   }
@@ -205,20 +311,28 @@ function renderMsg(m){
 function openChat(name, keepScroll){
   scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
+  var list=(groups()[name])||[];
   var head=document.createElement('header');
+  var about=(chats[name]&&chats[name].about)||'';
   head.innerHTML='<div class="no">chats</div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1 style="margin:0">'+esc(name)+'</h1></div>'
-    +'<button class="seticon">change picture</button><div class="rule"></div>';
+    +'<div class="aboutrow"><span class="aboutshow">'+(about?esc(about):'add a description')+'</span></div>'
+    +'<div class="headbtns"><button class="seticon">change picture</button></div><div class="rule"></div>';
   head.querySelector('.seticon').onclick=function(){ setIcon(name); };
+  var arow=head.querySelector('.aboutrow');
+  arow.querySelector('.aboutshow').onclick=function(){ editAbout(name, arow, about); };
+  // "Open in Claude" — jump back to this exact conversation
+  var curl=claudeUrlFor(name, list);
+  if(curl){ head.querySelector('.headbtns').appendChild(openClaudeBtn(curl)); }
   sec.appendChild(head);
-  var list=(groups()[name])||[];
   if(!list.length) sec.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
-  list.forEach(function(m){ sec.appendChild(renderMsg(m)); });
+  // newest message at the top (no scrolling to find the latest)
+  list.slice().reverse().forEach(function(m){ sec.appendChild(renderMsg(m)); });
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
-  if(!keepScroll) window.scrollTo(0,document.body.scrollHeight);
+  if(!keepScroll) window.scrollTo(0,0);
 }
 function goHome(){
   scrollStop(); cur=null;
@@ -229,6 +343,8 @@ function goHome(){
   window.scrollTo(0,0);
 }
 document.getElementById('back').onclick=goHome;
+document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
+document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 
 function load(){
   api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){

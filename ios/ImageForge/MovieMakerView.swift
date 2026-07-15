@@ -86,7 +86,6 @@ struct MovieMakerHome: View {
     @State private var creating = false
     @State private var loading = true
     @State private var errorText: String?
-    @State private var showSettings = false
     @State private var openedMovie: Movie?
     @State private var openAutopilot = false
     @State private var showDetail = false
@@ -96,18 +95,21 @@ struct MovieMakerHome: View {
     @State private var pendingMode: CreateMode = .autopilot
     @State private var pendingQuick = false
 
-    // Shared story library
-    @State private var showStoryLibrary = false
+    // Story Room (the movie boards webpage) + the bookmark save
+    @State private var showStoryRoom = false
     @State private var storySaved = false
 
-    // Quick animate (one image → one clip, wan 720p)
+    // Quick animate (one image → one clip)
     @State private var quickPickerItem: PhotosPickerItem?
     @State private var quickImageData: Data?
     @State private var quickPrompt = ""
+    @State private var quickQuality: QuickQuality = .p720
     @State private var quickBusy = false
     @State private var quickJob: QuickClip?
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
+    @FocusState private var inputFocused: Bool
+    @Environment(\.goHome) private var goHome
 
     // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
@@ -121,13 +123,25 @@ struct MovieMakerHome: View {
             }
             .background(Reel.base.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)
+            // Tapping anywhere also puts the keyboard away (runs alongside
+            // whatever was tapped, so buttons still work).
+            .simultaneousGesture(TapGesture().onEnded { inputFocused = false })
             .navigationTitle("Movies")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showSettings = true } label: {
-                        Image(systemName: "gearshape").foregroundColor(Reel.dim)
+                // The multiline fields' return key types a newline, so the
+                // keyboard needs its own way out.
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { inputFocused = false }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { goHome() } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundColor(Reel.ink)
                     }
+                    .accessibilityLabel("Back to all the modules")
                 }
             }
             .toolbarBackground(Reel.base, for: .navigationBar)
@@ -137,12 +151,9 @@ struct MovieMakerHome: View {
                     MovieDetailView(movieId: movie.id, initial: movie, autopilot: openAutopilot)
                 }
             }
-            .sheet(isPresented: $showSettings) { MovieSettingsSheet() }
-            .sheet(isPresented: $showStoryLibrary) {
-                StoryPickerSheet { text in
-                    story = text
-                    storySaved = true   // it came from the library
-                }
+            .sheet(isPresented: $showStoryRoom) {
+                StoryRoomView()
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
@@ -199,15 +210,15 @@ struct MovieMakerHome: View {
                     }
                     .accessibilityLabel("Save this story to the library")
                 }
-                // Pull a story from the shared library.
-                Button { showStoryLibrary = true } label: {
+                // Open the Story Room — the movie boards webpage.
+                Button { showStoryRoom = true } label: {
                     Image(systemName: "books.vertical")
                         .font(.body.weight(.semibold))
                         .foregroundColor(Reel.amber)
                         .padding(6)
                         .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                 }
-                .accessibilityLabel("Use a saved story")
+                .accessibilityLabel("Open the Story Room")
                 // Blank-page antidote: prefill with an example story to riff on.
                 Button {
                     story = StorySeeds.random(avoiding: story)
@@ -221,6 +232,7 @@ struct MovieMakerHome: View {
                 .accessibilityLabel("Surprise me with an example story")
             }
             TextEditor(text: $story)
+                .focused($inputFocused)
                 .frame(minHeight: 110)
                 .scrollContentBackground(.hidden)
                 .padding(10)
@@ -289,6 +301,7 @@ struct MovieMakerHome: View {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("What should move? (optional)", text: $quickPrompt, axis: .vertical)
+                        .focused($inputFocused)
                         .lineLimit(1...3)
                         .font(.caption)
                         .foregroundColor(Reel.ink)
@@ -296,12 +309,28 @@ struct MovieMakerHome: View {
                         .background(Reel.surface)
                         .cornerRadius(Theme.radius)
                         .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                    reelButton(quickBusy ? "Animating…" : "▶︎ Animate · \(MovieCosts.chip(0.16))", prominent: true) {
-                        startQuickAnimate()
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(QuickQuality.allCases) { q in
+                                Button(q.label) { quickQuality = q }
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(quickQuality.label).font(.caption.weight(.semibold)).foregroundColor(Reel.ink)
+                                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundColor(Reel.dim)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 9)
+                            .background(Reel.surface)
+                            .cornerRadius(Theme.radius)
+                            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                        }
+                        reelButton(quickBusy ? "Sending…" : "▶︎ Animate", prominent: true) {
+                            startQuickAnimate()
+                        }
+                        .disabled(quickImageData == nil || quickBusy)
+                        .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
                     }
-                    .disabled(quickImageData == nil || quickBusy)
-                    .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
-                    Text("wan 720p, ~5s clip, about a minute").font(.system(size: 10)).foregroundColor(Reel.dim)
+                    Text("~5s clip — queue as many as you like").font(.system(size: 10)).foregroundColor(Reel.dim)
                 }
             }
             if let job = quickJob {
@@ -331,7 +360,7 @@ struct MovieMakerHome: View {
     private func quickJobRow(_ job: QuickClip) -> some View {
         HStack(spacing: 10) {
             if job.status == "running" { ReelSpinner(size: 18) }
-            Text(job.status == "running" ? "animating — hang tight…"
+            Text(job.status == "running" ? "animating — pick another image to queue the next one"
                  : job.status == "error" ? "animation failed: \(job.error ?? "unknown")"
                  : "done! it's in the row below — tap to play")
                 .font(.caption)
@@ -381,24 +410,44 @@ struct MovieMakerHome: View {
         guard let data = quickImageData, !quickBusy else { return }
         guard aiConsentAccepted else { pendingQuick = true; showConsent = true; return }
         quickBusy = true
+        let prompt = quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let quality = quickQuality
         Task {
             do {
-                var job = try await MovieService.shared.animate(jpeg: data, prompt: quickPrompt.trimmingCharacters(in: .whitespacesAndNewlines))
+                // The POST returns as soon as the server accepts the job — the
+                // clip renders in the background. Clear the form right away so
+                // the next image can be picked while this one renders; any
+                // number can run at once.
+                let job = try await MovieService.shared.animate(jpeg: data, prompt: prompt,
+                                                                resolution: quality.resolution,
+                                                                tier: quality.tier)
                 quickJob = job
                 quickClips.insert(job, at: 0)
-                while job.status == "running" {
-                    try await Task.sleep(nanoseconds: 4_000_000_000)
-                    job = try await MovieService.shared.quickGet(job.id)
-                    quickJob = job
-                    if let i = quickClips.firstIndex(where: { $0.id == job.id }) { quickClips[i] = job }
-                }
-                if job.status == "done" {
-                    quickPickerItem = nil
-                    quickImageData = nil
-                    quickPrompt = ""
-                }
+                quickPickerItem = nil
+                quickImageData = nil
+                quickPrompt = ""
+                pollQuick(job.id)
             } catch { errorText = error.localizedDescription }
             quickBusy = false
+        }
+    }
+
+    /// One independent poller per queued clip, so several can render at once.
+    private func pollQuick(_ id: String) {
+        Task {
+            var misses = 0
+            while true {
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                guard let job = try? await MovieService.shared.quickGet(id) else {
+                    misses += 1
+                    if misses > 30 { return }   // ~2 min of dead network — give up quietly
+                    continue
+                }
+                misses = 0
+                if quickJob?.id == id { quickJob = job }
+                if let i = quickClips.firstIndex(where: { $0.id == job.id }) { quickClips[i] = job }
+                if job.status != "running" { return }
+            }
         }
     }
 
@@ -415,6 +464,29 @@ struct MovieMakerHome: View {
     }
 
     enum CreateMode { case autopilot, character, storyboard(String) }
+
+    /// The quick-animate quality menu: resolution + price only (first two are
+    /// wan, last two kling — deliberately unlabeled, Sophie knows which).
+    enum QuickQuality: String, CaseIterable, Identifiable {
+        case p480, p720, kling720, kling1080
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .p480:      return "480p · 6¢"
+            case .p720:      return "720p · 16¢"
+            case .kling720:  return "720p · 25¢"
+            case .kling1080: return "1080p · 55¢"
+            }
+        }
+        var tier: String {
+            switch self {
+            case .p480, .p720: return "draft"
+            case .kling720:    return "standard"
+            case .kling1080:   return "pro"
+            }
+        }
+        var resolution: String { self == .p480 ? "480p" : "720p" }
+    }
 
     private func requestCreate(mode: CreateMode) {
         let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
