@@ -29,6 +29,18 @@ Sophie Experiment*), pulled from Google Drive at full resolution.
 The larger scans (Sean, Chris, Blake, Josie, Josiah) were pulled via a direct
 Google Drive OAuth token, which lifts the 10 MB limit of the earlier connector.
 
+## Complete roster — `_ALL-DATES-poster-roster.png`
+
+`_ALL-DATES-poster-roster.png` is a flattened export of the `LEGAL SIZE DATE
+POSTER` Google Drawing: **all ~40 dates in one image** (5×8 grid). It's low-res
+(the whole grid is ~1 MP, so each portrait is only ~160 px), but it guarantees
+**every date is captured at some quality**. The 18 files above are the ones we
+also have at full resolution; the rest currently live only at this poster size.
+Higher-res versions of the poster-only dates would need either their individual
+scan (many are missing/renamed) or a manual per-image save from the source
+Drawing (the SVG/PDF exports that keep the originals are over Google's 10 MB
+export cap).
+
 ## Known dates still missing a located full-size original
 
 Identified inside the `date mini watercolor zine` layout but with no full-size
