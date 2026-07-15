@@ -539,6 +539,194 @@ app.post('/api/story/status', express.json(), async (req, res) => {
   }
 });
 
+// Shared: save a data-URL image to the boards' Storage (public), like /art.
+// Returns the public URL, or null if `image` isn't a data URL. Needs storyApp.
+async function saveStoryImage(image, namePrefix) {
+  const m = String(image || '').match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+  if (!m) return null;
+  const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+  const rand = Math.random().toString(36).slice(2, 8);
+  const bucket = storyApp.storage().bucket();
+  const file = bucket.file(`story/${namePrefix}-${Date.now()}-${rand}.${ext}`);
+  await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+  await file.makePublic();
+  return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+}
+function storySlug(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+// Create or update a project's meta (title / cover / order) from the Story
+// Room — so Sophie can stand up a NEW story herself, no chat / sync-story.js.
+// No id → derive a unique slug from the title and create an empty project.
+// Existing id → merge meta, never touch beats.
+app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { id, title, cover, order } = req.body || {};
+    if (!id && !String(title || '').trim()) return res.status(400).json({ error: 'title required' });
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const col = db.collection('forge-story');
+    let docId = id ? String(id) : (storySlug(title) || 'story');
+    if (!id) {
+      let base = docId, n = 1;
+      while ((await col.doc(docId).get()).exists) { n++; docId = base + '-' + n; }
+    }
+    const ref = col.doc(docId);
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data() : { id: docId, beats: [] };
+    data.id = docId;
+    if (title != null && String(title).trim()) data.title = String(title).slice(0, 120);
+    if (order != null && order !== '') data.order = Number(order);
+    else if (data.order == null) {
+      const all = await col.get();
+      data.order = all.docs.reduce((mx, d) => Math.max(mx, d.data().order ?? 0), 0) + 1;
+    }
+    if (cover) {
+      const url = await saveStoryImage(cover, `cover-${docId}`);
+      if (url) data.cover = url;
+    }
+    if (!Array.isArray(data.beats)) data.beats = [];
+    await ref.set(data);
+    res.json({ ok: true, id: docId, project: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a beat (no `beat`) or edit an existing beat's narration (`beat` index).
+app.post('/api/story/beat', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, vo, beat } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    if (!Array.isArray(data.beats)) data.beats = [];
+    let beatIndex;
+    if (beat == null || beat === '') {
+      data.beats.push({ vo: String(vo || '').slice(0, 2000), cards: [] });
+      beatIndex = data.beats.length - 1;
+    } else {
+      const b = data.beats[Number(beat)];
+      if (!b) return res.status(404).json({ error: 'unknown beat' });
+      b.vo = String(vo || '').slice(0, 2000);
+      beatIndex = Number(beat);
+    }
+    await ref.set(data);
+    res.json({ ok: true, beat: beatIndex, beats: data.beats.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bulk-dump many images into a project's INBOX (unsorted holding area) in one
+// request — "add lots of art, sort it out later". Accepts data URLs or https
+// URLs. Sorting into beats happens via /api/story/assign.
+app.post('/api/story/inbox', express.json({ limit: '60mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, images } = req.body || {};
+    if (!Array.isArray(images) || !images.length) return res.status(400).json({ error: 'images[] required' });
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    if (!Array.isArray(data.inbox)) data.inbox = [];
+    let added = 0;
+    for (const img of images.slice(0, 100)) {
+      let url = null;
+      if (/^https?:\/\//.test(String(img))) url = String(img);
+      else url = await saveStoryImage(img, `inbox-${projectId}`);
+      if (url) { data.inbox.push({ url }); added++; }
+    }
+    await ref.set(data);
+    res.json({ ok: true, added, inbox: data.inbox.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Triage: move one piece of art between the inbox and beats. `from` is
+// {inbox:i} or {beat,card}; `to` is {beat} or {inbox}. Covers inbox→beat
+// (file it), beat→beat (re-file), and beat/inbox→inbox (un-sort). This is the
+// shared surface both Sophie's taps and a chat's auto-sort call.
+app.post('/api/story/assign', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, from, to } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    if (!Array.isArray(data.beats)) data.beats = [];
+    if (!Array.isArray(data.inbox)) data.inbox = [];
+    // pull the item out of its source
+    let item;
+    if (from && from.inbox != null) {
+      const i = Number(from.inbox);
+      if (i < 0 || i >= data.inbox.length) return res.status(404).json({ error: 'unknown inbox item' });
+      item = data.inbox.splice(i, 1)[0];
+    } else if (from && from.beat != null && from.card != null) {
+      const b = data.beats[Number(from.beat)];
+      const c = b && (b.cards || [])[Number(from.card)];
+      if (!c) return res.status(404).json({ error: 'unknown source card' });
+      item = b.cards.splice(Number(from.card), 1)[0];
+    } else {
+      return res.status(400).json({ error: 'from must be {inbox} or {beat,card}' });
+    }
+    // drop it into its destination
+    if (to && to.beat != null) {
+      const b = data.beats[Number(to.beat)];
+      if (!b) return res.status(404).json({ error: 'unknown target beat' });
+      b.cards = b.cards || [];
+      b.cards.push({ label: item.label || 'uploaded art', status: item.status || 'cand', url: item.url });
+    } else if (to && to.inbox != null) {
+      data.inbox.push({ url: item.url, label: item.label });
+    } else {
+      return res.status(400).json({ error: 'to must be {beat} or {inbox}' });
+    }
+    await ref.set(data);
+    res.json({ ok: true, inbox: data.inbox.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a whole project — so a story Sophie created (or mis-created) herself
+// isn't stranded needing a chat to remove it.
+app.delete('/api/story/project/:id', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(req.params.id));
+    if (!(await ref.get()).exists) return res.status(404).json({ error: 'unknown project' });
+    await ref.delete();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
