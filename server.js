@@ -400,6 +400,11 @@ app.get('/photo', serveGated('photo.html'));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
 app.get('/song', serveGated('song.html'));
+// Dreams: a faithful web copy of the iOS Dreams screen (write/record a dream →
+// chronology check → hand-drawn comic pages → archive + zine), so the design
+// can be iterated in the browser without a TestFlight build. Same gate; hits
+// the same /api/movies/dream* endpoints.
+app.get('/dreams', serveGated('dreams.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
