@@ -214,8 +214,23 @@ lifted into a standalone tool later.
 ## The Chat app (forge-chat-feed) — every chat posts its replies
 - `chatfeed.js` (`/api/chatfeed`, page at `/chats`, iOS tile "Chats") — one
   feed of every project chat's replies so Sophie can read/listen in one place
-  (picture icon per chat, tap-to-expand, free device-voice read-aloud, polished
-  memo attached when one exists, reply box).
+  (picture icon per chat, tap-to-expand, ▶ Play renders the neural voice on
+  tap (cached), orange "Open" button deep-links back to the Claude session,
+  List/Tiles view toggle, newest message at the top, reply box).
+- **Auto-posting (July 2026):** a Stop hook (`post-to-feed.sh`) posts each
+  finished reply automatically — full text + TLDR + `url` (the
+  `claude.ai/code/session_…` deep link built from
+  `CLAUDE_CODE_REMOTE_SESSION_ID`), zero model tokens, de-duped per message.
+  **GOTCHA (verified live 2026-07-15): repo-committed `.claude/settings.json`
+  hooks DO NOT LOAD in these sessions** — the session's starting folder is
+  `/home/user` (four repos side by side), and Claude Code only loads project
+  settings from the starting folder. The working install path is the cloud
+  environment's **Setup script** (environment settings dialog), which writes
+  the hook + `/home/user/.claude/settings.json` before Claude Code launches —
+  paste `docs/chats-autopost-setup-script.sh` there (kept in sync with
+  `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
+  Until Sophie's environment has that setup script, auto-posting is NOT active
+  and the manual rule below still applies.
 - **STANDING RULE (all chats, July 2026): after finishing each substantive
   reply to Sophie** (anything with a TLDR), POST it to the feed:
   `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
