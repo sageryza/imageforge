@@ -122,6 +122,9 @@ struct MovieMakerHome: View {
             }
             .background(Reel.base.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)
+            // Tapping anywhere also puts the keyboard away (runs alongside
+            // whatever was tapped, so buttons still work).
+            .simultaneousGesture(TapGesture().onEnded { inputFocused = false })
             .navigationTitle("Movies")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
