@@ -229,15 +229,15 @@ lifted into a standalone tool later.
   the hook + `/home/user/.claude/settings.json` before Claude Code launches —
   paste `docs/chats-autopost-setup-script.sh` there (kept in sync with
   `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
-  Until Sophie's environment has that setup script, auto-posting is NOT active
-  and the manual rule below still applies.
-- **STANDING RULE (all chats, July 2026): after finishing each substantive
-  reply to Sophie** (anything with a TLDR), POST it to the feed:
-  `POST https://imageforge-q125.onrender.com/api/chatfeed` with JSON
-  `{ "chat": "<short-chat-name>", "text": "<the reply text>",
-     "tldr": "<the TLDR>", "audio": "<memo URL or data URL, if one was made>" }`
-  (x-studio-token header when the studio is gated). Pick ONE short, stable
-  chat name and keep using it (e.g. "dating-book", "story-boards").
+  **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
+  chat's tile appeared on its own (verified live).
+- **Do NOT also post replies by hand** — the hook already does it, and manual
+  posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
+  only if it's MISSING (hook absent in your session) fall back to the old
+  manual post: `POST https://imageforge-q125.onrender.com/api/chatfeed` with
+  `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
+  (x-studio-token header when gated). The hook names the chat from the git
+  branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**

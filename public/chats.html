@@ -258,21 +258,14 @@ function iconHtml(name, cls){
   return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((name||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
-function sortedChatNames(g, mode){
+function sortedChatNames(g){
+  // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
   Object.keys(chats).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
-  if(mode==='list'){
-    // "in order of which one came first" — oldest chat first, stable
-    names.sort(function(a,b){
-      var fa=(g[a]&&g[a][0]&&g[a][0].created)||'\uffff', fb=(g[b]&&g[b][0]&&g[b][0].created)||'\uffff';
-      return fa<fb?-1:1;
-    });
-  } else {
-    names.sort(function(a,b){
-      var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
-      return la<lb?1:-1;
-    });
-  }
+  names.sort(function(a,b){
+    var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
+    return la<lb?1:-1;
+  });
   return names;
 }
 // status line = the latest message that carries a TLDR (what the project last
@@ -288,7 +281,7 @@ function renderHome(){
   document.getElementById('v-tiles').classList.toggle('on', view==='tiles');
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
-  var names=sortedChatNames(g, view);
+  var names=sortedChatNames(g);
   if(!names.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
 }
