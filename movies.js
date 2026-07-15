@@ -1039,88 +1039,79 @@ function normalizeDreamCast(dream) {
     : [];
 }
 
-function dreamMemberSheetPrompt(dream, member) {
-  const base = `A single character reference sheet: ${member.look || member.name}, standing alone, ` +
-    'front view, full figure, neutral expression, plain flat background, no other characters and no text.';
-  if (styleRef) return STYLE_REF_PREFIX + base;
-  return `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${base}`;
+// The named characters appearing on a page — the union of the group's beats' `who`.
+function dreamNamesOnPage(group) {
+  const names = new Set();
+  for (const b of group) if (Array.isArray(b.who)) b.who.forEach(n => names.add(String(n)));
+  return names;
 }
 
-// Draw a labelled reference sheet for each cast member that doesn't have one
-// yet (re-rolls reuse the locked look). `onDrawn` ticks the progress bar.
-async function ensureDreamCast(dream, quality, onDrawn) {
-  normalizeDreamCast(dream);
-  for (const member of dream.cast) {
-    if (member.url) continue;
-    const prompt = dreamMemberSheetPrompt(dream, member);
-    const buf = styleRef
-      ? await openaiPanelEdit(prompt, [styleRef], quality)
-      : await openaiPanel(prompt, quality);
-    member.url = await saveBufferToStorage(buf, 'image/webp', 'movies/dreams');
-    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    if (onDrawn) await onDrawn();
+// Which ALREADY-DRAWN pages to feed back as this page's character reference. For
+// each recurring character on this page, use the earliest earlier page that
+// showed them — so a face is carried from the page it first appeared on, no
+// separate reference sheets. Deduped by page and capped at three (+ style ref =
+// four attachments). A character making their first appearance here has no
+// earlier page and is simply drawn fresh. When the beats never named anyone
+// (legacy docs), fall back to the most recent earlier page as a whole "keep the
+// same people and style" reference.
+function dreamPageRefs(group, rendered) {
+  if (!rendered.length) return [];
+  const names = dreamNamesOnPage(group);
+  const byUrl = new Map();                       // url -> Set(names carried from it)
+  for (const name of names) {
+    const src = rendered.find(p => p.who.has(name));   // earliest page with this character
+    if (!src) continue;                                // first appearance — nothing to carry
+    if (!byUrl.has(src.url)) byUrl.set(src.url, new Set());
+    byUrl.get(src.url).add(name);
   }
-  // Mirror the first member onto characterAnchor for any legacy reader.
-  if (dream.cast[0]?.url) dream.characterAnchor = { url: dream.cast[0].url, madeAt: new Date().toISOString() };
-}
-
-// Which cast members appear on this page — the union of the group's beats'
-// `who`, mapped to members that have a reference sheet. If the beats never
-// named anyone (older docs), fall back to the whole cast. Capped so a page
-// never attaches more than four character refs (+ the style ref = five).
-function dreamPresentCast(dream, group) {
-  const cast = (dream.cast || []).filter(m => m.url);
-  if (!cast.length) return [];
-  const named = new Set();
-  let anyNamed = false;
-  for (const b of group) {
-    if (Array.isArray(b.who) && b.who.length) { anyNamed = true; b.who.forEach(n => named.add(String(n))); }
-  }
-  const present = anyNamed ? cast.filter(m => named.has(m.name)) : cast.slice();
-  return present.slice(0, 4);
+  let refs = [...byUrl.entries()].map(([url, set]) => ({ url, names: [...set] }));
+  if (!refs.length) refs = [{ url: rendered[rendered.length - 1].url, names: [] }];
+  return refs.slice(0, 3);
 }
 
 // A dream comic page prompt: the 2x2 layout + captions (like the zine), plus a
-// preamble that names the style ref and each attached character ref by its
-// attachment position. Kept separate from the movie zine prompt so the movie
-// path (single anchor) is untouched.
-function dreamZinePagePrompt(dream, group, present) {
+// preamble that names the style ref and each attached EARLIER PAGE (and which
+// characters to carry from it) by attachment position. Kept separate from the
+// movie zine prompt so the movie path (single anchor) is untouched.
+function dreamZinePagePrompt(dream, group, refPages) {
   const positions = group.length === 4
     ? ['top left', 'top right', 'bottom left', 'bottom right']
     : group.length === 1 ? ['full page'] : group.map((_, i) => `position ${i + 1} from the top`);
   const body = group.map((s, i) =>
     `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}. Caption: "${String(s.title).toUpperCase()}"`).join(' ');
   const layout = `${ZINE_LAYOUTS[group.length]}, each with a small hand-lettered caption box beneath it containing EXACTLY the given caption text, spelled exactly as written. `;
+  const offset = styleRef ? 2 : 1;   // attachment number of the first earlier page
+  const pageLines = refPages.map((r, i) => {
+    const who = r.names.length ? r.names.join(' and ') : 'the recurring characters';
+    return `the #${i + offset} attached image is an EARLIER PAGE of this same comic — draw ${who} with the exact ` +
+      'same face, hair and clothing they have there, and do not redesign them';
+  }).join('; ');
   let refNote = '';
-  if (styleRef && present.length) {
-    const lines = present.map((m, i) => `the #${i + 2} attached image is ${m.name} (${m.look})`).join('; ');
+  if (styleRef && refPages.length) {
     refNote = 'The FIRST attached image is a STYLE reference — copy its hand-lettered drawing style exactly, ' +
-      `but do NOT copy its content or subjects. For character continuity, ${lines}; draw each of those ` +
-      'characters with the SAME face, hairstyle and clothing as their reference image wherever they appear, ' +
-      'and do not redesign them. ';
+      `but do NOT copy its content or subjects. For character continuity, ${pageLines}. `;
   } else if (styleRef) {
     refNote = 'Copy the styling of the attached image exactly — including its hand-lettered ' +
       'caption boxes — but do NOT copy its content or subjects. ';
-  } else if (present.length) {
-    const lines = present.map((m, i) => `the #${i + 1} attached image is ${m.name} (${m.look})`).join('; ');
-    refNote = `For character continuity, ${lines}; draw each with the SAME face, hairstyle and clothing ` +
-      'as their reference image wherever they appear, and do not redesign them. ';
+  } else if (refPages.length) {
+    refNote = `For character continuity, ${pageLines}. `;
   }
   const stylePrefix = styleRef ? '' : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
   return `${stylePrefix}${refNote}${layout}${body}`;
 }
 
-// Render one dream page: style ref first, then the present cast's reference
-// sheets, with the prompt naming each by position.
-async function renderDreamPage(dream, group, quality) {
+// Render one dream page: style ref first, then the earlier pages we're carrying
+// characters from (the ones already drawn), with the prompt naming each by
+// attachment position.
+async function renderDreamPage(dream, group, quality, rendered) {
   const refs = [];
   if (styleRef) refs.push(styleRef);
-  const present = [];
-  for (const m of dreamPresentCast(dream, group)) {
-    const buf = await refBufferFromUrl(m.url);
-    if (buf) { refs.push(buf); present.push(m); }
+  const usable = [];
+  for (const r of dreamPageRefs(group, rendered)) {
+    const buf = await refBufferFromUrl(r.url);
+    if (buf) { refs.push(buf); usable.push(r); }
   }
-  const prompt = dreamZinePagePrompt(dream, group, present);
+  const prompt = dreamZinePagePrompt(dream, group, usable);
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
     : await openaiPanel(prompt, quality);
@@ -1130,32 +1121,35 @@ async function renderDreamPage(dream, group, quality) {
 // ─── Dream pages: the beats drawn as a comic ────────────────────────
 // The same 2x2 style engine the zine uses, but the captions are the beats'
 // own caption lines (not scene titles) and there is no cover. Beats pack
-// four-to-a-page; a short tail page lays out with fewer. Every named cast
-// member is locked as a reference sheet first, then each page pins to whoever
-// appears on it.
+// four-to-a-page; a short tail page lays out with fewer. Pages render IN ORDER,
+// and each one feeds the already-drawn earlier pages back in as its character
+// reference — a recurring face is carried from the page it first appeared on,
+// so no separate reference sheets are generated (cheaper, and it uses the real
+// drawn look).
 async function makeDreamPages(dream, quality, progress) {
   const items = (dream.beats || []).map(b => ({
     id: b.id, imagePrompt: b.imagePrompt, title: b.caption || '', who: Array.isArray(b.who) ? b.who : [],
   }));
   const groups = [];
   for (let i = 0; i < items.length; i += 4) groups.push(items.slice(i, i + 4));
-  normalizeDreamCast(dream);
-  const toDraw = dream.cast.filter(m => !m.url).length;
-  const total = groups.length + toDraw;
+  normalizeDreamCast(dream);   // keep cast[{name,look}] metadata for readers
+  const total = groups.length;
   let done = 0;
-  // Lock every cast member first so each page can pin to the ones it needs.
-  await progress(done, total, toDraw ? 'drawing the cast' : 'drawing pages');
-  if (toDraw) {
-    await ensureDreamCast(dream, quality, async () => { await progress(++done, total, 'drawing pages'); });
-  }
-  const results = await pool(groups, 2, async (group) => {
-    const page = await renderDreamPage(dream, group, quality);
-    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    await progress(++done, total, 'drawing pages');
-    return { url: page.url, promptUsed: page.prompt, beatIds: group.map(s => s.id) };
-  });
+  await progress(done, total, 'drawing pages');
+  const rendered = [];   // { url, who:Set<name> } — earlier pages, in order, to reference
   const pages = [];
-  results.forEach(r => { if (r.ok) pages.push(r.value); });
+  let failed = 0;
+  for (const group of groups) {
+    try {
+      const page = await renderDreamPage(dream, group, quality, rendered);
+      dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+      const who = new Set();
+      group.forEach(s => (s.who || []).forEach(n => who.add(String(n))));
+      rendered.push({ url: page.url, who });
+      pages.push({ url: page.url, promptUsed: page.prompt, beatIds: group.map(s => s.id) });
+    } catch { failed++; }
+    await progress(++done, total, 'drawing pages');
+  }
   // Keep the previous render — re-rolls are never lost.
   if (dream.pages?.length) {
     dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
@@ -1163,7 +1157,6 @@ async function makeDreamPages(dream, quality, progress) {
   dream.pages = pages;
   dream.pagesQuality = quality;
   dream.pagesMadeAt = new Date().toISOString();
-  const failed = results.filter(r => !r.ok).length;
   if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; re-render to fill the gaps`);
 }
 
@@ -1571,7 +1564,7 @@ router.post('/dream/:id/render', async (req, res) => {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
     if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
-    const { quality = 'medium', reanchor, order } = req.body || {};
+    const { quality = 'medium', order } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
     // The chronology check: reorder the beats to the order the app sends before drawing.
     if (Array.isArray(order) && order.length) {
@@ -1580,10 +1573,8 @@ router.post('/dream/:id/render', async (req, res) => {
       doc.beats.forEach(b => { if (!order.includes(b.id)) reordered.push(b); }); // keep any not named
       if (reordered.length) doc.beats = reordered;
     }
-    if (reanchor) { // re-roll every cast member's look on this render
-      doc.characterAnchor = null;
-      (doc.cast || []).forEach(m => { m.url = null; });
-    }
+    // (Every render redraws all pages fresh, so there's no separate re-anchor
+    // step any more — an old `reanchor` flag in the body is simply ignored.)
     await startDreamJob(doc, 'render', async (progress) => {
       await makeDreamPages(doc, q, progress);
     });
@@ -1886,7 +1877,7 @@ module.exports = {
   dreamBreakdown,
   makeDreamPages,
   normalizeDreamCast,
-  dreamPresentCast,
+  dreamPageRefs,
   dreamZinePagePrompt,
   probe,
   extractLastFrame,
