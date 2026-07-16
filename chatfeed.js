@@ -104,6 +104,18 @@ router.post('/icon', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Archive / unarchive a chat — Sophie taps this herself in the app. Archived
+// chats move to a collapsed "Archived" section on the home views.
+router.post('/archive', async (req, res) => {
+  try {
+    const { chat, archived } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    await db().collection(REG).doc(String(chat).slice(0, 60))
+      .set({ archived: archived !== false }, { merge: true });
+    res.json({ ok: true, archived: archived !== false });
+  } catch (err) { fail(res, err); }
+});
+
 // Set a chat's one-line "what this is" — shown on its tile so the Chats grid
 // reads like a project directory. Sophie sets it in the app; a chat can also
 // set its own. Stored on the registry doc next to the icon.
