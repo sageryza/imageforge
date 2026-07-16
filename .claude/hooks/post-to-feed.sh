@@ -156,8 +156,9 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   [ -n "$g" ] || continue
   u=$(printf '%s' "$g" | jq -r '.url // empty')
   f=$(printf '%s' "$g" | jq -r '.file // empty')
+  cj=$(printf '%s' "$name" | jq -Rs .)
   if [ -n "$u" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
       png) mime=image/png;; webp) mime=image/webp;; gif) mime=image/gif;; *) mime=image/jpeg;;
@@ -165,7 +166,7 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
     tmp=$(mktemp)
     printf '{"image":"data:%s;base64,' "$mime" > "$tmp"
     base64 -w0 "$f" >> "$tmp" 2>/dev/null || base64 "$f" | tr -d '\n' >> "$tmp"
-    printf '","prompt":%s,"created":%s}' "$pj" "$nowms" >> "$tmp"
+    printf '","prompt":%s,"created":%s,"chat":%s}' "$pj" "$nowms" "$cj" >> "$tmp"
     curl -s -m 120 -X POST "$GALLERY" -H "Content-Type: application/json" \
       ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d @"$tmp" >/dev/null 2>&1 || true
     rm -f "$tmp"
