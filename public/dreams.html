@@ -138,7 +138,7 @@
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
-    reviewDreams:[], current:null, finished:[],
+    current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
     zinePages:[], zineSpread:0, zineLoading:false,
@@ -162,50 +162,63 @@
     recog.start(); S.recording = true; renderMain();
   }
 
-  // ── Actions ──
+  // ── Active-render persistence (so a render survives closing the page) ──
+  function getActive(){ try{ return (localStorage.getItem('dreams_active')||'').split(',').filter(Boolean); }catch{ return []; } }
+  function setActive(ids){ try{ ids.length ? localStorage.setItem('dreams_active', ids.join(',')) : localStorage.removeItem('dreams_active'); }catch{} }
+
+  // ── One tap: break the recording down and draw it, in Sol's order, with no
+  //    review step. The render is a server-side background job, so closing the
+  //    page never stops it — we record the ids and re-attach on return. ──
   async function illustrate(){
     const body = (S.text||'').trim();
     if(!body){ showToast('Write down your dream first.'); return; }
     if(S.busy) return;
     try{ localStorage.setItem('dreams_last', body); }catch{}   // remember it so it prefills next time
     if(S.recording){ recog && recog.stop(); }
-    S.busy = true; S.statusLabel = 'Reading your dream…'; S.current=null; S.finished=[]; S.reviewDreams=[]; renderMain();
-    const r = await jpost('/dream', { dream: body });
-    if(!r.ok){ S.busy=false; S.statusLabel=''; renderMain(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
-    S.reviewDreams = r.body.dreams || [];
-    S.busy = false; S.statusLabel=''; renderMain();
-  }
-
-  function moveBeat(di, bi, dir){
-    const beats = S.reviewDreams[di].beats; const j = bi+dir;
-    if(j<0||j>=beats.length) return;
-    [beats[bi], beats[j]] = [beats[j], beats[bi]]; renderMain();
-  }
-
-  async function draw(){
-    const dreams = S.reviewDreams.slice();
-    if(!dreams.length) return;
-    S.reviewDreams=[]; S.finished=[]; S.current=null; S.busy=true;
-    S.session++; const session = S.session;
+    S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[];
+    S.session++; const session=S.session;
     render();
+    const r = await jpost('/dream', { dream: body });
+    if(session!==S.session) return;
+    if(!r.ok){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
+    const dreams = r.body.dreams || [];
     const started=[];
     for(const d of dreams){
       if(session!==S.session) return;
-      const order = d.beats.map(b=>b.id);
-      const r = await jpost('/dream/'+d.id+'/render', { quality:'medium', order });
-      if(r.ok) started.push(d);
-      else showToast((r.body&&r.body.error)||'Render failed to start.');
+      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', order:d.beats.map(b=>b.id) });
+      if(rr.ok){ started.push(d.id); setActive(started); }
+      else showToast((rr.body&&rr.body.error)||'Render failed to start.');
     }
-    for(let i=0;i<started.length;i++){
-      if(session!==S.session) return;
-      S.statusLabel = started.length>1 ? `Drawing dream ${i+1} of ${started.length}…` : 'Drawing…';
+    await drain(started, dreams.length, session);
+  }
+
+  // Poll each active dream to completion, showing pages as they land and
+  // dropping each id from the saved set as it finishes.
+  async function drain(ids, total, session){
+    const remaining = ids.slice();
+    let doneCount = total - ids.length;
+    while(remaining.length && session===S.session){
+      const id = remaining.shift();
+      doneCount++;
+      S.statusLabel = total>1 ? `Drawing dream ${doneCount} of ${total}…` : 'Drawing…';
       render();
-      const done = await pollDream(started[i].id, session);
+      const done = await pollDream(id, session);
       if(session!==S.session) return;
       if(done) S.finished.push(done);
       S.current=null;
+      setActive(remaining);
     }
-    if(session===S.session){ S.busy=false; S.statusLabel=''; S.text=''; renderMain(); }
+    if(session===S.session){ S.busy=false; S.statusLabel=''; S.text=''; render(); }
+  }
+
+  // Coming back to the page (reopened / reloaded): if a render was still going,
+  // pick it up — the server kept drawing the whole time.
+  async function resumeActive(){
+    const ids = getActive();
+    if(!ids.length || S.busy) return;
+    S.busy=true; S.finished=[]; S.current=null; S.session++;
+    render();
+    await drain(ids, ids.length, S.session);
   }
 
   // Poll one dream to completion; resilient to dropped connections.
@@ -246,26 +259,7 @@
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
 
-    if(S.reviewDreams.length){
-      const multi = S.reviewDreams.length>1;
-      h += `<div class="section">
-        <div class="eyebrow"><span>${multi?S.reviewDreams.length+' DREAMS — CHECK THE CHRONOLOGY':'CHECK THE CHRONOLOGY'}</span></div>
-        <p class="subnote">${multi?'That recording was more than one dream. Each is split out and put in order — nudge any beat, then draw them all.':'Dreams come out of order. Nudge any beat into place, then draw.'}</p>`;
-      S.reviewDreams.forEach((d,di)=>{
-        h += `<div class="dreamgroup">`;
-        if(multi) h += `<div class="dreamtitle">${esc(d.title)}</div>`;
-        d.beats.forEach((b,bi)=>{
-          const label = (b.caption&&b.caption.trim()) ? b.caption : b.imagePrompt;
-          h += `<div class="beat"><div class="num">${bi+1}</div><div class="lbl">${esc(label)}</div>
-            <div class="arrows">
-              <button class="arrow" ${bi===0?'disabled':''} data-up="${di}:${bi}">${IC.up}</button>
-              <button class="arrow" ${bi===d.beats.length-1?'disabled':''} data-down="${di}:${bi}">${IC.down}</button>
-            </div></div>`;
-        });
-        h += `</div>`;
-      });
-      h += `<button class="btn draw" id="draw">${multi?'Draw all '+S.reviewDreams.length:'Draw it'}</button></div>`;
-    } else if(S.busy || S.current || S.finished.length){
+    if(S.busy || S.current || S.finished.length){
       h += `<div class="section">`;
       S.finished.forEach(d => (d.pages||[]).forEach(p => h += pageHtml(p.url, d)));
       if(S.current && S.current.pages) S.current.pages.forEach(p => h += pageHtml(p.url, S.current));
@@ -280,9 +274,6 @@
     const ta = $('ta'); if(ta) ta.oninput = e => S.text = e.target.value;
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
-    const dr = $('draw'); if(dr) dr.onclick = draw;
-    root.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{const[di,bi]=b.dataset.up.split(':').map(Number);moveBeat(di,bi,-1);});
-    root.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>{const[di,bi]=b.dataset.down.split(':').map(Number);moveBeat(di,bi,1);});
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const i=el.dataset.page;openPopup(pageRefs[i]);});
   }
 
@@ -399,6 +390,8 @@
   try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
 
   render();
+  // If a render was still going when the page was last closed, pick it back up.
+  resumeActive();
 </script>
 </body>
 </html>
