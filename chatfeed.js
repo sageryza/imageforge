@@ -104,6 +104,39 @@ router.post('/icon', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Per-chat image gallery (the "Assets" tab inside a chat). Built from the union
+// of: image URLs already present in that chat's message text (so existing chats
+// show their art with no back-fill) + forge-chat-assets docs (uploaded-file
+// images the gallery hook tags with the chat). De-duped by URL, newest first.
+const ASSETS = 'forge-chat-assets';
+const IMG_URL_RE = /https:\/\/(?:storage|firebasestorage)\.googleapis\.com\/[^\s)\]"'<>]+?\.(?:png|jpe?g|webp|gif)/gi;
+router.get('/assets', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
+    const [msnap, asnap] = await Promise.all([
+      db().collection(MSGS).where('chat', '==', chat).get(),
+      db().collection(ASSETS).where('chat', '==', chat).get(),
+    ]);
+    const seen = new Map(); // url -> { url, created, prompt }
+    const add = (url, created, prompt) => {
+      if (!url || seen.has(url)) return;
+      seen.set(url, { url, created: created || '', prompt: prompt || '' });
+    };
+    msnap.docs.forEach((d) => {
+      const m = d.data();
+      const found = String(m.text || '').match(IMG_URL_RE) || [];
+      found.forEach((u) => add(u, m.created, m.tldr || ''));
+    });
+    asnap.docs.forEach((d) => { const a = d.data(); add(a.url, a.created, a.prompt); });
+    const assets = Array.from(seen.values())
+      .sort((a, b) => (a.created < b.created ? 1 : -1))
+      .slice(0, limit);
+    res.json({ chat, assets });
+  } catch (err) { fail(res, err); }
+});
+
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
 // chats move to a collapsed "Archived" section on the home views.
 router.post('/archive', async (req, res) => {

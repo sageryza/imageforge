@@ -44,9 +44,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:4px;}
 .abouted{display:block; width:100%; margin:2px 0 0; font-family:'EBGaramond',Georgia,serif; font-size:16px; box-sizing:border-box;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:7px 9px;}
-.thread-head{display:flex; align-items:center; gap:12px; margin-bottom:.4em;}
-.thread-head img,.thread-head .t-blank{width:46px; height:46px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
-.thread-head .t-blank{display:flex; font-size:1.3em;}
+.thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em;}
+.thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
+.thread-head .t-blank{display:flex; font-size:1.1em;}
+.thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
+.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer;}
+.assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
+#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px;}
+#clightbox img{max-width:100%; max-height:92vh; border-radius:6px;}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
@@ -131,6 +137,7 @@ __PILL_HTML__
   <button id="rsend">Send</button>
 </div>
 <div id="toast"></div>
+<div id="clightbox"></div>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -357,24 +364,19 @@ function openChat(name, keepScroll){
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
-  var about=(chats[name]&&chats[name].about)||'';
   head.innerHTML='<div class="no">chats</div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1 style="margin:0">'+esc(name)+'</h1></div>'
-    +'<div class="aboutrow"><span class="aboutshow">'+(about?esc(about):'add a description')+'</span></div>'
-    +'<div class="headbtns"><button class="seticon">change picture</button>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(name)+'</h1></div>'
+    +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
-  head.querySelector('.seticon').onclick=function(){ setIcon(name); };
-  head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(true); };
-  var arow=head.querySelector('.aboutrow');
-  arow.querySelector('.aboutshow').onclick=function(){ editAbout(name, arow, about); };
-  // "Open in Claude" — jump back to this exact conversation
+  head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
   var curl=claudeUrlFor(name, list);
   if(curl){ head.querySelector('.headbtns').appendChild(openClaudeBtn(curl)); }
   sec.appendChild(head);
-  if(!list.length) sec.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
-  // newest message at the top (no scrolling to find the latest)
-  list.slice().reverse().forEach(function(m){ sec.appendChild(renderMsg(m)); });
-  // archive / unarchive — Sophie's own call, at the quiet bottom of the thread
+
+  // Chat panel — the messages (newest at top) + archive control
+  var chatPanel=document.createElement('div');
+  if(!list.length) chatPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  list.slice().reverse().forEach(function(m){ chatPanel.appendChild(renderMsg(m)); });
   var isArch=!!(chats[name]&&chats[name].archived);
   var ar=document.createElement('div'); ar.className='archrow';
   var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
@@ -387,12 +389,50 @@ function openChat(name, keepScroll){
       })
       .catch(function(){ toast('Couldn\\u2019t save that'); });
   };
-  ar.appendChild(ab); sec.appendChild(ar);
+  ar.appendChild(ab); chatPanel.appendChild(ar);
+  sec.appendChild(chatPanel);
+
+  // Assets panel — this chat's images, lazy-loaded on first open
+  var assetsPanel=document.createElement('div'); assetsPanel.style.display='none';
+  assetsPanel.innerHTML='<div class="state">Loading images&hellip;</div>';
+  sec.appendChild(assetsPanel);
+  var assetsLoaded=false;
+  function loadAssets(){
+    if(assetsLoaded) return; assetsLoaded=true;
+    api('/api/chatfeed/assets?chat='+encodeURIComponent(name)+'&limit=300')
+      .then(function(r){return r.json()})
+      .then(function(d){
+        var a=(d&&d.assets)||[];
+        assetsPanel.innerHTML='';
+        if(!a.length){ assetsPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images from this chat yet.'})); return; }
+        var grid=document.createElement('div'); grid.className='assetgrid';
+        a.forEach(function(it){
+          var b=document.createElement('button');
+          b.innerHTML='<img alt="" loading="lazy" src="'+esc(it.url)+'">';
+          b.onclick=function(){ lightbox(it.url); };
+          grid.appendChild(b);
+        });
+        assetsPanel.appendChild(grid);
+      })
+      .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\\u2019t load images.</div>'; });
+  }
+  var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
+  tgChat.onclick=function(){ tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
+  tgAssets.onclick=function(){ scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
+
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
   if(!keepScroll) window.scrollTo(0,0);
+}
+// Image lightbox — freezes the page behind it (design rule)
+function lightbox(url){
+  scrollStop();
+  var lb=document.getElementById('clightbox');
+  lb.innerHTML='<img alt="" src="'+url.replace(/"/g,'&quot;')+'">';
+  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
   scrollStop(); cur=null;

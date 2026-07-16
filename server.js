@@ -837,7 +837,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   try {
     await storyDb();
     if (!storyApp) return res.status(503).json({ error: 'membry credential not configured' });
-    const { url, image, prompt, created, style, type, dry } = req.body || {};
+    const { url, image, prompt, created, style, type, dry, chat } = req.body || {};
     const uid = await galleryUid();
     if (dry) return res.json({ ok: true, dry: true, uid: uid.slice(0, 6) + '…' });
     const createdMs = Number(created) || Date.now();
@@ -854,6 +854,22 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       finalUrl = `https://storage.googleapis.com/${bucket.name}/${f.name}`;
     }
     if (!finalUrl) return res.status(400).json({ error: 'url (Firebase Storage) or image (data URL) required' });
+    // Per-chat asset record (deckfactory, where forge-chat-* live) — powers the
+    // Assets tab inside each chat. Independent of the iOS-gallery de-dupe below.
+    if (chat && admin.apps.length) {
+      try {
+        const acol = admin.firestore().collection('forge-chat-assets');
+        const adup = await acol.where('chat', '==', String(chat).slice(0, 60))
+          .where('url', '==', finalUrl).limit(1).get();
+        if (adup.empty) {
+          await acol.add({
+            chat: String(chat).slice(0, 60), url: finalUrl,
+            prompt: String(prompt || '').slice(0, 500),
+            created: new Date(createdMs).toISOString(),
+          });
+        }
+      } catch (e) { /* per-chat record is best-effort */ }
+    }
     const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
     if (url) { // de-dupe hosted URLs (uploads are always fresh objects)
       const dup = await col.where('url', '==', finalUrl).limit(1).get();
