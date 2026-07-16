@@ -119,9 +119,14 @@ for no,name in enumerate(ORDER,1):
         if figs:
             gallery=f'<div class="gallery"><div class="pagemark">THE DRAWINGS</div><div class="gal-grid">{figs}</div></div>'
     cover_fp=None
-    for mi,m in enumerate(e.get("moments") or []):
-        fp=IMGDIR+"/"+str(e["_idx"])+"_"+str(m.get("img",mi))+".webp"
-        if os.path.exists(fp): cover_fp=fp; break
+    # a per-date thumbnail (from the date-face thumbnails) wins as the tile cover
+    if e.get("thumb"):
+        tp=os.path.join(ROOT,'docs','dating-book','reference','date-thumbnails',e["thumb"])
+        if os.path.exists(tp): cover_fp=tp
+    if not cover_fp:
+        for mi,m in enumerate(e.get("moments") or []):
+            fp=IMGDIR+"/"+str(e["_idx"])+"_"+str(m.get("img",mi))+".webp"
+            if os.path.exists(fp): cover_fp=fp; break
     cb64=thumb_b64(cover_fp) if cover_fp else None
     cover=(f'<span class="t-cover"><img alt="" src="data:image/webp;base64,{cb64}"></span>' if cb64
            else f'<span class="t-cover t-blank"><span>{esc(name[0])}</span></span>')

@@ -150,7 +150,8 @@
    }
   ],
   "_idx": "30",
-  "_pages": 3
+  "_pages": 3,
+  "thumb": "date-23.png"
  },
  {
   "name": "Gabriel",
@@ -222,7 +223,8 @@
   ],
   "moments": [],
   "_idx": "s02",
-  "staged": true
+  "staged": true,
+  "thumb": "date-03.png"
  },
  {
   "name": "Matt",
@@ -233,7 +235,8 @@
   ],
   "moments": [],
   "_idx": "s03",
-  "staged": true
+  "staged": true,
+  "thumb": "date-08.png"
  },
  {
   "name": "Kyle",
@@ -343,7 +346,8 @@
   ],
   "moments": [],
   "_idx": "s13",
-  "staged": true
+  "staged": true,
+  "thumb": "date-13.png"
  },
  {
   "name": "Kyle II",
@@ -376,7 +380,8 @@
   ],
   "moments": [],
   "_idx": "s16",
-  "staged": true
+  "staged": true,
+  "thumb": "date-17.png"
  },
  {
   "name": "Steve II",
