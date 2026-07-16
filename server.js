@@ -789,6 +789,90 @@ app.get('/api/story/thumb', async (req, res) => {
   }
 });
 
+// ─── Gallery drop-box: POST /api/gallery ───────────────────────────
+// The iOS "My Creations" gallery reads users/{uid}/creations in membry —
+// normally only writable with the Admin SDK (scripts/post-to-gallery.js).
+// This endpoint is the server-side version so the chats' Stop hook can file
+// image deliverables automatically: {url} for an already-hosted image or
+// {image} as a data URL (uploaded to membry Storage like the script does).
+// De-dupes by url so re-mentions never double-post. Sophie's device uid comes
+// from GALLERY_UID env, the config/gallery-uid doc, or auto-discovery (list
+// membry users, pick the device with the most recent creation) — cached.
+let galleryUidCache = null;
+async function galleryUid() {
+  if (process.env.GALLERY_UID) return process.env.GALLERY_UID;
+  if (galleryUidCache) return galleryUidCache;
+  if (admin.apps.length) {
+    try {
+      const doc = await admin.firestore().doc('config/gallery-uid').get();
+      if (doc.exists && doc.data().uid) return (galleryUidCache = doc.data().uid);
+    } catch (err) { /* fall through to discovery */ }
+  }
+  // discover: the membry user whose creations have the newest createdAt
+  const mdb = storyApp.firestore();
+  const users = await mdb.collection('users').listDocuments();
+  let best = null; let bestTs = 0;
+  for (const u of users.slice(0, 40)) {
+    try {
+      const snap = await u.collection('creations').orderBy('createdAt', 'desc').limit(1).get();
+      if (!snap.empty) {
+        const ts = snap.docs[0].data().createdAt;
+        const ms = ts && ts.toMillis ? ts.toMillis() : 0;
+        if (ms > bestTs) { bestTs = ms; best = u.id; }
+      }
+    } catch (err) { /* user without creations */ }
+  }
+  if (!best) throw new Error('could not discover the gallery uid — set GALLERY_UID');
+  galleryUidCache = best;
+  if (admin.apps.length) {
+    await admin.firestore().doc('config/gallery-uid').set(
+      { uid: best, discovered: new Date().toISOString() }).catch(() => {});
+  }
+  return best;
+}
+app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    await storyDb();
+    if (!storyApp) return res.status(503).json({ error: 'membry credential not configured' });
+    const { url, image, prompt, created, style, type, dry } = req.body || {};
+    const uid = await galleryUid();
+    if (dry) return res.json({ ok: true, dry: true, uid: uid.slice(0, 6) + '…' });
+    const createdMs = Number(created) || Date.now();
+    let finalUrl = url && /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(String(url))
+      ? String(url) : null;
+    if (!finalUrl && image) {
+      const m = String(image).match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+      if (!m) return res.status(400).json({ error: 'image must be a data URL' });
+      const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+      const bucket = storyApp.storage().bucket();
+      const f = bucket.file(`claude-deliveries/${createdMs}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
+      await f.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
+      await f.makePublic();
+      finalUrl = `https://storage.googleapis.com/${bucket.name}/${f.name}`;
+    }
+    if (!finalUrl) return res.status(400).json({ error: 'url (Firebase Storage) or image (data URL) required' });
+    const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
+    if (url) { // de-dupe hosted URLs (uploads are always fresh objects)
+      const dup = await col.where('url', '==', finalUrl).limit(1).get();
+      if (!dup.empty) return res.json({ ok: true, deduped: true, url: finalUrl });
+    }
+    const doc = {
+      type: String(type || 'image'), url: finalUrl,
+      prompt: String(prompt || '').slice(0, 500), stickers: null,
+      createdAt: admin.firestore.Timestamp.fromMillis(createdMs),
+      source: 'auto-hook',
+    };
+    if (style) doc.style = String(style).slice(0, 80);
+    const ref = await col.add(doc);
+    res.json({ ok: true, id: ref.id, url: finalUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── The Wall: everything every chat produced, in one live feed ─────
 // Merges this project's Storage (generated images, movie panels, zine
 // pages, dream comics) with the story boards' art (membry bucket) into
