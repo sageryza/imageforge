@@ -1567,7 +1567,7 @@ router.delete('/quick/:id', async (req, res) => {
 // fetch them) or already-public URLs. Polled via GET /quick/:id like animate.
 router.post('/morphfilm', async (req, res) => {
   try {
-    const { frames, prompts, resolution } = req.body || {};
+    const { frames, prompts, resolution, title, captions } = req.body || {};
     if (!Array.isArray(frames) || frames.length < 2)
       return res.status(400).json({ error: 'frames must be an array of at least 2 images (data URLs or public URLs)' });
     if (!Array.isArray(prompts) || prompts.length < frames.length - 1)
@@ -1576,13 +1576,14 @@ router.post('/morphfilm', async (req, res) => {
     const numFrames = 121; // long enough for a smooth morph (bridge-length)
     const pairs = frames.length - 1;
     const cost = Math.round(pairs * VIDEO_MODELS.draft.costPerClip(numFrames) * 100) / 100;
+    const filmTitle = (title && String(title).trim()) || 'Morph film';
 
     const job = {
       id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
       kind: 'morphfilm',
       status: 'running', error: null,
       step: 'uploading frames', done: 0, total: pairs + 1,
-      clipUrl: null, filmUrl: null,
+      clipUrl: null, filmUrl: null, movieId: null,
       frames: frames.length, resolution: res720, cost,
       createdAt: new Date().toISOString(),
     };
@@ -1646,9 +1647,40 @@ router.post('/morphfilm', async (req, res) => {
         await concatClips(normalized, outFile);
         const filmUrl = await saveBufferToStorage(fs.readFileSync(outFile), 'video/mp4', 'movies/films');
         const { duration } = await probe(outFile).catch(() => ({ duration: 0 }));
+        const dur = Math.round(duration * 10) / 10;
+
+        // Land it in the Films tab: write a real forge-movies doc so a morph
+        // film sits alongside pipeline movies (poster = first frame, playable
+        // film = the stitched video, gallery contact sheet = the frames).
+        const scenes = urls.map((u, i) => ({
+          id: `s${i + 1}`,
+          title: (Array.isArray(captions) && captions[i]) ? String(captions[i]).slice(0, 60) : `Frame ${i + 1}`,
+          description: (Array.isArray(captions) && captions[i]) || prompts[i] || 'still',
+          imagePrompt: '', motionPrompt: prompts[i] || '',
+          panel: { url: u }, clip: null, edits: {},
+        }));
+        const cut = {
+          id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
+          url: filmUrl, duration: dur, name: 'morph film',
+          stitchedAt: new Date().toISOString(),
+          frames: urls.map((u, i) => ({ sceneId: `s${i + 1}`, title: scenes[i].title, panelUrl: u, bridge: false })),
+        };
+        const movie = {
+          id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+          title: filmTitle, story: '', characters: '',
+          imageStyle: DEFAULT_IMAGE_STYLE, motionStyle: DEFAULT_MOTION_STYLE, negativePrompt: DEFAULT_NEGATIVE,
+          dreamMode: true, panelQuality: 'low', characterAnchor: null,
+          kind: 'morph',
+          scenes, bridges: [], cuts: [cut], job: null,
+          movieUrl: filmUrl, movieDuration: dur, spend: cost,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        await saveMovie(movie).catch(e => console.warn('movies: morph movie-doc save failed —', e.message));
+
         job.filmUrl = filmUrl;
         job.clipUrl = filmUrl; // alias so quick pollers that read clipUrl still find it
-        job.duration = Math.round(duration * 10) / 10;
+        job.movieId = movie.id;
+        job.duration = dur;
         job.step = 'done';
         job.done = job.total;
         job.status = 'done';
