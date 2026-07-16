@@ -201,11 +201,18 @@ except Exception:
     s = {}
 entry = {"hooks": [{"type": "command",
          "command": "bash /home/user/.claude/hooks/post-to-feed.sh"}]}
-stops = s.setdefault('hooks', {}).setdefault('Stop', [])
-if not any('post-to-feed' in json.dumps(x) for x in stops):
-    stops.append(entry)
+# Register on BOTH Stop (fires when a reply finishes cleanly) and
+# UserPromptSubmit (fires when Sophie sends her next message). The second one
+# sweeps up INTERRUPTED replies: an interrupted turn skips the Stop hook, but
+# the partial reply is already in the transcript by the time the next prompt
+# lands, so UserPromptSubmit posts it. The per-message state file makes running
+# on both idempotent — whichever fires first posts, the other is a no-op.
+for event in ('Stop', 'UserPromptSubmit'):
+    arr = s.setdefault('hooks', {}).setdefault(event, [])
+    if not any('post-to-feed' in json.dumps(x) for x in arr):
+        arr.append(entry)
 json.dump(s, open(p, 'w'), indent=2)
-print('chats auto-filer registered')
+print('chats auto-filer registered (Stop + UserPromptSubmit)')
 PY_SETTINGS
 
 true
