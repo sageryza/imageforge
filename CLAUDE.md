@@ -59,6 +59,13 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
+- **AUTO-FILING (July 2026):** the chats' Stop hook (`post-to-feed.sh` v3) also
+  files image deliverables automatically via `POST /api/gallery` — any Firebase
+  Storage image URL in the finished reply, plus image files sent with
+  SendUserFile. So the normal flow needs NO manual gallery step in
+  hook-equipped sessions. Still post manually (below) when the hook is absent,
+  for non-image types, per-image prompts/styles, or true generation times on
+  a backfill.
 - **One command does upload + post:**
   `GALLERY_UID=<uid> node scripts/post-to-gallery.js --file ./image.png --prompt "…"`
   uploads the local file to membry Storage, makes it public, and writes the
