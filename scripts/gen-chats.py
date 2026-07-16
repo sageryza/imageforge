@@ -399,7 +399,7 @@ function openChat(name, keepScroll){
   var assetsLoaded=false;
   function loadAssets(){
     if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/chatfeed/assets?chat='+encodeURIComponent(name)+'&limit=300')
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];

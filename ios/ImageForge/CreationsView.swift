@@ -1,5 +1,22 @@
 import SwiftUI
 import UIKit
+import Photos
+
+/// Saves an image to the user's photo library, requesting add-only permission
+/// first (needs NSPhotoLibraryAddUsageDescription in Info.plist). Reports back
+/// on the main thread: (saved, deniedPermission).
+final class PhotoSaver {
+    static let shared = PhotoSaver()
+    func save(_ image: UIImage, _ done: @escaping (_ ok: Bool, _ denied: Bool) -> Void) {
+        let finish: (Bool, Bool) -> Void = { ok, denied in DispatchQueue.main.async { done(ok, denied) } }
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else { finish(false, true); return }
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            } completionHandler: { ok, _ in finish(ok, false) }
+        }
+    }
+}
 
 /// A grid of everything you've made. Reads the server-saved creations list, so
 /// generations show up here even if a connection dropped or the app was
@@ -228,6 +245,7 @@ struct CreationsView: View {
     }
 
     /// Download the image (from cache when we have it) and save it to Photos.
+    /// Requests add-only permission if needed; reports the real outcome.
     private func savePreview(_ c: Creation) {
         Task {
             var image = ImageCache.shared.object(forKey: c.url as NSURL)
@@ -235,8 +253,9 @@ struct CreationsView: View {
                 image = UIImage(data: data)
             }
             guard let image else { showToast("Couldn’t load that image"); return }
-            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            showToast("Saved to Photos")
+            PhotoSaver.shared.save(image) { ok, denied in
+                showToast(ok ? "Saved to Photos" : (denied ? "Allow Photos access in Settings" : "Couldn’t save"))
+            }
         }
     }
 
