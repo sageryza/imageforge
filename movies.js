@@ -1555,6 +1555,114 @@ router.delete('/quick/:id', async (req, res) => {
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Morph film: a handful of stills → one continuous morphing video ─
+// The standalone dream-video path: instead of running the whole movie
+// pipeline, take N images already drawn elsewhere (character-anchored dream
+// stills, gallery art, anything) plus N-1 morph prompts and animate a
+// wan-2.2 draft clip BETWEEN each consecutive pair — `image` is the start,
+// `last_image` the end, so each clip continuously transforms one still into
+// the next. The clips are then stitched into a single film. Each morph prompt
+// describes ONE continuous physical action (the same rule the dream bridges
+// use). Frames may be data URLs (uploaded to Storage here so Replicate can
+// fetch them) or already-public URLs. Polled via GET /quick/:id like animate.
+router.post('/morphfilm', async (req, res) => {
+  try {
+    const { frames, prompts, resolution } = req.body || {};
+    if (!Array.isArray(frames) || frames.length < 2)
+      return res.status(400).json({ error: 'frames must be an array of at least 2 images (data URLs or public URLs)' });
+    if (!Array.isArray(prompts) || prompts.length < frames.length - 1)
+      return res.status(400).json({ error: `prompts must have at least ${frames.length - 1} morph descriptions (one per gap between frames)` });
+    const res720 = resolution === '720p' ? '720p' : '480p';
+    const numFrames = 121; // long enough for a smooth morph (bridge-length)
+    const pairs = frames.length - 1;
+    const cost = Math.round(pairs * VIDEO_MODELS.draft.costPerClip(numFrames) * 100) / 100;
+
+    const job = {
+      id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+      kind: 'morphfilm',
+      status: 'running', error: null,
+      step: 'uploading frames', done: 0, total: pairs + 1,
+      clipUrl: null, filmUrl: null,
+      frames: frames.length, resolution: res720, cost,
+      createdAt: new Date().toISOString(),
+    };
+    await saveQuick(job);
+    res.json(job);
+
+    (async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-morph-'));
+      try {
+        // Resolve every frame to a public URL wan can fetch.
+        const urls = [];
+        for (const f of frames) {
+          if (typeof f === 'string' && /^https?:\/\//.test(f)) { urls.push(f); continue; }
+          const m = /^data:([^;]+);base64,(.*)$/.exec(String(f || ''));
+          if (!m) throw new Error('each frame must be a data URL or an http(s) URL');
+          const buf = Buffer.from(m[2], 'base64');
+          urls.push(await saveBufferToStorage(buf, m[1] || 'image/png', 'movies/morph-frames'));
+        }
+
+        // Morph each consecutive pair: start = urls[i], end = urls[i+1].
+        const clipFiles = [];
+        for (let i = 0; i < pairs; i++) {
+          job.step = `morphing ${i + 1}/${pairs}`;
+          await saveQuick(job).catch(() => {});
+          const prompt = String(prompts[i] || 'one continuous, smooth physical transformation from the first image into the last').trim();
+          const p = await replicatePredict(VIDEO_MODELS.draft.version, {
+            image: urls[i],
+            last_image: urls[i + 1],
+            prompt,
+            resolution: res720,
+            num_frames: numFrames,
+            frames_per_second: 16,
+            interpolate_output: true,
+            go_fast: true,
+          });
+          const output = Array.isArray(p.output) ? p.output[0] : p.output;
+          if (!output) throw new Error(`morph ${i + 1} produced no output`);
+          const file = path.join(tmpDir, `clip-${i}.mp4`);
+          const { buffer } = await fetchBuffer(output);
+          fs.writeFileSync(file, buffer);
+          clipFiles.push(file);
+          job.done = i + 1;
+          await saveQuick(job).catch(() => {});
+        }
+
+        // Normalize to the first clip's size, then stitch losslessly.
+        job.step = 'stitching';
+        await saveQuick(job).catch(() => {});
+        const first = await probe(clipFiles[0]);
+        const target = {
+          width: (first.width || 832) - ((first.width || 832) % 2),
+          height: (first.height || 480) - ((first.height || 480) % 2),
+        };
+        const normalized = [];
+        for (let i = 0; i < clipFiles.length; i++) {
+          const out = path.join(tmpDir, `norm-${i}.mp4`);
+          await normalizeClip(clipFiles[i], out, {}, target);
+          normalized.push(out);
+        }
+        const outFile = path.join(tmpDir, 'morph.mp4');
+        await concatClips(normalized, outFile);
+        const filmUrl = await saveBufferToStorage(fs.readFileSync(outFile), 'video/mp4', 'movies/films');
+        const { duration } = await probe(outFile).catch(() => ({ duration: 0 }));
+        job.filmUrl = filmUrl;
+        job.clipUrl = filmUrl; // alias so quick pollers that read clipUrl still find it
+        job.duration = Math.round(duration * 10) / 10;
+        job.step = 'done';
+        job.done = job.total;
+        job.status = 'done';
+      } catch (err) {
+        job.status = 'error';
+        job.error = err.message;
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+      await saveQuick(job).catch(e => console.warn('movies: morphfilm save failed —', e.message));
+    })();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ─── Dreams: dream text → hand-drawn comic pages ────────────────────
 // The dream-illustration path. `POST /dream` is the free breakdown — GPT reads
 // the dream and decides the beats + captions (minimal prompting); nothing is
