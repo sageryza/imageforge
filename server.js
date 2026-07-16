@@ -995,6 +995,35 @@ app.get('/api/models', (req, res) => {
   res.json(MODELS);
 });
 
+// ─── Raw Claude passthrough (one clean, context-free call) ──────────
+// A stateless bridge to a fresh Claude via the server's ANTHROPIC_API_KEY —
+// used when a chat wants an UNCONTAMINATED Claude to process some material
+// (the responding model sees only what's in this request body, none of the
+// calling chat's history). Accepts { system?, prompt, model?, maxTokens?,
+// pdfBase64? }. Returns { text, model }.
+app.post('/api/claude', express.json({ limit: '40mb' }), async (req, res) => {
+  try {
+    const { system, prompt, model, maxTokens, pdfBase64 } = req.body || {};
+    if (!prompt || !String(prompt).trim()) return res.status(400).json({ error: 'prompt is required' });
+    const userContent = [];
+    if (pdfBase64) {
+      userContent.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: String(pdfBase64) },
+      });
+    }
+    userContent.push({ type: 'text', text: String(prompt) });
+    const data = await anthropicChat({
+      system: system ? String(system) : undefined,
+      messages: [{ role: 'user', content: userContent }],
+      model: model || 'claude-opus-4-8',
+      max_tokens: Math.min(16000, Math.max(256, parseInt(maxTokens, 10) || 8000)),
+    });
+    if (data.error) return res.status(502).json({ error: data.error.message || 'anthropic error' });
+    res.json({ text: anthropicText(data), model: data.model || model || 'claude-opus-4-8' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ─── Generate subjects for a deck ───────────────────────────────────
 app.post('/api/generate/subjects', async (req, res) => {
   try {
