@@ -45,6 +45,14 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-time{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
 .m-preview{font-size:16.5px; line-height:1.5; cursor:pointer;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
+.m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
+.m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
+.msg.open .m-head{cursor:pointer;}
+.m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
+.msg.open .m-close{display:inline;}
+.archrow{margin-top:2.2em; text-align:center;}
+.archrow button{background:none; border:none; color:var(--ink2); opacity:.7; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:6px;}
+.archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin-top:6px; align-items:center;}
@@ -115,7 +123,10 @@ body.reading .replybar{display:flex;}
       <h1>Chats</h1>
       <div class="rule"></div>
     </header>
-    <div class="viewtog"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
+    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1.5em;">
+      <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
+      <button id="refresh" class="tbtn" aria-label="Refresh" style="margin-left:auto; padding:8px 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+    </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
   <section id="thread" style="display:none"></section>
@@ -131,6 +142,20 @@ var TOKEN='__STUDIO_TOKEN__';
 function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Light markdown for the full message view: escape FIRST (safe), then style.
+// Bold/italics/inline code render for real; fenced code becomes a quiet <pre>;
+// heading marks become bold lines. Everything else stays plain text.
+function md(t){
+  var s=esc(t);
+  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<pre>'+c.replace(/\s+$/,'')+'</pre>'; });
+  s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
+  s=s.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s=s.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
+  return s;
+}
+// previews/status lines: strip the marks instead of showing asterisks
+function plain(t){ return String(t==null?'':t).replace(/[*_`#]/g,''); }
 function ago(iso){
   var s=(Date.now()-new Date(iso).getTime())/1000;
   if(s<90) return 'just now';
@@ -274,16 +299,26 @@ function statusFor(list){
   var last=list.length? list[list.length-1] : null;
   var tldrs=list.filter(function(m){return m.tldr;});
   var sm=tldrs.length? tldrs[tldrs.length-1] : last;
-  return sm? (sm.tldr||(sm.text||'').split('\n')[0]) : '';
+  return sm? plain(sm.tldr||(sm.text||'').split('\n')[0]) : '';
 }
+var showArchived=false;
 function renderHome(){
   document.getElementById('v-list').classList.toggle('on', view==='list');
   document.getElementById('v-tiles').classList.toggle('on', view==='tiles');
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
-  var names=sortedChatNames(g);
-  if(!names.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
+  var all=sortedChatNames(g);
+  var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
+  var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+  if(arch.length){
+    var tog=document.createElement('button'); tog.className='archtoggle';
+    tog.textContent=(showArchived?'\u25be':'\u25b8')+' Archived ('+arch.length+')';
+    tog.onclick=function(){ showArchived=!showArchived; renderHome(); };
+    el.appendChild(tog);
+    if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
+  }
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
@@ -323,11 +358,12 @@ function renderList(el,g,names){
 
 function renderMsg(m){
   var row=document.createElement('div'); row.className='msg';
-  var firstLine=(m.tldr||m.text||'').split('\n')[0].slice(0,140);
+  var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
-    +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span></div>'
+    +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
+    +'<span class="m-close">close &#9650;</span></div>'
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
-    +'<div class="m-full">'+esc(m.text)+'</div>';
+    +'<div class="m-full">'+md(m.text)+'</div>';
   var tools=document.createElement('div'); tools.className='m-tools';
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
   else if(m.from!=='sophie'){
@@ -352,7 +388,15 @@ function renderMsg(m){
   }
   row.appendChild(tools);
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  row.querySelector('.m-full').onclick=function(){ row.classList.remove('open'); };
+  // tapping the open message starts/stops autoscroll (reading aid) —
+  // closing moved to the header row ("close ▲") so a tap never collapses it
+  row.querySelector('.m-full').onclick=function(e){
+    if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
+    window.__scrollToggle();
+  };
+  row.querySelector('.m-head').onclick=function(){
+    if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
+  };
   return row;
 }
 
@@ -365,8 +409,10 @@ function openChat(name, keepScroll){
   head.innerHTML='<div class="no">chats</div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1 style="margin:0">'+esc(name)+'</h1></div>'
     +'<div class="aboutrow"><span class="aboutshow">'+(about?esc(about):'add a description')+'</span></div>'
-    +'<div class="headbtns"><button class="seticon">change picture</button></div><div class="rule"></div>';
+    +'<div class="headbtns"><button class="seticon">change picture</button>'
+    +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.seticon').onclick=function(){ setIcon(name); };
+  head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(true); };
   var arow=head.querySelector('.aboutrow');
   arow.querySelector('.aboutshow').onclick=function(){ editAbout(name, arow, about); };
   // "Open in Claude" — jump back to this exact conversation
@@ -376,6 +422,20 @@ function openChat(name, keepScroll){
   if(!list.length) sec.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
   // newest message at the top (no scrolling to find the latest)
   list.slice().reverse().forEach(function(m){ sec.appendChild(renderMsg(m)); });
+  // archive / unarchive — Sophie's own call, at the quiet bottom of the thread
+  var isArch=!!(chats[name]&&chats[name].archived);
+  var ar=document.createElement('div'); ar.className='archrow';
+  var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
+  ab.onclick=function(){
+    api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        chats[name]=chats[name]||{}; chats[name].archived=!isArch;
+        toast(!isArch? 'Archived' : 'Restored'); goHome();
+      })
+      .catch(function(){ toast('Couldn\u2019t save that'); });
+  };
+  ar.appendChild(ab); sec.appendChild(ar);
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
@@ -393,6 +453,7 @@ function goHome(){
 document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
+document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 
 function load(){
   api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){
