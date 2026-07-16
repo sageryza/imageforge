@@ -266,7 +266,8 @@
   ],
   "moments": [],
   "_idx": "s05",
-  "staged": true
+  "staged": true,
+  "thumb": "date-08.png"
  },
  {
   "name": "David II",
@@ -289,7 +290,8 @@
   ],
   "moments": [],
   "_idx": "s07",
-  "staged": true
+  "staged": true,
+  "thumb": "group-robin-blake.png"
  },
  {
   "name": "Charlie & George",
@@ -452,7 +454,7 @@
   "moments": [],
   "_idx": "s21",
   "staged": true,
-  "thumb": "date-07.png"
+  "thumb": "date-22.png"
  },
  {
   "name": "Jasper",
