@@ -61,7 +61,7 @@ def gettext(rec):
     return "".join(b.get('text', '') for b in blocks(rec)
                    if isinstance(b, dict) and b.get('type') == 'text')
 IMG = re.compile(r'\.(?:png|jpe?g|webp|gif)$', re.I)
-mid = None; text = None; sends = []; idx = 0; last_user = -1
+mid = None; parts = []; sends = []; idx = 0; last_user = -1
 with open(path, encoding='utf-8') as f:
     for ln in f:
         try:
@@ -74,19 +74,21 @@ with open(path, encoding='utf-8') as f:
             # a REAL user turn, not a tool-result envelope
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
                 last_user = idx
+                parts = []  # new user turn — start the reply fresh
             continue
         if role != 'assistant':
             continue
         t = gettext(r)
         if t.strip():
-            text = t
+            parts.append(t)  # post the WHOLE reply — every text block this turn, not just the last
             mid = (r.get('message') or {}).get('id')
         for b in blocks(r):
             if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'SendUserFile':
                 for p in ((b.get('input') or {}).get('files') or []):
                     if isinstance(p, str) and IMG.search(p):
                         sends.append((idx, p))
-if not text:
+text = "\n\n".join(parts)
+if not text.strip():
     sys.exit(0)
 
 # ── gallery items (independent of the feed de-dupe) ──
