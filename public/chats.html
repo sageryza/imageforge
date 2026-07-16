@@ -131,7 +131,7 @@ body.reading .replybar{display:flex;}
     </header>
     <div style="display:flex; align-items:center; gap:10px; margin:0 0 1.5em;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
-      <button id="refresh" class="tbtn play" aria-label="Refresh the chat list" style="margin-left:auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
+      <button id="refresh" class="tbtn" aria-label="Refresh" style="margin-left:auto; padding:8px 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
@@ -447,7 +447,7 @@ function openChat(name, keepScroll){
   var assetsLoaded=false;
   function loadAssets(){
     if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/chatfeed/assets?chat='+encodeURIComponent(name)+'&limit=300')
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];

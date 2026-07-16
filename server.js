@@ -889,6 +889,52 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   }
 });
 
+// Per-chat image gallery for the Chats "Assets" tab. The images a chat makes are
+// filed to the iOS gallery (creations) tagged prompt "from <chat>", so THAT is
+// the real source; union it with forge-chat-assets (clean per-chat tags going
+// forward). Newest first. NOTE: only images filed WITH a chat tag (from the v3
+// hook onward) are attributable — older creations carry real prompts, not a
+// chat, so they can't be grouped here.
+app.get('/api/gallery/assets', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
+    await storyDb();
+    const seen = new Map();
+    const add = (url, ms, prompt) => { if (url && !seen.has(url)) seen.set(url, { url, ms: ms || 0, prompt: prompt || '' }); };
+    // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
+    if (storyApp) {
+      try {
+        const uid = await galleryUid();
+        const snap = await storyApp.firestore().collection('users').doc(uid)
+          .collection('creations').where('prompt', '==', 'from ' + chat).get();
+        snap.docs.forEach((d) => {
+          const c = d.data();
+          const ms = c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0;
+          add(c.url, ms, c.prompt);
+        });
+      } catch (e) { /* uid discovery unavailable */ }
+    }
+    // (b) forge-chat-assets (deckfactory) — clean per-chat tags
+    if (admin.apps.length) {
+      try {
+        const asnap = await admin.firestore().collection('forge-chat-assets')
+          .where('chat', '==', chat).get();
+        asnap.docs.forEach((d) => { const a = d.data(); add(a.url, Date.parse(a.created) || 0, a.prompt); });
+      } catch (e) { /* best effort */ }
+    }
+    const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
+      .map((a) => ({ url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' }));
+    res.json({ chat, assets });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── The Wall: everything every chat produced, in one live feed ─────
 // Merges this project's Storage (generated images, movie panels, zine
 // pages, dream comics) with the story boards' art (membry bucket) into
