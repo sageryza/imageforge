@@ -277,7 +277,8 @@
   ],
   "moments": [],
   "_idx": "s06",
-  "staged": true
+  "staged": true,
+  "thumb": "date-05.png"
  },
  {
   "name": "Robin, Blake, David & Sarah",
@@ -346,7 +347,8 @@
   ],
   "moments": [],
   "_idx": "s12",
-  "staged": true
+  "staged": true,
+  "thumb": "date-05.png"
  },
  {
   "name": "Steve",
@@ -403,7 +405,8 @@
   ],
   "moments": [],
   "_idx": "s17",
-  "staged": true
+  "staged": true,
+  "thumb": "date-13.png"
  },
  {
   "name": "Michael Mount",
@@ -448,8 +451,7 @@
   ],
   "moments": [],
   "_idx": "s21",
-  "staged": true,
-  "thumb": "date-07.png"
+  "staged": true
  },
  {
   "name": "Jasper",
@@ -483,7 +485,8 @@
   ],
   "moments": [],
   "_idx": "s24",
-  "staged": true
+  "staged": true,
+  "thumb": "date-24.png"
  },
  {
   "name": "Jacob",
