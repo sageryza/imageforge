@@ -393,9 +393,8 @@
   $('navLeft').onclick = ()=>{ if(S.view==='main'){ S.view='archive'; loadArchive(); } else { S.view='main'; render(); } };
   $('navRight').onclick = ()=>{ if(S.view==='main'){ S.view='zine'; loadZine(); } else { S.view='main'; render(); } };
 
-  // Wake Render's free tier the moment the page opens, so the server is warm by
-  // the time you hit Illustrate (mirrors the iOS app's launch ping).
-  api('/status').catch(()=>{});
+  // (No page-open wake-up ping needed: the server self-pings every 10 min to
+  // stay under Render's idle window — see the keep-awake timer in server.js.)
   // Prefill your last dream so you can just tap Illustrate to re-run it.
   try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
 
