@@ -10,10 +10,11 @@
 
 input=$(cat)
 
-# recursion guard (a hook-triggered turn shouldn't re-fire)
-if [ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false')" = "true" ]; then
-  exit 0
-fi
+# NOTE: no stop_hook_active bail — another Stop hook (the git checker) interrupts
+# finishes constantly during active work (exit 2 on uncommitted changes), and
+# bailing on stop_hook_active silently dropped those turns' posts (verified
+# live 2026-07-15). The per-message state file below already prevents
+# double-posting, and this hook never blocks a stop, so it cannot loop itself.
 
 FEED="${FORGE_FEED_URL:-https://imageforge-q125.onrender.com/api/chatfeed}"
 
@@ -95,7 +96,11 @@ PY
 
 [ -n "$payload" ] || exit 0
 
-curl -s -m 20 -X POST "$FEED" \
+curl -s -m 75 -X POST "$FEED" \
+  -H "Content-Type: application/json" \
+  ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+  -d "$payload" >/dev/null 2>&1 \
+|| curl -s -m 75 -X POST "$FEED" \
   -H "Content-Type: application/json" \
   ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
   -d "$payload" >/dev/null 2>&1 || true
