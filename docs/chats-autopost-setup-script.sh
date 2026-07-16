@@ -17,9 +17,9 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # Auto-post this chat's finished reply to the DeckFactory Chats feed
 # (imageforge /api/chatfeed) — zero model tokens, nothing to remember.
 input=$(cat)
-if [ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false')" = "true" ]; then
-  exit 0
-fi
+# NOTE: no stop_hook_active bail — another Stop hook (the git checker) interrupts
+# finishes constantly during active work, and bailing there silently dropped
+# posts. The per-message state file below already prevents double-posting.
 FEED="${FORGE_FEED_URL:-https://imageforge-q125.onrender.com/api/chatfeed}"
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
@@ -86,7 +86,11 @@ open(sf, 'w').write(mid or '')
 PY
 )
 [ -n "$payload" ] || exit 0
-curl -s -m 20 -X POST "$FEED" \
+curl -s -m 75 -X POST "$FEED" \
+  -H "Content-Type: application/json" \
+  ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+  -d "$payload" >/dev/null 2>&1 \
+|| curl -s -m 75 -X POST "$FEED" \
   -H "Content-Type: application/json" \
   ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
   -d "$payload" >/dev/null 2>&1 || true
