@@ -75,7 +75,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
-.openrow{padding:10px 0 2px; border-bottom:1px solid var(--line); margin-bottom:2px;}
+.openrow{display:flex; justify-content:flex-end; padding:14px 0 6px;}
 .tbtn{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
@@ -387,12 +387,13 @@ function openChat(name, keepScroll){
   var chatPanel=document.createElement('div');
   if(!list.length) chatPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
   list.slice().reverse().forEach(function(m){ chatPanel.appendChild(renderMsg(m)); });
-  // The Open-in-Claude button lives at the BOTTOM of the latest message
-  // (newest is first); with no messages it falls back to the header row.
+  // The Open-in-Claude button renders INSIDE the latest message (newest is
+  // first), right-aligned — part of the message, not a separate row. With no
+  // messages it falls back to the header row.
   if(curl){
     var ob=document.createElement('div'); ob.className='openrow'; ob.appendChild(openClaudeBtn(curl));
     var firstMsg=chatPanel.querySelector('.msg');
-    if(firstMsg) chatPanel.insertBefore(ob, firstMsg.nextSibling);
+    if(firstMsg) firstMsg.appendChild(ob);
     else head.querySelector('.headbtns').appendChild(openClaudeBtn(curl));
   }
   var isArch=!!(chats[name]&&chats[name].archived);
