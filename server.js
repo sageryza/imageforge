@@ -174,6 +174,7 @@ loadConfig().then(() => {
   const photostudio = require('./photostudio');
   const movies = require('./movies');
   const songs = require('./songs');
+  const character = require('./character');
   const stories = require('./stories');
   const mpc = require('./mpc');
   const mpcUpload = require('./mpc-upload');
@@ -207,6 +208,7 @@ loadConfig().then(() => {
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
+  app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
@@ -408,6 +410,10 @@ app.get('/dreams', serveGated('dreams.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
+// Character Creator: upload a photo + a name -> a diary-comic character
+// reference, saved and compiled into a "main characters" sheet. Web prototype
+// of the feature that will live in the iOS Story Boards screen.
+app.get('/character', serveGated('character.html'));
 // Story view: the Evan & Charlie video asset board — approved art placed
 // inside the narration with missing beats flagged. A committed snapshot
 // (assets embedded as data URIs); regenerate when the asset set changes.
