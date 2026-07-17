@@ -84,6 +84,10 @@ struct CreationsView: View {
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("My Creations")
         .navigationBarTitleDisplayMode(.inline)
+        // While the image popup is open, hide the nav bar so its dim backdrop
+        // covers the WHOLE screen — otherwise the nav-bar strip at the top
+        // swallows taps and you can only dismiss by tapping the lower half.
+        .toolbar(preview == nil ? .visible : .hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { Task { await load() } } label: { Image(systemName: "arrow.clockwise") }
@@ -248,9 +252,10 @@ struct CreationsView: View {
     /// Requests add-only permission if needed; reports the real outcome.
     private func savePreview(_ c: Creation) {
         Task {
-            var image = ImageCache.shared.object(forKey: c.url as NSURL)
+            var image = ImageCache.image(for: c.url)
             if image == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
                 image = UIImage(data: data)
+                if let image { ImageCache.store(data, image, for: c.url) }
             }
             guard let image else { showToast("Couldn’t load that image"); return }
             PhotoSaver.shared.save(image) { ok, denied in
@@ -305,10 +310,44 @@ struct CreationsView: View {
     }
 }
 
-/// In-memory cache of decoded images, so the grid tile and the preview popup
-/// share one download and re-opening the same image shows instantly.
+/// Two-layer image cache: an in-memory `NSCache` for instant reuse this session,
+/// plus a persistent **disk** copy in the Caches directory so images survive the
+/// app being closed and reopened (the memory cache alone is wiped on every
+/// launch, which made every picture re-download each time the app opened).
 enum ImageCache {
     static let shared = NSCache<NSURL, UIImage>()
+
+    private static let dir: URL = {
+        let d = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("imgcache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }()
+
+    /// Stable (process-independent) filename for a URL — FNV-1a hash as hex.
+    /// `String.hashValue` is randomized per launch, so it CANNOT be used here or
+    /// the disk cache would never hit after a restart.
+    private static func fileURL(for url: URL) -> URL {
+        var h: UInt64 = 1469598103934665603
+        for b in url.absoluteString.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
+        return dir.appendingPathComponent(String(h, radix: 16))
+    }
+
+    /// Look up an image: memory first, then disk (promoting it back to memory).
+    static func image(for url: URL) -> UIImage? {
+        if let m = shared.object(forKey: url as NSURL) { return m }
+        if let data = try? Data(contentsOf: fileURL(for: url)), let img = UIImage(data: data) {
+            shared.setObject(img, forKey: url as NSURL)
+            return img
+        }
+        return nil
+    }
+
+    /// Store an image in both layers (raw bytes to disk so decoding is lossless).
+    static func store(_ data: Data, _ img: UIImage, for url: URL) {
+        shared.setObject(img, forKey: url as NSURL)
+        try? data.write(to: fileURL(for: url), options: .atomic)
+    }
 }
 
 /// Loads a remote image once, caches the decoded `UIImage`, and reuses it on
@@ -333,13 +372,13 @@ struct CachedImageView: View {
     }
 
     private func load() async {
-        if let cached = ImageCache.shared.object(forKey: url as NSURL) {
+        if let cached = ImageCache.image(for: url) {
             image = cached; return
         }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             if let img = UIImage(data: data) {
-                ImageCache.shared.setObject(img, forKey: url as NSURL)
+                ImageCache.store(data, img, for: url)
                 image = img
             } else { failed = true }
         } catch { failed = true }
