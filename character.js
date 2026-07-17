@@ -51,19 +51,23 @@ function pronouns(gender) {
   return { poss: 'Their', obj: 'them', poss2: 'their' };
 }
 
-// The exact prompt, wired in; only the name and pronouns vary.
-function buildPrompt(name, gender) {
+// The exact prompt, wired in; only the name, pronouns, and an optional extra
+// note (e.g. "no hat") vary.
+function buildPrompt(name, gender, note) {
   const p = pronouns(gender);
   const nm = String(name || '').trim() || 'them';
-  return `Make a character reference image, just one straightforward face looking forward, `
+  let prompt = `Make a character reference image, just one straightforward face looking forward, `
     + `using the first image as a style reference and the second image as the subject. `
     + `${p.poss} name is ${nm}. No other text or images, just ${p.obj} with ${p.poss2} name on it.`;
+  const n = String(note || '').trim();
+  if (n) prompt += ` ${n}`;
+  return prompt;
 }
 
-async function generatePortrait(photoBuffer, name, gender, quality = 'medium', retries = 2) {
+async function generatePortrait(photoBuffer, name, gender, quality = 'medium', note = '', retries = 2) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   if (!styleRef) throw new Error('style reference missing');
-  const prompt = buildPrompt(name, gender);
+  const prompt = buildPrompt(name, gender, note);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -184,13 +188,13 @@ router.get('/status', (req, res) => {
 // NOT persist a character (that's /save) so re-rolls aren't stored.
 router.post('/generate', gated, async (req, res) => {
   try {
-    const { photo, name, gender, quality } = req.body || {};
+    const { photo, name, gender, quality, note } = req.body || {};
     if (!photo || typeof photo !== 'string') return res.status(400).json({ error: 'photo (data URL) required' });
     const m = /^data:([^;]+);base64,(.*)$/.exec(photo);
     if (!m) return res.status(400).json({ error: 'photo must be a data URL' });
     const buf = Buffer.from(m[2], 'base64');
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
-    const out = await generatePortrait(buf, name, gender, q);
+    const out = await generatePortrait(buf, name, gender, q, note);
     const url = await saveBufferToStorage(out, 'image/webp', 'characters');
     res.json({ ok: true, url, name: String(name || '').trim(), gender: String(gender || 'they') });
   } catch (err) {
