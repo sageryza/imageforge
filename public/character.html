@@ -1,0 +1,186 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Character Creator</title>
+<style>
+  :root { --paper:#f3ece0; --card:#fbf6ec; --ink:#2b2620; --muted:#7c7264; --line:#d9cdb8;
+          --accent:#c8a86a; --box:#ece0c8; --star:#f5c518; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:22px 18px 60px; }
+  h1 { font-size:22px; margin:4px 0 2px; letter-spacing:.3px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .creator { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .drop { width:132px; height:132px; border-radius:14px; background:var(--box);
+          border:2px dashed var(--accent); display:flex; align-items:center; justify-content:center;
+          cursor:pointer; overflow:hidden; position:relative; }
+  .drop svg { width:56px; height:56px; color:var(--muted); }
+  .drop img { width:100%; height:100%; object-fit:cover; }
+  .namerow { width:132px; display:flex; gap:8px; align-items:stretch; }
+  #name { flex:1; width:132px; padding:10px 12px; font-size:15px; border:1px solid var(--line);
+          border-radius:6px; background:#fff; color:var(--ink); }
+  .gen { width:44px; height:44px; border:none; border-radius:6px; background:var(--star);
+         display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
+  .gen svg { width:24px; height:24px; color:#fff; }
+  .gen:disabled { opacity:.5; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { border:none; background:#fff; color:var(--muted); padding:8px 16px; font-size:14px; cursor:pointer; }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .btn { border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 14px;
+         border-radius:6px; font-size:14px; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn:disabled { opacity:.5; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .result { margin-top:18px; text-align:center; }
+  .result img.portrait { max-width:320px; width:100%; border-radius:10px; cursor:zoom-in; }
+  .status { font-size:13px; color:var(--muted); margin:10px 0; min-height:18px; }
+  .spin { display:inline-block; width:16px; height:16px; border:2px solid var(--line);
+          border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:-3px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  h2 { font-size:16px; margin:26px 0 10px; }
+  .sheet { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .cell { background:var(--box); border-radius:8px; padding:6px; text-align:center; }
+  .cell img { width:100%; aspect-ratio:1/1; object-fit:contain; cursor:zoom-in; }
+  .cell .nm { font-size:11px; letter-spacing:1px; color:var(--ink); margin-top:2px; }
+  .side { display:flex; gap:8px; flex-wrap:wrap; }
+  .side .cell { width:96px; }
+  .lb { position:fixed; inset:0; background:rgba(20,16,10,.9); display:none; align-items:center;
+        justify-content:center; z-index:50; }
+  .lb.open { display:flex; }
+  .lb img { max-width:92vw; max-height:88vh; border-radius:10px; }
+  .toolbar { display:flex; justify-content:flex-end; margin-bottom:8px; }
+  .link { color:var(--accent); background:none; border:none; font-size:14px; cursor:pointer; text-decoration:underline; }
+  .hidden { display:none; }
+</style>
+
+<main>
+  <h1>Character Creator</h1>
+  <p class="sub">Upload a photo, name them, tap ✦ — get a diary-comic character.</p>
+
+  <div class="toolbar"><button class="link" id="toggleSheet">Show sheet</button></div>
+
+  <div class="card creator" id="creator">
+    <div class="drop" id="drop" title="Choose a photo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <img id="thumb" class="hidden" alt="">
+    </div>
+    <input type="file" id="file" accept="image/*" class="hidden">
+    <div class="namerow">
+      <input id="name" placeholder="Name" autocomplete="off">
+      <button class="gen" id="gen" title="Generate" disabled>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.7 2.1L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.9z"/></svg>
+      </button>
+    </div>
+    <div class="seg" id="seg">
+      <button data-g="he">He</button>
+      <button data-g="she">She</button>
+      <button data-g="they" class="on">They</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="result hidden" id="result">
+      <img class="portrait" id="portrait" alt="">
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="saveMain">Add to sheet</button>
+        <button class="btn" id="saveSide">Save (side)</button>
+        <button class="btn" id="regen">Regenerate</button>
+        <button class="btn" id="fresh">New one</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="sheetView" class="hidden">
+    <h2>Main characters</h2>
+    <div class="sheet" id="mainSheet"></div>
+    <h2>Side characters</h2>
+    <div class="side" id="sideSheet"></div>
+  </section>
+
+  <div class="lb" id="lb"><img id="lbimg" alt=""></div>
+</main>
+
+<script>
+  const STUDIO_TOKEN = '__STUDIO_TOKEN__';
+  const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+  async function api(path, opts = {}) {
+    if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
+    const res = await fetch(path, opts);
+    const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
+    return { ok: res.ok, status: res.status, body: b };
+  }
+  const $ = id => document.getElementById(id);
+  let photoData = null, gender = 'they', lastUrl = null;
+
+  // photo pick
+  $('drop').onclick = () => $('file').click();
+  $('file').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { photoData = r.result; $('thumb').src = r.result; $('thumb').classList.remove('hidden'); $('drop').querySelector('svg').classList.add('hidden'); refreshGen(); };
+    r.readAsDataURL(f);
+  };
+  $('name').oninput = refreshGen;
+  function refreshGen() { $('gen').disabled = !(photoData && $('name').value.trim()); }
+
+  // gender toggle
+  $('seg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    $('seg').querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); gender = b.dataset.g;
+  });
+
+  async function generate() {
+    if (!photoData || !$('name').value.trim()) return;
+    $('gen').disabled = true;
+    $('status').innerHTML = '<span class="spin"></span> Drawing ' + $('name').value.trim() + '…';
+    $('result').classList.add('hidden');
+    const r = await api('/api/character/generate', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ photo: photoData, name: $('name').value.trim(), gender }) });
+    if (!r.ok) { $('status').textContent = 'Error: ' + ((r.body && r.body.error) || r.status); refreshGen(); return; }
+    lastUrl = r.body.url;
+    $('portrait').src = lastUrl;
+    $('result').classList.remove('hidden');
+    $('status').textContent = '';
+    refreshGen();
+  }
+  $('gen').onclick = generate;
+  $('regen').onclick = generate;
+  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; photoData=null;
+    $('thumb').classList.add('hidden'); $('drop').querySelector('svg').classList.remove('hidden'); refreshGen(); };
+
+  async function save(tier) {
+    if (!lastUrl) return;
+    $('status').innerHTML = '<span class="spin"></span> Saving…';
+    const r = await api('/api/character/save', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url:lastUrl, name:$('name').value.trim(), gender, tier }) });
+    $('status').textContent = r.ok ? 'Saved ' + $('name').value.trim() + (tier==='main'?' to the sheet.':' as a side character.') : ('Error: ' + ((r.body&&r.body.error)||r.status));
+    if (r.ok) loadSheet();
+  }
+  $('saveMain').onclick = () => save('main');
+  $('saveSide').onclick = () => save('side');
+
+  // sheet
+  async function loadSheet() {
+    const r = await api('/api/character');
+    if (!r.ok) return;
+    const chars = (r.body.characters || []);
+    const main = chars.filter(c => c.tier === 'main'), side = chars.filter(c => c.tier !== 'main');
+    $('mainSheet').innerHTML = main.map(cell).join('') || '<p class="sub">No main characters yet.</p>';
+    $('sideSheet').innerHTML = side.map(cell).join('') || '<p class="sub">None yet.</p>';
+    bindZoom();
+  }
+  function cell(c) {
+    return `<div class="cell"><img src="${c.cleanUrl||c.url}" alt="${c.name}"><div class="nm">${(c.name||'').toUpperCase()}</div></div>`;
+  }
+  $('toggleSheet').onclick = () => {
+    const v = $('sheetView'); v.classList.toggle('hidden');
+    $('toggleSheet').textContent = v.classList.contains('hidden') ? 'Show sheet' : 'Hide sheet';
+    if (!v.classList.contains('hidden')) loadSheet();
+  };
+
+  // lightbox (freezes the page behind it)
+  function bindZoom() { document.querySelectorAll('.cell img, .portrait').forEach(im => im.onclick = () => openLb(im.src)); }
+  $('portrait').onclick = () => openLb($('portrait').src);
+  function openLb(src) { $('lbimg').src = src; $('lb').classList.add('open'); document.body.style.overflow = 'hidden'; }
+  $('lb').onclick = () => { $('lb').classList.remove('open'); document.body.style.overflow = ''; };
+</script>
