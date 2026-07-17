@@ -135,7 +135,7 @@ function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token'
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-var projects=[], notes={}, cur=null;
+var projects=[], notes={}, cur=null, homeY=0;
 var STATUS={ok:'approved', cand:'candidate', draft:'storyboard', miss:'no art yet'};
 // some boards store the full words — fold them back to the short codes
 var NORM={approved:'ok', candidate:'cand', storyboard:'draft', 'no art yet':'miss'};
@@ -244,6 +244,8 @@ function openEditor(wrap,id,excerpt){
 function renderShelfCountsOnly(){ if(!cur) return; /* refreshed on back */ }
 
 function openProj(p, jumpBeat){
+  if(!cur) homeY=window.scrollY;   // remember the shelf spot for back
+  window.__scrollStop();
   cur=p;
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var head=document.createElement('header');
@@ -382,7 +384,7 @@ function goHome(){
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
   renderShelf();
-  window.scrollTo(0,0);
+  window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
 document.getElementById('back').onclick=goHome;
 
@@ -552,7 +554,7 @@ __PILL_JS__
 document.querySelector('.wrap').addEventListener('click',function(e){
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')||e.target.closest('img')) return;
   if(!document.body.classList.contains('reading')) return;
-  window.__scrollToggle();
+  window.__scrollStop();   // a tap on content only ever STOPS autoscroll
 });
 
 function renderFilms(films){
@@ -572,6 +574,8 @@ function renderFilms(films){
   });
 }
 function openFilm(m){
+  if(!cur) homeY=window.scrollY;   // remember the shelf spot for back
+  window.__scrollStop();
   cur={film:m.id};
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var head=document.createElement('header');
@@ -616,10 +620,12 @@ function openFilm(m){
         var cell=document.createElement('button'); cell.className='zcell';
         cell.innerHTML='<img alt="" loading="lazy" src="'+esc(thumb(h.url))+'"><span class="zno">sc '+h.no+'</span>';
         cell.onclick=function(){
+          window.__scrollStop();
           var lb=document.getElementById('lightbox');
           lb.innerHTML='<img alt="" src="'+esc(h.url)+'">';
           lb.style.display='flex';
-          lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; };
+          document.body.style.overflow='hidden';   // freeze the page behind
+          lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
         };
         hg.appendChild(cell);
       });

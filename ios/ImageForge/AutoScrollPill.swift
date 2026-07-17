@@ -1,12 +1,19 @@
 import SwiftUI
 import UIKit
 
+extension Notification.Name {
+    /// Posted by RootView whenever the visible screen changes. Native autoscroll
+    /// stops itself; the web-view tools (Writing Room, Chats) listen and stop
+    /// their in-page pill too, so nothing keeps scrolling in the background.
+    static let forgeScreenChanged = Notification.Name("forge.screenChanged")
+}
+
 /// The autoscroll pill from the Writing Room, for native screens. One overlay
 /// in RootView covers every tool: on play it finds the visible UIScrollView
 /// under the key window (largest scrollable one on screen) and drives its
 /// contentOffset with a CADisplayLink. Idle: ▲ up / ▶ play / ▼ down; playing:
 /// − slower / ‖ pause / + faster. Default 1.0×, range 0.1–2×.
-final class AutoScrollDriver: ObservableObject {
+final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDelegate {
     /// Shared instance so screens can stop autoscroll on interaction (e.g. the
     /// gallery halts it when you tap an image to open the preview).
     static let shared = AutoScrollDriver()
@@ -14,6 +21,9 @@ final class AutoScrollDriver: ObservableObject {
     @Published var playing = false
     @Published var speedIndex = 1               // 0 slow · 1 medium · 2 fast
     var direction: Double = 1
+    /// The pill's on-screen frame (global/window coords), kept current by
+    /// AutoScrollPill — taps inside it are the pill's own controls.
+    var pillFrame: CGRect = .zero
 
     /// Three discrete speeds instead of a continuous dial.
     static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9)]
@@ -25,6 +35,7 @@ final class AutoScrollDriver: ObservableObject {
     private var link: CADisplayLink?
     private var lastTime: CFTimeInterval?
     private weak var target: UIScrollView?
+    private var tapCatcher: UITapGestureRecognizer?
 
     func toggle() { playing ? stop() : start(direction == 0 ? 1 : direction) }
 
@@ -38,6 +49,7 @@ final class AutoScrollDriver: ObservableObject {
         let l = CADisplayLink(target: self, selector: #selector(tick))
         l.add(to: .main, forMode: .common)
         link = l
+        installTapCatcher()
     }
 
     func stop() {
@@ -45,14 +57,44 @@ final class AutoScrollDriver: ObservableObject {
         link?.invalidate()
         link = nil
         lastTime = nil
+        removeTapCatcher()
+    }
+
+    // A tap ANYWHERE on content stops autoscroll — on every screen, without
+    // per-screen wiring. cancelsTouchesInView=false so the tap still does what
+    // it was going to do (open a tile, press a button); the pill's own frame is
+    // filtered out in shouldReceive so −/‖/+ keep working while playing.
+    private func installTapCatcher() {
+        removeTapCatcher()
+        guard let window = target?.window ?? Self.keyWindow() else { return }
+        let t = UITapGestureRecognizer(target: self, action: #selector(contentTapped))
+        t.cancelsTouchesInView = false
+        t.delegate = self
+        window.addGestureRecognizer(t)
+        tapCatcher = t
+    }
+
+    private func removeTapCatcher() {
+        if let t = tapCatcher { t.view?.removeGestureRecognizer(t) }
+        tapCatcher = nil
+    }
+
+    @objc private func contentTapped() { stop() }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard let window = gestureRecognizer.view else { return true }
+        return !pillFrame.insetBy(dx: -8, dy: -8).contains(touch.location(in: window))
     }
 
     @objc private func tick(_ l: CADisplayLink) {
         guard playing else { return }
         guard let sv = target, sv.window != nil else {
-            // screen changed under us — re-find once, else stop
-            target = Self.findScrollView()
-            if target == nil { stop() }
+            // The screen changed under us — STOP. Autoscroll never re-targets
+            // and follows you onto a different page.
+            stop()
             return
         }
         defer { lastTime = l.timestamp }
@@ -68,12 +110,16 @@ final class AutoScrollDriver: ObservableObject {
         if (direction > 0 && y >= maxY) || (direction < 0 && y <= minY) { stop() }
     }
 
-    /// The biggest scrollable, visible UIScrollView on screen right now.
-    static func findScrollView() -> UIScrollView? {
-        guard let window = UIApplication.shared.connectedScenes
+    static func keyWindow() -> UIWindow? {
+        UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }) else { return nil }
+            .first(where: { $0.isKeyWindow })
+    }
+
+    /// The biggest scrollable, visible UIScrollView on screen right now.
+    static func findScrollView() -> UIScrollView? {
+        guard let window = keyWindow() else { return nil }
         var best: UIScrollView?
         var bestArea: CGFloat = 0
         func walk(_ v: UIView) {
@@ -123,6 +169,13 @@ struct AutoScrollPill: View {
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(Theme.textDim)
         }
+        // Keep the driver's tap-catcher exclusion zone in sync with where the
+        // pill actually is, so its own buttons never count as a content tap.
+        .background(GeometryReader { geo -> Color in
+            let frame = geo.frame(in: .global)
+            DispatchQueue.main.async { AutoScrollDriver.shared.pillFrame = frame }
+            return Color.clear
+        })
         .onDisappear { driver.stop() }
     }
 

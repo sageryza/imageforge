@@ -78,5 +78,9 @@ window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+// Leaving the page (tab switch, app background, webview hidden) stops
+// autoscroll — it must never keep scrolling while nobody's looking.
+document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
+window.addEventListener('pagehide',scrollStop);
 paintPill();
 """

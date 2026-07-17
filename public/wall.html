@@ -103,6 +103,10 @@ window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+// Leaving the page (tab switch, app background, webview hidden) stops
+// autoscroll — it must never keep scrolling while nobody's looking.
+document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
+window.addEventListener('pagehide',scrollStop);
 paintPill();
 
 function api(path){ return fetch(path,{headers:{'x-studio-token':TOKEN}}); }
@@ -136,10 +140,12 @@ function render(){
       +'<span class="tag">'+esc(im.folder)+'</span>'
       +(lastSeen && im.created>lastSeen ? '<span class="new"></span>':'');
     cell.onclick=function(){
+      window.__scrollStop();               // opening an image stops autoscroll
       var lb=document.getElementById('lightbox');
       lb.innerHTML='<img alt="" src="'+esc(im.url)+'"><div class="cap">'+esc(im.folder)+' \u00b7 '+esc(new Date(im.created).toLocaleDateString())+'</div>';
       lb.style.display='flex';
-      lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; };
+      document.body.style.overflow='hidden';   // and freezes the page behind
+      lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
     };
     grid.appendChild(cell);
   });
