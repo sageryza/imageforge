@@ -932,7 +932,16 @@ app.get('/api/gallery/assets', async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
     await storyDb();
     const seen = new Map();
-    const add = (url, ms, prompt) => { if (url && !seen.has(url)) seen.set(url, { url, ms: ms || 0, prompt: prompt || '' }); };
+    const add = (url, ms, prompt) => {
+      if (!url) return;
+      const existing = seen.get(url);
+      if (!existing) { seen.set(url, { url, ms: ms || 0, prompt: prompt || '' }); return; }
+      // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
+      // label for the same image, so the model/quality caption wins.
+      if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
+        existing.prompt = prompt;
+      }
+    };
     // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
     if (storyApp) {
       try {
