@@ -46,6 +46,12 @@
   .cell .nm { font-size:11px; letter-spacing:1px; color:var(--ink); margin-top:2px; }
   .side { display:flex; gap:8px; flex-wrap:wrap; }
   .side .cell { width:96px; }
+  .qitem { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .qitem.skip { opacity:.4; }
+  .qitem img { width:56px; height:56px; border-radius:8px; object-fit:cover; flex:0 0 auto; }
+  .qitem input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+  .qitem .seg button { padding:6px 10px; font-size:12px; }
+  .qitem .x { border:none; background:none; color:var(--muted); font-size:18px; cursor:pointer; padding:0 4px; }
   .lb { position:fixed; inset:0; background:rgba(20,16,10,.9); display:none; align-items:center;
         justify-content:center; z-index:50; }
   .lb.open { display:flex; }
@@ -59,7 +65,19 @@
   <h1>Character Creator</h1>
   <p class="sub">Upload a photo, name them, tap ✦ — get a diary-comic character.</p>
 
-  <div class="toolbar"><button class="link" id="toggleSheet">Show sheet</button></div>
+  <div class="toolbar"><button class="link" id="toggleBatch">Add all characters</button><button class="link" id="toggleSheet">Show sheet</button></div>
+
+  <section id="batchView" class="card hidden" style="margin-bottom:16px">
+    <div class="drop" id="bdrop" style="width:100%;height:88px;border-radius:10px" title="Choose photos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:34px;height:34px"><path d="M4 16l4-4 4 4 4-6 4 6"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+    </div>
+    <input type="file" id="bfile" accept="image/*" multiple class="hidden">
+    <div class="status" id="bstatus"></div>
+    <div id="queue" class="hidden">
+      <div id="queueList"></div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="bgen">Generate all named</button></div>
+    </div>
+  </section>
 
   <div class="card creator" id="creator">
     <div class="drop" id="drop" title="Choose a photo">
@@ -176,6 +194,56 @@
     const v = $('sheetView'); v.classList.toggle('hidden');
     $('toggleSheet').textContent = v.classList.contains('hidden') ? 'Show sheet' : 'Hide sheet';
     if (!v.classList.contains('hidden')) loadSheet();
+  };
+
+  // ── batch mode ──
+  let queue = [];
+  $('toggleBatch').onclick = () => {
+    const v = $('batchView'); v.classList.toggle('hidden');
+    $('toggleBatch').textContent = v.classList.contains('hidden') ? 'Add all characters' : 'Hide batch';
+  };
+  $('bdrop').onclick = () => $('bfile').click();
+  function readAsDataURL(f) { return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); }); }
+  $('bfile').onchange = async e => {
+    const files = [...e.target.files]; if (!files.length) return;
+    $('bstatus').innerHTML = '<span class="spin"></span> Reading ' + files.length + ' photo' + (files.length>1?'s':'') + '…';
+    $('queue').classList.add('hidden');
+    const photos = await Promise.all(files.map(readAsDataURL));
+    $('bstatus').innerHTML = '<span class="spin"></span> Finding people…';
+    const r = await api('/api/character/batch/detect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ photos }) });
+    if (!r.ok) { $('bstatus').textContent = 'Error: ' + ((r.body&&r.body.error)||r.status); return; }
+    queue = (r.body.items || []).map((it, i) => ({ ...it, name:'', tier:'side', skip:false, key:i }));
+    $('bstatus').textContent = queue.length ? ('Found ' + queue.length + ' — name the ones you want, skip the rest.') : 'No people found.';
+    renderQueue();
+    $('queue').classList.toggle('hidden', !queue.length);
+  };
+  function renderQueue() {
+    $('queueList').innerHTML = '';
+    queue.forEach(it => {
+      const row = document.createElement('div'); row.className = 'qitem' + (it.skip?' skip':'');
+      row.innerHTML = `<img src="${it.cropUrl}" alt="">
+        <input placeholder="Name (blank = skip)" value="${it.name}">
+        <div class="seg"><button data-t="side" class="${it.tier==='side'?'on':''}">Side</button><button data-t="main" class="${it.tier==='main'?'on':''}">Main</button></div>
+        <button class="x" title="Skip">✕</button>`;
+      const inp = row.querySelector('input');
+      inp.oninput = () => { it.name = inp.value; };
+      row.querySelectorAll('.seg button').forEach(b => b.onclick = () => { it.tier = b.dataset.t; renderQueue(); });
+      row.querySelector('.x').onclick = () => { it.skip = !it.skip; if (it.skip) it.name=''; renderQueue(); };
+      $('queueList').appendChild(row);
+    });
+  }
+  $('bgen').onclick = async () => {
+    const items = queue.filter(it => !it.skip && it.name.trim()).map(it => ({ cropUrl:it.cropUrl, name:it.name.trim(), gender:it.gender, tier:it.tier }));
+    if (!items.length) { $('bstatus').textContent = 'Name at least one person first.'; return; }
+    $('bgen').disabled = true;
+    $('bstatus').innerHTML = '<span class="spin"></span> Generating ' + items.length + ' character' + (items.length>1?'s':'') + '…';
+    const r = await api('/api/character/batch/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ items }) });
+    $('bgen').disabled = false;
+    if (!r.ok) { $('bstatus').textContent = 'Error: ' + ((r.body&&r.body.error)||r.status); return; }
+    const ok = (r.body.results||[]).filter(x=>x.ok).length;
+    $('bstatus').textContent = 'Made ' + ok + ' character' + (ok!==1?'s':'') + '. Open the sheet to see them.';
+    $('queue').classList.add('hidden'); queue = [];
+    if (!$('sheetView').classList.contains('hidden')) loadSheet();
   };
 
   // lightbox (freezes the page behind it)
