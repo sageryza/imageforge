@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WebKit
 
 /// Chats — every project chat's replies in one feed, with icons and free read-aloud.
@@ -132,6 +133,18 @@ private struct ChatFeedWebView: UIViewRepresentable {
                      initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType,
                      decisionHandler: @escaping (WKPermissionDecision) -> Void) {
             decisionHandler(type == .microphone ? .grant : .deny)
+        }
+
+        // Message links and the Open button use target="_blank", which a
+        // WKWebView silently drops unless the UI delegate handles it — hand
+        // them to the system so they open in Safari (or the Claude app).
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url {
+                UIApplication.shared.open(url)
+            }
+            return nil
         }
     }
 }
