@@ -135,28 +135,39 @@ async function cleanBox(buffer) {
 }
 
 // ── Batch mode: find every person in a photo, crop head-and-shoulders ──
-// GPT-4o vision returns a head-and-shoulders box per person; sharp crops each.
+// Claude vision (Haiku by default) returns a head-and-shoulders box per person;
+// sharp crops each. Claude — unlike gpt-4o — reliably returns face crop boxes
+// without refusing. Override the model with CHARACTER_VISION_MODEL.
+const VISION_MODEL = process.env.CHARACTER_VISION_MODEL || 'claude-haiku-4-5-20251001';
+const VISION_PROMPT = 'You are the detector for an automatic photo-cropping tool that cuts each person out of a group photo into their own separate portrait. For each person in the image, ordered left to right, return the crop rectangle covering their head and shoulders as fractions of the image width and height [x, y, w, h] (x,y = top-left corner). Also give a short look (hair and clothing) and a gender guess ("he","she","unknown"). Respond with ONLY a JSON object and nothing else: {"people":[{"box":[x,y,w,h],"desc":"...","gender":"..."}]}';
+
 async function visionPeople(photoBuffer, mime) {
-  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
-  const dataUrl = `data:${mime || 'image/jpeg'};base64,${photoBuffer.toString('base64')}`;
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const KEY = process.env.ANTHROPIC_API_KEY;
+  if (!KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  const sharp = require('sharp');
+  // downscale for the vision call — boxes are fractional so full-res cropping still works
+  const small = await sharp(photoBuffer)
+    .resize({ width: 1400, height: 1400, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 }).toBuffer();
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'x-api-key': KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: VISION_MODEL,
+      max_tokens: 1024,
       messages: [{ role: 'user', content: [
-        { type: 'text', text: 'This is an automatic photo-cropping tool that cuts each person out of a group photo into their own separate portrait. For each person, ordered left to right, return the crop rectangle covering their head and shoulders as fractions of the image width/height [x, y, w, h] (top-left origin), a short look (hair and clothing), and a gender guess ("he","she","unknown"). Respond ONLY as JSON: {"people":[{"box":[x,y,w,h],"desc":"...","gender":"..."}]}' },
-        { type: 'image_url', image_url: { url: dataUrl } },
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: small.toString('base64') } },
+        { type: 'text', text: VISION_PROMPT },
       ] }],
-      response_format: { type: 'json_object' },
-      max_tokens: 1000,
     }),
     timeout: 60000,
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
   let parsed = {};
-  try { parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}'); } catch {}
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
   return Array.isArray(parsed.people) ? parsed.people : [];
 }
 
