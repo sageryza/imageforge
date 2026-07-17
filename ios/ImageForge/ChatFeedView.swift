@@ -67,6 +67,7 @@ private struct ChatFeedWebView: UIViewRepresentable {
         if let url = URL(string: MovieService.serverURL + "/chats") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
+        context.coordinator.stopAutoscrollOnScreenChange(web)
         return web
     }
 
@@ -76,7 +77,22 @@ private struct ChatFeedWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: ChatFeedWebView
+        private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: ChatFeedWebView) { self.parent = parent }
+
+        // This web view stays alive (hidden) when Sophie switches tabs, so its
+        // in-page autoscroll would keep drifting in the background — stop it
+        // whenever RootView changes screens.
+        func stopAutoscrollOnScreenChange(_ web: WKWebView) {
+            screenChangeObserver = NotificationCenter.default.addObserver(
+                forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
+                    web?.evaluateJavaScript("window.__scrollStop && window.__scrollStop()", completionHandler: nil)
+            }
+        }
+
+        deinit {
+            if let o = screenChangeObserver { NotificationCenter.default.removeObserver(o) }
+        }
 
         // The /writing page sits behind HTTP Basic (any user, password = token).
         func webView(_ webView: WKWebView,

@@ -131,6 +131,13 @@ struct RootView: View {
         // keyboard's safe-area inset lifts the whole VStack, floating the bar
         // above the keyboard. Each tool's own ScrollView still lifts its fields.
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        // Changing screens always kills autoscroll — it must never keep
+        // scrolling a hidden page or carry over onto the new one. The
+        // notification reaches the web-view tools' in-page pills as well.
+        .onChange(of: screen) { _ in
+            AutoScrollDriver.shared.stop()
+            NotificationCenter.default.post(name: .forgeScreenChanged, object: nil)
+        }
         // Deep links: deckfactory://writing, ://chats, ://story, ://dreams,
         // ://movie, … (any Tool rawValue), plus ://gallery and ://home. Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.

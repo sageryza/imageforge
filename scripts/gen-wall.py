@@ -87,10 +87,12 @@ function render(){
       +'<span class="tag">'+esc(im.folder)+'</span>'
       +(lastSeen && im.created>lastSeen ? '<span class="new"></span>':'');
     cell.onclick=function(){
+      window.__scrollStop();               // opening an image stops autoscroll
       var lb=document.getElementById('lightbox');
       lb.innerHTML='<img alt="" src="'+esc(im.url)+'"><div class="cap">'+esc(im.folder)+' \\u00b7 '+esc(new Date(im.created).toLocaleDateString())+'</div>';
       lb.style.display='flex';
-      lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; };
+      document.body.style.overflow='hidden';   // and freezes the page behind
+      lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
     };
     grid.appendChild(cell);
   });

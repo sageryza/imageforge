@@ -262,7 +262,7 @@ __PILL_HTML__
 <div id="toast"></div>
 <script>
 (function(){{
-var notes={{}}, store=null, cur=null;
+var notes={{}}, store=null, cur=null, homeY=0;
 var TOKEN='__STUDIO_TOKEN__';
 function api(path,opt){{ opt=opt||{{}}; opt.headers=Object.assign({{'x-studio-token':TOKEN,'Content-Type':'application/json'}},opt.headers||{{}}); return fetch(path,opt); }}
 try{{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); store=localStorage; }}catch(e){{}}
@@ -390,6 +390,8 @@ document.querySelectorAll('.addnote').forEach(function(btn){{
 Object.keys(notes).forEach(renderNote); renderSummaries(); renderCounts();
 
 function open(key){{
+  if(!cur) homeY=window.scrollY;   // remember the list spot for back
+  window.__scrollStop();
   cur=key;
   document.getElementById('home').style.display='none';
   document.querySelectorAll('section.date').forEach(function(s){{ s.style.display = s.id==='d-'+key?'':'none'; }});
@@ -401,7 +403,7 @@ function goHome(){{
   document.querySelectorAll('section.date').forEach(function(s){{ s.style.display='none'; }});
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
-  window.scrollTo(0,0);
+  window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }}
 document.querySelectorAll('.row').forEach(function(r){{ r.onclick=function(){{ open(r.dataset.d); }}; }});
 document.getElementById('back').onclick=goHome;

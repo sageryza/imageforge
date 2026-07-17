@@ -166,7 +166,7 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 __PILL_JS__
-var chats={}, msgs=[], cur=null, seen={};
+var chats={}, msgs=[], cur=null, seen={}, homeY=0;
 var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
@@ -360,6 +360,7 @@ function renderMsg(m){
 }
 
 function openChat(name, keepScroll){
+  if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
@@ -440,7 +441,7 @@ function goHome(){
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
   renderHome();
-  window.scrollTo(0,0);
+  window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
 document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
