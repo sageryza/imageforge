@@ -1139,10 +1139,20 @@ function dreamZinePagePrompt(dream, group, refPages) {
       return `the #${i + offset} attached image is a CHARACTER REFERENCE for ${r.names.join(' and ')} — whenever ` +
         `${r.names.join(' or ')} appears, draw them with the exact same face, hair and clothing as in it; do not redesign them`;
     }
-    const who = r.names.length ? r.names.join(' and ') : 'the recurring characters';
+    if (!r.names.length) {
+      return `the #${i + offset} attached image is an EARLIER PAGE of this same comic — keep the drawing style ` +
+        'and scenery consistent with it';
+    }
+    const who = r.names.join(' and ');
     return `the #${i + offset} attached image is an EARLIER PAGE of this same comic — draw ${who} with the exact ` +
       'same face, hair and clothing they have there, and do not redesign them';
   }).join('; ');
+  // One-off figures must never inherit a recurring character's face — only the
+  // people named above repeat (this bled once: a bench stranger got drawn as
+  // the crying woman from an earlier page).
+  const distinctNote = refPages.length
+    ? ' Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them.'
+    : '';
   let refNote = '';
   if (styleRef && refPages.length) {
     refNote = 'The FIRST attached image is a STYLE reference — copy its hand-lettered drawing style exactly, ' +
@@ -1154,7 +1164,7 @@ function dreamZinePagePrompt(dream, group, refPages) {
     refNote = `For character continuity, ${pageLines}. `;
   }
   const stylePrefix = styleRef ? '' : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
-  return `${stylePrefix}${refNote}${layout}${body}`;
+  return `${stylePrefix}${refNote}${distinctNote}${layout}${body}`;
 }
 
 // Render one dream page: style ref first, then the earlier pages we're carrying
