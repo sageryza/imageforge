@@ -926,6 +926,7 @@ app.get('/api/gallery/assets', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
   }
+  res.set('Cache-Control', 'no-store'); // the app webview must never serve a stale list
   try {
     const chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
