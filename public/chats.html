@@ -448,9 +448,10 @@ function openChat(name, keepScroll){
   assetsPanel.innerHTML='<div class="state">Loading images&hellip;</div>';
   sec.appendChild(assetsPanel);
   var assetsLoaded=false;
-  function loadAssets(){
-    if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
+  function loadAssets(force){
+    if(assetsLoaded && !force) return; assetsLoaded=true;
+    // cache-bust so the app's webview never serves a stale asset list
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300&_='+Date.now())
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];
@@ -471,6 +472,8 @@ function openChat(name, keepScroll){
   var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
   tgChat.onclick=function(){ tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
   tgAssets.onclick=function(){ scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
+  // let the global refresh button re-pull this chat's assets fresh
+  window._reloadAssets=function(){ if(assetsPanel.style.display!=='none') loadAssets(true); };
 
   markSeen(name);
   document.getElementById('home').style.display='none';
@@ -498,7 +501,7 @@ function goHome(){
 document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); if(window._reloadAssets) window._reloadAssets(); };
 
 function load(){
   api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){
