@@ -184,12 +184,13 @@ router.get('/status', (req, res) => {
 // NOT persist a character (that's /save) so re-rolls aren't stored.
 router.post('/generate', gated, async (req, res) => {
   try {
-    const { photo, name, gender } = req.body || {};
+    const { photo, name, gender, quality } = req.body || {};
     if (!photo || typeof photo !== 'string') return res.status(400).json({ error: 'photo (data URL) required' });
     const m = /^data:([^;]+);base64,(.*)$/.exec(photo);
     if (!m) return res.status(400).json({ error: 'photo must be a data URL' });
     const buf = Buffer.from(m[2], 'base64');
-    const out = await generatePortrait(buf, name, gender);
+    const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    const out = await generatePortrait(buf, name, gender, q);
     const url = await saveBufferToStorage(out, 'image/webp', 'characters');
     res.json({ ok: true, url, name: String(name || '').trim(), gender: String(gender || 'they') });
   } catch (err) {
