@@ -61,7 +61,9 @@ def gettext(rec):
     return "".join(b.get('text', '') for b in blocks(rec)
                    if isinstance(b, dict) and b.get('type') == 'text')
 IMG = re.compile(r'\.(?:png|jpe?g|webp|gif)$', re.I)
+FIRE = re.compile(r'''https://(?:storage|firebasestorage)\.googleapis\.com/[^\s)\]"'<>]+?\.(?:png|jpe?g|webp|gif)''', re.I)
 mid = None; parts = []; sends = []; idx = 0; last_user = -1
+raw_since = []  # raw records of the CURRENT turn (reply + behind-the-scenes tool output)
 with open(path, encoding='utf-8') as f:
     for ln in f:
         try:
@@ -74,10 +76,14 @@ with open(path, encoding='utf-8') as f:
             # a REAL user turn, not a tool-result envelope
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
                 last_user = idx
-                parts = []  # new user turn — start the reply fresh
+                parts = []       # new user turn — start the reply fresh
+                raw_since = []    # …and the behind-the-scenes buffer
+                continue
+            raw_since.append(ln)  # tool-result envelope = this turn's tool output
             continue
         if role != 'assistant':
             continue
+        raw_since.append(ln)
         t = gettext(r)
         if t.strip():
             parts.append(t)  # post the WHOLE reply — every text block this turn, not just the last
@@ -101,7 +107,9 @@ if not first:
     except Exception:
         pass
 gallery = []
-for u in re.findall(r'https://(?:storage|firebasestorage)\.googleapis\.com/[^\s)\]"\'<>]+?\.(?:png|jpe?g|webp|gif)', text, re.I):
+finished_urls = set()  # URLs shown to Sophie in the reply → the finished gallery
+for u in FIRE.findall(text):
+    finished_urls.add(u)
     k = 'u:' + u
     if k not in done:
         done.add(k); gallery.append({'url': u})
@@ -115,6 +123,29 @@ for i, p in sends:
     # delivery isn't swallowed
     if not first or i > last_user:
         gallery.append({'file': p})
+# work-in-progress images: Firebase image URLs that appeared in the turn's
+# behind-the-scenes tool output but were NOT shown to Sophie in the reply. File
+# these to the chat's Assets tab ONLY (assetsOnly — never the main gallery), so
+# a chat's per-chat Assets fills up on its own without cluttering My Creations.
+# Baseline history on the first run; cap per turn as a flood guard.
+if not first:
+    blob = ''.join(raw_since)
+    wip_n = 0
+    for u in FIRE.findall(blob):
+        if u in finished_urls:
+            continue
+        if ('u:' + u in done) or ('w:' + u in done):
+            continue
+        done.add('w:' + u)
+        gallery.append({'wip': u})
+        wip_n += 1
+        if wip_n >= 60:
+            break
+else:
+    # first run in a fresh session: baseline every URL already seen so old
+    # behind-the-scenes images aren't back-filled, only ones made from now on.
+    for u in FIRE.findall(''.join(raw_since)):
+        done.add('w:' + u)
 os.makedirs(os.path.dirname(gf), exist_ok=True)
 open(gf, 'w').write('\n'.join(sorted(done)))
 
@@ -158,9 +189,13 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   [ -n "$g" ] || continue
   u=$(printf '%s' "$g" | jq -r '.url // empty')
   f=$(printf '%s' "$g" | jq -r '.file // empty')
+  w=$(printf '%s' "$g" | jq -r '.wip // empty')
   cj=$(printf '%s' "$name" | jq -Rs .)
   if [ -n "$u" ]; then
     post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj}"
+  elif [ -n "$w" ]; then
+    # work-in-progress → the chat's Assets tab only, not the main gallery
+    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
       png) mime=image/png;; webp) mime=image/webp;; gif) mime=image/gif;; *) mime=image/jpeg;;

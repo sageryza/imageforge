@@ -835,12 +835,33 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
+    const { url, image, prompt, created, style, type, dry, chat, assetsOnly } = req.body || {};
+    const createdMs = Number(created) || Date.now();
+    // assetsOnly: a work-in-progress image caught behind the scenes — file it to
+    // the chat's Assets tab (forge-chat-assets, deckfactory) ONLY, never the main
+    // "My Creations" gallery, so that stays curated to finished deliverables.
+    // Needs a hosted URL + a chat + the deckfactory admin app (no membry upload).
+    if (assetsOnly) {
+      if (dry) return res.json({ ok: true, dry: true, assetsOnly: true });
+      const wipUrl = url && /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(String(url))
+        ? String(url) : null;
+      if (!wipUrl) return res.status(400).json({ error: 'assetsOnly requires a hosted url' });
+      if (!chat || !admin.apps.length) return res.json({ ok: true, skipped: 'no chat/admin' });
+      const acol = admin.firestore().collection('forge-chat-assets');
+      const adup = await acol.where('chat', '==', String(chat).slice(0, 60))
+        .where('url', '==', wipUrl).limit(1).get();
+      if (!adup.empty) return res.json({ ok: true, deduped: true, url: wipUrl });
+      await acol.add({
+        chat: String(chat).slice(0, 60), url: wipUrl,
+        prompt: String(prompt || '').slice(0, 500),
+        created: new Date(createdMs).toISOString(), wip: true,
+      });
+      return res.json({ ok: true, assetsOnly: true, url: wipUrl });
+    }
     await storyDb();
     if (!storyApp) return res.status(503).json({ error: 'membry credential not configured' });
-    const { url, image, prompt, created, style, type, dry, chat } = req.body || {};
     const uid = await galleryUid();
     if (dry) return res.json({ ok: true, dry: true, uid: uid.slice(0, 6) + '…' });
-    const createdMs = Number(created) || Date.now();
     let finalUrl = url && /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(String(url))
       ? String(url) : null;
     if (!finalUrl && image) {
