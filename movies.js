@@ -1114,7 +1114,11 @@ function dreamPageRefs(group, rendered) {
     byUrl.get(src.url).add(name);
   }
   let refs = [...byUrl.entries()].map(([url, set]) => ({ url, names: [...set] }));
-  if (!refs.length) refs = [{ url: rendered[rendered.length - 1].url, names: [] }];
+  // Always ride the MOST RECENT page along too (style/scene continuity between
+  // consecutive pages), not just each character's earliest anchor. Dreams are
+  // split into separate docs upstream, so this never chains across dreams.
+  const last = rendered[rendered.length - 1];
+  if (last && !refs.some(r => r.url === last.url)) refs = [...refs.slice(0, 2), { url: last.url, names: [] }];
   return refs.slice(0, 3);
 }
 
@@ -1129,8 +1133,12 @@ function dreamZinePagePrompt(dream, group, refPages) {
   const body = group.map((s, i) =>
     `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}. Caption: "${String(s.title).toUpperCase()}"`).join(' ');
   const layout = `${ZINE_LAYOUTS[group.length]}, each with a small hand-lettered caption box beneath it containing EXACTLY the given caption text, spelled exactly as written. `;
-  const offset = styleRef ? 2 : 1;   // attachment number of the first earlier page
+  const offset = styleRef ? 2 : 1;   // attachment number of the first reference image
   const pageLines = refPages.map((r, i) => {
+    if (r.character) {
+      return `the #${i + offset} attached image is a CHARACTER REFERENCE for ${r.names.join(' and ')} — whenever ` +
+        `${r.names.join(' or ')} appears, draw them with the exact same face, hair and clothing as in it; do not redesign them`;
+    }
     const who = r.names.length ? r.names.join(' and ') : 'the recurring characters';
     return `the #${i + offset} attached image is an EARLIER PAGE of this same comic — draw ${who} with the exact ` +
       'same face, hair and clothing they have there, and do not redesign them';
@@ -1156,6 +1164,14 @@ async function renderDreamPage(dream, group, quality, rendered) {
   const refs = [];
   if (styleRef) refs.push(styleRef);
   const usable = [];
+  // Pre-made character cards (e.g. the saved "Sophie" reference) ride on EVERY
+  // page, right after the style ref, so the main character matches her card
+  // from page one instead of being invented on the first page.
+  for (const c of (Array.isArray(dream.characterRefs) ? dream.characterRefs : [])) {
+    if (!c || !c.url || !c.name) continue;
+    const buf = await refBufferFromUrl(c.url);
+    if (buf) { refs.push(buf); usable.push({ url: c.url, names: [String(c.name)], character: true }); }
+  }
   for (const r of dreamPageRefs(group, rendered)) {
     const buf = await refBufferFromUrl(r.url);
     if (buf) { refs.push(buf); usable.push(r); }
@@ -1774,8 +1790,21 @@ router.post('/dream/:id/render', async (req, res) => {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
     if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
-    const { quality = 'medium', order } = req.body || {};
+    const { quality = 'medium', order, characterRefs } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    // Optional pre-made character cards: [{name, url}] or [{name, image:dataURL}]
+    // (data URLs are uploaded to Storage). Persisted on the doc so re-renders keep them.
+    if (Array.isArray(characterRefs)) {
+      const kept = [];
+      for (const c of characterRefs.slice(0, 4)) {
+        if (!c || !c.name) continue;
+        let url = typeof c.url === 'string' && /^https?:\/\//.test(c.url) ? c.url : null;
+        const m = /^data:([^;]+);base64,(.*)$/.exec(String(c.image || ''));
+        if (!url && m) url = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1] || 'image/png', 'movies/character-refs');
+        if (url) kept.push({ name: String(c.name), url });
+      }
+      doc.characterRefs = kept;
+    }
     // The chronology check: reorder the beats to the order the app sends before drawing.
     if (Array.isArray(order) && order.length) {
       const byId = new Map(doc.beats.map(b => [b.id, b]));
