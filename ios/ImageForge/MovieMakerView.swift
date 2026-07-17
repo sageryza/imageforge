@@ -151,9 +151,14 @@ struct MovieMakerHome: View {
                     MovieDetailView(movieId: movie.id, initial: movie, autopilot: openAutopilot)
                 }
             }
-            .sheet(isPresented: $showStoryRoom) {
+            // Full-screen push (not a popup sheet) — the boards read as a
+            // proper native screen; the webview inside is still the live page.
+            .navigationDestination(isPresented: $showStoryRoom) {
                 StoryRoomView()
-                    .presentationDragIndicator(.visible)
+                    .navigationTitle("Story Room")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarBackground(Reel.base, for: .navigationBar)
+                    .toolbarBackground(.visible, for: .navigationBar)
             }
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
