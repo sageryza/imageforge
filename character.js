@@ -133,7 +133,7 @@ async function visionPeople(photoBuffer, mime) {
     body: JSON.stringify({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: [
-        { type: 'text', text: 'List every distinct person in this photo, left to right. For each give a bounding box around their HEAD AND SHOULDERS as fractions of the image width/height (0-1): [x, y, w, h] where x,y is the top-left corner. Also a 3-6 word description (hair, clothing) and apparentGender one of "he","she","unknown". Respond ONLY as JSON: {"people":[{"box":[x,y,w,h],"desc":"...","apparentGender":"..."}]}' },
+        { type: 'text', text: 'This is an automatic photo-cropping tool that cuts each person out of a group photo into their own separate portrait. For each person, ordered left to right, return the crop rectangle covering their head and shoulders as fractions of the image width/height [x, y, w, h] (top-left origin), a short look (hair and clothing), and a gender guess ("he","she","unknown"). Respond ONLY as JSON: {"people":[{"box":[x,y,w,h],"desc":"...","gender":"..."}]}' },
         { type: 'image_url', image_url: { url: dataUrl } },
       ] }],
       response_format: { type: 'json_object' },
@@ -285,7 +285,7 @@ router.post('/batch/detect', gated, async (req, res) => {
           const crop = await cropPerson(buf, p.box);
           const cropUrl = await saveBufferToStorage(crop, 'image/png', 'characters/crops');
           items.push({ photoIndex: pi, cropUrl, desc: p.desc || '',
-            gender: (p.apparentGender === 'he' || p.apparentGender === 'she') ? p.apparentGender : 'they' });
+            gender: (p.gender === 'he' || p.gender === 'she') ? p.gender : 'they' });
         } catch (e) { console.warn('character: crop failed —', e.message); }
       }
     }
