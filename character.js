@@ -122,8 +122,52 @@ async function cleanBox(buffer) {
   return await sharp(data, { raw: { width: w, height: h, channels: ch } }).trim().png().toBuffer();
 }
 
+// ── Batch mode: find every person in a photo, crop head-and-shoulders ──
+// GPT-4o vision returns a head-and-shoulders box per person; sharp crops each.
+async function visionPeople(photoBuffer, mime) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const dataUrl = `data:${mime || 'image/jpeg'};base64,${photoBuffer.toString('base64')}`;
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: 'List every distinct person in this photo, left to right. For each give a bounding box around their HEAD AND SHOULDERS as fractions of the image width/height (0-1): [x, y, w, h] where x,y is the top-left corner. Also a 3-6 word description (hair, clothing) and apparentGender one of "he","she","unknown". Respond ONLY as JSON: {"people":[{"box":[x,y,w,h],"desc":"...","apparentGender":"..."}]}' },
+        { type: 'image_url', image_url: { url: dataUrl } },
+      ] }],
+      response_format: { type: 'json_object' },
+      max_tokens: 1000,
+    }),
+    timeout: 60000,
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  let parsed = {};
+  try { parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}'); } catch {}
+  return Array.isArray(parsed.people) ? parsed.people : [];
+}
+
+async function cropPerson(buffer, box, pad = 0.12) {
+  const sharp = require('sharp');
+  const meta = await sharp(buffer).metadata();
+  const W = meta.width, H = meta.height;
+  let [x, y, w, h] = (box || []).map(Number);
+  if (![x, y, w, h].every(n => Number.isFinite(n))) throw new Error('bad box');
+  x = Math.max(0, Math.min(1, x)); y = Math.max(0, Math.min(1, y));
+  w = Math.max(0.02, Math.min(1, w)); h = Math.max(0.02, Math.min(1, h));
+  let left = Math.round((x - w * pad) * W);
+  let top = Math.round((y - h * pad) * H);
+  let width = Math.round(w * (1 + 2 * pad) * W);
+  let height = Math.round(h * (1 + 2 * pad) * H);
+  left = Math.max(0, left); top = Math.max(0, top);
+  width = Math.min(W - left, width); height = Math.min(H - top, height);
+  if (width < 8 || height < 8) throw new Error('degenerate box');
+  return await sharp(buffer).extract({ left, top, width, height }).png().toBuffer();
+}
+
 const router = express.Router();
-router.use(express.json({ limit: '25mb' }));
+router.use(express.json({ limit: '40mb' }));
 
 function gated(req, res, next) {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN)
@@ -219,6 +263,73 @@ router.delete('/:id', gated, async (req, res) => {
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
     await d.collection(COLLECTION).doc(req.params.id).delete();
     res.json({ ok: true, id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Batch: detect + crop every person across the uploaded photos.
+router.post('/batch/detect', gated, async (req, res) => {
+  try {
+    const { photos } = req.body || {};
+    if (!Array.isArray(photos) || !photos.length) return res.status(400).json({ error: 'photos[] (data URLs) required' });
+    const items = [];
+    for (let pi = 0; pi < photos.length; pi++) {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(String(photos[pi] || ''));
+      if (!m) continue;
+      const buf = Buffer.from(m[2], 'base64');
+      let people = [];
+      try { people = await visionPeople(buf, m[1]); } catch (e) { console.warn('character: vision failed —', e.message); }
+      for (const p of people) {
+        try {
+          const crop = await cropPerson(buf, p.box);
+          const cropUrl = await saveBufferToStorage(crop, 'image/png', 'characters/crops');
+          items.push({ photoIndex: pi, cropUrl, desc: p.desc || '',
+            gender: (p.apparentGender === 'he' || p.apparentGender === 'she') ? p.apparentGender : 'they' });
+        } catch (e) { console.warn('character: crop failed —', e.message); }
+      }
+    }
+    res.json({ ok: true, count: items.length, items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Batch: generate + save a character for each named crop (unnamed = skipped).
+router.post('/batch/generate', gated, async (req, res) => {
+  try {
+    const { items } = req.body || {};
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'items[] required' });
+    const d = db();
+    const named = items.filter(it => it && it.cropUrl && it.name && String(it.name).trim());
+    const results = [];
+    let idx = 0;
+    async function worker() {
+      while (idx < named.length) {
+        const it = named[idx++];
+        try {
+          const src = await (await fetch(it.cropUrl, { redirect: 'follow' })).buffer();
+          const out = await generatePortrait(src, it.name, it.gender, 'medium');
+          const url = await saveBufferToStorage(out, 'image/webp', 'characters');
+          let cleanUrl = url, id = null;
+          const tier = it.tier === 'main' ? 'main' : 'side';
+          if (d) {
+            try { cleanUrl = await saveBufferToStorage(await cleanBox(out), 'image/png', 'characters/clean'); }
+            catch (e) { console.warn('character: cleanBox failed —', e.message); }
+            const ref = await d.collection(COLLECTION).add({
+              name: String(it.name).trim(), gender: it.gender || 'they', url, cleanUrl, tier,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            id = ref.id;
+          }
+          results.push({ ok: true, id, name: String(it.name).trim(), url, cleanUrl, tier });
+        } catch (e) {
+          results.push({ ok: false, name: it.name, error: e.message });
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: 3 }, worker));
+    res.json({ ok: true, results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
