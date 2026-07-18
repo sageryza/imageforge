@@ -252,24 +252,11 @@ router.post('/save', gated, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     const ref = await d.collection(COLLECTION).add(doc);
-    // Curated Assets-tab record with the model/quality caption, so the label
-    // exists from the moment of creation (no after-the-fact backfill needed).
-    if (chat && doc.quality) {
-      try {
-        const acol = d.collection('forge-chat-assets');
-        const caption = `${doc.model || 'gpt-image-2'} · ${doc.quality}`;
-        const dup = await acol.where('chat', '==', String(chat).slice(0, 60))
-          .where('url', '==', String(url)).limit(1).get();
-        if (dup.empty) {
-          await acol.add({
-            chat: String(chat).slice(0, 60), url: String(url),
-            prompt: caption, created: new Date().toISOString(),
-          });
-        } else {
-          await dup.docs[0].ref.update({ prompt: caption });
-        }
-      } catch (e) { /* caption record is best-effort */ }
-    }
+    // NOTE: quality/model live on the character doc above. We deliberately do
+    // NOT write a forge-chat-assets caption record here: the chat hook already
+    // files a COPY of this image at a different URL, and the Assets tab dedupes
+    // by URL — so a record at this URL would show the same image as a second
+    // tile. The label is applied to the hook's copy via the hash-match relabel.
     res.json({ ok: true, id: ref.id, ...doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
