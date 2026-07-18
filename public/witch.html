@@ -197,6 +197,8 @@
     .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
     .quiz-q { font-family: var(--serif); font-size: 21px; text-align: center; line-height: 1.2; margin: 0 0 16px; color: var(--text); }
     .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-media { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; margin: 0 auto 14px; background: #000; }
+    .quiz-media-ph { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Day at a glance */
     .glance-headline { font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.14; color: var(--text); margin: 4px 0 14px; }
@@ -497,7 +499,7 @@
         <div class="card" id="quiz-card">
           <div class="cards-title">Are you secretly a witch?</div>
           <div id="quiz-intro">
-            <p class="hint" style="text-align:center;">A very serious diagnostic. Answer honestly — the cards already know.</p>
+            <p class="hint" style="text-align:center;">Five signs. Answer honestly — you already know the truth.</p>
             <button class="btn" id="quiz-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Take the quiz</button>
           </div>
           <div id="quiz-body" style="display:none;"></div>
@@ -1449,20 +1451,36 @@
   });
 
   /* ══════════ QUIZ: Are you secretly a witch? (always yes → shop) ══════════ */
+  const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
   const QUIZ = [
-    { q: "Do you ever know who's calling before you look?", a: ['Every time', 'More than is normal', "I pretend I don't"] },
-    { q: 'Your relationship with the moon is…', a: ["We're close", 'It watches over me', 'Complicated but loving'] },
-    { q: 'Pick a companion:', a: ['A black cat', 'A raven', 'A very judgmental houseplant'] },
-    { q: 'How many crystals is too many?', a: ['No such thing', 'Asking for a friend', 'I can hear them calling'] },
-    { q: 'When something breaks, you…', a: ['Felt it coming', 'Feel it in your body', 'Blame Mercury'] },
-    { q: 'Be honest — candles are…', a: ['A love language', 'A whole personality', 'Practically a ritual'] },
+    { q: 'Have you ever just *known* something was about to happen — and then it did?',
+      media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
+      a: ['Yes — more than once', 'Once or twice', "…now that you mention it"] },
+    { q: 'Has something strange ever happened around you when your emotions ran high?',
+      media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
+      a: ['Yes — and it unsettled me', 'Maybe a coincidence', "I've always wondered"] },
+    { q: 'Does the natural world seem to… respond to you?',
+      media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
+      a: ['Always has', 'Sometimes', "I'm most myself outside"] },
+    { q: "Do the same numbers or signs keep finding you, like they're meant for you?",
+      media: { type: 'image', url: QUIZ_ASSETS + 'synchronicity.png' },
+      a: ['Constantly', 'Here and there', '11:11, every time'] },
+    { q: 'For as long as you can remember — have you felt different from everyone else?',
+      media: { type: 'none' },
+      a: ['My whole life', 'Deep down, yes', "I never fit the mold"] },
   ];
   let quizStep = 0;
+  function quizMediaHTML(m) {
+    if (!m || m.type === 'none') return `<div class="quiz-media quiz-media-ph">image coming soon</div>`;
+    if (m.type === 'video') return `<video class="quiz-media" src="${m.url}" autoplay muted loop playsinline preload="auto"></video>`;
+    return `<img class="quiz-media" src="${m.url}" alt="">`;
+  }
   function renderQuizQuestion() {
     const item = QUIZ[quizStep];
     $('quiz-body').innerHTML =
-      `<div class="quiz-prog">Question ${quizStep + 1} of ${QUIZ.length}</div>
-       <div class="quiz-q">${esc(item.q)}</div>
+      `<div class="quiz-prog">Sign ${quizStep + 1} of ${QUIZ.length}</div>` +
+      quizMediaHTML(item.media) +
+      `<div class="quiz-q">${esc(item.q).replace(/\*(.+?)\*/g, '<em>$1</em>')}</div>
        <div class="quiz-opts">` +
       item.a.map((opt, i) => `<button class="btn-ghost quiz-opt" data-i="${i}">${esc(opt)}</button>`).join('') +
       `</div>`;
