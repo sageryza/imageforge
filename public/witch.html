@@ -955,12 +955,13 @@
       const [x, y] = pt(a, 272);
       s += `<text class="sky-planet" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${g}</text>`;
     });
-    // A few faint constellations for texture (dots + thin joins).
+    // A few faint constellations for texture (dots + thin joins). Kept inside
+    // r≈288 so they sit below the zodiac-name ring and never cross the letters.
     const consts = [
-      [[20, 300], [28, 285], [37, 305], [44, 278]],
-      [[150, 292], [158, 308], [166, 282], [172, 300]],
-      [[255, 306], [262, 288], [270, 300]],
-      [[330, 284], [338, 302], [346, 286], [352, 306]],
+      [[22, 270], [30, 256], [39, 276], [46, 250]],
+      [[128, 262], [136, 280], [144, 254], [151, 272]],
+      [[255, 278], [263, 258], [271, 272]],
+      [[330, 254], [338, 274], [347, 258], [353, 280]],
     ];
     consts.forEach(group => {
       const pts = group.map(([a, r]) => pt(a, r));
