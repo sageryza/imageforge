@@ -10,6 +10,14 @@ struct StoryRoomView: View {
     @State private var loadFailed = false
     @State private var reloadKey = 0
 
+    /// The page's own paper color (light/dark), so the nav-bar area blends
+    /// into the web page instead of showing a white strip above the cream.
+    static let paper = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0.098, green: 0.090, blue: 0.075, alpha: 1)   // page --paper dark #191713
+            : UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1)   // page --paper light #f6f2e9
+    })
+
     var body: some View {
         Group {
             if loadFailed {
@@ -39,6 +47,14 @@ struct StoryRoomView: View {
                     .ignoresSafeArea(edges: .bottom)
             }
         }
+        .background(Self.paper.ignoresSafeArea())
+        // The page carries its own in-page autoscroll pill — hide the native
+        // one while this screen is up (and stop any run already in flight).
+        .onAppear {
+            AutoScrollDriver.shared.stop()
+            AutoScrollDriver.shared.webPillActive = true
+        }
+        .onDisappear { AutoScrollDriver.shared.webPillActive = false }
     }
 }
 
@@ -50,11 +66,12 @@ private struct StoryRoomWebView: UIViewRepresentable {
         let web = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
-        web.backgroundColor = UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1) // page paper
+        web.backgroundColor = UIColor(StoryRoomView.paper)
         web.allowsBackForwardNavigationGestures = true
         if let url = URL(string: MovieService.serverURL + "/storyroom") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
+        context.coordinator.stopAutoscrollOnScreenChange(web)
         return web
     }
 
@@ -64,7 +81,21 @@ private struct StoryRoomWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         let parent: StoryRoomWebView
+        private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: StoryRoomWebView) { self.parent = parent }
+
+        // If Sophie switches tabs while the boards are pushed, the page's
+        // in-page autoscroll must not keep drifting in the background.
+        func stopAutoscrollOnScreenChange(_ web: WKWebView) {
+            screenChangeObserver = NotificationCenter.default.addObserver(
+                forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
+                    web?.evaluateJavaScript("window.__scrollStop && window.__scrollStop()", completionHandler: nil)
+            }
+        }
+
+        deinit {
+            if let o = screenChangeObserver { NotificationCenter.default.removeObserver(o) }
+        }
 
         // The page sits behind HTTP Basic (any user, password = token).
         func webView(_ webView: WKWebView,

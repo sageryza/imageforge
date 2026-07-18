@@ -157,7 +157,9 @@ struct MovieMakerHome: View {
                 StoryRoomView()
                     .navigationTitle("Story Room")
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbarBackground(Reel.base, for: .navigationBar)
+                    // match the web page's own paper so there's no white
+                    // strip between the nav bar and the cream page
+                    .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
             }
             .sheet(isPresented: $showConsent) {

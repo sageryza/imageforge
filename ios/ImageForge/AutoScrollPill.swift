@@ -24,6 +24,10 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     /// The pill's on-screen frame (global/window coords), kept current by
     /// AutoScrollPill — taps inside it are the pill's own controls.
     var pillFrame: CGRect = .zero
+    /// True while a pushed web page that carries its own in-page pill (the
+    /// Story Room) is on screen — RootView hides the native pill then, so
+    /// there's never two pills stacked on top of each other.
+    @Published var webPillActive = false
 
     /// Three discrete speeds instead of a continuous dial.
     static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9)]
