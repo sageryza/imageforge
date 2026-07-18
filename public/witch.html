@@ -201,10 +201,10 @@
     .quiz-media-ph { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
-    .quiz-app { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-    .quiz-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .quiz-stage { max-width: 460px; margin: 0 auto; min-height: 100%; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 58px) 22px calc(env(safe-area-inset-bottom, 0px) + 32px); display: flex; flex-direction: column; justify-content: center; }
-    .quiz-app .quiz-media { max-height: 56vh; }
+    .quiz-app { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 54px) 18px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+    .quiz-close { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .quiz-stage { max-width: 430px; margin: 0 auto; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 22px 28px; }
+    .quiz-app .quiz-media { max-height: 52vh; }
     .quiz-kicker { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 12px; }
     .quiz-app .quiz-q { font-size: 24px; margin-bottom: 20px; }
     .reveal-name { text-align: center; font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--gold); margin: 16px 0 8px; }
