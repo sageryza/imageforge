@@ -118,6 +118,7 @@ final class Recents: ObservableObject {
 /// back button — you move between modes with the bar.
 struct RootView: View {
     @StateObject private var recents = Recents()
+    @ObservedObject private var autoScroll = AutoScrollDriver.shared
     @State private var screen: Screen = .home
 
     var body: some View {
@@ -192,7 +193,13 @@ struct RootView: View {
         switch screen {
         case .home: return false
         case .gallery: return true
-        case .tool(let t): return t != .writing && t != .chats
+        case .tool(let t):
+            if t == .writing || t == .chats { return false }
+            // The Story Room (pushed inside the movies tool) is a web page
+            // with its own in-page pill — showing the native one too would
+            // stack two pills on top of each other.
+            if t == .movie && autoScroll.webPillActive { return false }
+            return true
         }
     }
 
