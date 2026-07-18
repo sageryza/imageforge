@@ -115,10 +115,8 @@ body.reading .backwrap{display:block;}
 __PILL_HTML__
 <div class="wrap">
   <section id="home">
-    <div class="no">deck factory &middot; story room</div>
-    <h1>The Boards</h1>
+    <div class="no">story room</div>
     <div class="rule"></div>
-    <div class="sub">Tap a project to read it through &mdash; your narration with the art in place. &ldquo;+ note&rdquo; under any beat sends me a comment.</div>
     <div class="newrow"><button id="newstory" class="btn primary">+ New story</button><button class="btn" onclick="location.href='/character'">Characters</button></div>
     <div id="shelf"><div class="state">Loading the boards&hellip;</div></div>
     <div class="pagemark" id="filmsmark" style="display:none">THE FILMS</div>
