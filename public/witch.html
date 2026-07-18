@@ -139,14 +139,16 @@
 
     /* Suspicious coincidence — describe it, AI draws it */
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
-    .coin-cell { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .coin-cell { position: relative; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 12px; line-height: 1.35; word-break: break-word; cursor: text; outline: none; }
     .coin-box:focus { border-color: var(--gold-dim); }
     .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; padding: 4px 8px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 4px; font-family: var(--serif); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: lowercase; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+    /* Draw button lives INSIDE the box, bottom-right (matching the diary look) */
+    .coin-btn { position: absolute; right: 6px; bottom: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; padding: 3px 8px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 6px; font-family: var(--serif); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: lowercase; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
     .coin-btn:hover { background: #fffdf7; border-color: var(--gold-dim); }
-    .coin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .coin-btn svg { width: 11px; height: 11px; }
+    .coin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .coin-btn svg { width: 13px; height: 13px; }
+    .coin-cell.drawn .coin-btn { display: none; }
     .note { font-size: 12px; color: var(--text-faint); font-style: italic; margin-top: 10px; min-height: 16px; }
 
     /* ── Chips (segmented) ── */
@@ -484,9 +486,9 @@
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
           <div class="cards-title">Suspicious coincidence…</div>
           <div class="coin-boxes">
-            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 4 Q10 12 18.5 12 Q10 12 10 20.5 Q10 12 1.5 12 Q10 12 10 4 Z M19 13 Q19 16.5 22.5 16.5 Q19 16.5 19 20 Q19 16.5 15.5 16.5 Q19 16.5 19 13 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 4 Q10 12 18.5 12 Q10 12 10 20.5 Q10 12 1.5 12 Q10 12 10 4 Z M19 13 Q19 16.5 22.5 16.5 Q19 16.5 19 20 Q19 16.5 15.5 16.5 Q19 16.5 19 13 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 4 Q10 12 18.5 12 Q10 12 10 20.5 Q10 12 1.5 12 Q10 12 10 4 Z M19 13 Q19 16.5 22.5 16.5 Q19 16.5 19 20 Q19 16.5 15.5 16.5 Q19 16.5 19 13 Z"/></svg></button></div>
           </div>
         </div>
 
@@ -1595,19 +1597,21 @@
         body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1024' }),
       });
       const d = await r.json();
-      if (d.url) { box.innerHTML = `<img src="${esc(d.url)}" alt="">`; }
+      if (d.url) { box.innerHTML = `<img src="${esc(d.url)}" alt="">`; box.closest('.coin-cell')?.classList.add('drawn'); }
       else { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
     } catch { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
     if (btn) { btn.disabled = false; btn.innerHTML = orig; }
   }
-  document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', () => drawCoinBox(+b.dataset.i)));
-  // Tap a drawn box to edit its text again (restores the description).
+  document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); drawCoinBox(+b.dataset.i); }));
+  // Tap a drawn box to edit its text again (restores the description + the button).
   ['coin-0', 'coin-1', 'coin-2'].forEach(id => {
     const box = $(id); if (!box) return;
     box.addEventListener('click', () => {
       if (box.querySelector('img')) {
         box.innerHTML = ''; box.textContent = box.dataset.desc || '';
-        box.setAttribute('contenteditable', 'true'); box.focus();
+        box.setAttribute('contenteditable', 'true');
+        box.closest('.coin-cell')?.classList.remove('drawn');
+        box.focus();
       }
     });
   });
