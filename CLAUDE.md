@@ -248,6 +248,12 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **Assets curation (♥/✕, July 2026):** Sophie hearts/rejects images in a
+  chat's Assets tab. Votes live in `forge-asset-votes` (deckfactory, one doc
+  per chat+url) and ride along on `GET /api/gallery/assets?chat=<name>` as
+  `vote: "like" | "dislike"` per asset. When Sophie next messages a chat, it
+  should check its votes and act on them (favor the hearted ones, re-roll or
+  retire the ✕'d) — same review-loop pattern as writing notes, NOT on a timer.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
