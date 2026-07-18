@@ -948,6 +948,8 @@
       [[[-0.92,0.20],[-0.42,-0.12],[0.02,0.22],[0.42,-0.12],[0.82,0.20]],[[0.42,-0.12],[0.46,-0.52]]], // Aquarius — the water zigzag
       [[[-0.92,0.42],[-0.26,-0.06],[0.06,-0.16],[0.50,0.02],[0.92,0.46]]],                             // Pisces — the two-fish cord
     ];
+    // One glyph per sign; ︎ forces the monochrome line glyph, not a color emoji.
+    const GLYPHS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'].map(g => g + '︎');
     let s = '';
     // Rim + inner edge of the zodiac-name band (only this band is ever visible).
     s += `<circle class="sky-line" cx="${CX}" cy="${CY}" r="322"/>`;
@@ -963,12 +965,17 @@
       const [x, y] = pt(a, 309);
       s += `<text class="sky-name" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${name}</text>`;
     });
-    // Each sign's real constellation, laid into the clean band beneath its name
-    // and confined to its own 30° slice (±9°, r 249–291) so it never touches the
-    // letters and never spills into a neighbour.
-    const ANG = 9, RC = 270, RAD = 21;
+    // Each sign's glyph centered directly beneath its name.
+    GLYPHS.forEach((g, i) => {
+      const a = i * 30 + 15;
+      const [x, y] = pt(a, 283);
+      s += `<text class="sky-planet" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${g}</text>`;
+    });
+    // Each sign's real constellation, laid on the DIVIDER (cusp) between signs so
+    // it sits between two names rather than under one. Confined to ±9°, r 246–286.
+    const ANG = 9, RC = 266, RAD = 20;
     CONSTELLATIONS.forEach((lines, i) => {
-      const A = i * 30 + 15;
+      const A = i * 30;                                  // on the cusp line, not under the name
       const map = (lx, ly) => pt(A + lx * ANG, RC + ly * RAD);
       const seen = {};
       lines.forEach(line => {
