@@ -230,7 +230,7 @@ router.post('/generate', gated, async (req, res) => {
 // saved but off the sheet.
 router.post('/save', gated, async (req, res) => {
   try {
-    const { url, name, gender, tier } = req.body || {};
+    const { url, name, gender, tier, quality, model } = req.body || {};
     if (!url) return res.status(400).json({ error: 'url required' });
     const d = db();
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
@@ -247,6 +247,8 @@ router.post('/save', gated, async (req, res) => {
       url: String(url),
       cleanUrl,
       tier: tier === 'main' ? 'main' : 'side',
+      quality: ['low', 'medium', 'high'].includes(quality) ? quality : null,
+      model: model ? String(model).slice(0, 60) : null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     const ref = await d.collection(COLLECTION).add(doc);
@@ -265,6 +267,7 @@ router.get('/', gated, async (req, res) => {
     const characters = snap.docs.map(s => {
       const v = s.data();
       return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.cleanUrl || v.url, tier: v.tier,
+        quality: v.quality || null, model: v.model || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
     });
     res.json({ characters });
@@ -281,6 +284,23 @@ router.post('/:id/tier', gated, async (req, res) => {
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
     await d.collection(COLLECTION).doc(req.params.id).update({ tier });
     res.json({ ok: true, id: req.params.id, tier });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Backfill/adjust metadata on a saved character (quality badge, model).
+router.post('/:id/meta', gated, async (req, res) => {
+  try {
+    const d = db();
+    if (!d) return res.status(503).json({ error: 'firestore unavailable' });
+    const patch = {};
+    const { quality, model } = req.body || {};
+    if (['low', 'medium', 'high'].includes(quality)) patch.quality = quality;
+    if (model !== undefined) patch.model = model ? String(model).slice(0, 60) : null;
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to set' });
+    await d.collection(COLLECTION).doc(req.params.id).update(patch);
+    res.json({ ok: true, id: req.params.id, ...patch });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
