@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f5efe2">
   <title>Secretly a Witch</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -240,13 +240,20 @@
     .spin { display: inline-block; animation: spin 1.4s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Orrery — the astrology loading wheel (planet glyphs turning on a ring) */
-    .orrery { width: 124px; height: 124px; margin: 10px auto 16px; position: relative; }
-    .orrery .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--border); animation: wheel-spin 14s linear infinite; }
-    .orrery .ring.inner { inset: 22px; border-style: dashed; border-color: var(--border-soft); animation: wheel-spin 20s linear infinite reverse; }
-    .orrery .planet { position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; line-height: 22px; text-align: center; font-size: 15px; color: var(--gold); transform: rotate(var(--a)) translateY(-56px) rotate(calc(-1 * var(--a))); }
-    .orrery .core { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: var(--gold-dim); }
-    @keyframes wheel-spin { to { transform: rotate(360deg); } }
+    /* Sky wheel — astrology loading. A huge black line-art wheel rising over a
+       straight horizon; only the top sliver shows and it turns slowly (wheel of
+       fortune) so you wait to watch it come around. */
+    .skywheel { position: relative; width: 100%; height: 94px; margin: 6px auto 14px; overflow: hidden; }
+    .skywheel svg { position: absolute; left: 50%; top: -2px; width: 680px; height: 680px; transform: translateX(-50%); }
+    .skywheel .wheelspin { transform-box: view-box; transform-origin: 340px 340px; animation: sky-turn 34s linear infinite; }
+    @keyframes sky-turn { to { transform: rotate(360deg); } }
+    .skywheel::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--border); }
+    .sky-line { fill: none; stroke: #2a2630; stroke-width: 1; }
+    .sky-hair { fill: none; stroke: #2a2630; stroke-width: 0.7; }
+    .sky-faint { fill: none; stroke: #b6a888; stroke-width: 1; }
+    .sky-name { fill: #2a2630; font-family: 'Montserrat','DM Sans',sans-serif; font-size: 12px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
+    .sky-planet { fill: #2a2630; font-size: 18px; }
+    .sky-star { fill: #2a2630; }
 
     /* ── Generated image ── */
     .gen-img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; margin-top: 4px; background: var(--panel); }
@@ -920,22 +927,53 @@
     return null;
   }
 
+  function skyWheelSVG() {
+    const CX = 340, CY = 340;
+    const pt = (deg, r) => [CX + r * Math.sin(deg * Math.PI / 180), CY - r * Math.cos(deg * Math.PI / 180)];
+    const ZODIAC = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    const PLANETS = ['☉','☽','☿','♀','♂','♃','♄','♅'];
+    let s = '';
+    // Concentric structure lines (only the outermost band is ever visible).
+    s += `<circle class="sky-line" cx="${CX}" cy="${CY}" r="322"/>`;
+    s += `<circle class="sky-line" cx="${CX}" cy="${CY}" r="296"/>`;
+    s += `<circle class="sky-hair" cx="${CX}" cy="${CY}" r="252"/>`;
+    s += `<circle class="sky-faint" cx="${CX}" cy="${CY}" r="230"/>`;
+    // Minor degree ticks (every 5°) on the rim.
+    for (let a = 0; a < 360; a += 5) {
+      const [x1, y1] = pt(a, 322), [x2, y2] = pt(a, a % 30 === 0 ? 296 : 312);
+      s += `<line class="sky-hair" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    }
+    // Zodiac names curved tangent to the ring.
+    ZODIAC.forEach((name, i) => {
+      const a = i * 30 + 15;                              // centered in each 30° house
+      const [x, y] = pt(a, 309);
+      s += `<text class="sky-name" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${name}</text>`;
+    });
+    // Planet glyphs on an inner ring, tangent.
+    PLANETS.forEach((g, i) => {
+      const a = i * (360 / PLANETS.length) + 8;
+      const [x, y] = pt(a, 272);
+      s += `<text class="sky-planet" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${g}</text>`;
+    });
+    // A few faint constellations for texture (dots + thin joins).
+    const consts = [
+      [[20, 300], [28, 285], [37, 305], [44, 278]],
+      [[150, 292], [158, 308], [166, 282], [172, 300]],
+      [[255, 306], [262, 288], [270, 300]],
+      [[330, 284], [338, 302], [346, 286], [352, 306]],
+    ];
+    consts.forEach(group => {
+      const pts = group.map(([a, r]) => pt(a, r));
+      s += `<polyline class="sky-hair" points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`;
+      pts.forEach(p => { s += `<circle class="sky-star" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="1.6"/>`; });
+    });
+    return `<svg viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg"><g class="wheelspin">${s}</g></svg>`;
+  }
+
   function setAstroLoading() {
     $('astro-headline').textContent = '';
     $('astro-extra').innerHTML = '';
-    $('astro-body').innerHTML = `<div class="orrery" role="img" aria-label="Consulting the sky">
-      <div class="ring">
-        <span class="planet" style="--a:0deg">☉</span>
-        <span class="planet" style="--a:51deg">☽</span>
-        <span class="planet" style="--a:103deg">☿</span>
-        <span class="planet" style="--a:154deg">♀</span>
-        <span class="planet" style="--a:206deg">♂</span>
-        <span class="planet" style="--a:257deg">♃</span>
-        <span class="planet" style="--a:309deg">♄</span>
-      </div>
-      <div class="ring inner"></div>
-      <div class="core">✦</div>
-    </div>
+    $('astro-body').innerHTML = `<div class="skywheel" role="img" aria-label="Reading the sky">${skyWheelSVG()}</div>
     <div style="text-align:center; font-size:13px; color:var(--text-dim); font-style:italic;">Reading the sky for you…</div>`;
     $('astro-note').textContent = '';
     $('intention-text').textContent = INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
