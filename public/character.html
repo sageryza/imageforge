@@ -44,6 +44,7 @@
   .cell { background:var(--box); border-radius:8px; padding:6px; text-align:center; }
   .cell img { width:100%; aspect-ratio:1/1; object-fit:contain; cursor:zoom-in; }
   .cell .nm { font-size:11px; letter-spacing:1px; color:var(--ink); margin-top:2px; }
+  .cell .ql { font-size:9px; letter-spacing:.5px; color:var(--muted); text-transform:uppercase; }
   .side { display:flex; gap:8px; flex-wrap:wrap; }
   .side .cell { width:96px; }
   .qitem { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
@@ -189,7 +190,8 @@
     bindZoom();
   }
   function cell(c) {
-    return `<div class="cell"><img src="${c.cleanUrl||c.url}" alt="${c.name}"><div class="nm">${(c.name||'').toUpperCase()}</div></div>`;
+    const q = c.quality ? `<div class="ql">${c.quality}${c.model?' · '+c.model:''}</div>` : '';
+    return `<div class="cell"><img src="${c.cleanUrl||c.url}" alt="${c.name}"><div class="nm">${(c.name||'').toUpperCase()}</div>${q}</div>`;
   }
   $('toggleSheet').onclick = () => {
     const v = $('sheetView'); v.classList.toggle('hidden');
