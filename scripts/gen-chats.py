@@ -51,6 +51,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
 .assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer;}
 .assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
+.assetgrid .acell{position:relative;}
+.assetgrid .vote{position:absolute; top:5px; width:29px; height:29px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  background:rgba(250,247,240,.9); color:#8a8377; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
+.assetgrid .vote svg{width:15px; height:15px; display:block;}
+.assetgrid .vote.heart{left:5px;}
+.assetgrid .vote.nope{right:5px;}
+.assetgrid .vote.heart.on{background:#c96a5e; color:#fff;}
+.assetgrid .vote.nope.on{background:#8a8377; color:#fff;}
+.assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
 #clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px;}
 #clightbox img{max-width:100%; max-height:92vh; border-radius:6px;}
 .aboutrow{margin:-2px 0 6px;}
@@ -442,11 +451,38 @@ function openChat(name, keepScroll){
         };
         assetsPanel.appendChild(la);
         var grid=document.createElement('div'); grid.className='assetgrid';
+        // ♥ / ✕ curation per tile (circular icon buttons — allowed by the
+        // no-pills rule). Saved server-side per chat+url; tapping the active
+        // one clears it. A ✕'d tile dims so the keepers stand out.
+        var HEART='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+        var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        function voteBtns(cell,it){
+          var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
+          var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+          function paint(){
+            hb.classList.toggle('on', it.vote==='like');
+            xb.classList.toggle('on', it.vote==='dislike');
+            cell.classList.toggle('nay', it.vote==='dislike');
+          }
+          function cast(v){
+            var next = it.vote===v ? null : v;
+            api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,vote:next})})
+              .then(function(r){return r.json()})
+              .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
+              .catch(function(){ toast('Couldn\u2019t save that'); });
+          }
+          hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
+          xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
+          paint();
+          cell.appendChild(hb); cell.appendChild(xb);
+        }
         a.forEach(function(it){
+          var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
           b.innerHTML='<img alt="" loading="lazy" src="'+esc(assetThumb(it.url))+'">';
           b.onclick=function(){ lightbox(it.url); };
-          grid.appendChild(b);
+          cell.appendChild(b); voteBtns(cell,it);
+          grid.appendChild(cell);
         });
         assetsPanel.appendChild(grid);
       })

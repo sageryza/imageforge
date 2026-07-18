@@ -978,7 +978,43 @@ app.get('/api/gallery/assets', async (req, res) => {
     }
     const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
       .map((a) => ({ url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' }));
+    // Sophie's ♥/✕ curation votes ride along so the tiles can show them —
+    // and so any chat reading this list sees her verdicts.
+    try {
+      if (admin.apps.length) {
+        const vs = await admin.firestore().collection('forge-asset-votes').where('chat', '==', chat).get();
+        const votes = new Map();
+        vs.docs.forEach((d) => { const v = d.data(); votes.set(v.url, v.vote); });
+        assets.forEach((a) => { const v = votes.get(a.url); if (v) a.vote = v; });
+      }
+    } catch (e) { /* votes are best-effort */ }
     res.json({ chat, assets });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sophie's curation vote on one Assets-tab image: ♥ ('like'), ✕ ('dislike'),
+// or null to clear. One doc per chat+url (deterministic id) in deckfactory.
+// Chats read the verdicts off GET /api/gallery/assets and act on them.
+app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, url, vote } = req.body || {};
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const id = require('crypto').createHash('sha1')
+      .update(String(chat) + '|' + String(url)).digest('hex');
+    const ref = admin.firestore().collection('forge-asset-votes').doc(id);
+    if (vote === 'like' || vote === 'dislike') {
+      await ref.set({ chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+        vote, updated: new Date().toISOString() });
+      return res.json({ ok: true, vote });
+    }
+    await ref.delete();
+    res.json({ ok: true, vote: null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
