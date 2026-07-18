@@ -1398,6 +1398,19 @@
     return 'ready';
   }
   function renderHome() {
+    // Preview mode: /witch?wheel just parks on the spinning astrology wheel so
+    // it can be watched as long as you like (the real reading is cached and
+    // flashes by). No account / birthday / API call.
+    if (/[?&]wheel\b/.test(location.search)) {
+      $('daily-gate').style.display = 'none';
+      $('daily-birthday').style.display = 'none';
+      $('daily-reading').style.display = '';
+      $('tarot-card').style.display = 'none';
+      $('intention-card').style.display = 'none';
+      const fcp = $('see-full-chart'); if (fcp) fcp.style.display = 'none';
+      setAstroLoading();
+      return;
+    }
     const s = homeState();
     $('daily-gate').style.display = s === 'gate' ? '' : 'none';
     $('daily-birthday').style.display = s === 'birthday' ? '' : 'none';
