@@ -138,15 +138,15 @@
     .btn-white svg { width: 15px; height: 15px; }
 
     /* Suspicious coincidence — describe it, AI draws it */
-    .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .coin-cell { display: flex; flex-direction: column; gap: 7px; }
-    .coin-box { aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 16px; }
-    .coin-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; width: 100%; padding: 6px 4px; background: #ffffff; color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 4px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-family: inherit; cursor: pointer; transition: background 0.15s ease; }
-    .coin-btn:hover { background: #fffdf7; }
+    .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+    .coin-cell { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 12px; line-height: 1.35; word-break: break-word; cursor: text; outline: none; }
+    .coin-box:focus { border-color: var(--gold-dim); }
+    .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; padding: 5px 10px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 4px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-family: inherit; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+    .coin-btn:hover { background: #fffdf7; border-color: var(--gold-dim); }
     .coin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .coin-btn svg { width: 10px; height: 10px; }
-    #coin-input { margin-bottom: 14px; }
     .note { font-size: 12px; color: var(--text-faint); font-style: italic; margin-top: 10px; min-height: 16px; }
 
     /* ── Chips (segmented) ── */
@@ -483,11 +483,10 @@
         <!-- Suspicious coincidence — describe it, AI draws it -->
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
           <div class="cards-title">Suspicious coincidence…</div>
-          <input type="text" id="coin-input" placeholder="Describe your coincidence…">
           <div class="coin-boxes">
-            <div class="coin-cell"><div class="coin-box" id="coin-0"></div><button class="coin-btn" data-i="0">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-1"></div><button class="coin-btn" data-i="1">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-2"></div><button class="coin-btn" data-i="2">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">Draw it! <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg></button></div>
           </div>
         </div>
 
@@ -1580,12 +1579,14 @@
 
   /* ══════════ Suspicious coincidence — describe it, AI draws it ══════════ */
   async function drawCoinBox(i) {
-    const inp = $('coin-input'); const desc = (inp.value || '').trim();
-    if (!desc) { inp.focus(); return; }
     const box = $('coin-' + i);
+    const desc = (box.dataset.desc || box.textContent || '').trim();
+    if (!desc) { box.focus(); return; }
+    box.dataset.desc = desc;
     const btn = document.querySelector('.coin-btn[data-i="' + i + '"]');
     const orig = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    box.setAttribute('contenteditable', 'false');
     box.innerHTML = '<span class="spin">✦</span>';
     const prompt = `Black and white vintage film photograph, grainy and dreamlike, quietly uncanny and a little unsettling. ${desc}. Moody, cinematic, atmospheric. No text, no words.`;
     try {
@@ -1594,11 +1595,22 @@
         body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1024' }),
       });
       const d = await r.json();
-      box.innerHTML = d.url ? `<img src="${esc(d.url)}" alt="">` : '⚠';
-    } catch { box.innerHTML = '⚠'; }
+      if (d.url) { box.innerHTML = `<img src="${esc(d.url)}" alt="">`; }
+      else { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+    } catch { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
     if (btn) { btn.disabled = false; btn.innerHTML = orig; }
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', () => drawCoinBox(+b.dataset.i)));
+  // Tap a drawn box to edit its text again (restores the description).
+  ['coin-0', 'coin-1', 'coin-2'].forEach(id => {
+    const box = $(id); if (!box) return;
+    box.addEventListener('click', () => {
+      if (box.querySelector('img')) {
+        box.innerHTML = ''; box.textContent = box.dataset.desc || '';
+        box.setAttribute('contenteditable', 'true'); box.focus();
+      }
+    });
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
