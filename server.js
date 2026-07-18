@@ -1688,14 +1688,14 @@ Today's tightest transits to their chart: ${asp}.`;
       astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
     }
 
-    const voice = `warm, intimate, a-little-luminous — like Co-Star crossed with a kind friend who happens to be a witch. Speak directly to them as "you". Grounded and specific, never fatalistic, never medical/legal/financial certainty, never generic filler.`;
+    const voice = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
 
-    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it punchy and direct — short sentences, a little tough-love, no filler.
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it short, plain, and grounded — no filler, no cosmic language.
 You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
-  "reading": "ONE short paragraph, 2-3 sentences MAX. Be CONCRETE and grounded — name a real, specific situation or action for today (a conversation, a text, a task, a person, money, sleep, a feeling in the body), not vague mystical abstraction. Tell them plainly what to actually do or notice. No 'the universe', no 'energy', no cosmic platitudes, no astrology jargon in the sentence itself.",
+  "reading": "1-2 short, plain sentences — no more. Notice one true, specific thing about today (a real situation, a feeling, a small choice — a conversation, a text, money, sleep, the body), the way a grounded friend would. Do NOT instruct, moralize, or hype it up. No 'the universe', no 'energy', no cosmic or mystical language, no astrology jargon, no 'you need to' / 'you should'.",
   "focus": "1-3 word theme for the day",
   "invite": "",
   "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
