@@ -200,6 +200,17 @@
     .quiz-media { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; margin: 0 auto 14px; background: #000; }
     .quiz-media-ph { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
+    /* Quiz — full-screen "own little app" overlay */
+    .quiz-app { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    .quiz-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .quiz-stage { max-width: 460px; margin: 0 auto; min-height: 100%; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 58px) 22px calc(env(safe-area-inset-bottom, 0px) + 32px); display: flex; flex-direction: column; justify-content: center; }
+    .quiz-app .quiz-media { max-height: 56vh; }
+    .quiz-kicker { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 12px; }
+    .quiz-app .quiz-q { font-size: 24px; margin-bottom: 20px; }
+    .reveal-name { text-align: center; font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--gold); margin: 16px 0 8px; }
+    .reveal-body { font-family: var(--serif); font-size: 17.5px; line-height: 1.6; color: var(--text); text-align: center; margin-bottom: 22px; }
+    .quiz-hero { text-align: center; font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1.12; color: var(--text); margin-bottom: 6px; }
+
     /* Day at a glance */
     .glance-headline { font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.14; color: var(--text); margin: 4px 0 14px; }
     .glance-p { font-size: 14.5px; line-height: 1.6; color: var(--text); margin-bottom: 10px; }
@@ -495,16 +506,9 @@
           </div>
         </div>
 
-        <!-- Are you secretly a witch? quiz (playful funnel to the shop) -->
-        <div class="card" id="quiz-card">
-          <div class="cards-title">Are you secretly a witch?</div>
-          <div id="quiz-intro">
-            <p class="hint" style="text-align:center;">Five signs. Answer honestly — you already know the truth.</p>
-            <button class="btn" id="quiz-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Take the quiz</button>
-          </div>
-          <div id="quiz-body" style="display:none;"></div>
-          <div id="quiz-result" style="display:none;"></div>
-        </div>
+        <!-- "Are you secretly a witch?" quiz is now its own full-screen app
+             (#quiz-app overlay), unlinked from Home for now (work in progress).
+             Open it directly at /witch?quiz to test. -->
 
         <!-- Today's cards (tarot) -->
         <div class="card" id="tarot-card" style="display:none;">
@@ -686,6 +690,12 @@
 
   <div class="modal-bg" id="modal-bg">
     <div class="modal" id="modal"></div>
+  </div>
+
+  <!-- "Are you secretly a witch?" — full-screen quiz app -->
+  <div class="quiz-app" id="quiz-app" style="display:none;">
+    <button class="quiz-close" id="quiz-close" aria-label="Close quiz"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="quiz-stage" id="quiz-stage"></div>
   </div>
 
   <script>
@@ -1450,75 +1460,96 @@
     $('chart-redo').addEventListener('click', () => { closeModal(); try { localStorage.removeItem('witch_natal'); } catch {} natalChartHtml = ''; cloudSyncSoon(); renderHome(); });
   });
 
-  /* ══════════ QUIZ: Are you secretly a witch? (always yes → shop) ══════════ */
+  /* ══════════ QUIZ: Are you secretly a witch? — full-screen app ══════════ */
+  // Real questions → after answering, a reveal screen (image/film + the sign
+  // explained). Own full-screen overlay; the page behind is scroll-locked.
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
   const QUIZ = [
-    { q: 'Have you ever just *known* something was about to happen — and then it did?',
+    { q: 'How often do you get a feeling about something before it happens?',
+      a: ["Often — and I'm usually right", 'Every so often', 'Rarely', 'Never really'],
       media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
-      a: ['Yes — more than once', 'Once or twice', "…now that you mention it"] },
-    { q: 'Has something strange ever happened around you when your emotions ran high?',
+      reveal: { name: 'Clear knowing', body: "That flicker before the phone rings, before the news comes — it has a name: claircognizance, or clear knowing. The ones who had it were quietly asked for answers. If you've felt it even once, that channel is open in you." } },
+    { q: 'When your emotions run high, has the world around you ever seemed to respond — lights, objects, the weather, other people?',
+      a: ['Yes — more than once', 'Once, and it stayed with me', 'Not that I noticed'],
       media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
-      a: ['Yes — and it unsettled me', 'Maybe a coincidence', "I've always wondered"] },
-    { q: 'Does the natural world seem to… respond to you?',
+      reveal: { name: 'Raw power', body: "Big emotion isn't only feeling — it's energy moving through you. A light that flickers, a glass that cracks, a room gone cold when you're furious. Witches were the ones who could feel it build and send it somewhere." } },
+    { q: 'How connected do you feel to animals and the natural world?',
+      a: ['Deeply — it feels like home', 'More than most people', 'Somewhat', 'Not very'],
       media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
-      a: ['Always has', 'Sometimes', "I'm most myself outside"] },
-    { q: "Do the same numbers or signs keep finding you, like they're meant for you?",
+      reveal: { name: 'The old kinship', body: "Animals that come close, plants that thrive for you, a pull toward the moon and the trees. Before there were books, there were the ones who listened to the land — and it still speaks to you." } },
+    { q: 'Do you notice the same numbers or signs appearing again and again?',
+      a: ['Constantly', 'Here and there', 'Now that you mention it', 'Not really'],
       media: { type: 'image', url: QUIZ_ASSETS + 'synchronicity.png' },
-      a: ['Constantly', 'Here and there', '11:11, every time'] },
-    { q: 'For as long as you can remember — have you felt different from everyone else?',
+      reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. A song that answers a question you never said aloud. Not coincidence — the world getting your attention. Witches simply stopped calling it random and started listening." } },
+    { q: 'For as long as you can remember, have you felt different from the people around you?',
+      a: ['My whole life', 'Deep down, yes', 'Sometimes', 'Not really'],
       media: { type: 'none' },
-      a: ['My whole life', 'Deep down, yes', "I never fit the mold"] },
+      reveal: { name: 'You were never meant to fit', body: "That sense of standing just outside the circle, of feeling more than the people around you — it was never a flaw. It was the mark. The different ones were always the witches." } },
   ];
-  let quizStep = 0;
   function quizMediaHTML(m) {
     if (!m || m.type === 'none') return `<div class="quiz-media quiz-media-ph">image coming soon</div>`;
     if (m.type === 'video') return `<video class="quiz-media" src="${m.url}" autoplay muted loop playsinline preload="auto"></video>`;
     return `<img class="quiz-media" src="${m.url}" alt="">`;
   }
-  function renderQuizQuestion() {
-    const item = QUIZ[quizStep];
-    $('quiz-body').innerHTML =
-      `<div class="quiz-prog">Sign ${quizStep + 1} of ${QUIZ.length}</div>` +
-      quizMediaHTML(item.media) +
-      `<div class="quiz-q">${esc(item.q).replace(/\*(.+?)\*/g, '<em>$1</em>')}</div>
-       <div class="quiz-opts">` +
-      item.a.map((opt, i) => `<button class="btn-ghost quiz-opt" data-i="${i}">${esc(opt)}</button>`).join('') +
-      `</div>`;
+  let quizScreens = [], qi = 0;
+  function resultHTML() {
+    return `<div style="text-align:center; color:var(--gold); line-height:0; margin-bottom:6px;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
+       <div class="quiz-hero" style="font-size:26px; color:var(--gold);">The power has always been within you</div>
+       <p class="reveal-body" style="margin-top:14px;">There was never any doubt. You're a witch — you always have been. The prickle at the back of your neck, the way a room shifts when you walk in, the dreams that come true a little too often. That's the craft, awake in you.</p>
+       <div class="advice-box" style="text-align:left;"><div class="k">One thing</div><p>A craft like yours deserves real tools — candles, crystals & herbs chosen with intention. Every witch needs her altar.</p></div>
+       <button class="btn" id="q-shop" style="margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg> Gather your tools</button>
+       <button class="btn-ghost" id="q-again" style="margin-top:10px;">Take it again</button>`;
   }
-  function showQuizResult() {
-    $('quiz-body').style.display = 'none';
-    $('quiz-result').style.display = '';
-    $('quiz-result').innerHTML =
-      `<div style="text-align:center; color:var(--gold); line-height:0;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
-       <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">The power has always been within you</div>
-       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:10px;">There was never any doubt. You're a witch — you always have been. That prickle at the back of your neck, the way a room shifts when you walk in, the dreams that come true a little too often? That's the craft, awake in you.</p>
-       <p style="font-size:14.5px; line-height:1.65; color:var(--text); margin-bottom:6px;">You can already:</p>
-       <ul style="font-size:14px; line-height:1.7; color:var(--text-dim); padding-left:20px; margin-bottom:14px;">
-         <li>read a room before you step into it</li>
-         <li>feel the weather turn in your bones</li>
-         <li>tell when someone isn't being honest</li>
-         <li>turn a whole bad day with one lit candle</li>
-         <li>find what's lost by going quiet</li>
-       </ul>
-       <div class="advice-box"><div class="k">One thing</div><p>A craft like yours deserves real tools — candles, crystals & herbs chosen with intention. Every witch needs her altar.</p></div>
-       <button class="btn" id="quiz-shop" style="margin-top:14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg> Gather your tools</button>
-       <button class="btn-ghost" id="quiz-again" style="margin-top:10px;">Take it again</button>`;
-    $('quiz-shop').addEventListener('click', () => go('shop'));
-    $('quiz-again').addEventListener('click', () => { $('quiz-result').style.display = 'none'; $('quiz-intro').style.display = ''; });
+  function renderQuizScreen() {
+    const sc = quizScreens[qi], stage = $('quiz-stage');
+    $('quiz-app').scrollTop = 0;
+    if (sc.k === 'intro') {
+      stage.innerHTML =
+        `<div class="quiz-kicker">A witching diagnostic</div>
+         <div class="quiz-hero">Are you secretly a witch?</div>
+         <p class="reveal-body" style="margin-top:12px;">Five signs. Answer honestly — there are no wrong answers, only what's true for you.</p>
+         <button class="btn" id="q-begin" style="margin-top:6px;">Begin</button>`;
+      $('q-begin').onclick = () => { qi++; renderQuizScreen(); };
+    } else if (sc.k === 'q') {
+      const it = QUIZ[sc.i];
+      stage.innerHTML =
+        `<div class="quiz-kicker">Sign ${sc.i + 1} of ${QUIZ.length}</div>
+         <div class="quiz-q">${esc(it.q)}</div>
+         <div class="quiz-opts">` +
+        it.a.map((o, idx) => `<button class="btn-ghost q-opt" data-i="${idx}">${esc(o)}</button>`).join('') +
+        `</div>`;
+      stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
+    } else if (sc.k === 'reveal') {
+      const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      stage.innerHTML =
+        quizMediaHTML(it.media) +
+        `<div class="reveal-name">${esc(it.reveal.name)}</div>
+         <div class="reveal-body">${esc(it.reveal.body)}</div>
+         <button class="btn" id="q-cont">${last ? 'See what you are' : 'Continue'}</button>`;
+      $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
+    } else {
+      stage.innerHTML = resultHTML();
+      $('q-shop').onclick = () => { closeQuiz(); go('shop'); };
+      $('q-again').onclick = () => { qi = 0; renderQuizScreen(); };
+    }
   }
-  $('quiz-start').addEventListener('click', () => {
-    quizStep = 0;
-    $('quiz-intro').style.display = 'none';
-    $('quiz-result').style.display = 'none';
-    $('quiz-body').style.display = '';
-    renderQuizQuestion();
-  });
-  $('quiz-body').addEventListener('click', (e) => {
-    const b = e.target.closest('.quiz-opt'); if (!b) return;
-    quizStep++;
-    if (quizStep < QUIZ.length) renderQuizQuestion();
-    else showQuizResult();
-  });
+  function openQuiz() {
+    quizScreens = [{ k: 'intro' }];
+    QUIZ.forEach((_, i) => { quizScreens.push({ k: 'q', i }); quizScreens.push({ k: 'reveal', i }); });
+    quizScreens.push({ k: 'result' });
+    qi = 0;
+    document.body.style.overflow = 'hidden';
+    $('quiz-app').style.display = '';
+    renderQuizScreen();
+  }
+  function closeQuiz() {
+    $('quiz-app').style.display = 'none';
+    document.body.style.overflow = '';
+    if (/[?&]quiz\b/.test(location.search)) history.replaceState(null, '', location.pathname);
+  }
+  $('quiz-close').addEventListener('click', closeQuiz);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
+  if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
