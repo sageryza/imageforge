@@ -481,7 +481,22 @@ function openChat(name, keepScroll){
         var la=document.createElement('button'); la.className='loadall'; la.textContent='Load all';
         la.onclick=function(){
           assetsPanel.querySelectorAll('img[loading="lazy"]').forEach(function(im){ im.loading='eager'; });
-          la.remove();
+          // Also trickle the FULL-SIZE originals into the cache (3 at a time)
+          // so the lightbox opens instantly once its image has come in.
+          la.disabled=true;
+          var q=a.map(function(it){ return it.url; }), active=0, done=0;
+          function tick(){
+            if(!q.length && !active){ la.textContent='All loaded'; setTimeout(function(){ la.remove(); },1200); return; }
+            while(active<3 && q.length){
+              active++;
+              var im=new Image();
+              im.onload=im.onerror=function(){ active--; done++;
+                la.textContent='Loading full sizes\u2026 '+done+'/'+a.length; tick(); };
+              im.src=q.shift();
+            }
+          }
+          la.textContent='Loading full sizes\u2026 0/'+a.length;
+          tick();
         };
         assetsPanel.appendChild(la);
         var grid=document.createElement('div'); grid.className='assetgrid';
