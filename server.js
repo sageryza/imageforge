@@ -998,6 +998,33 @@ app.get('/api/gallery/assets', async (req, res) => {
   }
 });
 
+// Cleanup: delete forge-chat-assets caption records for a chat, optionally
+// only those whose url contains a substring (e.g. "/characters/" to remove the
+// duplicate label records that pointed at the portrait's own url instead of
+// the hook's gallery copy). Returns how many were removed.
+app.post('/api/gallery/asset-cleanup', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, urlContains, dry } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'admin unavailable' });
+    const snap = await admin.firestore().collection('forge-chat-assets')
+      .where('chat', '==', String(chat).slice(0, 60)).get();
+    const match = snap.docs.filter((d) => {
+      const u = String((d.data() || {}).url || '');
+      return !urlContains || u.includes(String(urlContains));
+    });
+    if (dry) return res.json({ ok: true, dry: true, wouldDelete: match.length });
+    let n = 0;
+    for (const d of match) { await d.ref.delete(); n++; }
+    res.json({ ok: true, deleted: n });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Sophie's curation vote on one Assets-tab image: ♥ ('like'), ✕ ('dislike'),
 // or null to clear. One doc per chat+url (deterministic id) in deckfactory.
 // Chats read the verdicts off GET /api/gallery/assets and act on them.
