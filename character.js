@@ -230,7 +230,7 @@ router.post('/generate', gated, async (req, res) => {
 // saved but off the sheet.
 router.post('/save', gated, async (req, res) => {
   try {
-    const { url, name, gender, tier, quality, model } = req.body || {};
+    const { url, name, gender, tier, quality, model, chat } = req.body || {};
     if (!url) return res.status(400).json({ error: 'url required' });
     const d = db();
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
@@ -252,6 +252,24 @@ router.post('/save', gated, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     const ref = await d.collection(COLLECTION).add(doc);
+    // Curated Assets-tab record with the model/quality caption, so the label
+    // exists from the moment of creation (no after-the-fact backfill needed).
+    if (chat && doc.quality) {
+      try {
+        const acol = d.collection('forge-chat-assets');
+        const caption = `${doc.model || 'gpt-image-2'} · ${doc.quality}`;
+        const dup = await acol.where('chat', '==', String(chat).slice(0, 60))
+          .where('url', '==', String(url)).limit(1).get();
+        if (dup.empty) {
+          await acol.add({
+            chat: String(chat).slice(0, 60), url: String(url),
+            prompt: caption, created: new Date().toISOString(),
+          });
+        } else {
+          await dup.docs[0].ref.update({ prompt: caption });
+        }
+      } catch (e) { /* caption record is best-effort */ }
+    }
     res.json({ ok: true, id: ref.id, ...doc });
   } catch (err) {
     res.status(500).json({ error: err.message });

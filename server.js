@@ -856,7 +856,19 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       const acol = admin.firestore().collection('forge-chat-assets');
       const adup = await acol.where('chat', '==', String(chat).slice(0, 60))
         .where('url', '==', wipUrl).limit(1).get();
-      if (!adup.empty) return res.json({ ok: true, deduped: true, url: wipUrl });
+      if (!adup.empty) {
+        // A curated caption (e.g. "gpt-image-2 · medium") may arrive after the
+        // hook's generic record — upgrade the existing doc in place instead of
+        // silently dropping it.
+        const existing = adup.docs[0];
+        const curated = String(prompt || '').trim();
+        const old = String(existing.data().prompt || '');
+        if (curated && !/^from /.test(curated) && (!old || /^from /.test(old))) {
+          await existing.ref.update({ prompt: curated.slice(0, 500) });
+          return res.json({ ok: true, updated: true, url: wipUrl });
+        }
+        return res.json({ ok: true, deduped: true, url: wipUrl });
+      }
       await acol.add({
         chat: String(chat).slice(0, 60), url: wipUrl,
         prompt: String(prompt || '').slice(0, 500),
