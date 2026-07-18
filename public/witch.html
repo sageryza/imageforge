@@ -224,7 +224,8 @@
     .quiz-stage { max-width: 430px; margin: 0 auto; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 22px 24px; }
     .quiz-app .quiz-media { max-height: 42vh; }
     .quiz-kicker { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 12px; }
-    .quiz-app .quiz-q { font-size: 24px; margin-bottom: 20px; }
+    .quiz-app .quiz-q { font-size: 24px; margin-bottom: 12px; }
+    .quiz-sub { font-family: var(--serif); font-size: 17px; line-height: 1.5; color: var(--text-dim); text-align: center; margin: 0 0 22px; }
     .reveal-name { text-align: center; font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--gold); margin: 16px 0 8px; }
     .reveal-body { font-family: var(--serif); font-size: 17.5px; line-height: 1.6; color: var(--text); text-align: center; margin-bottom: 22px; }
     .quiz-hero { text-align: center; font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1.12; color: var(--text); margin-bottom: 6px; }
@@ -523,7 +524,7 @@
 
           <!-- reading -->
           <div id="daily-reading" style="display:none;">
-            <div class="kicker">Your day at a glance</div>
+            <div class="kicker">What does the sky say about your day?</div>
             <div class="glance-headline" id="astro-headline"></div>
             <div id="astro-body"></div>
             <div id="astro-extra"></div>
@@ -1033,9 +1034,12 @@
   function setAstroLoading() {
     $('astro-headline').textContent = '';
     $('astro-extra').innerHTML = '';
-    $('astro-body').innerHTML = `<div class="skywheel" role="img" aria-label="Reading the sky">${skyWheelSVG()}</div>
-    <div style="text-align:center; font-size:13px; color:var(--text-dim); font-style:italic;">Reading the sky for you…</div>`;
+    $('astro-body').innerHTML = `<div style="min-height:170px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:14px 0 4px;">
+      <div class="skywheel" role="img" aria-label="Reading the sky">${skyWheelSVG()}</div>
+      <div style="text-align:center; font-size:13px; color:var(--text-dim); font-style:italic;">Reading the sky for you…</div>
+    </div>`;
     $('astro-note').textContent = '';
+    const fc = $('see-full-chart'); if (fc) fc.style.display = 'none';
     $('intention-text').textContent = INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
@@ -1494,7 +1498,8 @@
   // explained). Own full-screen overlay; the page behind is scroll-locked.
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
   const QUIZ = [
-    { q: 'How often do you get a feeling about something before it happens?',
+    { q: 'You know what’s going to happen before it does.',
+      sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
       media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
@@ -1543,8 +1548,9 @@
       const it = QUIZ[sc.i];
       stage.innerHTML =
         `<div class="quiz-kicker">Sign ${sc.i + 1} of ${QUIZ.length}</div>
-         <div class="quiz-q">${esc(it.q)}</div>
-         <div class="quiz-opts">` +
+         <div class="quiz-q">${esc(it.q)}</div>` +
+        (it.sub ? `<div class="quiz-sub">${esc(it.sub)}</div>` : '') +
+        `<div class="quiz-opts">` +
         it.a.map((o, idx) => `<button class="btn-ghost q-opt" data-i="${idx}">${esc(o)}</button>`).join('') +
         `</div>`;
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
