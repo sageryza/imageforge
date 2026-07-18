@@ -984,8 +984,12 @@ app.get('/api/gallery/assets', async (req, res) => {
       if (admin.apps.length) {
         const vs = await admin.firestore().collection('forge-asset-votes').where('chat', '==', chat).get();
         const votes = new Map();
-        vs.docs.forEach((d) => { const v = d.data(); votes.set(v.url, v.vote); });
-        assets.forEach((a) => { const v = votes.get(a.url); if (v) a.vote = v; });
+        vs.docs.forEach((d) => { const v = d.data(); votes.set(v.url, v); });
+        assets.forEach((a) => {
+          const v = votes.get(a.url);
+          if (v && v.vote) a.vote = v.vote;
+          if (v && v.note) a.note = v.note;
+        });
       }
     } catch (e) { /* votes are best-effort */ }
     res.json({ chat, assets });
@@ -1002,19 +1006,26 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { chat, url, vote } = req.body || {};
+    const { chat, url, vote, note } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const id = require('crypto').createHash('sha1')
       .update(String(chat) + '|' + String(url)).digest('hex');
     const ref = admin.firestore().collection('forge-asset-votes').doc(id);
-    if (vote === 'like' || vote === 'dislike') {
-      await ref.set({ chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
-        vote, updated: new Date().toISOString() });
-      return res.json({ ok: true, vote });
+    // vote and note update independently: send only the field you're changing
+    // (vote: 'like'|'dislike'|null to clear; note: string|null to clear).
+    const patch = { chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+      updated: new Date().toISOString() };
+    if (vote !== undefined) {
+      patch.vote = (vote === 'like' || vote === 'dislike')
+        ? vote : admin.firestore.FieldValue.delete();
     }
-    await ref.delete();
-    res.json({ ok: true, vote: null });
+    if (note !== undefined) {
+      const t = String(note == null ? '' : note).trim();
+      patch.note = t ? t.slice(0, 300) : admin.firestore.FieldValue.delete();
+    }
+    await ref.set(patch, { merge: true });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
