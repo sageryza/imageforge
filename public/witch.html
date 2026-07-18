@@ -931,7 +931,9 @@
     const CX = 340, CY = 340;
     const pt = (deg, r) => [CX + r * Math.sin(deg * Math.PI / 180), CY - r * Math.cos(deg * Math.PI / 180)];
     const ZODIAC = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-    const PLANETS = ['☉','☽','☿','♀','♂','♃','♄','♅'];
+    // One glyph per sign, aligned under its name. ︎ = text-presentation
+    // selector: forces the monochrome line glyph instead of a color emoji.
+    const GLYPHS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'].map(g => g + '︎');
     let s = '';
     // Concentric structure lines (only the outermost band is ever visible).
     s += `<circle class="sky-line" cx="${CX}" cy="${CY}" r="322"/>`;
@@ -949,9 +951,10 @@
       const [x, y] = pt(a, 309);
       s += `<text class="sky-name" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${name}</text>`;
     });
-    // Planet glyphs on an inner ring, tangent.
-    PLANETS.forEach((g, i) => {
-      const a = i * (360 / PLANETS.length) + 8;
+    // Each sign's glyph centered on an inner ring at the SAME angle as its name,
+    // so the symbol sits squarely beneath its zodiac name.
+    GLYPHS.forEach((g, i) => {
+      const a = i * 30 + 15;
       const [x, y] = pt(a, 272);
       s += `<text class="sky-planet" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${a} ${x.toFixed(1)} ${y.toFixed(1)})">${g}</text>`;
     });
