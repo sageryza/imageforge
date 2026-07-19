@@ -268,7 +268,8 @@ private struct HomeGrid: View {
     // by most-recent use.
     private var tools: [Tool] {
         let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
-        let middle = Tool.allCases.filter { $0 != .story && !pinnedBottom.contains($0) }
+        // Chats isn't a grid card — it lives as the icon in the header's top-right.
+        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return [.story] + ranked + rest + pinnedBottom
@@ -281,6 +282,18 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
+            // Chats isn't a grid card — it's this icon in the top-right corner.
+            .overlay(alignment: .trailing) {
+                Button { open(.chats) } label: {
+                    Image(systemName: Tool.chats.icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 12)
+            }
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
                     ForEach(tools) { t in

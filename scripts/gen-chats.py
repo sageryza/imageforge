@@ -125,6 +125,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
 #back{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09);}
+/* Floating "now playing" bar — pinned at the top while a message's audio plays,
+   so it can be paused without scrolling back up to the message. translateZ keeps
+   it from riding along with WKWebView momentum scroll. */
+.nowplaying{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:10; display:none; align-items:center; gap:8px; max-width:min(60vw,240px); background:var(--barbg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 13px; box-shadow:0 2px 12px rgba(0,0,0,.14); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
+.nowplaying.show{display:flex;}
+.nowplaying svg{flex:none; color:var(--ink);}
+/* Floating jump-to-top arrow — appears once you've scrolled down. */
+.totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
+.totop.show{display:flex;}
 .loadall{display:block; margin:0 0 0 auto; font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
   border:1px solid var(--line); color:var(--ink2); background:var(--barbg); border-radius:6px; padding:8px 14px; cursor:pointer;}
 .arow{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px;}
@@ -141,6 +150,8 @@ __PILL_CSS__
 </style>
 __PILL_HTML__
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
+<div id="nowplaying" class="nowplaying" role="button" aria-label="Pause audio"><span id="npic"></span><span>Playing</span></div>
+<button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
 <div class="wrap">
   <section id="home">
     <header>
@@ -600,6 +611,31 @@ function goHome(){
   window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
 document.getElementById('back').onclick=goHome;
+
+// Floating pause bar: whenever a message's <audio> starts, show a tappable bar
+// at the top; tapping it (or the audio finishing) pauses/clears it. Delegated
+// with capture so it catches audio elements added later (Play → neural voice).
+(function(){
+  var npBar=document.getElementById('nowplaying'), npIc=document.getElementById('npic'), npAudio=null;
+  npIc.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>';
+  document.addEventListener('play', function(e){
+    if(e.target && e.target.tagName==='AUDIO'){ npAudio=e.target; npBar.classList.add('show'); }
+  }, true);
+  function hide(e){ if(e.target===npAudio){ npBar.classList.remove('show'); if(e.type==='ended') npAudio=null; } }
+  document.addEventListener('pause', hide, true);
+  document.addEventListener('ended', hide, true);
+  npBar.onclick=function(){ if(npAudio) npAudio.pause(); };
+})();
+
+// Floating jump-to-top arrow: appears once you've scrolled down; stops any
+// autoscroll and glides back to the top.
+(function(){
+  var toTop=document.getElementById('totop');
+  toTop.onclick=function(){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:0,behavior:'smooth'}); };
+  function upd(){ toTop.classList.toggle('show', window.scrollY>400); }
+  window.addEventListener('scroll', upd, {passive:true});
+  upd();
+})();
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };

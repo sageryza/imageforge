@@ -680,36 +680,15 @@ lifted into a standalone tool later.
   image, video, or any downloadable deliverable — send it as the final item,
   after all explanatory text, so it's easy to find and never buried
   mid-message.
-- **Long replies get an audio version.** When a chat reply runs longer than
-  about one phone screen (~2–3 paragraphs), also attach a text-to-speech
-  recording of it — OpenAI `gpt-4o-mini-tts` by default (cheap, reliable).
-  Keep it faithful to the text, lightly adapted for listening (spell out URLs
-  and numbers). Only render it in the F5 cloned voice when asked.
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
-- **TLDR + audio replies (Sophie's rule, July 2026 — applies in every chat).**
-  - **TLDR at the end of every reply, no matter what** — the only exception is
-    a really quick reply that fits in ONE iPhone screen (she has an iPhone 13).
-  - **Attach an audio version (voice memo)** — TTS via OpenAI `gpt-4o-mini-tts`
-    reading the message verbatim (strip markdown/URLs, keep the words) —
-    whenever the reply is longer than one iPhone-13 screen (she'd have to
-    scroll) OR says something important for her to know: answers to her
-    questions, questions for her, new findings, decisions she needs to make.
-  - **Skip the audio** when the reply just confirms work she asked for or is
-    technical detail with no new information ("built it — here's what
-    changed"). TLDR still required.
-  - **Answer questions FIRST — as a one-line TLDR — then do the task.** If
-    Sophie's message contains a question, lead the reply with a short TLDR answer
-    to it (not a jump straight into doing/reporting the task, and not a long
-    build-up before the answer). Answer crisply up top, THEN carry out any task
-    from the same message.
-  - **Small question → short answer.** When Sophie asks a quick or small
-    question, reply with just the answer — no suggestions about what to do
-    next, no updates on work already done, no recaps. Save those for when she
-    asks for them.
-  - Audio is the LAST thing in the message — after the TLDR and any
-    files/images.
+- **Answer questions FIRST.** If Sophie's message contains a question, answer
+  it at the top of the reply, before doing or reporting on any tasks from the
+  same message.
+- **Small question → short answer.** When Sophie asks a quick or small
+  question, reply with just the answer — no suggestions about what to do next,
+  no updates on work already done, no recaps. Save those for when she asks.
 
 ## YouTube auto-upload (witchy video channel)
 - Finished videos post straight to Sophie's business YouTube channel as **private
