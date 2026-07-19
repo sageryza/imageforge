@@ -312,21 +312,10 @@ function openProj(p, jumpBeat){
       if(NORM[c.status]) c.status=NORM[c.status];
       var st=c.status||'miss';
       f.innerHTML=(c.url? '<img alt="" loading="lazy" src="'+esc(c.url)+'">' : '<div class="ph">no art yet</div>');
-      var cap=document.createElement('figcaption'); cap.textContent=c.label||'';
-      var stb=document.createElement('button'); stb.className='st '+st; stb.textContent='\u00b7 '+(STATUS[st]||st);
-      stb.title='Tap to change status';
-      stb.onclick=function(ev){
-        ev.stopPropagation();
-        var order=['ok','cand','draft','miss'];
-        var cur=order.indexOf(c.status||'miss');
-        var next=order[(cur+1)%order.length];
-        var prev=c.status; c.status=next;
-        stb.className='st '+next; stb.textContent='\u00b7 '+(STATUS[next]||next);
-        api('/api/story/status',{method:'POST',body:JSON.stringify({projectId:p.id, beat:bi, card:(beat.cards||[]).indexOf(c), status:next})})
-          .then(function(r){ if(!r.ok) throw 0; })
-          .catch(function(){ c.status=prev; stb.className='st '+(prev||'miss'); stb.textContent='\u00b7 '+(STATUS[prev]||prev||'no art yet'); toast('Couldn\u2019t save the status'); });
-      };
-      cap.appendChild(stb);
+      var cap=document.createElement('figcaption');
+      // The candidate/approved status label and the auto-generated UUID
+      // filename are intentionally not shown for now (candidate architecture
+      // parked; every asset reads the same).
       var mv=document.createElement('button'); mv.className='st'; mv.textContent='· move'; mv.title='Move this art to another beat or the inbox';
       mv.onclick=function(ev){ ev.stopPropagation(); moveChooser(p, {beat:bi, card:(beat.cards||[]).indexOf(c)}); };
       cap.appendChild(mv); f.appendChild(cap);
@@ -365,7 +354,6 @@ function openProj(p, jumpBeat){
     beatsView.appendChild(btnrow); beatsView.appendChild(wrap);
     renderNoteInto(wrap,id,(beat.vo||'').slice(0,70));
   });
-  var em=document.createElement('div'); em.className='endmark'; em.innerHTML='&#10086;'; sec.appendChild(em);
   var dz=document.createElement('button'); dz.className='addnote'; dz.style.margin='2.4em auto 0'; dz.style.color='var(--chg)'; dz.style.opacity='.75';
   dz.textContent='Delete this story'; dz.onclick=function(){ deleteStory(p); }; sec.appendChild(dz);
   document.getElementById('home').style.display='none';
