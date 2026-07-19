@@ -36,6 +36,15 @@ Portland dates). The full brief, her own planning docs/mockups, illustration
 live in **`docs/dating-book/`** — read `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`
 first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
 
+## Terminology (Sophie's usage)
+- **"app" = the iOS app.** When Sophie says "the app," she means the native
+  iOS app (SwiftUI), not the web. Icons/behaviours she describes there may be
+  SF Symbols / platform-native (e.g. the "sparkles" star is Apple's SF Symbols
+  `sparkles`, big star bottom-left — NOT the Heroicons `sparkles` the web
+  Miracles port uses).
+- **"web app" = the web app** (the `public/*.html` pages served by Render,
+  e.g. `/witch`).
+
 ## What it is
 A hub for making illustrated projects (card decks, picture books, sticker
 sheets, zines, single images). Home screen (`/`) is a grid of project types;
