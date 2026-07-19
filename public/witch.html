@@ -231,6 +231,14 @@
     .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
     .quiz-q { font-family: var(--serif); font-size: 21px; text-align: center; line-height: 1.2; margin: 0 0 16px; color: var(--text); }
     .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
+    /* Answer choices: gray outline (not gold), neutral text */
+    .q-opt { border-color: #bdb8b0; color: var(--text); }
+    .q-opt:hover { border-color: #8f8a82; color: var(--text); }
+    /* Continue + Back row (Back on the left) */
+    .quiz-btnrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; }
+    .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
+    .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
@@ -272,6 +280,14 @@
       color: rgba(255,247,230,0.9); font-size: 26px;
       box-shadow: 0 6px 16px rgba(80,60,110,0.22);
     }
+    .tback-btn {
+      width: 100%; cursor: pointer; flex-direction: column; gap: 8px; font-family: inherit;
+      transition: transform 0.12s ease, box-shadow 0.15s ease;
+    }
+    .tback-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(80,60,110,0.28); }
+    .tback-btn:active { transform: scale(0.98); }
+    .tback-btn .tback-pos { font-size: 10px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,247,230,0.75); }
+    .tback-btn .tback-star { font-size: 26px; line-height: 1; }
 
     .reading-block { margin-top: 6px; }
     .reading-block h3 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin: 16px 0 6px; color: var(--gold); }
@@ -701,13 +717,9 @@
 
         <!-- Today's cards (tarot) -->
         <div class="card" id="tarot-card" style="display:none;">
-          <div class="cards-title">Today's Cards</div>
-          <p class="hint" style="text-align:center;">Three cards drawn just for you today — from the Rider-Waite deck.</p>
-          <div id="daily-backs" class="backs">
-            <div class="tback">✦</div><div class="tback">✦</div><div class="tback">✦</div>
-          </div>
-          <button class="btn" id="daily-reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg> Reveal your cards</button>
-          <div id="daily-cards" style="display:none;"></div>
+          <div class="kicker">Spread of the day</div>
+          <p class="hint">Three cards drawn just for you today, from the Rider-Waite deck. Tap each one to reveal it.</p>
+          <div id="daily-cards"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
           <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save to Book of Shadows</button>
         </div>
@@ -1127,7 +1139,7 @@
     return picks;
   }
 
-  let dailyData = null, dailyPicks = null, astroRevealed = false;
+  let dailyData = null, dailyPicks = null, astroRevealed = true;  // gate reverted for now — reading auto-loads on open
 
   function savedBirth() {
     try {
@@ -1256,7 +1268,7 @@
     resetDailyTarot();
     const date = todayISO();
     const zc = currentZodiac();
-    const cacheKey = 'witch_daily_v2_' + date + '_' + zc + '_' + (fbUser ? fbUser.uid : 'anon');
+    const cacheKey = 'witch_daily_v3_' + date + '_' + zc + '_' + (fbUser ? fbUser.uid : 'anon');
     if (!force) {
       try { const c = JSON.parse(localStorage.getItem(cacheKey) || 'null'); if (c && c.astrology) { dailyData = c; renderDaily(); return; } } catch {}
     }
@@ -1312,28 +1324,33 @@
     $('intention-text').textContent = dailyData.intention || INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
+  // Each of the 3 cards is revealed individually by tapping its back.
+  let tarotRevealed = new Set();
+  function renderDailyTarot() {
+    if (!dailyPicks) return;
+    const grid = dailyPicks.map((p, i) => tarotRevealed.has(i)
+      ? `<div class="draw-col">${tarotCardHtml(p.card, p.orientation, p.position)}</div>`
+      : `<div class="draw-col"><button class="tback tback-btn" type="button" data-ti="${i}" aria-label="Reveal your ${esc(p.position)} card"><span class="tback-pos">${esc(p.position)}</span><span class="tback-star">✦</span></button></div>`
+    ).join('');
+    $('daily-cards').innerHTML = `<div class="draw-grid three">${grid}</div>`;
+    $('daily-cards').querySelectorAll('.tback-btn').forEach(b => b.addEventListener('click', () => {
+      tarotRevealed.add(+b.dataset.ti);
+      renderDailyTarot();
+      if (tarotRevealed.size === 3) showTarotReading();
+    }));
+  }
+  function showTarotReading() {
+    const t = dailyData && dailyData.tarot; if (!t) return;
+    $('daily-tarot-reading').innerHTML = renderReading(t, true);
+    $('daily-tarot-reading').style.display = '';
+    const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false; sv.textContent = '✦ Save to Book of Shadows';
+  }
   function resetDailyTarot() {
-    $('daily-backs').style.display = '';
-    $('daily-reveal').style.display = '';
-    $('daily-cards').style.display = 'none';
+    tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
     $('daily-save').style.display = 'none';
+    renderDailyTarot();
   }
-
-  $('daily-reveal').addEventListener('click', () => {
-    if (!dailyPicks) return;
-    const grid = `<div class="draw-grid three">` + dailyPicks.map(p => `<div class="draw-col">${tarotCardHtml(p.card, p.orientation, p.position)}</div>`).join('') + `</div>`;
-    $('daily-cards').innerHTML = grid;
-    $('daily-backs').style.display = 'none';
-    $('daily-reveal').style.display = 'none';
-    $('daily-cards').style.display = '';
-    const t = dailyData && dailyData.tarot;
-    if (t) {
-      $('daily-tarot-reading').innerHTML = renderReading(t, true);
-      $('daily-tarot-reading').style.display = '';
-      const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false; sv.textContent = '✦ Save to Book of Shadows';
-    }
-  });
 
   $('daily-save').addEventListener('click', () => {
     if (!dailyData || !dailyData.tarot || !dailyPicks) return;
@@ -1786,12 +1803,32 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
-      stage.innerHTML =
-        quizMediaHTML(it.media) +
+      const body =
         `<div class="reveal-name">${esc(it.reveal.name)}</div>
          <div class="reveal-body">${esc(it.reveal.body)}</div>
-         <button class="btn-gold" id="q-cont">${last ? 'See what you are' : 'Continue'}</button>`;
-      $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
+         <div class="quiz-btnrow">
+           <button class="btn-ghost" id="q-back" type="button">Back</button>
+           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'}</button>
+         </div>`;
+      const wire = () => {
+        $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
+        const bk = $('q-back'); if (bk) bk.onclick = () => { if (qi > 0) { qi--; renderQuizScreen(); } };
+      };
+      // Wait for the video to actually load before showing the screen, so it
+      // never flashes text-without-video.
+      if (it.media && it.media.type === 'video') {
+        stage.innerHTML = `<div class="quiz-loading"><span class="spin">✦</span></div>`;
+        const v = document.createElement('video');
+        v.className = 'quiz-media'; v.src = it.media.url; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+        let done = false;
+        const show = () => { if (done) return; done = true; stage.innerHTML = body; stage.insertBefore(v, stage.firstChild); v.play().catch(() => {}); wire(); };
+        v.addEventListener('loadeddata', show); v.addEventListener('canplay', show);
+        setTimeout(show, 5000);   // fallback so a slow/broken video never hangs the screen
+        v.load();
+      } else {
+        stage.innerHTML = quizMediaHTML(it.media) + body;
+        wire();
+      }
     } else {
       stage.innerHTML = resultHTML();
       $('q-shop').onclick = () => { closeQuiz(); go('shop'); };
