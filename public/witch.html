@@ -56,7 +56,6 @@
       padding: 16px 20px 14px;
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border-soft);
     }
     .sigil { justify-self: center; display: flex; align-items: center; color: var(--gold); opacity: 0.92; }
     .sigil svg { width: 22px; height: 22px; }
@@ -557,9 +556,9 @@
     .aspect-line b { color: var(--moon); font-weight: 500; }
 
     /* ── Accounts ── */
-    .acct-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; background: transparent; border: 1px solid var(--border); border-radius: 50%; color: var(--text-dim); cursor: pointer; transition: all 0.15s ease; }
+    .acct-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; background: transparent; border: none; color: var(--text-dim); cursor: pointer; transition: color 0.15s ease; }
     .acct-btn.show { display: flex; }
-    .acct-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .acct-btn:hover { color: var(--gold); }
     .acct-btn svg { width: 17px; height: 17px; }
     .modal-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 22px; }
     .modal-bg.show { display: flex; }
