@@ -1808,7 +1808,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // Bump `v` whenever the reading's prompt/shape changes so cached readings
     // regenerate same-day instead of waiting for the next date.
     const inputHash = crypto.createHash('sha1').update(JSON.stringify({
-      v: 2, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+      v: 3, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
     })).digest('hex').slice(0, 12);
     const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
     if (docRef && !force) {
@@ -1816,6 +1816,25 @@ app.post('/api/witch/daily', async (req, res) => {
       if (snap.exists && snap.data().inputHash === inputHash) {
         return res.json({ ...snap.data().reading, cached: true, date });
       }
+    }
+
+    // Recently-used ingredients (the previous few days for this person) so the
+    // astrologer never repeats them day after day. Read prior docs by id (no
+    // composite index needed); best-effort.
+    let recentIngredients = [];
+    if (db && uid) {
+      try {
+        const [yy, mm, dd] = date.split('-').map(Number);
+        const priorRefs = [];
+        for (let k = 1; k <= 5; k++) {
+          const d = new Date(Date.UTC(yy, mm - 1, dd - k));
+          const ds = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+          priorRefs.push(db.collection('forge-witch-daily').doc(`${uid}_${ds}`));
+        }
+        const snaps = await db.getAll(...priorRefs);
+        snaps.forEach(s => { const ing = s.exists && s.data().reading && s.data().reading.astrology && s.data().reading.astrology.ingredients; if (Array.isArray(ing)) recentIngredients.push(...ing); });
+        recentIngredients = [...new Set(recentIngredients.map(x => String(x)))].slice(0, 24);
+      } catch (e) { /* non-fatal */ }
     }
 
     // ── Two INDEPENDENT calls (run in parallel) so the tarot and the
@@ -1838,20 +1857,25 @@ Today's tightest transits to their chart: ${asp}.`;
 
     const voice = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
 
-    const astroSystem = `You are the daily astrologer for "Secretly a Witch". Your voice is ${voice} Keep it short, plain, and grounded — no filler, no cosmic language.
-You are given a REAL, accurately computed chart and today's REAL transits — interpret them, never contradict or recompute the positions. Do NOT mention tarot.
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.
+You are given their REAL, accurately computed chart and today's REAL transits — interpret them, never recompute. Pick the ONE tightest or most interesting transit today and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
-  "headline": "one short, vivid, almost-aphoristic line that captures today for them (a saying, not a sentence about their placements)",
-  "reading": "1-2 short, plain sentences — no more. Notice one true, specific thing about today (a real situation, a feeling, a small choice — a conversation, a text, money, sleep, the body), the way a grounded friend would. Do NOT instruct, moralize, or hype it up. No 'the universe', no 'energy', no cosmic or mystical language, no astrology jargon, no 'you need to' / 'you should'.",
+  "headline": "one short, vivid, almost-aphoristic line for today — a saying, not a description of their placements",
+  "reading": "EXACTLY ONE sentence, 25 words max. Say one true, concrete, specific thing about today grounded in the actual transit. Dry, observant, real — like a smart friend, not a horoscope. Never a platitude, never reassurance, never an instruction, never 'you should/need to', never cosmic or mystical language.",
   "focus": "1-3 word theme for the day",
   "invite": "",
-  "intention": "one short first-person intention, e.g. 'Today I move gently and trust my timing.'",
-  "ritual": "one tiny, doable ritual for today — a single sentence (a candle, a written line, a small deliberate act)",
-  "ingredients": ["EXACTLY 3 short 'ingredients' for the day, like a witch's recipe — 2-4 words each, evocative and concrete (a feeling, an action, a small comfort), e.g. 'a pinch of patience'"],
+  "intention": "one short first-person line for today — specific, not generic",
+  "ritual": "one tiny, concrete ritual — a single sentence, an actual small physical act",
+  "ingredients": ["EXACTLY 3 'ingredients' for the day, 2-4 words each, like a strange little witch's recipe — CONCRETE, surprising, and tied to TODAY specifically (small physical objects, odd gestures, overheard things), e.g. 'a borrowed umbrella', 'salt on the sill', 'the unsent text'"],
   "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
 }
-Give EXACTLY 2 omens. Keep ingredients and omens specific and a little witchy, never generic. Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+Give EXACTLY 2 omens.
+INGREDIENTS — this matters most, get it right:
+- NEVER generic wellness / self-care clichés. BANNED outright: deep breath, slow exhale, breathe, glass of water, cup of tea, warm tea, self-care, gratitude, journaling, patience, rest, hydrate, sunlight, fresh air, a walk, "a candle" on its own. If it could show up in ANY generic horoscope, it is WRONG — rewrite it.
+- Make each one specific and a little strange so it feels personal to THIS day and this transit.
+- Do NOT reuse any of these recently-used ingredients: ${recentIngredients.length ? recentIngredients.join('; ') : '(none yet)'}.
+Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
     const astroUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
 ${astroContext}
 
@@ -1871,15 +1895,20 @@ ${cardLines}
 
 Write the reading now.`;
 
+    // Astrology now runs on OpenAI's gpt-5.6-sol (Sophie's pick — sharper, less
+    // generic than the prior Claude pass). Reasoning model: omit temperature,
+    // force a JSON object, keep effort low so the sync request stays snappy.
+    // Tarot stays on Claude Opus. The two never see each other's context.
     const [aData, tData] = await Promise.all([
-      anthropicChat({ system: astroSystem, messages: [{ role: 'user', content: astroUser }], max_tokens: 1900, temperature: 1 }),
+      openaiChat({ model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
-    if (aData.error) return res.status(400).json({ error: (aData.error.message || 'anthropic error') + ' (astrology)' });
+    if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
     if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
 
     let astrology, tarot;
-    try { astrology = parseAnthropicJson(aData); }
+    try { astrology = parseJsonReply(aData); }
     catch (e) { return res.status(502).json({ error: 'Could not parse the astrology reading — try again.', detail: e.message }); }
     try { tarot = parseAnthropicJson(tData); }
     catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
