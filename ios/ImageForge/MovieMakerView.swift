@@ -247,13 +247,6 @@ struct MovieMakerHome: View {
                 .foregroundColor(Reel.ink)
                 .cornerRadius(Theme.radius)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                .overlay(alignment: .topLeading) {
-                    if story.isEmpty {
-                        Text("Type a story — a paragraph or one sentence — or tap the die for an example. The pipeline does the rest.")
-                            .font(.callout).foregroundColor(Reel.dim)
-                            .padding(18).allowsHitTesting(false)
-                    }
-                }
             HStack(spacing: 10) {
                 reelButton(creating ? "Rolling…" : "🎬  Make it!", prominent: true) {
                     requestCreate(mode: .autopilot)
@@ -278,8 +271,6 @@ struct MovieMakerHome: View {
             }
             .disabled(creating)
             .opacity(creating ? 0.6 : 1)
-            Text("Make it! runs the whole pipeline. Or open Storyboard to pick a quality — or meet the character in 3 key scenes first, lock him in, and every panel after stays consistent.")
-                .font(.caption2).foregroundColor(Reel.dim)
         }
     }
 
@@ -287,7 +278,7 @@ struct MovieMakerHome: View {
 
     private var animateSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            label("ANIMATE ONE IMAGE")
+            label("ANIMATE")
             HStack(alignment: .top, spacing: 12) {
                 PhotosPicker(selection: $quickPickerItem, matching: .images) {
                     ZStack {
@@ -295,10 +286,7 @@ struct MovieMakerHome: View {
                         if let data = quickImageData, let ui = UIImage(data: data) {
                             Image(uiImage: ui).resizable().scaledToFill()
                         } else {
-                            VStack(spacing: 6) {
-                                Image(systemName: "photo.badge.plus").font(.title3).foregroundColor(Reel.amber)
-                                Text("pick an\nimage").font(.system(size: 10)).multilineTextAlignment(.center).foregroundColor(Reel.dim)
-                            }
+                            Image(systemName: "photo.badge.plus").font(.title2).foregroundColor(Reel.amber)
                         }
                     }
                     .frame(width: 84, height: 112)
@@ -337,7 +325,7 @@ struct MovieMakerHome: View {
                         .disabled(quickImageData == nil || quickBusy)
                         .opacity(quickImageData == nil || quickBusy ? 0.5 : 1)
                     }
-                    Text("~5s clip — queue as many as you like").font(.system(size: 10)).foregroundColor(Reel.dim)
+                    Text("Five second clip").font(.system(size: 10)).foregroundColor(Reel.dim)
                 }
             }
             if let job = quickJob {
