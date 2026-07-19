@@ -89,6 +89,16 @@ extension EnvironmentValues {
     }
 }
 
+/// Lets a tool screen jump straight to another tool (e.g. Test Station's
+/// top-right Chats icon). RootView injects the real action.
+private struct OpenToolKey: EnvironmentKey { static let defaultValue: (Tool) -> Void = { _ in } }
+extension EnvironmentValues {
+    var openTool: (Tool) -> Void {
+        get { self[OpenToolKey.self] }
+        set { self[OpenToolKey.self] = newValue }
+    }
+}
+
 /// Tracks most-recently-used tools so the three middle bar slots rotate.
 final class Recents: ObservableObject {
     @Published private(set) var order: [Tool]
@@ -183,6 +193,7 @@ struct RootView: View {
             ForEach(recents.recentThree) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { screen = .home })
+                    .environment(\.openTool, { open($0) })
                     .opacity(screen == .tool(t) ? 1 : 0)
                     .allowsHitTesting(screen == .tool(t))
             }
