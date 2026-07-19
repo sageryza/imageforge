@@ -401,6 +401,18 @@
     .pprice { font-size: 11.5px; color: var(--text); margin-top: 2px; }
     @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
 
+    /* ── Zodiac system toggle (Tropical / Astronomical) ── */
+    .zodiac-bar { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 16px; }
+    .zseg { display: inline-flex; border: 1px solid var(--gold); border-radius: var(--radius); overflow: hidden; }
+    .zopt { padding: 6px 15px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: transparent; color: var(--gold); border: none; cursor: pointer; font-family: inherit; transition: background 0.15s ease, color 0.15s ease; }
+    .zopt + .zopt { border-left: 1px solid var(--gold); }
+    .zopt.active { background: var(--gold); color: #fffbf3; }
+    .zinfo { width: 21px; height: 21px; border-radius: 50%; border: 1px solid var(--gold-dim); color: var(--gold-dim); background: transparent; font-size: 12px; line-height: 1; cursor: pointer; font-family: var(--serif); flex: none; }
+    .zinfo:hover { border-color: var(--gold); color: var(--gold); }
+    .zx-body { text-align: left; font-size: 14px; line-height: 1.65; color: var(--text-dim); }
+    .zx-body b { color: var(--text); font-weight: 600; }
+    .zx-body .zx-close-wrap { text-align: center; margin-top: 18px; }
+
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
@@ -650,6 +662,13 @@
 
           <!-- reading -->
           <div id="daily-reading" style="display:none;">
+            <div class="zodiac-bar" id="zodiac-bar" style="display:none;">
+              <div class="zseg">
+                <button class="zopt" type="button" data-z="tropical">Tropical</button>
+                <button class="zopt" type="button" data-z="astronomical">Astronomical</button>
+              </div>
+              <button class="zinfo" type="button" id="zodiac-info" aria-label="About the zodiac systems">?</button>
+            </div>
             <div class="kicker">What does the sky say about your day?</div>
             <div class="glance-headline" id="astro-headline"></div>
             <div id="astro-body"></div>
@@ -1186,11 +1205,48 @@
     $('intention-text').textContent = INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
+  /* ══════════ Zodiac system (Tropical / 13-sign Astronomical) ══════════ */
+  // Same constellation boundaries as the server (docs/witch-daily-reading-prompt.md).
+  const ZSEG = [['Aries',28,52],['Taurus',52,90],['Gemini',90,118],['Cancer',118,137],['Leo',137,173],['Virgo',173,217],['Libra',217,241],['Scorpio',241,247],['Ophiuchus',247,265],['Sagittarius',265,300],['Capricorn',300,327],['Aquarius',327,350],['Pisces',350,388]];
+  function con13(lon) { let L = ((lon % 360) + 360) % 360; for (const [n,a,b] of ZSEG) { if (b > 360) { if (L >= a || L < b - 360) return n; } else if (L >= a && L < b) return n; } return null; }
+  function zodiacDefault() { try { const d = localStorage.getItem('witch_zodiac_default'); return (d === 'tropical' || d === 'astronomical') ? d : ''; } catch { return ''; } }
+  function currentZodiac() { const d = zodiacDefault(); if (d) return d; try { return localStorage.getItem('witch_zodiac') === 'astronomical' ? 'astronomical' : 'tropical'; } catch { return 'tropical'; } }
+  function setZodiac(z) { try { localStorage.setItem('witch_zodiac', z); } catch {} }
+  // Sign for display in the current system (falls back to tropical if no longitude).
+  function displaySign(b) { return (currentZodiac() === 'astronomical' && b && isFinite(b.lon)) ? (con13(b.lon) || b.sign) : (b && b.sign); }
+  function renderZodiacBar() {
+    const bar = $('zodiac-bar'); if (!bar) return;
+    bar.style.display = zodiacDefault() ? 'none' : 'flex';   // a saved default hides the toggle
+    const cur = currentZodiac();
+    bar.querySelectorAll('.zopt').forEach(b => b.classList.toggle('active', b.dataset.z === cur));
+  }
+  function showZodiacInfo() {
+    openModal(`<h2 style="margin-bottom:12px;">Two skies, one you</h2>
+      <div class="zx-body">
+        <p><b>Tropical</b> is the default here — the zodiac Western astrology has used for about 2,000 years. It ties the signs to the <b>seasons</b> (Aries begins at the spring equinox), not to the stars, so it's almost certainly the sign you already know yourself as.</p>
+        <p>But the sky is read differently around the world. In much of the East — India and Vedic astrology — charts are drawn from the <b>actual positions of the stars</b>, which have drifted about 24° from the seasonal signs over the centuries.</p>
+        <p>And a while back it made headlines that the Sun technically passes through a <b>13th constellation, Ophiuchus</b> — a reminder that the real, star-based sky was never a tidy twelve at all.</p>
+        <p>Our <b>Astronomical</b> setting reads your chart against those real constellations, Ophiuchus included — the most literally-accurate-to-the-sky reading we can give. That's why we offer the choice.</p>
+        <p style="font-family:var(--serif); font-style:italic; color:var(--moon);">Neither is more “true” than the other — they're just two lenses on the same sky. Go with whichever one feels right to you. ✦</p>
+        <div class="zx-close-wrap"><button class="btn-ghost" id="zx-close" style="width:auto; margin:0 auto;">close</button></div>
+      </div>`);
+    const c = $('zx-close'); if (c) c.addEventListener('click', closeModal);
+  }
+  document.querySelectorAll('#zodiac-bar .zopt').forEach(btn => btn.addEventListener('click', () => {
+    const z = btn.dataset.z; if (z === currentZodiac()) return;
+    setZodiac(z); renderZodiacBar();
+    if (typeof loadSavedNatal === 'function') loadSavedNatal();   // re-render chart display in the new system
+    loadDaily(false);                                              // per-system cache; regenerates if not cached
+    cloudSyncSoon();
+  }));
+  (function(){ const zi = $('zodiac-info'); if (zi) zi.addEventListener('click', showZodiacInfo); })();
+
   async function loadDaily(force) {
     dailyPicks = dailyPull();
     resetDailyTarot();
     const date = todayISO();
-    const cacheKey = 'witch_daily_v2_' + date + '_' + (fbUser ? fbUser.uid : 'anon');
+    const zc = currentZodiac();
+    const cacheKey = 'witch_daily_v2_' + date + '_' + zc + '_' + (fbUser ? fbUser.uid : 'anon');
     if (!force) {
       try { const c = JSON.parse(localStorage.getItem(cacheKey) || 'null'); if (c && c.astrology) { dailyData = c; renderDaily(); return; } } catch {}
     }
@@ -1198,7 +1254,7 @@
     try {
       const m = moonInfo(new Date());
       const data = await api('/api/witch/daily', {
-        date, uid: fbUser ? fbUser.uid : null, moonPhase: m.name,
+        date, uid: fbUser ? fbUser.uid : null, moonPhase: m.name, zodiac: zc,
         cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
         birth: savedBirth(), force: !!force,
       });
@@ -1216,6 +1272,7 @@
   }
 
   function renderDaily() {
+    renderZodiacBar();
     const a = dailyData.astrology || {};
     $('astro-headline').textContent = a.headline || '';
 
@@ -1541,21 +1598,21 @@
     const c = data.chart, r = data.reading || {};
     const find = n => c.bodies.find(b => b.name === n) || {};
     const sun = find('Sun'), moon = find('Moon');
-    const rising = data.hasTime && c.ascendant ? c.ascendant.sign : '—';
+    const rising = data.hasTime && c.ascendant ? displaySign(c.ascendant) : '—';
     const big3 = `<div class="chart-big3">
-      <div class="big3"><div class="g">☉</div><div class="lbl">Sun</div><div class="val">${sun.sign || '—'}</div></div>
-      <div class="big3"><div class="g">☽</div><div class="lbl">Moon</div><div class="val">${moon.sign || '—'}</div></div>
+      <div class="big3"><div class="g">☉</div><div class="lbl">Sun</div><div class="val">${displaySign(sun) || '—'}</div></div>
+      <div class="big3"><div class="g">☽</div><div class="lbl">Moon</div><div class="val">${displaySign(moon) || '—'}</div></div>
       <div class="big3"><div class="g">↑</div><div class="lbl">Rising</div><div class="val">${esc(rising)}</div></div>
     </div>`;
     let angleRows = '';
     if (data.hasTime && c.ascendant) {
       angleRows = `<div class="plc-grid" style="grid-template-columns:1fr;">
-        <div class="plc"><span class="pg">↑</span><span class="pn">Ascendant</span><span class="pv">${esc(c.ascendant.sign)} ${Math.round(c.ascendant.degInSign)}°</span></div>
-        <div class="plc"><span class="pg">MC</span><span class="pn">Midheaven</span><span class="pv">${esc(c.midheaven.sign)} ${Math.round(c.midheaven.degInSign)}°</span></div>
+        <div class="plc"><span class="pg">↑</span><span class="pn">Ascendant</span><span class="pv">${esc(displaySign(c.ascendant))} ${Math.round(c.ascendant.degInSign)}°</span></div>
+        <div class="plc"><span class="pg">MC</span><span class="pn">Midheaven</span><span class="pv">${esc(displaySign(c.midheaven))} ${Math.round(c.midheaven.degInSign)}°</span></div>
       </div>`;
     }
     const plc = `<div class="plc-grid">` + c.bodies.map(b =>
-      `<div class="plc"><span class="pg">${b.glyph}</span><span class="pn">${esc(b.name)}</span><span class="pv">${esc(b.sign)} ${Math.round(b.degInSign)}°${b.house ? ` · H${b.house}` : ''}</span>${b.retro ? '<span class="rx">℞</span>' : ''}</div>`
+      `<div class="plc"><span class="pg">${b.glyph}</span><span class="pn">${esc(b.name)}</span><span class="pv">${esc(displaySign(b))} ${Math.round(b.degInSign)}°${b.house ? ` · H${b.house}` : ''}</span>${b.retro ? '<span class="rx">℞</span>' : ''}</div>`
     ).join('') + `</div>`;
     const aspects = (c.aspects || []).slice(0, 6).map(a => `<b>${esc(a.a)}</b> ${esc(a.aspect)} <b>${esc(a.b)}</b>`).join(' · ');
     let reading = '';
@@ -1980,7 +2037,7 @@
     if (hasAsc) { const [axL, ayL] = pt(asc, R + 2); s += `<text x="${(axL - 30).toFixed(1)}" y="${ayL.toFixed(1)}" font-size="18" fill="${CP.ink}" text-anchor="middle" dominant-baseline="central" font-family="Georgia, serif" font-style="italic">ASC</text>`; }
     s += `<text x="${cx}" y="${cy}" font-size="40" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">✦</text>`;
     const sun = chart.bodies.find(b => b.name === 'Sun'), moon = chart.bodies.find(b => b.name === 'Moon');
-    const three = [['☉ SUN', sun ? sun.sign : '—'], ['☽ MOON', moon ? moon.sign : '—'], ['↑ RISING', hasAsc ? chart.ascendant.sign : '—']];
+    const three = [['☉ SUN', sun ? displaySign(sun) : '—'], ['☽ MOON', moon ? displaySign(moon) : '—'], ['↑ RISING', hasAsc ? displaySign(chart.ascendant) : '—']];
     const threeSvg = three.map((t, i) => { const x = 300 + i * 300; return `<text x="${x}" y="1560" font-size="20" fill="${CP.gold}" text-anchor="middle" letter-spacing="2" font-family="Georgia, serif">${t[0]}︎</text><text x="${x}" y="1600" font-size="30" fill="${CP.plum}" text-anchor="middle" font-family="Georgia, serif">${esc(t[1])}</text>`; }).join('');
     const corners = [[80, 90], [1120, 90], [80, 1710], [1120, 1710]].map(([x, y]) => `<text x="${x}" y="${y}" font-size="34" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">✦</text>`).join('');
     const subline = [opts.dateLabel, opts.timeLabel, opts.placeLabel].filter(Boolean).join(' · ');
@@ -2103,12 +2160,25 @@
     $('btn-email').addEventListener('click', signInEmail);
   }
   function showAccount() {
+    const def = zodiacDefault();
+    const opt = (v, label) => `<button class="btn-ghost zdef-opt${((def || 'ask') === v) ? ' active' : ''}" data-def="${v}" style="width:auto; flex:1; ${((def || 'ask') === v) ? 'border-color:var(--gold); color:var(--gold);' : ''}">${label}</button>`;
     openModal(`
       <h2>Your circle</h2>
       <div class="acct-email">${esc(fbUser.email || 'Signed in')}</div>
       <div class="acct-note">Your chart, readings &amp; miracles sync to this account.</div>
-      <button class="btn-ghost" id="btn-signout">Sign out</button>
+      <div class="cards-title" style="font-size:12px; margin:20px 0 8px;">Reading system</div>
+      <div class="acct-note" style="margin-bottom:10px;">Pick a default and the Tropical / Astronomical toggle disappears. Leave it on “Ask” to keep the toggle on your reading.</div>
+      <div style="display:flex; gap:8px;">${opt('ask','Ask')}${opt('tropical','Tropical')}${opt('astronomical','Astronomical')}</div>
+      <button class="btn-ghost" id="btn-signout" style="margin-top:18px;">Sign out</button>
       <button class="close-x" id="acct-close">close</button>`);
+    document.querySelectorAll('.zdef-opt').forEach(b => b.addEventListener('click', () => {
+      const v = b.dataset.def;
+      try { if (v === 'ask') localStorage.removeItem('witch_zodiac_default'); else localStorage.setItem('witch_zodiac_default', v); } catch {}
+      renderZodiacBar();
+      if (typeof loadSavedNatal === 'function') loadSavedNatal();
+      loadDaily(false); cloudSyncSoon();
+      showAccount();  // re-render to reflect the new selection
+    }));
     $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });
     $('acct-close').addEventListener('click', closeModal);
   }
