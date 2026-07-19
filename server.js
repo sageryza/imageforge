@@ -1760,7 +1760,15 @@ function transitAspects(transit, natal) {
 }
 app.post('/api/witch/daily', async (req, res) => {
   try {
-    const { uid, date, cards = [], moonPhase = '', birth = null, force = false } = req.body || {};
+    const { uid, date, cards = [], moonPhase = '', birth = null, force = false, zodiac = 'tropical' } = req.body || {};
+    // 13-sign ASTRONOMICAL zodiac (real, unequal constellation boundaries the Sun
+    // actually crosses, Ophiuchus included) — boundaries in tropical ecliptic
+    // longitude. When zodiac==='astronomical' the reading is built from these
+    // constellations instead of the tropical signs. See docs/witch-daily-reading-prompt.md.
+    const astronomical = zodiac === 'astronomical';
+    const ASTRO_SEG = [['Aries',28,52],['Taurus',52,90],['Gemini',90,118],['Cancer',118,137],['Leo',137,173],['Virgo',173,217],['Libra',217,241],['Scorpio',241,247],['Ophiuchus',247,265],['Sagittarius',265,300],['Capricorn',300,327],['Aquarius',327,350],['Pisces',350,388]];
+    const con13 = (lon) => { let L = ((lon % 360) + 360) % 360; for (const [n,a,b] of ASTRO_SEG) { if (b > 360) { if (L >= a || L < b - 360) return n; } else if (L >= a && L < b) return n; } return null; };
+    const signOf = (body) => (astronomical && body && isFinite(body.lon)) ? (con13(body.lon) || body.sign) : (body && body.sign);
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date (YYYY-MM-DD) is required' });
     if (!Array.isArray(cards) || cards.length !== 3) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
 
@@ -1791,7 +1799,7 @@ app.post('/api/witch/daily', async (req, res) => {
           natal = astro.computeChart({ y: ut.getUTCFullYear(), m: ut.getUTCMonth() + 1, d: ut.getUTCDate(), utHours, lat, lon, withAngles: hasTime });
           const sun = natal.bodies.find(b => b.name === 'Sun');
           const moon = natal.bodies.find(b => b.name === 'Moon');
-          bigThree = { sun: sun && sun.sign, moon: moon && moon.sign, rising: natal.ascendant && natal.ascendant.sign };
+          bigThree = { sun: sun && signOf(sun), moon: moon && signOf(moon), rising: natal.ascendant && signOf(natal.ascendant) };
 
           // Today's transiting positions (geocentric — location-independent).
           const now = new Date();
@@ -1808,9 +1816,9 @@ app.post('/api/witch/daily', async (req, res) => {
     // Bump `v` whenever the reading's prompt/shape changes so cached readings
     // regenerate same-day instead of waiting for the next date.
     const inputHash = crypto.createHash('sha1').update(JSON.stringify({
-      v: 3, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+      v: 3, z: zodiac, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
     })).digest('hex').slice(0, 12);
-    const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
+    const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}${astronomical ? '_astro' : ''}`) : null;
     if (docRef && !force) {
       const snap = await docRef.get();
       if (snap.exists && snap.data().inputHash === inputHash) {
@@ -1843,8 +1851,8 @@ app.post('/api/witch/daily', async (req, res) => {
     const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
     let astroContext;
     if (natal && bigThree) {
-      const placements = natal.bodies.map(b => `${b.name} in ${b.sign}${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' rx' : ''}`).join(', ');
-      const transits = transitList.map(b => `${b.name} in ${b.sign}${b.retro ? ' rx' : ''}`).join(', ');
+      const placements = natal.bodies.map(b => `${b.name} in ${signOf(b)}${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' rx' : ''}`).join(', ');
+      const transits = transitList.map(b => `${b.name} in ${signOf(b)}${b.retro ? ' rx' : ''}`).join(', ');
       const asp = (tAspects || []).map(a => `transiting ${a.t} ${a.aspect} natal ${a.n}`).join('; ') || 'none tight today';
       astroContext = `They HAVE a birth chart (interpret it, never recompute):
 Big three: Sun ${bigThree.sun}, Moon ${bigThree.moon}${bigThree.rising ? `, Rising ${bigThree.rising}` : ' (no birth time — no rising)'}.
@@ -1857,7 +1865,7 @@ Today's tightest transits to their chart: ${asp}.`;
 
     const voice = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
 
-    const astroSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.
+    const astroSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.${astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : ''}
 You are given their REAL, accurately computed chart and today's REAL transits — interpret them, never recompute. Pick the ONE tightest or most interesting transit today and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
