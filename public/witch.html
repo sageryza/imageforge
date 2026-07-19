@@ -364,6 +364,57 @@
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
 
+    /* ── Product row (Home — three across, no cream bubble) ── */
+    .prow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin: 4px 0 26px; }
+    .pcard { display: block; text-decoration: none; color: var(--text); }
+    .pcard .pimg-wrap { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--panel); transition: border-color 0.15s ease, transform 0.15s ease; }
+    .pcard:hover .pimg-wrap { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .pcard .pimg { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .pbadge {
+      position: absolute; top: 6px; left: 6px; max-width: calc(100% - 12px);
+      font-size: 9px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+      padding: 3px 6px; border-radius: 5px; line-height: 1.15;
+      display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 1px 3px rgba(48,43,52,0.16);
+    }
+    .pbadge.best { background: var(--gold); color: var(--surface); }
+    .pbadge.new { background: var(--moon); color: #fbf7ef; }
+    .pbadge.tag { background: var(--surface); color: var(--gold); border: 1px solid var(--border); box-shadow: none; }
+    .pbadge svg { width: 10px; height: 10px; flex: none; }
+    .pname { font-family: var(--serif); font-size: 13.5px; font-weight: 500; line-height: 1.18; margin-top: 7px; }
+    .pprice { font-size: 11.5px; color: var(--gold); margin-top: 2px; }
+    @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
+
+    /* ── Dream reading (Home) ── */
+    .dream-ta-wrap { position: relative; }
+    #dream-input { min-height: 84px; resize: vertical; }
+    .dream-btns { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 12px; }
+    #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
+    .dream-out { margin-top: 18px; }
+    .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
+    .dread:first-child { border-top: 0; padding-top: 0; }
+    .dread-src { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
+    .dread-title { font-family: var(--serif); font-size: 22px; font-weight: 500; line-height: 1.15; margin-bottom: 12px; }
+    .dsym { display: flex; gap: 9px; margin-bottom: 9px; }
+    .dsym .dsym-star { color: var(--gold-dim); line-height: 1.4; flex: none; }
+    .dsym .dsym-star svg { width: 12px; height: 12px; }
+    .dsym b { font-weight: 600; }
+    .dsym-txt { font-size: 14px; line-height: 1.55; }
+    .dread-msg { font-size: 14.5px; line-height: 1.66; margin-top: 12px; }
+    .dread-msg p { margin-bottom: 10px; }
+    .dread-fail { font-size: 13px; color: var(--text-faint); font-style: italic; }
+    /* Illustrated dream book (free page 1 + locked pages) */
+    .dbook { margin-top: 18px; }
+    .dbook-pages { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dpage { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--panel); aspect-ratio: 3/4; }
+    .dpage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .dpage.locked img { filter: blur(9px); transform: scale(1.08); }
+    .dpage .dfree { position: absolute; top: 7px; left: 7px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: var(--gold); color: var(--surface); padding: 3px 7px; border-radius: 5px; }
+    .dpage .dlock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--surface); }
+    .dpage .dlock svg { width: 26px; height: 26px; opacity: 0.9; }
+    .dpaywall { text-align: center; margin-top: 16px; padding: 18px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .dpaywall .dpw-title { font-family: var(--serif); font-size: 19px; font-weight: 500; margin-bottom: 5px; }
+    .dpaywall .dpw-sub { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+
     /* ── School (coming soon) ── */
     .coming { text-align: center; padding: 30px 22px; }
     .coming .cg { line-height: 0; color: var(--moon); }
@@ -512,6 +563,9 @@
           </div>
         </div>
 
+        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0] -->
+        <div class="prow" id="prow-1"></div>
+
         <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">The sky, the cards, and an intention — written fresh for you each day.</div>
@@ -578,6 +632,24 @@
           <div class="moon-line" style="margin-top:0;" id="intention-text"></div>
         </div>
 
+        <!-- Dream reading -->
+        <div class="card" id="dream-card">
+          <div class="section-title" style="font-size:24px;">What did you dream last night?</div>
+          <div class="section-sub" style="margin-bottom:16px;">Unlock the messages your subconscious is trying to send you.</div>
+          <div class="dream-ta-wrap">
+            <textarea id="dream-input" rows="3">I dreamt…</textarea>
+          </div>
+          <div class="dream-btns">
+            <button class="btn" id="dream-unlock">Unlock the symbolism</button>
+            <button class="btn-ghost" id="dream-illustrate"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg> Illustrate</button>
+          </div>
+          <div class="dream-out" id="dream-out" style="display:none;"></div>
+          <div class="dbook" id="dream-book" style="display:none;"></div>
+        </div>
+
+        <!-- Products (row 2) — rendered from PRODUCT_ROWS[1] -->
+        <div class="prow" id="prow-2"></div>
+
         <!-- Moon — hidden from Home by request (code kept, just taken out of this area) -->
         <div class="card moon-card" style="display:none;">
           <div class="moon-glyph" id="moon-glyph">🌙</div>
@@ -600,27 +672,6 @@
           <div class="mcal-legend"><span>🌑 New</span><span>🌓 Quarter</span><span>🌕 Full</span></div>
         </div>
 
-        <!-- Watch / Follow / About -->
-        <div class="tiles" style="margin-bottom:16px;">
-          <a class="tile" id="tile-watch" href="#" target="_blank" rel="noopener">
-            <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z"/><path d="M12 17v4"/><path d="M8 21h8"/><rect x="2" y="3" width="20" height="14" rx="2"/></svg></span>
-            <span class="tt">Watch</span>
-            <span class="td">The Secretly a Witch video channel.</span>
-          </a>
-          <a class="tile" id="tile-instagram" href="#" target="_blank" rel="noopener">
-            <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></span>
-            <span class="tt">Follow</span>
-            <span class="td">Daily magic on Instagram, @moonsickbaby.</span>
-          </a>
-        </div>
-        <div class="card">
-          <div class="card-head"><h2>About</h2></div>
-          <p class="about">
-            <b>Secretly a Witch</b> is a small pocket of everyday magic — the phase of the moon,
-            a reading in the stars, cards to sit with, and a book for your quiet miracles.
-            None of it is doom or destiny. It's a mirror, a little ritual, a way to pay attention.
-          </p>
-        </div>
       </section>
 
       <!-- ═══════════ SCHOOL ═══════════ -->
@@ -794,8 +845,6 @@
     shop: 'https://secretlyawitch.com',
     instagram: 'https://instagram.com/moonsickbaby',
   };
-  document.getElementById('tile-watch').href = LINKS.youtube;
-  document.getElementById('tile-instagram').href = LINKS.instagram;
   document.getElementById('shop-all').href = LINKS.shop;
 
   // ── Helpers ──
@@ -1673,6 +1722,112 @@
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
+
+  /* ══════════ Home product rows ══════════ */
+  // The signature sparkles (Heroicons solid) reused for the "new" badge + Illustrate.
+  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg>';
+  const SHOP_CDN = 'https://cdn.shopify.com/s/files/1/1344/6647/files/';
+  // Curated Home product rows — one of each badge per row (best seller / new / tagline).
+  // Prices are a snapshot; links + images are the live secretlyawitch.com products.
+  const PRODUCT_ROWS = [
+    [
+      { name: 'Apothecary cards', price: '$32', badge: 'best', handle: 'witchcraft-cards-apothecary-crystal-19221', img: SHOP_CDN + 'il_fullxfull.5521065204_90tq_8495b008-592c-4ae8-9d56-4c9fbd38c9bd.jpg?v=1770947332' },
+      { name: 'Travel kit', price: '$85', badge: 'tag', label: 'The essentials', handle: 'travel-witchcraft-kit-travel-altar-kit-39959', img: SHOP_CDN + 'il_fullxfull.1769851682_q7l6.jpg?v=1770947433' },
+      { name: 'Color your own tarot', price: '$23', badge: 'new', handle: 'color-in-69086', img: SHOP_CDN + 'il_fullxfull.5970330348_7ht4.jpg?v=1770947425' },
+    ],
+    [
+      { name: 'Magic of Flower Cards', price: '$20', badge: 'new', handle: 'magic-of-flower-cards-oracle-deck-33100', img: SHOP_CDN + 'il_fullxfull.7658334563_4gm0.jpg?v=1770947228' },
+      { name: 'Essential oils', price: '$17.99', badge: 'best', handle: 'witchy-essential-43160', img: SHOP_CDN + 'il_fullxfull.3497151846_2pe1.jpg?v=1770947262' },
+      { name: 'The huge kit', price: '$79', badge: 'tag', label: 'Back to basics', handle: 'huge-witchcraft-kit-witch-alter-sets-86658', img: SHOP_CDN + 'il_fullxfull.1953744268_oyrp.jpg?v=1770947249' },
+    ],
+  ];
+  function badgeHtml(p) {
+    if (p.badge === 'best') return '<span class="pbadge best">Best seller</span>';
+    if (p.badge === 'new') return `<span class="pbadge new">${STAR} New product available!</span>`;
+    return `<span class="pbadge tag">${esc(p.label || '')}</span>`;
+  }
+  function renderProductRow(el, row) {
+    if (!el) return;
+    el.innerHTML = row.map(p => `<a class="pcard" href="https://secretlyawitch.com/products/${p.handle}" target="_blank" rel="noopener">
+      <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
+      <div class="pname">${esc(p.name)}</div>
+      <div class="pprice">${esc(p.price)}</div>
+    </a>`).join('');
+  }
+  renderProductRow($('prow-1'), PRODUCT_ROWS[0]);
+  renderProductRow($('prow-2'), PRODUCT_ROWS[1]);
+
+  /* ══════════ Home dream reading ══════════ */
+  const DREAM_PREFILL = 'I dreamt…';
+  function dreamText() {
+    const v = ($('dream-input').value || '').trim();
+    return (v === DREAM_PREFILL) ? '' : v;
+  }
+  function renderReading(src, r) {
+    if (!r) return `<div class="dread"><div class="dread-src">${esc(src)}</div><div class="dread-fail">This reader couldn't be reached — try again in a moment.</div></div>`;
+    const syms = (r.symbols || []).map(s =>
+      `<div class="dsym"><span class="dsym-star">${STAR}</span><div class="dsym-txt"><b>${esc(s.symbol)}</b> — ${esc(s.meaning)}</div></div>`).join('');
+    const msg = String(r.message || '').split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
+    return `<div class="dread">
+      <div class="dread-src">${esc(src)}</div>
+      ${r.title ? `<div class="dread-title">${esc(r.title)}</div>` : ''}
+      ${syms}
+      <div class="dread-msg">${msg}</div>
+    </div>`;
+  }
+  $('dream-unlock').addEventListener('click', async () => {
+    const dream = dreamText();
+    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
+    const out = $('dream-out'); out.style.display = '';
+    $('dream-book').style.display = 'none';
+    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Two readers are sitting with your dream…</div>`;
+    const btn = $('dream-unlock'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Reading…';
+    try {
+      const d = await api('/api/witch/dream-read', { dream });
+      out.innerHTML = renderReading('Anthropic · Claude Opus 4.8', d.claude) + renderReading('OpenAI · GPT‑5.6', d.gpt);
+    } catch (e) {
+      out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`;
+    }
+    btn.disabled = false; btn.textContent = o;
+  });
+
+  // Illustrate → a free first page, then blurred "locked" pages + a paywall placeholder.
+  // (Real multi-page dream-book pipeline + subscription payments are the next step.)
+  const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  $('dream-illustrate').addEventListener('click', async () => {
+    const dream = dreamText();
+    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
+    const book = $('dream-book'); book.style.display = '';
+    $('dream-out').style.display = 'none';
+    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Illustrating the first page of your dream…</div>`;
+    const btn = $('dream-illustrate'); btn.disabled = true;
+    const prompt = `Dreamy hand-illustrated storybook page, soft watercolour and ink, warm muted palette, gentle and a little surreal. A single quiet scene from this dream: ${dream}. Atmospheric, tender, painterly. No text, no words, no lettering.`;
+    try {
+      const r = await fetch('/api/generate/gptimage', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1536' }),
+      });
+      const d = await r.json();
+      if (!d.url) throw new Error(d.error || 'no image');
+      const img = esc(d.url);
+      book.innerHTML = `
+        <div class="dbook-pages">
+          <div class="dpage"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
+          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+        </div>
+        <div class="dpaywall">
+          <div class="dpw-title">Your first page is free ✦</div>
+          <div class="dpw-sub">The rest of your dream — illustrated page by page — is part of the dream book. Unlock the full reading.</div>
+          <button class="btn" id="dream-subscribe">Unlock the full dream book</button>
+        </div>`;
+      $('dream-subscribe').addEventListener('click', () => toast('Full dream books are coming soon ✦'));
+    } catch (e) {
+      book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(e.message)}. Try again in a moment.</div>`;
+    }
+    btn.disabled = false;
+  });
 
   /* ══════════ Witch School — lesson open/close ══════════ */
   { const os = $('open-spell'), lb = $('lesson-back');
