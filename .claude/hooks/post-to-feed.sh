@@ -9,6 +9,13 @@
 # posts (verified live 2026-07-15). The per-message/per-item state files below
 # already prevent double-posting, and this hook never blocks a stop (exit 0
 # always), so it cannot loop itself.
+#
+# BACKFILL (2026-07): the feed de-dupe tracks a SET of already-posted turn ids
+# (forge-feed-<sid>.posted), not just the last one — so if a turn is missed
+# (interrupted / cold-start post failure), the NEXT firing posts every turn
+# that hasn't gone out yet, oldest first. On a brand-new session the whole
+# history is baselined silently (only the latest turn posts), so backfill
+# never floods the feed with old messages.
 
 input=$(cat)
 
@@ -38,13 +45,14 @@ if [ -n "${CLAUDE_CODE_REMOTE_SESSION_ID:-}" ]; then
   claude_url="https://claude.ai/code/session_${CLAUDE_CODE_REMOTE_SESSION_ID#cse_}"
 fi
 
-state="$HOME/.claude/forge-feed-${sid}.last"
+state="$HOME/.claude/forge-feed-${sid}.posted"
 gstate="$HOME/.claude/forge-gallery-${sid}.done"
 
-# One transcript pass emits: line 1 = the feed payload (or empty if deduped),
-# then one "G<TAB>{...}" line per NEW image deliverable — Firebase image URLs
-# in the final reply, plus image files the chat sent via SendUserFile (files
-# sent before this hook existed are baselined silently on the first run).
+# One transcript pass emits: one "F<TAB>{...}" line per feed post to make (every
+# turn not yet in the posted-set — usually just the latest, more when catching
+# up missed ones), then one "G<TAB>{...}" line per NEW image deliverable —
+# Firebase image URLs in the final reply, plus image files the chat sent via
+# SendUserFile (files sent before this hook existed are baselined on first run).
 out=$(NAME="$name" CLAUDE_URL="$claude_url" STATEFILE="$state" GSTATE="$gstate" \
   python3 - "$transcript" 2>/dev/null << 'PY'
 import json, sys, os, re
@@ -62,8 +70,22 @@ def gettext(rec):
                    if isinstance(b, dict) and b.get('type') == 'text')
 IMG = re.compile(r'\.(?:png|jpe?g|webp|gif)$', re.I)
 FIRE = re.compile(r'''https://(?:storage|firebasestorage)\.googleapis\.com/[^\s)\]"'<>]+?\.(?:png|jpe?g|webp|gif)''', re.I)
-mid = None; parts = []; sends = []; idx = 0; last_user = -1
-raw_since = []  # raw records of the CURRENT turn (reply + behind-the-scenes tool output)
+
+# Split the transcript into TURNS (one assistant reply per real user turn), in
+# order. Each turn = the joined text of every assistant text block in it, keyed
+# by the last text message's id (stable per turn, used for the posted-set).
+turns = []
+cur_parts = []; cur_mid = None
+sends = []; idx = 0; last_user = -1
+raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
+
+def flush():
+    global cur_parts, cur_mid
+    txt = "\n\n".join(cur_parts).strip()
+    if txt and cur_mid:
+        turns.append({'text': txt, 'mid': cur_mid})
+    cur_parts = []; cur_mid = None
+
 with open(path, encoding='utf-8') as f:
     for ln in f:
         try:
@@ -73,29 +95,30 @@ with open(path, encoding='utf-8') as f:
         idx += 1
         role = (r.get('message') or {}).get('role')
         if role == 'user':
-            # a REAL user turn, not a tool-result envelope
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
+                flush()           # end of the previous assistant turn
                 last_user = idx
-                parts = []       # new user turn — start the reply fresh
-                raw_since = []    # …and the behind-the-scenes buffer
+                raw_since = []
                 continue
-            raw_since.append(ln)  # tool-result envelope = this turn's tool output
+            raw_since.append(ln)
             continue
         if role != 'assistant':
             continue
         raw_since.append(ln)
         t = gettext(r)
         if t.strip():
-            parts.append(t)  # post the WHOLE reply — every text block this turn, not just the last
-            mid = (r.get('message') or {}).get('id')
+            cur_parts.append(t)
+            cur_mid = (r.get('message') or {}).get('id')
         for b in blocks(r):
             if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'SendUserFile':
                 for p in ((b.get('input') or {}).get('files') or []):
                     if isinstance(p, str) and IMG.search(p):
                         sends.append((idx, p))
-text = "\n\n".join(parts)
-if not text.strip():
+flush()  # the final (current) turn
+
+if not turns:
     sys.exit(0)
+text = turns[-1]['text']  # latest turn — the gallery scans this
 
 # ── gallery items (independent of the feed de-dupe) ──
 gf = os.environ['GSTATE']
@@ -118,16 +141,8 @@ for i, p in sends:
     if k in done:
         continue
     done.add(k)
-    # first run baselines HISTORY only — files sent during the current reply
-    # (after the last real user turn) still post, so a brand-new chat's first
-    # delivery isn't swallowed
     if not first or i > last_user:
         gallery.append({'file': p})
-# work-in-progress images: Firebase image URLs that appeared in the turn's
-# behind-the-scenes tool output but were NOT shown to Sophie in the reply. File
-# these to the chat's Assets tab ONLY (assetsOnly — never the main gallery), so
-# a chat's per-chat Assets fills up on its own without cluttering My Creations.
-# Baseline history on the first run; cap per turn as a flood guard.
 if not first:
     blob = ''.join(raw_since)
     wip_n = 0
@@ -142,45 +157,62 @@ if not first:
         if wip_n >= 60:
             break
 else:
-    # first run in a fresh session: baseline every URL already seen so old
-    # behind-the-scenes images aren't back-filled, only ones made from now on.
     for u in FIRE.findall(''.join(raw_since)):
         done.add('w:' + u)
 os.makedirs(os.path.dirname(gf), exist_ok=True)
 open(gf, 'w').write('\n'.join(sorted(done)))
 
-# ── feed payload (skipped if this reply already posted) ──
-payload = ''
+# ── feed payloads (every turn not yet posted; backfills missed ones) ──
 sf = os.environ['STATEFILE']
-posted = ''
-try:
-    posted = open(sf).read().strip()
-except FileNotFoundError:
-    pass
-if posted != (mid or ''):
-    tldr = ""
-    m = re.search(r'(?is)\bTL;?DR\b[:\s]*(.+)', text)
-    if m:
-        tldr = m.group(1).strip().split('\n')[0][:1000]
-    out = {"chat": os.environ['NAME'], "text": text[:20000], "tldr": tldr}
+first_feed = not os.path.exists(sf)
+posted = set()
+if not first_feed:
+    try:
+        posted = set(x for x in open(sf).read().split('\n') if x)
+    except Exception:
+        pass
+new_posted = set(posted)
+if first_feed:
+    # brand-new session: baseline the whole history, post only the latest turn,
+    # so upgrading the hook (or a fresh sandbox) never floods with old messages
+    for tn in turns[:-1]:
+        new_posted.add(tn['mid'])
+
+def tldr_of(t):
+    m = re.search(r'(?is)\bTL;?DR\b[:\s]*(.+)', t)
+    return m.group(1).strip().split('\n')[0][:1000] if m else ""
+
+feeds = []
+for tn in turns:
+    if tn['mid'] in new_posted:
+        continue
+    out = {"chat": os.environ['NAME'], "text": tn['text'][:20000], "tldr": tldr_of(tn['text'])}
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
-    payload = json.dumps(out)
-    open(sf, 'w').write(mid or '')
-print(payload)
+    feeds.append(out)
+    new_posted.add(tn['mid'])
+os.makedirs(os.path.dirname(sf), exist_ok=True)
+open(sf, 'w').write('\n'.join(sorted(new_posted)))
+
+for fp in feeds:
+    print('F\t' + json.dumps(fp))
 for g in gallery:
     print('G\t' + json.dumps(g))
 PY
 )
 
-payload=$(printf '%s\n' "$out" | head -n1)
 post () {  # $1 = url, $2 = json body (retries once; long timeout for cold starts)
   curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 \
   || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
 }
-[ -n "$payload" ] && post "$FEED" "$payload"
+
+# post each un-posted turn (oldest first — usually just the latest, more when
+# backfilling ones the hook missed)
+printf '%s\n' "$out" | sed -n 's/^F\t//p' | while IFS= read -r fp; do
+  [ -n "$fp" ] && post "$FEED" "$fp"
+done
 
 # file each new image deliverable into the gallery
 nowms=$(date +%s%3N 2>/dev/null || echo $(($(date +%s)*1000)))
@@ -194,7 +226,6 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   if [ -n "$u" ]; then
     post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj}"
   elif [ -n "$w" ]; then
-    # work-in-progress → the chat's Assets tab only, not the main gallery
     post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
