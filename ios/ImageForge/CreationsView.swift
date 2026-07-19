@@ -82,8 +82,7 @@ struct CreationsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("My Creations")
-        .navigationBarTitleDisplayMode(.inline)
+        .forgeTitle("My Creations")
         // While the image popup is open, hide the nav bar so its dim backdrop
         // covers the WHOLE screen — otherwise the nav-bar strip at the top
         // swallows taps and you can only dismiss by tapping the lower half.

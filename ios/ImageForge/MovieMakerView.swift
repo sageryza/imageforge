@@ -126,8 +126,7 @@ struct MovieMakerHome: View {
             // Tapping anywhere also puts the keyboard away (runs alongside
             // whatever was tapped, so buttons still work).
             .simultaneousGesture(TapGesture().onEnded { inputFocused = false })
-            .navigationTitle("Movies")
-            .navigationBarTitleDisplayMode(.inline)
+            .forgeTitle("Movies")
             .toolbar {
                 // The multiline fields' return key types a newline, so the
                 // keyboard needs its own way out.
@@ -156,9 +155,8 @@ struct MovieMakerHome: View {
             .navigationDestination(isPresented: $showStoryRoom) {
                 StoryRoomView()
                     // The single "Story Room" heading lives in the native nav
-                    // bar (small, at the top); the page body carries no title.
-                    .navigationTitle("Story Room")
-                    .navigationBarTitleDisplayMode(.inline)
+                    // bar, in the branded eyebrow style (see forgeTitle).
+                    .forgeTitle("Story Room")
                     // match the web page's own paper so there's no white
                     // strip between the nav bar and the cream page
                     .toolbarBackground(StoryRoomView.paper, for: .navigationBar)

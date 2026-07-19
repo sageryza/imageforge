@@ -23,7 +23,7 @@ struct StoryBoardView: View {
                 shelfWall
             }
         }
-        .navigationTitle("Story Boards")
+        .forgeTitle("Story Boards")
         .task { await model.start() }
     }
 
