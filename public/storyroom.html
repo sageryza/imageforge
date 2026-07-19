@@ -42,6 +42,8 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .addnote{display:block; margin:.2em 0 0 auto; background:none; border:none; color:var(--ink2); opacity:.55;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:4px 2px;}
 .addnote:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
+.archrow{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);}
+.archname{flex:1; text-align:left; background:none; border:none; color:var(--ink2); font-family:'EBGaramond',Georgia,serif; font-size:1.05em; cursor:pointer; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .notehead{display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:6px;}
 .micbtn{width:38px; height:32px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; display:flex; align-items:center; justify-content:center;}
 .micbtn.rec{background:color-mix(in srgb, var(--chg) 20%, var(--paper)); border-color:var(--chg); color:var(--chg);}
@@ -164,16 +166,33 @@ function syncNote(id, excerpt){
     .catch(function(){ toast('Offline — note kept on this phone'); });
 }
 
+function projCover(p){
+  if(p.cover) return p.cover;
+  var bs=p.beats||[];
+  for(var i=0;i<bs.length;i++){ var cs=(bs[i]&&bs[i].cards)||[]; for(var j=0;j<cs.length;j++){ if(cs[j]&&cs[j].url) return cs[j].url; } }
+  return '';
+}
+function setArchived(p,val){
+  api('/api/story/project/'+encodeURIComponent(p.id)+'/archive',{method:'POST',body:JSON.stringify({archived:val})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(!d.ok) throw 0; p.archived=val; toast(val?'Archived':'Restored'); if(val){ goHome(); } else { renderShelf(); } })
+    .catch(function(){ toast('Could not save that'); });
+}
+function archiveStory(p){ setArchived(p,true); }
+function restoreStory(p){ setArchived(p,false); }
 function renderShelf(){
   var el=document.getElementById('shelf');
   if(!projects.length){ el.innerHTML='<div class="state">No boards synced yet — they\u2019ll appear here as soon as a project lands in the studio.</div>'; return; }
   el.innerHTML='';
+  var active=projects.filter(function(p){return !p.archived;});
+  var archived=projects.filter(function(p){return p.archived;});
   var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
-  projects.forEach(function(p){
+  active.forEach(function(p){
     var beats=(p.beats||[]).length;
     var n=Object.keys(notes).filter(function(id){return id.split(':')[0]==='story-'+p.id}).length;
+    var cov=projCover(p);
     var b=document.createElement('button'); b.className='tile';
-    b.innerHTML=(p.cover? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(p.cover))+'"></span>'
+    b.innerHTML=(cov? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(cov))+'"></span>'
                         : '<span class="t-cover t-blank"><span>'+esc((p.title||p.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(p.title||p.id)+'</span>'
       +'<span class="t-meta">'+beats+(beats===1?' beat':' beats')
@@ -181,6 +200,15 @@ function renderShelf(){
     b.onclick=function(){ openProj(p); };
     grid.appendChild(b);
   });
+  if(archived.length){
+    var am=document.createElement('div'); am.className='pagemark'; am.textContent='ARCHIVED'; el.appendChild(am);
+    archived.forEach(function(p){
+      var row=document.createElement('div'); row.className='archrow';
+      var nm=document.createElement('button'); nm.className='archname'; nm.textContent=p.title||p.id; nm.onclick=function(){ openProj(p); };
+      var rb=document.createElement('button'); rb.className='btn'; rb.textContent='Restore'; rb.onclick=function(){ restoreStory(p); };
+      row.appendChild(nm); row.appendChild(rb); el.appendChild(row);
+    });
+  }
 }
 
 function renderNoteInto(wrap,id,excerpt){
@@ -313,7 +341,9 @@ function openProj(p, jumpBeat){
     if(beat.vo){ vo.className='vo'; vo.textContent=beat.vo; } else { vo.className='vo none'; vo.textContent='(no narration for this beat)'; }
     beatsView.appendChild(vo);
     var cards=document.createElement('div'); cards.className='cards';
+    var beatHasArt=(beat.cards||[]).some(function(c){return c&&c.url;});
     (beat.cards||[]).forEach(function(c){
+      if(!c.url && beatHasArt) return;   // hide the empty placeholder once real art lands
       var f=document.createElement('figure'); f.className='card';
       if(NORM[c.status]) c.status=NORM[c.status];
       var st=c.status||'miss';
@@ -360,8 +390,8 @@ function openProj(p, jumpBeat){
     beatsView.appendChild(btnrow); beatsView.appendChild(wrap);
     renderNoteInto(wrap,id,(beat.vo||'').slice(0,70));
   });
-  var dz=document.createElement('button'); dz.className='addnote'; dz.style.margin='2.4em auto 0'; dz.style.color='var(--chg)'; dz.style.opacity='.75';
-  dz.textContent='Delete this story'; dz.onclick=function(){ deleteStory(p); }; sec.appendChild(dz);
+  var dz=document.createElement('button'); dz.className='addnote'; dz.style.margin='2.4em auto 0'; dz.style.color='var(--ink2)'; dz.style.opacity='.75';
+  dz.textContent='Archive this story'; dz.onclick=function(){ archiveStory(p); }; sec.appendChild(dz);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');

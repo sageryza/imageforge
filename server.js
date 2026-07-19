@@ -738,6 +738,27 @@ app.delete('/api/story/project/:id', async (req, res) => {
   }
 });
 
+// Archive / restore a story instead of hard-deleting it. Sets an `archived`
+// flag on the forge-story doc; the shelf hides archived stories into an
+// "Archived" area they can be restored from (nothing is ever lost). Pass
+// { archived:false } to restore.
+app.post('/api/story/project/:id/archive', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(req.params.id));
+    if (!(await ref.get()).exists) return res.status(404).json({ error: 'unknown project' });
+    const archived = !(req.body && req.body.archived === false);
+    await ref.set({ archived }, { merge: true });
+    res.json({ ok: true, archived });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/story', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
