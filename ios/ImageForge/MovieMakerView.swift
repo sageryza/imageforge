@@ -98,6 +98,7 @@ struct MovieMakerHome: View {
     // Story Room (the movie boards webpage) + the bookmark save
     @State private var showStoryRoom = false
     @State private var storySaved = false
+    @State private var storyExpanded = false   // full-screen story editor
 
     // Quick animate (one image → one clip)
     @State private var quickPickerItem: PhotosPickerItem?
@@ -119,7 +120,9 @@ struct MovieMakerHome: View {
                     animateSection
                     shelfSection
                 }
-                .padding()
+                // Sit the content higher (less dead space under the header),
+                // while the story box keeps its own clearance from the pill.
+                .padding(.horizontal).padding(.bottom).padding(.top, 4)
             }
             .background(Reel.base.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)
@@ -142,6 +145,30 @@ struct MovieMakerHome: View {
                     }
                     .accessibilityLabel("Back to all the modules")
                 }
+                // Save · dice · Story Room all live in the header now (top-right)
+                // — as high as they go on screen.
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if !story.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
+                            Task {
+                                do { _ = try await MovieService.shared.storySave(text: text); storySaved = true }
+                                catch { errorText = error.localizedDescription }
+                            }
+                        } label: {
+                            Image(systemName: storySaved ? "bookmark.fill" : "bookmark").foregroundColor(Reel.amber)
+                        }
+                        .accessibilityLabel("Save this story to the library")
+                    }
+                    Button { story = StorySeeds.random(avoiding: story) } label: {
+                        Image(systemName: "die.face.5").foregroundColor(Reel.amber)
+                    }
+                    .accessibilityLabel("Surprise me with an example story")
+                    Button { showStoryRoom = true } label: {
+                        Image(systemName: "books.vertical").foregroundColor(Reel.amber)
+                    }
+                    .accessibilityLabel("Open the Story Room")
+                }
             }
             .toolbarBackground(Reel.base, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -161,6 +188,25 @@ struct MovieMakerHome: View {
                     // strip between the nav bar and the cream page
                     .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
+            }
+            // Expanded (full-screen) story editor — same $story binding.
+            .fullScreenCover(isPresented: $storyExpanded) {
+                NavigationStack {
+                    TextEditor(text: $story)
+                        .scrollContentBackground(.hidden)
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Reel.base)
+                        .foregroundColor(Reel.ink)
+                        .forgeTitle("Story")
+                        .toolbarBackground(Reel.base, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { storyExpanded = false }.foregroundColor(Reel.amber)
+                            }
+                        }
+                }
             }
             .sheet(isPresented: $showConsent) {
                 AIConsentSheet(
@@ -197,56 +243,27 @@ struct MovieMakerHome: View {
 
     private var newMovieSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                label("NEW FEATURE PRESENTATION")
-                Spacer()
-                // Save the typed story to the shared library.
-                if !story.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button {
-                        let text = story.trimmingCharacters(in: .whitespacesAndNewlines)
-                        Task {
-                            do { _ = try await MovieService.shared.storySave(text: text); storySaved = true }
-                            catch { errorText = error.localizedDescription }
-                        }
-                    } label: {
-                        Image(systemName: storySaved ? "bookmark.fill" : "bookmark")
-                            .font(.body.weight(.semibold))
-                            .foregroundColor(Reel.amber)
-                            .padding(6)
-                            .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                    }
-                    .accessibilityLabel("Save this story to the library")
-                }
-                // Open the Story Room — the movie boards webpage.
-                Button { showStoryRoom = true } label: {
-                    Image(systemName: "books.vertical")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(Reel.amber)
-                        .padding(6)
-                        .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                }
-                .accessibilityLabel("Open the Story Room")
-                // Blank-page antidote: prefill with an example story to riff on.
-                Button {
-                    story = StorySeeds.random(avoiding: story)
-                } label: {
-                    Image(systemName: "die.face.5")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(Reel.amber)
-                        .padding(6)
-                        .background(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
-                }
-                .accessibilityLabel("Surprise me with an example story")
-            }
+            label("NEW FEATURE PRESENTATION")
             TextEditor(text: $story)
                 .focused($inputFocused)
-                .frame(minHeight: 110)
+                .frame(minHeight: 84)                 // ~3 lines by default (still expands)
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .background(Reel.surface)
                 .foregroundColor(Reel.ink)
                 .cornerRadius(Theme.radius)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
+                // Expand into a full-screen editor (like a code block's expand).
+                .overlay(alignment: .topTrailing) {
+                    Button { storyExpanded = true } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Reel.dim)
+                            .padding(7)
+                    }
+                    .accessibilityLabel("Expand the story editor")
+                }
+                .padding(.trailing, 50)               // keep the box clear of the autoscroll pill
             HStack(spacing: 10) {
                 reelButton(creating ? "Rolling…" : "🎬  Make it!", prominent: true) {
                     requestCreate(mode: .autopilot)
