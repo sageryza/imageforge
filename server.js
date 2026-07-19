@@ -989,6 +989,7 @@ app.get('/api/gallery/assets', async (req, res) => {
           const v = votes.get(a.url);
           if (v && v.vote) a.vote = v.vote;
           if (v && v.note) a.note = v.note;
+          if (v && v.done) a.done = true;
         });
       }
     } catch (e) { /* votes are best-effort */ }
@@ -1033,14 +1034,15 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { chat, url, vote, note } = req.body || {};
+    const { chat, url, vote, note, done } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const id = require('crypto').createHash('sha1')
       .update(String(chat) + '|' + String(url)).digest('hex');
     const ref = admin.firestore().collection('forge-asset-votes').doc(id);
-    // vote and note update independently: send only the field you're changing
-    // (vote: 'like'|'dislike'|null to clear; note: string|null to clear).
+    // vote, note, and done update independently: send only the field you're
+    // changing (vote: 'like'|'dislike'|null to clear; note: string|null to
+    // clear; done: true when a chat has acted on the note, false/null to clear).
     const patch = { chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
       updated: new Date().toISOString() };
     if (vote !== undefined) {
@@ -1050,6 +1052,9 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     if (note !== undefined) {
       const t = String(note == null ? '' : note).trim();
       patch.note = t ? t.slice(0, 300) : admin.firestore.FieldValue.delete();
+    }
+    if (done !== undefined) {
+      patch.done = done ? true : admin.firestore.FieldValue.delete();
     }
     await ref.set(patch, { merge: true });
     res.json({ ok: true });
