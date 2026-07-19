@@ -16,6 +16,8 @@ struct TestStationView: View {
     @State private var showConsent = false
     @State private var pendingStyles: [ForgeStyle] = []
     @FocusState private var promptFocused: Bool
+    @Environment(\.goHome) private var goHome
+    @Environment(\.openTool) private var openTool
 
     // Three across.
     private let grid = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
@@ -36,6 +38,25 @@ struct TestStationView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { promptFocused = false }
+                }
+                // Home (back to the module grid) top-left; Chats top-right —
+                // Test Station's own entry point moved to a home-screen corner,
+                // so it carries the matching corner nav.
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { goHome() } label: {
+                        Image(systemName: "house")
+                            .font(.system(size: 18))
+                            .foregroundColor(Theme.accent)
+                    }
+                    .accessibilityLabel("Back to all the modules")
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { openTool(.chats) } label: {
+                        Image(systemName: Tool.chats.icon)
+                            .font(.system(size: 18))
+                            .foregroundColor(Theme.accent)
+                    }
+                    .accessibilityLabel("Chats")
                 }
             }
             .background(Theme.bg.ignoresSafeArea())
