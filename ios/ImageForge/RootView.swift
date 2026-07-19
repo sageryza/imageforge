@@ -143,6 +143,13 @@ struct RootView: View {
         // ://movie, … (any Tool rawValue), plus ://gallery and ://home. Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
+        // CI screenshot hook: launch with FORGE_SCREEN=<dest> to open straight
+        // to a screen (the simulator screenshot workflow relaunches per screen).
+        // Never set in production, so it's inert there.
+        .onAppear {
+            let s = ProcessInfo.processInfo.environment["FORGE_SCREEN"] ?? ""
+            if !s.isEmpty { go(s.lowercased()) }
+        }
     }
 
     private func handleDeepLink(_ url: URL) {
@@ -151,6 +158,10 @@ struct RootView: View {
         let dest = (url.host ?? url.path)
             .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             .lowercased()
+        go(dest)
+    }
+
+    private func go(_ dest: String) {
         switch dest {
         case "", "home":
             screen = .home
