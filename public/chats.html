@@ -93,7 +93,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
-.openrow{display:flex; justify-content:flex-end; padding:14px 0 6px;}
+.openrow{display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px;}
+/* Bookmark toggle — a message you want to find later. Same glyph as the stories
+   bookmark; circular icon button (the sanctioned exception to no-pills). */
+.bmk{background:none; border:none; color:var(--ink2); cursor:pointer; padding:6px; border-radius:6px; display:inline-flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.bmk.on{color:var(--chg);}
+.bmk.on svg{fill:currentColor;}
 .tbtn{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
@@ -165,7 +170,7 @@ body.reading .backwrap{display:block;}
 </div>
 
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
-<div id="nowplaying" class="nowplaying" role="button" aria-label="Pause audio"><span id="npic"></span><span>Playing</span></div>
+<div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
 <button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
 <div class="wrap">
   <section id="home">
@@ -460,11 +465,32 @@ function renderMsg(m){
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
   };
-  // Open-in-Claude at the BOTTOM of every message — that's where you'd tap to
-  // go reply. Free: it's just a link to the chat's session (no cost per copy).
+  // Bottom row: bookmark (left) + Open-in-Claude (right). The bookmark flags a
+  // message with content to come back to; Open is a free link to the session.
+  var ob=document.createElement('div'); ob.className='openrow';
+  ob.appendChild(bookmarkBtn(m));
   var murl=m.url||openUrl;
-  if(murl){ var ob=document.createElement('div'); ob.className='openrow'; ob.appendChild(openClaudeBtn(murl)); row.appendChild(ob); }
+  if(murl){ ob.appendChild(openClaudeBtn(murl)); }
+  row.appendChild(ob);
   return row;
+}
+
+// Bookmark toggle for a message — saves server-side (a field on the message
+// doc) so a hearted message stays flagged across reloads and any chat can find
+// what Sophie marked to keep.
+function bookmarkBtn(m){
+  var BM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+  var b=document.createElement('button'); b.className='bmk'+(m.bookmarked?' on':'');
+  b.setAttribute('aria-label','Bookmark this message'); b.innerHTML=BM;
+  b.onclick=function(e){
+    e.stopPropagation();
+    var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
+    api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, bookmarked:nv})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ m.bookmarked=!nv; b.classList.toggle('on',!nv); toast('Couldn’t save that'); });
+  };
+  return b;
 }
 
 function openChat(name, keepScroll){
@@ -688,19 +714,35 @@ function goHome(){
 }
 document.getElementById('back').onclick=goHome;
 
-// Floating pause bar: whenever a message's <audio> starts, show a tappable bar
-// at the top; tapping it (or the audio finishing) pauses/clears it. Delegated
-// with capture so it catches audio elements added later (Play → neural voice).
+// Floating audio bar: while a message's audio is in play, a tappable bar pins
+// to the top. It STAYS as a play/pause toggle even when paused or finished —
+// only a NEW audio (it switches to that) or the round ending removes it. The
+// round ends when you leave the Chats screen (native calls __npEnd) or the app
+// backgrounds/closes (visibilitychange / pagehide). Delegated with capture so
+// it catches audio added later (Play → neural voice).
 (function(){
-  var npBar=document.getElementById('nowplaying'), npIc=document.getElementById('npic'), npAudio=null;
-  npIc.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>';
+  var npBar=document.getElementById('nowplaying'), npIc=document.getElementById('npic'),
+      npTxt=document.getElementById('nptxt'), npAudio=null;
+  var PAUSE='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>';
+  var PLAY='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  function paint(){
+    if(!npAudio){ npBar.classList.remove('show'); return; }
+    var playing=!npAudio.paused && !npAudio.ended;
+    npIc.innerHTML=playing?PAUSE:PLAY; npTxt.textContent=playing?'Playing':'Paused';
+    npBar.classList.add('show');
+  }
   document.addEventListener('play', function(e){
-    if(e.target && e.target.tagName==='AUDIO'){ npAudio=e.target; npBar.classList.add('show'); }
+    if(e.target && e.target.tagName==='AUDIO'){ npAudio=e.target; paint(); }
   }, true);
-  function hide(e){ if(e.target===npAudio){ npBar.classList.remove('show'); if(e.type==='ended') npAudio=null; } }
-  document.addEventListener('pause', hide, true);
-  document.addEventListener('ended', hide, true);
-  npBar.onclick=function(){ if(npAudio) npAudio.pause(); };
+  // Pause/end keep the bar — it becomes a resume control.
+  document.addEventListener('pause', function(e){ if(e.target===npAudio) paint(); }, true);
+  document.addEventListener('ended', function(e){ if(e.target===npAudio) paint(); }, true);
+  npBar.onclick=function(){ if(!npAudio) return; (npAudio.paused||npAudio.ended) ? npAudio.play() : npAudio.pause(); };
+  // End the round: stop the audio and dismiss the bar.
+  function end(){ if(npAudio){ try{ npAudio.pause(); }catch(e){} } npAudio=null; npBar.classList.remove('show'); }
+  window.__npEnd=end;   // native calls this when you leave the Chats screen
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) end(); });
+  window.addEventListener('pagehide', end);
 })();
 
 // Floating jump-to-top arrow: appears once you've scrolled down; stops any
