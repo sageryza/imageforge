@@ -399,7 +399,8 @@
     .dsym .dsym-star svg { width: 12px; height: 12px; }
     .dsym b { font-weight: 600; }
     .dsym-txt { font-size: 14px; line-height: 1.55; }
-    .dread-msg { font-size: 14.5px; line-height: 1.66; margin-top: 12px; }
+    .dread-more { margin-top: 14px; }
+    .dread-msg { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
     .dread-msg p { margin-bottom: 10px; }
     .dread-fail { font-size: 13px; color: var(--text-faint); font-style: italic; }
     /* Illustrated dream book (free page 1 + locked pages) */
@@ -1776,9 +1777,15 @@
       <div class="dread-src">${esc(src)}</div>
       ${r.title ? `<div class="dread-title">${esc(r.title)}</div>` : ''}
       ${syms}
-      <div class="dread-msg">${msg}</div>
+      ${msg ? `<button class="btn-ghost dread-more" type="button">${STAR} Dive deeper</button><div class="dread-msg" style="display:none;">${msg}</div>` : ''}
     </div>`;
   }
+  // Reveal a reading's deeper interpretation on "Dive deeper".
+  $('dream-out').addEventListener('click', (e) => {
+    const b = e.target.closest('.dread-more'); if (!b) return;
+    const msg = b.closest('.dread')?.querySelector('.dread-msg');
+    if (msg) { msg.style.display = ''; b.style.display = 'none'; }
+  });
   $('dream-unlock').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
