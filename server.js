@@ -1862,7 +1862,7 @@ You are given their REAL, accurately computed chart and today's REAL transits �
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "headline": "one short, vivid, almost-aphoristic line for today — a saying, not a description of their placements",
-  "reading": "EXACTLY ONE sentence, 25 words max. Say one true, concrete, specific thing about today grounded in the actual transit. Dry, observant, real — like a smart friend, not a horoscope. Never a platitude, never reassurance, never an instruction, never 'you should/need to', never cosmic or mystical language.",
+  "reading": "2-4 SHORT, punchy sentences — Co-Star style: clipped, declarative, direct, ~50 words TOTAL max. Say something true, concrete, and specific about today grounded in the actual transit. It can be blunt or lightly commanding (a short imperative is fine). Never soft, generic, preachy, condescending, or reassuring-for-its-own-sake; never a horoscope platitude; no cosmic or mystical language, no 'the universe', no 'energy'.",
   "focus": "1-3 word theme for the day",
   "invite": "",
   "intention": "one short first-person line for today — specific, not generic",
