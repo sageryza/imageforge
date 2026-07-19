@@ -110,19 +110,26 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .row > * { flex: 1 1 0; min-width: 0; }
 
-    /* ── Buttons ── */
+    /* ── Buttons ──
+       House button = gold outline, light-gold fill, gold text; sized to its
+       content (never full width) and right-aligned. */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 13px 20px;
-      background: var(--gold);
-      color: #fffbf3; border: none; border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: fit-content; max-width: 100%; margin-left: auto; padding: 12px 22px;
+      background: #ecdcb4;
+      color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
       font-size: 13.5px; font-weight: 600; font-family: inherit;
       letter-spacing: 0.6px; text-transform: uppercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
     }
     .btn:active { transform: scale(0.985); }
-    .btn:hover { filter: brightness(1.06); }
+    .btn:hover { filter: brightness(0.97); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+    .btn svg, .btn .js-star svg { width: 15px; height: 15px; }
+    /* Shared star — every star in the app renders from the STAR const via this
+       class, so swapping the icon later is a one-line change. */
+    .js-star { display: inline-flex; align-items: center; line-height: 0; }
+    .js-star svg { width: 15px; height: 15px; }
     .btn-ghost {
       display: inline-flex; align-items: center; justify-content: center; gap: 7px;
       width: 100%; padding: 12px 18px;
@@ -150,12 +157,12 @@
 
     /* Suspicious coincidence — describe it, AI draws it */
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
-    .coin-cell { position: relative; }
+    .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 12px; line-height: 1.35; word-break: break-word; cursor: text; outline: none; }
     .coin-box:focus { border-color: var(--gold-dim); }
     .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     /* Draw button lives INSIDE the box, bottom-right (matching the diary look) */
-    .coin-btn { position: absolute; right: 6px; bottom: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; padding: 3px 8px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 6px; font-family: var(--serif); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: lowercase; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; padding: 4px 12px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 6px; font-family: var(--serif); font-size: 13.5px; font-weight: 500; letter-spacing: 0; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
     .coin-btn:hover { background: #fffdf7; border-color: var(--gold-dim); }
     .coin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .coin-btn svg { width: 13px; height: 13px; }
@@ -377,27 +384,27 @@
     /* ── Product row (Home — three across, no cream bubble) ── */
     .prow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin: 4px 0 26px; }
     .pcard { display: block; text-decoration: none; color: var(--text); }
-    .pcard .pimg-wrap { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--panel); transition: border-color 0.15s ease, transform 0.15s ease; }
-    .pcard:hover .pimg-wrap { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .pcard .pimg-wrap { position: relative; overflow: hidden; background: var(--panel); transition: transform 0.15s ease; }
+    .pcard:hover .pimg-wrap { transform: translateY(-2px); }
     .pcard .pimg { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
     .pbadge {
-      position: absolute; top: 6px; left: 6px; max-width: calc(100% - 12px);
+      position: absolute; top: 6px; right: 0; max-width: 100%;
       font-size: 9px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
-      padding: 3px 6px; border-radius: 5px; line-height: 1.15;
-      display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 1px 3px rgba(48,43,52,0.16);
+      padding: 3px 6px; line-height: 1.15;
+      display: inline-flex; align-items: center; gap: 3px;
     }
     .pbadge.best { background: var(--gold); color: var(--surface); }
     .pbadge.new { background: var(--moon); color: #fbf7ef; }
-    .pbadge.tag { background: var(--surface); color: var(--gold); border: 1px solid var(--border); box-shadow: none; }
+    .pbadge.tag { background: var(--surface); color: var(--gold); }
     .pbadge svg { width: 10px; height: 10px; flex: none; }
     .pname { font-family: var(--serif); font-size: 13.5px; font-weight: 500; line-height: 1.18; margin-top: 7px; }
-    .pprice { font-size: 11.5px; color: var(--gold); margin-top: 2px; }
+    .pprice { font-size: 11.5px; color: var(--text); margin-top: 2px; }
     @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
 
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
@@ -606,9 +613,9 @@
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
           <div class="cards-title">Suspicious coincidence…</div>
           <div class="coin-boxes">
-            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">draw <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <span class="js-star"></span></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <span class="js-star"></span></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">Draw it! <span class="js-star"></span></button></div>
           </div>
         </div>
 
@@ -651,39 +658,15 @@
             <div id="astro-body"></div>
             <div id="astro-extra"></div>
             <div class="note" id="astro-note"></div>
-            <button class="btn-ghost" id="see-full-chart" style="margin-top:14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Dive deeper</button>
-          </div>
-        </div>
-
-        <!-- Birth chart poster -->
-        <div class="section-title">Your birth chart</div>
-        <div class="section-sub">Your whole sky at the moment you were born — a keepsake, ready to frame.</div>
-        <div class="card" id="cp-card">
-          <div id="cp-form">
-            <div class="row">
-              <div class="field" style="flex:2 1 160px;"><label>Birth date</label><input type="date" id="cp-date"></div>
-              <div class="field" style="flex:1 1 120px;"><label>Time</label><input type="time" id="cp-time"></div>
-            </div>
-            <div class="field"><label>Birth city</label><input type="text" id="cp-place" placeholder="Los Angeles, USA"></div>
-            <button class="btn" id="cp-btn"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg> Draw my chart</button>
-            <div class="note" id="cp-note"></div>
-          </div>
-          <div id="cp-result" style="display:none;">
-            <div class="cp-svg" id="cp-svg"></div>
-            <div class="dpaywall" style="margin-top:16px;">
-              <div class="dpw-title">Ready to frame ✦</div>
-              <div class="dpw-sub">Order your chart as a museum-quality art print, shipped to your door.</div>
-              <button class="btn" id="cp-order">Order a framed print</button>
-            </div>
-            <button class="btn-ghost" id="cp-redo" style="margin-top:10px;">Use different birth details</button>
+            <button class="btn-ghost" id="see-full-chart" style="margin-top:14px;">See your full birth chart <span class="js-star"></span></button>
           </div>
         </div>
 
         <!-- "Are you secretly a witch?" — Home entry; opens the full-screen quiz app -->
         <div class="card" id="quiz-card">
-          <div class="cards-title">Are you secretly a witch?</div>
-          <p class="hint" style="text-align:center;">Five signs. Answer honestly — you already know the truth.</p>
-          <button class="btn" id="quiz-open"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.5 5 Q9.5 12.5 17 12.5 Q9.5 12.5 9.5 20 Q9.5 12.5 2 12.5 Q9.5 12.5 9.5 5 Z M18.6 3 Q18.6 7.2 22.8 7.2 Q18.6 7.2 18.6 11.4 Q18.6 7.2 14.4 7.2 Q18.6 7.2 18.6 3 Z M18.8 14 Q18.8 17.2 22 17.2 Q18.8 17.2 18.8 20.4 Q18.8 17.2 15.6 17.2 Q18.8 17.2 18.8 14 Z"/></svg> Take the quiz</button>
+          <div style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;">Five obvious signs you've probably missed</div>
+          <p class="hint">The power you've been hiding in you the whole time — hidden in plain sight.</p>
+          <button class="btn" id="quiz-open">Take the quiz <span class="js-star"></span></button>
         </div>
 
         <!-- Today's cards (tarot) -->
@@ -715,7 +698,7 @@
           </div>
           <div class="dream-btns">
             <button class="btn" id="dream-unlock">Unlock the symbolism</button>
-            <button class="btn-ghost" id="dream-illustrate"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg> Illustrate</button>
+            <button class="btn-ghost" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
@@ -905,6 +888,11 @@
   // ── Helpers ──
   const $ = (id) => document.getElementById(id);
   function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  // ── The one star used everywhere (change this to change every star) ──
+  // Currently the Heroicons solid three-star "sparkles". Any element with class
+  // "js-star" is filled with it by renderStars(); JS strings use STAR directly.
+  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg>';
+  function renderStars() { document.querySelectorAll('.js-star').forEach(e => { e.innerHTML = STAR; }); }
   let toastTimer;
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -1642,8 +1630,24 @@
   $('daily-signin').addEventListener('click', () => showSignIn());
   $('see-full-chart').addEventListener('click', () => {
     if (!natalChartHtml) return;
-    openModal(`<h2 style="margin-bottom:12px;">Your birth chart</h2><div style="text-align:left;">${natalChartHtml}</div><button class="btn-ghost" id="chart-redo" style="margin-top:16px;">Use different birth details</button><button class="close-x" id="chart-close">close</button>`);
+    // Second screen after the daily reading: the framed birth-chart POSTER
+    // (drawn from the birth details already given), then the full placements.
+    let poster = '';
+    try {
+      const st = JSON.parse(localStorage.getItem('witch_natal') || 'null');
+      if (st && st.data && st.data.chart) {
+        const name = (typeof fbUser !== 'undefined' && fbUser && fbUser.displayName) ? fbUser.displayName.split(' ')[0].toUpperCase() : '';
+        poster = `<div class="cp-svg">${posterSVG(st.data.chart, { name, dateLabel: cpFmtDate(st.input.date), timeLabel: cpFmtTime(st.input.time), placeLabel: (st.input.place || '').toUpperCase() })}</div>
+          <div class="dpaywall" style="margin-top:16px;">
+            <div class="dpw-title">Ready to frame ✦</div>
+            <div class="dpw-sub">Order your chart as a museum-quality art print, shipped to your door.</div>
+            <button class="btn" id="cp-order">Order a framed print</button>
+          </div>`;
+      }
+    } catch {}
+    openModal(`<h2 style="margin-bottom:12px;">Your birth chart</h2>${poster}<div style="text-align:left; margin-top:20px;">${natalChartHtml}</div><button class="btn-ghost" id="chart-redo" style="margin-top:16px;">Use different birth details</button><button class="close-x" id="chart-close">close</button>`);
     $('chart-close').addEventListener('click', closeModal);
+    const ord = $('cp-order'); if (ord) ord.addEventListener('click', () => toast('Framed prints are coming soon ✦'));
     $('chart-redo').addEventListener('click', () => { closeModal(); try { localStorage.removeItem('witch_natal'); } catch {} natalChartHtml = ''; cloudSyncSoon(); renderHome(); });
   });
 
@@ -1779,8 +1783,6 @@
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
   /* ══════════ Home product rows ══════════ */
-  // The signature sparkles (Heroicons solid) reused for the "new" badge + Illustrate.
-  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg>';
   const SHOP_CDN = 'https://cdn.shopify.com/s/files/1/1344/6647/files/';
   // Curated Home product rows — one of each badge per row (best seller / new / tagline).
   // Prices are a snapshot; links + images are the live secretlyawitch.com products.
@@ -1788,7 +1790,7 @@
     [
       { name: 'Apothecary cards', price: '$32', badge: 'best', handle: 'witchcraft-cards-apothecary-crystal-19221', img: SHOP_CDN + 'il_fullxfull.5521065204_90tq_8495b008-592c-4ae8-9d56-4c9fbd38c9bd.jpg?v=1770947332' },
       { name: 'Travel kit', price: '$85', badge: 'tag', label: 'The essentials', handle: 'travel-witchcraft-kit-travel-altar-kit-39959', img: SHOP_CDN + 'il_fullxfull.1769851682_q7l6.jpg?v=1770947433' },
-      { name: 'Color your own tarot', price: '$23', badge: 'new', handle: 'color-in-69086', img: SHOP_CDN + 'il_fullxfull.5970330348_7ht4.jpg?v=1770947425' },
+      { name: 'Color in tarot', price: '$23', badge: 'new', handle: 'color-in-69086', img: SHOP_CDN + 'il_fullxfull.5970330348_7ht4.jpg?v=1770947425' },
     ],
     [
       { name: 'Magic of Flower Cards', price: '$20', badge: 'new', handle: 'magic-of-flower-cards-oracle-deck-33100', img: SHOP_CDN + 'il_fullxfull.7658334563_4gm0.jpg?v=1770947228' },
@@ -1798,7 +1800,7 @@
   ];
   function badgeHtml(p) {
     if (p.badge === 'best') return '<span class="pbadge best">Best seller</span>';
-    if (p.badge === 'new') return `<span class="pbadge new">${STAR} New product available!</span>`;
+    if (p.badge === 'new') return `<span class="pbadge new"><span class="js-star"></span> New product available!</span>`;
     return `<span class="pbadge tag">${esc(p.label || '')}</span>`;
   }
   function renderProductRow(el, row) {
@@ -1811,6 +1813,7 @@
   }
   renderProductRow($('prow-1'), PRODUCT_ROWS[0]);
   renderProductRow($('prow-2'), PRODUCT_ROWS[1]);
+  renderStars();   // fill every .js-star (buttons + badges) from the shared STAR const
 
   /* ══════════ Home dream reading ══════════ */
   function dreamText() { return ($('dream-input').value || '').trim(); }
@@ -1847,7 +1850,7 @@
       <div class="dread-src">${esc(src)}</div>
       ${r.title ? `<div class="dread-title">${esc(r.title)}</div>` : ''}
       ${syms}
-      ${msg ? `<button class="btn-ghost dread-more" type="button">${STAR} Dive deeper</button><div class="dread-msg" style="display:none;">${msg}</div>` : ''}
+      ${msg ? `<button class="btn-ghost dread-more" type="button">Dive deeper ${STAR}</button><div class="dread-msg" style="display:none;">${msg}</div>` : ''}
     </div>`;
   }
   // "Dive deeper" reveal + Past-readings list/detail navigation.
@@ -1994,34 +1997,6 @@
       ${threeSvg}
     </svg>`;
   }
-  function cpShow(chart, input) {
-    const name = (typeof fbUser !== 'undefined' && fbUser && fbUser.displayName) ? fbUser.displayName.split(' ')[0].toUpperCase() : '';
-    $('cp-svg').innerHTML = posterSVG(chart, { name, dateLabel: cpFmtDate(input.date), timeLabel: cpFmtTime(input.time), placeLabel: (input.place || '').toUpperCase() });
-    $('cp-form').style.display = 'none'; $('cp-result').style.display = '';
-  }
-  function renderChartPoster() {
-    let s = null; try { s = JSON.parse(localStorage.getItem('witch_natal') || 'null'); } catch {}
-    if (s && s.input) { if ($('cp-date')) $('cp-date').value = s.input.date || ''; if ($('cp-time')) $('cp-time').value = s.input.time || ''; if ($('cp-place')) $('cp-place').value = s.input.place || ''; }
-    const chart = s && s.data && s.data.chart;
-    if (chart) cpShow(chart, s.input); else { $('cp-form').style.display = ''; $('cp-result').style.display = 'none'; }
-  }
-  $('cp-btn').addEventListener('click', async () => {
-    const date = $('cp-date').value, time = $('cp-time').value, place = $('cp-place').value.trim();
-    if (!date || !place) { toast('Add your birth date and city'); return; }
-    const btn = $('cp-btn'); btn.disabled = true; const note = $('cp-note'); note.textContent = 'Reading the sky at your birth… (a few seconds)';
-    try {
-      const data = await api('/api/witch/natal', { date, time, place });
-      try { localStorage.setItem('witch_natal', JSON.stringify({ input: { date, time, place }, data, coords: data.coords, tz: data.tz })); } catch {}
-      note.textContent = '';
-      cpShow(data.chart, { date, time, place });
-      if (typeof cloudSyncSoon === 'function') cloudSyncSoon();
-    } catch (e) { note.textContent = 'Couldn’t draw it — ' + e.message; }
-    btn.disabled = false;
-  });
-  $('cp-redo').addEventListener('click', () => { $('cp-result').style.display = 'none'; $('cp-form').style.display = ''; });
-  $('cp-order').addEventListener('click', () => toast('Framed prints are coming soon ✦'));
-  renderChartPoster();
-
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
   const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   const SPELL_CARDS = [
