@@ -49,6 +49,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .assetgrid .vote.heart{left:5px;}
 .assetgrid .vote.nope{right:5px;}
 .assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
+/* ✓ badge on a tile whose note a chat has already acted on (done) */
+.donebadge{position:absolute; bottom:5px; right:5px; width:24px; height:24px; border-radius:50%;
+  background:#5d7a5a; color:#fff; display:none; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.35);}
+.donebadge svg{width:14px; height:14px; display:block;}
+.acell.done .donebadge{display:flex;}
+.lbnote.done .notesend{background:#5d7a5a; color:#fff;}
 /* lightbox: controls overlaid on TOP of the image — ♥ · note ("redo") · ✕ */
 #clightbox .clframe{position:relative;}
 .lbtop{position:absolute; top:22px; left:22px; right:22px; display:flex; gap:8px; align-items:center; z-index:2;}
@@ -589,6 +595,7 @@ function openChat(name, keepScroll){
           paint();
           cell.appendChild(hb); cell.appendChild(xb);
         }
+        var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
         a.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
@@ -596,6 +603,10 @@ function openChat(name, keepScroll){
           b.innerHTML='<img alt="" loading="lazy" src="'+esc(assetThumb(it.url))+'">'+lbl;
           b.onclick=function(){ lightbox(it.url, it.prompt, it); };
           cell.appendChild(b); voteBtns(cell,it);
+          var badge=document.createElement('div'); badge.className='donebadge'; badge.innerHTML=CHECK;
+          cell.appendChild(badge);
+          cell.classList.toggle('done', !!it.done);
+          it._paintDone=function(){ cell.classList.toggle('done', !!it.done); if(it._lbPaintDone) it._lbPaintDone(); };
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
         });
@@ -647,7 +658,8 @@ function lightbox(url, caption, asset){
       hb.classList.toggle('on', asset.vote==='like');
       xb.classList.toggle('on', asset.vote==='dislike');
     };
-    asset._lbPaint();
+    asset._lbPaintDone=function(){ nw.classList.toggle('done', !!asset.done); };
+    asset._lbPaint(); asset._lbPaintDone();
     hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
     xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
     row.appendChild(hb); row.appendChild(nw); row.appendChild(xb);
