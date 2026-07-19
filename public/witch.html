@@ -427,6 +427,9 @@
     .dpaywall { text-align: center; margin-top: 16px; padding: 18px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
     .dpaywall .dpw-title { font-family: var(--serif); font-size: 19px; font-weight: 500; margin-bottom: 5px; }
     .dpaywall .dpw-sub { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+    /* Birth chart poster */
+    .cp-svg { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .cp-svg svg { display: block; width: 100%; height: auto; }
 
     /* ── School (coming soon) ── */
     .coming { text-align: center; padding: 30px 22px; }
@@ -639,6 +642,30 @@
             <div id="astro-extra"></div>
             <div class="note" id="astro-note"></div>
             <button class="btn-ghost" id="see-full-chart" style="margin-top:14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Dive deeper</button>
+          </div>
+        </div>
+
+        <!-- Birth chart poster -->
+        <div class="section-title">Your birth chart</div>
+        <div class="section-sub">Your whole sky at the moment you were born — a keepsake, ready to frame.</div>
+        <div class="card" id="cp-card">
+          <div id="cp-form">
+            <div class="row">
+              <div class="field" style="flex:2 1 160px;"><label>Birth date</label><input type="date" id="cp-date"></div>
+              <div class="field" style="flex:1 1 120px;"><label>Time</label><input type="time" id="cp-time"></div>
+            </div>
+            <div class="field"><label>Birth city</label><input type="text" id="cp-place" placeholder="Los Angeles, USA"></div>
+            <button class="btn" id="cp-btn"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg> Draw my chart</button>
+            <div class="note" id="cp-note"></div>
+          </div>
+          <div id="cp-result" style="display:none;">
+            <div class="cp-svg" id="cp-svg"></div>
+            <div class="dpaywall" style="margin-top:16px;">
+              <div class="dpw-title">Ready to frame ✦</div>
+              <div class="dpw-sub">Order your chart as a museum-quality art print, shipped to your door.</div>
+              <button class="btn" id="cp-order">Order a framed print</button>
+            </div>
+            <button class="btn-ghost" id="cp-redo" style="margin-top:10px;">Use different birth details</button>
           </div>
         </div>
 
@@ -1884,6 +1911,106 @@
       book.innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
     }
   });
+
+  /* ══════════ Birth chart poster ══════════ */
+  // Renders an accurate natal chart (from /api/witch/natal → chart) as an inline
+  // SVG poster — the same design approved in chat. Flat colors, no gradients.
+  const CP = { cream: '#f6efe0', plum: '#5b3d73', plum2: '#7a5892', gold: '#9c6f33', ink: '#3a2f42' };
+  const CP_MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const signGlyph = i => String.fromCodePoint(0x2648 + ((i % 12) + 12) % 12) + '︎';
+  function cpFmtDate(d) { if (!d) return ''; const [y, m, day] = d.split('-').map(Number); return `${day} ${CP_MONTHS[m - 1]} ${y}`; }
+  function cpFmtTime(t) { if (!t) return ''; let [h, mi] = t.split(':').map(Number); const ap = h < 12 ? 'AM' : 'PM'; let h12 = h % 12; if (!h12) h12 = 12; return `${h12}:${String(mi).padStart(2, '0')} ${ap}`; }
+  function posterSVG(chart, opts) {
+    const cx = 600, cy = 890, R = 430;
+    const hasAsc = !!chart.ascendant;
+    const asc = hasAsc ? chart.ascendant.lon : 0;
+    const ai = hasAsc ? (chart.ascendant.signIndex != null ? chart.ascendant.signIndex : Math.floor(asc / 30)) : 0;
+    const pt = (L, r) => { const a = (180 - (L - asc)) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    let s = '';
+    [R, R - 66, R - 210, 168].forEach(r => { s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CP.gold}" stroke-width="1.4"/>`; });
+    s += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${CP.plum}" stroke-width="3"/>`;
+    for (let d = 0; d < 360; d += 5) {
+      const big = d % 30 === 0;
+      const [x1, y1] = pt(asc + d, R), [x2, y2] = pt(asc + d, R - (big ? 18 : 9));
+      s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${big ? CP.plum : CP.gold}" stroke-width="${big ? 1.6 : 0.8}"/>`;
+    }
+    for (let i = 0; i < 12; i++) {
+      const [sx, sy] = pt(i * 30, R), [ix, iy] = pt(i * 30, R - 210);
+      s += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ix.toFixed(1)}" y2="${iy.toFixed(1)}" stroke="${CP.gold}" stroke-width="0.9"/>`;
+      const [gx, gy] = pt(i * 30 + 15, R - 33);
+      s += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="40" fill="${CP.plum}" text-anchor="middle" dominant-baseline="central">${signGlyph(i)}</text>`;
+      if (hasAsc) {
+        const house = ((i - ai + 12) % 12) + 1;
+        const [hx, hy] = pt(i * 30 + 15, R - 240);
+        s += `<text x="${hx.toFixed(1)}" y="${hy.toFixed(1)}" font-size="20" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central" font-family="Georgia, serif">${house}</text>`;
+      }
+    }
+    const byName = {}; chart.bodies.forEach(b => byName[b.name] = b);
+    const aspColor = { trine: CP.gold, sextile: CP.gold, conjunction: CP.plum2, square: CP.plum, opposition: CP.plum };
+    (chart.aspects || []).slice(0, 14).forEach(a => {
+      const A = byName[a.a], B = byName[a.b]; if (!A || !B) return;
+      const [ax, ay] = pt(A.lon, 168), [bx, by] = pt(B.lon, 168);
+      s += `<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="${aspColor[a.aspect] || CP.gold}" stroke-width="1" opacity="0.5"/>`;
+    });
+    const planets = chart.bodies.slice().sort((p, q) => p.lon - q.lon);
+    let last = -999, tier = 0;
+    planets.forEach(b => {
+      if (last > -999 && Math.abs(b.lon - last) < 9) tier = (tier + 1) % 3; else tier = 0;
+      last = b.lon;
+      const r = (R - 130) - tier * 46;
+      const [px, py] = pt(b.lon, r), [tx, ty] = pt(b.lon, r - 30);
+      s += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="20" fill="${CP.cream}" stroke="${CP.gold}" stroke-width="1"/>`;
+      s += `<text x="${px.toFixed(1)}" y="${py.toFixed(1)}" font-size="26" fill="${CP.plum}" text-anchor="middle" dominant-baseline="central">${(b.glyph || '') + '︎'}</text>`;
+      s += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="14" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central" font-family="Georgia, serif">${Math.floor(b.degInSign)}°</text>`;
+    });
+    if (hasAsc) { const [axL, ayL] = pt(asc, R + 2); s += `<text x="${(axL - 30).toFixed(1)}" y="${ayL.toFixed(1)}" font-size="18" fill="${CP.ink}" text-anchor="middle" dominant-baseline="central" font-family="Georgia, serif" font-style="italic">ASC</text>`; }
+    s += `<text x="${cx}" y="${cy}" font-size="40" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">✦</text>`;
+    const sun = chart.bodies.find(b => b.name === 'Sun'), moon = chart.bodies.find(b => b.name === 'Moon');
+    const three = [['☉ SUN', sun ? sun.sign : '—'], ['☽ MOON', moon ? moon.sign : '—'], ['↑ RISING', hasAsc ? chart.ascendant.sign : '—']];
+    const threeSvg = three.map((t, i) => { const x = 300 + i * 300; return `<text x="${x}" y="1560" font-size="20" fill="${CP.gold}" text-anchor="middle" letter-spacing="2" font-family="Georgia, serif">${t[0]}︎</text><text x="${x}" y="1600" font-size="30" fill="${CP.plum}" text-anchor="middle" font-family="Georgia, serif">${esc(t[1])}</text>`; }).join('');
+    const corners = [[80, 90], [1120, 90], [80, 1710], [1120, 1710]].map(([x, y]) => `<text x="${x}" y="${y}" font-size="34" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">✦</text>`).join('');
+    const subline = [opts.dateLabel, opts.timeLabel, opts.placeLabel].filter(Boolean).join(' · ');
+    const nameLine = opts.name ? `<text x="${cx}" y="238" font-size="30" fill="${CP.ink}" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" letter-spacing="3">${esc(opts.name)}</text>` : '';
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800">
+      <rect width="1200" height="1800" fill="${CP.cream}"/>
+      <rect x="40" y="40" width="1120" height="1720" fill="none" stroke="${CP.plum}" stroke-width="3"/>
+      <rect x="54" y="54" width="1092" height="1692" fill="none" stroke="${CP.gold}" stroke-width="1.2"/>
+      ${corners}
+      <text x="${cx}" y="180" font-size="86" fill="${CP.plum}" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" font-weight="600" letter-spacing="6">BIRTH CHART</text>
+      ${nameLine}
+      <text x="${cx}" y="${opts.name ? 280 : 250}" font-size="19" fill="${CP.gold}" text-anchor="middle" font-family="Georgia, serif" letter-spacing="3">${esc(subline)}</text>
+      ${s}
+      <line x1="300" y1="1500" x2="900" y2="1500" stroke="${CP.gold}" stroke-width="1"/>
+      ${threeSvg}
+    </svg>`;
+  }
+  function cpShow(chart, input) {
+    const name = (typeof fbUser !== 'undefined' && fbUser && fbUser.displayName) ? fbUser.displayName.split(' ')[0].toUpperCase() : '';
+    $('cp-svg').innerHTML = posterSVG(chart, { name, dateLabel: cpFmtDate(input.date), timeLabel: cpFmtTime(input.time), placeLabel: (input.place || '').toUpperCase() });
+    $('cp-form').style.display = 'none'; $('cp-result').style.display = '';
+  }
+  function renderChartPoster() {
+    let s = null; try { s = JSON.parse(localStorage.getItem('witch_natal') || 'null'); } catch {}
+    if (s && s.input) { if ($('cp-date')) $('cp-date').value = s.input.date || ''; if ($('cp-time')) $('cp-time').value = s.input.time || ''; if ($('cp-place')) $('cp-place').value = s.input.place || ''; }
+    const chart = s && s.data && s.data.chart;
+    if (chart) cpShow(chart, s.input); else { $('cp-form').style.display = ''; $('cp-result').style.display = 'none'; }
+  }
+  $('cp-btn').addEventListener('click', async () => {
+    const date = $('cp-date').value, time = $('cp-time').value, place = $('cp-place').value.trim();
+    if (!date || !place) { toast('Add your birth date and city'); return; }
+    const btn = $('cp-btn'); btn.disabled = true; const note = $('cp-note'); note.textContent = 'Reading the sky at your birth… (a few seconds)';
+    try {
+      const data = await api('/api/witch/natal', { date, time, place });
+      try { localStorage.setItem('witch_natal', JSON.stringify({ input: { date, time, place }, data, coords: data.coords, tz: data.tz })); } catch {}
+      note.textContent = '';
+      cpShow(data.chart, { date, time, place });
+      if (typeof cloudSyncSoon === 'function') cloudSyncSoon();
+    } catch (e) { note.textContent = 'Couldn’t draw it — ' + e.message; }
+    btn.disabled = false;
+  });
+  $('cp-redo').addEventListener('click', () => { $('cp-result').style.display = 'none'; $('cp-form').style.display = ''; });
+  $('cp-order').addEventListener('click', () => toast('Framed prints are coming soon ✦'));
+  renderChartPoster();
 
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
   const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
