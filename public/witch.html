@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5efe2">
   <title>Secretly a Witch</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +39,7 @@
       font-family: 'DM Sans', sans-serif;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      touch-action: manipulation; /* kill double-tap-to-zoom (esp. tap-to-advance) */
     }
 
     .app {
@@ -135,7 +136,7 @@
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: fit-content; margin-left: auto; padding: 11px 24px;
-      background: #ecdcb4; color: #6e4d1f; border: 1px solid var(--gold); border-radius: var(--radius);
+      background: #ecdcb4; color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
       font-size: 13.5px; font-weight: 600; font-family: inherit; letter-spacing: 0.6px; text-transform: uppercase;
       cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
     }
@@ -227,7 +228,7 @@
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
-    .quiz-app { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 46px) 18px calc(env(safe-area-inset-bottom, 0px) + 24px); }
+    .quiz-app { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 46px) 18px calc(env(safe-area-inset-bottom, 0px) + 96px); }
     .quiz-back { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 16px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; background: none; border: none; padding: 6px 4px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
     .quiz-back:hover { color: var(--gold); }
     .quiz-back svg { width: 16px; height: 16px; }
@@ -1721,7 +1722,8 @@
     }
   }
   function openQuiz() {
-    quizScreens = [{ k: 'intro' }];
+    // No intro card — the Home tile already says what the quiz is; open on Q1.
+    quizScreens = [];
     QUIZ.forEach((_, i) => { quizScreens.push({ k: 'q', i }); quizScreens.push({ k: 'reveal', i }); });
     quizScreens.push({ k: 'result' });
     qi = 0;
@@ -2034,6 +2036,9 @@
     { img: 'sw-09', kicker: 'The ritual', h: 'Casting it', body: 'Cleanse the space and settle your breath. Name your intention out loud, in the present tense. Light a fitting candle and hold your herb or written wish. Then repeat your words, breathe into the feeling, and at the peak picture it fully real — and release it.' },
     { img: 'sw-10', kicker: 'After', h: 'Then act', body: 'Ground yourself — breathe, touch the floor, give thanks, and stop turning it over. Then act in the real world too: send the text, apply, set the boundary. Magic works <i>with</i> you, not instead of you.<br><br><b>Tonight:</b> light a white candle for clarity. Your first spell can be that simple. ✦' },
   ];
+  // Preload every card image up front so the picture is ready the instant its
+  // card renders (no "text first, then the image pops in" flash).
+  SPELL_CARDS.forEach(c => { const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
   let deckIdx = 0;
   const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   function renderDeckCard() {
