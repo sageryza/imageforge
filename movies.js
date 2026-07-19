@@ -427,6 +427,34 @@ async function anthropicChatJSON(system, user, { maxTokens = 8000, retries = 2 }
   throw lastErr;
 }
 
+// Transcribe a voiceover with word + segment timestamps (OpenAI whisper-1,
+// verbose_json). The timings are the whole point: they become the film's
+// clock so each visual beat lands on the exact moment its line is spoken.
+async function transcribeAudio(buffer, filename = 'voiceover.m4a') {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const form = new FormData();
+  form.append('file', buffer, { filename });
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'verbose_json');
+  form.append('timestamp_granularities[]', 'word');
+  form.append('timestamp_granularities[]', 'segment');
+  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+    body: form,
+    timeout: 240000,
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'transcription failed');
+  const num = v => Math.round((Number(v) || 0) * 1000) / 1000;
+  return {
+    text: String(data.text || '').trim(),
+    duration: num(data.duration),
+    words: (data.words || []).map(w => ({ word: String(w.word || '').trim(), start: num(w.start), end: num(w.end) })),
+    segments: (data.segments || []).map(s => ({ text: String(s.text || '').trim(), start: num(s.start), end: num(s.end) })),
+  };
+}
+
 // Panel render — gpt-image-2 portrait, timeout scaled by quality (high takes
 // minutes at OpenAI's end; see server.js's OPENAI_IMAGE_TIMEOUTS).
 const IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000 };
@@ -790,7 +818,19 @@ function motionPromptFor(movie, scene) {
 // restated verbatim ("repeat the preserve list on each iteration to reduce
 // drift" — the cookbook's exact advice). This is what keeps the shirt the
 // same shirt in scene 2 and scene 11.
-function anchorClause(movie) {
+function anchorClause(movie, scene) {
+  // Deliberate wardrobe change: hold the IDENTITY (face/hair/proportions) but
+  // dress the character in a new outfit on purpose. This is the opposite of the
+  // default anchor, which locks clothing too — used when the SAME person is
+  // shown in a different costume (e.g. the "looked good" vs "looked shabby"
+  // versions of one girl).
+  if (scene && scene.outfit) {
+    return 'The character shown in the LAST attached image is the SAME person ' +
+      'in this scene — same face, same hairstyle, same proportions, same skin ' +
+      'tone. Keep the face and identity IDENTICAL; only the clothing changes. ' +
+      'They are now wearing: ' + String(scene.outfit).trim() +
+      '. Do not redesign the face — just re-dress the same person. ';
+  }
   const tokens = movie.characters ? ` (${movie.characters})` : '';
   return 'The character shown in the LAST attached image is the SAME character ' +
     'in this scene — same face, same hairstyle, same clothing' + tokens +
@@ -813,14 +853,14 @@ async function anchorBuffer(movie) {
 
 // Compose the reference set + prompt for a panel-style render: style page
 // first, character anchor last (the prompt refers to it as "the LAST image").
-async function panelRefs(movie, basePrompt) {
+async function panelRefs(movie, basePrompt, scene) {
   const refs = [];
   let prompt = basePrompt;
   if (styleRef) refs.push(styleRef);
   const anchor = await anchorBuffer(movie);
   if (anchor) {
     refs.push(anchor);
-    prompt = anchorClause(movie) + prompt;
+    prompt = anchorClause(movie, scene) + prompt;
   }
   return { refs, prompt };
 }
@@ -843,7 +883,7 @@ async function renderPanelFor(movie, scene, quality) {
   const base = styleRef
     ? STYLE_REF_PREFIX + scene.imagePrompt
     : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
-  const { refs, prompt } = await panelRefs(movie, base);
+  const { refs, prompt } = await panelRefs(movie, base, scene);
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
     : await openaiPanel(prompt, quality);
@@ -1325,6 +1365,120 @@ async function stitchMovie(movie, progress) {
   }
 }
 
+// ─── Voiceover-clock timeline stitch (narrated films) ───────────────
+// A narrated film is built on the VOICEOVER's clock, not on clip lengths: the
+// recording plays as one unbroken audio track and the visuals are timed
+// underneath it. Each scene has a `startAt` (seconds into the narration); its
+// on-screen window runs until the next scene's startAt (the last runs to the
+// end of the voiceover). A scene with a clip plays it (trimmed if longer, or
+// its last frame frozen if shorter, to exactly fill the window); a scene with
+// only a panel holds as a STILL for the window (free — ffmpeg loops the image).
+// Everything is letterboxed onto a fixed canvas (portrait 1080x1920 with black
+// bars by default) so the frame size stays consistent.
+const CANVAS = {
+  portrait: { width: 1080, height: 1920 },
+  landscape: { width: 1920, height: 1080 },
+  square: { width: 1080, height: 1080 },
+};
+
+function timelineSequence(movie) {
+  return (movie.scenes || [])
+    .map((scene) => ({ scene }))
+    .filter(({ scene }) => scene.edits?.enabled !== false
+      && typeof scene.startAt === 'number' && isFinite(scene.startAt)
+      && scene.panel?.url && !scene.panel.url.startsWith('data:'))
+    .sort((a, b) => a.scene.startAt - b.scene.startAt);
+}
+
+async function fetchToFile(url, file) {
+  const { buffer } = await fetchBuffer(url);
+  fs.writeFileSync(file, buffer);
+  return file;
+}
+
+// Build one timeline segment of EXACTLY `windowSec` seconds on the target canvas.
+async function buildTimelineSegment(scene, windowSec, target, tmpDir, i) {
+  const out = path.join(tmpDir, `seg-${i}.mp4`);
+  const enc = ['-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p'];
+  const useClip = scene.clip?.url && !scene.clip.url.startsWith('data:') && !scene.still;
+
+  if (useClip) {
+    // Normalize the clip (applies the scene's ffmpeg edits) onto the canvas,
+    // then fit it to the window: trim if longer, freeze the last frame if short.
+    const inFile = await fetchToFile(scene.clip.url, path.join(tmpDir, `clip-${i}.mp4`));
+    const mid = path.join(tmpDir, `mid-${i}.mp4`);
+    await normalizeClip(inFile, mid, scene.edits || {}, target);
+    const { duration } = await probe(mid);
+    // setsar=1 on every segment so image-derived stills and video-derived clips
+    // share identical pixel/sample aspect and the concat-copy stays lossless.
+    if (duration >= windowSec - 0.05) {
+      await run(FFMPEG, ['-y', '-i', mid, '-t', String(windowSec), '-vf', 'fps=30,setsar=1', ...enc, '-an', out]);
+    } else {
+      const pad = Math.max(0, windowSec - duration);
+      await run(FFMPEG, ['-y', '-i', mid, '-vf', `tpad=stop_mode=clone:stop_duration=${pad},fps=30,setsar=1`, ...enc, '-an', out]);
+    }
+  } else {
+    // Hold the panel as a still for the whole window (black-bar letterbox).
+    const img = await fetchToFile(scene.panel.url, path.join(tmpDir, `panel-${i}.webp`));
+    const lb = `scale=${target.width}:${target.height}:force_original_aspect_ratio=decrease,` +
+      `pad=${target.width}:${target.height}:(ow-iw)/2:(oh-ih)/2:color=black`;
+    await run(FFMPEG, ['-y', '-loop', '1', '-t', String(windowSec), '-i', img,
+      '-vf', `${lb},fps=30,setsar=1`, ...enc, '-an', out]);
+  }
+  return out;
+}
+
+async function stitchTimeline(movie, progress) {
+  if (!movie.voiceover?.url) throw new Error('attach a voiceover first (POST /:id/voiceover)');
+  const voDur = Number(movie.voiceover.duration) || 0;
+  if (!voDur) throw new Error('voiceover has no duration — re-attach so it can be transcribed');
+  const seq = timelineSequence(movie);
+  if (!seq.length) throw new Error('no timed scenes with panels — set each beat\'s startAt and render its panel first');
+  const target = CANVAS[movie.aspect] || CANVAS.portrait;
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-timeline-'));
+  try {
+    // Each scene's window = [startAt, nextStartAt]; the last runs to VO end.
+    const windows = seq.map((item, i) => {
+      const start = Math.max(0, item.scene.startAt);
+      const end = i + 1 < seq.length ? Math.max(start, seq[i + 1].scene.startAt) : voDur;
+      return Math.max(0, end - start);
+    });
+    const total = seq.length + 2;
+    const segments = [];
+    const usedSeq = [];
+    for (let i = 0; i < seq.length; i++) {
+      if (windows[i] < 0.15) continue; // two beats share a timestamp — skip the empty one
+      await progress(i, total, `building beat ${i + 1}/${seq.length}`);
+      segments.push(await buildTimelineSegment(seq[i].scene, windows[i], target, tmpDir, i));
+      usedSeq.push({ scene: seq[i].scene });
+    }
+    if (!segments.length) throw new Error('all scene windows were empty — check the startAt values');
+
+    await progress(seq.length, total, 'joining beats');
+    const silent = path.join(tmpDir, 'silent.mp4');
+    await concatClips(segments, silent);
+
+    // Lay the unbroken voiceover under the assembled visuals.
+    await progress(seq.length + 1, total, 'adding voiceover');
+    const voFile = await fetchToFile(movie.voiceover.url, path.join(tmpDir, 'voiceover.m4a'));
+    const outFile = path.join(tmpDir, 'movie.mp4');
+    await run(FFMPEG, ['-y', '-i', silent, '-i', voFile,
+      '-map', '0:v:0', '-map', '1:a:0',
+      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', outFile]);
+
+    const url = await saveBufferToStorage(fs.readFileSync(outFile), 'video/mp4', 'movies/films');
+    const { duration } = await probe(outFile).catch(() => ({ duration: voDur }));
+    movie.movieUrl = url;
+    movie.movieDuration = Math.round(duration * 10) / 10;
+    movie.movieStitchedAt = new Date().toISOString();
+    recordCut(movie, usedSeq, url, movie.movieDuration);
+    await progress(total, total, 'done');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 // ─── Cuts: every stitch is kept, named by what changed ──────────────
 // The gallery shows each finished cut with a contact sheet of the frames it
 // contains. The name is generated by diffing the sequence + edit lists
@@ -1443,6 +1597,7 @@ router.get('/status', (req, res) => {
     firebase: Boolean(firestore()),
     ffmpeg: Boolean(FFMPEG && FFPROBE),
     styleReference: Boolean(styleRef),
+    voiceover: Boolean(OPENAI_API_KEY),   // whisper transcription for narrated films
     gated: Boolean(STUDIO_TOKEN),
     models: {
       draft: VIDEO_MODELS.draft.name,
@@ -1459,23 +1614,59 @@ router.get('/', async (req, res) => {
 });
 
 // Create a movie: story → scene breakdown. Synchronous (one chat call).
+// Build one scene object from either the GPT breakdown or a hand-authored beat.
+function authoredScene(s, i) {
+  const scene = {
+    id: 's' + crypto.randomBytes(4).toString('hex'),
+    title: String(s.title || `Scene ${i + 1}`).trim(),
+    description: String(s.description || s.imagePrompt || '').trim(),
+    imagePrompt: String(s.imagePrompt || s.description || '').trim(),
+    motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
+    hasText: Boolean(s.hasText),
+    pairWithNext: Boolean(s.pairWithNext),
+    key: Boolean(s.key),
+    panel: null,
+    clip: null,
+    edits: { enabled: true, trimStart: 0, trimEnd: 0, speed: 1, freezeEnd: 0, fadeOut: 0 },
+  };
+  // Narrated-timeline extras (all optional, additive).
+  if (typeof s.startAt === 'number' && isFinite(s.startAt)) scene.startAt = Math.max(0, s.startAt);
+  if (s.outfit) scene.outfit = String(s.outfit).trim();          // same face, new clothing
+  if (s.still) scene.still = true;                                // hold the panel, never animate
+  const clipPrompt = s.motionPromptOverride || s.clipPrompt;      // bold per-beat motion (bypasses the static-camera lock)
+  if (clipPrompt) scene.motionPromptOverride = String(clipPrompt).trim();
+  return scene;
+}
+
 router.post('/', async (req, res) => {
   try {
-    const { story, title, sceneCount, panelQuality } = req.body || {};
-    if (!story || !String(story).trim()) return res.status(400).json({ error: 'story is required' });
-    const n = sceneCount ? Math.min(16, Math.max(2, parseInt(sceneCount, 10) || 0)) : null;
-    const plan = await breakdownStory(String(story).trim(), n);
+    const { story, title, sceneCount, panelQuality, scenes, characters, aspect } = req.body || {};
+    // Two ways in: a story for GPT to break down, OR a hand-authored scene list
+    // (exact beats, outfits, startAts) that skips the breakdown entirely.
+    const authored = Array.isArray(scenes) && scenes.length;
+    if (!authored && (!story || !String(story).trim())) {
+      return res.status(400).json({ error: 'story (or a scenes array) is required' });
+    }
+    let plan;
+    if (authored) {
+      plan = { title: (title && String(title).trim()) || 'Untitled film', characters: String(characters || '').trim(), scenes: scenes.map(authoredScene) };
+    } else {
+      const n = sceneCount ? Math.min(16, Math.max(2, parseInt(sceneCount, 10) || 0)) : null;
+      plan = await breakdownStory(String(story).trim(), n);
+    }
     const movie = {
       id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
       title: (title && String(title).trim()) || plan.title,
-      story: String(story).trim(),
+      story: String(story || '').trim(),
       characters: plan.characters,
       imageStyle: DEFAULT_IMAGE_STYLE,
       motionStyle: DEFAULT_MOTION_STYLE,
       negativePrompt: DEFAULT_NEGATIVE,
       dreamMode: false,
+      aspect: CANVAS[aspect] ? aspect : undefined,   // 'portrait' | 'landscape' | 'square'; undefined = source-size (classic stitch)
       panelQuality: ['sketch', 'low', 'medium', 'high'].includes(panelQuality) ? panelQuality : 'medium',
       characterAnchor: null,
+      voiceover: null,
       scenes: plan.scenes,
       bridges: [],
       cuts: [],
@@ -2098,17 +2289,99 @@ router.post('/:id/zine', async (req, res) => {
   } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
 });
 
-// Stitch — apply every scene's edit list and join the sequence into the movie.
-// Near-instant relative to generation; free to re-run after every tweak.
+// Attach a voiceover: upload the audio + transcribe it (word/segment timings).
+// The timings become the film's clock (see stitchTimeline). Accepts a data URL
+// (`audio`) or a public `url`; pass `timing` to supply precomputed word/segment
+// timings and skip Whisper, or `transcribe:false` to attach audio without timing.
+router.post('/:id/voiceover', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    const { audio, url, timing, transcribe = true } = req.body || {};
+    let buffer = null, contentType = 'audio/mp4';
+    if (audio) {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(audio);
+      if (!m) return res.status(400).json({ error: 'audio must be a base64 data URL' });
+      contentType = m[1] || contentType;
+      buffer = Buffer.from(m[2], 'base64');
+    } else if (url) {
+      const got = await fetchBuffer(url);
+      buffer = got.buffer;
+      contentType = got.contentType || contentType;
+    } else {
+      return res.status(400).json({ error: 'audio (data URL) or url is required' });
+    }
+    const stored = await saveBufferToStorage(buffer, contentType, 'movies/voiceover');
+    if (stored.startsWith('data:')) return res.status(400).json({ error: 'voiceover needs Firebase Storage (a permanent audio URL)' });
+    let t = null;
+    if (timing && Array.isArray(timing.words)) {
+      t = { text: String(timing.text || ''), duration: Number(timing.duration) || 0, words: timing.words, segments: timing.segments || [] };
+    } else if (transcribe) {
+      t = await transcribeAudio(buffer);
+    }
+    movie.voiceover = {
+      url: stored,
+      duration: t?.duration || 0,
+      text: t?.text || '',
+      words: t?.words || [],
+      segments: t?.segments || [],
+      attachedAt: new Date().toISOString(),
+    };
+    movie.updatedAt = new Date().toISOString();
+    await saveMovie(movie);
+    res.json({ ok: true, voiceover: { url: movie.voiceover.url, duration: movie.voiceover.duration, words: movie.voiceover.words.length, segments: movie.voiceover.segments.length }, movie });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Set the timeline: each beat's startAt (seconds into the voiceover) + output
+// aspect, plus optional per-beat overrides so one call can wire the whole film.
+// Body: { aspect?, beats: [{ id, startAt?, outfit?, still?, motionPrompt?,
+// imagePrompt?, title? }] }. Only provided fields change.
+router.post('/:id/timeline', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    const { aspect, beats } = req.body || {};
+    if (aspect !== undefined) {
+      if (!CANVAS[aspect]) return res.status(400).json({ error: `unknown aspect "${aspect}" (portrait|landscape|square)` });
+      movie.aspect = aspect;
+    }
+    let updated = 0;
+    (Array.isArray(beats) ? beats : []).forEach(b => {
+      const scene = movie.scenes.find(s => s.id === b.id);
+      if (!scene) return;
+      if (typeof b.startAt === 'number' && isFinite(b.startAt)) scene.startAt = Math.max(0, b.startAt);
+      if (typeof b.outfit === 'string') scene.outfit = b.outfit.trim() || undefined;
+      if (typeof b.still === 'boolean') scene.still = b.still;
+      if (typeof b.motionPrompt === 'string' && b.motionPrompt.trim()) scene.motionPromptOverride = b.motionPrompt.trim();
+      if (typeof b.imagePrompt === 'string' && b.imagePrompt.trim()) scene.imagePrompt = b.imagePrompt.trim();
+      if (typeof b.title === 'string' && b.title.trim()) scene.title = b.title.trim();
+      updated++;
+    });
+    movie.updatedAt = new Date().toISOString();
+    await saveMovie(movie);
+    res.json({ ok: true, updated, aspect: movie.aspect || null, movie });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Stitch — join the sequence into the movie. Free to re-run after every tweak.
+// If the movie has a voiceover + timed beats it builds on the VOICEOVER clock
+// (held stills / fitted clips under one unbroken narration, letterboxed to the
+// chosen aspect); otherwise the classic clip-length stitch. `mode` forces one
+// ('timeline' | 'classic').
 router.post('/:id/stitch', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
     if (!FFMPEG || !FFPROBE) return res.status(400).json({ error: 'ffmpeg unavailable on the server' });
+    const { mode } = req.body || {};
+    const useTimeline = mode === 'timeline'
+      || (mode !== 'classic' && movie.voiceover?.url && timelineSequence(movie).length > 0);
     await startJob(movie, 'stitch', async (progress) => {
-      await stitchMovie(movie, (d, t, label) => progress(d, t, label));
+      if (useTimeline) await stitchTimeline(movie, (d, t, label) => progress(d, t, label));
+      else await stitchMovie(movie, (d, t, label) => progress(d, t, label));
     });
-    res.json({ ok: true, movie });
+    res.json({ ok: true, mode: useTimeline ? 'timeline' : 'classic', movie });
   } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
 });
 
@@ -2116,6 +2389,9 @@ module.exports = {
   router,
   breakdownStory,
   movieSequence,
+  timelineSequence,
+  stitchTimeline,
+  transcribeAudio,
   motionPromptFor,
   VIDEO_MODELS,
   // building blocks, exported for scripts/tests
