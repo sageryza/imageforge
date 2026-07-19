@@ -660,6 +660,16 @@
             </div>
           </div>
 
+          <!-- reveal gate: signed in + birthday set, but the reading only
+               generates/shows on a deliberate tap (also saves generating for
+               someone just browsing). -->
+          <div id="daily-reveal-gate" style="display:none; text-align:center; padding:6px 4px;">
+            <div style="color:var(--gold); line-height:0;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
+            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">Today's sky is waiting</div>
+            <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">When you're ready, reveal what the stars and cards have to say about your day.</p>
+            <button class="btn" id="daily-reveal-btn" style="margin-left:auto; margin-right:auto;">Reveal today's reading <span class="js-star"></span></button>
+          </div>
+
           <!-- reading -->
           <div id="daily-reading" style="display:none;">
             <div class="kicker">What does the sky say about your day?</div>
@@ -1117,7 +1127,7 @@
     return picks;
   }
 
-  let dailyData = null, dailyPicks = null;
+  let dailyData = null, dailyPicks = null, astroRevealed = false;
 
   function savedBirth() {
     try {
@@ -1637,8 +1647,8 @@
       cloudSyncSoon();
       renderNatal(data);
       note.textContent = '';
-      renderHome();        // flip to the reading state
-      loadDaily(true);     // birth details set → generate the personalized reading
+      astroRevealed = false;   // show the reveal gate — don't auto-generate on birthday entry
+      renderHome();
     } catch (e) { toast(e.message); note.textContent = ''; }
     btn.disabled = false;
   }
@@ -1676,14 +1686,19 @@
       return;
     }
     const s = homeState();
+    // In the 'ready' state the reading waits behind a tap (astroRevealed) — it
+    // only generates/shows once the reader chooses to reveal it.
+    const revealed = s === 'ready' && astroRevealed;
     $('daily-gate').style.display = s === 'gate' ? '' : 'none';
     $('daily-birthday').style.display = s === 'birthday' ? '' : 'none';
-    $('daily-reading').style.display = s === 'ready' ? '' : 'none';
-    $('tarot-card').style.display = s === 'ready' ? '' : 'none';
-    $('intention-card').style.display = s === 'ready' ? '' : 'none';
-    const fc = $('see-full-chart'); if (fc) fc.style.display = natalChartHtml ? '' : 'none';
-    if (s === 'ready') loadDaily(false);
+    const gate = $('daily-reveal-gate'); if (gate) gate.style.display = (s === 'ready' && !astroRevealed) ? '' : 'none';
+    $('daily-reading').style.display = revealed ? '' : 'none';
+    $('tarot-card').style.display = revealed ? '' : 'none';
+    $('intention-card').style.display = revealed ? '' : 'none';
+    const fc = $('see-full-chart'); if (fc) fc.style.display = (revealed && natalChartHtml) ? '' : 'none';
+    if (revealed) loadDaily(false);
   }
+  (function(){ const rb = $('daily-reveal-btn'); if (rb) rb.addEventListener('click', () => { astroRevealed = true; renderHome(); }); })();
   $('natal-btn').addEventListener('click', castChart);
   $('daily-signin').addEventListener('click', () => showSignIn());
   $('see-full-chart').addEventListener('click', () => {
