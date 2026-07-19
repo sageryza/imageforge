@@ -1816,7 +1816,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // Bump `v` whenever the reading's prompt/shape changes so cached readings
     // regenerate same-day instead of waiting for the next date.
     const inputHash = crypto.createHash('sha1').update(JSON.stringify({
-      v: 3, z: zodiac, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
+      v: 4, z: zodiac, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
     })).digest('hex').slice(0, 12);
     const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}${astronomical ? '_astro' : ''}`) : null;
     if (docRef && !force) {
