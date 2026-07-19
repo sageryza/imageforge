@@ -149,6 +149,18 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Bookmark a message Sophie wants to find later — a flag on the message doc
+// itself, so it rides along on GET / (every message already spreads its data)
+// and any chat can read which of its messages she flagged.
+router.post('/bookmark', async (req, res) => {
+  try {
+    const { id, bookmarked } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
+    res.json({ ok: true, bookmarked: !!bookmarked });
+  } catch (err) { fail(res, err); }
+});
+
 // Set a chat's one-line "what this is" — shown on its tile so the Chats grid
 // reads like a project directory. Sophie sets it in the app; a chat can also
 // set its own. Stored on the registry doc next to the icon.

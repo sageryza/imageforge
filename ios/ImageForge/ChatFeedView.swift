@@ -87,7 +87,9 @@ private struct ChatFeedWebView: UIViewRepresentable {
         func stopAutoscrollOnScreenChange(_ web: WKWebView) {
             screenChangeObserver = NotificationCenter.default.addObserver(
                 forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
-                    web?.evaluateJavaScript("window.__scrollStop && window.__scrollStop()", completionHandler: nil)
+                    // Leaving the Chats screen stops the in-page autoscroll and
+                    // ends the floating audio round (stop + dismiss the bar).
+                    web?.evaluateJavaScript("window.__scrollStop && window.__scrollStop(); window.__npEnd && window.__npEnd()", completionHandler: nil)
             }
         }
 
