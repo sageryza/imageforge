@@ -1418,7 +1418,7 @@ app.post('/api/witch/dream-read', async (req, res) => {
   try {
     const dream = String((req.body || {}).dream || '').trim();
     if (!dream) return res.status(400).json({ error: 'dream is required' });
-    if (dream.length > 6000) return res.status(400).json({ error: 'dream is too long' });
+    if (dream.length > 20000) return res.status(400).json({ error: 'dream is too long' });
 
     const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
 
