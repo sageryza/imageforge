@@ -1400,6 +1400,71 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
+// ─── Dream reading (TWO frontier models side by side) ───────────────
+// Body: { dream }
+// Runs Anthropic's highest (Claude Opus 4.8) AND OpenAI's highest
+// (gpt-5.6-sol) IN PARALLEL and returns BOTH interpretations so the reader
+// can compare. Grounded, warm, non-fatalistic dream-work voice — symbolism
+// as a mirror for the subconscious, never prediction or diagnosis.
+const DREAM_READ_SHAPE = `{
+  "title": "a short, evocative title for this dream (3-6 words)",
+  "symbols": [ { "symbol": "the image/motif", "meaning": "one plain sentence on what it may reflect" } ],
+  "message": "2-3 short paragraphs, speaking directly to the dreamer as \\"you\\": what the subconscious may be working through, woven from the symbols. Grounded and human, never a prediction."
+}`;
+const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Return VALID JSON only (no markdown fences), shaped exactly:
+${DREAM_READ_SHAPE}`;
+
+app.post('/api/witch/dream-read', async (req, res) => {
+  try {
+    const dream = String((req.body || {}).dream || '').trim();
+    if (!dream) return res.status(400).json({ error: 'dream is required' });
+    if (dream.length > 6000) return res.status(400).json({ error: 'dream is too long' });
+
+    const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
+
+    // Claude Opus 4.8 (Anthropic's highest). Opus rejects `temperature` here —
+    // omit it; the system prompt pins the JSON shape.
+    const claudeCall = (async () => {
+      const data = await anthropicChat({
+        system: DREAM_READ_VOICE,
+        messages: [{ role: 'user', content: userMsg }],
+        max_tokens: 1400,
+      });
+      if (data.error) throw new Error(data.error.message || 'anthropic error');
+      return parseAnthropicJson(data);
+    })();
+
+    // OpenAI gpt-5.6-sol (OpenAI's highest). Reasoning model — omit temperature,
+    // force a JSON object, keep reasoning light so the sync request stays snappy.
+    const gptCall = (async () => {
+      const data = await openaiChat({
+        model: 'gpt-5.6-sol',
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: DREAM_READ_VOICE }, { role: 'user', content: userMsg }],
+      });
+      if (data.error) throw new Error(data.error.message || 'openai error');
+      return parseJsonReply(data);
+    })();
+
+    const [claudeR, gptR] = await Promise.allSettled([claudeCall, gptCall]);
+    const claude = claudeR.status === 'fulfilled' ? claudeR.value : null;
+    const gpt = gptR.status === 'fulfilled' ? gptR.value : null;
+    if (!claude && !gpt) {
+      return res.status(502).json({ error: 'both readers failed', detail: { claude: claudeR.reason?.message, gpt: gptR.reason?.message } });
+    }
+    res.json({
+      claude, gpt,
+      errors: {
+        claude: claudeR.status === 'rejected' ? String(claudeR.reason?.message || claudeR.reason) : null,
+        gpt: gptR.status === 'rejected' ? String(gptR.reason?.message || gptR.reason) : null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Spell / ritual generator ───────────────────────────────────────
 // Body: { intent, kind ("spell"|"ritual"|"blessing"|"protection") }
 app.post('/api/witch/spell', async (req, res) => {
