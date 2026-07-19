@@ -23,8 +23,7 @@ struct MovieGalleryView: View {
                 .padding()
             }
             .background(Reel.base.ignoresSafeArea())
-            .navigationTitle("Gallery")
-            .navigationBarTitleDisplayMode(.inline)
+            .forgeTitle("Gallery")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }.foregroundColor(Reel.amber)
