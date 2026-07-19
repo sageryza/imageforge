@@ -54,7 +54,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .story:     return "rectangle.grid.2x2"
         case .writing:   return "text.book.closed"
         case .chats:     return "bubble.left.and.bubble.right"
-        case .test:      return "wand.and.stars"
+        case .test:      return "testtube.2"
         }
     }
 
@@ -268,8 +268,9 @@ private struct HomeGrid: View {
     // by most-recent use.
     private var tools: [Tool] {
         let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
-        // Chats isn't a grid card — it lives as the icon in the header's top-right.
-        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && !pinnedBottom.contains($0) }
+        // Chats and Test Station aren't grid cards — they live as the corner
+        // icons in the header (chats top-right, test station top-left).
+        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return [.story] + ranked + rest + pinnedBottom
@@ -282,6 +283,19 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
+            // Test Station isn't a grid card — it's this test-tube icon in the
+            // top-left corner.
+            .overlay(alignment: .leading) {
+                Button { open(.test) } label: {
+                    Image(systemName: Tool.test.icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 12)
+            }
             // Chats isn't a grid card — it's this icon in the top-right corner.
             .overlay(alignment: .trailing) {
                 Button { open(.chats) } label: {
