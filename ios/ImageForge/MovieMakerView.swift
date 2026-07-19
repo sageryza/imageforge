@@ -155,9 +155,9 @@ struct MovieMakerHome: View {
             // proper native screen; the webview inside is still the live page.
             .navigationDestination(isPresented: $showStoryRoom) {
                 StoryRoomView()
-                    // No nav-bar title — the page carries its own "story room"
-                    // heading, so a native title would just duplicate it.
-                    .navigationTitle("")
+                    // The single "Story Room" heading lives in the native nav
+                    // bar (small, at the top); the page body carries no title.
+                    .navigationTitle("Story Room")
                     .navigationBarTitleDisplayMode(.inline)
                     // match the web page's own paper so there's no white
                     // strip between the nav bar and the cream page
