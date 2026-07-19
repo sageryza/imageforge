@@ -1839,42 +1839,50 @@
     btn.disabled = false; btn.textContent = o;
   });
 
-  // Illustrate → a free first page, then blurred "locked" pages + a paywall placeholder.
-  // (Real multi-page dream-book pipeline + subscription payments are the next step.)
+  // Illustrate → the diary-comic dreams engine, as a background job (start +
+  // poll) so the ~1-2 min render survives cold starts / phone lock. Renders
+  // page one free; the rest are shown blurred behind a subscription placeholder.
   const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  let dreamIllusTimer = null;
+  function renderDreamBook(url) {
+    const img = esc(url);
+    $('dream-book').innerHTML = `
+      <div class="dbook-pages">
+        <div class="dpage"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
+        <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+        <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+        <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
+      </div>
+      <div class="dpaywall">
+        <div class="dpw-title">Your first page is free ✦</div>
+        <div class="dpw-sub">The rest of your dream — illustrated page by page — is part of the dream book. Unlock the full reading.</div>
+        <button class="btn" id="dream-subscribe">Unlock the full dream book</button>
+      </div>`;
+    const sub = document.getElementById('dream-subscribe');
+    if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
+  }
   $('dream-illustrate').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
-    const book = $('dream-book'); book.style.display = '';
-    $('dream-out').style.display = 'none';
-    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Illustrating the first page of your dream…</div>`;
+    const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
+    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
     const btn = $('dream-illustrate'); btn.disabled = true;
-    const prompt = `Dreamy hand-illustrated storybook page, soft watercolour and ink, warm muted palette, gentle and a little surreal. A single quiet scene from this dream: ${dream}. Atmospheric, tender, painterly. No text, no words, no lettering.`;
+    clearInterval(dreamIllusTimer);
     try {
-      const r = await fetch('/api/generate/gptimage', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1536' }),
-      });
-      const d = await r.json();
-      if (!d.url) throw new Error(d.error || 'no image');
-      const img = esc(d.url);
-      book.innerHTML = `
-        <div class="dbook-pages">
-          <div class="dpage"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
-          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
-          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
-          <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
-        </div>
-        <div class="dpaywall">
-          <div class="dpw-title">Your first page is free ✦</div>
-          <div class="dpw-sub">The rest of your dream — illustrated page by page — is part of the dream book. Unlock the full reading.</div>
-          <button class="btn" id="dream-subscribe">Unlock the full dream book</button>
-        </div>`;
-      $('dream-subscribe').addEventListener('click', () => toast('Full dream books are coming soon ✦'));
+      const { id } = await api('/api/witch/dream-illustrate', { dream });
+      let tries = 0;
+      dreamIllusTimer = setInterval(async () => {
+        if (++tries > 80) { clearInterval(dreamIllusTimer); btn.disabled = false; book.innerHTML = `<div class="dread-fail">This is taking longer than usual — tap Illustrate to try again.</div>`; return; }
+        let d;
+        try { d = await apiGet('/api/witch/dream-illustrate/' + id); } catch { return; } // transient — keep polling
+        const lab = document.getElementById('dream-illus-label'); if (lab && d.label) lab.textContent = d.label.charAt(0).toUpperCase() + d.label.slice(1) + '…';
+        if (d.status === 'done' && d.page1) { clearInterval(dreamIllusTimer); btn.disabled = false; renderDreamBook(d.page1); }
+        else if (d.status === 'error') { clearInterval(dreamIllusTimer); btn.disabled = false; book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(d.error || 'try again')}. Tap Illustrate to retry.</div>`; }
+      }, 3000);
     } catch (e) {
-      book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(e.message)}. Try again in a moment.</div>`;
+      btn.disabled = false;
+      book.innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
     }
-    btn.disabled = false;
   });
 
   /* ══════════ Witch School — tap-based lesson deck ══════════ */

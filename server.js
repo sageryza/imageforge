@@ -1470,6 +1470,63 @@ app.post('/api/witch/dream-read', async (req, res) => {
   }
 });
 
+// ─── Dream illustration (diary-comic, background job) ───────────────
+// Public wrapper over the movies.js dreams engine: break the dream into
+// beats, then render the FIRST hand-lettered 2x2 comic page (free) in
+// Sophie's diary-comic style (refs/movie-style.jpg). Fire-and-forget job +
+// poll (GET /:id) so a ~1-2 min render survives cold starts / phone lock —
+// the same resilient pattern the iOS dreams pipeline uses.
+// movies.js is require()d lazily (at request time) so it captures the keys
+// config-loader hydrated at boot, not stale ones from an early require.
+app.post('/api/witch/dream-illustrate', async (req, res) => {
+  try {
+    const dream = String((req.body || {}).dream || '').trim();
+    if (!dream) return res.status(400).json({ error: 'dream is required' });
+    if (dream.length > 20000) return res.status(400).json({ error: 'dream is too long' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
+    const db = admin.firestore();
+    const ref = db.collection('forge-witch-dream-illus').doc();
+    await ref.set({
+      status: 'running', label: 'reading your dream', dream,
+      page1: null, totalPages: 0, title: null, error: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.json({ id: ref.id });
+    // Fire-and-forget: breakdown → render page one. Not awaited by the request.
+    (async () => {
+      try {
+        const movies = require('./movies');
+        const { dreams } = await movies.dreamBreakdown(dream);
+        const dr = dreams[0];
+        const beats = Array.isArray(dr.beats) ? dr.beats : [];
+        const totalPages = Math.max(1, Math.ceil(beats.length / 4));
+        await ref.update({ label: 'illustrating page one', totalPages, title: dr.title || null });
+        const first = { ...dr, beats: beats.slice(0, 4) };   // page one = first 4 beats
+        await movies.makeDreamPages(first, 'medium', async () => {});
+        const page1 = first.pages && first.pages[0] && first.pages[0].url;
+        if (!page1) throw new Error('no page rendered');
+        await ref.update({ status: 'done', label: 'done', page1 });
+      } catch (err) {
+        console.warn('witch dream-illustrate failed —', err.message);
+        await ref.update({ status: 'error', error: String(err.message || err) }).catch(() => {});
+      }
+    })();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/api/witch/dream-illustrate/:id', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
+    const snap = await admin.firestore().collection('forge-witch-dream-illus').doc(req.params.id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    res.json({ status: d.status, label: d.label, page1: d.page1 || null, totalPages: d.totalPages || 0, title: d.title || null, error: d.error || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Spell / ritual generator ───────────────────────────────────────
 // Body: { intent, kind ("spell"|"ritual"|"blessing"|"protection") }
 app.post('/api/witch/spell', async (req, res) => {
