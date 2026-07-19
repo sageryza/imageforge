@@ -119,9 +119,33 @@ constant**. This film needs several things it can't do yet:
    listen — vertical 9:16 (Shorts/Reels) vs landscape. Panels are 2:3 now.
    Confirm target platform + aspect.
 
-## Open questions for Sophie
-- What plays over the **open middle** (`0:48–2:01`)?
-- **Format/aspect** + where it's going (YouTube? Shorts? IG)?
-- The two transcription confirmations above (the "can't" line; "Someone" vs
-  "Everyone" for the final line).
-- Which pipeline changes she wants to make first vs. after a rough cut.
+## Decisions
+- **Format: portrait, 1080×1920 (9:16)** for Reels/Shorts, artwork letterboxed
+  with **black bars top & bottom** (not edge-to-edge tall). Panels are 2:3, so
+  they letterbox cleanly. (Sophie, 2026-07-19.)
+- **Voiceover: Sophie's real voice recording** (`assets/voiceover-master.m4a`),
+  laid down as one unbroken track with visuals timed underneath it. Approach
+  approved 2026-07-19 ("I love that idea. Build").
+
+## Pipeline changes — BUILT (this branch)
+Additive, backward-compatible with existing movies:
+1. **Voiceover attach + Whisper timing** — `POST /api/movies/:id/voiceover`
+   (data URL or url; `transcribeAudio()` → word/segment timestamps stored on
+   `movie.voiceover`). Accepts precomputed `timing` to skip Whisper.
+2. **Timed beats** — `scene.startAt` (seconds into the VO). `POST
+   /api/movies/:id/timeline` sets startAt + aspect + per-beat overrides.
+3. **Voiceover-clock stitch + letterbox** — `stitchTimeline()`: each beat's
+   window = `[startAt, nextStartAt]`; clip fitted (trim / freeze-extend) or
+   panel held as a still, letterboxed to `movie.aspect` canvas, then the
+   unbroken voiceover muxed under it. `POST /:id/stitch` auto-picks timeline
+   mode when a voiceover + timed beats exist (`mode` forces).
+4. **Same face, new outfit** — `scene.outfit` → identity-hold wardrobe swap in
+   `anchorClause()` (keeps face/hair, changes only clothing). For good↔shabby.
+5. **Bold motion** — per-beat `scene.motionPromptOverride` already bypasses the
+   static-camera lock (used for the poof / particles / zoom clips). No new code.
+6. **Hand-authored scenes** — `POST /api/movies` accepts a `scenes` array (exact
+   beats/outfits/startAts) to skip the GPT breakdown.
+
+## Still open
+- What plays over the **open middle** (`0:48–2:01`) — needs Sophie's call.
+- Final-line wording: "**Someone**" vs "**Everyone**" else's thought.
