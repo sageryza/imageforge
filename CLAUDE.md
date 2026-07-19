@@ -689,15 +689,16 @@ lifted into a standalone tool later.
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
-- **Quick-question mode — keyword `qq`.** When Sophie's message contains `qq`
-  (case-insensitive, a deliberate keyword — she may fire off a couple of rapid
+- **Quick-question mode — phrase "quick question mode".** Sophie uses
+  voice-to-text (she never types), so the trigger is the spoken phrase
+  **"quick question mode"** (case-insensitive, matched anywhere in her message) —
+  NOT a typed shorthand. When it appears (she may fire off a couple of rapid
   questions), keep the ENTIRE reply to **one iPhone screen, no scrolling** (she
   has an iPhone 13). Give the needed information — a sentence up to a short
   paragraph, NOT one word — but nothing beyond what's essential: no preamble, no
   options, no next-step suggestions, no reporting on other work, no closing
   recap. If a real answer genuinely can't fit one screen, give the short version
-  and offer to expand ("want the long version?"). Answers only. The keyword may
-  appear anywhere in her message.
+  and offer to expand ("want the long version?"). Answers only.
 
 ## YouTube auto-upload (witchy video channel)
 - Finished videos post straight to Sophie's business YouTube channel as **private
