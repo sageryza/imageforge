@@ -401,6 +401,18 @@
     .dsym-txt { font-size: 14px; line-height: 1.55; }
     .dread-more { margin-top: 14px; }
     .dread-msg { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
+    .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; margin-bottom: 14px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
+    .dream-past:hover { color: var(--gold); }
+    .dream-past svg { width: 15px; height: 15px; }
+    .dream-past-back { background: none; border: none; padding: 2px 0 12px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .dream-past-back:hover { color: var(--gold); }
+    .dream-past-back svg { width: 16px; height: 16px; }
+    .dpast-head { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 12px; }
+    .dpast-item { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 9px; cursor: pointer; font-family: inherit; transition: border-color 0.15s ease; }
+    .dpast-item:hover { border-color: var(--gold-dim); }
+    .dpast-t { font-family: var(--serif); font-size: 16px; color: var(--text); line-height: 1.2; }
+    .dpast-d { font-size: 11px; color: var(--gold-dim); margin-top: 3px; }
+    .dpast-s { font-size: 12.5px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
     .dread-msg p { margin-bottom: 10px; }
     .dread-fail { font-size: 13px; color: var(--text-faint); font-style: italic; }
     /* Illustrated dream book (free page 1 + locked pages) */
@@ -657,11 +669,12 @@
         </div>
 
         <!-- Dream reading -->
+        <div class="section-title">What did you dream last night?</div>
+        <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div class="card" id="dream-card">
-          <div class="section-title" style="font-size:24px;">What did you dream last night?</div>
-          <div class="section-sub" style="margin-bottom:16px;">Unlock the messages your subconscious is trying to send you.</div>
+          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
-            <textarea id="dream-input" rows="3">I dreamt…</textarea>
+            <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
           </div>
           <div class="dream-btns">
             <button class="btn" id="dream-unlock">Unlock the symbolism</button>
@@ -1763,10 +1776,30 @@
   renderProductRow($('prow-2'), PRODUCT_ROWS[1]);
 
   /* ══════════ Home dream reading ══════════ */
-  const DREAM_PREFILL = 'I dreamt…';
-  function dreamText() {
-    const v = ($('dream-input').value || '').trim();
-    return (v === DREAM_PREFILL) ? '' : v;
+  function dreamText() { return ($('dream-input').value || '').trim(); }
+  // Saved dream readings (localStorage), viewable via "Past readings".
+  const DREAM_STORE = 'witch_dream_readings';
+  function loadDreams() { try { return JSON.parse(localStorage.getItem(DREAM_STORE) || '[]'); } catch { return []; } }
+  function saveDreams(a) { try { localStorage.setItem(DREAM_STORE, JSON.stringify(a.slice(0, 60))); } catch {} }
+  function fmtDreamDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+  const PAST_BACK = '<button class="dream-past-back" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>';
+  function showDreamPast() {
+    const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
+    const all = loadDreams();
+    if (!all.length) { out.innerHTML = `<div class="dpast-head">Past readings</div><div class="dread-fail">No saved readings yet — unlock a dream and it'll be kept here.</div>`; return; }
+    out.innerHTML = `<div class="dpast-head">Past readings</div>` + all.map((r, i) => {
+      const title = (r.data && (r.data.claude?.title || r.data.gpt?.title)) || 'A dream';
+      const snip = esc((r.dream || '').slice(0, 90)) + ((r.dream || '').length > 90 ? '…' : '');
+      return `<button class="dpast-item" data-past="${i}"><div class="dpast-t">${esc(title)}</div><div class="dpast-d">${fmtDreamDate(r.ts)}</div><div class="dpast-s">${snip}</div></button>`;
+    }).join('');
+  }
+  function showDreamDetail(i) {
+    const r = loadDreams()[i]; if (!r) return;
+    const out = $('dream-out'); out.style.display = '';
+    out.innerHTML = PAST_BACK + renderReading('Anthropic · Claude Opus 4.8', r.data.claude) + renderReading('OpenAI · GPT‑5.6', r.data.gpt);
   }
   function renderReading(src, r) {
     if (!r) return `<div class="dread"><div class="dread-src">${esc(src)}</div><div class="dread-fail">This reader couldn't be reached — try again in a moment.</div></div>`;
@@ -1780,12 +1813,15 @@
       ${msg ? `<button class="btn-ghost dread-more" type="button">${STAR} Dive deeper</button><div class="dread-msg" style="display:none;">${msg}</div>` : ''}
     </div>`;
   }
-  // Reveal a reading's deeper interpretation on "Dive deeper".
+  // "Dive deeper" reveal + Past-readings list/detail navigation.
   $('dream-out').addEventListener('click', (e) => {
-    const b = e.target.closest('.dread-more'); if (!b) return;
-    const msg = b.closest('.dread')?.querySelector('.dread-msg');
-    if (msg) { msg.style.display = ''; b.style.display = 'none'; }
+    const more = e.target.closest('.dread-more');
+    if (more) { const msg = more.closest('.dread')?.querySelector('.dread-msg'); if (msg) { msg.style.display = ''; more.style.display = 'none'; } return; }
+    const item = e.target.closest('.dpast-item');
+    if (item) { showDreamDetail(+item.dataset.past); return; }
+    if (e.target.closest('.dream-past-back')) { showDreamPast(); return; }
   });
+  $('dream-past').addEventListener('click', showDreamPast);
   $('dream-unlock').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
@@ -1796,6 +1832,7 @@
     try {
       const d = await api('/api/witch/dream-read', { dream });
       out.innerHTML = renderReading('Anthropic · Claude Opus 4.8', d.claude) + renderReading('OpenAI · GPT‑5.6', d.gpt);
+      if (d.claude || d.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: d.claude, gpt: d.gpt } }); saveDreams(all); }
     } catch (e) {
       out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`;
     }
