@@ -54,7 +54,17 @@ enum Tool: String, CaseIterable, Identifiable {
         case .story:     return "rectangle.grid.2x2"
         case .writing:   return "text.book.closed"
         case .chats:     return "bubble.left.and.bubble.right"
-        case .test:      return "testtube.2"
+        case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
+        }
+    }
+
+    /// A few tools ship a bundled custom icon (template-rendered so it still
+    /// takes the foreground color) because their look isn't in SF Symbols.
+    /// Test Station uses a hand-drawn twin-test-tube glyph.
+    var customIcon: String? {
+        switch self {
+        case .test: return "TestTube"
+        default:    return nil
         }
     }
 
@@ -72,6 +82,29 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   WritingRoomView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
+        }
+    }
+}
+
+/// Renders a tool's bar/corner icon: an SF Symbol, or a bundled custom asset
+/// (template-rendered so it still takes the foreground color) for tools whose
+/// look isn't in SF Symbols. Sized so a custom glyph sits at the same optical
+/// weight as the symbols beside it.
+struct ToolGlyph: View {
+    let tool: Tool
+    var size: CGFloat = 21
+    var weight: Font.Weight = .regular
+
+    var body: some View {
+        if let asset = tool.customIcon {
+            Image(asset)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size * 1.12, height: size * 1.12)
+        } else {
+            Image(systemName: tool.icon)
+                .font(.system(size: size, weight: weight))
         }
     }
 }
@@ -238,13 +271,19 @@ private struct BottomBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            slot(icon: "house", active: screen == .home) { screen = .home }
+            slot(active: screen == .home, { screen = .home }) {
+                Image(systemName: "house").font(.system(size: 21, weight: screen == .home ? .semibold : .regular))
+            }
             ForEach(recents.recentThree) { t in
                 // Tapping a slot just switches to it — no reshuffle. Tools only
                 // get promoted into the slots when opened from Home.
-                slot(icon: t.icon, active: screen == .tool(t)) { screen = .tool(t) }
+                slot(active: screen == .tool(t), { screen = .tool(t) }) {
+                    ToolGlyph(tool: t, size: 21, weight: screen == .tool(t) ? .semibold : .regular)
+                }
             }
-            slot(icon: "square.grid.2x2", active: screen == .gallery) { screen = .gallery }
+            slot(active: screen == .gallery, { screen = .gallery }) {
+                Image(systemName: "square.grid.2x2").font(.system(size: 21, weight: screen == .gallery ? .semibold : .regular))
+            }
         }
         .padding(.top, 8)
         .background(
@@ -254,10 +293,10 @@ private struct BottomBar: View {
         )
     }
 
-    private func slot(icon: String, active: Bool, tap: @escaping () -> Void) -> some View {
+    private func slot<Icon: View>(active: Bool, _ tap: @escaping () -> Void,
+                                   @ViewBuilder icon: () -> Icon) -> some View {
         Button(action: tap) {
-            Image(systemName: icon)
-                .font(.system(size: 21, weight: active ? .semibold : .regular))
+            icon()
                 .foregroundColor(active ? Theme.mauve : Theme.textDim)
                 .frame(maxWidth: .infinity)
                 .frame(height: 30)
@@ -298,8 +337,7 @@ private struct HomeGrid: View {
             // top-left corner.
             .overlay(alignment: .leading) {
                 Button { open(.test) } label: {
-                    Image(systemName: Tool.test.icon)
-                        .font(.system(size: 20))
+                    ToolGlyph(tool: .test, size: 20)
                         .foregroundColor(Theme.accent)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
