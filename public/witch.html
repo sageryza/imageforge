@@ -280,14 +280,9 @@
       color: rgba(255,247,230,0.9); font-size: 26px;
       box-shadow: 0 6px 16px rgba(80,60,110,0.22);
     }
-    .tback-btn {
-      width: 100%; cursor: pointer; flex-direction: column; gap: 8px; font-family: inherit;
-      transition: transform 0.12s ease, box-shadow 0.15s ease;
-    }
-    .tback-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(80,60,110,0.28); }
-    .tback-btn:active { transform: scale(0.98); }
-    .tback-btn .tback-pos { font-size: 10px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,247,230,0.75); }
-    .tback-btn .tback-star { font-size: 26px; line-height: 1; }
+    .tback[data-ti] { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.15s ease; }
+    .tback[data-ti]:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(80,60,110,0.28); }
+    .tback[data-ti]:active { transform: scale(0.98); }
 
     .reading-block { margin-top: 6px; }
     .reading-block h3 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin: 16px 0 6px; color: var(--gold); }
@@ -717,9 +712,9 @@
 
         <!-- Today's cards (tarot) -->
         <div class="card" id="tarot-card" style="display:none;">
-          <div class="kicker">Spread of the day</div>
-          <p class="hint">Three cards drawn just for you today, from the Rider-Waite deck. Tap each one to reveal it.</p>
-          <div id="daily-cards"></div>
+          <div class="cards-title">Today's Cards</div>
+          <p class="hint" style="text-align:center;">Three cards drawn just for you today — from the Rider-Waite deck.</p>
+          <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
           <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save to Book of Shadows</button>
         </div>
@@ -1324,17 +1319,17 @@
     $('intention-text').textContent = dailyData.intention || INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
-  // Each of the 3 cards is revealed individually by tapping its back.
+  // Same backs as before — the only change is you tap each card to reveal it
+  // (instead of one "Reveal your cards" button).
   let tarotRevealed = new Set();
   function renderDailyTarot() {
     if (!dailyPicks) return;
-    const grid = dailyPicks.map((p, i) => tarotRevealed.has(i)
-      ? `<div class="draw-col">${tarotCardHtml(p.card, p.orientation, p.position)}</div>`
-      : `<div class="draw-col"><button class="tback tback-btn" type="button" data-ti="${i}" aria-label="Reveal your ${esc(p.position)} card"><span class="tback-pos">${esc(p.position)}</span><span class="tback-star">✦</span></button></div>`
+    $('daily-backs').innerHTML = dailyPicks.map((p, i) => tarotRevealed.has(i)
+      ? tarotCardHtml(p.card, p.orientation, p.position)
+      : `<div class="tback" data-ti="${i}" role="button" tabindex="0" aria-label="Reveal a card">✦</div>`
     ).join('');
-    $('daily-cards').innerHTML = `<div class="draw-grid three">${grid}</div>`;
-    $('daily-cards').querySelectorAll('.tback-btn').forEach(b => b.addEventListener('click', () => {
-      tarotRevealed.add(+b.dataset.ti);
+    $('daily-backs').querySelectorAll('.tback[data-ti]').forEach(el => el.addEventListener('click', () => {
+      tarotRevealed.add(+el.dataset.ti);
       renderDailyTarot();
       if (tarotRevealed.size === 3) showTarotReading();
     }));
