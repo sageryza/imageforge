@@ -128,6 +128,10 @@
       letter-spacing: 0.2px; text-transform: lowercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
     }
+    /* The "Take the quiz" button wears the eyebrow font (DM Sans uppercase,
+       0.3px tracking) like the quiz's own gold buttons — everything else about
+       the house .btn (fill, outline, color) stays the same. */
+    #quiz-open { font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase; }
     .btn:active { transform: scale(0.985); }
     .btn:hover { filter: brightness(0.97); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
