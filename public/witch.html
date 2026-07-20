@@ -75,6 +75,10 @@
       font-size: 10.5px; letter-spacing: 2.5px; text-transform: uppercase;
       color: var(--gold-dim); margin-bottom: 6px;
     }
+    /* In-card headers (the kicker/cards-title at the top of a cream card) sit a
+       touch higher in the card than the padding alone would put them. */
+    .card > .kicker:first-child, .card > .cards-title:first-child,
+    #daily-reading > .kicker { margin-top: -5px; }
     .section-title { font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.1; margin-bottom: 4px; }
     .section-sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.55; margin-bottom: 18px; }
 
@@ -217,10 +221,12 @@
     /* Fixed aspect + cover so all three cards are identical size and centered,
        regardless of the small per-scan margin differences. Radius kept small to
        match the near-square card corners. */
+    /* No border on the revealed card art — the scan stands on its own; only the
+       face-down back (below) keeps a gold frame. */
     .tcard-face {
       width: 100%; aspect-ratio: 100 / 172; object-fit: cover; object-position: center;
       display: block; border-radius: 4px;
-      border: 1px solid var(--gold-dim); background: var(--panel);
+      background: var(--panel);
       box-shadow: 0 4px 12px rgba(120,90,40,0.16);
     }
     .tcard.rev .tcard-face { transform: rotate(180deg); }
@@ -232,7 +238,8 @@
       background: #f5ead2; padding: 12px 8px;
     }
     /* Section label styled like the PAST · PRESENT · FUTURE labels (DM Sans). */
-    .cards-title { text-align: left; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+    /* Same size + weight as .kicker so every in-card header matches. */
+    .cards-title { text-align: left; font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 400; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
 
     /* Quiz */
     .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
@@ -288,6 +295,7 @@
     .cardback { cursor: pointer; }
     .cardback-face {
       background: var(--moon); color: rgba(255,247,230,0.92);
+      border: 1px solid var(--gold-dim);
       display: flex; align-items: center; justify-content: center; font-size: 26px;
       transition: transform 0.12s ease, box-shadow 0.15s ease;
     }
@@ -426,7 +434,7 @@
     @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
 
     /* ── Zodiac system toggle (Tropical / Astronomical) ── */
-    .zodiac-bar { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 16px; }
+    .zodiac-bar { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 14px 0 16px; }
     .zseg { display: inline-flex; border: 1px solid var(--gold); border-radius: var(--radius); overflow: hidden; }
     .zopt { padding: 6px 15px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: transparent; color: var(--gold); border: none; cursor: pointer; font-family: inherit; transition: background 0.15s ease, color 0.15s ease; }
     .zopt + .zopt { border-left: 1px solid var(--gold); }
@@ -685,14 +693,14 @@
           <!-- not signed in -->
           <div id="daily-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
-            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px; text-align:center;">See your daily horoscope</div>
+            <div class="cards-title" style="font-size:15px; font-weight:600; color:var(--gold); margin-top:12px; text-align:center;">See your daily horoscope</div>
             <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">Make a free account to unlock your personalized reading — the stars and the cards, written fresh for you each day.</p>
             <button class="btn" id="daily-signin">Enter the circle</button>
           </div>
 
           <!-- signed in, no birthday yet -->
           <div id="daily-birthday" style="display:none;">
-            <div class="cards-title" style="font-size:15px; color:var(--gold); text-align:center;">See your daily horoscope</div>
+            <div class="cards-title" style="font-size:15px; font-weight:600; color:var(--gold); text-align:center;">See your daily horoscope</div>
             <p class="hint" style="text-align:center;">Add your birth details once, and every day you'll get a reading from your real chart. A birth time also gives your rising sign &amp; houses.</p>
             <div id="natal-form">
               <div class="row">
@@ -710,7 +718,7 @@
                someone just browsing). -->
           <div id="daily-reveal-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
-            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px; text-align:center;">Today's sky is waiting</div>
+            <div class="cards-title" style="font-size:15px; font-weight:600; color:var(--gold); margin-top:12px; text-align:center;">Today's sky is waiting</div>
             <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">When you're ready, reveal what the stars and cards have to say about your day.</p>
             <button class="btn" id="daily-reveal-btn" style="margin-left:auto; margin-right:auto;">Reveal today's reading <span class="js-star"></span></button>
           </div>
@@ -956,7 +964,10 @@
   // ── The one star used everywhere (change this to change every star) ──
   // Currently the Heroicons solid three-star "sparkles". Any element with class
   // "js-star" is filled with it by renderStars(); JS strings use STAR directly.
-  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258c.94-.236 1.674-.97 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"/></svg>';
+  // The iOS-style "sparkles" glyph (Framework7 Icons, MIT — Apple's own SF
+  // Symbols artwork can't ship on the web), mirrored so the big star sits
+  // bottom-left like SF Symbols `sparkles` in the iOS app.
+  const STAR = '<svg viewBox="0 0 56 56" fill="currentColor" stroke="none"><g transform="translate(56 0) scale(-1 1)"><path d="M 26.6875 12.6602 C 26.9687 12.6602 27.1094 12.4961 27.1797 12.2383 C 27.9062 8.3242 27.8594 8.2305 31.9375 7.4570 C 32.2187 7.4102 32.3828 7.2461 32.3828 6.9648 C 32.3828 6.6836 32.2187 6.5195 31.9375 6.4726 C 27.8828 5.6524 28.0000 5.5586 27.1797 1.6914 C 27.1094 1.4336 26.9687 1.2695 26.6875 1.2695 C 26.4062 1.2695 26.2656 1.4336 26.1953 1.6914 C 25.3750 5.5586 25.5156 5.6524 21.4375 6.4726 C 21.1797 6.5195 20.9922 6.6836 20.9922 6.9648 C 20.9922 7.2461 21.1797 7.4102 21.4375 7.4570 C 25.5156 8.2774 25.4687 8.3242 26.1953 12.2383 C 26.2656 12.4961 26.4062 12.6602 26.6875 12.6602 Z M 15.3438 28.7852 C 15.7891 28.7852 16.0938 28.5039 16.1406 28.0821 C 16.9844 21.8242 17.1953 21.8242 23.6641 20.5821 C 24.0860 20.5117 24.3906 20.2305 24.3906 19.7852 C 24.3906 19.3633 24.0860 19.0586 23.6641 18.9883 C 17.1953 18.0977 16.9609 17.8867 16.1406 11.5117 C 16.0938 11.0899 15.7891 10.7852 15.3438 10.7852 C 14.9219 10.7852 14.6172 11.0899 14.5703 11.5352 C 13.7969 17.8164 13.4687 17.7930 7.0469 18.9883 C 6.6250 19.0821 6.3203 19.3633 6.3203 19.7852 C 6.3203 20.2539 6.6250 20.5117 7.1406 20.5821 C 13.5156 21.6133 13.7969 21.7774 14.5703 28.0352 C 14.6172 28.5039 14.9219 28.7852 15.3438 28.7852 Z M 31.2344 54.7305 C 31.8438 54.7305 32.2891 54.2852 32.4062 53.6524 C 34.0703 40.8086 35.8750 38.8633 48.5781 37.4570 C 49.2344 37.3867 49.6797 36.8945 49.6797 36.2852 C 49.6797 35.6758 49.2344 35.2070 48.5781 35.1133 C 35.8750 33.7070 34.0703 31.7617 32.4062 18.9180 C 32.2891 18.2852 31.8438 17.8633 31.2344 17.8633 C 30.6250 17.8633 30.1797 18.2852 30.0860 18.9180 C 28.4219 31.7617 26.5938 33.7070 13.9140 35.1133 C 13.2344 35.2070 12.7891 35.6758 12.7891 36.2852 C 12.7891 36.8945 13.2344 37.3867 13.9140 37.4570 C 26.5703 39.1211 28.3281 40.8321 30.0860 53.6524 C 30.1797 54.2852 30.6250 54.7305 31.2344 54.7305 Z"/></g></svg>';
   function renderStars() { document.querySelectorAll('.js-star').forEach(e => { e.innerHTML = STAR; }); }
   let toastTimer;
   function toast(msg) {
