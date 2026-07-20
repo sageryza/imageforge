@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Films</title>
+<style>
+/* Screening-room theme — flat solid colors only (no gradients, ever). */
+:root {
+  --bg:#14120f; --card:#1d1a16; --card2:#242019; --ink:#efe9dc; --muted:#8f887a;
+  --line:#302b23; --accent:#d9a441; --accent-ink:#181206; --ok:#7fae7c; --bad:#c66a5e;
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; }
+main { max-width:640px; margin:0 auto; padding:22px 14px calc(40px + env(safe-area-inset-bottom)); }
+h1 { font-size:24px; margin:0 0 2px; letter-spacing:.02em; }
+.sub { color:var(--muted); font-style:italic; font-size:14px; margin:0 0 18px; }
+.sans { font-family:-apple-system,system-ui,sans-serif; }
+button { font-family:-apple-system,system-ui,sans-serif; font-size:15px; border:none; border-radius:6px; cursor:pointer; }
+.btn { background:var(--accent); color:var(--accent-ink); font-weight:650; padding:12px 18px; display:inline-flex; align-items:center; gap:8px; }
+.btn:disabled { opacity:.45; }
+.btn.ghost { background:var(--card2); color:var(--ink); border:1px solid var(--line); }
+.btn.small { padding:8px 12px; font-size:13.5px; }
+textarea, input[type=text] {
+  width:100%; background:var(--card); color:var(--ink); border:1px solid var(--line);
+  border-radius:6px; padding:12px; font-family:Georgia,serif; font-size:16px;
+}
+textarea { min-height:110px; resize:vertical; }
+svg.ic { width:18px; height:18px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+
+.row { display:flex; gap:10px; align-items:center; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:14px; }
+
+/* Options expander */
+details.opts { background:var(--card); border:1px solid var(--line); border-radius:6px; margin:12px 0; }
+details.opts summary { list-style:none; padding:12px 14px; color:var(--muted); font-family:-apple-system,system-ui,sans-serif; font-size:14px; display:flex; align-items:center; gap:8px; cursor:pointer; }
+details.opts summary::-webkit-details-marker { display:none; }
+details.opts .inner { padding:2px 14px 14px; display:flex; flex-direction:column; gap:14px; }
+.optlabel { font-family:-apple-system,system-ui,sans-serif; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.seg { display:flex; gap:8px; flex-wrap:wrap; }
+.seg button { background:var(--card2); color:var(--muted); border:1px solid var(--line); padding:8px 13px; font-size:14px; }
+.seg button.sel { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:650; }
+.charrow { display:flex; gap:8px; align-items:center; }
+.charrow img { width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+.charrow input { flex:1; }
+
+/* Progress + stage banner */
+.stage { background:var(--card2); border:1px solid var(--line); border-radius:6px; padding:12px 14px; margin-bottom:14px; font-family:-apple-system,system-ui,sans-serif; font-size:14.5px; }
+.stage b { color:var(--accent); font-weight:650; }
+.jobline { color:var(--muted); font-size:13px; margin-top:6px; }
+.dotpulse { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:8px; animation:pulse 1.2s infinite; vertical-align:1px; }
+@keyframes pulse { 0%,100%{opacity:.25} 50%{opacity:1} }
+@media (prefers-reduced-motion: reduce){ .dotpulse{animation:none} }
+
+/* Scene grid */
+.grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.tile { background:var(--card); border:1px solid var(--line); border-radius:6px; overflow:hidden; position:relative; }
+.tile img { width:100%; aspect-ratio:2/3; object-fit:cover; display:block; }
+.tile .ph { width:100%; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px; font-family:-apple-system,system-ui,sans-serif; padding:10px; text-align:center; }
+.tile .cap { padding:7px 9px; font-family:-apple-system,system-ui,sans-serif; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.badge { font-size:10.5px; padding:2px 6px; border-radius:6px; background:var(--card2); border:1px solid var(--line); color:var(--muted); flex:none; }
+.badge.morph { color:var(--accent); border-color:var(--accent); }
+.tile.err { border-color:var(--bad); }
+
+/* Film player */
+video { width:100%; border-radius:6px; border:1px solid var(--line); background:#000; display:block; }
+
+/* Style-sibling chips */
+.sibs { display:flex; gap:8px; margin-bottom:12px; }
+.sibs button { background:var(--card2); color:var(--muted); border:1px solid var(--line); padding:8px 13px; font-size:13.5px; }
+.sibs button.sel { color:var(--accent); border-color:var(--accent); }
+
+/* Recent strip */
+.recent { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; }
+.recent .r { flex:none; width:96px; background:var(--card); border:1px solid var(--line); border-radius:6px; overflow:hidden; cursor:pointer; }
+.recent .r img { width:96px; height:128px; object-fit:cover; display:block; }
+.recent .r .ph { width:96px; height:128px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; }
+.recent .r .t { font-family:-apple-system,system-ui,sans-serif; font-size:11px; color:var(--muted); padding:5px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+h2 { font-size:16px; color:var(--muted); font-weight:normal; font-style:italic; margin:26px 0 10px; }
+
+/* Lightbox — freezes the page behind it */
+#lb { position:fixed; inset:0; background:rgba(10,9,7,.94); display:none; z-index:50; overflow-y:auto; }
+#lb.open { display:block; }
+#lb .wrap { max-width:640px; margin:0 auto; padding:16px 14px 40px; }
+#lb img { width:100%; border-radius:6px; }
+#lb .x { position:sticky; top:10px; margin-left:auto; display:flex; width:38px; height:38px; border-radius:50%; background:var(--card); border:1px solid var(--line); color:var(--ink); align-items:center; justify-content:center; }
+#lb .meta { color:var(--muted); font-family:-apple-system,system-ui,sans-serif; font-size:13px; margin:10px 0; }
+.msg { font-family:-apple-system,system-ui,sans-serif; font-size:14px; padding:11px 13px; border-radius:6px; margin:10px 0; display:none; }
+.msg.err { display:block; background:var(--card); border:1px solid var(--bad); color:var(--bad); }
+.msg.info { display:block; background:var(--card); border:1px solid var(--line); color:var(--muted); }
+#micBtn.rec { background:var(--bad); color:#fff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Films</h1>
+  <p class="sub">A story becomes a film, one approval at a time.</p>
+
+  <!-- ── New film ── -->
+  <section id="newFilm">
+    <textarea id="story" placeholder="Tell the story… (or tap the mic and just talk)"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="startBtn">
+        <svg class="ic" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+        Start</button>
+      <button class="btn ghost" id="micBtn" title="Speak the story">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </button>
+    </div>
+
+    <details class="opts" id="opts">
+      <summary>
+        <svg class="ic" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+        Options — style, characters, motion
+      </summary>
+      <div class="inner sans">
+        <div>
+          <div class="optlabel">Art style</div>
+          <div class="seg" id="styleSeg">
+            <button data-v="pencil" class="sel">Dreamy pencil</button>
+            <button data-v="flat">Simple flat</button>
+            <button data-v="both">Both (two films)</button>
+          </div>
+        </div>
+        <div>
+          <div class="optlabel">Characters (optional — name + photo)</div>
+          <div id="chars"></div>
+          <button class="btn ghost small" id="addChar">+ Add a character</button>
+        </div>
+        <div>
+          <div class="optlabel">Morph moments (before/after pairs)</div>
+          <div class="seg" id="morphSeg">
+            <button data-v="on" class="sel">Model decides</button>
+            <button data-v="off">All hard cuts</button>
+          </div>
+        </div>
+        <div>
+          <div class="optlabel">Motion feel</div>
+          <div class="seg" id="motionSeg">
+            <button data-v="normal" class="sel">Normal</button>
+            <button data-v="subtle">Mostly still</button>
+          </div>
+        </div>
+        <div>
+          <div class="optlabel">Image quality</div>
+          <div class="seg" id="qualSeg">
+            <button data-v="low">Low</button>
+            <button data-v="medium" class="sel">Medium</button>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <div class="msg" id="msg"></div>
+
+  <!-- ── Active film ── -->
+  <section id="active" style="display:none">
+    <div class="sibs" id="sibs" style="display:none"></div>
+    <div class="stage" id="stageBox"></div>
+    <div id="filmBox" style="display:none; margin-bottom:14px"></div>
+    <div class="grid" id="sceneGrid"></div>
+    <div class="row" style="margin-top:14px; flex-wrap:wrap" id="actions"></div>
+  </section>
+
+  <h2>Recent films</h2>
+  <div class="recent" id="recent"></div>
+</main>
+
+<!-- Lightbox -->
+<div id="lb">
+  <div class="wrap">
+    <button class="x" id="lbClose"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <img id="lbImg" alt="">
+    <div class="meta" id="lbMeta"></div>
+    <input type="text" id="lbNotes" placeholder="Notes for the redo — “her hair is longer”, “less clutter”…">
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="lbRedo">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Redo with notes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STUDIO_TOKEN = '__STUDIO_TOKEN__';
+const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+async function api(path, opts = {}) {
+  if (opts.body && typeof opts.body === 'object') {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers = { ...(opts.headers || {}), 'content-type': 'application/json' };
+  }
+  if (_tok) opts.headers = { ...(opts.headers || {}), 'x-studio-token': _tok };
+  const res = await fetch(path, opts);
+  const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
+  return { ok: res.ok, status: res.status, body: b };
+}
+const $ = id => document.getElementById(id);
+const B = '/api/movies';
+
+// ── state ──
+let movie = null;          // the active movie doc
+let sibIds = [];           // sibling ids when "Both" styles
+let pollTimer = null;
+let lbSceneId = null;
+
+function showMsg(cls, text) { const m = $('msg'); m.className = 'msg ' + cls; m.textContent = text; if (cls === 'info') setTimeout(() => { if (m.textContent === text) m.className = 'msg'; }, 6000); }
+function segVal(id) { return document.querySelector('#' + id + ' button.sel').dataset.v; }
+document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  seg.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+}));
+
+// ── characters (optional cards) ──
+$('addChar').onclick = () => {
+  const row = document.createElement('div');
+  row.className = 'charrow'; row.style.marginBottom = '8px';
+  row.innerHTML = '<img alt="" style="display:none"><input type="text" placeholder="Name"><button class="btn ghost small">Photo</button>';
+  const [img, name, btn] = row.children;
+  const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.style.display = 'none';
+  row.appendChild(file);
+  btn.onclick = () => file.click();
+  file.onchange = () => {
+    const f = file.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { img.src = r.result; img.style.display = 'block'; row.dataset.image = r.result; };
+    r.readAsDataURL(f);
+  };
+  $('chars').insertBefore(row, null);
+};
+
+// ── mic (speech-to-text into the story box) ──
+let rec = null;
+$('micBtn').onclick = () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return showMsg('err', 'Speech input isn’t available in this browser — type instead.');
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.continuous = true; rec.interimResults = false; rec.lang = 'en-US';
+  $('micBtn').classList.add('rec');
+  rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) $('story').value = ($('story').value + ' ' + e.results[i][0].transcript).trim(); };
+  rec.onend = () => { $('micBtn').classList.remove('rec'); rec = null; };
+  rec.start();
+};
+
+// ── create + stage driving ──
+$('startBtn').onclick = async () => {
+  const story = $('story').value.trim();
+  if (!story) return showMsg('err', 'Tell the story first.');
+  $('startBtn').disabled = true;
+  showMsg('info', 'Breaking the story into scenes…');
+  const styleChoice = segVal('styleSeg');
+  const payload = {
+    story,
+    panelQuality: segVal('qualSeg'),
+    morphPairs: segVal('morphSeg') === 'on',
+    motionProfile: segVal('motionSeg'),
+  };
+  if (styleChoice === 'both') payload.styles = ['pencil', 'flat']; else payload.style = styleChoice;
+  const cards = [...document.querySelectorAll('.charrow')].map(r => ({
+    name: r.querySelector('input[type=text]').value.trim(), image: r.dataset.image,
+  })).filter(c => c.name && c.image);
+  if (cards.length) payload.characterRefs = cards;
+
+  const res = await api(B, { method: 'POST', body: payload });
+  $('startBtn').disabled = false;
+  if (!res.ok) return showMsg('err', res.body?.error || 'Couldn’t start the film.');
+  const first = res.body.movies ? res.body.movies[0] : res.body;
+  sibIds = res.body.movies ? res.body.movies.map(m => m.id) : [first.id];
+  showMsg('info', 'Scenes ready — drawing the first image…');
+  await api(`${B}/${first.id}/panels`, { method: 'POST', body: { stage: 'first' } });
+  loadMovie(first.id);
+};
+
+async function loadMovie(id) {
+  const res = await api(`${B}/${id}`);
+  if (!res.ok) return showMsg('err', 'Couldn’t load that film.');
+  movie = res.body;
+  localStorage.setItem('films.currentId', id);
+  render();
+  schedulePoll();
+}
+
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  if (movie?.job && movie.job.status === 'running') pollTimer = setTimeout(() => loadMovie(movie.id), 3200);
+}
+
+async function act(path, body, busyText) {
+  showMsg('info', busyText);
+  const res = await api(`${B}/${movie.id}${path}`, { method: 'POST', body: body || {} });
+  if (!res.ok) return showMsg('err', res.body?.error || 'That didn’t work.');
+  loadMovie(movie.id);
+}
+
+// ── render ──
+function render() {
+  $('active').style.display = 'block';
+  const scenes = movie.scenes || [];
+  const done = scenes.filter(s => s.panel?.url);
+  const total = scenes.length;
+  const running = movie.job?.status === 'running';
+  const clipsDone = scenes.filter(s => s.clip?.url).length;
+
+  // sibling chips ("Both" styles)
+  const sibs = $('sibs');
+  if (sibIds.length > 1) {
+    sibs.style.display = 'flex';
+    sibs.innerHTML = '';
+    sibIds.forEach(id => {
+      const b = document.createElement('button');
+      b.textContent = id === movie.id ? (movie.title || 'This film') : 'Other style';
+      b.className = id === movie.id ? 'sel' : '';
+      b.onclick = () => loadMovie(id);
+      sibs.appendChild(b);
+    });
+  } else sibs.style.display = 'none';
+
+  // stage banner
+  const box = $('stageBox');
+  let stageHtml = `<b>${esc(movie.title || 'Untitled film')}</b> · ${total} scenes · ${esc(styleLabel())}`;
+  if (running) stageHtml += `<div class="jobline"><span class="dotpulse"></span>${esc(movie.job.label || movie.job.kind || 'working')} ${movie.job.done ?? ''}${movie.job.total ? '/' + movie.job.total : ''}</div>`;
+  else if (done.length === 0) stageHtml += `<div class="jobline">Drawing the first image…</div>`;
+  else if (done.length < total) stageHtml += `<div class="jobline">Stage ${done.length <= 1 ? '1 — check the probe image' : '2 — check these'} · ${done.length}/${total} drawn. Tap an image for notes + redo.</div>`;
+  else if (!movie.movieUrl) stageHtml += `<div class="jobline">All ${total} images drawn · ${clipsDone}/${total} animated. Tap an image for notes + redo.</div>`;
+  box.innerHTML = stageHtml;
+
+  // finished film
+  const fb = $('filmBox');
+  if (movie.movieUrl) { fb.style.display = 'block'; fb.innerHTML = `<video controls playsinline src="${escAttr(movie.movieUrl)}"></video>`; }
+  else { fb.style.display = 'none'; fb.innerHTML = ''; }
+
+  // scene grid
+  const grid = $('sceneGrid');
+  grid.innerHTML = '';
+  scenes.forEach(s => {
+    const t = document.createElement('div');
+    t.className = 'tile' + (s.panel?.status === 'error' ? ' err' : '');
+    const morph = s.pairWithNext ? '<span class="badge morph">morph →</span>' : '';
+    if (s.panel?.url) {
+      t.innerHTML = `<img src="${escAttr(s.panel.url)}" alt=""><div class="cap"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.title)}</span>${morph}</div>`;
+      t.querySelector('img').onclick = () => openLb(s);
+    } else {
+      const state = s.panel?.status === 'error' ? 'failed — tap Redo later' : (s.panel?.status === 'running' ? 'drawing…' : 'waiting');
+      t.innerHTML = `<div class="ph">${esc(s.title)}<br><span style="opacity:.6">${state}</span></div><div class="cap">${morph}</div>`;
+    }
+    grid.appendChild(t);
+  });
+
+  // actions
+  const a = $('actions');
+  a.innerHTML = '';
+  const btn = (label, fn, ghost) => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (ghost ? ' ghost' : '');
+    b.textContent = label; b.onclick = fn; a.appendChild(b);
+  };
+  if (!running) {
+    if (done.length === 0) btn('Draw the first image', () => act('/panels', { stage: 'first' }, 'Drawing the first image…'));
+    else if (done.length === 1) btn('Looks right — draw 3 more', () => act('/panels', { stage: 'sample' }, 'Drawing three more…'));
+    else if (done.length < total) btn(`Approved — draw the rest (${total - done.length})`, () => act('/panels', { stage: 'rest' }, 'Drawing the rest…'));
+    else if (clipsDone < scenes.filter((s, i) => !(i > 0 && scenes[i - 1].pairWithNext)).length)
+      btn('Add motion', () => act('/clips', {}, 'Animating the scenes…'));
+    else btn(movie.movieUrl ? 'Re-stitch the film' : 'Stitch the film', () => act('/stitch', {}, 'Stitching…'), Boolean(movie.movieUrl));
+  }
+}
+
+function styleLabel() { return movie.style === 'flat' ? 'Simple flat' : 'Dreamy pencil'; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escAttr(s) { return esc(s); }
+
+// ── lightbox (freezes the page behind it) ──
+function openLb(scene) {
+  lbSceneId = scene.id;
+  $('lbImg').src = scene.panel.url;
+  $('lbMeta').textContent = `${scene.title} · ${scene.panel.quality || ''}`;
+  $('lbNotes').value = scene.panelNotes || '';
+  $('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLb() { $('lb').classList.remove('open'); document.body.style.overflow = ''; lbSceneId = null; }
+$('lbClose').onclick = closeLb;
+$('lb').addEventListener('click', e => { if (e.target === $('lb')) closeLb(); });
+$('lbRedo').onclick = async () => {
+  const notes = $('lbNotes').value.trim();
+  const sid = lbSceneId; closeLb();
+  showMsg('info', 'Redoing that image…');
+  const res = await api(`${B}/${movie.id}/scenes/${sid}/panel`, { method: 'POST', body: notes ? { notes } : {} });
+  if (!res.ok) return showMsg('err', res.body?.error || 'Redo failed.');
+  loadMovie(movie.id);
+};
+
+// ── recent films ──
+async function loadRecent() {
+  const res = await api(B);
+  if (!res.ok) return;
+  const wrap = $('recent'); wrap.innerHTML = '';
+  (res.body.movies || []).slice(0, 20).forEach(m => {
+    const poster = (m.scenes || []).find(s => s.panel?.url)?.panel.url;
+    const d = document.createElement('div');
+    d.className = 'r';
+    d.innerHTML = (poster ? `<img src="${escAttr(poster)}" alt="">` : '<div class="ph">no art yet</div>') + `<div class="t">${esc(m.title || 'Untitled')}</div>`;
+    d.onclick = () => { sibIds = [m.id]; loadMovie(m.id); window.scrollTo({ top: 0 }); };
+    wrap.appendChild(d);
+  });
+}
+
+// ── boot ──
+loadRecent();
+const saved = localStorage.getItem('films.currentId');
+if (saved) { sibIds = [saved]; loadMovie(saved); }
+</script>
+</body>
+</html>

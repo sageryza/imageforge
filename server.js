@@ -407,6 +407,10 @@ app.get('/song', serveGated('song.html'));
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
 app.get('/dreams', serveGated('dreams.html'));
+// Films: the staged-approval movie pipeline as a web page (story → one probe
+// image → approve/notes → three more → the rest → motion → stitched film).
+// Same /api/movies engine the iOS Movies tab uses; same gate.
+app.get('/films', serveGated('films.html'));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
 app.get('/report', serveGated('report.html'));
