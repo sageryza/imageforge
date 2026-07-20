@@ -213,7 +213,7 @@
       display: flex; flex-direction: column; align-items: center;
       text-align: center;
     }
-    .tcard-pos { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 6px; }
+    .tcard-pos { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 6px; text-align: center; }
     /* Fixed aspect + cover so all three cards are identical size and centered,
        regardless of the small per-scan margin differences. Radius kept small to
        match the near-square card corners. */
@@ -278,7 +278,10 @@
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
 
     /* ── Face-down card backs (before reveal) ── */
-    .backs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 16px; }
+    .backs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 16px; align-items: start; }
+    /* Persistent slot: Past/Present/Future label always on top, card/back below,
+       so all three stay the same height and only the tapped body swaps in. */
+    .tslot { display: flex; flex-direction: column; min-width: 0; }
     .tback {
       aspect-ratio: 100 / 172; border-radius: 4px; min-width: 0;
       background: var(--moon);
@@ -734,13 +737,7 @@
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
-          <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save to Book of Shadows</button>
-        </div>
-
-        <!-- Intention -->
-        <div class="card" id="intention-card" style="display:none;">
-          <div class="card-head"><h2>Today's intention</h2></div>
-          <div class="moon-line" style="margin-top:0;" id="intention-text"></div>
+          <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;">Save to Book of Shadows <span class="js-star"></span></button>
         </div>
 
         <!-- Dream reading -->
@@ -1237,7 +1234,6 @@
     </div>`;
     $('astro-note').textContent = '';
     const fc = $('see-full-chart'); if (fc) fc.style.display = 'none';
-    $('intention-text').textContent = INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
   /* ══════════ Zodiac system (Tropical / 13-sign Astronomical) ══════════ */
@@ -1303,7 +1299,6 @@
       $('astro-note').textContent = '';
       $('astro-body').innerHTML = `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The stars are quiet right now — <button class="link-btn" id="astro-retry">try again</button>.</p>`;
       const rb = $('astro-retry'); if (rb) rb.addEventListener('click', () => loadDaily(true));
-      $('intention-text').textContent = INTENTIONS[hashStr(date) % INTENTIONS.length];
     }
   }
 
@@ -1334,30 +1329,41 @@
     $('astro-note').textContent = '';
     const ab = $('astro-add-birth');
     if (ab) ab.addEventListener('click', () => { $('natal-date').scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('natal-date').focus(), 400); });
-
-    $('intention-text').textContent = dailyData.intention || INTENTIONS[hashStr(todayISO()) % INTENTIONS.length];
   }
 
-  // Same backs as before — the only change is you tap each card to reveal it
-  // (instead of one "Reveal your cards" button).
+  // Tap each card to reveal it. The Past/Present/Future label sits above every
+  // slot from the start (so all three are the same height and nothing jumps),
+  // and revealing swaps ONLY the tapped slot's body — the others don't re-render.
   let tarotRevealed = new Set();
+  function tarotSlotBody(i) {
+    const p = dailyPicks[i];
+    return tarotRevealed.has(i)
+      ? tarotCardHtml(p.card, p.orientation)   // position lives on the slot, not the card
+      : `<div class="tback" role="button" tabindex="0" aria-label="Reveal ${esc(p.position || 'a card')}">✦</div>`;
+  }
   function renderDailyTarot() {
     if (!dailyPicks) return;
-    $('daily-backs').innerHTML = dailyPicks.map((p, i) => tarotRevealed.has(i)
-      ? tarotCardHtml(p.card, p.orientation, p.position)
-      : `<div class="tback" data-ti="${i}" role="button" tabindex="0" aria-label="Reveal a card">✦</div>`
+    const wrap = $('daily-backs');
+    wrap.innerHTML = dailyPicks.map((p, i) =>
+      `<div class="tslot">${p.position ? `<div class="tcard-pos">${esc(p.position)}</div>` : ''}<div class="tslot-body" data-ti="${i}">${tarotSlotBody(i)}</div></div>`
     ).join('');
-    $('daily-backs').querySelectorAll('.tback[data-ti]').forEach(el => el.addEventListener('click', () => {
-      tarotRevealed.add(+el.dataset.ti);
-      renderDailyTarot();
-      if (tarotRevealed.size === 3) showTarotReading();
-    }));
+    wrap.querySelectorAll('.tslot-body').forEach(el => {
+      if (!tarotRevealed.has(+el.dataset.ti)) el.addEventListener('click', () => revealTarot(+el.dataset.ti));
+    });
+  }
+  function revealTarot(i) {
+    if (tarotRevealed.has(i)) return;
+    tarotRevealed.add(i);
+    const el = document.querySelector('#daily-backs .tslot-body[data-ti="' + i + '"]');
+    if (el) { el.innerHTML = tarotSlotBody(i); el.style.cursor = 'default'; }
+    if (tarotRevealed.size === 3) showTarotReading();
   }
   function showTarotReading() {
     const t = dailyData && dailyData.tarot; if (!t) return;
     $('daily-tarot-reading').innerHTML = renderReading(t, true);
     $('daily-tarot-reading').style.display = '';
-    const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false; sv.textContent = '✦ Save to Book of Shadows';
+    const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false;
+    sv.innerHTML = 'Save to Book of Shadows <span class="js-star"></span>'; renderStars();
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
@@ -1377,7 +1383,7 @@
       data: dailyData.tarot,
     });
     saveReadings(all); updateSavedCount();
-    const b = $('daily-save'); b.disabled = true; b.textContent = '✦ Saved to Book of Shadows';
+    const b = $('daily-save'); b.disabled = true; b.innerHTML = 'Saved to Book of Shadows <span class="js-star"></span>'; renderStars();
   });
 
   /* ══════════ SHOP ══════════ */
@@ -1711,7 +1717,6 @@
       $('daily-birthday').style.display = 'none';
       $('daily-reading').style.display = '';
       $('tarot-card').style.display = 'none';
-      $('intention-card').style.display = 'none';
       const fcp = $('see-full-chart'); if (fcp) fcp.style.display = 'none';
       setAstroLoading();
       return;
@@ -1725,7 +1730,6 @@
     const gate = $('daily-reveal-gate'); if (gate) gate.style.display = (s === 'ready' && !astroRevealed) ? '' : 'none';
     $('daily-reading').style.display = revealed ? '' : 'none';
     $('tarot-card').style.display = revealed ? '' : 'none';
-    $('intention-card').style.display = revealed ? '' : 'none';
     const fc = $('see-full-chart'); if (fc) fc.style.display = (revealed && natalChartHtml) ? '' : 'none';
     if (revealed) loadDaily(false);
   }
@@ -1963,9 +1967,9 @@
   function showDreamDetail(i) {
     const r = loadDreams()[i]; if (!r) return;
     const out = $('dream-out'); out.style.display = '';
-    out.innerHTML = PAST_BACK + renderReading('Anthropic · Claude Opus 4.8', r.data.claude) + renderReading('OpenAI · GPT‑5.6', r.data.gpt);
+    out.innerHTML = PAST_BACK + renderDreamReading('Anthropic · Claude Opus 4.8', r.data.claude) + renderDreamReading('OpenAI · GPT‑5.6', r.data.gpt);
   }
-  function renderReading(src, r) {
+  function renderDreamReading(src, r) {
     if (!r) return `<div class="dread"><div class="dread-src">${esc(src)}</div><div class="dread-fail">This reader couldn't be reached — try again in a moment.</div></div>`;
     const syms = (r.symbols || []).map(s =>
       `<div class="dsym"><span class="dsym-star">${STAR}</span><div class="dsym-txt"><b>${esc(s.symbol)}</b> — ${esc(s.meaning)}</div></div>`).join('');
@@ -1995,7 +1999,7 @@
     const btn = $('dream-unlock'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Reading…';
     try {
       const d = await api('/api/witch/dream-read', { dream });
-      out.innerHTML = renderReading('Anthropic · Claude Opus 4.8', d.claude) + renderReading('OpenAI · GPT‑5.6', d.gpt);
+      out.innerHTML = renderDreamReading('Anthropic · Claude Opus 4.8', d.claude) + renderDreamReading('OpenAI · GPT‑5.6', d.gpt);
       if (d.claude || d.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: d.claude, gpt: d.gpt } }); saveDreams(all); }
     } catch (e) {
       out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`;
