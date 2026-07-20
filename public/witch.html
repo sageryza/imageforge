@@ -2339,8 +2339,8 @@
     { img: 'tw-06', bg: '#fef7f0', kicker: 'The locals', h: 'Meet the plants', body: 'Every place has its own green residents — the weed in the sidewalk crack is somebody\'s sacred herb. Introduce yourself: notice one plant, learn its name, touch one leaf gently. It\'s how a witch says hello to a new land.' },
     { img: 'tw-07', bg: '#fdfaf5', kicker: 'The between', h: 'Crossroads magic', body: 'Folk magic loves the places between places — crossroads, bridges, shorelines — where things can be left behind. Airports and train stations are the great modern crossroads: on your way through, name one worry and leave it at the gate.' },
     { img: 'tw-08', bg: '#fefaf6', kicker: 'The disguise', h: 'Invisible spellwork', body: 'Travel craft is quiet craft: intention stirred clockwise into a takeaway coffee, a protection word breathed onto the bus window, a charm that reads as jewelry. Nobody around you knows. That\'s not hiding — that\'s finesse.' },
-    { img: 'tw-09', bg: '#fdf9f3', kicker: 'The tether', h: 'A pinch of home', body: 'The old emigrant\'s charm: carry a little of your own ground — a pebble from your street, a pinch of garden earth in a tiny vial. Homesickness magic, literally: wherever you stand, you\'re standing on a bit of home.' },
-    { img: 'tw-10', bg: '#fdf9f3', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i>.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
+    { img: 'tw-09', bg: '#fefcf8', kicker: 'The tether', h: 'A pinch of home', body: 'The old emigrant\'s charm: carry a little of your own ground — a pebble from your street, a pinch of garden earth in a tiny vial. Homesickness magic, literally: wherever you stand, you\'re standing on a bit of home.' },
+    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i>.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
   ];
   const DIVIN_CARDS = [
     { img: 'dv-01', bg: '#fdf9f3', kicker: 'Divination', h: 'Ways of asking', body: 'Tarot is one door in a very long hallway. Humans have read answers in water, smoke, books, birds, and tea for thousands of years. This lesson is a tour of the hallway — and how to actually try each door.' },
@@ -2450,6 +2450,12 @@
   { const al = $('open-altar'); if (al) al.addEventListener('click', () => openLesson('altar')); }
   { const sh = $('open-shadow'); if (sh) sh.addEventListener('click', () => openLesson('shadow')); }
   { const wy = $('open-wheel'); if (wy) wy.addEventListener('click', () => openLesson('wheel')); }
+  // Lessons whose illustrations haven't finished generating yet — tiles stay
+  // hidden so the live app never shows broken art. Remove a key from this list
+  // (and fill the lesson's sampled bg hexes) as its batch completes.
+  ['divin', 'crystal', 'altar', 'shadow', 'wheel'].forEach(k => {
+    const t = $('open-' + k); if (t) t.style.display = 'none';
+  });
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
