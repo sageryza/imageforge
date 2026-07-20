@@ -583,6 +583,47 @@
     .deck-prev[disabled] { visibility: hidden; }
     .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
 
+    /* ── Witch School: the path ──
+       Imprint-style winding trail, witch-dressed: nodes zigzag down a central
+       gold dashed line; done = solid gold with a check, current glows with a
+       continue card, untouched sit dim further down. Flat colors only. */
+    .wpath { position: relative; margin-top: 6px; padding-bottom: 10px; }
+    .wpath-line { position: absolute; left: 50%; top: 26px; bottom: 26px; width: 0; border-left: 2px dashed var(--border); transform: translateX(-1px); }
+    .wpath-head { position: relative; text-align: center; margin: 26px 0 4px; }
+    .wpath-head:first-child { margin-top: 4px; }
+    .wpath-head .t { display: inline-block; background: var(--bg); padding: 4px 14px; font-size: 11px; letter-spacing: 2.6px; text-transform: uppercase; color: var(--gold-dim); }
+    .wpath-row { position: relative; display: flex; margin: 18px 0; }
+    .wpath-row.pos-0 { justify-content: flex-start; padding-left: 8%; }
+    .wpath-row.pos-1 { justify-content: center; }
+    .wpath-row.pos-2 { justify-content: flex-end; padding-right: 8%; }
+    .wnode { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; max-width: 118px; }
+    .wnode .ic { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--panel); border: 2px solid var(--border); color: var(--text-dim); }
+    .wnode .ic svg { width: 26px; height: 26px; }
+    .wnode .nm { font-size: 11.5px; color: var(--text-dim); text-align: center; line-height: 1.3; }
+    .wnode.done .ic { background: var(--gold); border-color: var(--gold); color: #241d2e; }
+    .wnode.done .nm { color: var(--text); }
+    .wnode.now .ic { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 18px rgba(156,111,51,0.45); }
+    .wnode.now .nm { color: var(--gold); font-weight: 600; }
+    .wnode .pct { font-size: 9.5px; letter-spacing: 1px; color: var(--gold-dim); }
+    .wpath-now { position: relative; margin: 4px 8% 22px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 10px; padding: 16px; text-align: center; }
+    .wpath-now .t { font-family: var(--serif); font-size: 19px; color: var(--text); }
+    .wpath-now .p { font-size: 12px; color: var(--text-faint); margin: 5px 0 12px; }
+    .wpath-now .btn { margin: 0 auto; }
+    .wpath-done-star { position: relative; text-align: center; margin: 20px 0 8px; color: var(--gold); }
+    .wpath-done-star svg, .wpath-done-star .js-star { width: 34px; height: 34px; }
+
+    /* Course catalog tiles: sharp-corner art + text under (Sophie's no-boxes
+       preference), title/desc/progress below the cover */
+    .wcourse { margin: 0 0 26px; cursor: pointer; }
+    .wcourse .cv { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+    .wcourse .meta { padding: 10px 2px 0; }
+    .wcourse .t { font-family: var(--serif); font-size: 21px; color: var(--text); }
+    .wcourse .s { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+    .wcourse .pr { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-top: 7px; }
+    .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
+    .wback svg { width: 16px; height: 16px; }
+    .wback:hover { color: var(--gold); }
+
     /* ── Book of Shadows: the book ──
        The cover is a flat little hardback (no gradients); opening it takes
        over the screen like a lesson, with cream paper pages you turn. */
@@ -871,8 +912,11 @@
         <div class="kicker">Learn the craft</div>
         <div class="section-title">Witch School</div>
         <div class="section-sub">Short, gentle lessons in the everyday magic arts.</div>
-        <!-- Lesson menu -->
-        <div id="school-menu">
+        <!-- The path: a winding trail of lesson nodes (rendered by JS) -->
+        <div id="school-path"></div>
+        <!-- Legacy lesson tiles — hidden; kept as the icon + title source the
+             path renderer reads from (and as fallback anchors for handlers) -->
+        <div id="school-menu" style="display:none;">
           <div class="lesson-card" id="open-spell">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0 4-4 4 4 0 0 0-1-2.5C15.5 3.5 14 2 14 2s-1.5 1.5-3 3.5A4 4 0 0 0 10 8a4 4 0 0 0 4 4z"/><path d="M12 12v9"/><rect x="8" y="14" width="8" height="7" rx="1"/></svg></span>
             <div><div class="lt">Spell Work</div><div class="ld">Intention, energy & how to cast</div></div>
@@ -915,7 +959,7 @@
           </div>
           <div class="lesson-card" id="open-divin">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg></span>
-            <div><div class="lt">Divination</div><div class="ld">Scrying, pendulums, tea leaves & more</div></div>
+            <div><div class="lt">Divination 101</div><div class="ld">Scrying, pendulums, tea leaves & more</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
           <div class="lesson-card" id="open-crystal">
@@ -1150,6 +1194,7 @@
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
     if (view === 'book') { try { updateBosCoverSub(); } catch {} }
+    if (view === 'school') { try { renderSchoolPath(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
@@ -2257,6 +2302,7 @@
   renderProductRow($('prow-1'), PRODUCT_ROWS[0]);
   renderProductRow($('prow-2'), PRODUCT_ROWS[1]);
   renderStars();   // fill every .js-star (buttons + badges) from the shared STAR const
+  try { renderSchoolPath(); } catch {}
 
   /* ══════════ Home dream reading ══════════ */
   function dreamText() { return ($('dream-input').value || '').trim(); }
@@ -2611,6 +2657,88 @@
     { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>Lughnasadh, August 1</b>: first harvest.<br><br><b>This week:</b> bake or buy a good loaf, share it with someone, and name one thing you planted this year that\'s ripening. ✦' },
   ];
   const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS };
+  /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
+     Sophie's structure: Divination 101 is the intro that opens onto Tarot &
+     Astrology; Plants is its OWN course (lots more coming); Crystals stands
+     alone. The School home is a catalog of art-cover course tiles. */
+  const SCHOOL_COURSES = [
+    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'signs', 'dream'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, cleansing & charging', cover: 'course-crystal', lessons: ['crystal'] },
+    { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
+  ];
+  let schoolCourse = null; // null = catalog; a course id = that course's path
+  function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
+  function saveSchoolProgress(p) { try { localStorage.setItem('witch_school_progress', JSON.stringify(p)); } catch {} cloudSyncSoon(); }
+  function markSeen(key, idx) {
+    const p = schoolProgress(); const e = p[key] || { seen: 0, done: false };
+    e.seen = Math.max(e.seen, idx + 1);
+    if (e.seen >= (LESSONS[key] || []).length) e.done = true;
+    p[key] = e; saveSchoolProgress(p);
+  }
+  function courseProgress(course) {
+    const prog = schoolProgress();
+    const done = course.lessons.filter(k => prog[k] && prog[k].done).length;
+    return { done, total: course.lessons.length };
+  }
+  function renderSchoolPath() {
+    const wrap = $('school-path'); if (!wrap) return;
+    if (schoolCourse) { renderCoursePath(schoolCourse); return; }
+    // ── The catalog: art-cover course tiles ──
+    wrap.innerHTML = SCHOOL_COURSES.map(c => {
+      const p = courseProgress(c);
+      return `<div class="wcourse" data-course="${c.id}" role="button">
+        <img class="cv" src="${SW_IMG}${c.cover}.png" alt="" loading="lazy">
+        <div class="meta">
+          <div class="t">${esc(c.title)}</div>
+          <div class="s">${esc(c.sub)}</div>
+          <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
+        </div>
+      </div>`;
+    }).join('') + '<p class="hint" style="text-align:center; margin-top:16px;">More courses are being written.</p>';
+  }
+  function renderCoursePath(courseId) {
+    const wrap = $('school-path'); if (!wrap) return;
+    const course = SCHOOL_COURSES.find(c => c.id === courseId); if (!course) { schoolCourse = null; renderSchoolPath(); return; }
+    const prog = schoolProgress();
+    const current = course.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0) || course.lessons.find(k => !(prog[k] && prog[k].done));
+    let pos = 0, html = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
+      <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
+      <div class="wpath"><div class="wpath-line"></div>`;
+    for (const key of course.lessons) {
+      const tile = $('open-' + key); if (!tile) continue;
+      const icon = tile.querySelector('.lg').innerHTML;
+      const title = tile.querySelector('.lt').textContent;
+      const e = prog[key] || { seen: 0, done: false };
+      const pct = Math.round(100 * e.seen / (LESSONS[key] || []).length);
+      const state = e.done ? 'done' : key === current ? 'now' : '';
+      html += `<div class="wpath-row pos-${pos}">
+        <button class="wnode ${state}" data-lesson="${key}">
+          <span class="ic">${e.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : icon}</span>
+          <span class="nm">${esc(title)}</span>
+          ${!e.done && e.seen > 0 ? `<span class="pct">${pct}%</span>` : ''}
+        </button>
+      </div>`;
+      if (key === current) {
+        html += `<div class="wpath-now">
+          <div class="t">${esc(title)}</div>
+          <div class="p">${e.seen > 0 ? pct + '% complete' : 'Not started yet'}</div>
+          <button class="btn" data-lesson="${key}">${e.seen > 0 ? 'Continue' : 'Start'} <span class="js-star"></span></button>
+        </div>`;
+      }
+      pos = (pos + 1) % 3;
+    }
+    const allDone = course.lessons.every(k => prog[k] && prog[k].done);
+    html += allDone ? '<div class="wpath-done-star"><span class="js-star"></span><div class="hint" style="margin-top:6px;">Course complete. ✦</div></div>' : '';
+    html += '</div>';
+    wrap.innerHTML = html; renderStars();
+  }
+  { const sp = $('school-path'); if (sp) sp.addEventListener('click', (e) => {
+    const n = e.target.closest('[data-lesson]'); if (n) { openLesson(n.dataset.lesson); return; }
+    const c = e.target.closest('[data-course]'); if (c) { schoolCourse = c.dataset.course; renderSchoolPath(); window.scrollTo({ top: 0 }); return; }
+    if (e.target.closest('#school-back')) { schoolCourse = null; renderSchoolPath(); }
+  }); }
   let deckCards = SPELL_CARDS, deckIdx = 0;
   // Preload each lesson's FIRST image up front (instant cover when a lesson
   // opens); the rest of a lesson preloads the moment it's opened, so we never
@@ -2621,6 +2749,7 @@
   const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   function renderDeckCard() {
     const c = deckCards[deckIdx], last = deckIdx === deckCards.length - 1;
+    try { markSeen(deckKey, deckIdx); } catch {}
     // Each card's bg is sampled from its own illustration's corner pixels, so
     // the art floats seamlessly on the screen even though the creams differ.
     $('school-lesson').style.background = c.bg || '#fdf9f3';
@@ -2655,8 +2784,16 @@
     $('deck-next').textContent = last ? 'Finish' : 'Continue';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
-  function openLesson(key) { deckCards = LESSONS[key] || SPELL_CARDS; preload(deckCards); deckIdx = 0; $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard(); }
-  function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); }
+  let deckKey = 'spell';
+  function openLesson(key) {
+    deckKey = LESSONS[key] ? key : 'spell';
+    deckCards = LESSONS[deckKey] || SPELL_CARDS; preload(deckCards);
+    // Resume where you left off (Imprint-style), from the path's Continue.
+    const e = schoolProgress()[deckKey];
+    deckIdx = e && !e.done && e.seen > 0 && e.seen < deckCards.length ? e.seen - 1 : 0;
+    $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard();
+  }
+  function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
   function deckNext() { if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
   function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
@@ -2684,7 +2821,7 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
