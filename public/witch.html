@@ -526,8 +526,9 @@
     body.lesson-open { overflow: hidden; }       /* freeze the page behind the lesson */
     #school-lesson {
       position: fixed; inset: 0; z-index: 90;
-      /* Matches the sampled background of the lesson illustrations (#fdf9f3-ish
-         corners on all 10), so the art floats on the page with no visible box. */
+      /* Fallback only — renderDeckCard() sets the exact per-card background,
+         sampled from each illustration's own corner pixels, so every card's
+         art floats seamlessly with no visible box. */
       background: #fdf9f3;
       display: flex; flex-direction: column;
       padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
@@ -663,7 +664,7 @@
     <main>
       <!-- ═══════════ HOME ═══════════ -->
       <section class="view active" id="view-home">
-        <div class="section-title">Synchronicities abound</div>
+        <div class="section-title">Synchronicities abound…</div>
         <div class="section-sub">Which ones have been put in your path today?</div>
         <!-- Suspicious coincidence — describe it, AI draws it -->
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
@@ -2143,16 +2144,16 @@
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
   const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   const SPELL_CARDS = [
-    { img: 'sw-01', kicker: 'Spell Work', h: 'Welcome to spell work', body: 'A spell is simpler than it sounds. We\'ll go one small idea at a time — just tap to keep going.' },
-    { img: 'sw-02', kicker: 'The idea', h: 'What a spell really is', body: 'Your will in motion: a clear intention, focused with feeling and a little ritual, to nudge a change into being. Not ordering the universe around — concentrating your attention so fully that you start moving toward what you want.' },
-    { img: 'sw-03', kicker: 'The engine', h: 'Three things do the work', body: 'Every spell runs on three things — <b>intention</b>, <b>visualization</b>, and <b>emotional clarity</b>. That\'s the whole engine. Next, each one.' },
-    { img: 'sw-04', kicker: 'Part one', h: 'Intention', body: 'Know exactly what you want, and say it simply — in the present, as if it\'s already true. Vague wishes give vague results: <b>“protection over my home,”</b> not “I hope things get less bad.”' },
-    { img: 'sw-05', kicker: 'Part two', h: 'Visualization', body: 'Picture it already done, in detail — what you\'d see, hear, and feel when it\'s real. The clearer the picture, the stronger the spell.' },
-    { img: 'sw-06', kicker: 'Part three', h: 'Emotional clarity', body: 'Feeling is the fuel. Settle yourself first — a few breaths, a clear head — then genuinely feel the relief of it already being true. Cast from calm certainty, never from panic.' },
-    { img: 'sw-07', kicker: 'Your tools', h: 'Your ingredients', body: 'Correspondences are a witch\'s shorthand — a color or herb that stands in for your goal. <b>Candles:</b> white (clarity), green (money), pink (love), black (protection). <b>Herbs:</b> rosemary (protection), lavender (peace), cinnamon (luck), bay leaf (write a wish on it and burn it).' },
-    { img: 'sw-08', kicker: 'Your timing', h: 'Cast with the moon', body: '<b>Waxing</b> moon to draw things in · <b>full</b> for power · <b>waning</b> to release · <b>new</b> for fresh starts. Don\'t overthink it, though — if you\'re missing an ingredient, swap it or skip it. Intention leads.' },
-    { img: 'sw-09', kicker: 'The ritual', h: 'Casting it', body: 'Cleanse the space and settle your breath. Name your intention out loud, in the present tense. Light a fitting candle and hold your herb or written wish. Then repeat your words, breathe into the feeling, and at the peak picture it fully real — and release it.' },
-    { img: 'sw-10', kicker: 'After', h: 'Then act', body: 'Ground yourself — breathe, touch the floor, give thanks, and stop turning it over. Then act in the real world too: send the text, apply, set the boundary. Magic works <i>with</i> you, not instead of you.<br><br><b>Tonight:</b> light a white candle for clarity. Your first spell can be that simple. ✦' },
+    { img: 'sw-01', bg: '#fdf9f3', kicker: 'Spell Work', h: 'Welcome to spell work', body: 'A spell is simpler than it sounds. We\'ll go one small idea at a time — just tap to keep going.' },
+    { img: 'sw-02', bg: '#fdf8ef', kicker: 'The idea', h: 'What a spell really is', body: 'Your will in motion: a clear intention, focused with feeling and a little ritual, to nudge a change into being. Not ordering the universe around — concentrating your attention so fully that you start moving toward what you want.' },
+    { img: 'sw-03', bg: '#fdfbf9', kicker: 'The engine', h: 'Three things do the work', body: 'Every spell runs on three things — <b>intention</b>, <b>visualization</b>, and <b>emotional clarity</b>. That\'s the whole engine. Next, each one.' },
+    { img: 'sw-04', bg: '#fdf8f2', kicker: 'Part one', h: 'Intention', body: 'Know exactly what you want, and say it simply — in the present, as if it\'s already true. Vague wishes give vague results: <b>“protection over my home,”</b> not “I hope things get less bad.”' },
+    { img: 'sw-05', bg: '#fdfbf8', kicker: 'Part two', h: 'Visualization', body: 'Picture it already done, in detail — what you\'d see, hear, and feel when it\'s real. The clearer the picture, the stronger the spell.' },
+    { img: 'sw-06', bg: '#fcf6ed', kicker: 'Part three', h: 'Emotional clarity', body: 'Feeling is the fuel. Settle yourself first — a few breaths, a clear head — then genuinely feel the relief of it already being true. Cast from calm certainty, never from panic.' },
+    { img: 'sw-07', bg: '#fdfaf5', kicker: 'Your tools', h: 'Your ingredients', body: 'Correspondences are a witch\'s shorthand — a color or herb that stands in for your goal. <b>Candles:</b> white (clarity), green (money), pink (love), black (protection). <b>Herbs:</b> rosemary (protection), lavender (peace), cinnamon (luck), bay leaf (write a wish on it and burn it).' },
+    { img: 'sw-08', bg: '#fcf7f3', kicker: 'Your timing', h: 'Cast with the moon', body: '<b>Waxing</b> moon to draw things in · <b>full</b> for power · <b>waning</b> to release · <b>new</b> for fresh starts. Don\'t overthink it, though — if you\'re missing an ingredient, swap it or skip it. Intention leads.' },
+    { img: 'sw-09', bg: '#fcf9f2', kicker: 'The ritual', h: 'Casting it', body: 'Cleanse the space and settle your breath. Name your intention out loud, in the present tense. Light a fitting candle and hold your herb or written wish. Then repeat your words, breathe into the feeling, and at the peak picture it fully real — and release it.' },
+    { img: 'sw-10', bg: '#fcf8f3', kicker: 'After', h: 'Then act', body: 'Ground yourself — breathe, touch the floor, give thanks, and stop turning it over. Then act in the real world too: send the text, apply, set the boundary. Magic works <i>with</i> you, not instead of you.<br><br><b>Tonight:</b> light a white candle for clarity. Your first spell can be that simple. ✦' },
   ];
   // Preload every card image up front so the picture is ready the instant its
   // card renders (no "text first, then the image pops in" flash).
@@ -2161,6 +2162,9 @@
   const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   function renderDeckCard() {
     const c = SPELL_CARDS[deckIdx], last = deckIdx === SPELL_CARDS.length - 1;
+    // Each card's bg is sampled from its own illustration's corner pixels, so
+    // the art floats seamlessly on the screen even though the creams differ.
+    $('school-lesson').style.background = c.bg || '#fdf9f3';
     $('deck-prog').innerHTML = SPELL_CARDS.map((_, i) => `<span class="deck-seg${i <= deckIdx ? ' on' : ''}"></span>`).join('');
     $('deck-stage').innerHTML = `<div class="tcard">
       <div class="deck-head">
