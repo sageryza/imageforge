@@ -161,7 +161,9 @@
       /* Solid gold, white text, no visible outline (border kept same width/color
          as the fill so the button's size is unchanged). */
       background: var(--gold); color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
-      font-size: 15px; font-weight: 600; font-family: var(--serif); letter-spacing: 0.2px; text-transform: lowercase;
+      /* Eyebrow/kicker treatment — DM Sans, uppercase, tracked-out (matches the
+         SUSPICIOUS COINCIDENCE… card labels), not the serif lowercase. */
+      font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; letter-spacing: 2px; text-transform: uppercase;
       cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
     }
     .btn-gold:hover { filter: brightness(0.97); }
