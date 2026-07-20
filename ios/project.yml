@@ -38,3 +38,29 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseFirestore
+  # Secretly a Witch — the public witchy app as its own tiny native shell
+  # (WKWebView on the deployed /witch page + native SF-Symbols tab bar).
+  # No Firebase, no CI patching: display name / compliance / icon / launch
+  # screen are all baked in here. Built by the "Secretly a Witch TestFlight"
+  # workflow in memory-library-react (lane `witch` in fastlane/Fastfile).
+  SecretlyAWitch:
+    type: application
+    platform: iOS
+    sources:
+      - SecretlyAWitch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.secretlyawitch
+        GENERATE_INFOPLIST_FILE: YES
+        # Base plist merged on top of the generated keys — carries the
+        # UILaunchScreen dict (cream LaunchBackground color).
+        INFOPLIST_FILE: SecretlyAWitch/Info.plist
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: "Secretly a Witch"
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
