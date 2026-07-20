@@ -409,10 +409,10 @@
     .pcard:hover .pimg-wrap { transform: translateY(-2px); }
     .pcard .pimg { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
     .pbadge {
-      position: absolute; top: 6px; right: 0; max-width: 100%;
+      position: absolute; top: 6px; right: 0; max-width: 82%;
       font-size: 9px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
       padding: 3px 6px; line-height: 1.15;
-      display: inline-flex; align-items: center; gap: 3px;
+      display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; text-align: right;
     }
     .pbadge.best { background: var(--gold); color: var(--surface); }
     .pbadge.new { background: var(--moon); color: #fbf7ef; }
@@ -1928,7 +1928,7 @@
   ];
   function badgeHtml(p) {
     if (p.badge === 'best') return '<span class="pbadge best">Best seller</span>';
-    if (p.badge === 'new') return `<span class="pbadge new"><span class="js-star"></span> New product available!</span>`;
+    if (p.badge === 'new') return `<span class="pbadge new">New product available! <span class="js-star"></span></span>`;
     return `<span class="pbadge tag">${esc(p.label || '')}</span>`;
   }
   function renderProductRow(el, row) {
