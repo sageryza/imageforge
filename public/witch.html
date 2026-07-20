@@ -583,6 +583,45 @@
     .deck-prev[disabled] { visibility: hidden; }
     .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
 
+    /* ── Book of Shadows: the book ──
+       The cover is a flat little hardback (no gradients); opening it takes
+       over the screen like a lesson, with cream paper pages you turn. */
+    .bos-cover { width: 210px; height: 280px; margin: 22px auto 0; background: #241d2e; border: 1px solid #4a3f5c; border-radius: 6px 12px 12px 6px; box-shadow: inset 8px 0 0 #1a1424; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    .bos-cover:active { transform: scale(0.98); }
+    .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; }
+    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 30px; height: 30px; display: inline-block; }
+    .bos-cover-title { font-family: var(--serif); font-size: 26px; line-height: 1.2; color: #e8ddc8; margin-top: 10px; letter-spacing: 1px; }
+    .bos-cover-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #8a7d9c; margin-top: 12px; }
+    body.book-open { overflow: hidden; }
+    #bos-reader { position: fixed; inset: 0; z-index: 90; background: #fdf9f3; display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    #bos-reader .deck-top { border-bottom: 1px dashed #d9cbb4; padding-bottom: 10px; }
+    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 15px; color: #6d5c3f; }
+    .bos-pageno { font-size: 11px; color: #a08f74; min-width: 52px; text-align: right; }
+    .bos-stage { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 26px 8px; color: #221c14; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+    .bos-page { animation: bosPageIn 0.2s ease; }
+    .bos-date { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; }
+    .bos-type { display: inline-block; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #6d5c3f; border: 1px solid #d9cbb4; border-radius: 6px; padding: 2px 8px; margin-left: 8px; }
+    .bos-page h3 { font-family: var(--serif); font-size: 22px; font-weight: 500; color: #221c14; margin: 10px 0 8px; }
+    .bos-body { font-size: 16px; line-height: 1.65; white-space: pre-wrap; }
+    .bos-context { margin-top: 12px; font-size: 14px; font-style: italic; color: #6d5c3f; border-left: 2px solid #d9cbb4; padding-left: 10px; }
+    .bos-outcome { margin-top: 14px; font-size: 14.5px; }
+    .bos-outcome .k { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: #9c6f33; display: block; margin-bottom: 4px; }
+    .bos-page img { max-width: 100%; border-radius: 6px; margin: 10px 0; }
+    .bos-page .reading-block { background: none; border: none; padding: 0; color: #221c14; }
+    .bos-empty { text-align: center; color: #a08f74; font-style: italic; margin-top: 60px; font-size: 15px; line-height: 1.7; }
+    .bos-actions { margin-top: 18px; display: flex; gap: 14px; }
+    .bos-actions .link-btn { background: none; border: none; font-family: inherit; font-size: 12.5px; color: #9c6f33; cursor: pointer; padding: 4px 0; text-decoration: underline; }
+    .bos-actions .link-btn.danger { color: #a05252; }
+    /* Index (contents) page */
+    .bos-index-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; border-bottom: 1px dashed #d9cbb4; cursor: pointer; }
+    .bos-index-row .n { font-family: var(--serif); font-size: 17px; color: #221c14; }
+    .bos-index-row .c { font-size: 12px; color: #a08f74; }
+    /* Composer (in modal) */
+    .bos-typepick { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .bos-typepick button { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; }
+    .bos-typepick button.on { border-color: var(--gold); color: var(--gold); }
+
     /* ── Bottom nav ── */
     nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
@@ -918,15 +957,24 @@
       <section class="view" id="view-book">
         <div class="kicker">Your grimoire</div>
         <div class="section-title">Book of Shadows</div>
-        <div class="section-sub">Your miracles and your saved readings, kept in one place.</div>
+        <div class="section-sub">Your days, spells, signs and dreams — kept like a real book.</div>
 
-        <div class="chips" id="bos-chips">
-          <button class="chip active" data-bos="miracles">Miracles</button>
-          <button class="chip" data-bos="readings">Readings <span id="saved-count"></span></button>
+        <!-- The book itself: a cover you open -->
+        <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
+          <div class="bos-cover-inner">
+            <span class="bos-cover-star js-star"></span>
+            <div class="bos-cover-title">Book of<br>Shadows</div>
+            <div class="bos-cover-sub" id="bos-cover-sub"></div>
+          </div>
         </div>
+        <p class="hint" style="text-align:center; margin-top:10px;">Tap the book to open it</p>
+        <button class="btn" id="bos-quickwrite" style="margin-top:14px;">Write a page <span class="js-star"></span></button>
 
-        <!-- MIRACLES -->
-        <div id="bos-miracles">
+        <!-- The Miracles studio (write & illustrate) lives below the book -->
+        <button class="btn-ghost" id="miracles-toggle" style="margin-top:26px;">Open the Miracles studio <span class="js-star"></span></button>
+
+        <!-- MIRACLES (legacy studio, toggled) -->
+        <div id="bos-miracles" style="display:none;">
           <div class="chips">
             <button class="chip active" data-bookview="write">Write</button>
             <button class="chip" data-bookview="read">Read the book</button>
@@ -984,8 +1032,23 @@
           </div>
         </div>
 
-        <!-- READINGS -->
+        <!-- READINGS (legacy node — rendered inside the book now) -->
         <div id="bos-readings" style="display:none;"></div>
+
+        <!-- The open book: full-screen reader (Imprint-style takeover, like lessons) -->
+        <div id="bos-reader" style="display:none;">
+          <div class="deck-top">
+            <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <div class="bos-crumb" id="bos-crumb">Book of Shadows</div>
+            <div class="bos-pageno" id="bos-pageno"></div>
+          </div>
+          <div class="bos-stage" id="bos-stage"></div>
+          <div class="deck-nav">
+            <button class="deck-prev" id="bos-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Back</button>
+            <button class="btn" id="bos-write">Write <span class="js-star"></span></button>
+            <button class="deck-prev" id="bos-next" style="visibility:visible;">Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </div>
       </section>
 
       <!-- ═══════════ SHOP ═══════════ -->
@@ -1079,6 +1142,7 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
+    if (view === 'book') { try { updateBosCoverSub(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
@@ -1517,14 +1581,148 @@
     }
   }
 
-  /* ══════════ BOOK OF SHADOWS: sub-nav ══════════ */
-  document.querySelectorAll('[data-bos]').forEach(c => c.addEventListener('click', () => {
-    const v = c.dataset.bos;
-    document.querySelectorAll('[data-bos]').forEach(x => x.classList.toggle('active', x === c));
-    $('bos-miracles').style.display = v === 'miracles' ? '' : 'none';
-    $('bos-readings').style.display = v === 'readings' ? '' : 'none';
-    if (v === 'readings') renderSavedReadings();
-  }));
+  /* ══════════ BOOK OF SHADOWS: the journal ══════════
+     One chronological book. New entries live in localStorage['witch_journal'];
+     legacy content (miracles, saved readings) folds into the same page stream
+     as its own page types, so nothing is lost. Page 0 is the contents page. */
+  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A sign', dream: 'A dream', miracle: 'Miracle', reading: 'Reading' };
+  const BOS_SECTIONS = { all: 'Book of Shadows', note: 'Day notes', spell: 'Spells & outcomes', sign: 'Signs & synchronicities', dream: 'Dreams', reading: 'Readings', miracle: 'Miracles' };
+  let bosFilter = 'all', bosPageIdx = 0;
+  function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
+  function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
+  function tsOf(id) { const m = String(id || '').match(/(\d{13})/); return m ? +m[1] : 0; }
+  function bosAllPages() {
+    const pages = [];
+    journalLoad().forEach(e => pages.push({ kind: e.type, ts: e.ts || tsOf(e.id), src: 'journal', e }));
+    (loadBook().entries || []).forEach(e => pages.push({ kind: 'miracle', ts: tsOf(e.id), src: 'miracle', e }));
+    loadReadings().forEach(r => pages.push({ kind: 'reading', ts: tsOf(r.id) || Date.parse(r.date) || 0, src: 'reading', e: r }));
+    pages.sort((a, b) => a.ts - b.ts);
+    return pages;
+  }
+  function bosPages() { return bosFilter === 'all' ? bosAllPages() : bosAllPages().filter(p => p.kind === bosFilter); }
+  function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
+  function openBook(filter) {
+    bosFilter = filter || 'all';
+    // Open to the contents page for a filtered visit, else to the latest page.
+    bosPageIdx = filter && filter !== 'all' ? 1 : 0;
+    if (!filter || filter === 'all') bosPageIdx = 0;
+    $('bos-reader').style.display = '';
+    document.body.classList.add('book-open');
+    renderBosPage();
+  }
+  function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
+  function renderBosPage() {
+    const pages = bosPages(), total = pages.length;
+    const stage = $('bos-stage');
+    $('bos-crumb').textContent = BOS_SECTIONS[bosFilter] || 'Book of Shadows';
+    if (bosPageIdx <= 0) { renderBosIndex(); return; }
+    if (bosPageIdx > total) bosPageIdx = total;
+    if (!total) {
+      stage.innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
+      $('bos-pageno').textContent = '';
+      return;
+    }
+    const p = pages[bosPageIdx - 1];
+    $('bos-pageno').textContent = bosPageIdx + ' of ' + total;
+    let inner = `<div class="bos-date">${esc(bosDate(p.ts))}<span class="bos-type">${esc(BOS_TYPES[p.kind] || p.kind)}</span></div>`;
+    if (p.src === 'journal') {
+      const e = p.e;
+      inner += e.title ? `<h3>${esc(e.title)}</h3>` : '';
+      inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
+      if (e.context) inner += `<div class="bos-context">What was happening: ${esc(e.context)}</div>`;
+      if (p.kind === 'spell') inner += e.outcome
+        ? `<div class="bos-outcome"><span class="k">How it turned out</span>${esc(e.outcome)}</div>`
+        : `<div class="bos-actions"><button class="link-btn" data-outcome="${e.id}">Add how it turned out</button></div>`;
+      inner += `<div class="bos-actions"><button class="link-btn danger" data-jdel="${e.id}">Remove this page</button></div>`;
+    } else if (p.src === 'miracle') {
+      const e = p.e;
+      inner += e.title ? `<h3>${esc(e.title)}</h3>` : '';
+      if (e.url) inner += `<img src="${e.url}" alt="">`;
+      inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
+    } else if (p.src === 'reading') {
+      const r = p.e;
+      const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
+      inner += `<h3>${esc(r.question || 'A reading')}</h3><div class="bos-context">${esc(cards)}</div><div style="margin-top:10px;">${renderReading(r.data, true)}</div>`;
+    }
+    stage.innerHTML = `<div class="bos-page">${inner}</div>`;
+  }
+  function renderBosIndex() {
+    const all = bosAllPages();
+    const count = k => all.filter(p => p.kind === k).length;
+    const rows = [['all', 'All pages', all.length], ['note', 'Day notes', count('note')], ['spell', 'Spells & outcomes', count('spell')], ['sign', 'Signs & synchronicities', count('sign')], ['dream', 'Dreams', count('dream')], ['reading', 'Readings', count('reading')], ['miracle', 'Miracles', count('miracle')]];
+    $('bos-pageno').textContent = 'contents';
+    $('bos-stage').innerHTML = `<div class="bos-page">
+      <div class="bos-date">Contents</div>
+      ${rows.map(([k, n, c]) => `<div class="bos-index-row" data-sect="${k}"><span class="n">${n}</span><span class="c">${c ? c + (c === 1 ? ' page' : ' pages') : '—'}</span></div>`).join('')}
+      <p class="hint" style="margin-top:16px;">Tap a section, or tap the right side of any page to turn it.</p>
+    </div>`;
+  }
+  $('bos-cover').addEventListener('click', () => openBook('all'));
+  $('bos-close').addEventListener('click', closeBook);
+  $('bos-prev').addEventListener('click', () => { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } });
+  $('bos-next').addEventListener('click', () => { if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); } });
+  $('bos-stage').addEventListener('click', (e) => {
+    const sect = e.target.closest('[data-sect]');
+    if (sect) { bosFilter = sect.dataset.sect; bosPageIdx = bosFilter === 'all' ? 1 : (bosPages().length ? 1 : 1); renderBosPage(); return; }
+    const oc = e.target.closest('[data-outcome]');
+    if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
+    const del = e.target.closest('[data-jdel]');
+    if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
+    if (e.target.closest('a, button, img')) return;
+    // Tap zones: right side turns forward, left edge turns back.
+    if (e.clientX < window.innerWidth * 0.28) { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } }
+    else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
+  });
+  /* Composer */
+  let bosComposeType = 'note', bosOutcomeFor = null;
+  function openComposer(mode) {
+    const isOutcome = mode === 'outcome';
+    openModal(`<h2 style="margin-bottom:4px;">${isOutcome ? 'How did it turn out?' : 'Write a page'}</h2>
+      ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
+        ${['note', 'spell', 'sign', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
+      </div>`}
+      <textarea id="bos-compose-text" rows="6" placeholder="${isOutcome ? 'The candle burned clean, and two days later…' : 'Write it as it happened…'}" style="width:100%;"></textarea>
+      <div id="bos-context-wrap" style="display:${!isOutcome && bosComposeType === 'sign' ? '' : 'none'}; margin-top:10px;">
+        <input type="text" id="bos-compose-context" placeholder="What was happening when it appeared?" style="width:100%;">
+      </div>
+      <button class="btn" id="bos-compose-save" style="margin-top:14px;">${isOutcome ? 'Save the outcome' : 'Add to the book'} <span class="js-star"></span></button>
+      <button class="close-x" id="bos-compose-close">close</button>`);
+    renderStars();
+    const tp = $('bos-typepick');
+    if (tp) tp.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-t]'); if (!b) return;
+      bosComposeType = b.dataset.t;
+      tp.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      $('bos-context-wrap').style.display = bosComposeType === 'sign' ? '' : 'none';
+    });
+    $('bos-compose-close').addEventListener('click', closeModal);
+    $('bos-compose-save').addEventListener('click', () => {
+      const text = $('bos-compose-text').value.trim(); if (!text) return;
+      const all = journalLoad();
+      if (isOutcome && bosOutcomeFor) {
+        const e = all.find(x => x.id === bosOutcomeFor); if (e) e.outcome = text;
+      } else {
+        const ctx = $('bos-compose-context') ? $('bos-compose-context').value.trim() : '';
+        all.push({ id: 'j_' + Date.now(), type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
+      }
+      journalSave(all); bosOutcomeFor = null; closeModal();
+      if ($('bos-reader').style.display !== 'none') { bosPageIdx = bosPages().length; renderBosPage(); }
+      updateBosCoverSub();
+    });
+  }
+  $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openComposer(); });
+  $('bos-quickwrite').addEventListener('click', () => openComposer());
+  function updateBosCoverSub() {
+    const n = bosAllPages().length;
+    $('bos-cover-sub').textContent = n ? n + (n === 1 ? ' page' : ' pages') : 'blank & waiting';
+  }
+  updateBosCoverSub();
+  $('miracles-toggle').addEventListener('click', () => {
+    const el = $('bos-miracles'), open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : '';
+    $('miracles-toggle').innerHTML = (open ? 'Open the Miracles studio ' : 'Close the Miracles studio ') + '<span class="js-star"></span>';
+    renderStars();
+  });
 
   /* ══════════ MIRACLES ══════════ */
   let mBook = loadBook();
@@ -2326,9 +2524,9 @@
     { img: 'rs-05', bg: '#fcf8f1', kicker: 'The asking', h: 'Request a sign', body: 'You can ask. Name something specific enough to be surprising — not “a bird” but “something with two keys” — and give it a deadline: <i>“by Sunday.”</i> Then let it go completely. The letting go is what makes the answer readable.' },
     { img: 'rs-06', bg: '#fef9f2', kicker: 'The repeats', h: 'Eleven eleven', body: 'Repeated numbers — 11:11, 222, the same song three times in a day — are the most common modern sign. Treat them as a <b>tap on the shoulder</b>, not a message: the meaning isn\'t in the number, it\'s in what you were thinking when it appeared.' },
     { img: 'rs-07', bg: '#fdf7ef', kicker: 'The honesty', h: 'Your pattern-hungry brain', body: 'Fair warning: brains are pattern machines, built to find faces in clouds — scientists call it <b>apophenia</b>. So hold a rule: a real sign <b>repeats</b>, <b>lands</b> (you feel it in your chest, not your cleverness), and <b>costs nothing to ignore</b>. One weak maybe is just a cloud.' },
-    { img: 'rs-08', bg: '#fef7ee', kicker: 'The lexicon', h: 'Your own signs', body: 'Like dreams, signs speak a private language. A feather might be your grandmother; for someone else it\'s nothing. Keep a page in your Book of Shadows for signs — what appeared, what was happening, what came next. Your dictionary writes itself.' },
+    { img: 'rs-08', bg: '#fef7ee', kicker: 'The lexicon', h: 'Your own signs', body: 'Like dreams, signs speak a private language. A feather might be your grandmother; for someone else it\'s nothing. Your Book of Shadows has a Signs section for exactly this — what appeared, what was happening, what came next. Your dictionary writes itself.' },
     { img: 'rs-09', bg: '#fef9f2', kicker: 'The answering', h: 'A sign is an invitation', body: 'A sign never orders — it invites. The right response is usually one small step in the direction it pointed: send the message, look up the class, take the walk. Answer enough invitations and the world gets talkative.' },
-    { img: 'rs-10', bg: '#fef9f4', kicker: 'After', h: 'Draw the coincidence', body: 'You know the three boxes on this app\'s Home screen — <i>suspicious coincidence…</i><br><br><b>This week:</b> when one finds you, type it in and draw it. An illustrated coincidence is a sign you answered. ✦', cta: { label: 'Draw a coincidence', go: 'home', el: 'coincidence-card' } },
+    { img: 'rs-10', bg: '#fef9f4', kicker: 'After', h: 'Draw the coincidence', body: 'Your Book of Shadows has a page waiting for exactly this — <b>Signs</b>, your own dictionary of synchronicities.<br><br><b>This week:</b> when a sign finds you, write it down there — what appeared, and what was happening. (And the coincidence boxes on Home will draw it for you.) ✦', cta: { label: 'Open my Signs pages', go: 'book', book: 'sign' } },
   ];
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'The craft was never in the cabinet — it\'s in your attention, your intention, and your two hands. This lesson is witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
@@ -2436,6 +2634,7 @@
       e.stopPropagation();
       const cta = deckCards[deckIdx].cta;
       closeLesson(); go(cta.go || 'home');
+      if (cta.book) { openBook(cta.book); return; }
       setTimeout(() => {
         let el = cta.el && $(cta.el);
         if (el && el.offsetParent === null && cta.fallback) el = $(cta.fallback);
@@ -2475,13 +2674,14 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
     try { mBook = loadBook(); } catch {}
     try { renderEntries(); } catch {}
     try { updateSavedCount(); } catch {}
+    try { updateBosCoverSub(); } catch {}
     try { loadSavedNatal(); } catch {}
     try { renderHome(); } catch {}
   }
