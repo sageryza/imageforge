@@ -127,20 +127,6 @@ h2 { font-size:16px; color:var(--muted); font-weight:normal; font-style:italic; 
           <button class="btn ghost small" id="addChar">+ Add a character</button>
         </div>
         <div>
-          <div class="optlabel">Morph moments (before/after pairs)</div>
-          <div class="seg" id="morphSeg">
-            <button data-v="on" class="sel">Model decides</button>
-            <button data-v="off">All hard cuts</button>
-          </div>
-        </div>
-        <div>
-          <div class="optlabel">Motion feel</div>
-          <div class="seg" id="motionSeg">
-            <button data-v="normal" class="sel">Normal</button>
-            <button data-v="subtle">Mostly still</button>
-          </div>
-        </div>
-        <div>
           <div class="optlabel">Image quality</div>
           <div class="seg" id="qualSeg">
             <button data-v="low">Low</button>
@@ -159,6 +145,24 @@ h2 { font-size:16px; color:var(--muted); font-weight:normal; font-style:italic; 
     <div class="stage" id="stageBox"></div>
     <div id="filmBox" style="display:none; margin-bottom:14px"></div>
     <div class="grid" id="sceneGrid"></div>
+    <div class="card sans" id="motionOpts" style="display:none">
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div>
+          <div class="optlabel">Morph moments</div>
+          <div class="seg" id="morphSeg">
+            <button data-v="on" class="sel">Model decides</button>
+            <button data-v="off">All hard cuts</button>
+          </div>
+        </div>
+        <div>
+          <div class="optlabel">Motion feel</div>
+          <div class="seg" id="motionSeg">
+            <button data-v="normal" class="sel">Normal</button>
+            <button data-v="subtle">Mostly still</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row" style="margin-top:14px; flex-wrap:wrap" id="actions"></div>
   </section>
 
@@ -248,12 +252,7 @@ $('startBtn').onclick = async () => {
   $('startBtn').disabled = true;
   showMsg('info', 'Breaking the story into scenes…');
   const styleChoice = segVal('styleSeg');
-  const payload = {
-    story,
-    panelQuality: segVal('qualSeg'),
-    morphPairs: segVal('morphSeg') === 'on',
-    motionProfile: segVal('motionSeg'),
-  };
+  const payload = { story, panelQuality: segVal('qualSeg') };
   if (styleChoice === 'both') payload.styles = ['pencil', 'flat']; else payload.style = styleChoice;
   const cards = [...document.querySelectorAll('.charrow')].map(r => ({
     name: r.querySelector('input[type=text]').value.trim(), image: r.dataset.image,
@@ -347,6 +346,7 @@ function render() {
   // actions
   const a = $('actions');
   a.innerHTML = '';
+  let motionStage = false;
   const btn = (label, fn, ghost) => {
     const b = document.createElement('button');
     b.className = 'btn' + (ghost ? ' ghost' : '');
@@ -356,10 +356,16 @@ function render() {
     if (done.length === 0) btn('Draw the first image', () => act('/panels', { stage: 'first' }, 'Drawing the first image…'));
     else if (done.length === 1) btn('Looks right — draw 3 more', () => act('/panels', { stage: 'sample' }, 'Drawing three more…'));
     else if (done.length < total) btn(`Approved — draw the rest (${total - done.length})`, () => act('/panels', { stage: 'rest' }, 'Drawing the rest…'));
-    else if (clipsDone < scenes.filter((s, i) => !(i > 0 && scenes[i - 1].pairWithNext)).length)
-      btn('Add motion', () => act('/clips', {}, 'Animating the scenes…'));
+    else if (clipsDone < scenes.filter((s, i) => !(i > 0 && scenes[i - 1].pairWithNext)).length) {
+      motionStage = true;
+      btn('Add motion', () => act('/clips', {
+        morphPairs: segVal('morphSeg') === 'on',
+        motionFeel: segVal('motionSeg'),
+      }, 'Animating the scenes…'));
+    }
     else btn(movie.movieUrl ? 'Re-stitch the film' : 'Stitch the film', () => act('/stitch', {}, 'Stitching…'), Boolean(movie.movieUrl));
   }
+  $('motionOpts').style.display = motionStage ? 'block' : 'none';
 }
 
 function styleLabel() { return movie.style === 'flat' ? 'Simple flat' : 'Dreamy pencil'; }
