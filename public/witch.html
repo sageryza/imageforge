@@ -282,17 +282,17 @@
     /* Persistent slot: Past/Present/Future label always on top, card/back below,
        so all three stay the same height and only the tapped body swaps in. */
     .tslot { display: flex; flex-direction: column; min-width: 0; }
-    .tback {
-      aspect-ratio: 100 / 172; border-radius: 4px; min-width: 0;
-      background: var(--moon);
-      border: 1px solid var(--gold-dim);
-      display: flex; align-items: center; justify-content: center;
-      color: rgba(255,247,230,0.9); font-size: 26px;
-      box-shadow: 0 6px 16px rgba(80,60,110,0.22);
+    /* Face-down card back — reuses the SAME .tcard-face frame as the revealed
+       card (identical size / border / corners / shadow), just a plum back with
+       a star, so the back and front line up exactly. */
+    .cardback { cursor: pointer; }
+    .cardback-face {
+      background: var(--moon); color: rgba(255,247,230,0.92);
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+      transition: transform 0.12s ease, box-shadow 0.15s ease;
     }
-    .tback[data-ti] { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.15s ease; }
-    .tback[data-ti]:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(80,60,110,0.28); }
-    .tback[data-ti]:active { transform: scale(0.98); }
+    .cardback:hover .cardback-face { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(80,60,110,0.28); }
+    .cardback:active .cardback-face { transform: scale(0.98); }
 
     .reading-block { margin-top: 6px; }
     .reading-block h3 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin: 16px 0 6px; color: var(--gold); }
@@ -1342,7 +1342,7 @@
     const p = dailyPicks[i];
     return tarotRevealed.has(i)
       ? tarotCardHtml(p.card, p.orientation)   // position lives on the slot, not the card
-      : `<div class="tback" role="button" tabindex="0" aria-label="Reveal ${esc(p.position || 'a card')}">✦</div>`;
+      : `<div class="tcard cardback" role="button" tabindex="0" aria-label="Reveal ${esc(p.position || 'a card')}"><div class="tcard-face cardback-face">✦</div></div>`;
   }
   function renderDailyTarot() {
     if (!dailyPicks) return;
