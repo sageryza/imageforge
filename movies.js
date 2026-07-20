@@ -102,38 +102,71 @@ const VIDEO_MODELS = {
 // panels in a 2x2 grid, sliced into quadrants server-side (~$0.005/panel).
 const PANEL_COST = { sketch: 0.005, low: 0.02, medium: 0.06, high: 0.25 };
 
-// ─── Style reference image ──────────────────────────────────────────
-// Sophie's hand-drawn diary-comic page (refs/movie-style.jpg — outside
-// /public so it's never web-served). When present, EVERY panel renders
-// through gpt-image-2's edits endpoint with this image attached as a pure
-// STYLE reference — matched for medium/linework/palette, never content.
-// Same trick that anchors the zine's look. Disable with MOVIE_STYLE_REF=0.
-let styleRef = null;
-try {
+// ─── Style registry ─────────────────────────────────────────────────
+// Each movie renders in ONE of these styles (movie.style, default 'pencil').
+// A style is one or more reference images (refs/, outside /public so never
+// web-served) attached as pure STYLE references on every panel render, plus
+// an optional palettePrompt appended to the prefix. Multi-ref supported —
+// the prompt names however many style images are attached.
+//   pencil — Sophie's hand-drawn diary-comic page (the original movie look).
+//   flat   — the simple flat look from the snake film. Two candidate setups
+//            (Sophie is picking): (a) flat-cool.png alone, no palette line
+//            [CURRENT]; (b) flat-busy.png + the named cool palette below —
+//            to switch, swap `files` to ['flat-busy.png'] and set
+//            `palettePrompt: FLAT_COOL_PALETTE`.
+// Disable all style refs with MOVIE_STYLE_REF=0 (text style lock fallback).
+const FLAT_COOL_PALETTE =
+  'Do NOT use a warm color palette — avoid yellows and oranges entirely; ' +
+  'instead use a cool palette of lavender, mint green, powder blue and soft ' +
+  'grey-pink. ';
+const MOVIE_STYLES = {
+  pencil: { label: 'Dreamy pencil', files: ['movie-style.jpg'], palettePrompt: '' },
+  flat: { label: 'Simple flat', files: ['flat-cool.png'], palettePrompt: '' },
+};
+for (const [id, s] of Object.entries(MOVIE_STYLES)) {
+  s.id = id;
+  s.refs = [];
   if (process.env.MOVIE_STYLE_REF !== '0') {
-    styleRef = fs.readFileSync(path.join(__dirname, 'refs', 'movie-style.jpg'));
-    console.log('movies: style reference loaded (', styleRef.length, 'bytes )');
+    for (const f of s.files) {
+      try { s.refs.push(fs.readFileSync(path.join(__dirname, 'refs', f))); }
+      catch { console.warn(`movies: style "${id}" missing refs/${f}`); }
+    }
   }
-} catch {
-  console.warn('movies: no refs/movie-style.jpg — panels use the text style lock only');
+  if (s.refs.length) console.log(`movies: style "${id}" loaded (${s.refs.length} ref image${s.refs.length > 1 ? 's' : ''})`);
 }
+
+// The movie's style; an unknown/unloaded style falls back to pencil (and
+// pencil without its ref falls through to the text style lock downstream).
+function styleFor(movie) {
+  const s = MOVIE_STYLES[movie?.style];
+  return (s && s.refs.length) ? s : MOVIE_STYLES.pencil;
+}
+
+// Legacy single-ref handle — the dream + zine paths still render through the
+// pencil page (hand-lettered captions are validated on it).
+const styleRef = MOVIE_STYLES.pencil.refs[0] || null;
 
 // A/B-tested against a trait-naming version: letting the model read the style
 // off the image itself copies the ink texture more faithfully, but without
 // the format guard it also copies the reference's SHAPE (caption boxes, the
 // 4-panel grid). Hence: generic styling copy + explicit single-frame guard.
-const STYLE_REF_PREFIX =
-  'Copy the styling of the attached image exactly, but do NOT copy its ' +
-  'content or subjects. One single full-frame scene, no panel grid, no ' +
-  'caption box: ';
+function styleRefIntro(count) {
+  return count > 1
+    ? `The first ${count} attached images are STYLE references — copy their styling exactly, but do NOT copy their content or subjects. `
+    : 'The FIRST attached image is a STYLE reference — copy its styling exactly, but do NOT copy its content or subjects. ';
+}
+function styleRefPrefix(style) {
+  return styleRefIntro(style.refs.length) + (style.palettePrompt || '') +
+    'One single full-frame scene, no panel grid, no caption box: ';
+}
 
 // The sketch pass leans INTO the reference's format instead: one render, a
 // 2x2 grid of four scene panels, sliced into quadrants afterwards.
-const STYLE_REF_GRID_PREFIX =
-  'Copy the styling of the attached image exactly, but do NOT copy its ' +
-  'content or subjects. Draw a 2x2 grid of four EQUAL rectangular storyboard ' +
-  'panels that exactly quarter the image, separated by thin borders, with no ' +
-  'captions and no text anywhere. ';
+function styleRefGridPrefix(style) {
+  return styleRefIntro(style.refs.length) + (style.palettePrompt || '') +
+    'Draw a 2x2 grid of four EQUAL rectangular storyboard panels that exactly ' +
+    'quarter the image, separated by thin borders, with no captions and no text anywhere. ';
+}
 
 // Style lock that held the illustration style verbatim in the validated run.
 const DEFAULT_MOTION_STYLE =
@@ -663,12 +696,25 @@ async function concatClips(files, outFile) {
 // ─── Scene breakdown ────────────────────────────────────────────────
 // The heart of the medium. CRITICAL RULE from the prototyping run: every scene
 // description must be SELF-CONTAINED and continuity-complete — the video
-// generator can't infer beats between scenes. The breakdown also deliberately
-// creates before/after panel pairs (same shot, small state change) that become
-// seamless `last_image` joins, and repeats character continuity tokens in
-// every single prompt so panels and clips stay consistent.
-async function breakdownStory(story, sceneCount) {
+// generator can't infer beats between scenes. Morph-vs-hard-cut is the model's
+// FREE judgement per moment (no quota — one story may morph everywhere,
+// another may be all cuts; pairs become seamless `last_image` joins), and
+// character continuity tokens repeat in every single prompt so panels and
+// clips stay consistent. No climax detection — not every story has one, and
+// asking for it can pressure the breakdown into inventing one.
+async function breakdownStory(story, sceneCount, opts = {}) {
+  const morphPairs = opts.morphPairs !== false;          // pairs allowed by default; the model picks which moments deserve one
+  const subtleMotion = opts.motionProfile === 'subtle';  // "mostly still" is an option, not a rule
   const target = sceneCount ? `exactly ${sceneCount}` : 'between 8 and 12';
+  const pairField = morphPairs
+    ? `\n   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,`
+    : '';
+  const pairRule = morphPairs
+    ? '- For EACH moment, decide whether it wants a MORPH or a HARD CUT — purely your judgement for THIS story. There is NO quota and no expected ratio: one story might morph everywhere, another might be all hard cuts, most are somewhere between. A morph = a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty; a fist landing). Mark the FIRST of the pair with "pairWithNext": true. The pair\'s imagePrompts must describe the identical composition, differing only in the changed detail.'
+    : '- Every scene is its own single still — do NOT create before/after pairs or repeat a composition with one small change.';
+  const motionRule = subtleMotion
+    ? '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move. Keep most scenes nearly still (breathing, wind, blinking); give pronounced action ONLY to the 1-3 most important beats — the contrast makes those beats land.'
+    : '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move.';
   const sys = `You are a storyboard artist breaking a story into scenes for an illustrated animated short film. Return STRICT JSON:
 {"title": short film title,
  "characters": one compact phrase of visual continuity tokens for the recurring character(s) — MUST specify hairstyle, facial features (beard/glasses/etc), AND the exact clothing worn for the whole story, e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat and red boots",
@@ -676,18 +722,17 @@ async function breakdownStory(story, sceneCount) {
    "description": what happens in this scene, written SELF-CONTAINED,
    "imagePrompt": a full image-generation prompt for this scene's illustrated panel,
    "motionPrompt": one sentence of the SMALL physical motion happening in the shot (subtle — steam rising, a hand reaching, eyes blinking, rain falling),
-   "hasText": true only if the panel should contain written text (a speech bubble, a sign, a screen),
-   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,
+   "hasText": true only if the panel should contain written text (a speech bubble, a sign, a screen),${pairField}
    "key": true on EXACTLY the 3 scenes that show the main character most clearly (well lit, framed large, face visible) — these render first so the character design can be approved}]}
 
 HARD RULES:
 - ${target} scenes.
 - EVERY scene description and imagePrompt must be fully self-contained and continuity-complete: name the location, the time of day, and describe every character present with the full continuity tokens. NOTHING may be implied from a previous scene — each prompt renders alone.
 - Include the character continuity tokens verbatim in every imagePrompt where that character appears.
-- For 2-4 KEY actions, create a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty). Mark the FIRST of the pair with "pairWithNext": true. The pair's imagePrompts must describe the identical composition, differing only in the changed detail.
+${pairRule}
 - Location changes between scenes are fine (hard cuts are normal storyboard language).
 - imagePrompts describe composition and content only — no style words (the style is applied separately).
-- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move.`;
+${motionRule}`;
   const out = await openaiChatJSON([
     { role: 'system', content: sys },
     { role: 'user', content: `The story:\n\n${story}` },
@@ -699,7 +744,7 @@ HARD RULES:
     imagePrompt: String(s.imagePrompt || s.description || '').trim(),
     motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
     hasText: Boolean(s.hasText),
-    pairWithNext: Boolean(s.pairWithNext),
+    pairWithNext: morphPairs ? Boolean(s.pairWithNext) : false,
     key: Boolean(s.key),
     panel: null,          // { url, quality, status, error }
     clip: null,           // { url, tier, status, error, frames, cost, promptUsed }
@@ -817,25 +862,9 @@ function motionPromptFor(movie, scene) {
 // later render attaches it as an extra reference with the preserve-list
 // restated verbatim ("repeat the preserve list on each iteration to reduce
 // drift" — the cookbook's exact advice). This is what keeps the shirt the
-// same shirt in scene 2 and scene 11.
-function anchorClause(movie, scene) {
-  // Deliberate wardrobe change: hold the IDENTITY (face/hair/proportions) but
-  // dress the character in a new outfit on purpose. This is the opposite of the
-  // default anchor, which locks clothing too — used when the SAME person is
-  // shown in a different costume (e.g. the "looked good" vs "looked shabby"
-  // versions of one girl).
-  if (scene && scene.outfit) {
-    return 'The character shown in the LAST attached image is the SAME person ' +
-      'in this scene — same face, same hairstyle, same proportions, same skin ' +
-      'tone. Keep the face and identity IDENTICAL; only the clothing changes. ' +
-      'They are now wearing: ' + String(scene.outfit).trim() +
-      '. Do not redesign the face — just re-dress the same person. ';
-  }
-  const tokens = movie.characters ? ` (${movie.characters})` : '';
-  return 'The character shown in the LAST attached image is the SAME character ' +
-    'in this scene — same face, same hairstyle, same clothing' + tokens +
-    ', same proportions and color palette. Do not redesign the character. ';
-}
+// same shirt in scene 2 and scene 11. The clause itself (incl. the
+// scene.outfit wardrobe-swap variant) is built inside panelRefs, positioned
+// by attachment number alongside the character cards and chain refs.
 
 // Resolve a reference image URL to a buffer (data URL in dev, storage URL live).
 async function refBufferFromUrl(url) {
@@ -851,18 +880,72 @@ async function anchorBuffer(movie) {
   return refBufferFromUrl(movie.characterAnchor?.url);
 }
 
-// Compose the reference set + prompt for a panel-style render: style page
-// first, character anchor last (the prompt refers to it as "the LAST image").
-async function panelRefs(movie, basePrompt, scene) {
+// Compose the reference set + prompt for a panel-style render, in a fixed
+// order the prompt names by position: style refs first → character cards →
+// the locked character anchor → chain refs (the story's FIRST panel + the
+// MOST RECENT panel, passed by the caller). Continuity is name-specific:
+// anyone not named is a different person (never inherits a reference face).
+// `scene` rides along for the wardrobe-swap anchor (scene.outfit).
+async function panelRefs(movie, basePrompt, scene, chain = []) {
   const refs = [];
-  let prompt = basePrompt;
-  if (styleRef) refs.push(styleRef);
+  const clauses = [];
+  const style = styleFor(movie);
+  refs.push(...style.refs);
+  let n = refs.length + 1;
+  for (const c of (Array.isArray(movie.characterRefs) ? movie.characterRefs : [])) {
+    if (!c || !c.url || !c.name) continue;
+    const buf = await refBufferFromUrl(c.url);
+    if (!buf) continue;
+    refs.push(buf);
+    clauses.push(`the #${n++} attached image is a CHARACTER REFERENCE for ${c.name} — whenever ` +
+      `${c.name} appears, draw them with the exact same face, hair and clothing as in it; do not redesign them`);
+  }
   const anchor = await anchorBuffer(movie);
   if (anchor) {
     refs.push(anchor);
-    prompt = anchorClause(movie, scene) + prompt;
+    if (scene && scene.outfit) {
+      // Deliberate wardrobe change (PR #285): hold the IDENTITY but dress the
+      // character in a new outfit on purpose.
+      clauses.push(`the #${n++} attached image shows the SAME person as in this scene — same face, ` +
+        'same hairstyle, same proportions, same skin tone; keep the face and identity IDENTICAL but ' +
+        `change ONLY the clothing: they are now wearing ${String(scene.outfit).trim()}; do not ` +
+        'redesign the face — just re-dress the same person');
+    } else {
+      const tokens = movie.characters ? ` (${movie.characters})` : '';
+      clauses.push(`the #${n++} attached image shows the main character${tokens} — same face, ` +
+        'same hairstyle, same clothing, same proportions and color palette; do not redesign the character');
+    }
+  }
+  for (const ch of chain) {
+    if (!ch || !ch.url) continue;
+    const buf = await refBufferFromUrl(ch.url);
+    if (!buf) continue;
+    refs.push(buf);
+    clauses.push(`the #${n++} attached image is ${ch.label} of this same story — keep recurring ` +
+      'characters, the drawing style and the world consistent with it');
+  }
+  let prompt = basePrompt;
+  if (clauses.length) {
+    prompt = `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT ` +
+      'person — give them their own distinct new face and look; never reuse a face from the attached ' +
+      'images for them. ' + prompt;
   }
   return { refs, prompt };
+}
+
+// The chain refs for a scene: the story's FIRST rendered panel (the anchor)
+// plus the most recent rendered panel before this scene — the technique that
+// held the snake film together. Skips the scene itself and data-URL panels.
+function chainFor(movie, scene) {
+  const ok = s => s !== scene && s.panel?.url && !String(s.panel.url).startsWith('data:');
+  const done = movie.scenes.filter(ok);
+  if (!done.length) return [];
+  const idx = movie.scenes.indexOf(scene);
+  const first = done[0];
+  const prior = movie.scenes.slice(0, Math.max(0, idx)).reverse().find(ok);
+  const chain = [{ url: first.panel.url, label: 'the FIRST panel' }];
+  if (prior && prior !== first) chain.push({ url: prior.panel.url, label: 'the PREVIOUS panel' });
+  return chain;
 }
 
 // Every re-roll keeps what it replaces — the raw-generations gallery.
@@ -879,11 +962,13 @@ function keepHistory(scene, kind) {
 }
 
 // ─── Generation steps ───────────────────────────────────────────────
-async function renderPanelFor(movie, scene, quality) {
-  const base = styleRef
-    ? STYLE_REF_PREFIX + scene.imagePrompt
+async function renderPanelFor(movie, scene, quality, chain = []) {
+  const style = styleFor(movie);
+  let base = style.refs.length
+    ? styleRefPrefix(style) + scene.imagePrompt
     : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} ${scene.imagePrompt}`.trim();
-  const { refs, prompt } = await panelRefs(movie, base, scene);
+  if (scene.panelNotes) base += ` IMPORTANT revision notes from the author (follow them): ${scene.panelNotes}`;
+  const { refs, prompt } = await panelRefs(movie, base, scene, chain);
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
     : await openaiPanel(prompt, quality);
@@ -900,8 +985,9 @@ async function renderSketchGrid(movie, group) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable (needed to slice the grid)');
   const positions = ['top left', 'top right', 'bottom left', 'bottom right'];
   const body = group.map((s, i) => `Panel ${i + 1} (${positions[i]}): ${s.imagePrompt}`).join(' ');
-  const base = styleRef
-    ? STYLE_REF_GRID_PREFIX + body
+  const style = styleFor(movie);
+  const base = style.refs.length
+    ? styleRefGridPrefix(style) + body
     : `${(movie.imageStyle || DEFAULT_IMAGE_STYLE).trim()} A 2x2 grid of four equal storyboard panels that exactly quarter the image, thin borders, no text. ${body}`;
   const { refs, prompt } = await panelRefs(movie, base);
   const buf = refs.length ? await openaiPanelEdit(prompt, refs, 'low') : await openaiPanel(prompt, 'low');
@@ -1598,6 +1684,7 @@ router.get('/status', (req, res) => {
     ffmpeg: Boolean(FFMPEG && FFPROBE),
     styleReference: Boolean(styleRef),
     voiceover: Boolean(OPENAI_API_KEY),   // whisper transcription for narrated films
+    styles: Object.values(MOVIE_STYLES).map(s => ({ id: s.id, label: s.label, refs: s.refs.length })),
     gated: Boolean(STUDIO_TOKEN),
     models: {
       draft: VIDEO_MODELS.draft.name,
@@ -1640,25 +1727,59 @@ function authoredScene(s, i) {
 
 router.post('/', async (req, res) => {
   try {
-    const { story, title, sceneCount, panelQuality, scenes, characters, aspect } = req.body || {};
+    const { story, title, sceneCount, panelQuality, scenes, characters, aspect,
+            style, styles, characterRefs, motionProfile, morphPairs } = req.body || {};
     // Two ways in: a story for GPT to break down, OR a hand-authored scene list
     // (exact beats, outfits, startAts) that skips the breakdown entirely.
     const authored = Array.isArray(scenes) && scenes.length;
     if (!authored && (!story || !String(story).trim())) {
       return res.status(400).json({ error: 'story (or a scenes array) is required' });
     }
+
+    // One or more styles: `styles:['pencil','flat']` makes one movie per style
+    // (same breakdown, so the films differ ONLY in art style); `style` picks
+    // one. Default pencil, the original look.
+    const wanted = Array.isArray(styles) && styles.length
+      ? [...new Set(styles.filter(s => MOVIE_STYLES[s]))]
+      : [MOVIE_STYLES[style] ? style : 'pencil'];
+    if (!wanted.length) wanted.push('pencil');
+
+    const opts = {
+      morphPairs: morphPairs !== false,                                // model's free morph-vs-cut judgement; false = all hard cuts
+      motionProfile: motionProfile === 'subtle' ? 'subtle' : 'normal', // 'subtle' = mostly-still option
+    };
     let plan;
     if (authored) {
       plan = { title: (title && String(title).trim()) || 'Untitled film', characters: String(characters || '').trim(), scenes: scenes.map(authoredScene) };
     } else {
       const n = sceneCount ? Math.min(16, Math.max(2, parseInt(sceneCount, 10) || 0)) : null;
-      plan = await breakdownStory(String(story).trim(), n);
+      plan = await breakdownStory(String(story).trim(), n, opts);
     }
-    const movie = {
+
+    // Optional named character cards ({name, image dataURL | url}) — uploaded
+    // once, shared by every style's movie. Cap 5 (edits attends to ~16 images
+    // total and panels also carry style + chain refs).
+    const cards = [];
+    for (const c of (Array.isArray(characterRefs) ? characterRefs : []).slice(0, 5)) {
+      if (!c || !c.name) continue;
+      let url = typeof c.url === 'string' && /^https?:/.test(c.url) ? c.url : null;
+      if (!url && typeof c.image === 'string') {
+        const m = /^data:([^;]+);base64,(.*)$/.exec(c.image);
+        if (m) url = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1], 'movies/characters');
+      }
+      if (url && !url.startsWith('data:')) cards.push({ name: String(c.name).trim(), url });
+    }
+
+    const baseTitle = (title && String(title).trim()) || plan.title;
+    const movies = wanted.map((sid, i) => ({
       id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
-      title: (title && String(title).trim()) || plan.title,
+      title: wanted.length > 1 ? `${baseTitle} (${MOVIE_STYLES[sid].label})` : baseTitle,
       story: String(story || '').trim(),
       characters: plan.characters,
+      style: sid,
+      morphPairs: opts.morphPairs,
+      motionProfile: opts.motionProfile,
+      characterRefs: cards,
       imageStyle: DEFAULT_IMAGE_STYLE,
       motionStyle: DEFAULT_MOTION_STYLE,
       negativePrompt: DEFAULT_NEGATIVE,
@@ -1667,7 +1788,11 @@ router.post('/', async (req, res) => {
       panelQuality: ['sketch', 'low', 'medium', 'high'].includes(panelQuality) ? panelQuality : 'medium',
       characterAnchor: null,
       voiceover: null,
-      scenes: plan.scenes,
+      // Each sibling movie gets its own scene objects + ids (renders diverge).
+      scenes: i === 0 ? plan.scenes : plan.scenes.map(s => ({
+        ...JSON.parse(JSON.stringify(s)),
+        id: 's' + crypto.randomBytes(4).toString('hex'),
+      })),
       bridges: [],
       cuts: [],
       job: null,
@@ -1676,12 +1801,34 @@ router.post('/', async (req, res) => {
       spend: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-    await saveMovie(movie);
-    res.json(movie);
+    }));
+    for (const m of movies) await saveMovie(m);
+    res.json(movies.length > 1 ? { movies } : movies[0]);
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
   }
+});
+
+// Set / replace a movie's named character cards after creation (the future
+// character-matcher flow lands here: match cast names → approve → attach).
+router.post('/:id/characters', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    const cards = [];
+    for (const c of (Array.isArray(req.body?.characterRefs) ? req.body.characterRefs : []).slice(0, 5)) {
+      if (!c || !c.name) continue;
+      let url = typeof c.url === 'string' && /^https?:/.test(c.url) ? c.url : null;
+      if (!url && typeof c.image === 'string') {
+        const m = /^data:([^;]+);base64,(.*)$/.exec(c.image);
+        if (m) url = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1], 'movies/characters');
+      }
+      if (url && !url.startsWith('data:')) cards.push({ name: String(c.name).trim(), url });
+    }
+    movie.characterRefs = cards;
+    await saveMovie(movie);
+    res.json({ ok: true, characterRefs: cards, movie });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ─── Quick animate: one image in, one clip out (no movie) ───────────
@@ -2097,12 +2244,25 @@ router.post('/:id/panels', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
-    const { quality, only, force = false } = req.body || {};
+    const { quality, only, stage, force = false } = req.body || {};
     const q = ['sketch', 'low', 'medium', 'high'].includes(quality)
       ? quality : (movie.panelQuality || 'medium');
     if (q === 'sketch' && !FFMPEG) return res.status(400).json({ error: 'sketch pass needs ffmpeg on the server' });
-    const targets = movie.scenes.filter(s =>
-      (Array.isArray(only) && only.length) ? only.includes(s.id) : (force || !s.panel?.url));
+    // The gradual pipeline: 'first' = ONE probe image (the first key scene —
+    // well lit, character framed large — to approve style + characters);
+    // 'sample' = the next THREE (remaining key scenes first); 'rest' = all
+    // remaining. Approve → next stage; not right → notes on the re-roll route.
+    let targets;
+    if (stage === 'first' || stage === 'sample' || stage === 'rest') {
+      const pending = movie.scenes.filter(s => !s.panel?.url);
+      const ordered = [...pending.filter(s => s.key), ...pending.filter(s => !s.key)];
+      targets = stage === 'first' ? ordered.slice(0, 1)
+              : stage === 'sample' ? ordered.slice(0, 3)
+              : pending;
+    } else {
+      targets = movie.scenes.filter(s =>
+        (Array.isArray(only) && only.length) ? only.includes(s.id) : (force || !s.panel?.url));
+    }
     if (!targets.length) return res.status(400).json({ error: 'no panels to render' });
     targets.forEach(s => { s.panel = { ...(s.panel || {}), status: 'running', error: null }; });
 
@@ -2127,6 +2287,17 @@ router.post('/:id/panels', async (req, res) => {
           done += group.length;
           await progress(done, targets.length, 'sketching contact grids');
         });
+      } else if ((req.body || {}).chain !== false) {
+        // Chained (default): render in scene order, one at a time, feeding the
+        // FIRST panel + the most recent panel into every render. Slower than
+        // the parallel pool but holds characters/world consistent.
+        await progress(0, targets.length, 'rendering panels (chained)');
+        const targetSet = new Set(targets);
+        for (const scene of movie.scenes.filter(s => targetSet.has(s))) {
+          try { await renderPanelFor(movie, scene, q, chainFor(movie, scene)); }
+          catch (err) { scene.panel = { ...(scene.panel || {}), status: 'error', error: err.message }; }
+          await progress(++done, targets.length, 'rendering panels (chained)');
+        }
       } else {
         await progress(0, targets.length, 'rendering panels');
         await pool(targets, 3, async (scene) => {
@@ -2149,12 +2320,16 @@ router.post('/:id/scenes/:sid/panel', async (req, res) => {
     if (!movie) return res.status(404).json({ error: 'movie not found' });
     const scene = movie.scenes.find(s => s.id === req.params.sid);
     if (!scene) return res.status(404).json({ error: 'scene not found' });
-    const { quality = scene.panel?.quality || 'medium', imagePrompt } = req.body || {};
+    const { quality = scene.panel?.quality || 'medium', imagePrompt, notes } = req.body || {};
     if (typeof imagePrompt === 'string' && imagePrompt.trim()) scene.imagePrompt = imagePrompt.trim();
+    // Free-form revision notes ("her hair should be longer", "less clutter"):
+    // folded into this render's prompt and kept on the scene so later renders
+    // in the pipeline don't repeat the same mistake.
+    if (typeof notes === 'string' && notes.trim()) scene.panelNotes = notes.trim();
     scene.panel = { ...(scene.panel || {}), status: 'running', error: null };
     await startJob(movie, 'panel', async (progress) => {
       await progress(0, 1, `re-rolling "${scene.title}"`);
-      try { await renderPanelFor(movie, scene, quality); }
+      try { await renderPanelFor(movie, scene, quality, chainFor(movie, scene)); }
       catch (err) { scene.panel = { ...(scene.panel || {}), status: 'error', error: err.message }; throw err; }
       await progress(1, 1, 'done');
     });
