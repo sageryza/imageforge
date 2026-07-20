@@ -40,8 +40,10 @@ first for anything dating-book related. Art uses the `wtr` watercolor LoRA.
 - **"app" = the iOS app.** When Sophie says "the app," she means the native
   iOS app (SwiftUI), not the web. Icons/behaviours she describes there may be
   SF Symbols / platform-native (e.g. the "sparkles" star is Apple's SF Symbols
-  `sparkles`, big star bottom-left — NOT the Heroicons `sparkles` the web
-  Miracles port uses).
+  `sparkles`: big star bottom-RIGHT, medium star left, small star top —
+  verified against the actual glyph July 2026; an older note here said
+  bottom-left, which is wrong. The witch web app's `STAR` const in
+  `witch.html` is an exact bezier-fit match of it).
 - **"web app" = the web app** (the `public/*.html` pages served by Render,
   e.g. `/witch`).
 
