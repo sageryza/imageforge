@@ -101,7 +101,10 @@ struct ToolGlyph: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .frame(width: size * 1.12, height: size * 1.12)
+                // Custom art fills less of its box than an SF Symbol fills its
+                // cap-height, so scale up to sit at the same optical size as the
+                // symbols beside it (e.g. the Chats bubble in the other corner).
+                .frame(width: size * 1.35, height: size * 1.35)
         } else {
             Image(systemName: tool.icon)
                 .font(.system(size: size, weight: weight))
