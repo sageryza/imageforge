@@ -61,11 +61,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .assetgrid .vote.heart{left:5px;}
 .assetgrid .vote.nope{right:5px;}
 .assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
-/* lightbox: controls overlaid on TOP of the image */
-.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; z-index:2;}
+/* lightbox: ♥ / ✕ overlaid on the image corners; note box sits under the image */
+.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
 .lbtop .vote{width:38px; height:38px;}
 .lbtop .vote svg{width:18px; height:18px;}
-.lbnote{flex:1; display:flex; gap:6px; min-width:0;}
+.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px;}
 .lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
   font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
@@ -682,15 +682,15 @@ function lightbox(url, asset){
   scrollStop();
   var lb=document.getElementById('clightbox');
   lb.innerHTML='<img alt="" src="'+url.replace(/"/g,'&quot;')+'">';
-  // the same ♥/✕ as the tile — overlaid on the image, with a note box in
-  // between (prefilled "redo": send it as-is or type something else)
+  // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
   if(asset && asset._cast){
     var row=document.createElement('div'); row.className='lbtop';
     row.onclick=function(e){ e.stopPropagation(); };
     var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=window.__HEART;
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
     var nw=document.createElement('div'); nw.className='lbnote';
-    var ni=document.createElement('input'); ni.value=asset.note||'redo';
+    nw.onclick=function(e){ e.stopPropagation(); };
+    var ni=document.createElement('input'); ni.placeholder='Add a note…'; ni.value=asset.note||'';
     var ns=document.createElement('button'); ns.className='notesend';
     ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
     function sendNote(){
@@ -711,9 +711,10 @@ function lightbox(url, asset){
     asset._lbPaint();
     hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
     xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
-    row.appendChild(hb); row.appendChild(nw); row.appendChild(xb);
+    row.appendChild(hb); row.appendChild(xb);
     var frame=lb.querySelector('.clframe');
     (frame||lb).appendChild(row);
+    lb.appendChild(nw);   // note box below the image, not over it
   }
   lb.style.display='flex'; document.body.style.overflow='hidden';
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
