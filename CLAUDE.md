@@ -579,19 +579,24 @@ lifted into a standalone tool later.
   blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status`,
   `/connect`, `/callback` open — the last two are browser redirects).
 
-## Tarot email (tap-to-reveal Card of the Day — Brevo)
-- `tarot-email.js` (`/api/tarot-email`) builds the **kinetic** Card-of-the-Day
-  email: the reveal is pure CSS (hidden checkbox + `:checked` sibling rules —
-  email clients strip all JS). Apple Mail (iPhone/iPad/Mac) gets the real
-  in-email flip; Gmail/Outlook strip the `<input>` so a pre-checked "support
-  test" checkbox never matches and they auto-fall back to the same card back
-  linking out to `/witch`. Both versions are fully inline-styled, so a
-  stripped `<style>` still renders sane; images-blocked keeps a framed card.
-- The card is **deterministic per day** — same FNV-1a hash + 78-card deck as
-  `witch.html` (deck data is a verbatim copy in the module; **keep in sync**),
-  seed `<dateISO>|email-cotd`, ~28% reversed, baked in at build time. Art =
-  the committed `witch-tarot-manifest.json` Rider-Waite Firebase URLs
-  (reversed cards render rotated 180°). ~6KB, far under Gmail's 102KB clip.
+## Tarot email (tap-to-reveal daily spread — Brevo)
+- `tarot-email.js` (`/api/tarot-email`) builds the **kinetic** daily tarot
+  email: the website's Past/Present/Future pull as three face-down cards, each
+  with its own pure-CSS tap-to-reveal (hidden checkboxes + `:checked` sibling
+  rules — email clients strip all JS). Apple Mail (iPhone/iPad/Mac) gets the
+  real in-email flips; Gmail/Outlook strip the `<input>`s so a pre-checked
+  "support test" checkbox never matches and they auto-fall back to the same
+  face-down spread linking out to `/witch`. Both versions are fully
+  inline-styled, so a stripped `<style>` still renders sane; images-blocked
+  keeps framed card shapes. The "tap each card" hint hides itself once all
+  three are revealed (chained `:checked ~` selectors).
+- The spread is **deterministic per day and MATCHES THE WEBSITE** — a verbatim
+  port of `witch.html`'s `dailyPull()` with the logged-out seed
+  (`<dateISO>|anon`), same FNV-1a hash + 78-card deck (deck data is a copy in
+  the module; **keep in sync**), ~28% reversed per card, baked in at build
+  time. Art = the committed `witch-tarot-manifest.json` Rider-Waite Firebase
+  URLs (reversed cards render rotated 180°). ~13KB, far under Gmail's 102KB
+  clip.
 - **Routes:** `GET /status` + `GET /preview?date=YYYY-MM-DD` (both open — it's
   public marketing content; preview returns the raw email HTML, viewable in a
   browser), `POST /send-test {to, date?}` (STUDIO_TOKEN-gated; one real send

@@ -1,12 +1,13 @@
-// tarot-email.js — the tap-to-reveal Card of the Day email (mounted at
-// /api/tarot-email).
+// tarot-email.js — the tap-to-reveal daily tarot email (mounted at
+// /api/tarot-email): the website's Past / Present / Future pull, in an email.
 //
-// A "kinetic" email: the reveal is pure CSS (a hidden checkbox + :checked
+// A "kinetic" email: the reveals are pure CSS (hidden checkboxes + :checked
 // rules — email clients strip all JavaScript). Clients that keep <input>
 // elements and support sibling selectors (Apple Mail on iPhone/iPad/Mac) get
-// the real in-email flip: tap the card back, the face appears. Everyone else
-// (Gmail, Outlook — they strip the checkbox) automatically gets the fallback:
-// the same card back as a link out to the witch app's tarot page.
+// the real in-email experience: three face-down cards, tap each to turn it
+// over. Everyone else (Gmail, Outlook — they strip the checkboxes) gets the
+// fallback automatically: the same face-down spread linking out to the witch
+// app to reveal there.
 //
 // Support detection is the classic pre-checked-checkbox trick: a hidden
 // checkbox that ships ALREADY checked toggles the interactive block visible
@@ -16,22 +17,24 @@
 // (both versions are also inline-styled, so a stripped <style> tag still
 // renders a sane static email).
 //
-// The card is deterministic per day — same FNV-1a hash + 78-card deck as
-// witch.html (the deck data below is a straight copy; keep them in sync) —
-// and is baked into the HTML at build time, so the email always reveals the
-// card for the day it was generated. Real card art comes from the committed
-// Rider-Waite manifest (witch-tarot-manifest.json, permanent Firebase URLs).
+// The spread is deterministic per day and MATCHES THE WEBSITE: same FNV-1a
+// hash, same 78-card deck, and the same seed witch.html's dailyPull() uses
+// for a logged-out visitor (`<dateISO>|anon`) — so the email turns over the
+// exact three cards the site shows that day. Deck data below is a straight
+// copy from witch.html; keep them in sync. Real card art comes from the
+// committed Rider-Waite manifest (witch-tarot-manifest.json, permanent
+// Firebase URLs); reversed cards render rotated 180°.
 //
 // Routes:
-//   GET  /status            (open)  configured flags + today's card name
+//   GET  /status            (open)  configured flags + today's three cards
 //   GET  /preview?date=     (open)  the full email HTML, viewable in a browser
 //   POST /send-test         (gated) { to, date? } → one real send via Brevo,
-//                                   so the reveal can be verified in Apple Mail
+//                                   so the reveals can be verified in Apple Mail
 //
 // Sending campaigns stays in Brevo's dashboard (paste the /preview HTML into a
 // custom-HTML campaign — Brevo appends the unsubscribe footer there). The
-// send-test route uses Brevo's transactional endpoint purely as a "does the
-// checkbox survive their processor / how does it look in my inbox" check.
+// send-test route uses Brevo's transactional endpoint purely as a "do the
+// checkboxes survive their processor / how does it look in my inbox" check.
 
 const express = require('express');
 const fetch = require('node-fetch');
@@ -109,14 +112,21 @@ function todayISO() {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
 }
 
-// One shared card per day for the whole list (the app's daily pull is
-// per-account, so there is no single per-user card to mirror; this is the
-// email's own deterministic draw over the same deck).
-function cardForDay(dateISO) {
-  const seed = dateISO + '|email-cotd';
-  const card = DECK[hashStr(seed) % DECK.length];
-  const orientation = (hashStr(seed + '~o') % 100) < 28 ? 'reversed' : 'upright';
-  return { card, orientation };
+// The website's daily Past/Present/Future pull for a logged-out visitor —
+// a verbatim port of witch.html's dailyPull() with uid 'anon', so the email
+// shows the exact same three cards as the site that day.
+function pullForDay(dateISO) {
+  const seed = dateISO + '|anon';
+  const positions = ['Past', 'Present', 'Future'];
+  const picks = [], used = new Set();
+  for (let i = 0; i < 3; i++) {
+    let idx = hashStr(seed + '#' + i) % DECK.length;
+    while (used.has(idx)) idx = (idx + 1) % DECK.length;
+    used.add(idx);
+    const orientation = (hashStr(seed + '~o' + i) % 100) < 28 ? 'reversed' : 'upright';
+    picks.push({ card: DECK[idx], orientation, position: positions[i] });
+  }
+  return picks;
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -133,52 +143,64 @@ function prettyDate(dateISO) {
 // client stripping it still renders a complete static email.
 function buildTarotEmail({ date } = {}) {
   const dateISO = date || todayISO();
-  const { card, orientation } = cardForDay(dateISO);
-  const rev = orientation === 'reversed';
-  const meaning = rev ? card.rev : card.up;
-  const img = DECK_IMG[card.name] || '';
+  const picks = pullForDay(dateISO);
   const dateLine = prettyDate(dateISO);
-  const subject = `✦ Your card for ${dateLine} — tap to reveal`;
+  const subject = `✦ Past, present, future — your cards for ${dateLine}`;
 
-  const cardW = 240, cardH = 400;
+  const cardW = 118, cardH = 198;
 
-  // The card BACK (shared by the kinetic label and the fallback link): flat
-  // plum, gold border, star + moon — flat colors only, no gradients.
-  const backInner = `
-    <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;height:${cardH}px;background-color:#6b4f86;border:3px solid #9c6f33;border-radius:14px;">
+  // One face-down card back (flat plum, gold border — flat colors only).
+  const backTable = `
+    <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;height:${cardH}px;background-color:#6b4f86;border:2px solid #9c6f33;border-radius:10px;">
       <tr><td align="center" valign="middle" style="height:${cardH}px;text-align:center;">
-        <div style="font-size:44px;line-height:1.2;color:#f5efe2;">🌙</div>
-        <div style="font-size:30px;line-height:1.4;color:#e8c987;">✦ ✦ ✦</div>
-        <div style="font-family:Georgia,serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:#f5efe2;padding-top:14px;">Tap to reveal</div>
-        <div style="font-family:Georgia,serif;font-size:13px;font-style:italic;color:#cbb9dd;padding-top:6px;">your card for today</div>
+        <div style="font-size:26px;line-height:1.3;color:#f5efe2;">🌙</div>
+        <div style="font-size:14px;line-height:1.5;color:#e8c987;">✦ ✦ ✦</div>
+        <div style="font-family:Georgia,serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#f5efe2;padding-top:10px;">tap</div>
       </td></tr>
     </table>`;
 
-  // The revealed FACE: real Rider-Waite art (rotated when reversed) + meaning.
-  // The art sits inside a fixed-height framed card so the layout still reads
-  // as a card when a client blocks remote images (the img collapses, the
-  // frame + alt text remain).
-  const faceArt = `
-    <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;background-color:#fffbf3;border:3px solid #9c6f33;border-radius:14px;">
-      <tr><td align="center" valign="middle" height="${cardH}" style="height:${cardH}px;font-family:Georgia,serif;color:#9c6f33;">
-        ${img
-          ? `<img src="${esc(img)}" width="${cardW}" alt="${esc(card.name)}" style="display:block;width:${cardW}px;height:auto;border-radius:11px;${rev ? 'transform:rotate(180deg);' : ''}">`
-          : '<span style="font-size:56px;">✦</span>'}
-      </td></tr>
-    </table>`;
+  // One revealed face: framed art (fixed-height so an images-blocked client
+  // still shows a card shape + alt text) + name, orientation, meaning.
+  function faceColumn(pick) {
+    const { card, orientation } = pick;
+    const rev = orientation === 'reversed';
+    const img = DECK_IMG[card.name] || '';
+    const meaning = rev ? card.rev : card.up;
+    return `
+      <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;background-color:#fffbf3;border:2px solid #9c6f33;border-radius:10px;">
+        <tr><td align="center" valign="middle" height="${cardH}" style="height:${cardH}px;font-family:Georgia,serif;color:#9c6f33;">
+          ${img
+            ? `<img src="${esc(img)}" width="${cardW}" alt="${esc(card.name)}" style="display:block;width:${cardW}px;height:auto;border-radius:8px;${rev ? 'transform:rotate(180deg);' : ''}">`
+            : '<span style="font-size:34px;">✦</span>'}
+        </td></tr>
+      </table>
+      <div style="font-family:Georgia,serif;font-size:15px;line-height:1.3;color:#302b34;padding-top:10px;">${esc(card.name)}</div>
+      <div style="font-family:Georgia,serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:${rev ? '#b0524f' : '#9c6f33'};padding-top:3px;">${rev ? 'Reversed' : 'Upright'}</div>
+      <div style="font-family:Georgia,serif;font-size:12px;font-style:italic;line-height:1.5;color:#6d6472;padding-top:6px;">${esc(meaning)}</div>`;
+  }
 
-  const face = `
-    ${faceArt}
-    <div style="font-family:Georgia,serif;font-size:24px;color:#302b34;padding-top:18px;">${esc(card.name)}</div>
-    <div style="font-family:Georgia,serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:${rev ? '#b0524f' : '#9c6f33'};padding-top:4px;">${rev ? 'Reversed' : 'Upright'}</div>
-    <div style="font-family:Georgia,serif;font-size:16px;font-style:italic;line-height:1.6;color:#6d6472;padding:12px 24px 0;">${esc(meaning)}</div>
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:24px auto 0;">
-      <tr><td style="background-color:#9c6f33;border-radius:6px;">
-        <a href="${APP_URL}" style="display:inline-block;padding:12px 26px;font-family:Georgia,serif;font-size:15px;color:#fffbf3;text-decoration:none;">Pull a full reading ✦</a>
-      </td></tr>
-    </table>`;
+  // The three-column spread. `kinetic` columns hold a label (tap target) per
+  // card + the hidden face; fallback columns link the backs out to the app.
+  function spreadRow(kinetic) {
+    const cols = picks.map((pick, i) => `
+      <td align="center" valign="top" width="33%" style="padding:0 5px;">
+        <div style="font-family:Georgia,serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#9c6f33;padding-bottom:10px;">${esc(pick.position)}</div>
+        ${kinetic
+          ? `<div class="sw-back-${i}"><label for="sw-r${i}" style="cursor:pointer;">${backTable}</label></div>
+             <div class="sw-face-${i}" style="display:none;">${faceColumn(pick)}</div>`
+          : `<a href="${APP_URL}" style="text-decoration:none;">${backTable}</a>`}
+      </td>`).join('');
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cols}</tr></table>`;
+  }
 
-  return { subject, dateISO, card: card.name, orientation, html: `<!DOCTYPE html>
+  const revealRules = picks.map((_, i) => `
+  #sw-r${i}:checked ~ .sw-body .sw-back-${i} { display:none !important; }
+  #sw-r${i}:checked ~ .sw-body .sw-face-${i} { display:block !important; animation: sw-in 0.6s ease; }`).join('');
+
+  const revealInputs = picks.map((_, i) =>
+    `<input type="checkbox" id="sw-r${i}" style="display:none;max-height:0;visibility:hidden;">`).join('\n');
+
+  return { subject, dateISO, cards: picks.map(p => ({ position: p.position, card: p.card.name, orientation: p.orientation })), html: `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="utf-8">
@@ -188,47 +210,49 @@ function buildTarotEmail({ date } = {}) {
   /* Reveal rules only — everything structural is inline. Clients that strip
      this block (or the checkboxes) fall back to the static version. */
   #sw-support:checked ~ .sw-body .sw-kinetic { display:block !important; }
-  #sw-support:checked ~ .sw-body .sw-fallback { display:none !important; }
-  #sw-reveal:checked ~ .sw-body .sw-back { display:none !important; }
-  #sw-reveal:checked ~ .sw-body .sw-face { display:block !important; animation: sw-in 0.6s ease; }
+  #sw-support:checked ~ .sw-body .sw-fallback { display:none !important; }${revealRules}
+  #sw-r0:checked ~ #sw-r1:checked ~ #sw-r2:checked ~ .sw-body .sw-hint { display:none !important; }
   @keyframes sw-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-  .sw-back label { cursor:pointer; }
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f5efe2;">
-<div style="display:none;max-height:0;overflow:hidden;">One card, pulled for today. Tap the card back to turn it over. ✦</div>
+<div style="display:none;max-height:0;overflow:hidden;">Three cards, pulled for today — past, present, future. Tap each to turn it over. ✦</div>
 <input type="checkbox" id="sw-support" checked style="display:none;max-height:0;visibility:hidden;">
-<input type="checkbox" id="sw-reveal" style="display:none;max-height:0;visibility:hidden;">
+${revealInputs}
 <div class="sw-body">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5efe2;">
-    <tr><td align="center" style="padding:36px 16px 44px;">
+    <tr><td align="center" style="padding:36px 12px 44px;">
       <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px;width:100%;">
         <tr><td align="center" style="text-align:center;">
           <div style="font-family:Georgia,serif;font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#9c6f33;">Secretly a Witch</div>
-          <div style="font-family:Georgia,serif;font-size:26px;color:#302b34;padding-top:10px;">Your card for today</div>
+          <div style="font-family:Georgia,serif;font-size:26px;color:#302b34;padding-top:10px;">Your cards for today</div>
           <div style="font-family:Georgia,serif;font-size:14px;font-style:italic;color:#6d6472;padding-top:4px;">${esc(dateLine)}</div>
         </td></tr>
         <tr><td align="center" style="padding-top:28px;">
 
           <!-- Interactive version: hidden unless the support checkbox survives. -->
           <div class="sw-kinetic" style="display:none;">
-            <div class="sw-back">
-              <label for="sw-reveal">${backInner}</label>
-              <div style="font-family:Georgia,serif;font-size:13px;font-style:italic;color:#a1968b;padding-top:14px;">The deck is face down. Tap the card.</div>
-            </div>
-            <div class="sw-face" style="display:none;">${face}</div>
+            ${spreadRow(true)}
+            <div class="sw-hint" style="font-family:Georgia,serif;font-size:13px;font-style:italic;color:#a1968b;padding-top:16px;">The spread is face down. Tap each card.</div>
           </div>
 
-          <!-- Fallback: same card back, links out to the app to reveal. -->
+          <!-- Fallback: same face-down spread, links out to the app to reveal. -->
           <div class="sw-fallback">
-            <a href="${APP_URL}" style="text-decoration:none;">${backInner}</a>
-            <div style="font-family:Georgia,serif;font-size:13px;font-style:italic;color:#a1968b;padding-top:14px;">Tap the card to reveal it.</div>
+            ${spreadRow(false)}
+            <div style="font-family:Georgia,serif;font-size:13px;font-style:italic;color:#a1968b;padding-top:16px;">Tap a card to reveal your spread.</div>
           </div>
 
         </td></tr>
-        <tr><td align="center" style="padding-top:40px;border-top:1px solid #e3d8c2;text-align:center;">
-          <div style="font-family:Georgia,serif;font-size:12px;color:#a1968b;line-height:1.7;padding-top:16px;">
-            Drawn from the full 78-card deck, one card each day.<br>
+        <tr><td align="center" style="padding-top:26px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+            <tr><td style="background-color:#9c6f33;border-radius:6px;">
+              <a href="${APP_URL}" style="display:inline-block;padding:12px 26px;font-family:Georgia,serif;font-size:15px;color:#fffbf3;text-decoration:none;">Read the full spread ✦</a>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:32px;text-align:center;">
+          <div style="border-top:1px solid #e3d8c2;font-family:Georgia,serif;font-size:12px;color:#a1968b;line-height:1.7;padding-top:16px;">
+            The same three cards the site pulls today — past, present, future.<br>
             <a href="${APP_URL}" style="color:#9c6f33;">Secretly a Witch</a> · moon phases, tarot &amp; small spells
           </div>
         </td></tr>
@@ -273,18 +297,18 @@ router.use((req, res, next) => {
 });
 
 router.get('/status', (req, res) => {
-  const { card, orientation } = cardForDay(todayISO());
+  const picks = pullForDay(todayISO());
   res.json({
     deck: DECK.length,
     art: Object.keys(DECK_IMG).length,
     brevo: Boolean(BREVO_API_KEY),
     sender: FROM_EMAIL ? true : false,
-    today: { card: card.name, orientation },
+    today: picks.map(p => ({ position: p.position, card: p.card.name, orientation: p.orientation })),
   });
 });
 
 // The email HTML itself — open it in a browser, or copy the source into a
-// Brevo custom-HTML campaign. ?date=YYYY-MM-DD previews another day's card.
+// Brevo custom-HTML campaign. ?date=YYYY-MM-DD previews another day's spread.
 router.get('/preview', (req, res) => {
   try {
     const { html } = buildTarotEmail({ date: req.query.date });
@@ -294,18 +318,18 @@ router.get('/preview', (req, res) => {
   }
 });
 
-// One real send (Brevo transactional endpoint) to verify the reveal in a real
+// One real send (Brevo transactional endpoint) to verify the reveals in a real
 // inbox — Apple Mail should flip in place, Gmail should show the fallback.
 router.post('/send-test', async (req, res) => {
   try {
     const { to, date } = req.body || {};
     if (!to || !/@/.test(to)) return res.status(400).json({ error: 'to (email address) required' });
-    const { subject, html, card, orientation, dateISO } = buildTarotEmail({ date });
+    const { subject, html, cards, dateISO } = buildTarotEmail({ date });
     const sent = await sendViaBrevo({ to, subject, html });
-    res.json({ ok: true, to, subject, card, orientation, date: dateISO, messageId: sent.messageId });
+    res.json({ ok: true, to, subject, cards, date: dateISO, messageId: sent.messageId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-module.exports = { router, buildTarotEmail, cardForDay };
+module.exports = { router, buildTarotEmail, pullForDay };
