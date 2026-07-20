@@ -581,7 +581,10 @@
     .deck-prev:hover { color: var(--gold); }
     .deck-prev svg { width: 16px; height: 16px; }
     .deck-prev[disabled] { visibility: hidden; }
-    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
+    /* Experiment: the deck's continue button is solid gold, no outline, white
+       text — a bolder primary than the house light-gold/outline .btn. */
+    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px;
+      background: var(--gold); border-color: var(--gold); color: #fffbf3; }
 
     /* ── Witch School: the path ──
        Imprint-style winding trail, witch-dressed: nodes zigzag down a central
