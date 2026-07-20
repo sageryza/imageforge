@@ -441,15 +441,15 @@
 
     /* ── Shop ── */
     .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    /* No boxes: sharp-corner image with the text under it, no card outline */
     .shop-item {
       display: flex; flex-direction: column; text-decoration: none; color: var(--text);
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      overflow: hidden; transition: border-color 0.15s ease, transform 0.15s ease;
+      transition: transform 0.15s ease;
     }
-    .shop-item:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .shop-item:hover { transform: translateY(-2px); }
     .shop-item .simg { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--panel); display: block; }
     .shop-item .simg-ph { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; color: var(--gold-dim); font-size: 26px; background: var(--panel); }
-    .shop-item .sbody { padding: 11px 12px 13px; }
+    .shop-item .sbody { padding: 9px 2px 13px; }
     .shop-item .stitle { font-family: var(--serif); font-size: 15.5px; font-weight: 500; line-height: 1.2; }
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
@@ -983,6 +983,11 @@
           <div class="lesson-card" id="open-plants2">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg></span>
             <div><div class="lt">Plant Magic II</div><div class="ld">Signatures, planets & preparations</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <div class="lesson-card" id="open-apoth">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v5.2L5.4 16A3 3 0 0 0 8 20.5h8a3 3 0 0 0 2.6-4.5L14 8.2V3"/><path d="M7.5 13h9"/></svg></span>
+            <div><div class="lt">The Witch's Apothecary</div><div class="ld">Mugwort, wormwood, yarrow & the old shelf</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
           <div class="lesson-card" id="open-astro">
@@ -1860,13 +1865,17 @@
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
       if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now. Visit secretlyawitch.com.</div>`; wrap.dataset.loaded = '1'; return; }
+      const shortTitle = t => {
+        const cut = t.split(/\s*[~•|]\s*/)[0].trim();
+        return cut.length >= 4 ? cut : t;
+      };
       wrap.innerHTML = items.map(p => {
         const price = p.priceMin ? `$${p.priceMin}` : (p.price ? `$${p.price}` : '');
         const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
         return `<a class="shop-item" href="${esc(p.url)}" target="_blank" rel="noopener">
           ${img}
           <div class="sbody">
-            <div class="stitle">${esc(p.title)}</div>
+            <div class="stitle">${esc(shortTitle(p.title))}</div>
             ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
             ${p.available ? '' : '<div class="soos">Sold out</div>'}
           </div>
@@ -2923,7 +2932,19 @@
     { img: 'wy-09', bg: '#fef7ee', kicker: 'The practice', h: 'One small seasonal act', body: 'You don\'t need eight rituals a year. The wheel asks one thing: <b>notice the turn.</b> A walk under the falling leaves, bread baked in August, one candle on the longest night. A single deliberate seasonal act per spoke, and you\'re keeping the wheel.' },
     { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>' + nextSabbat().label + '</b>.<br><br><b>This week:</b> ' + nextSabbat().act + ' ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS };
+  const APOTH_CARDS = [
+    { img: 'ap-01', bg: '#fef8f1', kicker: 'The Witch\'s Apothecary', h: 'Beyond the kitchen', body: 'You know the cupboard herbs. This lesson goes deeper — the witch\'s apothecary: the strange, old, potent plants kept in corked vials, and how to build a shelf of your own.' },
+    { img: 'ap-02', bg: '#fbf9f7', kicker: 'The old charm', h: 'The Nine Herbs', body: 'A thousand years ago, Anglo-Saxon healers recited the <b>Nine Herbs Charm</b> — a spell-poem naming nine plants against poison and ill. First among them: mugwort, whom the charm calls the <b>Mother of Herbs</b>. Your apothecary has ancestors.' },
+    { img: 'ap-03', bg: '#f9f1e6', kicker: 'The dreamer', h: 'Mugwort', body: 'Named for <b>Artemis</b>, moon goddess — and it works like it: mugwort is THE herb of dreams and second sight. A pinch in a dream pillow for vivid dreams; a weak tea before a reading to open the inner eye. The dreamer\'s ally, first on any witch\'s shelf.' },
+    { img: 'ap-04', bg: '#fdfcfa', kicker: 'The wild sister', h: 'Wormwood', body: 'Mugwort\'s fiercer sister (both are <i>Artemisia</i>). Wormwood works where the veil thins — cleansing, banishing, reversal; Balkan midwives burned it at births and burials. <b>Burn it, don\'t brew it</b> — this one\'s for smoke, not the teapot.' },
+    { img: 'ap-05', bg: '#fef9f2', kicker: 'The shield', h: 'Yarrow', body: 'Achilles is said to have packed his soldiers\' wounds with it, and it carries his name (<i>Achillea</i>). Yarrow is courage and boundaries: witches from Britain to Appalachia sewed it into sachets and tucked it into beds to keep the wrong people — and spirits — away.' },
+    { img: 'ap-06', bg: '#fcf8f2', kicker: 'The torch', h: 'Mullein', body: 'The tall stalk witches once dipped in tallow and burned as a torch — the <b>hag taper</b>. Mullein is illumination and safe passage through dark places, and an old ally for ancestor work: a candle for the parts of the path you can\'t see yet.' },
+    { img: 'ap-07', bg: '#fefaf7', kicker: 'The enchanter\'s herb', h: 'Vervain', body: 'Sacred to the Egyptians, the Druids, everyone in between — legend says it sprang from the tears of <b>Isis</b>. Vervain purifies, protects, breaks hexes, and blesses. When you don\'t know which herb a working needs, it\'s vervain.' },
+    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength. <i>(The shop\'s <a href="https://secretlyawitch.com/products/wooden-mortar-pestle" target="_blank" rel="noopener">wooden mortar & pestle</a> is made for exactly this.)</i>' },
+    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them. <i>(Or begin with a ready-stocked <a href="https://secretlyawitch.com/products/apothecary-box-with-wooden-mortar-and-pestle" target="_blank" rel="noopener">apothecary box</a> from the shop and grow it from there.)</i>' },
+    { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it. That\'s page one of a real apothecary.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
+  ];
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -2931,7 +2952,7 @@
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'signs', 'dream'] },
-    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, cleansing & charging', cover: 'course-crystal', lessons: ['crystal'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
   ];
@@ -3125,6 +3146,7 @@
   { const al = $('open-altar'); if (al) al.addEventListener('click', () => openLesson('altar')); }
   { const sh = $('open-shadow'); if (sh) sh.addEventListener('click', () => openLesson('shadow')); }
   { const wy = $('open-wheel'); if (wy) wy.addEventListener('click', () => openLesson('wheel')); }
+  { const ap = $('open-apoth'); if (ap) ap.addEventListener('click', () => openLesson('apoth')); }
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
