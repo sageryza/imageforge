@@ -139,6 +139,13 @@
       cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; text-decoration: none;
     }
     .btn-ghost:hover { border-color: var(--gold-dim); color: var(--gold); }
+    /* House pattern: a module's action buttons are never full-width — they size to
+       their content and sit at the right. Applies to the secondary (ghost) module
+       actions; quiz answer lists, segmented toggles and modal buttons keep their
+       own full-width/centered layouts. */
+    #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
+    .dream-btns { justify-content: flex-end; }
+    .dream-btns .btn, .dream-btns .btn-ghost { width: auto; margin-left: 0; }
     /* Gold button: gold outline, lighter-gold fill, darker-gold text; auto-width, right-aligned. */
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -225,7 +232,7 @@
       background: #f5ead2; padding: 12px 8px;
     }
     /* Section label styled like the PAST · PRESENT · FUTURE labels (DM Sans). */
-    .cards-title { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+    .cards-title { text-align: left; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
 
     /* Quiz */
     .quiz-prog { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
@@ -273,7 +280,7 @@
     /* ── Face-down card backs (before reveal) ── */
     .backs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 16px; }
     .tback {
-      aspect-ratio: 5 / 8; border-radius: 10px; min-width: 0;
+      aspect-ratio: 100 / 172; border-radius: 4px; min-width: 0;
       background: var(--moon);
       border: 1px solid var(--gold-dim);
       display: flex; align-items: center; justify-content: center;
@@ -662,14 +669,14 @@
           <!-- not signed in -->
           <div id="daily-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
-            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">See your daily horoscope</div>
+            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px; text-align:center;">See your daily horoscope</div>
             <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">Make a free account to unlock your personalized reading — the stars and the cards, written fresh for you each day.</p>
             <button class="btn" id="daily-signin">Enter the circle</button>
           </div>
 
           <!-- signed in, no birthday yet -->
           <div id="daily-birthday" style="display:none;">
-            <div class="cards-title" style="font-size:15px; color:var(--gold);">See your daily horoscope</div>
+            <div class="cards-title" style="font-size:15px; color:var(--gold); text-align:center;">See your daily horoscope</div>
             <p class="hint" style="text-align:center;">Add your birth details once, and every day you'll get a reading from your real chart. A birth time also gives your rising sign &amp; houses.</p>
             <div id="natal-form">
               <div class="row">
@@ -687,7 +694,7 @@
                someone just browsing). -->
           <div id="daily-reveal-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
-            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px;">Today's sky is waiting</div>
+            <div class="cards-title" style="font-size:15px; color:var(--gold); margin-top:12px; text-align:center;">Today's sky is waiting</div>
             <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">When you're ready, reveal what the stars and cards have to say about your day.</p>
             <button class="btn" id="daily-reveal-btn" style="margin-left:auto; margin-right:auto;">Reveal today's reading <span class="js-star"></span></button>
           </div>
@@ -724,7 +731,7 @@
         <!-- Today's cards (tarot) -->
         <div class="card" id="tarot-card" style="display:none;">
           <div class="cards-title">Today's Cards</div>
-          <p class="hint" style="text-align:center;">Three cards drawn just for you today — from the Rider-Waite deck.</p>
+          <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
           <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save to Book of Shadows</button>
@@ -2225,7 +2232,7 @@
       <h2>Your circle</h2>
       <div class="acct-email">${esc(fbUser.email || 'Signed in')}</div>
       <div class="acct-note">Your chart, readings &amp; miracles sync to this account.</div>
-      <div class="cards-title" style="font-size:12px; margin:20px 0 8px;">Reading system</div>
+      <div class="cards-title" style="font-size:12px; margin:20px 0 8px; text-align:center;">Reading system</div>
       <div class="acct-note" style="margin-bottom:10px;">Pick a default and the Tropical / Astronomical toggle disappears. Leave it on “Ask” to keep the toggle on your reading.</div>
       <div style="display:flex; gap:8px;">${opt('ask','Ask')}${opt('tropical','Tropical')}${opt('astronomical','Astronomical')}</div>
       <button class="btn-ghost" id="btn-signout" style="margin-top:18px;">Sign out</button>
