@@ -193,6 +193,15 @@ final class MovieService {
         try await fetch(Dream.self, "GET", "/dream/\(id)")
     }
 
+    /// Transcribe a recorded dream (a voice memo she already has) → text to drop
+    /// into the dream box, so a file feeds the same pipeline as typing/dictation.
+    /// `audioDataURL` is `data:<mime>;base64,…`. Whisper server-side.
+    func transcribeDream(audioDataURL: String) async throws -> String {
+        struct R: Decodable { let text: String }
+        return try await fetch(R.self, "POST", "/dream/transcribe",
+                               body: ["audio": audioDataURL], timeout: 240).text
+    }
+
     /// Draw the beats as 2x2 comic pages — a background job; poll `dream(id)`.
     /// `order` draws the beats in that sequence (the chronology check);
     /// `reanchor` re-rolls the locked character's look.

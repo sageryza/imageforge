@@ -308,7 +308,7 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9]];
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Fastest',3.2]];
 var playing=false, raf=null, last=null, si=1, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
@@ -346,6 +346,15 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// Content-tap gesture: while autoscrolling, a SINGLE tap stops it and a DOUBLE
+// tap bumps it one speed faster. Starting is always via the play button.
+var _tapT=null;
+window.__scrollFaster=function(){ if(playing){ si=Math.min(SPEEDS.length-1, si+1); paintPill(); } };
+window.__scrollTap=function(){
+  if(!playing) return;
+  if(_tapT){ clearTimeout(_tapT); _tapT=null; window.__scrollFaster(); }
+  else { _tapT=setTimeout(function(){ _tapT=null; scrollStop(); }, 280); }
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
@@ -355,7 +364,7 @@ document.addEventListener('visibilitychange',function(){ if(document.hidden) scr
 window.addEventListener('pagehide',scrollStop);
 paintPill();
 
-var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='';
+var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
@@ -546,11 +555,11 @@ function renderMsg(m){
   // audio (player or Play) sits at the TOP of the message, under the header
   row.insertBefore(tools, row.querySelector('.m-preview'));
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  // tapping the open message starts/stops autoscroll (reading aid) —
-  // closing moved to the header row ("close ▲") so a tap never collapses it
+  // tapping the open message controls autoscroll: single tap stops, double tap
+  // speeds up. Closing is the header row ("close ▲") so a tap never collapses it.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollToggle();
+    window.__scrollTap();
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
@@ -740,10 +749,13 @@ function openChat(name, keepScroll){
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
   }
   var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
-  tgChat.onclick=function(){ tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
-  tgAssets.onclick=function(){ scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
+  tgChat.onclick=function(){ curTab='chat'; tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
+  tgAssets.onclick=function(){ curTab='assets'; scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
   // let the global refresh button re-pull this chat's assets fresh
   window._reloadAssets=function(){ if(assetsPanel.style.display!=='none') loadAssets(true); };
+  // A rebuild (e.g. from Refresh) keeps whichever tab was open — restore the
+  // Assets tab instead of snapping back to Chat.
+  if(curTab==='assets'){ tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); }
 
   markSeen(name);
   document.getElementById('home').style.display='none';
@@ -796,7 +808,7 @@ function lightbox(url, caption, asset){
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
-  scrollStop(); cur=null;
+  scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');

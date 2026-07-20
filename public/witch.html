@@ -128,6 +128,10 @@
       letter-spacing: 0.2px; text-transform: lowercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
     }
+    /* The "Take the quiz" button wears the eyebrow font (DM Sans uppercase,
+       0.3px tracking) like the quiz's own gold buttons — everything else about
+       the house .btn (fill, outline, color) stays the same. */
+    #quiz-open { font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase; }
     .btn:active { transform: scale(0.985); }
     .btn:hover { filter: brightness(0.97); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
@@ -158,13 +162,17 @@
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: fit-content; margin-left: auto; padding: 8px 16px;
-      background: #ecdcb4; color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
-      font-size: 15px; font-weight: 600; font-family: var(--serif); letter-spacing: 0.2px; text-transform: lowercase;
+      /* Solid gold, white text, no visible outline (border kept same width/color
+         as the fill so the button's size is unchanged). */
+      background: var(--gold); color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
+      /* Eyebrow/kicker treatment — DM Sans, uppercase, tracked-out (matches the
+         SUSPICIOUS COINCIDENCE… card labels), not the serif lowercase. */
+      font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; text-transform: uppercase;
       cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
     }
     .btn-gold:hover { filter: brightness(0.97); }
     .btn-gold:active { transform: scale(0.985); }
-    .btn-gold svg { width: 15px; height: 15px; }
+    .btn-gold svg { width: 14px; height: 14px; }
     .btn-row { display: flex; gap: 10px; }
     .btn-white { background: #ffffff; color: var(--gold); border: 1px solid var(--gold-dim); }
     .btn-white:hover { filter: none; background: #fffdf7; }
@@ -254,7 +262,11 @@
     .q-opt:hover { border-color: #8f8a82; color: var(--text); }
     /* Continue + Back row (Back on the left) */
     .quiz-btnrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
-    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; }
+    /* Match the gold Continue button exactly — same padding, border-box, and
+       eyebrow font — so Back is the same height (its outline included). */
+    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; padding: 8px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; text-transform: uppercase; }
     .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
     .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
@@ -599,6 +611,7 @@
     .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
+    .tcard-body a { color: var(--gold); text-decoration: underline; }
     .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 14px; }
     .tcard-hint svg { width: 13px; height: 13px; vertical-align: -2px; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
@@ -606,10 +619,7 @@
     .deck-prev:hover { color: var(--gold); }
     .deck-prev svg { width: 16px; height: 16px; }
     .deck-prev[disabled] { visibility: hidden; }
-    /* Experiment: the deck's continue button is solid gold, no outline, white
-       text — a bolder primary than the house light-gold/outline .btn. */
-    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px;
-      background: var(--gold); border-color: var(--gold); color: #fffbf3; }
+    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
 
     /* ── Witch School: the path ──
        Imprint-style winding trail, witch-dressed: nodes zigzag down a central
@@ -642,15 +652,22 @@
 
     /* Course catalog tiles: sharp-corner art + text under (Sophie's no-boxes
        preference), title/desc/progress below the cover */
-    .wcourse { margin: 0 0 26px; cursor: pointer; }
-    .wcourse .cv { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
-    .wcourse .meta { padding: 10px 2px 0; }
-    .wcourse .t { font-family: var(--serif); font-size: 21px; color: var(--text); }
-    .wcourse .s { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
-    .wcourse .pr { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-top: 7px; }
+    #school-path .cat { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 16px; }
+    .wcourse { cursor: pointer; }
+    .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .wcourse .meta { padding: 8px 2px 0; }
+    .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
+    .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+    .wcourse .pr { font-size: 9.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-dim); margin-top: 6px; }
     .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
     .wback svg { width: 16px; height: 16px; }
     .wback:hover { color: var(--gold); }
+    .wroad-wrap { position: relative; margin: 4px -6px 0; }
+    .wroad-wrap svg { width: 100%; height: 100%; display: block; }
+    .wnode.road { position: absolute; max-width: 128px; }
+    .wnode.road .ic { background: var(--surface); }
+    .wnode.road.done .ic { background: var(--gold); }
+    .wnode.road .nm { background: var(--bg); border-radius: 6px; padding: 1px 6px; }
 
     /* ── Book of Shadows: the book ──
        The cover is a flat little hardback (no gradients); opening it takes
@@ -720,6 +737,11 @@
     .nav-btn.active .ni { transform: translateY(-1px); filter: drop-shadow(0 0 6px rgba(156,111,51,0.35)); }
     .nav-btn.active::after { content: ''; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--gold); }
     .btn svg, .btn-ghost svg { width: 15px; height: 15px; }
+
+    /* ── Native app mode (?app=1): the iOS wrapper hides the web nav and
+       drives go() from its own SF-Symbols tab bar via window.__setTab ── */
+    html.in-app nav { display: none; }
+    html.in-app .app { padding-bottom: 24px; }
 
     /* ── Moon calendar ── */
     .mcal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -1234,6 +1256,11 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+
+  // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
+  // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
+  if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
+  window.__setTab = go;
 
   /* ══════════ TAROT DECK (78) ══════════ */
   const MAJORS = [
@@ -2391,12 +2418,12 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
       const body =
-        `<div class="reveal-name">${esc(it.reveal.name)}</div>
-         <div class="reveal-body">${esc(it.reveal.body)}</div>
+        `<div class="reveal-body">${esc(it.reveal.body)}</div>
          <div class="quiz-btnrow">
            <button class="btn-ghost" id="q-back" type="button">Back</button>
-           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'}</button>
+           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'} ${arrow}</button>
          </div>`;
       const wire = () => {
         $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
@@ -2701,6 +2728,30 @@
   }
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
   const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
+  // The next sabbat from today — computed at load so the Wheel lesson's last
+  // card never goes stale. Fixed calendar approximations are fine here.
+  function nextSabbat() {
+    const acts = {
+      Imbolc: 'light one candle, clean one drawer, and notice the first stirring of something new.',
+      Ostara: 'plant one seed — a literal one or a project — and name it out loud.',
+      Beltane: 'bring flowers inside, wear something alive, and celebrate something at full volume.',
+      Litha: 'be outside at golden hour and soak the longest light in on purpose.',
+      Lughnasadh: 'bake or buy a good loaf, share it with someone, and name one thing you planted this year that\'s ripening.',
+      Mabon: 'make a small feast of apples and gratitude — count what you harvested this year.',
+      Samhain: 'put out a photo of someone you miss, light a candle, and make their favorite food.',
+      Yule: 'on the longest night, light candles against the dark and name what you hope comes back with the sun.',
+    };
+    const y = new Date().getFullYear();
+    const list = [['Imbolc', 1, 1], ['Ostara', 2, 20], ['Beltane', 4, 1], ['Litha', 5, 21], ['Lughnasadh', 7, 1], ['Mabon', 8, 22], ['Samhain', 9, 31], ['Yule', 11, 21]];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (const yr of [y, y + 1]) {
+      for (const [name, m, d] of list) {
+        const dt = new Date(yr, m, d);
+        if (dt >= today) return { label: name + ', ' + dt.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }), act: acts[name] };
+      }
+    }
+    return { label: 'Imbolc, February 1', act: acts.Imbolc };
+  }
   const SPELL_CARDS = [
     { img: 'sw-01', bg: '#fdf9f3', kicker: 'Spell Work', h: 'Welcome to spell work', body: 'A spell is simpler than it sounds. We\'ll go one small idea at a time — just tap to keep going.' },
     { img: 'sw-02', bg: '#fdf8ef', kicker: 'The idea', h: 'What a spell really is', body: 'Your will in motion: a clear intention, focused with feeling and a little ritual, to nudge a change into being. Not ordering the universe around — concentrating your attention so fully that you start moving toward what you want.' },
@@ -2800,14 +2851,14 @@
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'The craft was never in the cabinet — it\'s in your attention, your intention, and your two hands. This lesson is witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
     { img: 'tw-02', bg: '#fcf6ef', kicker: 'The anchor', h: 'The moon comes with you', body: 'Wherever you land, the moon that rises is <b>your</b> moon — same phase, same face, as the one over your house. One glance up (or at this app\'s moon page) and you\'re oriented: the sky is a home that travels.' },
-    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter.' },
+    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter. <i>(Rather have it packed by a witch? The shop\'s <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> is exactly this, done beautifully.)</i>' },
     { img: 'tw-04', bg: '#fcf7f1', kicker: 'The improvisation', h: 'Salt is everywhere', body: 'Forgot supplies? The world provides: every diner and airplane meal comes with a <b>salt packet</b> — a threshold line for your hotel door. Sugar for sweetening work, pepper for banishing, a coffee stirrer for a wand. Look around; you\'re stocked.' },
     { img: 'tw-05', bg: '#fdf9f2', kicker: 'The arrival', h: 'Claim the room', body: 'A borrowed room holds everyone who slept there before you. Claim it: curtains and window open first, let light and air move through, salt at the door, and say — quietly, out loud — <i>“this room is mine tonight.”</i> Ninety seconds, and it\'s yours.' },
     { img: 'tw-06', bg: '#fef7f0', kicker: 'The locals', h: 'Meet the plants', body: 'Every place has its own green residents — the weed in the sidewalk crack is somebody\'s sacred herb. Introduce yourself: notice one plant, learn its name, touch one leaf gently. It\'s how a witch says hello to a new land.' },
     { img: 'tw-07', bg: '#fdfaf5', kicker: 'The between', h: 'Crossroads magic', body: 'Folk magic loves the places between places — crossroads, bridges, shorelines — where things can be left behind. Airports and train stations are the great modern crossroads: on your way through, name one worry and leave it at the gate.' },
     { img: 'tw-08', bg: '#fefaf6', kicker: 'The disguise', h: 'Invisible spellwork', body: 'Travel craft is quiet craft: intention stirred clockwise into a takeaway coffee, a protection word breathed onto the bus window, a charm that reads as jewelry. Nobody around you knows. That\'s not hiding — that\'s finesse.' },
     { img: 'tw-09', bg: '#fefcf8', kicker: 'The tether', h: 'A pinch of home', body: 'The old emigrant\'s charm: carry a little of your own ground — a pebble from your street, a pinch of garden earth in a tiny vial. Homesickness magic, literally: wherever you stand, you\'re standing on a bit of home.' },
-    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i>.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
+    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i> — or start with the ready-made <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> and make it yours.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
   ];
   const DIVIN_CARDS = [
     { img: 'dv-01', bg: '#fcf7f1', kicker: 'Divination', h: 'Ways of asking', body: 'Tarot is one door in a very long hallway. Humans have read answers in water, smoke, books, birds, and tea for thousands of years. This lesson is a tour of the hallway — and how to actually try each door.' },
@@ -2867,7 +2918,7 @@
     { img: 'wy-07', bg: '#fef8ef', kicker: 'May 1 · summer solstice', h: 'Beltane & Litha', body: 'The full-bloom pair. <b>Beltane</b> (May 1): fire, flowers, maypoles, life at full volume — Samhain\'s bright twin, the veil thin again but merrier. <b>Litha</b> (summer solstice): the longest day, the sun\'s coronation — and the quiet secret that the wheel now turns toward dark.' },
     { img: 'wy-08', bg: '#fefbf4', kicker: 'Aug 1 · fall equinox', h: 'Lughnasadh & Mabon', body: 'The harvest pair. <b>Lughnasadh</b> (August 1): first harvest — grain cut, the year\'s first bread baked and shared. <b>Mabon</b> (fall equinox): balance again, then dark wins — the witches\' thanksgiving: apples, gratitude, taking stock of what you grew.' },
     { img: 'wy-09', bg: '#fef7ee', kicker: 'The practice', h: 'One small seasonal act', body: 'You don\'t need eight rituals a year. The wheel asks one thing: <b>notice the turn.</b> A walk under the falling leaves, bread baked in August, one candle on the longest night. A single deliberate seasonal act per spoke, and you\'re keeping the wheel.' },
-    { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>Lughnasadh, August 1</b>: first harvest.<br><br><b>This week:</b> bake or buy a good loaf, share it with someone, and name one thing you planted this year that\'s ripening. ✦' },
+    { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>' + nextSabbat().label + '</b>.<br><br><b>This week:</b> ' + nextSabbat().act + ' ✦' },
   ];
   const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
@@ -2899,7 +2950,7 @@
     const wrap = $('school-path'); if (!wrap) return;
     if (schoolCourse) { renderCoursePath(schoolCourse); return; }
     // ── The catalog: art-cover course tiles ──
-    wrap.innerHTML = SCHOOL_COURSES.map(c => {
+    wrap.innerHTML = '<div class="cat">' + SCHOOL_COURSES.map(c => {
       const p = courseProgress(c);
       return `<div class="wcourse" data-course="${c.id}" role="button">
         <img class="cv" src="${SW_IMG}${c.cover}.png" alt="" loading="lazy">
@@ -2909,47 +2960,95 @@
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
       </div>`;
-    }).join('') + '<p class="hint" style="text-align:center; margin-top:16px;">More courses are being written.</p>';
+    }).join('') + '</div><p class="hint" style="text-align:center; margin-top:18px;">More courses are being written.</p>';
   }
   function renderCoursePath(courseId) {
     const wrap = $('school-path'); if (!wrap) return;
     const course = SCHOOL_COURSES.find(c => c.id === courseId); if (!course) { schoolCourse = null; renderSchoolPath(); return; }
     const prog = schoolProgress();
     const current = course.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0) || course.lessons.find(k => !(prog[k] && prog[k].done));
-    let pos = 0, html = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
+    const n = course.lessons.length;
+    // ── The golden road: an S-curving path stretching AWAY from you — the
+    // first lesson at the bottom (nearest, biggest), later ones smaller with
+    // distance. Flat gold ribbon built as a tapering polygon (no gradients).
+    const W = 390, H = Math.max(300, 150 * n + 90);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0 : i / (n - 1);
+      const amp = 105 * (1 - t) + 34 * t;                 // curves converge with distance
+      const dir = i % 2 === 0 ? -1 : 1;
+      pts.push({ x: W / 2 + dir * amp, y: (H - 80) - t * (H - 150), t });
+    }
+    pts.unshift({ x: W / 2 + 40, y: H - 6, t: -0.12 });   // the road starts at your feet
+    pts.push({ x: W / 2, y: 26, t: 1.1 });                 // and vanishes ahead
+    // Catmull-Rom → cubic bezier centerline
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += ` C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`;
+    }
+    wrap.innerHTML = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
       <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
-      <div class="wpath"><div class="wpath-line"></div>`;
-    for (const key of course.lessons) {
-      const tile = $('open-' + key); if (!tile) continue;
-      const icon = tile.querySelector('.lg').innerHTML;
-      const title = tile.querySelector('.lt').textContent;
+      <div class="wroad-wrap" id="wroad-wrap" style="height:${H}px;">
+        <svg id="wroad-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
+          <path id="wroad-center" d="${d}" fill="none" stroke="none"/>
+          <polygon id="wroad-ribbon" fill="#c9a25e"/>
+          <path d="${d}" fill="none" stroke="#a37c3d" stroke-width="2" stroke-dasharray="7 9" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div id="wroad-now"></div>`;
+    // Build the tapering ribbon by offsetting the centerline
+    const center = document.getElementById('wroad-center');
+    const total = center.getTotalLength();
+    const left = [], right = [];
+    for (let i = 0; i <= 60; i++) {
+      const l = (i / 60) * total;
+      const p = center.getPointAtLength(l);
+      const p2 = center.getPointAtLength(Math.min(total, l + 2));
+      let nx = -(p2.y - p.y), ny = p2.x - p.x;
+      const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
+      const w = (52 * (1 - i / 60) + 14 * (i / 60)) / 2;   // wide at your feet, narrow far away
+      left.push((p.x + nx * w).toFixed(1) + ',' + (p.y + ny * w).toFixed(1));
+      right.push((p.x - nx * w).toFixed(1) + ',' + (p.y - ny * w).toFixed(1));
+    }
+    document.getElementById('wroad-ribbon').setAttribute('points', left.concat(right.reverse()).join(' '));
+    // Place the lesson nodes ON the road (skip the two anchor points)
+    const roadWrap = document.getElementById('wroad-wrap');
+    course.lessons.forEach((key, i) => {
+      const tile = $('open-' + key); if (!tile) return;
+      const pt = pts[i + 1];
+      const t = n === 1 ? 0 : i / (n - 1);
+      const scale = 1 - t * 0.42;                          // farther = smaller
       const e = prog[key] || { seen: 0, done: false };
       const pct = Math.round(100 * e.seen / (LESSONS[key] || []).length);
       const state = e.done ? 'done' : key === current ? 'now' : '';
-      html += `<div class="wpath-row pos-${pos}">
-        <button class="wnode ${state}" data-lesson="${key}">
-          <span class="ic">${e.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : icon}</span>
-          <span class="nm">${esc(title)}</span>
-          ${!e.done && e.seen > 0 ? `<span class="pct">${pct}%</span>` : ''}
-        </button>
+      const node = document.createElement('button');
+      node.className = 'wnode road ' + state;
+      node.dataset.lesson = key;
+      node.style.cssText = `left:${(pt.x / W) * 100}%; top:${pt.y}px; transform:translate(-50%,-50%) scale(${scale.toFixed(2)}); z-index:${100 - i};`;
+      node.innerHTML = `<span class="ic">${e.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : tile.querySelector('.lg').innerHTML}</span>
+        <span class="nm">${esc(tile.querySelector('.lt').textContent)}</span>
+        ${!e.done && e.seen > 0 ? `<span class="pct">${pct}%</span>` : ''}`;
+      roadWrap.appendChild(node);
+    });
+    // "You are here": the current lesson's card sits at the trailhead
+    if (current) {
+      const tile = $('open-' + current);
+      const e = prog[current] || { seen: 0, done: false };
+      const pct = Math.round(100 * e.seen / (LESSONS[current] || []).length);
+      document.getElementById('wroad-now').innerHTML = `<div class="wpath-now">
+        <div class="t">${esc(tile.querySelector('.lt').textContent)}</div>
+        <div class="p">${e.seen > 0 ? pct + '% complete' : 'The path starts here'}</div>
+        <button class="btn" data-lesson="${current}">${e.seen > 0 ? 'Continue' : 'Start'} <span class="js-star"></span></button>
       </div>`;
-      if (key === current) {
-        html += `<div class="wpath-now">
-          <div class="t">${esc(title)}</div>
-          <div class="p">${e.seen > 0 ? pct + '% complete' : 'Not started yet'}</div>
-          <button class="btn" data-lesson="${key}">${e.seen > 0 ? 'Continue' : 'Start'} <span class="js-star"></span></button>
-        </div>`;
-      }
-      pos = (pos + 1) % 3;
+    } else {
+      document.getElementById('wroad-now').innerHTML = '<div class="wpath-done-star"><span class="js-star"></span><div class="hint" style="margin-top:6px;">Course complete. ✦</div></div>';
     }
-    const allDone = course.lessons.every(k => prog[k] && prog[k].done);
-    html += allDone ? '<div class="wpath-done-star"><span class="js-star"></span><div class="hint" style="margin-top:6px;">Course complete. ✦</div></div>' : '';
-    html += '</div>';
-    wrap.innerHTML = html; renderStars();
+    renderStars();
   }
   { const sp = $('school-path'); if (sp) sp.addEventListener('click', (e) => {
     const n = e.target.closest('[data-lesson]'); if (n) { openLesson(n.dataset.lesson); return; }
-    const c = e.target.closest('[data-course]'); if (c) { schoolCourse = c.dataset.course; renderSchoolPath(); window.scrollTo({ top: 0 }); return; }
+    const c = e.target.closest('[data-course]'); if (c) { schoolCourse = c.dataset.course; renderSchoolPath(); const nw = document.getElementById('wroad-now'); if (nw) nw.scrollIntoView({ block: 'end' }); return; }
     if (e.target.closest('#school-back')) { schoolCourse = null; renderSchoolPath(); }
   }); }
   let deckCards = SPELL_CARDS, deckIdx = 0;

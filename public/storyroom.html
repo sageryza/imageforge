@@ -571,7 +571,7 @@ var nsBtn=document.getElementById('newstory'); if(nsBtn) nsBtn.onclick=newStory;
 
 // autoscroll pill — shared component (scripts/pill.py)
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9]];
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Fastest',3.2]];
 var playing=false, raf=null, last=null, si=1, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
@@ -609,6 +609,17 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// Content-tap gesture (a page calls __scrollTap from its own tap handler):
+// while autoscrolling, a SINGLE tap stops it and a DOUBLE tap bumps it one
+// speed faster. Starting is always via the play button, never a tap — so a tap
+// on a stopped page does nothing here.
+var _tapT=null;
+window.__scrollFaster=function(){ if(playing){ si=Math.min(SPEEDS.length-1, si+1); paintPill(); } };
+window.__scrollTap=function(){
+  if(!playing) return;
+  if(_tapT){ clearTimeout(_tapT); _tapT=null; window.__scrollFaster(); }   // double → faster
+  else { _tapT=setTimeout(function(){ _tapT=null; scrollStop(); }, 280); } // single → stop
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
