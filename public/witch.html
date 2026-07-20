@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f5efe2">
   <title>Secretly a Witch</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -509,16 +509,25 @@
     .deck-prog { display: flex; gap: 4px; flex: 1; }
     .deck-seg { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.2s ease; }
     .deck-seg.on { background: var(--gold); }
+    html, body { touch-action: manipulation; }   /* kill double-tap zoom */
     .deck-stage { cursor: pointer; -webkit-user-select: none; user-select: none; }
-    .tcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; padding-bottom: 24px; animation: tcardIn 0.22s ease; }
     @keyframes tcardIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
-    .tcard-imgwrap { background: var(--panel); border-bottom: 1px solid var(--border); }
-    .tcard-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-    .tcard-kicker { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-top: 20px; }
-    .tcard-h { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); padding: 0 22px; margin: 6px 0 14px; }
-    .tcard-body { font-size: 16px; line-height: 1.66; color: var(--text); padding: 0 24px; }
+    /* Base .tcard is shared with the tarot cards — leave it. School lesson
+       cards below are scoped to #deck-stage so each one fits ONE screen
+       (no scrolling; tap to advance). */
+    #view-school.lesson-open .kicker,
+    #view-school.lesson-open .section-title,
+    #view-school.lesson-open .section-sub { display: none; }
+    #school-lesson { display: flex; flex-direction: column; min-height: calc(100vh - 150px); }
+    #deck-stage { flex: 1; display: flex; align-items: center; }
+    #deck-stage .tcard { background: none; border: none; border-radius: 0; padding: 0; overflow: visible; width: 100%; animation: tcardIn 0.22s ease; }
+    .tcard-imgwrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .tcard-img { width: 100%; height: 30vh; max-height: 230px; object-fit: cover; display: block; }
+    .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-top: 14px; }
+    .tcard-h { font-family: var(--serif); font-size: 22px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); padding: 0 14px; margin: 5px 0 10px; }
+    .tcard-body { font-size: 15px; line-height: 1.5; color: var(--text); padding: 0 16px; }
     .tcard-body b { font-weight: 600; }
-    .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 16px; }
+    .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 12px; }
     .tcard-hint svg { width: 13px; height: 13px; vertical-align: -2px; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
     .deck-prev { background: none; border: none; padding: 10px 4px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
@@ -2138,8 +2147,8 @@
     $('deck-next').textContent = last ? 'Finish' : 'Continue';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
-  function openLesson() { deckIdx = 0; $('school-menu').style.display = 'none'; $('school-lesson').style.display = ''; renderDeckCard(); }
-  function closeLesson() { $('school-lesson').style.display = 'none'; $('school-menu').style.display = ''; window.scrollTo(0, 0); }
+  function openLesson() { deckIdx = 0; $('school-menu').style.display = 'none'; $('school-lesson').style.display = ''; $('view-school').classList.add('lesson-open'); renderDeckCard(); }
+  function closeLesson() { $('school-lesson').style.display = 'none'; $('school-menu').style.display = ''; $('view-school').classList.remove('lesson-open'); window.scrollTo(0, 0); }
   function deckNext() { if (deckIdx < SPELL_CARDS.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
   function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', openLesson); }
