@@ -593,11 +593,18 @@
     .bos-cover-title { font-family: var(--serif); font-size: 26px; line-height: 1.2; color: #e8ddc8; margin-top: 10px; letter-spacing: 1px; }
     .bos-cover-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #8a7d9c; margin-top: 12px; }
     body.book-open { overflow: hidden; }
-    #bos-reader { position: fixed; inset: 0; z-index: 90; background: #fdf9f3; display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
-    #bos-reader .deck-top { border-bottom: 1px dashed #d9cbb4; padding-bottom: 10px; }
-    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 15px; color: #6d5c3f; }
-    .bos-pageno { font-size: 11px; color: #a08f74; min-width: 52px; text-align: right; }
-    .bos-stage { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 26px 8px; color: #221c14; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    /* The open book floats as a real object — a white 3:4 page block with a
+       flat spine crease — on the app's own dark background (flat tones only,
+       per the no-gradients rule; the "curve" is stepped flat strips). */
+    #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 15px; color: var(--text); }
+    .bos-pageno { font-size: 11px; color: var(--text-faint); min-width: 52px; text-align: right; }
+    .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px 14px 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 62vh); max-height: 100%; background: #fefcf7; border-radius: 6px 14px 14px 6px; box-shadow: 0 10px 34px rgba(0,0,0,0.45); position: relative; display: flex; overflow: hidden; }
+    .bos-spine { flex: none; width: 12px; height: 100%; background: #f1ebdf; border-right: 1px solid #e4dccb; }
+    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #e9e2d2; }
+    .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; }
     @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
     .bos-page { animation: bosPageIn 0.2s ease; }
     .bos-date { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; }
@@ -1042,7 +1049,7 @@
             <div class="bos-crumb" id="bos-crumb">Book of Shadows</div>
             <div class="bos-pageno" id="bos-pageno"></div>
           </div>
-          <div class="bos-stage" id="bos-stage"></div>
+          <div class="bos-stage" id="bos-stage"><div class="bos-book"><div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div></div></div>
           <div class="deck-nav">
             <button class="deck-prev" id="bos-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Back</button>
             <button class="btn" id="bos-write">Write <span class="js-star"></span></button>
@@ -1613,12 +1620,11 @@
   function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
   function renderBosPage() {
     const pages = bosPages(), total = pages.length;
-    const stage = $('bos-stage');
     $('bos-crumb').textContent = BOS_SECTIONS[bosFilter] || 'Book of Shadows';
     if (bosPageIdx <= 0) { renderBosIndex(); return; }
     if (bosPageIdx > total) bosPageIdx = total;
     if (!total) {
-      stage.innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
       $('bos-pageno').textContent = '';
       return;
     }
@@ -1644,14 +1650,14 @@
       const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
       inner += `<h3>${esc(r.question || 'A reading')}</h3><div class="bos-context">${esc(cards)}</div><div style="margin-top:10px;">${renderReading(r.data, true)}</div>`;
     }
-    stage.innerHTML = `<div class="bos-page">${inner}</div>`;
+    $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}</div>`;
   }
   function renderBosIndex() {
     const all = bosAllPages();
     const count = k => all.filter(p => p.kind === k).length;
     const rows = [['all', 'All pages', all.length], ['note', 'Day notes', count('note')], ['spell', 'Spells & outcomes', count('spell')], ['sign', 'Signs & synchronicities', count('sign')], ['dream', 'Dreams', count('dream')], ['reading', 'Readings', count('reading')], ['miracle', 'Miracles', count('miracle')]];
     $('bos-pageno').textContent = 'contents';
-    $('bos-stage').innerHTML = `<div class="bos-page">
+    $('bos-pagewrap').innerHTML = `<div class="bos-page">
       <div class="bos-date">Contents</div>
       ${rows.map(([k, n, c]) => `<div class="bos-index-row" data-sect="${k}"><span class="n">${n}</span><span class="c">${c ? c + (c === 1 ? ' page' : ' pages') : '—'}</span></div>`).join('')}
       <p class="hint" style="margin-top:16px;">Tap a section, or tap the right side of any page to turn it.</p>
