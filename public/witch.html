@@ -669,7 +669,12 @@
     .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
     .wback svg { width: 16px; height: 16px; }
     .wback:hover { color: var(--gold); }
-    .wroad-wrap { position: relative; margin: 4px -6px 0; }
+    /* z-index:1 creates a stacking context so the nodes' internal z-order
+       (nearer above farther) can never float above the lesson overlay */
+    .wroad-wrap { position: relative; margin: 4px -6px 0; z-index: 1; }
+    .cmoon { display: inline-block; vertical-align: -1px; }
+    .wpath-moon { text-align: center; margin: 6px 0 2px; }
+    .wpath-moon .lbl { display: block; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--gold-dim); margin-top: 5px; }
     .wroad-wrap svg { width: 100%; height: 100%; display: block; }
     .wnode.road { position: absolute; max-width: 128px; }
     .wnode.road .ic { background: var(--surface); }
@@ -2970,6 +2975,15 @@
     if (e.seen >= (LESSONS[key] || []).length) e.done = true;
     p[key] = e; saveSchoolProgress(p);
   }
+  // Sophie's pick for the "leveling" feel: each course is a moon that waxes
+  // from new to full as lessons complete, glowing brighter as it fills.
+  function courseMoon(done, total, size) {
+    const f = total ? done / total : 0;
+    const glyph = f >= 1 ? '\u{1F315}' : f >= 0.75 ? '\u{1F314}' : f >= 0.5 ? '\u{1F313}' : f > 0 ? '\u{1F312}' : '\u{1F311}';
+    const glow = f >= 1 ? 10 : Math.round(f * 7);
+    const style = `font-size:${size || 18}px;` + (glow ? `filter: drop-shadow(0 0 ${glow}px rgba(212,168,90,${0.35 + f * 0.45}));` : 'opacity:0.75;');
+    return `<span class="cmoon" style="${style}" title="${done} of ${total}">${glyph}</span>`;
+  }
   function courseProgress(course) {
     const prog = schoolProgress();
     const done = course.lessons.filter(k => prog[k] && prog[k].done).length;
@@ -2984,7 +2998,7 @@
       return `<div class="wcourse" data-course="${c.id}" role="button">
         <img class="cv" src="${SW_IMG}${c.cover}.png" alt="" loading="lazy">
         <div class="meta">
-          <div class="t">${esc(c.title)}</div>
+          <div class="t">${esc(c.title)} ${courseMoon(p.done, p.total, 15)}</div>
           <div class="s">${esc(c.sub)}</div>
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
@@ -3018,6 +3032,7 @@
     }
     wrap.innerHTML = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
       <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
+      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 30)}<span class="lbl">${courseProgress(course).done ? (courseProgress(course).done === courseProgress(course).total ? 'Full moon — course complete' : 'Waxing — ' + courseProgress(course).done + ' of ' + courseProgress(course).total + ' lessons') : 'New moon — the path awaits'}</span></div>
       <div class="wroad-wrap" id="wroad-wrap" style="height:${H}px;">
         <svg id="wroad-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
           <path id="wroad-center" d="${d}" fill="none" stroke="none"/>
