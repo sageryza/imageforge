@@ -36,7 +36,7 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 
 1. **Write a spec JSON** (see any `*-spec.json` from past runs; shape below).
    Card ids use a 2-letter lesson prefix: `sw- pm- pa- as- dw- pc- tr- rs- dv-
-   cr- tw- al- sh- wy-` are taken.
+   cr- tw- al- sh- wy- ap- ce-` are taken.
 
 ```json
 {
@@ -118,7 +118,8 @@ All in one place — search for `SPELL_CARDS` and copy the pattern:
 Spell Work (sw), The Magic of Plants (pm), Plant Magic II (pa), Astrology
 Basics (as), Dream Work (dw), Protection & Cleansing (pc), Tarot 101 (tr),
 Reading Signs (rs), Divination (dv), Crystals (cr), The Traveling Witch (tw),
-Building an Altar (al), Shadow Work (sh), The Wheel of the Year (wy).
+Building an Altar (al), Shadow Work (sh), The Wheel of the Year (wy), The
+Witch's Apothecary (ap), Crystal Energy (ce).
 
 ## Roadmap notes (Sophie's asks)
 
