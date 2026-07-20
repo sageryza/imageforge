@@ -697,6 +697,11 @@
     .nav-btn.active::after { content: ''; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--gold); }
     .btn svg, .btn-ghost svg { width: 15px; height: 15px; }
 
+    /* ── Native app mode (?app=1): the iOS wrapper hides the web nav and
+       drives go() from its own SF-Symbols tab bar via window.__setTab ── */
+    html.in-app nav { display: none; }
+    html.in-app .app { padding-bottom: 24px; }
+
     /* ── Moon calendar ── */
     .mcal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .mcal-title { font-family: var(--serif); font-size: 20px; color: var(--moon); }
@@ -1203,6 +1208,11 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+
+  // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
+  // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
+  if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
+  window.__setTab = go;
 
   /* ══════════ TAROT DECK (78) ══════════ */
   const MAJORS = [
