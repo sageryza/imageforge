@@ -579,6 +579,36 @@ lifted into a standalone tool later.
   blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status`,
   `/connect`, `/callback` open — the last two are browser redirects).
 
+## Tarot email (tap-to-reveal daily spread — Brevo)
+- `tarot-email.js` (`/api/tarot-email`) builds the **kinetic** daily tarot
+  email: the website's Past/Present/Future pull as three face-down cards, each
+  with its own pure-CSS tap-to-reveal (hidden checkboxes + `:checked` sibling
+  rules — email clients strip all JS). Apple Mail (iPhone/iPad/Mac) gets the
+  real in-email flips; Gmail/Outlook strip the `<input>`s so a pre-checked
+  "support test" checkbox never matches and they auto-fall back to the same
+  face-down spread linking out to `/witch`. Both versions are fully
+  inline-styled, so a stripped `<style>` still renders sane; images-blocked
+  keeps framed card shapes. The "tap each card" hint hides itself once all
+  three are revealed (chained `:checked ~` selectors).
+- The spread is **deterministic per day and MATCHES THE WEBSITE** — a verbatim
+  port of `witch.html`'s `dailyPull()` with the logged-out seed
+  (`<dateISO>|anon`), same FNV-1a hash + 78-card deck (deck data is a copy in
+  the module; **keep in sync**), ~28% reversed per card, baked in at build
+  time. Art = the committed `witch-tarot-manifest.json` Rider-Waite Firebase
+  URLs (reversed cards render rotated 180°). ~13KB, far under Gmail's 102KB
+  clip.
+- **Routes:** `GET /status` + `GET /preview?date=YYYY-MM-DD` (both open — it's
+  public marketing content; preview returns the raw email HTML, viewable in a
+  browser), `POST /send-test {to, date?}` (STUDIO_TOKEN-gated; one real send
+  via Brevo's transactional API to verify the flip in a real inbox).
+- **Brevo** (the ESP — free tier 300/day, accepts full custom HTML): keys via
+  config-loader MANAGED_KEYS or Render env — `BREVO_API_KEY` (app.brevo.com →
+  SMTP & API), `BREVO_FROM_EMAIL` (must be a Brevo-verified sender),
+  `BREVO_FROM_NAME` (default "Secretly a Witch"). **Campaign sends stay in
+  Brevo's dashboard** — paste the `/preview` HTML into a custom-HTML campaign
+  (Brevo appends the unsubscribe footer there); `/send-test` is only the
+  does-the-checkbox-survive check.
+
 ## Blog Studio (SEO posts → Shopify blog)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
   into an SEO blog post and publishes it to the Shopify store blog — free organic
