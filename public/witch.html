@@ -103,7 +103,9 @@
       width: 100%; padding: 12px 14px;
       background: var(--surface);
       border: 1px solid var(--border); border-radius: var(--radius);
-      color: var(--text); font-size: 15px; font-family: inherit; outline: none;
+      /* 16px minimum — anything smaller makes iOS auto-zoom the page when the
+         field is focused (and it stays zoomed after). */
+      color: var(--text); font-size: 16px; font-family: inherit; outline: none;
       transition: border-color 0.15s ease;
     }
     input::placeholder, textarea::placeholder { color: var(--text-faint); }
@@ -171,7 +173,7 @@
     /* Suspicious coincidence — describe it, AI draws it */
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-    .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 12px; line-height: 1.35; word-break: break-word; cursor: text; outline: none; }
+    .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
     .coin-box:focus { border-color: var(--gold-dim); }
     .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     /* Draw button lives INSIDE the box, bottom-right (matching the diary look) */
@@ -532,7 +534,11 @@
        thin progress segments up top, an edge-to-edge illustration, the text
        centered in the remaining space. Tap the right side to advance, the
        left edge to go back. One card per screen, no scrolling. */
-    html, body { touch-action: manipulation; }   /* kill double-tap zoom */
+    /* Kill double-tap zoom EVERYWHERE. On html/body alone it doesn't reach
+       inside scrollable containers (iOS recomputes touch-action from the
+       nearest scroll container, so .deck-text / .quiz-app were exempt and
+       tap-cards double-tap-zoomed). Scrolling and pinch are unaffected. */
+    * { touch-action: manipulation; }
     body.lesson-open { overflow: hidden; }       /* freeze the page behind the lesson */
     #school-lesson {
       position: fixed; inset: 0; z-index: 90;
