@@ -169,6 +169,13 @@ function styleRefGridPrefix(style) {
 }
 
 // Style lock that held the illustration style verbatim in the validated run.
+// The "mostly still" motion feel, choosable at the Add-motion step: most of
+// the frame holds still and only one small thing moves.
+const SUBTLE_MOTION_STYLE =
+  'Hand-drawn illustration, nearly still, on textured paper. Camera completely ' +
+  'static. The frame holds almost motionless — only ONE small, quiet movement ' +
+  '(a breath, drifting steam, a blink). The illustration style, linework and ' +
+  'colors are preserved exactly.';
 const DEFAULT_MOTION_STYLE =
   'Hand-drawn ink and watercolor illustration, subtle limited animation on ' +
   'textured paper. Camera completely static. Gentle storybook motion. The ' +
@@ -2343,8 +2350,14 @@ router.post('/:id/clips', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
-    const { tier = 'draft', only, force = false } = req.body || {};
+    const { tier = 'draft', only, force = false, morphPairs, motionFeel } = req.body || {};
     if (!VIDEO_MODELS[tier]) return res.status(400).json({ error: `unknown tier "${tier}"` });
+    // Motion decisions arrive at THIS step (they're irrelevant while images
+    // are being made): morphPairs:false flattens every pair to hard cuts;
+    // motionFeel 'subtle'/'normal' swaps the movie-level motion style.
+    if (morphPairs === false) movie.scenes.forEach(s => { s.pairWithNext = false; });
+    if (motionFeel === 'subtle') movie.motionStyle = SUBTLE_MOTION_STYLE;
+    else if (motionFeel === 'normal' && movie.motionStyle === SUBTLE_MOTION_STYLE) movie.motionStyle = DEFAULT_MOTION_STYLE;
     const targets = [];
     movie.scenes.forEach((s, idx) => {
       if (isMerged(movie, idx)) return;                 // folded into the previous pair-clip
