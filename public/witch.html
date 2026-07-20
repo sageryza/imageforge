@@ -1034,6 +1034,11 @@
             <div><div class="lt">Crystals</div><div class="ld">Shapes, cleansing & charging</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
+          <div class="lesson-card" id="open-crystal2">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></span>
+            <div><div class="lt">Crystal Energy</div><div class="ld">Channeling energy through stone</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <div class="lesson-card" id="open-travel">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M6.36 17.4 4 17l-2-4 1.1-.55a2 2 0 0 1 1.8 0l.17.1a2 2 0 0 0 1.8 0L8 12 5 6l.9-.45a2 2 0 0 1 2.09.2l4.02 3a2 2 0 0 0 2.1.2l4.19-2.06a2.41 2.41 0 0 1 1.73-.17L21 7a1.4 1.4 0 0 1 .87 1.99l-.38.76c-.23.46-.6.84-1.07 1.08L7.58 17.2a2 2 0 0 1-1.22.18Z"/></svg></span>
             <div><div class="lt">The Traveling Witch</div><div class="ld">Magic away from home</div></div>
@@ -2906,6 +2911,18 @@
     { img: 'cr-09', bg: '#fefbf6', kicker: 'The grid', h: 'Stones in formation', body: 'A <b>crystal grid</b> is stones arranged in a simple geometric pattern — a triangle, a circle — around a written intention, each stone chosen for its job. The claim is that arrangement multiplies them; at minimum, building one is ten focused minutes of pure intention. That\'s a spell by any name.' },
     { img: 'cr-10', bg: '#fbf6f0', kicker: 'After', h: 'One stone, one week', body: 'Skip the giant collection. Pick <b>one</b> stone, cleanse it in tonight\'s moonlight, give it one clear job, and pocket it for a week. Notice when you reach for it — that reflex is the relationship starting. ✦' },
   ];
+  const CRYSTAL2_CARDS = [
+    { img: 'ce-01', bg: '#BG01', kicker: 'Crystal Energy', h: 'The deeper current', body: 'You know your stones — how they grow, how to cleanse and charge them. This is the deeper teaching: crystals don\'t just <i>hold</i> energy. They <b>move</b> it. One idea at a time, from ancient ice to a practice you can do tonight.' },
+    { img: 'ce-02', bg: '#BG02', kicker: 'Eternal ice', h: 'Where it all began', body: 'The Greeks called clear quartz <b>krystallos</b> — ice frozen so deep it could never melt again. Pliny the Elder, two thousand years ago, described crystal spheres that gathered the sun\'s rays into a point of healing heat. Energy, channeled through crystal — the idea is at least that old.' },
+    { img: 'ce-03', bg: '#BG03', kicker: 'Honest science', h: 'The real spark', body: 'In 1880 the <b>Curie brothers</b> proved something wild: squeeze quartz and it gives off a real, measurable electric charge — <b>piezoelectricity</b>. It\'s why quartz keeps time in watches and steadied the first radios. Whatever else you believe, energy genuinely moves through this stone. The old lore chose its mineral well.' },
+    { img: 'ce-04', bg: '#BG04', kicker: 'The Essenes', h: 'The crystal at Qumran', body: 'In <b>Jesus and the Essenes</b>, Dolores Cannon\'s hypnosis subject describes the Qumran community\'s library holding a great <b>pyramid-shaped crystal</b> of shifting colors, kept behind a wall, approached only by the Master. The students poured their energy to him — and he focused it <i>through the crystal</i>, directing it wherever it was needed.' },
+    { img: 'ce-05', bg: '#BG05', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'Strip that story to its bones and you have the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, many hearts together. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
+    { img: 'ce-06', bg: '#BG06', kicker: 'The warning', h: 'The fire stone', body: 'Edgar Cayce\'s trance readings told of Atlantis powered by a six-sided <b>fire stone</b> — a great crystal that gathered the light of sun and stars and beamed it out to power whole cities. In the story they tuned it too high, too greedily, and sank the island. Myth or memory, keep its lesson: channel with reverence, never for force.' },
+    { img: 'ce-07', bg: '#BG07', kicker: 'The scientist-mystic', h: 'Marcel Vogel\'s lens', body: 'IBM research scientist <b>Marcel Vogel</b> — a hundred-plus patents to his name — spent his later years testing quartz and concluded it could <b>amplify intention</b> the way a lens focuses light: hold a clear thought through a crystal and the crystal strengthens and directs it. Healing wands are still cut to his design today.' },
+    { img: 'ce-08', bg: '#BG08', kicker: 'The practice', h: 'Load the thought', body: 'Channeling starts inside you. Cleanse your quartz, hold it at your heart, and breathe <b>one clear intention</b> into it — a single sentence, felt as much as said. You\'re not talking to a rock; you\'re doing what Vogel did: giving a thought worth focusing a lens to pass through.' },
+    { img: 'ce-09', bg: '#BG09', kicker: 'The hands', h: 'Receive left, send right', body: 'The old energy-work rule of thumb: the <b>left hand receives, the right hand sends</b>. Left palm open to draw calm in; right hand holding your point, aimed at what you\'re blessing — a plant, a photo, your own heart. Three slow breaths to <b>raise</b>, one held breath to <b>gather</b>, a long exhale to <b>direct</b> it down the crystal and out the tip.' },
+    { img: 'ce-10', bg: '#BG10', kicker: 'After', h: 'Send someone light', body: 'Tonight: charge your clearest quartz with one loving sentence for someone you care about, aim the point their way, and send it — three breaths, gather, release.<br><br>Then write down what you sent and to whom. Watch what comes back. ✦', cta: { label: 'Write it in my Book of Shadows', go: 'book', book: 'spell' } },
+  ];
   const ALTAR_CARDS = [
     { img: 'al-01', bg: '#fdf7f0', kicker: 'Building an Altar', h: 'A home for your craft', body: 'You packed a whole altar into a mint tin for traveling. This is its big sibling: a small, permanent place in your home where the craft lives. One shelf can hold the entire practice.' },
     { img: 'al-02', bg: '#fdfbf7', kicker: 'The idea', h: 'Set apart on purpose', body: 'An altar is any surface you\'ve <b>set apart on purpose</b> — a windowsill, a shelf, one corner of the dresser. The setting-apart is itself the magic: the moment a surface stops being storage and starts being sacred.' },
@@ -2954,7 +2971,7 @@
     { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them. <i>(Or begin with a ready-stocked <a href="https://secretlyawitch.com/products/apothecary-box-with-wooden-mortar-and-pestle" target="_blank" rel="noopener">apothecary box</a> from the shop and grow it from there.)</i>' },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it. That\'s page one of a real apothecary.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -2963,7 +2980,7 @@
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'signs', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2', 'apoth'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, cleansing & charging', cover: 'course-crystal', lessons: ['crystal'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'course-crystal', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
   ];
   let schoolCourse = null; // null = catalog; a course id = that course's path
@@ -3162,6 +3179,7 @@
   { const rs = $('open-signs'); if (rs) rs.addEventListener('click', () => openLesson('signs')); }
   { const dv = $('open-divin'); if (dv) dv.addEventListener('click', () => openLesson('divin')); }
   { const cr = $('open-crystal'); if (cr) cr.addEventListener('click', () => openLesson('crystal')); }
+  { const c2 = $('open-crystal2'); if (c2) c2.addEventListener('click', () => openLesson('crystal2')); }
   { const tw = $('open-travel'); if (tw) tw.addEventListener('click', () => openLesson('travel')); }
   { const al = $('open-altar'); if (al) al.addEventListener('click', () => openLesson('altar')); }
   { const sh = $('open-shadow'); if (sh) sh.addEventListener('click', () => openLesson('shadow')); }
