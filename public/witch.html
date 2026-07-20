@@ -158,7 +158,9 @@
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: fit-content; margin-left: auto; padding: 8px 16px;
-      background: #ecdcb4; color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
+      /* Solid gold, white text, no visible outline (border kept same width/color
+         as the fill so the button's size is unchanged). */
+      background: var(--gold); color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
       font-size: 15px; font-weight: 600; font-family: var(--serif); letter-spacing: 0.2px; text-transform: lowercase;
       cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
     }
@@ -581,10 +583,7 @@
     .deck-prev:hover { color: var(--gold); }
     .deck-prev svg { width: 16px; height: 16px; }
     .deck-prev[disabled] { visibility: hidden; }
-    /* Experiment: the deck's continue button is solid gold, no outline, white
-       text — a bolder primary than the house light-gold/outline .btn. */
-    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px;
-      background: var(--gold); border-color: var(--gold); color: #fffbf3; }
+    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
 
     /* ── Witch School: the path ──
        Imprint-style winding trail, witch-dressed: nodes zigzag down a central
