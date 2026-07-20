@@ -808,7 +808,11 @@
             <div><div class="lt">Spell Work</div><div class="ld">Intention, energy & how to cast</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
-          <div class="lesson"><span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span><div><div class="lt">The Magic of Plants</div><div class="ld">Herbs, correspondences & kitchen craft</div></div><span class="soon">Soon</span></div>
+          <div class="lesson-card" id="open-plants">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span>
+            <div><div class="lt">The Magic of Plants</div><div class="ld">Herbs, correspondences & kitchen craft</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <p class="hint" style="text-align:center; margin-top:14px;">More lessons are being written.</p>
         </div>
 
@@ -2155,17 +2159,33 @@
     { img: 'sw-09', bg: '#fcf9f2', kicker: 'The ritual', h: 'Casting it', body: 'Cleanse the space and settle your breath. Name your intention out loud, in the present tense. Light a fitting candle and hold your herb or written wish. Then repeat your words, breathe into the feeling, and at the peak picture it fully real — and release it.' },
     { img: 'sw-10', bg: '#fcf8f3', kicker: 'After', h: 'Then act', body: 'Ground yourself — breathe, touch the floor, give thanks, and stop turning it over. Then act in the real world too: send the text, apply, set the boundary. Magic works <i>with</i> you, not instead of you.<br><br><b>Tonight:</b> light a white candle for clarity. Your first spell can be that simple. ✦' },
   ];
-  // Preload every card image up front so the picture is ready the instant its
-  // card renders (no "text first, then the image pops in" flash).
-  SPELL_CARDS.forEach(c => { const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
-  let deckIdx = 0;
+  const PLANT_CARDS = [
+    { img: 'pm-01', bg: '#fdfbf8', kicker: 'Plant Magic', h: 'Welcome to plant magic', body: 'Plants are a witch\'s oldest allies. We\'ll meet them one at a time — just tap to keep going.' },
+    { img: 'pm-02', bg: '#fdf7ef', kicker: 'The idea', h: 'Every plant carries meaning', body: 'Witches call it a <b>correspondence</b> — each plant\'s own quiet specialty. Rosemary guards. Lavender soothes. Basil draws abundance. Work with a plant and you borrow its nature.' },
+    { img: 'pm-03', bg: '#fbf8f5', kicker: 'Look closer', h: 'Your kitchen is a cabinet', body: 'You already own a witch\'s cupboard. <b>Salt</b> cleanses, <b>cinnamon</b> quickens luck, <b>pepper</b> banishes, and a <b>bay leaf</b> holds a wish. No occult shop required.' },
+    { img: 'pm-04', bg: '#fefbf4', kicker: 'The guardian', h: 'Rosemary', body: 'The all-purpose protector — when in doubt, use rosemary. Hang a sprig by the front door, tuck one in your bag, or add it to dinner with intention.' },
+    { img: 'pm-05', bg: '#fef9f3', kicker: 'The soother', h: 'Lavender', body: 'Peace, rest, and forgiveness. Slip a little under your pillow for sleep, or keep it in the rooms where arguments tend to happen.' },
+    { img: 'pm-06', bg: '#fefbf7', kicker: 'The magnet', h: 'Basil & cinnamon', body: 'The abundance workers. A living basil plant invites money into the house; a pinch of cinnamon speeds any spell along. Sweet and quick.' },
+    { img: 'pm-07', bg: '#fcf3e9', kicker: 'The heart', h: 'Rose & chamomile', body: 'Rose opens love — every kind, including for yourself. Chamomile softens grief and settles a worried heart. Tea is the easiest door in.' },
+    { img: 'pm-08', bg: '#fdf7f1', kicker: 'Kitchen craft', h: 'Stir with intention', body: 'Cooking becomes casting the moment you mean it. Stir <b>clockwise</b> to draw things in, <b>counter-clockwise</b> to banish, and name what you\'re stirring into the pot: calm, protection, enough.' },
+    { img: 'pm-09', bg: '#fbf8f6', kicker: 'A first charm', h: 'Make a sachet', body: 'Take a small square of cloth, add a pinch of whichever herbs match your intention, and tie it closed while picturing it already done. Keep it in a pocket, a bag, or by the bed.' },
+    { img: 'pm-10', bg: '#faf7f2', kicker: 'After', h: 'Then tend', body: 'Plant magic is a relationship — water something, season something, notice what grows back.<br><br><b>Tonight:</b> brew one cup of tea slowly, name what you need, and drink it warm. That\'s a potion. ✦' },
+  ];
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS };
+  let deckCards = SPELL_CARDS, deckIdx = 0;
+  // Preload each lesson's FIRST image up front (instant cover when a lesson
+  // opens); the rest of a lesson preloads the moment it's opened, so we never
+  // pull all ~20 card images on page load.
+  const preloaded = new Set();
+  const preload = (cards) => cards.forEach(c => { if (preloaded.has(c.img)) return; preloaded.add(c.img); const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
+  Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
   const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   function renderDeckCard() {
-    const c = SPELL_CARDS[deckIdx], last = deckIdx === SPELL_CARDS.length - 1;
+    const c = deckCards[deckIdx], last = deckIdx === deckCards.length - 1;
     // Each card's bg is sampled from its own illustration's corner pixels, so
     // the art floats seamlessly on the screen even though the creams differ.
     $('school-lesson').style.background = c.bg || '#fdf9f3';
-    $('deck-prog').innerHTML = SPELL_CARDS.map((_, i) => `<span class="deck-seg${i <= deckIdx ? ' on' : ''}"></span>`).join('');
+    $('deck-prog').innerHTML = deckCards.map((_, i) => `<span class="deck-seg${i <= deckIdx ? ' on' : ''}"></span>`).join('');
     $('deck-stage').innerHTML = `<div class="tcard">
       <div class="deck-head">
         <div class="tcard-kicker">${esc(c.kicker)}</div>
@@ -2181,11 +2201,12 @@
     $('deck-next').textContent = last ? 'Finish' : 'Continue';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
-  function openLesson() { deckIdx = 0; $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard(); }
+  function openLesson(key) { deckCards = LESSONS[key] || SPELL_CARDS; preload(deckCards); deckIdx = 0; $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard(); }
   function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); }
-  function deckNext() { if (deckIdx < SPELL_CARDS.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
+  function deckNext() { if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
   function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
-  { const os = $('open-spell'); if (os) os.addEventListener('click', openLesson); }
+  { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
+  { const op = $('open-plants'); if (op) op.addEventListener('click', () => openLesson('plants')); }
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
