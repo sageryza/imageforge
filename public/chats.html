@@ -84,6 +84,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
 .m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
 .m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
+/* The folded technical middle of a message — collapsed to a tap. */
+.fold{margin:8px 0;}
+.foldtog{display:inline-flex; align-items:center; gap:6px; background:var(--barbg); border:1px solid var(--line); color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; border-radius:6px; padding:6px 11px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.foldtog.open{color:var(--ink);}
+.foldbody{margin-top:8px;}
 .msg.open .m-head{cursor:pointer;}
 .m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
 .msg.open .m-close{display:inline;}
@@ -214,6 +219,62 @@ function md(t){
     return part;
   }).join('');
   return s;
+}
+// The messages follow a pattern: a bit for Sophie, a chunk of technical work in
+// the MIDDLE, then a closing bit for Sophie. foldBody keeps the opening and
+// closing prose visible and tucks the technical middle behind a tap — nothing
+// deleted, one tap to reveal. Conservative on purpose: only folds when there's
+// prose on BOTH sides, and never folds a block containing a link, so her
+// closing message + testing links always stay in view.
+function splitBlocks(text){
+  var out=[], lines=String(text||'').split('\n'), buf=[], inCode=false;
+  function flush(){ var s=buf.join('\n'); if(s.trim()!=='') out.push(s); buf=[]; }
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i];
+    if(/^\s*```/.test(l)){
+      if(inCode){ buf.push(l); out.push(buf.join('\n')); buf=[]; inCode=false; }
+      else { flush(); buf.push(l); inCode=true; }
+      continue;
+    }
+    if(inCode){ buf.push(l); continue; }
+    if(l.trim()===''){ flush(); } else { buf.push(l); }
+  }
+  if(inCode){ out.push(buf.join('\n')); } else { flush(); }
+  return out;
+}
+function isTech(b){
+  var t=b.trim(); if(!t) return false;
+  if(/^```/.test(t)) return true;                 // fenced code = always technical
+  if(/https?:\/\//.test(t)) return false;         // a link → it's a message for her
+  var lines=t.split('\n').filter(function(l){ return l.trim()!==''; });
+  if(!lines.length) return false;
+  var hits=0;
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i];
+    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\b/.test(l)
+      || /^[+\-]\s/.test(l)                        // diff line
+      || /\b[0-9a-f]{7,40}\b/.test(l)              // commit hash / id
+      || /\s\/[\w.-]+\/[\w./-]+/.test(l)           // absolute-ish path
+      || /[\w-]+\.(js|ts|tsx|swift|py|json|css|html|yml|yaml|sh|xml|md|plist|xcassets|svg)\b/.test(l)
+    ) hits++;
+  }
+  return hits / lines.length >= 0.5;
+}
+function foldBody(text){
+  var blocks=splitBlocks(text);
+  if(blocks.length<3) return md(text);
+  var tech=blocks.map(isTech);
+  var first=tech.indexOf(true), last=tech.lastIndexOf(true);
+  // Need technical content bracketed by prose on both sides, else show it all.
+  if(first<1 || last>=blocks.length-1 || last<first) return md(text);
+  var mid=blocks.slice(first, last+1).join('\n\n');
+  if(mid.replace(/\s/g,'').length<140) return md(text);   // too small to bother
+  var head=blocks.slice(0, first).join('\n\n');
+  var tail=blocks.slice(last+1).join('\n\n');
+  return md(head)
+    + '<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
+    + '<div class="foldbody" hidden>'+md(mid)+'</div></div>'
+    + md(tail);
 }
 // small cached thumbnails for the Assets grid (server resizes + caches)
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
@@ -430,7 +491,15 @@ function renderMsg(m){
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
     +'<span class="m-close">close &#9650;</span></div>'
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
-    +'<div class="m-full">'+md(m.text)+'</div>';
+    +'<div class="m-full">'+foldBody(m.text)+'</div>';
+  // Wire the "working details" fold toggle (if this message has one). Stops
+  // propagation so tapping it doesn't also trigger the reading-aid autoscroll.
+  var ft=row.querySelector('.foldtog');
+  if(ft){ ft.onclick=function(e){ e.stopPropagation();
+    var body=ft.nextElementSibling, open=body.hasAttribute('hidden');
+    if(open){ body.removeAttribute('hidden'); ft.setAttribute('aria-expanded','true'); ft.classList.add('open'); }
+    else { body.setAttribute('hidden',''); ft.setAttribute('aria-expanded','false'); ft.classList.remove('open'); }
+  }; }
   var tools=document.createElement('div'); tools.className='m-tools';
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
   else if(m.from!=='sophie'){
