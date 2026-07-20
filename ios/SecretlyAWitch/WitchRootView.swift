@@ -39,6 +39,7 @@ struct WitchRootView: View {
     @State private var loading = true
     @State private var failed = false
     @State private var reloadKey = 0
+    @State private var pulse = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,7 +68,9 @@ struct WitchRootView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 34))
                 .foregroundStyle(WitchTheme.gold)
-                .symbolEffect(.pulse, options: .repeating)
+                .opacity(pulse ? 0.35 : 1)
+                .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+                .onAppear { pulse = true }
             Text("Summoning…")
                 .font(.system(size: 15))
                 .foregroundStyle(WitchTheme.inkFaint)
