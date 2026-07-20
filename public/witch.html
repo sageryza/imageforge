@@ -1403,11 +1403,13 @@
   function setAstroLoading() {
     $('astro-headline').textContent = '';
     $('astro-extra').innerHTML = '';
-    $('astro-body').innerHTML = `<div style="min-height:170px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:14px 0 4px;">
+    $('astro-body').innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 0;">
       <div class="skywheel" role="img" aria-label="Reading the sky">${skyWheelSVG()}</div>
       <div style="text-align:center; font-size:13px; color:var(--text-dim); font-style:italic;">Reading the sky for you…</div>
     </div>`;
+    // hidden while loading — the empty .note still reserves 26px otherwise
     $('astro-note').textContent = '';
+    $('astro-note').style.display = 'none';
     const fc = $('see-full-chart'); if (fc) fc.style.display = 'none';
   }
 
@@ -1472,6 +1474,7 @@
       $('astro-headline').textContent = '';
       $('astro-extra').innerHTML = '';
       $('astro-note').textContent = '';
+      $('astro-note').style.display = '';
       $('astro-body').innerHTML = `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The stars are quiet right now — <button class="link-btn" id="astro-retry">try again</button>.</p>`;
       const rb = $('astro-retry'); if (rb) rb.addEventListener('click', () => loadDaily(true));
     }
@@ -1502,6 +1505,7 @@
     }
     $('astro-extra').innerHTML = ex;
     $('astro-note').textContent = '';
+    $('astro-note').style.display = '';
     const ab = $('astro-add-birth');
     if (ab) ab.addEventListener('click', () => { $('natal-date').scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('natal-date').focus(), 400); });
   }
