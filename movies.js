@@ -495,6 +495,19 @@ async function transcribeAudio(buffer, filename = 'voiceover.m4a') {
   };
 }
 
+// Map an audio mime type to a file extension Whisper can sniff (it keys the
+// format off the filename). Defaults to m4a — iOS Voice Memos / the share sheet.
+function extFromMime(mime = '') {
+  const m = String(mime).toLowerCase();
+  if (m.includes('mpeg') || m.includes('mp3')) return 'mp3';
+  if (m.includes('wav')) return 'wav';
+  if (m.includes('webm')) return 'webm';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('aiff') || m.includes('aif')) return 'aiff';
+  if (m.includes('flac')) return 'flac';
+  return 'm4a';   // audio/mp4, audio/x-m4a, audio/aac
+}
+
 // Panel render — gpt-image-2 portrait, timeout scaled by quality (high takes
 // minutes at OpenAI's end; see server.js's OPENAI_IMAGE_TIMEOUTS).
 const IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000 };
@@ -2075,6 +2088,36 @@ router.post('/morphfilm', async (req, res) => {
 router.get('/dream', async (req, res) => {
   try { res.json({ dreams: await listDreams() }); }
   catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Transcribe a dream she already RECORDED (a voice memo) → text, so a file feeds
+// the exact same pipeline as typing or live dictation. Whisper (transcribeAudio);
+// returns only the text — she reviews/edits it in the box before Illustrate, then
+// POST /dream breaks it down as usual. Accepts a base64 data URL or a public url.
+router.post('/dream/transcribe', async (req, res) => {
+  try {
+    const { audio, url } = req.body || {};
+    let buffer = null, contentType = 'audio/mp4';
+    if (audio) {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(audio);
+      if (!m) return res.status(400).json({ error: 'audio must be a base64 data URL' });
+      contentType = m[1] || contentType;
+      buffer = Buffer.from(m[2], 'base64');
+    } else if (url) {
+      const got = await fetchBuffer(url);
+      buffer = got.buffer;
+      contentType = got.contentType || contentType;
+    } else {
+      return res.status(400).json({ error: 'audio (data URL) or url is required' });
+    }
+    if (!buffer || !buffer.length) return res.status(400).json({ error: 'empty audio' });
+    const t = await transcribeAudio(buffer, 'dream.' + extFromMime(contentType));
+    const text = String(t.text || '').trim();
+    if (!text) return res.status(422).json({ error: "couldn't make out any words in that recording" });
+    res.json({ text, duration: t.duration });
+  } catch (err) {
+    res.status(err.message && err.message.includes('required') ? 400 : 502).json({ error: err.message });
+  }
 });
 
 router.post('/dream', async (req, res) => {

@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import UniformTypeIdentifiers
 
 /// Dreams — write down a dream and it's illustrated as a short hand-drawn
 /// diary comic: GPT breaks it into beats + captions AND reconstructs the true
@@ -23,6 +24,9 @@ struct DreamsView: View {
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
     @State private var showConsent = false
+    @State private var showAudioPicker = false
+    @State private var transcribing = false          // uploading a recording → text
+    @State private var pendingAudioURL: URL?         // a picked file waiting on AI consent
     @FocusState private var focused: Bool
     @StateObject private var speech = DreamSpeech()
 
@@ -80,17 +84,30 @@ struct DreamsView: View {
         .onChange(of: speech.errorText) { newValue in
             if let e = newValue { errorText = e; speech.errorText = nil }
         }
+        .fileImporter(isPresented: $showAudioPicker,
+                      allowedContentTypes: [.audio],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls): if let u = urls.first { importAudio(u) }
+            case .failure(let err): errorText = err.localizedDescription
+            }
+        }
         .sheet(isPresented: $showConsent) {
             AIConsentSheet(
                 theme: .deckFactory,
                 appName: "Deck Factory",
                 providers: [
-                    AIProvider(name: "OpenAI", role: "Illustrates your dream (ChatGPT / gpt-image-2)"),
+                    AIProvider(name: "OpenAI", role: "Transcribes & illustrates your dream (Whisper / gpt-image-2)"),
                 ],
-                dataDescription: "the dream you write",
+                dataDescription: "the dream you write or the recording you add",
                 privacyURL: URL(string: "https://incaseofamnesia.com/privacy.html"),
-                onAgree: { aiConsentAccepted = true; showConsent = false; run() },
-                onCancel: { showConsent = false })
+                onAgree: {
+                    aiConsentAccepted = true
+                    showConsent = false
+                    if let u = pendingAudioURL { pendingAudioURL = nil; importAudio(u) }
+                    else { run() }
+                },
+                onCancel: { showConsent = false; pendingAudioURL = nil })
         }
     }
 
@@ -99,10 +116,24 @@ struct DreamsView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(speech.recording ? "LISTENING…" : "WHAT DID YOU DREAM?")
+                Text(speech.recording ? "LISTENING…" : (transcribing ? "TRANSCRIBING…" : "WHAT DID YOU DREAM?"))
                     .font(.caption2.weight(.semibold)).tracking(1)
                     .foregroundColor(speech.recording ? Theme.danger : Theme.textDim)
                 Spacer()
+                if transcribing { ProgressView().scaleEffect(0.75).padding(.trailing, 2) }
+                // Add an existing recording (a voice memo she already made) —
+                // transcribed with Whisper, then illustrated like typed text.
+                Button {
+                    focused = false
+                    pickAudio()
+                } label: {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 18))
+                        .foregroundColor(Theme.accent)
+                }
+                .accessibilityLabel("Add a voice recording")
+                .disabled(speech.recording || transcribing)
+                .opacity(speech.recording || transcribing ? 0.4 : 1)
                 Button {
                     focused = false
                     speech.toggle(seed: text)
@@ -112,6 +143,7 @@ struct DreamsView: View {
                         .foregroundColor(speech.recording ? Theme.danger : Theme.accent)
                 }
                 .accessibilityLabel(speech.recording ? "Stop recording" : "Record your dream")
+                .disabled(transcribing)
             }
             TextField("Last night I dreamed…", text: $text, axis: .vertical)
                 .lineLimit(3...8)
@@ -294,6 +326,57 @@ struct DreamsView: View {
             }
             busy = false
             statusLabel = ""
+        }
+    }
+
+    /// The waveform button: open the file picker, but ask for AI consent first
+    /// (transcribing sends the audio to OpenAI, same as illustrating).
+    private func pickAudio() {
+        guard !transcribing, !busy else { return }
+        showAudioPicker = true
+    }
+
+    /// A picked recording → base64 data URL → Whisper → drop the transcript in the
+    /// box (appended to whatever's there), so she can read/fix it before drawing.
+    private func importAudio(_ url: URL) {
+        guard aiConsentAccepted else { pendingAudioURL = url; showConsent = true; return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let raw = try? Data(contentsOf: url) else {
+            errorText = "Couldn't read that recording."
+            return
+        }
+        // Whisper caps files at 25MB and the server body at 25MB (base64 ~+33%);
+        // ~18MB of audio ≈ 15+ min of a voice memo, plenty for a dream.
+        guard raw.count <= 18_000_000 else {
+            errorText = "That recording's a bit long to upload — try one under about 15 minutes."
+            return
+        }
+        let dataURL = "data:\(Self.audioMime(for: url.pathExtension));base64," + raw.base64EncodedString()
+        let seed = text
+        focused = false
+        transcribing = true
+        Task {
+            do {
+                let transcript = try await MovieService.shared.transcribeDream(audioDataURL: dataURL)
+                text = seed.isEmpty ? transcript : seed + " " + transcript
+            } catch {
+                errorText = error.localizedDescription
+            }
+            transcribing = false
+        }
+    }
+
+    /// Best-effort mime for the picked file's extension (iOS Voice Memos = m4a).
+    private static func audioMime(for ext: String) -> String {
+        switch ext.lowercased() {
+        case "mp3", "mpeg", "mpga": return "audio/mpeg"
+        case "wav": return "audio/wav"
+        case "webm": return "audio/webm"
+        case "ogg", "oga": return "audio/ogg"
+        case "aiff", "aif": return "audio/aiff"
+        case "flac": return "audio/flac"
+        default: return "audio/mp4"   // m4a / mp4 / aac / caf
         }
     }
 
