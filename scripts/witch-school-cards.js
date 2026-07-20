@@ -4,9 +4,11 @@
 //
 //   node scripts/witch-school-cards.js lesson-spec.json
 //
-// Spec: { "refs": ["path/to/style-ref.png", ...], "cards": [{ "id": "pm-01",
-//         "prompt": "..." }, ...] }  — refs are Sophie's style-anchor images
-// (kept out of the repo; pass local paths). Card prompts get the house STYLE
+// Spec: { "refs": ["storage:witch-school/refs/style-1.png", ...], "cards":
+//         [{ "id": "pm-01", "prompt": "..." }, ...] }  — refs are Sophie's
+// style-anchor images ("storage:<path>" fetches them from the private bucket,
+// so any session can run this; local paths also work). Full workflow:
+// docs/witch-school-lessons.md. Card prompts get the house STYLE
 // prefix + no-text suffix automatically; include CHAR yourself when the
 // recurring woman should appear (spec key "char": true on a card).
 //
@@ -33,6 +35,21 @@ if (!KEY) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 
 const saJson = process.env.FIREBASE_SERVICE_ACCOUNT || fs.readFileSync(process.env.FIREBASE_KEY_FILE, 'utf8');
 initializeApp({ credential: cert(JSON.parse(saJson)), storageBucket: 'deckfactory-43176.firebasestorage.app' });
+
+// Refs may be local paths OR "storage:<path>" — Sophie's style anchors live
+// privately at storage:witch-school/refs/style-1.png / style-2.png so ANY
+// session can run this without her re-uploading them.
+async function materializeRefs(refs) {
+  const out = [];
+  for (const r of refs) {
+    if (!r.startsWith('storage:')) { out.push(r); continue; }
+    const remote = r.slice('storage:'.length);
+    const local = '/tmp/ref-' + remote.split('/').pop();
+    if (!fs.existsSync(local)) await getStorage().bucket().file(remote).download({ destination: local });
+    out.push(local);
+  }
+  return out;
+}
 
 async function generate(prompt) {
   const fd = new FormData();
@@ -64,6 +81,7 @@ async function sampleBg(buf) {
 
 (async () => {
   const bucket = getStorage().bucket();
+  spec.refs = await materializeRefs(spec.refs);
   const results = [];
   for (const card of spec.cards) {
     const prompt = (card.char ? CHAR : '') + card.prompt;

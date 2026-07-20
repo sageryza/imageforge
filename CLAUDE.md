@@ -596,6 +596,11 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
 ## Secretly a Witch (public witchy app)
+- **Witch School lessons: the complete creation workflow is documented in
+  `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
+  lessons match the 14 live ones (voice, research pass, illustration pipeline
+  via `scripts/witch-school-cards.js`, per-card sampled backgrounds, wiring,
+  tests). Sophie's style refs live at `storage:witch-school/refs/style-*.png`.
 - `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
