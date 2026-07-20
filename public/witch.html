@@ -302,6 +302,10 @@
     .ritual-line { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.5; color: var(--moon); }
 
     /* Dive deeper — the day's full reading, its own page */
+    /* Unlike the quiz, the deep page keeps the bottom nav: it sits BELOW the
+       nav (z 50) in the stack, and its 96px bottom padding already clears it.
+       Tapping a nav tab closes the page (see go()). */
+    #deep-app { z-index: 45; }
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
     #deep-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
@@ -842,7 +846,7 @@
 
         <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Your daily reading</div>
-        <div class="section-sub">The sky, the cards, and an intention — written fresh for you each day.</div>
+        <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
         <!-- Daily reading (FIRST): account gate → birthday → reading -->
         <div class="card" id="daily-card">
@@ -1254,6 +1258,7 @@
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
   function go(view) {
+    if (deepOpen) closeDeep();   // the Dive-deeper page yields to the nav
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
