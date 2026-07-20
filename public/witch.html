@@ -821,6 +821,11 @@
             <div><div class="lt">The Magic of Plants</div><div class="ld">Herbs, correspondences & kitchen craft</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
+          <div class="lesson-card" id="open-plants2">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg></span>
+            <div><div class="lt">Plant Magic II</div><div class="ld">Signatures, planets & preparations</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <p class="hint" style="text-align:center; margin-top:14px;">More lessons are being written.</p>
         </div>
 
@@ -2179,7 +2184,19 @@
     { img: 'pm-09', bg: '#fbf8f6', kicker: 'A first charm', h: 'Make a sachet', body: 'Take a small square of cloth, add a pinch of whichever herbs match your intention, and tie it closed while picturing it already done. Keep it in a pocket, a bag, or by the bed.' },
     { img: 'pm-10', bg: '#faf7f2', kicker: 'After', h: 'Then tend', body: 'Plant magic is a relationship — water something, season something, notice what grows back.<br><br><b>Tonight:</b> brew one cup of tea slowly, name what you need, and drink it warm. That\'s a potion. ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS };
+  const PLANT2_CARDS = [
+    { img: 'pa-01', bg: '#fdf9f3', kicker: 'Plant Magic II', h: 'The deeper craft', body: 'You know the kitchen basics. This lesson opens the old books — how witches and herbalists read plants, timed them by the sky, and made real preparations.' },
+    { img: 'pa-02', bg: '#fef8ee', kicker: 'The old doctrine', h: 'Plants sign themselves', body: 'The <b>doctrine of signatures</b>: a plant\'s look hints at its gift. Lungwort\'s spotted leaves for the lungs, eyebright\'s tiny eye for tired eyes, the walnut\'s folds for the mind. The old herbalists read plants like letters.' },
+    { img: 'pa-03', bg: '#fcf8f1', kicker: 'The sky above', h: 'Every herb has a planet', body: 'In 1652 the herbalist Nicholas Culpeper gave every herb of England a planetary ruler. <b>Venus</b> claims the soft and sweet — rose, thyme. <b>Mars</b> the sharp and thorned — nettle. <b>The Moon</b> the pale and night-loving — mugwort, mallow.' },
+    { img: 'pa-04', bg: '#fdf8f1', kicker: 'Timing', h: 'Harvest by the heavens', body: 'The old way: gather an herb on its planet\'s own day, under a waxing moon. Rose cut on <b>Friday</b> — Venus\'s day — for love work at full strength. Timing is what turns an ingredient into an ally.' },
+    { img: 'pa-05', bg: '#fdf8f2', kicker: 'The moon garden', h: 'Plant by the moon', body: 'Farmers from Pliny\'s Rome onward sowed by moonlight: <b>waxing</b> for what grows above the ground, <b>waning</b> for the roots below. The moon pulls the tides — the old belief says it pulls sap and soil-water too.' },
+    { img: 'pa-06', bg: '#fdf9f2', kicker: 'Gathering rites', h: 'Take little, give back', body: 'Wild harvesting has rules older than books: be <b>certain</b> what the plant is before you cut, ask first, take only from abundance — one stem among many — and leave a small thanks. A witch is a steward first.' },
+    { img: 'pa-07', bg: '#faf5ee', kicker: 'Preparations', h: 'The folk tincture', body: 'Pack a jar with your herb, cover it, lid it, and leave it in the dark for <b>four to six weeks</b>, shaking it whenever you pass by. No measuring — this is the folk method, made by feel and patience.' },
+    { img: 'pa-08', bg: '#fefcf8', kicker: 'Preparations', h: 'The simpler\'s oil', body: 'The sun does the work: a jar half-filled with dried herbs, covered in oil, set on a bright windowsill for two to six weeks. Rosemary oil to cook protection into dinner; lavender oil for calm at your wrists.' },
+    { img: 'pa-09', bg: '#fcfafa', kicker: 'Respect', h: 'The poison path', body: 'The witch\'s dark shelf — belladonna, henbane, mandrake — is real lore, sacred to Hecate in the old stories. Know these plants to honor them, <b>never to touch or brew them</b>. Their safe cousins mugwort and wormwood carry the visionary work.' },
+    { img: 'pa-10', bg: '#fefaf6', kicker: 'After', h: 'Choose one ally', body: 'The deepest plant magic isn\'t a shelf of jars — it\'s one plant known well. Choose a single green ally this season: learn its planet, its signature, its time of day.<br><br><b>Tonight:</b> pick your plant. ✦' },
+  ];
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS };
   let deckCards = SPELL_CARDS, deckIdx = 0;
   // Preload each lesson's FIRST image up front (instant cover when a lesson
   // opens); the rest of a lesson preloads the moment it's opened, so we never
@@ -2215,6 +2232,7 @@
   function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
   { const op = $('open-plants'); if (op) op.addEventListener('click', () => openLesson('plants')); }
+  { const p2 = $('open-plants2'); if (p2) p2.addEventListener('click', () => openLesson('plants2')); }
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
