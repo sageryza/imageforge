@@ -110,6 +110,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .tbtn{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
+/* Labeled Refresh button, left-grouped next to the view toggle so it never
+   sits under the floating autoscroll pill in the top-right corner. */
+.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
 .m-tools audio{flex:1; height:32px; min-width:0;}
 /* view toggle (List / Tiles) */
 .viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
@@ -171,7 +174,7 @@ __PILL_HTML__
     </header>
     <div style="display:flex; align-items:center; gap:10px; margin:0 0 1.5em;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
-      <button id="refresh" class="tbtn" aria-label="Refresh" style="margin-left:auto; padding:8px 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+      <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
