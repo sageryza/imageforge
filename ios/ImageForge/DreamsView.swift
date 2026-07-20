@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 import UniformTypeIdentifiers
 
@@ -26,7 +27,7 @@ struct DreamsView: View {
     @State private var showConsent = false
     @State private var showAudioPicker = false
     @State private var transcribing = false          // uploading a recording → text
-    @State private var pendingAudioURL: URL?         // a picked file waiting on AI consent
+    @State private var pendingAudio: (data: Data, mime: String)?   // audio waiting on AI consent
     @FocusState private var focused: Bool
     @StateObject private var speech = DreamSpeech()
 
@@ -88,7 +89,7 @@ struct DreamsView: View {
                       allowedContentTypes: [.audio],
                       allowsMultipleSelection: false) { result in
             switch result {
-            case .success(let urls): if let u = urls.first { importAudio(u) }
+            case .success(let urls): if let u = urls.first { readAudioFile(u) }
             case .failure(let err): errorText = err.localizedDescription
             }
         }
@@ -104,10 +105,10 @@ struct DreamsView: View {
                 onAgree: {
                     aiConsentAccepted = true
                     showConsent = false
-                    if let u = pendingAudioURL { pendingAudioURL = nil; importAudio(u) }
+                    if let p = pendingAudio { pendingAudio = nil; beginTranscription(p.data, mime: p.mime) }
                     else { run() }
                 },
-                onCancel: { showConsent = false; pendingAudioURL = nil })
+                onCancel: { showConsent = false; pendingAudio = nil })
         }
     }
 
@@ -121,6 +122,19 @@ struct DreamsView: View {
                     .foregroundColor(speech.recording ? Theme.danger : Theme.textDim)
                 Spacer()
                 if transcribing { ProgressView().scaleEffect(0.75).padding(.trailing, 2) }
+                // Paste a copied recording OR copied text. If the clipboard holds
+                // an audio recording it's transcribed (Whisper); text just drops in.
+                Button {
+                    focused = false
+                    pasteFromClipboard()
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 17))
+                        .foregroundColor(Theme.accent)
+                }
+                .accessibilityLabel("Paste a recording or text")
+                .disabled(speech.recording || transcribing)
+                .opacity(speech.recording || transcribing ? 0.4 : 1)
                 // Add an existing recording (a voice memo she already made) —
                 // transcribed with Whisper, then illustrated like typed text.
                 Button {
@@ -336,23 +350,62 @@ struct DreamsView: View {
         showAudioPicker = true
     }
 
-    /// A picked recording → base64 data URL → Whisper → drop the transcript in the
-    /// box (appended to whatever's there), so she can read/fix it before drawing.
-    private func importAudio(_ url: URL) {
-        guard aiConsentAccepted else { pendingAudioURL = url; showConsent = true; return }
+    /// A picked recording file → read its bytes → transcribe.
+    private func readAudioFile(_ url: URL) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let raw = try? Data(contentsOf: url) else {
             errorText = "Couldn't read that recording."
             return
         }
+        beginTranscription(raw, mime: Self.audioMime(for: url.pathExtension))
+    }
+
+    /// The clipboard button: if you copied a recording, transcribe it; if you
+    /// copied text, just drop the text in. This is the "paste it" path — copy a
+    /// voice memo anywhere, come here, paste. iOS text fields can't hold an audio
+    /// file, so the recording is pulled off the clipboard here instead.
+    private func pasteFromClipboard() {
+        guard !transcribing, !busy else { return }
+        let pb = UIPasteboard.general
+        // A recording on the clipboard → Whisper.
+        if let provider = pb.itemProviders.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }) {
+            let typeId = provider.registeredTypeIdentifiers.first(where: { UTType($0)?.conforms(to: .audio) == true })
+                ?? UTType.audio.identifier
+            let ext = UTType(typeId)?.preferredFilenameExtension ?? "m4a"
+            transcribing = true   // spinner while the clipboard item loads
+            provider.loadDataRepresentation(forTypeIdentifier: typeId) { data, _ in
+                Task { @MainActor in
+                    transcribing = false
+                    guard let data, !data.isEmpty else {
+                        errorText = "Couldn't read the copied recording — try the waveform button instead."
+                        return
+                    }
+                    beginTranscription(data, mime: Self.audioMime(for: ext))
+                }
+            }
+            return
+        }
+        // Plain text on the clipboard → append it.
+        if let s = pb.string, !s.isEmpty {
+            text = text.isEmpty ? s : text + " " + s
+            return
+        }
+        errorText = "Nothing to paste — copy a recording (or some text) first."
+    }
+
+    /// Shared transcription path for both the file picker and paste: gate on AI
+    /// consent, then base64 data URL → Whisper → drop the transcript in the box
+    /// (appended to whatever's there), so she can read/fix it before drawing.
+    private func beginTranscription(_ data: Data, mime: String) {
+        guard aiConsentAccepted else { pendingAudio = (data, mime); showConsent = true; return }
         // Whisper caps files at 25MB and the server body at 25MB (base64 ~+33%);
         // ~18MB of audio ≈ 15+ min of a voice memo, plenty for a dream.
-        guard raw.count <= 18_000_000 else {
+        guard data.count <= 18_000_000 else {
             errorText = "That recording's a bit long to upload — try one under about 15 minutes."
             return
         }
-        let dataURL = "data:\(Self.audioMime(for: url.pathExtension));base64," + raw.base64EncodedString()
+        let dataURL = "data:\(mime);base64," + data.base64EncodedString()
         let seed = text
         focused = false
         transcribing = true
