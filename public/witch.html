@@ -669,7 +669,9 @@
     .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
     .wback svg { width: 16px; height: 16px; }
     .wback:hover { color: var(--gold); }
-    .wroad-wrap { position: relative; margin: 4px -6px 0; }
+    /* z-index:1 creates a stacking context so the nodes' internal z-order
+       (nearer above farther) can never float above the lesson overlay */
+    .wroad-wrap { position: relative; margin: 4px -6px 0; z-index: 1; }
     .wroad-wrap svg { width: 100%; height: 100%; display: block; }
     .wnode.road { position: absolute; max-width: 128px; }
     .wnode.road .ic { background: var(--surface); }
