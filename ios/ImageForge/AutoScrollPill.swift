@@ -19,7 +19,7 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     static let shared = AutoScrollDriver()
 
     @Published var playing = false
-    @Published var speedIndex = 1               // 0 slow · 1 medium · 2 fast
+    @Published var speedIndex = 1               // 0 slow · 1 medium · 2 fast · 3 fastest
     var direction: Double = 1
     /// The pill's on-screen frame (global/window coords), kept current by
     /// AutoScrollPill — taps inside it are the pill's own controls.
@@ -29,8 +29,8 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     /// there's never two pills stacked on top of each other.
     @Published var webPillActive = false
 
-    /// Three discrete speeds instead of a continuous dial.
-    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9)]
+    /// Four discrete speeds instead of a continuous dial.
+    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9), ("Fastest", 3.2)]
     var speed: Double { Self.speeds[speedIndex].value }
     var speedLabel: String { Self.speeds[speedIndex].label }
     func slower() { speedIndex = max(0, speedIndex - 1) }
@@ -39,7 +39,8 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     private var link: CADisplayLink?
     private var lastTime: CFTimeInterval?
     private weak var target: UIScrollView?
-    private var tapCatcher: UITapGestureRecognizer?
+    private var singleTap: UITapGestureRecognizer?
+    private var doubleTap: UITapGestureRecognizer?
 
     func toggle() { playing ? stop() : start(direction == 0 ? 1 : direction) }
 
@@ -64,26 +65,40 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
         removeTapCatcher()
     }
 
-    // A tap ANYWHERE on content stops autoscroll — on every screen, without
-    // per-screen wiring. cancelsTouchesInView=false so the tap still does what
-    // it was going to do (open a tile, press a button); the pill's own frame is
-    // filtered out in shouldReceive so −/‖/+ keep working while playing.
+    // Tap gestures on content, on every screen, no per-screen wiring: a SINGLE
+    // tap stops autoscroll, a DOUBLE tap bumps it one speed faster. The single
+    // recognizer waits for the double to fail. cancelsTouchesInView=false on the
+    // single one so a plain tap still opens the tile it landed on; the double
+    // one consumes its touches (a deliberate speed-up shouldn't also fire the
+    // content). The pill's own frame is filtered out in shouldReceive so −/‖/+
+    // keep working while playing.
     private func installTapCatcher() {
         removeTapCatcher()
         guard let window = target?.window ?? Self.keyWindow() else { return }
-        let t = UITapGestureRecognizer(target: self, action: #selector(contentTapped))
-        t.cancelsTouchesInView = false
-        t.delegate = self
-        window.addGestureRecognizer(t)
-        tapCatcher = t
+        let dbl = UITapGestureRecognizer(target: self, action: #selector(contentDoubleTapped))
+        dbl.numberOfTapsRequired = 2
+        dbl.cancelsTouchesInView = true
+        dbl.delegate = self
+        window.addGestureRecognizer(dbl)
+        let sgl = UITapGestureRecognizer(target: self, action: #selector(contentTapped))
+        sgl.numberOfTapsRequired = 1
+        sgl.cancelsTouchesInView = false
+        sgl.delegate = self
+        sgl.require(toFail: dbl)
+        window.addGestureRecognizer(sgl)
+        singleTap = sgl
+        doubleTap = dbl
     }
 
     private func removeTapCatcher() {
-        if let t = tapCatcher { t.view?.removeGestureRecognizer(t) }
-        tapCatcher = nil
+        if let t = singleTap { t.view?.removeGestureRecognizer(t) }
+        if let t = doubleTap { t.view?.removeGestureRecognizer(t) }
+        singleTap = nil
+        doubleTap = nil
     }
 
     @objc private func contentTapped() { stop() }
+    @objc private func contentDoubleTapped() { if playing { faster() } }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }

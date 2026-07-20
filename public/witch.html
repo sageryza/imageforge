@@ -168,7 +168,7 @@
     }
     .btn-gold:hover { filter: brightness(0.97); }
     .btn-gold:active { transform: scale(0.985); }
-    .btn-gold svg { width: 15px; height: 15px; }
+    .btn-gold svg { width: 14px; height: 14px; }
     .btn-row { display: flex; gap: 10px; }
     .btn-white { background: #ffffff; color: var(--gold); border: 1px solid var(--gold-dim); }
     .btn-white:hover { filter: none; background: #fffdf7; }
@@ -258,7 +258,11 @@
     .q-opt:hover { border-color: #8f8a82; color: var(--text); }
     /* Continue + Back row (Back on the left) */
     .quiz-btnrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
-    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; }
+    /* Match the gold Continue button exactly — same padding, border-box, and
+       eyebrow font — so Back is the same height (its outline included). */
+    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; padding: 8px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; text-transform: uppercase; }
     .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
     .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
@@ -2192,12 +2196,12 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
       const body =
-        `<div class="reveal-name">${esc(it.reveal.name)}</div>
-         <div class="reveal-body">${esc(it.reveal.body)}</div>
+        `<div class="reveal-body">${esc(it.reveal.body)}</div>
          <div class="quiz-btnrow">
            <button class="btn-ghost" id="q-back" type="button">Back</button>
-           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'}</button>
+           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'} ${arrow}</button>
          </div>`;
       const wire = () => {
         $('q-cont').onclick = () => { qi++; renderQuizScreen(); };

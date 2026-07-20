@@ -293,7 +293,7 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 __PILL_JS__
-var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='';
+var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
@@ -484,11 +484,11 @@ function renderMsg(m){
   // audio (player or Play) sits at the TOP of the message, under the header
   row.insertBefore(tools, row.querySelector('.m-preview'));
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  // tapping the open message starts/stops autoscroll (reading aid) —
-  // closing moved to the header row ("close ▲") so a tap never collapses it
+  // tapping the open message controls autoscroll: single tap stops, double tap
+  // speeds up. Closing is the header row ("close ▲") so a tap never collapses it.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollToggle();
+    window.__scrollTap();
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
@@ -668,8 +668,11 @@ function openChat(name, keepScroll){
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\\u2019t load images.</div>'; });
   }
   var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
-  tgChat.onclick=function(){ tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
-  tgAssets.onclick=function(){ scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
+  tgChat.onclick=function(){ curTab='chat'; tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
+  tgAssets.onclick=function(){ curTab='assets'; scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
+  // A rebuild (e.g. from Refresh) keeps whichever tab was open — restore the
+  // Assets tab instead of snapping back to Chat.
+  if(curTab==='assets'){ tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); }
 
   markSeen(name);
   document.getElementById('home').style.display='none';
@@ -720,7 +723,7 @@ function lightbox(url, asset){
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
-  scrollStop(); cur=null;
+  scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
