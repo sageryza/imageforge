@@ -790,31 +790,55 @@ app.get('/api/story', async (req, res) => {
 // back to redirecting to the original image rather than a broken cell.
 const THUMB_HOSTS = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
 const thumbHot = new Map(); // url|w → cached public URL (per-process)
+// Content-addressed thumb path — computable WITHOUT generating, so the assets
+// list can hand out direct storage URLs for thumbs that already exist.
+const thumbName = (url, w) => 'thumbs/'
+  + require('crypto').createHash('sha1').update(url + '|' + w).digest('hex') + '.webp';
+async function makeThumb(url, w) {
+  const key = url + '|' + w;
+  if (thumbHot.has(key)) return thumbHot.get(key);
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(thumbName(url, w));
+  const [exists] = await file.exists();
+  if (!exists) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('fetch ' + r.status);
+    const out = await require('sharp')(await r.buffer())
+      .resize({ width: w, withoutEnlargement: true })
+      .webp({ quality: 75 })
+      .toBuffer();
+    await file.save(out, { contentType: 'image/webp', resumable: false });
+    await file.makePublic();
+  }
+  const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+  thumbHot.set(key, pub);
+  return pub;
+}
+// Background warmer: pre-makes missing thumbs right after an assets-list
+// request (a few at a time), so tiles get direct storage URLs on the next
+// load instead of bouncing through this server one image at a time.
+const thumbWarmQ = []; const thumbWarmSeen = new Set(); let thumbWarmActive = 0;
+function warmThumbs(urls, w) {
+  urls.forEach((u) => {
+    const k = u + '|' + w;
+    if (!thumbWarmSeen.has(k)) { thumbWarmSeen.add(k); thumbWarmQ.push([u, w]); }
+  });
+  const tick = () => {
+    while (thumbWarmActive < 3 && thumbWarmQ.length) {
+      const [u, ww] = thumbWarmQ.shift();
+      thumbWarmActive++;
+      makeThumb(u, ww).catch(() => {}).then(() => { thumbWarmActive--; tick(); });
+    }
+  };
+  tick();
+}
 app.get('/api/story/thumb', async (req, res) => {
   const url = String(req.query.url || '');
   try {
     const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
     if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
     if (!admin.apps.length) return res.redirect(302, url);
-    const key = url + '|' + w;
-    if (thumbHot.has(key)) return res.redirect(302, thumbHot.get(key));
-    const name = 'thumbs/' + require('crypto').createHash('sha1').update(key).digest('hex') + '.webp';
-    const bucket = admin.storage().bucket();
-    const file = bucket.file(name);
-    const [exists] = await file.exists();
-    if (!exists) {
-      const r = await fetch(url);
-      if (!r.ok) return res.redirect(302, url);
-      const out = await require('sharp')(await r.buffer())
-        .resize({ width: w, withoutEnlargement: true })
-        .webp({ quality: 75 })
-        .toBuffer();
-      await file.save(out, { contentType: 'image/webp', resumable: false });
-      await file.makePublic();
-    }
-    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-    thumbHot.set(key, pub);
-    res.redirect(302, pub);
+    res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
     if (THUMB_HOSTS.test(url)) return res.redirect(302, url);
@@ -1005,6 +1029,22 @@ app.get('/api/gallery/assets', async (req, res) => {
     }
     const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
       .map((a) => ({ url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' }));
+    // Direct thumbnail URLs: the thumb path is content-addressed, so we can
+    // hand out the storage.googleapis.com URL without any lookup. Tiles load
+    // straight from storage's CDN — no per-image 302 hop through this server.
+    // If a thumb isn't made yet the direct URL 404s and the client falls back
+    // to /api/story/thumb (which generates on demand); meanwhile we warm the
+    // missing ones in the background so the next load is all-direct.
+    if (admin.apps.length) {
+      const bucket = admin.storage().bucket();
+      const warm = [];
+      assets.forEach((a) => {
+        if (!THUMB_HOSTS.test(a.url)) return;
+        a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
+        warm.push(a.url);
+      });
+      if (warm.length) warmThumbs(warm, 480);
+    }
     // Sophie's ♥/✕ curation votes ride along so the tiles can show them —
     // and so any chat reading this list sees her verdicts.
     try {
