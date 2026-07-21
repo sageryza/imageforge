@@ -159,8 +159,16 @@
        actions; quiz answer lists, segmented toggles and modal buttons keep their
        own full-width/centered layouts. */
     #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
-    .dream-btns { justify-content: flex-end; }
+    /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
+       Back/Continue row. */
+    .dream-btns { justify-content: space-between; }
     .dream-btns .btn, .dream-btns .btn-ghost { width: auto; margin-left: 0; }
+    .dream-btns .btn-gold { width: auto; }  /* keeps margin-left:auto → sits right */
+    /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
+    #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; text-transform: uppercase; }
+    #dream-unlock:hover { border-color: #8f8a82; color: var(--gold); }
     /* Gold button: gold outline, lighter-gold fill, darker-gold text; auto-width, right-aligned. */
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -497,7 +505,7 @@
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
@@ -931,13 +939,13 @@
         <div class="section-title">What did you dream last night?</div>
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div class="card" id="dream-card">
-          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg> Past readings</button>
+          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
             <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
           </div>
           <div class="dream-btns">
-            <button class="btn" id="dream-unlock">Unlock the symbolism</button>
-            <button class="btn-ghost" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
+            <button class="btn-ghost" id="dream-unlock">Unlock the symbolism</button>
+            <button class="btn-gold" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
@@ -2543,7 +2551,6 @@
     [
       { name: 'Apothecary cards', price: '$32', badge: 'best', handle: 'witchcraft-cards-apothecary-crystal-19221', img: SHOP_CDN + 'il_fullxfull.5521065204_90tq_8495b008-592c-4ae8-9d56-4c9fbd38c9bd.jpg?v=1770947332' },
       { name: 'Travel kit', price: '$85', badge: 'tag', label: 'The essentials', handle: 'travel-witchcraft-kit-travel-altar-kit-39959', img: SHOP_CDN + 'il_fullxfull.1769851682_q7l6.jpg?v=1770947433' },
-      { name: 'Color in tarot', price: '$23', badge: 'new', handle: 'color-in-69086', img: SHOP_CDN + 'il_fullxfull.5970330348_7ht4.jpg?v=1770947425' },
     ],
     [
       { name: 'Magic of Flower Cards', price: '$20', badge: 'new', handle: 'magic-of-flower-cards-oracle-deck-33100', img: SHOP_CDN + 'il_fullxfull.7658334563_4gm0.jpg?v=1770947228' },
@@ -2560,6 +2567,9 @@
   }
   function renderProductRow(el, row) {
     if (!el) return;
+    // Size the columns to however many products are in the row, so a 2-item
+    // row fills the full width instead of leaving a 3rd empty slot.
+    el.style.gridTemplateColumns = `repeat(${row.length}, 1fr)`;
     el.innerHTML = row.map(p => `<a class="pcard" href="https://secretlyawitch.com/products/${p.handle}" target="_blank" rel="noopener">
       <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
       <div class="pname">${esc(p.name)}</div>
