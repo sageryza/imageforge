@@ -282,6 +282,9 @@
     .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
     .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
+    /* Question-page art: smaller than the reveal art so the question and
+       answers stay above the fold on a phone. */
+    .quiz-qart { width: 58%; margin: 0 auto 10px; }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
@@ -2490,27 +2493,36 @@
   // Real questions → after answering, a reveal screen (image/film + the sign
   // explained). Own full-screen overlay; the page behind is scroll-locked.
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
+  // House-style question + reveal illustrations (same pipeline as the School
+  // lessons — scripts/witch-school-cards.js, spec qz-*). bg = sampled corner
+  // hex; the quiz stage tints to it so the art floats with no box.
+  const QZ_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   const QUIZ = [
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#QBG1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r1.png', bg: '#RBG1' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#QBG2' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r2.png', bg: '#RBG2' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#QBG3' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r3.png', bg: '#RBG3' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      media: { type: 'image', url: QUIZ_ASSETS + 'synchronicity.png' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#QBG4' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#RBG4' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
-      media: { type: 'none' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5.png', bg: '#QBG5' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r5.png', bg: '#RBG5' },
       reveal: { name: 'You were never meant to fit', body: "Standing just outside the circle, feeling more than the people around you — that was never a flaw. It was the mark." } },
   ];
   function quizMediaHTML(m) {
@@ -2531,6 +2543,7 @@
     const sc = quizScreens[qi], stage = $('quiz-stage');
     $('quiz-app').scrollTop = 0;
     if (sc.k === 'intro') {
+      stage.style.background = '';
       stage.innerHTML =
         `<div class="quiz-kicker">A witching diagnostic</div>
          <div class="quiz-hero">Are you secretly a witch?</div>
@@ -2539,7 +2552,9 @@
       $('q-begin').onclick = () => { qi++; renderQuizScreen(); };
     } else if (sc.k === 'q') {
       const it = QUIZ[sc.i];
+      stage.style.background = (it.qmedia && it.qmedia.bg) || '';
       stage.innerHTML =
+        (it.qmedia ? `<img class="quiz-media quiz-qart" src="${it.qmedia.url}" alt="">` : '') +
         `<div class="quiz-q">${esc(it.q)}</div>` +
         (it.sub ? `<div class="quiz-sub">${esc(it.sub)}</div>` : '') +
         `<div class="quiz-opts">` +
@@ -2548,6 +2563,7 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      stage.style.background = (it.media && it.media.bg) || '';
       const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
       const body =
         `<div class="reveal-body">${esc(it.reveal.body)}</div>
@@ -2575,6 +2591,7 @@
         wire();
       }
     } else {
+      stage.style.background = '';
       stage.innerHTML = resultHTML();
       $('q-shop').onclick = () => { closeQuiz(); go('shop'); };
       $('q-again').onclick = () => { qi = 0; renderQuizScreen(); };
