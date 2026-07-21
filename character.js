@@ -30,6 +30,52 @@ function db() {
   try { return admin.apps.length ? admin.firestore() : null; } catch { return null; }
 }
 
+// ─── Name matching (dream/story cast → saved characters) ────────────
+// Normalize a name for comparison: lowercase, strip punctuation, collapse
+// spaces. Aliases let "me"/"Sophie" and "Daddy"/"Dad" resolve to one character.
+const normName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const nameWords = (s) => normName(s).split(' ').filter((w) => w.length > 1);
+function normAliases(a) {
+  const arr = Array.isArray(a) ? a : (typeof a === 'string' ? a.split(',') : []);
+  return [...new Set(arr.map((x) => String(x).trim()).filter(Boolean))].slice(0, 12);
+}
+// How well a cast name matches a saved character: 3 = exact name/alias,
+// 2 = whole-word containment either way ("Jonathan" ⊂ "Jonathan Small"), 0 = no.
+function matchScore(castName, ch) {
+  const c = normName(castName);
+  if (!c) return 0;
+  const keys = [ch.name, ...(Array.isArray(ch.aliases) ? ch.aliases : [])].map(normName).filter(Boolean);
+  if (keys.includes(c)) return 3;
+  const cw = new Set(nameWords(castName));
+  if (!cw.size) return 0;
+  for (const k of keys) {
+    const kw = nameWords(k);
+    if (!kw.length) continue;
+    if (kw.every((w) => cw.has(w))) return 2;                 // saved key's words all appear in the cast name
+    const kset = new Set(kw);
+    if ([...cw].every((w) => kset.has(w))) return 2;          // cast name's words all appear in the key
+  }
+  return 0;
+}
+// For each requested name, the best-scoring saved character (or null).
+async function matchCharacters(names) {
+  const d = db();
+  if (!d) return names.map((n) => ({ name: n, match: null }));
+  const snap = await d.collection(COLLECTION).get();
+  const chars = snap.docs.map((s) => ({ id: s.id, ...s.data() }));
+  return names.map((n) => {
+    let best = null, bestScore = 0;
+    for (const ch of chars) {
+      const sc = matchScore(n, ch);
+      if (sc > bestScore) { best = ch; bestScore = sc; }
+    }
+    return {
+      name: n,
+      match: best ? { id: best.id, name: best.name, url: best.url, cleanUrl: best.cleanUrl || best.url, score: bestScore } : null,
+    };
+  });
+}
+
 async function saveBufferToStorage(buffer, contentType, folder) {
   const b = bucket();
   const ext = contentType.includes('webp') ? 'webp' : contentType.includes('png') ? 'png' : 'jpg';
@@ -230,7 +276,7 @@ router.post('/generate', gated, async (req, res) => {
 // saved but off the sheet.
 router.post('/save', gated, async (req, res) => {
   try {
-    const { url, name, gender, tier, quality, model, chat } = req.body || {};
+    const { url, name, gender, tier, quality, model, chat, aliases } = req.body || {};
     if (!url) return res.status(400).json({ error: 'url required' });
     const d = db();
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
@@ -247,6 +293,9 @@ router.post('/save', gated, async (req, res) => {
       url: String(url),
       cleanUrl,
       tier: tier === 'main' ? 'main' : 'side',
+      // Other names this character is called in dreams/stories ("me"/"Sophie",
+      // "Daddy"/"Dad") — the matcher checks these alongside the primary name.
+      aliases: normAliases(aliases),
       quality: ['low', 'medium', 'high'].includes(quality) ? quality : null,
       model: model ? String(model).slice(0, 60) : null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -272,6 +321,7 @@ router.get('/', gated, async (req, res) => {
     const characters = snap.docs.map(s => {
       const v = s.data();
       return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.cleanUrl || v.url, tier: v.tier,
+        aliases: Array.isArray(v.aliases) ? v.aliases : [],
         quality: v.quality || null, model: v.model || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
     });
@@ -300,12 +350,30 @@ router.post('/:id/meta', gated, async (req, res) => {
     const d = db();
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
     const patch = {};
-    const { quality, model } = req.body || {};
+    const { quality, model, aliases, name, tier } = req.body || {};
     if (['low', 'medium', 'high'].includes(quality)) patch.quality = quality;
     if (model !== undefined) patch.model = model ? String(model).slice(0, 60) : null;
+    if (aliases !== undefined) patch.aliases = normAliases(aliases);
+    if (typeof name === 'string' && name.trim()) patch.name = name.trim();
+    if (tier === 'main' || tier === 'side') patch.tier = tier;
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to set' });
     await d.collection(COLLECTION).doc(req.params.id).update(patch);
     res.json({ ok: true, id: req.params.id, ...patch });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Match a dream/story's cast names to saved characters (name + aliases).
+// Body: { names: ["J","Dad","the boob girl"] } → { matches:[{name, match|null}] }.
+// The client shows these as approve/deny cards, then passes the approved ones
+// as characterRefs to the dream/movie render.
+router.post('/match', gated, async (req, res) => {
+  try {
+    const names = (Array.isArray(req.body?.names) ? req.body.names : [])
+      .map((n) => String(n || '').trim()).filter(Boolean).slice(0, 12);
+    if (!names.length) return res.json({ matches: [] });
+    res.json({ matches: await matchCharacters(names) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -389,4 +457,4 @@ router.post('/batch/generate', gated, async (req, res) => {
   }
 });
 
-module.exports = { router, generatePortrait, buildPrompt };
+module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchScore };
