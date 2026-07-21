@@ -2,26 +2,25 @@
 /**
  * nde-fetch-local.js — run this on your OWN computer (residential IP).
  *
- * WHY: YouTube blocks caption requests from datacenter IPs (the cloud sandbox
- * AND Render both get bot-flagged), so the pipeline can't fetch transcripts
- * from the server. Your home internet is NOT flagged. This script fetches the
- * 25 Anthony Chene NDE-interview transcripts from your machine and POSTs each
- * straight to the live ImageForge server, which extracts the moments and saves
- * them to the database. Nothing to send back — it flows straight in.
+ * Fetches the 25 Anthony Chene NDE-interview transcripts with yt-dlp (which
+ * handles YouTube's caption tokens correctly) and POSTs each straight to the
+ * live ImageForge server, which extracts the moments and saves them. Nothing
+ * to send back.
  *
- * NO API KEYS NEEDED. NO npm install. Pure Node built-ins.
+ * REQUIRES yt-dlp (one-time install). If it's missing, this script prints the
+ * install command and stops. No other keys or npm installs needed.
  *
- * RUN:
- *   node nde-fetch-local.js
- *
- * Optional: point at a different server —  NDE_SERVER=https://… node nde-fetch-local.js
+ * RUN:  node ~/Downloads/nde-fetch-local.js
  */
 
 const https = require('https');
+const { execFileSync, execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const SERVER = process.env.NDE_SERVER || 'https://imageforge-q125.onrender.com';
-const STUDIO_TOKEN = process.env.STUDIO_TOKEN || ''; // only if the server is gated
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
 const VIDEOS = [
   {
@@ -126,114 +125,95 @@ const VIDEOS = [
   }
 ];
 
-// ── tiny https helpers (follow redirects, browser UA) ──
-function get(url, redirects = 5) {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' } }, res => {
-      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && redirects > 0) {
-        res.resume();
-        return resolve(get(new URL(res.headers.location, url).toString(), redirects - 1));
-      }
-      let data = '';
-      res.on('data', c => (data += c));
-      res.on('end', () => resolve({ status: res.statusCode, body: data }));
-    });
-    req.on('error', reject);
-    req.setTimeout(30000, () => { req.destroy(new Error('timeout')); });
-  });
+// ── require yt-dlp ──
+function ytdlpPath() {
+  for (const cmd of ['yt-dlp', '/opt/homebrew/bin/yt-dlp', '/usr/local/bin/yt-dlp']) {
+    try { execFileSync(cmd, ['--version'], { stdio: 'ignore' }); return cmd; } catch {}
+  }
+  return null;
+}
+const YTDLP = ytdlpPath();
+if (!YTDLP) {
+  console.error(`
+yt-dlp is not installed. Install it once with ONE of these, then re-run this script:
+
+  brew install yt-dlp          (if you have Homebrew — most Macs)
+  pip3 install -U yt-dlp       (if you have Python 3)
+
+If neither works, download the binary:
+  sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos -o /usr/local/bin/yt-dlp && sudo chmod a+rx /usr/local/bin/yt-dlp
+
+Then run again:  node ~/Downloads/nde-fetch-local.js
+`);
+  process.exit(1);
 }
 
-function postJSON(path, obj) {
+function postJSON(p, obj) {
   const body = JSON.stringify(obj);
   return new Promise((resolve, reject) => {
-    const u = new URL(SERVER + path);
+    const u = new URL(SERVER + p);
     const headers = { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) };
     if (STUDIO_TOKEN) headers['x-studio-token'] = STUDIO_TOKEN;
     const req = https.request(u, { method: 'POST', headers }, res => {
-      let data = '';
-      res.on('data', c => (data += c));
-      res.on('end', () => { try { resolve({ status: res.statusCode, json: JSON.parse(data) }); } catch { resolve({ status: res.statusCode, json: { raw: data } }); } });
+      let d = ''; res.on('data', c => (d += c));
+      res.on('end', () => { try { resolve({ status: res.statusCode, json: JSON.parse(d) }); } catch { resolve({ status: res.statusCode, json: { raw: d } }); } });
     });
     req.on('error', reject);
-    req.setTimeout(120000, () => { req.destroy(new Error('timeout')); });
-    req.write(body);
-    req.end();
+    req.setTimeout(120000, () => req.destroy(new Error('timeout')));
+    req.write(body); req.end();
   });
 }
 
-// ── caption extraction (watch page → captionTracks → json3/xml) ──
-function pickTrack(tracks) {
-  const score = t => {
-    const lang = (t.languageCode || '').toLowerCase();
-    let s = 0;
-    if (lang === 'en') s += 100; else if (lang.startsWith('en')) s += 60;
-    if (!t.kind) s += 20; // manual over auto
-    return s;
-  };
-  return [...tracks].sort((a, b) => score(b) - score(a))[0];
-}
-
-function parseXML(xml) {
-  const out = [];
-  const re = /<text\s+start="([\d.]+)"(?:\s+dur="([\d.]+)")?[^>]*>([\s\S]*?)<\/text>/g;
-  const dec = s => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
-    .replace(/\s+/g, ' ').trim();
-  let m;
-  while ((m = re.exec(xml)) !== null) { const t = dec(m[3]); if (t) out.push({ start: +m[1], dur: m[2] ? +m[2] : 0, text: t }); }
-  return out;
-}
-
-async function fetchTranscript(videoId) {
-  const page = await get(`https://www.youtube.com/watch?v=${videoId}&hl=en`);
-  if (page.status !== 200 || !page.body.includes('ytInitialPlayerResponse')) {
-    throw new Error(`watch page HTTP ${page.status} (no player response)`);
+// json3 (yt-dlp writes it) → { segments, full }
+function parseJson3(file) {
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const segments = [];
+  for (const ev of data.events || []) {
+    if (!ev.segs) continue;
+    const text = ev.segs.map(s => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
+    if (text) segments.push({ start: (ev.tStartMs || 0) / 1000, dur: (ev.dDurationMs || 0) / 1000, text });
   }
-  const m = page.body.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var|<\/script>)/s)
-        || page.body.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;/s);
-  if (!m) throw new Error('could not extract player response');
-  const payload = JSON.parse(m[1]);
-  const tracks = payload?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-  const track = pickTrack(tracks);
-  if (!track) throw new Error('no captions on this video');
-  let segments = [];
-  const j = await get(track.baseUrl + '&fmt=json3');
-  if (j.status === 200 && j.body.trim()) {
-    try {
-      const data = JSON.parse(j.body);
-      for (const ev of data.events || []) {
-        if (!ev.segs) continue;
-        const text = ev.segs.map(s => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
-        if (text) segments.push({ start: (ev.tStartMs || 0) / 1000, dur: (ev.dDurationMs || 0) / 1000, text });
-      }
-    } catch { /* fall through */ }
-  }
-  if (!segments.length) {
-    const x = await get(track.baseUrl);
-    segments = parseXML(x.body);
-  }
-  if (!segments.length) throw new Error('caption track empty');
   const full = segments.map(s => s.text).join(' ').replace(/\s+/g, ' ').trim();
-  return { source: 'youtube_timedtext_local', language: track.languageCode || 'en', autoGenerated: track.kind === 'asr', segments, full, fetchedAt: new Date().toISOString() };
+  return { segments, full };
+}
+
+function fetchWithYtdlp(id, dir) {
+  // Write English subs (manual first, else auto) as json3, skip the video.
+  execFileSync(YTDLP, [
+    '--skip-download', '--write-subs', '--write-auto-subs',
+    '--sub-langs', 'en.*,en', '--sub-format', 'json3',
+    '-o', path.join(dir, '%(id)s.%(ext)s'),
+    '--quiet', '--no-warnings',
+    `https://www.youtube.com/watch?v=${id}`,
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  // Find the json3 file yt-dlp wrote for this id (prefer manual en over auto).
+  const files = fs.readdirSync(dir).filter(f => f.startsWith(id) && f.endsWith('.json3'));
+  if (!files.length) throw new Error('no English captions found');
+  files.sort((a, b) => (a.includes('orig') ? 1 : 0) - (b.includes('orig') ? 1 : 0));
+  const parsed = parseJson3(path.join(dir, files[0]));
+  if (!parsed.segments.length) throw new Error('caption file empty');
+  return { source: 'yt-dlp', language: 'en', segments: parsed.segments, full: parsed.full, fetchedAt: new Date().toISOString() };
 }
 
 (async () => {
-  console.log(`Fetching ${VIDEOS.length} transcripts and posting to ${SERVER}\n`);
+  console.log(`Using ${YTDLP}. Fetching ${VIDEOS.length} transcripts → ${SERVER}\n`);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-'));
   let ok = 0, fail = 0, moments = 0;
   for (let i = 0; i < VIDEOS.length; i++) {
     const { id, title } = VIDEOS[i];
-    const tag = `[${i + 1}/${VIDEOS.length}] ${id} ${title}`;
+    const tag = `[${i + 1}/${VIDEOS.length}] ${title}`;
     try {
-      const transcript = await fetchTranscript(id);
+      const transcript = fetchWithYtdlp(id, dir);
       const r = await postJSON('/api/nde/videos', { videoIdOrUrl: id, title, transcript });
       const rec = r.json || {};
       if (rec.status === 'extracted') { ok++; moments += (rec.moments || []).length; console.log(`${tag} → ${(rec.moments || []).length} moments ✓`); }
       else { fail++; console.log(`${tag} → ${rec.status || r.status}: ${rec.error || 'unknown'}`); }
     } catch (e) {
       fail++;
-      console.log(`${tag} → FETCH FAILED: ${e.message}`);
+      console.log(`${tag} → ${e.message.split('\n')[0]}`);
     }
-    await new Promise(r => setTimeout(r, 1500)); // be polite to YouTube
   }
-  console.log(`\nDone. ${ok} extracted, ${fail} failed, ${moments} total moments. View: ${SERVER}/api/nde/moments`);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  console.log(`\nDone. ${ok} extracted, ${fail} failed, ${moments} total moments.`);
+  console.log(`View them: ${SERVER}/api/nde/moments`);
 })();
