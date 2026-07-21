@@ -35,7 +35,9 @@ enum WitchTab: String, CaseIterable {
 }
 
 struct WitchRootView: View {
-    @State private var tab: WitchTab = .home
+    // CI screenshot harness: launch with SIMCTL_CHILD_WITCH_TAB=school|book|shop
+    // to open straight to a tab for App Store captures.
+    @State private var tab: WitchTab = WitchTab(rawValue: ProcessInfo.processInfo.environment["WITCH_TAB"] ?? "home") ?? .home
     @State private var loading = true
     @State private var failed = false
     @State private var reloadKey = 0
