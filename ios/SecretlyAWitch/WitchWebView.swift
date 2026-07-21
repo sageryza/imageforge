@@ -22,7 +22,12 @@ struct WitchWebView: UIViewRepresentable {
         web.backgroundColor = UIColor(red: 245/255, green: 239/255, blue: 226/255, alpha: 1) // --bg cream
         web.scrollView.backgroundColor = web.backgroundColor
         web.allowsBackForwardNavigationGestures = false
-        if let url = URL(string: Self.serverURL + "/witch?app=1") {
+        // CI screenshots may request a specific section via WITCH_SHOT.
+        var urlStr = Self.serverURL + "/witch?app=1"
+        if let shot = ProcessInfo.processInfo.environment["WITCH_SHOT"], !shot.isEmpty {
+            urlStr += "&shot=" + (shot.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? shot)
+        }
+        if let url = URL(string: urlStr) {
             // Generous timeout: the free-tier server may be cold-starting.
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 90))
         }
