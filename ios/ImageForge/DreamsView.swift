@@ -22,6 +22,10 @@ struct DreamsView: View {
     // Dreams still drawing on the server — persisted so closing the app or
     // leaving the screen doesn't lose them. We resume polling these on return.
     @AppStorage("dreams.activeRenderIDs") private var activeRenderIDsRaw = ""
+    // A reading (breakdown) still running on the server — persisted for the same
+    // reason: tapping Illustrate starts it in the background, so the phone can
+    // lock/leave without the request timing out, and we resume polling on return.
+    @AppStorage("dreams.activeReadingID") private var activeReadingID = ""
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
     @State private var showConsent = false
@@ -74,6 +78,7 @@ struct DreamsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             scheduleNudgeIfNeeded()
+            await resumeActiveReading()   // pick up a reading still in progress
             await resumeActiveRenders()   // pick up any dream still drawing from before
         }
         .onDisappear { renderSession += 1; speech.stop() }   // stop polling + mic when we leave (server keeps drawing)
@@ -330,17 +335,77 @@ struct DreamsView: View {
         current = nil
         finished = []
         reviewDreams = []
+        renderSession += 1
+        let session = renderSession
         Task {
             do {
-                // Breakdown (free): the recording → one or more dreams, each
-                // split out and already in Claude's best chronological order.
-                reviewDreams = try await MovieService.shared.createDream(text: body)
+                // The reading (breakdown) runs as a BACKGROUND job on the server —
+                // start it, persist the id, then poll. The phone can lock or leave
+                // and we resume from the saved id on return (resumeActiveReading),
+                // so a slow read + Render cold start never times out the request.
+                let batchId = try await MovieService.shared.startDreamReading(text: body)
+                activeReadingID = batchId
+                await drainReading(batchId, session: session)
             } catch {
                 errorText = error.localizedDescription
+                busy = false
+                statusLabel = ""
             }
-            busy = false
-            statusLabel = ""
         }
+    }
+
+    /// Poll the background reading job to completion. Resilient to dropped
+    /// connections / cold starts (the server keeps reading no matter what) — a
+    /// transient failure just retries. When reading finishes the split dreams go
+    /// to the chronology check; an error surfaces the reason.
+    private func drainReading(_ id: String, session: Int) async {
+        var transientFails = 0
+        while session == renderSession {
+            do {
+                let batch = try await MovieService.shared.dreamBatch(id)
+                transientFails = 0
+                switch batch.status {
+                case "error":
+                    activeReadingID = ""
+                    errorText = batch.error ?? "Couldn't read that dream."
+                    busy = false; statusLabel = ""
+                    return
+                case "done":
+                    activeReadingID = ""
+                    busy = false; statusLabel = ""
+                    let dreams = batch.dreams ?? []
+                    if dreams.isEmpty { errorText = "Couldn't read that dream — try again." }
+                    else { reviewDreams = dreams }
+                    return
+                default:   // still reading
+                    if let label = batch.label, !label.isEmpty {
+                        statusLabel = "\(label.prefix(1).uppercased())\(label.dropFirst())…"
+                    }
+                }
+            } catch {
+                // Dropped connection / cold start — keep trying; the server is
+                // still reading. Give up quietly after a long dry spell (we'll
+                // resume from the saved id next time the screen opens).
+                transientFails += 1
+                if transientFails >= 25 {
+                    if session == renderSession { busy = false; statusLabel = "" }
+                    return   // keep activeReadingID so a re-open resumes
+                }
+            }
+            try? await Task.sleep(nanoseconds: 3_200_000_000)
+        }
+        // view went away; the read continues server-side, resumed on return
+    }
+
+    /// Coming back to the screen (or relaunching the app): if a reading was still
+    /// going, pick it up — the server never stopped reading.
+    private func resumeActiveReading() async {
+        let id = activeReadingID
+        guard !id.isEmpty, !busy, reviewDreams.isEmpty, current == nil else { return }
+        busy = true
+        statusLabel = "Reading your dream…"
+        renderSession += 1
+        await drainReading(id, session: renderSession)
     }
 
     /// The waveform button: open the file picker, but ask for AI consent first

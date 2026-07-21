@@ -189,6 +189,22 @@ final class MovieService {
         try await fetch(DreamsResult.self, "POST", "/dream", body: ["dream": text], timeout: 180).dreams
     }
 
+    /// Start the reading (breakdown) as a BACKGROUND job — returns instantly with
+    /// a batch id the app polls, so the phone can lock/leave without the request
+    /// timing out (the breakdown is slow + Render may cold-start). Poll with
+    /// `dreamBatch(id)`.
+    private struct DreamBatchStart: Decodable { let batchId: String }
+    func startDreamReading(text: String) async throws -> String {
+        try await fetch(DreamBatchStart.self, "POST", "/dream",
+                        body: ["dream": text, "background": true], timeout: 75).batchId
+    }
+
+    /// Poll a background reading job. When `status == "done"` the split dreams are
+    /// in `dreams` (the chronology-check step); `status == "error"` carries why.
+    func dreamBatch(_ id: String) async throws -> DreamBatch {
+        try await fetch(DreamBatch.self, "GET", "/dream-batch/\(id)", timeout: 75)
+    }
+
     func dream(_ id: String) async throws -> Dream {
         try await fetch(Dream.self, "GET", "/dream/\(id)")
     }

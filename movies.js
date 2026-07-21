@@ -345,6 +345,77 @@ async function deleteDream(id) {
   else memDream.delete(id);
 }
 
+// The reading (breakdown) step is slow — gpt-5.6-sol splits + orders a rambling
+// recording (~30-60s), and Render's free tier may cold-start on top of that. A
+// synchronous POST /dream held the phone's connection open the whole time, so it
+// timed out whenever the phone locked or the signal was weak ("Couldn't
+// illustrate — the request timed out"). Instead the reading runs as a background
+// job tracked by a tiny batch doc: the phone gets an id back instantly and polls
+// it, so it can lock/leave and pick up the split dreams on return — exactly like
+// the drawing step already does.
+const DREAM_BATCH_COLLECTION = process.env.DREAM_BATCH_COLLECTION || 'forge-dream-batches';
+const memDreamBatch = new Map();
+// A stuck 'reading' batch (process died mid-breakdown before the doc could flip
+// to error) shouldn't poll forever — treat one older than this as failed.
+const DREAM_BATCH_STALE_MS = 8 * 60 * 1000;
+
+async function saveDreamBatch(doc) {
+  doc.updatedAt = new Date().toISOString();
+  const db = firestore();
+  if (db) await db.collection(DREAM_BATCH_COLLECTION).doc(doc.id).set(plain(doc));
+  else memDreamBatch.set(doc.id, plain(doc));
+  return doc;
+}
+
+async function loadDreamBatch(id) {
+  const db = firestore();
+  if (db) {
+    const snap = await db.collection(DREAM_BATCH_COLLECTION).doc(id).get();
+    return snap.exists ? snap.data() : null;
+  }
+  return memDreamBatch.get(id) || null;
+}
+
+// Turn a breakdown's plans into stored dream docs. Factored out so both the
+// synchronous POST /dream (back-compat) and the background batch use it.
+async function createDreamDocs(plans, text, title) {
+  const now = Date.now();
+  const docs = [];
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    // Stagger timestamps so the array order (earliest dreamt first) maps to
+    // time — the last dream sorts newest in the journal.
+    const ts = new Date(now + i * 1000).toISOString();
+    const doc = {
+      id: 'd' + (now + i).toString(36) + crypto.randomBytes(3).toString('hex'),
+      // Only honor a client-supplied title when the recording is a single dream.
+      title: (plans.length === 1 && title && String(title).trim()) || plan.title,
+      dream: text,
+      // This dream's own slice of the recording (for the review block) +
+      // the out-of-order cue phrases to highlight in it. Falls back to the
+      // whole recording when the model didn't split out a per-dream text.
+      dreamText: plan.text || text,
+      driftCues: plan.driftCues || [],
+      characters: plan.characters,
+      cast: plan.cast,
+      imageStyle: DEFAULT_IMAGE_STYLE,
+      characterAnchor: null,
+      beats: plan.beats,
+      pages: [],
+      pagesQuality: null,
+      pagesMadeAt: null,
+      pageHistory: [],
+      job: null,
+      spend: 0,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+    await saveDream(doc);
+    docs.push(doc);
+  }
+  return docs;
+}
+
 // ─── Firebase Storage upload (permanent URLs) ───────────────────────
 // Replicate/OpenAI URLs expire (~1hr) — everything the movie keeps must go to
 // Firebase Storage. Mirrors server.js's saveToFirebase, kept local so the
@@ -2122,50 +2193,81 @@ router.post('/dream/transcribe', async (req, res) => {
 
 router.post('/dream', async (req, res) => {
   try {
-    const { dream, title } = req.body || {};
+    const { dream, title, background } = req.body || {};
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
     const text = String(dream).trim();
-    // One recording can hold several dreams — the breakdown splits them, and
-    // each becomes its own journal entry.
-    const { dreams: plans } = await dreamBreakdown(text);
-    const now = Date.now();
-    const docs = [];
-    for (let i = 0; i < plans.length; i++) {
-      const plan = plans[i];
-      // Stagger timestamps so the array order (earliest dreamt first) maps to
-      // time — the last dream sorts newest in the journal.
-      const ts = new Date(now + i * 1000).toISOString();
-      const doc = {
-        id: 'd' + (now + i).toString(36) + crypto.randomBytes(3).toString('hex'),
-        // Only honor a client-supplied title when the recording is a single dream.
-        title: (plans.length === 1 && title && String(title).trim()) || plan.title,
-        dream: text,
-        // This dream's own slice of the recording (for the review block) +
-        // the out-of-order cue phrases to highlight in it. Falls back to the
-        // whole recording when the model didn't split out a per-dream text.
-        dreamText: plan.text || text,
-        driftCues: plan.driftCues || [],
-        characters: plan.characters,
-        cast: plan.cast,
-        imageStyle: DEFAULT_IMAGE_STYLE,
-        characterAnchor: null,
-        beats: plan.beats,
-        pages: [],
-        pagesQuality: null,
-        pagesMadeAt: null,
-        pageHistory: [],
-        job: null,
-        spend: 0,
-        createdAt: ts,
-        updatedAt: ts,
+
+    // Background reading (the app's default): return a batch id instantly and do
+    // the slow breakdown off the request, so the phone can lock/leave without the
+    // request timing out. The app polls GET /dream-batch/:id and picks up the
+    // split dreams (the "check the chronology" step) when reading finishes.
+    if (background) {
+      const batch = {
+        id: 'db' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+        status: 'reading',            // reading → done | error
+        label: 'reading your dream',
+        dreamIds: [],
+        dreamCount: 0,
+        error: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      await saveDream(doc);
-      docs.push(doc);
+      await saveDreamBatch(batch);
+      (async () => {
+        try {
+          // One recording can hold several dreams — the breakdown splits them.
+          const { dreams: plans } = await dreamBreakdown(text);
+          const docs = await createDreamDocs(plans, text, title);
+          batch.dreamIds = docs.map(d => d.id);
+          batch.dreamCount = docs.length;
+          batch.status = 'done';
+          batch.label = 'done';
+        } catch (err) {
+          console.warn('movies: dream breakdown failed —', err.message);
+          batch.status = 'error';
+          batch.error = err.message;
+        }
+        await saveDreamBatch(batch).catch(e => console.warn('movies: batch save failed —', e.message));
+      })();
+      return res.json({ batchId: batch.id, batch });
     }
+
+    // Synchronous path (kept for back-compat with older app builds): read and
+    // return the split dreams in one call. One recording can hold several dreams.
+    const { dreams: plans } = await dreamBreakdown(text);
+    const docs = await createDreamDocs(plans, text, title);
     res.json({ dreams: docs });
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
   }
+});
+
+// Poll a background reading job. Returns the batch's status and, once reading is
+// done, the split dream docs (same shape the synchronous POST /dream returns) so
+// the app can show the chronology check. A batch stuck 'reading' past the stale
+// window (the process died mid-breakdown) is surfaced as an error, not polled
+// forever.
+router.get('/dream-batch/:id', async (req, res) => {
+  try {
+    const batch = await loadDreamBatch(req.params.id);
+    if (!batch) return res.status(404).json({ error: 'reading not found' });
+    if (batch.status === 'reading'
+        && Date.now() - new Date(batch.createdAt || 0).getTime() > DREAM_BATCH_STALE_MS) {
+      batch.status = 'error';
+      batch.error = 'reading took too long — try Illustrate again';
+      await saveDreamBatch(batch).catch(() => {});
+    }
+    const out = { ...batch, dreams: [] };
+    if (batch.status === 'done' && (batch.dreamIds || []).length) {
+      const dreams = [];
+      for (const id of batch.dreamIds) {
+        const d = await loadDream(id);
+        if (d) dreams.push(d);
+      }
+      out.dreams = dreams;
+    }
+    res.json(out);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/dream/:id', async (req, res) => {
