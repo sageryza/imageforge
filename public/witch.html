@@ -3474,11 +3474,23 @@
       <div class="divider">or</div>
       <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
       <button class="btn" id="btn-email">Email me a magic link</button>
+      <button type="button" id="btn-pw-toggle" style="background:none; border:none; color:var(--gold); font-size:13px; text-decoration:underline; cursor:pointer; margin:14px auto 0; display:block;">Use a password instead</button>
+      <div id="pw-block" style="display:none; margin-top:12px;">
+        <input type="password" id="acct-pw" placeholder="Password" style="margin-bottom:12px;">
+        <button class="btn" id="btn-pw">Sign in</button>
+      </div>
       <div class="note" id="acct-msg" style="text-align:center;"></div>
       <button class="close-x" id="acct-close">maybe later</button>`);
     $('acct-close').addEventListener('click', closeModal);
     $('btn-google').addEventListener('click', signInGoogle);
     $('btn-email').addEventListener('click', signInEmail);
+    $('btn-pw-toggle').addEventListener('click', () => {
+      $('pw-block').style.display = 'block';
+      $('btn-pw-toggle').style.display = 'none';
+      $('acct-pw').focus();
+    });
+    $('btn-pw').addEventListener('click', signInPassword);
+    $('acct-pw').addEventListener('keydown', e => { if (e.key === 'Enter') signInPassword(); });
   }
   function showAccount() {
     const def = zodiacDefault();
@@ -3507,6 +3519,14 @@
   async function signInGoogle() {
     try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); closeModal(); }
     catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
+  }
+  // Email + password sign-in (secondary option; primarily for a demo/reviewer
+  // account that can't receive a magic link or complete Google in a web view).
+  async function signInPassword() {
+    const email = ($('acct-email').value || '').trim(), pw = ($('acct-pw').value || ''), m = $('acct-msg');
+    if (!email || !pw) { if (m) m.textContent = 'Enter your email and password'; return; }
+    try { await fbAuth.signInWithEmailAndPassword(email, pw); closeModal(); }
+    catch (e) { if (m) m.textContent = e.message; }
   }
   async function signInEmail() {
     const email = ($('acct-email').value || '').trim(), m = $('acct-msg');
