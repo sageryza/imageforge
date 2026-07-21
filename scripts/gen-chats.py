@@ -113,6 +113,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 /* Labeled Refresh button, left-grouped next to the view toggle so it never
    sits under the floating autoscroll pill in the top-right corner. */
 .refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
+/* Compare tab: a chat's published pages (comparison sheets / option boards) */
+.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
+.pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
+/* Full-screen viewer for a Compare page */
+.pageview{position:fixed; inset:0; z-index:40; background:var(--paper); display:flex; flex-direction:column;}
+.pv-bar{display:flex; align-items:center; gap:10px; padding:calc(max(8px, env(safe-area-inset-top))) 12px 8px; border-bottom:1px solid var(--line); background:var(--barbg); flex:none;}
+.pv-back{width:38px; height:38px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; flex:none;}
+.pv-title{font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+.pv-frame{flex:1; width:100%; border:none; background:#fff;}
 .m-tools audio{flex:1; height:32px; min-width:0;}
 /* view toggle (List / Tiles) */
 .viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
@@ -528,7 +538,7 @@ function openChat(name, keepScroll){
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(name)+'</h1></div>'
-    +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button></div>'
+    +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
@@ -667,18 +677,69 @@ function openChat(name, keepScroll){
       })
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\\u2019t load images.</div>'; });
   }
-  var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
-  tgChat.onclick=function(){ curTab='chat'; tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
-  tgAssets.onclick=function(){ curTab='assets'; scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
-  // A rebuild (e.g. from Refresh) keeps whichever tab was open — restore the
-  // Assets tab instead of snapping back to Chat.
-  if(curTab==='assets'){ tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); }
+  // Compare panel — pages the chat published (comparison sheets, option
+  // boards; what used to live as claude.ai artifacts). Lazy-loaded.
+  var comparePanel=document.createElement('div'); comparePanel.style.display='none';
+  comparePanel.innerHTML='<div class="state">Loading pages&hellip;</div>';
+  sec.appendChild(comparePanel);
+  var pagesLoaded=false;
+  function loadPages(force){
+    if(pagesLoaded && !force) return; pagesLoaded=true;
+    api('/api/chatfeed/pages?chat='+encodeURIComponent(name)+'&_='+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(d){
+        var ps=(d&&d.pages)||[];
+        comparePanel.innerHTML='';
+        if(!ps.length){ comparePanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No pages from this chat yet.'})); return; }
+        ps.forEach(function(p){
+          var row=document.createElement('button'); row.className='pagerow';
+          row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
+          row.onclick=function(){ openPage(p); };
+          comparePanel.appendChild(row);
+        });
+      })
+      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\\u2019t load pages.</div>'; });
+  }
+  var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets'), tgCompare=head.querySelector('.tg-compare');
+  var panels={chat:chatPanel, assets:assetsPanel, compare:comparePanel};
+  var togs={chat:tgChat, assets:tgAssets, compare:tgCompare};
+  function showTab(tab){
+    curTab=tab;
+    Object.keys(panels).forEach(function(k){
+      panels[k].style.display = k===tab ? '' : 'none';
+      togs[k].classList.toggle('on', k===tab);
+    });
+    if(tab==='assets') loadAssets();
+    if(tab==='compare') loadPages();
+  }
+  tgChat.onclick=function(){ showTab('chat'); };
+  tgAssets.onclick=function(){ scrollStop(); showTab('assets'); window.scrollTo(0,0); };
+  tgCompare.onclick=function(){ scrollStop(); showTab('compare'); window.scrollTo(0,0); };
+  // let the global refresh button re-pull this chat's assets/pages fresh
+  window._reloadAssets=function(){
+    if(assetsPanel.style.display!=='none') loadAssets(true);
+    if(comparePanel.style.display!=='none') loadPages(true);
+  };
+  // A rebuild (e.g. from Refresh) keeps whichever tab was open — restore it
+  // instead of snapping back to Chat.
+  if(curTab!=='chat') showTab(curTab);
 
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
   if(!keepScroll) window.scrollTo(0,0);
+}
+// Full-screen viewer for a Compare page: top bar (back + title) over an
+// iframe. Freezes the page behind it, like the lightbox (design rule).
+function openPage(p){
+  scrollStop();
+  var v=document.createElement('div'); v.className='pageview';
+  v.innerHTML='<div class="pv-bar"><button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span></div>'
+    +'<iframe class="pv-frame" src="/api/chatfeed/page/'+encodeURIComponent(p.id)+(TOKEN?'?token='+encodeURIComponent(TOKEN):'')+'"></iframe>';
+  v.querySelector('.pv-back').onclick=function(){ v.remove(); document.body.style.overflow=''; };
+  document.body.appendChild(v);
+  document.body.style.overflow='hidden';
 }
 // Image lightbox — freezes the page behind it (design rule)
 function lightbox(url, asset){

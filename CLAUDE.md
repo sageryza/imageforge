@@ -261,13 +261,25 @@ lifted into a standalone tool later.
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
-  box (prefilled "redo") she can send per image. Votes + notes live in
+  box (under the image) she can send per image. Votes + notes live in
   `forge-asset-votes` (deckfactory, one doc per chat+url) and ride along on
   `GET /api/gallery/assets?chat=<name>` as `vote: "like" | "dislike"` and
   `note` per asset. When Sophie next messages a chat, it should check its
   votes/notes and act on them (favor the hearted ones, re-roll the ✕'d and
   anything noted "redo") — same review-loop pattern as writing notes, NOT on
   a timer.
+- **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
+  as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
+  board, side-by-side, or any custom viewing page, POST it to
+  `POST /api/chatfeed/page` with `{ "chat": "<your-chat-name>", "title": "…",
+  "html": "<the full self-contained page>" }` (x-studio-token when gated;
+  ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
+  Compare) and opens full-screen in the app — that's where she'll look for it,
+  next to your assets. Design the HTML however the comparison needs (mobile
+  first, self-contained; image URLs from Firebase Storage are fine). List your
+  pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
+  `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
+  the page genuinely can't work as plain HTML.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
