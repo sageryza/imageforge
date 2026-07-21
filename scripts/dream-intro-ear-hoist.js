@@ -1,5 +1,6 @@
-// Re-roll of the trapdoor beat: the soul hoisting himself up OUT OF THE EAR
-// specifically — climbing out through the ear-hatch like a manhole.
+// Ear-hoist beat, v2 per Sophie's notes:
+// - The EAR ITSELF is the trap door — pulled open like a hinged flap, no separate wooden hatch.
+// - The soul is the SAME SIZE as the sleeping boy (same head size), out to about the waist.
 // Anchor on the silver soul (anchor-silver.png). Attach: [style ref, silver anchor].
 const fs = require('fs');
 const path = require('path');
@@ -23,15 +24,17 @@ const ANCHOR_NOTE =
   'eyes peacefully closed, sound asleep and never waking. ';
 
 const PANELS = [
-  { name: 'escape-2-ear-hoist',
-    prompt: `Whimsical, comical close-up scene at night: the sleeping solid boy lies on his side in bed, ` +
-      `his head large in frame on the pillow. Set into his EAR is a tiny open hinged trap door, swung wide ` +
-      `like a little secret hatch. The small silvery translucent soul boy is climbing OUT THROUGH THE EAR ` +
-      `OPENING itself — both hands gripping the rim of the ear-hatch, arms straining as he hoists himself ` +
-      `up and out like someone climbing out of a manhole, one elbow up, halfway out, legs still inside. ` +
-      `His expression is sneaky and pleased with himself. The sleeping boy stays completely undisturbed, ` +
-      `eyes closed. A faint silver cord trails from the soul's chest back down into the ear. Funny, ` +
-      `magical, storybook. Portrait orientation.` },
+  { name: 'escape-2-ear-hoist-v2',
+    prompt: `Whimsical, comical bedroom scene at night: the solid boy sleeps on his side in bed, head on ` +
+      `the pillow. His EAR has been pulled open like a little hinged door — the ear itself is the flap, ` +
+      `swung outward on an invisible hinge, revealing a small glowing opening in the side of his head. ` +
+      `Emerging from that opening is his silvery translucent SOUL — and the soul is EXACTLY THE SAME SIZE ` +
+      `as the sleeping boy, his head just as big as the sleeper's head. The soul is out to about his WAIST, ` +
+      `leaning forward, one hand still holding the opened ear-flap door and the other braced on the ` +
+      `sleeping boy's head, mid-hoist, magically impossible and funny. His expression is sneaky and pleased ` +
+      `with himself. The sleeping boy stays completely undisturbed, eyes closed. A faint silver cord runs ` +
+      `from the soul's chest back into the ear opening. Wide enough framing to show the whole bed and both ` +
+      `full-size figures. Storybook, magical, playful. Portrait orientation.` },
 ];
 
 async function render(panel, quality = 'high') {
