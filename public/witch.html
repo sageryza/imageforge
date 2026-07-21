@@ -285,6 +285,15 @@
     /* Question-page art: smaller than the reveal art so the question and
        answers stay above the fold on a phone. */
     .quiz-qart { width: 58%; margin: 0 auto 10px; }
+
+    /* End-of-lesson note screen (ask a question / tell Sophie) */
+    .deck-note .tcard-img { cursor: default; }
+    .note-ta { width: 100%; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45; resize: none; }
+    .note-ta:focus { outline: none; border-color: var(--gold); }
+    .note-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+    .note-row .btn-ghost { width: auto; padding: 9px 16px; }
+    .note-wait { text-align: center; color: var(--gold); font-size: 22px; margin-top: 14px; }
+    .note-answer { margin-top: 14px; padding: 12px 14px; background: var(--panel); border-radius: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--text); }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
@@ -2501,23 +2510,23 @@
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#QBG1' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r1.png', bg: '#RBG1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r1.png', bg: '#fdfaf5' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#QBG2' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r2.png', bg: '#RBG2' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r2.png', bg: '#fefbf5' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#QBG3' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r3.png', bg: '#RBG3' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#fef5ea' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r3.png', bg: '#fefbf7' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#QBG4' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#RBG4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#fbf4ec' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#fdf7f1' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
@@ -3037,8 +3046,8 @@
     { img: 'ce-01', bg: '#fef7ef', kicker: 'Crystal Energy', h: 'The deeper current', body: 'You know your stones — how they grow, how to cleanse and charge them. This is the deeper teaching: crystals don\'t just <i>hold</i> energy. They <b>move</b> it. One idea at a time, from ancient ice to a practice you can do tonight.' },
     { img: 'ce-02', bg: '#fbf8f4', kicker: 'Eternal ice', h: 'Where it all began', body: 'The Greeks called clear quartz <b>krystallos</b> — ice frozen so deep it could never melt again. Pliny the Elder, two thousand years ago, described crystal spheres that gathered the sun\'s rays into a point of healing heat. Energy, channeled through crystal — the idea is at least that old.' },
     { img: 'ce-03', bg: '#fefaf4', kicker: 'Honest science', h: 'The real spark', body: 'In 1880 the <b>Curie brothers</b> proved something wild: squeeze quartz and it gives off a real, measurable electric charge — <b>piezoelectricity</b>. It\'s why quartz keeps time in watches and steadied the first radios. Whatever else you believe, energy genuinely moves through this stone. The old lore chose its mineral well.' },
-    { img: 'ce-04', bg: '#fdfbf8', kicker: 'The Essenes', h: 'The crystal at Qumran', body: 'In <b>Jesus and the Essenes</b>, Dolores Cannon\'s hypnosis subject describes the Qumran community\'s library holding a great <b>pyramid-shaped crystal</b> of shifting colors, kept behind a wall, approached only by the Master. The students poured their energy to him — and he focused it <i>through the crystal</i>, directing it wherever it was needed.' },
-    { img: 'ce-05', bg: '#fdf8f2', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'Strip that story to its bones and you have the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, many hearts together. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
+    { img: 'ce-04', bg: '#fbf8f4', kicker: 'The old way', h: 'Become the crystal', body: 'An old meditation teaching puts it beautifully: sit with your crystal and pour your whole focus into it — until the boundary thins and, for a moment, <b>you become the crystal</b>. From inside that stillness, you move outward through it, carrying your intention with you. Not commanding the stone. Joining it.' },
+    { img: 'ce-05', bg: '#fdf8f2', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'That teaching holds the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, a full heart. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
     { img: 'ce-06', bg: '#fefbf4', kicker: 'The warning', h: 'The fire stone', body: 'Edgar Cayce\'s trance readings told of Atlantis powered by a six-sided <b>fire stone</b> — a great crystal that gathered the light of sun and stars and beamed it out to power whole cities. In the story they tuned it too high, too greedily, and sank the island. Myth or memory, keep its lesson: channel with reverence, never for force.' },
     { img: 'ce-07', bg: '#fdf8f2', kicker: 'The scientist-mystic', h: 'Marcel Vogel\'s lens', body: 'IBM research scientist <b>Marcel Vogel</b> — a hundred-plus patents to his name — spent his later years testing quartz and concluded it could <b>amplify intention</b> the way a lens focuses light: hold a clear thought through a crystal and the crystal strengthens and directs it. Healing wands are still cut to his design today.' },
     { img: 'ce-08', bg: '#fcf7f0', kicker: 'The practice', h: 'Load the thought', body: 'Channeling starts inside you. Cleanse your quartz, hold it at your heart, and breathe <b>one clear intention</b> into it — a single sentence, felt as much as said. You\'re not talking to a rock; you\'re doing what Vogel did: giving a thought worth focusing a lens to pass through.' },
@@ -3281,6 +3290,7 @@
   }
   let deckKey = 'spell';
   function openLesson(key) {
+    deckOnNote = false;
     deckKey = LESSONS[key] ? key : 'spell';
     deckCards = LESSONS[deckKey] || SPELL_CARDS; preload(deckCards);
     // Resume where you left off (Imprint-style), from the path's Continue.
@@ -3288,9 +3298,62 @@
     deckIdx = e && !e.done && e.seen > 0 && e.seen < deckCards.length ? e.seen - 1 : 0;
     $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard();
   }
-  function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
-  function deckNext() { if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
-  function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
+  function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
+  // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary' };
+  function renderDeckNote() {
+    $('school-lesson').style.background = '#fefaf6';
+    $('deck-prog').innerHTML = '';
+    $('deck-stage').innerHTML = `<div class="tcard deck-note">
+      <div class="deck-head">
+        <div class="tcard-kicker">Before you go</div>
+        <div class="tcard-h">Leave a note</div>
+      </div>
+      <img class="tcard-img" src="${SW_IMG}note-mail.png" alt="">
+      <div class="deck-text">
+        <div class="tcard-body">Something the lesson stirred up? Ask and the school\'s spirit will answer — or send a note to <b>Sophie</b>, the witch behind all of this.</div>
+        <textarea id="note-text" class="note-ta" rows="3" placeholder="A question, a thought, a hello…"></textarea>
+        <div class="note-row">
+          <button class="btn-ghost" id="note-ask" type="button">Ask</button>
+          <button class="btn" id="note-send" type="button">Tell Sophie <span class="js-star"></span></button>
+        </div>
+        <div id="note-out"></div>
+      </div>
+    </div>`;
+    const stop = (e) => e.stopPropagation();
+    ['note-text', 'note-ask', 'note-send', 'note-out'].forEach((id) => { const el = $(id); if (el) ['click', 'touchstart'].forEach((ev) => el.addEventListener(ev, stop)); });
+    const out = $('note-out');
+    $('note-ask').addEventListener('click', async () => {
+      const q = $('note-text').value.trim(); if (!q) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const cards = (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
+        const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards }) });
+        const j = await r.json();
+        out.innerHTML = j.answer ? `<div class="note-answer">${esc(j.answer)}</div>` : `<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>`;
+      } catch { out.innerHTML = '<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>'; }
+    });
+    $('note-send').addEventListener('click', async () => {
+      const t = $('note-text').value.trim(); if (!t) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t }) });
+        const j = await r.json();
+        out.innerHTML = j.ok ? '<div class="note-answer">Sent — Sophie reads every one. ♥</div>' : '<div class="note-answer">It didn\'t send — try again in a moment.</div>';
+        if (j.ok) $('note-text').value = '';
+      } catch { out.innerHTML = '<div class="note-answer">It didn\'t send — try again in a moment.</div>'; }
+    });
+    $('deck-prev').disabled = false;
+    $('deck-next').textContent = 'Done';
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  }
+  let deckOnNote = false;
+  function deckNext() {
+    if (deckOnNote) { deckOnNote = false; closeLesson(); return; }
+    if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); }
+    else { deckOnNote = true; renderDeckNote(); }
+  }
+  function deckPrev() { if (deckOnNote) { deckOnNote = false; renderDeckCard(); return; } if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
   { const op = $('open-plants'); if (op) op.addEventListener('click', () => openLesson('plants')); }
   { const p2 = $('open-plants2'); if (p2) p2.addEventListener('click', () => openLesson('plants2')); }
@@ -3311,7 +3374,10 @@
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
   // Imprint/stories-style tap zones: the left edge steps back, the rest advances.
+  // On the note screen taps do nothing — typing must never close the lesson;
+  // only the Done button (or Back) leaves.
   $('deck-stage').addEventListener('click', (e) => {
+    if (deckOnNote) return;
     if (e.clientX < window.innerWidth * 0.28) deckPrev(); else deckNext();
   });
 

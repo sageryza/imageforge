@@ -1644,6 +1644,70 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
+// ─── End-of-lesson notes: ask a question (AI) / leave a comment (to Sophie) ──
+// Public, so lightly rate-limited per IP. Questions go to Claude Haiku with
+// the lesson's own card text as context; comments land in Firestore
+// `witch-mail` AND on the forge-chat-feed (chat "witch-mail") so Sophie sees
+// them in her Chats app.
+const _lessonNoteHits = new Map();
+function lessonNoteAllowed(ip) {
+  const now = Date.now(), windowMs = 10 * 60 * 1000;
+  const hits = (_lessonNoteHits.get(ip) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= 6) return false;
+  hits.push(now); _lessonNoteHits.set(ip, hits);
+  if (_lessonNoteHits.size > 5000) _lessonNoteHits.clear(); // crude memory cap
+  return true;
+}
+app.post('/api/witch/lesson-question', async (req, res) => {
+  try {
+    const { lesson = '', lessonTitle = '', question = '', cards = '' } = req.body || {};
+    const q = String(question).trim().slice(0, 600);
+    if (!q) return res.status(400).json({ error: 'question is required' });
+    if (!lessonNoteAllowed(req.ip)) return res.status(429).json({ error: 'Give it a moment — a few questions at a time.' });
+    const system = `You are the gentle teacher behind the Witch School lessons in the app "Secretly a Witch". A reader just finished a lesson and asked a question. Answer warmly and plainly in 2-5 sentences — grounded, honest, a little literary, matching the lesson's voice. Practices are framed as tradition, folklore, and reflection, never as guaranteed supernatural fact, and never medical/legal/financial advice. If the question is unrelated to the craft or inappropriate, gently steer back to the lesson. Plain text only, no markdown.`;
+    const context = `Lesson: ${String(lessonTitle || lesson).slice(0, 80)}\n${cards ? `Lesson text (for reference):\n${String(cards).slice(0, 6000)}\n` : ''}Reader's question: ${q}`;
+    const data = await anthropicChat({
+      system,
+      messages: [{ role: 'user', content: context }],
+      max_tokens: 400,
+      model: 'claude-haiku-4-5',
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const answer = anthropicText(data);
+    if (!answer) return res.status(500).json({ error: 'no answer' });
+    res.json({ answer });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post('/api/witch/lesson-note', async (req, res) => {
+  try {
+    const { lesson = '', lessonTitle = '', text = '' } = req.body || {};
+    const note = String(text).trim().slice(0, 1000);
+    if (!note) return res.status(400).json({ error: 'text is required' });
+    if (!lessonNoteAllowed(req.ip)) return res.status(429).json({ error: 'Give it a moment.' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'not configured' });
+    const created = new Date().toISOString();
+    const doc = { lesson: String(lesson).slice(0, 40), lessonTitle: String(lessonTitle).slice(0, 80), text: note, created };
+    await admin.firestore().collection('witch-mail').add(doc);
+    // Surface it in Sophie's Chats app under a "witch-mail" tile.
+    try {
+      await admin.firestore().collection('forge-chat-feed').add({
+        chat: 'witch-mail',
+        title: `A reader on “${doc.lessonTitle || doc.lesson || 'a lesson'}”`,
+        text: note,
+        tldr: note.slice(0, 140),
+        from: 'claude',
+        created,
+      });
+      await admin.firestore().collection('forge-chat-registry').doc('witch-mail').set({ lastSeen: created }, { merge: true });
+    } catch {}
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Firebase web config for the public app (Secretly a Witch accounts) ──
 // Returns the PUBLIC Firebase web config (safe to expose) so the client can
 // use Firebase Auth + Firestore. Reads from env; returns { configured:false }
