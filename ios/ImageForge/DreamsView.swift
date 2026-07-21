@@ -122,6 +122,19 @@ struct DreamsView: View {
                     .foregroundColor(speech.recording ? Theme.danger : Theme.textDim)
                 Spacer()
                 if transcribing { ProgressView().scaleEffect(0.75).padding(.trailing, 2) }
+                // Add a character. NOTE: action is a stub — another chat is
+                // wiring up what this actually does.
+                Button {
+                    focused = false
+                    // TODO: add-character action (wired up separately)
+                } label: {
+                    Image(systemName: "person")
+                        .font(.system(size: 18))
+                        .foregroundColor(Theme.accent)
+                }
+                .accessibilityLabel("Add a character")
+                .disabled(speech.recording || transcribing)
+                .opacity(speech.recording || transcribing ? 0.4 : 1)
                 // Paste a copied recording OR copied text. If the clipboard holds
                 // an audio recording it's transcribed (Whisper); text just drops in.
                 Button {
