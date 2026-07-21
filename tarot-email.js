@@ -45,6 +45,9 @@ const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || '';
 const FROM_NAME = process.env.BREVO_FROM_NAME || 'Secretly a Witch';
 
 const APP_URL = 'https://imageforge-q125.onrender.com/witch';
+// The reveal links land straight on the daily three-card pull (the witch app
+// scrolls to #tarot-card on this hash) instead of the top of the page.
+const READ_URL = APP_URL + '#tarot';
 
 // Rider-Waite art (card name → permanent Firebase URL), same manifest the app
 // serves at /api/witch/tarot-deck.
@@ -188,7 +191,7 @@ function buildTarotEmail({ date } = {}) {
         ${kinetic
           ? `<div class="sw-back-${i}"><label for="sw-r${i}" style="cursor:pointer;">${backTable}</label></div>
              <div class="sw-face-${i}" style="display:none;">${faceColumn(pick)}</div>`
-          : `<a href="${APP_URL}" style="text-decoration:none;">${backTable}</a>`}
+          : `<a href="${READ_URL}" style="text-decoration:none;">${backTable}</a>`}
       </td>`).join('');
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cols}</tr></table>`;
   }
@@ -246,7 +249,7 @@ ${revealInputs}
         <tr><td align="center" style="padding-top:26px;">
           <table role="presentation" cellpadding="0" cellspacing="0" align="center">
             <tr><td style="background-color:#9c6f33;border-radius:6px;">
-              <a href="${APP_URL}" style="display:inline-block;padding:12px 26px;font-family:Georgia,serif;font-size:15px;color:#fffbf3;text-decoration:none;">Read the full spread ✦</a>
+              <a href="${READ_URL}" style="display:inline-block;padding:12px 26px;font-family:Georgia,serif;font-size:15px;color:#fffbf3;text-decoration:none;">Read the full spread ✦</a>
             </td></tr>
           </table>
         </td></tr>
