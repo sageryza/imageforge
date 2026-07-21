@@ -62,7 +62,7 @@
     .sigil svg { width: 22px; height: 22px; }
     header h1 {
       font-family: var(--serif); font-style: italic; font-weight: 500;
-      font-size: 21px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
+      font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
     }
 
     /* ── Sections ── */
@@ -188,8 +188,9 @@
     .coin-box:focus { border-color: var(--gold-dim); }
     .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     /* Draw button lives INSIDE the box, bottom-right (matching the diary look) */
-    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; padding: 4px 12px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 6px; font-family: var(--serif); font-size: 13.5px; font-weight: 500; letter-spacing: 0; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
-    .coin-btn:hover { background: #fffdf7; border-color: var(--gold-dim); }
+    /* Text-only button — no box/outline/fill, just the tappable gold text. */
+    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; padding: 4px 2px; background: none; color: var(--gold); border: none; border-radius: 6px; font-family: var(--serif); font-size: 13.5px; font-weight: 500; letter-spacing: 0; cursor: pointer; transition: opacity 0.15s ease; }
+    .coin-btn:hover { opacity: 0.7; }
     .coin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .coin-btn svg { width: 13px; height: 13px; }
     .coin-cell.drawn .coin-btn { display: none; }
