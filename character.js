@@ -362,7 +362,8 @@ router.post('/make', gated, async (req, res) => {
     // Detached — completes even if the client (webview) is gone.
     (async () => {
       try {
-        const url = await generatePortrait(bufs, String(name).trim(), gender, q);
+        const buf = await generatePortrait(bufs, String(name).trim(), gender, q);
+        const url = await saveBufferToStorage(buf, 'image/webp', 'characters');
         job.character = await saveCharacterDoc({ url, name, gender, tier, aliases, quality: q, model: 'gpt-image-2' });
         job.status = 'done';
       } catch (e) {
