@@ -53,6 +53,11 @@ const DREAM_BREAKDOWN_MODEL = process.env.DREAM_BREAKDOWN_MODEL || 'gpt-5.6-sol'
 // 'low' keeps the split/order/drift quality while cutting the breakdown from
 // ~60s to ~30s, so the synchronous request survives on mobile / Render.
 const DREAM_BREAKDOWN_EFFORT = process.env.DREAM_BREAKDOWN_EFFORT || 'low';
+// The films/story breakdown model. Same smart-tier reasoning as dreams: this
+// call owns real creative decisions (scene splits, per-moment transitions,
+// motion intensity), which a small model flattens.
+const FILMS_BREAKDOWN_MODEL = process.env.FILMS_BREAKDOWN_MODEL || 'gpt-5.6-sol';
+const FILMS_BREAKDOWN_EFFORT = process.env.FILMS_BREAKDOWN_EFFORT || 'low';
 // Same access gate as the POD pipeline: when set, everything but GET /status
 // requires the x-studio-token header. Generation costs real money.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -727,14 +732,15 @@ async function breakdownStory(story, sceneCount, opts = {}) {
   const subtleMotion = opts.motionProfile === 'subtle';  // "mostly still" is an option, not a rule
   const target = sceneCount ? `exactly ${sceneCount}` : 'between 8 and 12';
   const pairField = morphPairs
-    ? `\n   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,`
+    ? `\n   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,
+   "transition": how this scene hands off to the NEXT scene — "cut" | "morph" | "dream",`
     : '';
   const pairRule = morphPairs
-    ? '- For EACH moment, decide whether it wants a MORPH or a HARD CUT — purely your judgement for THIS story. There is NO quota and no expected ratio: one story might morph everywhere, another might be all hard cuts, most are somewhere between. A morph = a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty; a fist landing). Mark the FIRST of the pair with "pairWithNext": true. The pair\'s imagePrompts must describe the identical composition, differing only in the changed detail.'
+    ? '- For EACH moment, pick the transition into the NEXT scene — purely your judgement for THIS story, no quota and no expected ratio. Your three tools: "cut" = a plain hard cut (normal storyboard language, the default); "morph" = a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty; a fist landing) — set "transition":"morph" AND "pairWithNext": true on the FIRST of the pair, and the pair\'s imagePrompts must describe the identical composition differing only in the changed detail; "dream" = a dreamy bridge clip that morphs across a change of composition or place — use it where the story should FLOW hazily instead of cutting (falling into a memory, magic taking hold, time slipping). Most films want a mix of all three.'
     : '- Every scene is its own single still — do NOT create before/after pairs or repeat a composition with one small change.';
   const motionRule = subtleMotion
     ? '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move. Keep most scenes nearly still (breathing, wind, blinking); give pronounced action ONLY to the 1-3 most important beats — the contrast makes those beats land.'
-    : '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move.';
+    : '- motionPrompt is about MOTION only, one continuous action, never a cut or a camera move. Choose the intensity per scene, from near-still (breathing, wind, blinking) to bold physical action (she spins, the lights flare, she throws the door open) — whatever THIS beat needs; quiet beats stay quiet so the big ones land.';
   const sys = `You are a storyboard artist breaking a story into scenes for an illustrated animated short film. Return STRICT JSON:
 {"title": short film title,
  "characters": one compact phrase of visual continuity tokens for the recurring character(s) — MUST specify hairstyle, facial features (beard/glasses/etc), AND the exact clothing worn for the whole story, e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat and red boots",
@@ -756,7 +762,7 @@ ${motionRule}`;
   const out = await openaiChatJSON([
     { role: 'system', content: sys },
     { role: 'user', content: `The story:\n\n${story}` },
-  ], { temperature: 0.7 });
+  ], { model: FILMS_BREAKDOWN_MODEL, reasoningEffort: FILMS_BREAKDOWN_EFFORT, temperature: 0.7 });
   const scenes = (Array.isArray(out.scenes) ? out.scenes : []).map((s, i) => ({
     id: 's' + crypto.randomBytes(4).toString('hex'),
     title: String(s.title || `Scene ${i + 1}`).trim(),
@@ -765,6 +771,8 @@ ${motionRule}`;
     motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: morphPairs ? Boolean(s.pairWithNext) : false,
+    transition: morphPairs && Boolean(s.pairWithNext) ? 'morph'
+      : ['cut', 'dream'].includes(s.transition) ? s.transition : 'cut',
     key: Boolean(s.key),
     panel: null,          // { url, quality, status, error }
     clip: null,           // { url, tier, status, error, frames, cost, promptUsed }
@@ -1736,6 +1744,7 @@ function authoredScene(s, i) {
     clip: null,
     edits: { enabled: true, trimStart: 0, trimEnd: 0, speed: 1, freezeEnd: 0, fadeOut: 0 },
   };
+  if (['cut', 'morph', 'dream'].includes(s.transition)) scene.transition = s.transition;
   // Narrated-timeline extras (all optional, additive).
   if (typeof s.startAt === 'number' && isFinite(s.startAt)) scene.startAt = Math.max(0, s.startAt);
   if (s.outfit) scene.outfit = String(s.outfit).trim();          // same face, new clothing
@@ -2462,10 +2471,16 @@ router.post('/:id/bridges', async (req, res) => {
     const playable = movie.scenes.filter((s, idx) =>
       !isMerged(movie, idx) && s.edits?.enabled !== false && s.clip?.url);
     if (playable.length < 2) return res.status(400).json({ error: 'need at least two animated scenes' });
+    // When the breakdown marked specific transitions as "dream", bridge ONLY
+    // those cuts (the model's per-moment choice); `all:true` restores the
+    // classic bridge-every-cut dream mode. Unmarked movies keep old behavior.
+    const marked = playable.some(s => s.transition === 'dream');
+    const bridgeAll = req.body?.all === true || !marked;
     movie.bridges = movie.bridges || [];
     const targets = [];
     for (let i = 0; i < playable.length - 1; i++) {
       const from = playable[i], to = playable[i + 1];
+      if (!bridgeAll && from.transition !== 'dream') continue;
       let bridge = movie.bridges.find(b => b.fromSceneId === from.id && b.toSceneId === to.id);
       if (bridge?.clip?.url) continue;
       if (!bridge) {
