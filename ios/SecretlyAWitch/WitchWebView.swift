@@ -76,6 +76,10 @@ struct WitchWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             parent.loading = false
+            // Honor a non-default starting tab (CI screenshots / restored state).
+            if parent.tab != .home {
+                webView.evaluateJavaScript("window.__setTab && window.__setTab('\(parent.tab.rawValue)')", completionHandler: nil)
+            }
         }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             parent.loading = false
