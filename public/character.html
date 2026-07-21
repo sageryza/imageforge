@@ -104,8 +104,7 @@
     <div class="result hidden" id="result">
       <img class="portrait" id="portrait" alt="">
       <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="saveMain">Add to sheet</button>
-        <button class="btn" id="saveSide">Save (side)</button>
+        <button class="btn primary" id="saveMain">★ Add to sheet</button>
         <button class="btn" id="regen">Regenerate</button>
         <button class="btn" id="fresh">New one</button>
       </div>
@@ -151,36 +150,76 @@
     b.classList.add('on'); gender = b.dataset.g;
   });
 
+  // Character generation is a DETACHED server job: it draws + auto-saves even
+  // if you close this sheet mid-draw. localStorage remembers an in-flight job
+  // so reopening the page picks the result back up.
+  const JOBKEY = 'char_make_job';
+  let lastCharId = null, polling = false;
+
   async function generate() {
     if (!photoData || !$('name').value.trim()) return;
+    lastCharId = null;
     $('gen').disabled = true;
-    $('status').innerHTML = '<span class="spin"></span> Drawing ' + $('name').value.trim() + '…';
     $('result').classList.add('hidden');
-    const r = await api('/api/character/generate', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ photo: photoData, name: $('name').value.trim(), gender }) });
-    if (!r.ok) { $('status').textContent = 'Error: ' + ((r.body && r.body.error) || r.status); refreshGen(); return; }
-    lastUrl = r.body.url;
-    $('portrait').src = lastUrl;
-    $('result').classList.remove('hidden');
-    $('status').textContent = '';
-    refreshGen();
-  }
-  $('gen').onclick = generate;
-  $('regen').onclick = generate;
-  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; $('aliases').value=''; photoData=null;
-    $('thumb').classList.add('hidden'); $('drop').querySelector('svg').classList.remove('hidden'); refreshGen(); };
-
-  async function save(tier) {
-    if (!lastUrl) return;
-    $('status').innerHTML = '<span class="spin"></span> Saving…';
     const aliases = ($('aliases').value || '').split(',').map(s => s.trim()).filter(Boolean);
-    const r = await api('/api/character/save', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ url:lastUrl, name:$('name').value.trim(), gender, tier, aliases }) });
-    $('status').textContent = r.ok ? 'Saved ' + $('name').value.trim() + (tier==='main'?' to the sheet.':' as a side character.') : ('Error: ' + ((r.body&&r.body.error)||r.status));
-    if (r.ok) loadSheet();
+    $('status').innerHTML = '<span class="spin"></span> Drawing ' + $('name').value.trim() + '… you can tap Done and leave — it saves on its own.';
+    const r = await api('/api/character/make', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ photo: photoData, name: $('name').value.trim(), gender, aliases, tier: 'side', quality: 'medium' }) });
+    if (!r.ok || !r.body.jobId) { $('status').textContent = 'Error: ' + ((r.body && r.body.error) || r.status); refreshGen(); return; }
+    try { localStorage.setItem(JOBKEY, JSON.stringify({ jobId: r.body.jobId, name: $('name').value.trim() })); } catch (e) {}
+    pollMake(r.body.jobId, $('name').value.trim());
   }
-  $('saveMain').onclick = () => save('main');
-  $('saveSide').onclick = () => save('side');
+
+  async function pollMake(jobId, name) {
+    if (polling) return; polling = true;
+    for (let i = 0; i < 120; i++) {
+      const r = await api('/api/character/make/' + jobId);
+      if (r.ok && r.body.status === 'done' && r.body.character) {
+        const c = r.body.character;
+        lastCharId = c.id; lastUrl = c.url;
+        $('portrait').src = c.url;
+        $('result').classList.remove('hidden');
+        $('status').textContent = 'Saved — ' + (name || c.name) + ' is in your characters.';
+        try { localStorage.removeItem(JOBKEY); } catch (e) {}
+        refreshGen(); loadSheet(); polling = false; return;
+      }
+      if ((r.ok && r.body.status === 'error') || r.status === 404) {
+        $('status').textContent = 'Error: ' + ((r.body && r.body.error) || 'the drawing didn’t finish');
+        try { localStorage.removeItem(JOBKEY); } catch (e) {}
+        refreshGen(); polling = false; return;
+      }
+      await new Promise(res => setTimeout(res, 3000));
+    }
+    polling = false;
+  }
+
+  $('gen').onclick = generate;
+  // Regenerate = draw a fresh one; drop the previous auto-saved version so we
+  // don't leave duplicates behind.
+  $('regen').onclick = async () => {
+    if (lastCharId) { try { await api('/api/character/' + lastCharId, { method:'DELETE' }); } catch (e) {} lastCharId = null; loadSheet(); }
+    generate();
+  };
+  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; $('aliases').value=''; photoData=null; lastCharId=null;
+    $('thumb').classList.add('hidden'); $('drop').querySelector('svg').classList.remove('hidden'); $('status').textContent=''; refreshGen(); };
+
+  // Promote the just-saved (side) character onto the main sheet.
+  $('saveMain').onclick = async () => {
+    if (!lastCharId) return;
+    $('status').innerHTML = '<span class="spin"></span> Adding to sheet…';
+    const r = await api('/api/character/' + lastCharId + '/tier', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tier: 'main' }) });
+    $('status').textContent = r.ok ? 'Added to the sheet.' : ('Error: ' + ((r.body&&r.body.error)||r.status));
+    if (r.ok) loadSheet();
+  };
+
+  // Reopening the page: if a draw was still going when you left, pick it back up.
+  (function resumeMake() {
+    try {
+      const j = JSON.parse(localStorage.getItem(JOBKEY) || 'null');
+      if (j && j.jobId) { $('status').innerHTML = '<span class="spin"></span> Finishing ' + (j.name || 'your character') + '…'; pollMake(j.jobId, j.name); }
+    } catch (e) {}
+  })();
 
   // sheet
   async function loadSheet() {

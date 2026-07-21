@@ -312,6 +312,71 @@ router.post('/save', gated, async (req, res) => {
   }
 });
 
+// Build the clean version + write the character doc. Shared by /save and the
+// detached /make job — so a generate that finishes after the client left still
+// persists.
+async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null }) {
+  const d = db();
+  if (!d) throw new Error('firestore unavailable');
+  let cleanUrl = String(url);
+  try {
+    const src = await (await fetch(String(url), { redirect: 'follow' })).buffer();
+    const clean = await cleanBox(src);
+    cleanUrl = await saveBufferToStorage(clean, 'image/png', 'characters/clean');
+  } catch (e) { console.warn('character: cleanBox failed —', e.message); }
+  const doc = {
+    name: String(name || '').trim(),
+    gender: String(gender || 'they'),
+    url: String(url), cleanUrl,
+    tier: tier === 'main' ? 'main' : 'side',
+    aliases: normAliases(aliases),
+    quality: ['low', 'medium', 'high'].includes(quality) ? quality : null,
+    model: model ? String(model).slice(0, 60) : null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  const ref = await d.collection(COLLECTION).add(doc);
+  return { id: ref.id, ...doc };
+}
+
+// Generate a portrait AND save it, as a DETACHED background job — the draw +
+// save run off the request, so tapping Done / closing the sheet mid-draw never
+// loses it (the character still finishes and lands in the list). Poll /make/:id.
+const makeJobs = new Map();   // jobId → { id, status, name, character?, error? }
+router.post('/make', gated, async (req, res) => {
+  try {
+    for (const [k, v] of makeJobs) if (Date.now() - v.createdAt > 30 * 60 * 1000) makeJobs.delete(k);
+    const { photo, photos, name, gender, tier, quality, aliases } = req.body || {};
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+    const list = Array.isArray(photos) ? photos : (photo ? [photo] : []);
+    const bufs = [];
+    for (const p of list) {
+      const m = String(p).match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+      if (m) bufs.push(Buffer.from(m[2], 'base64'));
+    }
+    if (!bufs.length) return res.status(400).json({ error: 'photo required' });
+    const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    const id = crypto.randomBytes(8).toString('hex');
+    const job = { id, status: 'running', name: String(name).trim(), createdAt: Date.now() };
+    makeJobs.set(id, job);
+    res.json({ ok: true, jobId: id });
+    // Detached — completes even if the client (webview) is gone.
+    (async () => {
+      try {
+        const url = await generatePortrait(bufs, String(name).trim(), gender, q);
+        job.character = await saveCharacterDoc({ url, name, gender, tier, aliases, quality: q, model: 'gpt-image-2' });
+        job.status = 'done';
+      } catch (e) {
+        job.status = 'error'; job.error = e.message;
+      }
+    })();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+router.get('/make/:id', gated, (req, res) => {
+  const job = makeJobs.get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'job not found' });
+  res.json(job);
+});
+
 // List saved characters (newest first).
 router.get('/', gated, async (req, res) => {
   try {
