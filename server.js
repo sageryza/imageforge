@@ -303,6 +303,8 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
 // Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
 app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
+// Public privacy policy (App Store requires a reachable privacy URL).
+app.get('/witch/privacy', (req, res) => { res.sendFile(__dirname + '/public/witch-privacy.html'); });
 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
