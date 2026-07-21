@@ -494,8 +494,8 @@ function renderMsg(m){
   // audio (player or Play) sits at the TOP of the message, under the header
   row.insertBefore(tools, row.querySelector('.m-preview'));
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  // tapping the open message controls autoscroll: single tap stops, double tap
-  // speeds up. Closing is the header row ("close ▲") so a tap never collapses it.
+  // tapping the open message toggles autoscroll (stop/start). Closing is the
+  // header row ("close ▲") so a tap never collapses it.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
     window.__scrollTap();
