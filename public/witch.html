@@ -314,10 +314,25 @@
     /* Unlike the quiz, the deep page keeps the bottom nav: it sits BELOW the
        nav (z 50) in the stack, and its 96px bottom padding already clears it.
        Tapping a nav tab closes the page (see go()). */
-    #deep-app { z-index: 45; }
+    #deep-app, #tarot-app { z-index: 45; }
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
-    #deep-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
+    #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
+    /* Tarot dive-deeper — per-card meanings + fun-option tiles */
+    .tdeep-card { padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+    .tdeep-card:last-of-type { border-bottom: none; }
+    .tdeep-cardpos { font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 2px; }
+    .tdeep-cardname { font-family: var(--serif); font-size: 17px; color: var(--text); }
+    .tdeep-cardname .tdeep-orient { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; }
+    .tdeep-cardmean { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-top: 3px; }
+    .tfun { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .tfun-tile { display: flex; align-items: center; gap: 12px; text-align: left; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; color: var(--text); cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.15s ease, transform 0.15s ease; }
+    .tfun-tile:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .tfun-tile:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .tfun-ti { line-height: 0; color: var(--gold); flex: none; }
+    .tfun-ti svg { width: 22px; height: 22px; stroke-width: 1.7; }
+    .tfun-tt { display: block; font-family: var(--serif); font-size: 16px; }
+    .tfun-td { display: block; font-size: 12px; color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
 
     /* Dive deeper — the day's chart wheel + placements */
     .dsk-wheel { max-width: 340px; margin: 14px auto 6px; }
@@ -932,7 +947,7 @@
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
-          <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;">Save to Book of Shadows <span class="js-star"></span></button>
+          <button class="btn-ghost" id="daily-dive" style="display:none; margin-top:16px;">Dive deeper <span class="js-star"></span></button>
         </div>
 
         <!-- Dream reading -->
@@ -1219,6 +1234,12 @@
   <div class="quiz-app" id="deep-app" style="display:none;">
     <button class="quiz-back" id="deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="deep-stage"></div>
+  </div>
+
+  <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
+  <div class="quiz-app" id="tarot-app" style="display:none;">
+    <button class="quiz-back" id="tarot-deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
   <script>
@@ -1841,28 +1862,104 @@
     tarotLoading = false;
     if (tarotRevealed.size === 3) showTarotReading();
   }
+  // Inline = the QUICK read: a short line per card. The full reading + fun
+  // options live on the Dive-deeper page (openTarotDeep), same pattern as the
+  // astrology glance → deep page.
   function showTarotReading() {
     const box = $('daily-tarot-reading');
+    const dive = $('daily-dive');
     if (!dailyTarot) {
       if (!tarotLoading && !tarotError) loadTarot(false);
       box.innerHTML = (tarotError && !tarotLoading)
         ? `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The cards are quiet right now — <button class="link-btn" id="tarot-retry">try again</button>.</p>`
         : `<div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0;"><span class="spin">✦</span><span style="font-size:13px;color:var(--text-dim);font-style:italic;">Reading your cards…</span></div>`;
       box.style.display = '';
+      dive.style.display = 'none';
       const rb = $('tarot-retry'); if (rb) rb.addEventListener('click', () => { tarotError = ''; loadTarot(true); showTarotReading(); });
       return;
     }
-    box.innerHTML = renderReading(dailyTarot, true);
+    let html = '';
+    if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
+      const pos = c.position ? `${c.position} — ` : '';
+      html += `<div class="reading-card-meaning">${pos}<strong>${esc(c.name)}</strong> — ${esc(c.meaning)}</div>`;
+    });
+    box.innerHTML = html;
     box.style.display = '';
-    const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false;
-    sv.innerHTML = 'Save to Book of Shadows <span class="js-star"></span>'; renderStars();
+    if (dailyTarot.reading || dailyTarot.advice) { dive.style.display = ''; renderStars(); }
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
-    $('daily-save').style.display = 'none';
+    $('daily-dive').style.display = 'none';
     renderDailyTarot();
   }
+
+  /* ══════════ TAROT DIVE DEEPER — the full reading + fun options ══════════ */
+  let tarotDeepOpen = false, tarotSaved = false;
+  function saveDailyReading() {
+    if (!dailyTarot || !dailyPicks || tarotSaved) return;
+    const all = loadReadings();
+    all.unshift({
+      id: 'r_' + Date.now(), date: nowStamp(),
+      question: `Daily pull · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`,
+      spread: 'three',
+      cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
+      data: dailyTarot,
+    });
+    saveReadings(all); updateSavedCount(); tarotSaved = true;
+  }
+  const T_ICON = {
+    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>',
+    deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
+    charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
+  };
+  function renderTarotDeep() {
+    const st = $('tarot-deep-stage'); if (!st) return;
+    if (!dailyTarot) { st.innerHTML = `<div class="quiz-kicker">Your reading</div><p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The cards are quiet right now.</p>`; return; }
+    const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    let h = `<div class="quiz-kicker">Your full reading</div>`;
+    h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
+    h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
+    // Each card, its position + meaning
+    if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
+      h += `<div class="tdeep-card">
+        ${c.position ? `<div class="tdeep-cardpos">${esc(c.position)}</div>` : ''}
+        <div class="tdeep-cardname">${esc(c.name)}${c.orientation ? `<span class="tdeep-orient">${esc(c.orientation)}</span>` : ''}</div>
+        <div class="tdeep-cardmean">${esc(c.meaning || '')}</div>
+      </div>`;
+    });
+    // The synthesised reading
+    if (dailyTarot.reading) {
+      h += `<div class="glance-sec"><div class="glance-label">The reading</div>`;
+      String(dailyTarot.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
+      h += `</div>`;
+    }
+    if (dailyTarot.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(dailyTarot.advice)}</p></div>`;
+    // Fun options
+    h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
+      <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
+      <button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>
+      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">Short, gentle lessons in Witch School.</span></span></button>
+    </div></div>`;
+    st.innerHTML = h;
+    const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
+    const db = $('tfun-deck'); if (db) db.addEventListener('click', () => toast('Design-your-own decks are coming soon ✦'));
+    const lb = $('tfun-learn'); if (lb) lb.addEventListener('click', () => { closeTarotDeep(); go('school'); });
+  }
+  function openTarotDeep() {
+    tarotDeepOpen = true;
+    document.body.style.overflow = 'hidden';
+    const app = $('tarot-app'); app.style.display = ''; app.scrollTop = 0;
+    renderTarotDeep();
+  }
+  function closeTarotDeep() {
+    tarotDeepOpen = false;
+    $('tarot-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('daily-dive').addEventListener('click', openTarotDeep);
+  $('tarot-deep-back').addEventListener('click', closeTarotDeep);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tarotDeepOpen) closeTarotDeep(); });
   // Deal today's cards the moment the Today page is in 'ready' state — the
   // pull is a free deterministic local draw, so the backs are tappable
   // immediately, independent of the astrology reveal.
@@ -1872,24 +1969,10 @@
     if (dailyCardsStamp === stamp && dailyPicks) return;
     dailyCardsStamp = stamp;
     dailyPicks = dailyPull();
-    dailyTarot = null; tarotError = '';
+    dailyTarot = null; tarotError = ''; tarotSaved = false;
     try { const c = JSON.parse(localStorage.getItem(tarotDayKey()) || 'null'); if (c && c.tarot) dailyTarot = c.tarot; } catch {}
     resetDailyTarot();
   }
-
-  $('daily-save').addEventListener('click', () => {
-    if (!dailyTarot || !dailyPicks) return;
-    const all = loadReadings();
-    all.unshift({
-      id: 'r_' + Date.now(), date: nowStamp(),
-      question: `Daily pull · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`,
-      spread: 'three',
-      cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
-      data: dailyTarot,
-    });
-    saveReadings(all); updateSavedCount();
-    const b = $('daily-save'); b.disabled = true; b.innerHTML = 'Saved to Book of Shadows <span class="js-star"></span>'; renderStars();
-  });
 
   /* ══════════ SHOP ══════════ */
   async function loadShop() {
