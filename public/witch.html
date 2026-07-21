@@ -1335,6 +1335,24 @@
   if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
   window.__setTab = go;
 
+  // ── Deep link: /witch#tarot (also #cards / #reading) lands straight on the
+  // daily three-card pull — the tap-to-reveal spread the email links to. When
+  // the spread is visible we scroll to it; when it's still behind the sign-in
+  // gate (logged-out visitor) we land on the daily card above it, where the
+  // "Enter the circle" prompt is. ──
+  function tarotAnchorEl() {
+    const spread = $('tarot-card');
+    if (spread && spread.offsetParent !== null) return spread; // revealed → the cards
+    return $('daily-card') || spread;                          // gated/hidden → the daily card
+  }
+  function scrollToTarot() {
+    go('home');
+    setTimeout(() => { const el = tarotAnchorEl(); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+  }
+  function isTarotHash() { return /^#(tarot|cards|reading)$/i.test(location.hash || ''); }
+  if (isTarotHash()) setTimeout(scrollToTarot, 500);
+  window.addEventListener('hashchange', () => { if (isTarotHash()) scrollToTarot(); });
+
   /* ══════════ TAROT DECK (78) ══════════ */
   const MAJORS = [
     ['0','The Fool','new beginnings, spontaneity, a leap of faith','recklessness, holding back, fear of the unknown'],
