@@ -609,12 +609,12 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// Content-tap gesture (a page calls __scrollTap from its own tap handler):
-// while autoscrolling, EVERY tap steps the speed up one notch — and once it's
-// already on the top speed, the next tap pauses. Immediate, no double-tap
-// waiting. Starting is always via the play button, never a tap.
+// Content-tap gesture (a page calls __scrollTap from its own tap handler) —
+// one full loop: stopped → tap starts at Medium → each tap steps up
+// (Fast, Faster) → tap on Faster pauses → tap starts again. Immediate,
+// no double-tap waiting.
 window.__scrollTap=function(){
-  if(!playing) return;
+  if(!playing){ si=1; scrollStart(1); return; }
   if(si<SPEEDS.length-1){ si++; paintPill(); }
   else scrollStop();
 };

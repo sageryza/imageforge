@@ -2354,7 +2354,7 @@ window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
 window.__scrollTap=function(){
-  if(!playing) return;
+  if(!playing){ si=1; scrollStart(1); return; }
   if(si<SPEEDS.length-1){ si++; paintPill(); }
   else scrollStop();
 };
