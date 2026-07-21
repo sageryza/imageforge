@@ -184,7 +184,7 @@ body.reading .backwrap{display:block;}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
   </div>
-  <span id="spd">Medium</span>
+  <span id="spd">Fast</span>
 </div>
 
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
@@ -319,7 +319,7 @@ function ago(iso){
 }
 
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
-var playing=false, raf=null, last=null, si=1, dir=1, acc=0;
+var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -356,13 +356,8 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// Content-tap gesture — one full loop: stopped → tap starts at Medium → each
-// tap steps up (Fast, Faster) → tap on Faster pauses → tap starts again.
-window.__scrollTap=function(){
-  if(!playing){ si=1; scrollStart(1); return; }
-  if(si<SPEEDS.length-1){ si++; paintPill(); }
-  else scrollStop();
-};
+// Content-tap: a plain toggle — tap stops, tap starts again (default Fast).
+window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
@@ -563,8 +558,8 @@ function renderMsg(m){
   // audio (player or Play) sits at the TOP of the message, under the header
   row.insertBefore(tools, row.querySelector('.m-preview'));
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  // tapping the open message controls autoscroll: single tap stops, double tap
-  // speeds up. Closing is the header row ("close ▲") so a tap never collapses it.
+  // tapping the open message toggles autoscroll (stop/start). Closing is the
+  // header row ("close ▲") so a tap never collapses it.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
     window.__scrollTap();
