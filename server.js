@@ -2196,7 +2196,10 @@ app.get('/api/witch/shop', async (req, res) => {
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
     if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
     const j = await r.json();
-    const products = (j.products || []).map(p => {
+    // The store is shared with other brands; keep non-witch products (e.g. the
+    // People Watching Club items) out of the witch app's shop.
+    const EXCLUDE = /people\s*watching/i;
+    const products = (j.products || []).filter(p => !EXCLUDE.test(p.title || '')).map(p => {
       const v = (p.variants || [])[0] || {};
       const img = (p.images || [])[0] || {};
       const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));

@@ -1334,6 +1334,12 @@
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
   if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
   window.__setTab = go;
+  // Screenshot helper: ?shot=<elementId> scrolls that section into view on
+  // load (used by the CI App Store screenshot capture).
+  (() => {
+    const shot = new URLSearchParams(location.search).get('shot');
+    if (shot) setTimeout(() => { const el = document.getElementById(shot); if (el) el.scrollIntoView({ block: 'center' }); }, 1300);
+  })();
 
   // ── Deep link: /witch#tarot (also #cards / #reading) lands straight on the
   // daily three-card pull — the tap-to-reveal spread the email links to. When
