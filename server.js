@@ -188,6 +188,7 @@ loadConfig().then(() => {
   const gdrive = require('./gdrive');
   const chatfeed = require('./chatfeed');
   const tarotEmail = require('./tarot-email');
+  const nde = require('./nde');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -211,7 +212,8 @@ loadConfig().then(() => {
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed)');
+  app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed + nde)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
