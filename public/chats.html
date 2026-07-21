@@ -110,6 +110,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 /* Labeled Refresh button, left-grouped next to the view toggle so it never
    sits under the floating autoscroll pill in the top-right corner. */
 .refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
+/* Compare tab: a chat's published pages (comparison sheets / option boards) */
+.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
+.pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
+/* Full-screen viewer for a Compare page */
+.pageview{position:fixed; inset:0; z-index:40; background:var(--paper); display:flex; flex-direction:column;}
+.pv-bar{display:flex; align-items:center; gap:10px; padding:calc(max(8px, env(safe-area-inset-top))) 12px 8px; border-bottom:1px solid var(--line); background:var(--barbg); flex:none;}
+.pv-back{width:38px; height:38px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; flex:none;}
+.pv-title{font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+.pv-frame{flex:1; width:100%; border:none; background:#fff;}
 .m-tools audio{flex:1; height:32px; min-width:0;}
 /* view toggle (List / Tiles) */
 .viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
@@ -144,9 +154,7 @@ body.reading .backwrap{display:block;}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
 .totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
 .totop.show{display:flex;}
-.loadall{display:block; margin:0 0 0 auto; font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
-  border:1px solid var(--line); color:var(--ink2); background:var(--barbg); border-radius:6px; padding:8px 14px; cursor:pointer;}
-.arow{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px;}
+.arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
 .afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
 .afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
   letter-spacing:.05em; text-transform:uppercase; padding:7px 12px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
@@ -174,7 +182,7 @@ body.reading .backwrap{display:block;}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
   </div>
-  <span id="spd">Medium</span>
+  <span id="spd">Fast</span>
 </div>
 
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
@@ -308,8 +316,8 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9]];
-var playing=false, raf=null, last=null, si=1, dir=1, acc=0;
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -346,6 +354,8 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// Content-tap: a plain toggle — tap stops, tap starts again (default Fast).
+window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
@@ -355,7 +365,7 @@ document.addEventListener('visibilitychange',function(){ if(document.hidden) scr
 window.addEventListener('pagehide',scrollStop);
 paintPill();
 
-var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='';
+var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
@@ -546,11 +556,11 @@ function renderMsg(m){
   // audio (player or Play) sits at the TOP of the message, under the header
   row.insertBefore(tools, row.querySelector('.m-preview'));
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
-  // tapping the open message starts/stops autoscroll (reading aid) —
-  // closing moved to the header row ("close ▲") so a tap never collapses it
+  // tapping the open message toggles autoscroll (stop/start). Closing is the
+  // header row ("close ▲") so a tap never collapses it.
   row.querySelector('.m-full').onclick=function(e){
     if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollToggle();
+    window.__scrollTap();
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
@@ -591,7 +601,7 @@ function openChat(name, keepScroll){
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(name)+'</h1></div>'
-    +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button></div>'
+    +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
@@ -633,10 +643,9 @@ function openChat(name, keepScroll){
         var a=(d&&d.assets)||[];
         assetsPanel.innerHTML='';
         if(!a.length){ assetsPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images from this chat yet.'})); return; }
-        // Grid tiles load small server-side thumbnails (cached in Storage +
-        // by the browser) instead of the multi-MB originals; the lightbox
-        // still opens the full image. "Load all" defeats the lazy loading so
-        // everything fetches (and caches) in one go.
+        // Grid tiles load small thumbnails (served straight from storage's CDN
+        // when they exist, else generated by /api/story/thumb) instead of the
+        // multi-MB originals; the lightbox still opens the full image.
         // Thin three-way filter pill: New (unvoted) · ♥ (hearted) · Hide ✕
         // (everything but rejected). Tapping the active one turns the filter
         // off again, so the ✕'d tiles stay reachable to un-reject.
@@ -660,30 +669,21 @@ function openChat(name, keepScroll){
           };
           seg.appendChild(sb);
         });
-        var la=document.createElement('button'); la.className='loadall'; la.textContent='Load all';
-        la.onclick=function(){
-          assetsPanel.querySelectorAll('img[loading="lazy"]').forEach(function(im){ im.loading='eager'; });
-          // Also trickle the FULL-SIZE originals into the cache (3 at a time)
-          // so the lightbox opens instantly once its image has come in.
-          la.disabled=true;
-          var q=a.map(function(it){ return it.url; }), active=0, done=0;
-          function tick(){
-            if(!q.length && !active){ la.textContent='All loaded'; setTimeout(function(){ la.style.visibility='hidden'; },1200); return; }
-            while(active<3 && q.length){
-              active++;
-              // fetch() lands the bytes in the HTTP cache WITHOUT decoding the
-              // image — new Image() decoded all of them and blew webview memory
-              fetch(q.shift(),{mode:'no-cors'}).catch(function(){}).then(function(){
-                active--; done++;
-                la.textContent='Loading full sizes\u2026 '+done+'/'+a.length; tick(); });
-            }
-          }
-          la.textContent='Loading full sizes\u2026 0/'+a.length;
-          tick();
-        };
         var arow=document.createElement('div'); arow.className='arow';
-        arow.appendChild(seg); arow.appendChild(la);
+        arow.appendChild(seg);
         assetsPanel.appendChild(arow);
+        // Load each thumb as it nears the viewport. An IntersectionObserver is
+        // far more reliable in the app's WKWebView than native loading="lazy",
+        // which routinely needed a tap to trigger. rootMargin loads a screen or
+        // two ahead so scrolling feels instant.
+        var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(ents){
+          ents.forEach(function(en){
+            if(!en.isIntersecting) return;
+            var im=en.target;
+            if(im.dataset.src){ im.src=im.dataset.src; im.removeAttribute('data-src'); }
+            io.unobserve(im);
+          });
+        }, {rootMargin:'900px 0px'}) : null;
         var grid=document.createElement('div'); grid.className='assetgrid';
         // ♥ / ✕ curation per tile (circular icon buttons — allowed by the
         // no-pills rule). Saved server-side per chat+url; tapping the active
@@ -725,9 +725,16 @@ function openChat(name, keepScroll){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
           var lbl=it.prompt?'<div class="lbl">'+esc(it.prompt)+'</div>':'';
-          b.innerHTML='<img alt="" loading="lazy" src="'+esc(assetThumb(it.url))+'">'+lbl;
+          // Prefer the direct storage thumb (CDN, no server hop); if it isn't
+          // generated yet it 404s and we fall back to /api/story/thumb, which
+          // makes it on demand. IntersectionObserver sets src from data-src.
+          var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
+          var srcAttr = io ? 'data-src' : 'src';
+          var onerr = it.thumb ? ' onerror="this.onerror=null;this.src=\''+esc(fb)+'\'"' : '';
+          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'"'+onerr+'>'+lbl;
           b.onclick=function(){ lightbox(it.url, it.prompt, it); };
           cell.appendChild(b); voteBtns(cell,it);
+          if(io) io.observe(b.querySelector('img'));
           var badge=document.createElement('div'); badge.className='donebadge'; badge.innerHTML=CHECK;
           cell.appendChild(badge);
           cell.classList.toggle('done', !!it.done);
@@ -739,17 +746,69 @@ function openChat(name, keepScroll){
       })
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
   }
-  var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets');
-  tgChat.onclick=function(){ tgChat.classList.add('on'); tgAssets.classList.remove('on'); chatPanel.style.display=''; assetsPanel.style.display='none'; };
-  tgAssets.onclick=function(){ scrollStop(); tgAssets.classList.add('on'); tgChat.classList.remove('on'); chatPanel.style.display='none'; assetsPanel.style.display=''; loadAssets(); window.scrollTo(0,0); };
-  // let the global refresh button re-pull this chat's assets fresh
-  window._reloadAssets=function(){ if(assetsPanel.style.display!=='none') loadAssets(true); };
+  // Compare panel — pages the chat published (comparison sheets, option
+  // boards; what used to live as claude.ai artifacts). Lazy-loaded.
+  var comparePanel=document.createElement('div'); comparePanel.style.display='none';
+  comparePanel.innerHTML='<div class="state">Loading pages&hellip;</div>';
+  sec.appendChild(comparePanel);
+  var pagesLoaded=false;
+  function loadPages(force){
+    if(pagesLoaded && !force) return; pagesLoaded=true;
+    api('/api/chatfeed/pages?chat='+encodeURIComponent(name)+'&_='+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(d){
+        var ps=(d&&d.pages)||[];
+        comparePanel.innerHTML='';
+        if(!ps.length){ comparePanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No pages from this chat yet.'})); return; }
+        ps.forEach(function(p){
+          var row=document.createElement('button'); row.className='pagerow';
+          row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
+          row.onclick=function(){ openPage(p); };
+          comparePanel.appendChild(row);
+        });
+      })
+      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn’t load pages.</div>'; });
+  }
+  var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets'), tgCompare=head.querySelector('.tg-compare');
+  var panels={chat:chatPanel, assets:assetsPanel, compare:comparePanel};
+  var togs={chat:tgChat, assets:tgAssets, compare:tgCompare};
+  function showTab(tab){
+    curTab=tab;
+    Object.keys(panels).forEach(function(k){
+      panels[k].style.display = k===tab ? '' : 'none';
+      togs[k].classList.toggle('on', k===tab);
+    });
+    if(tab==='assets') loadAssets();
+    if(tab==='compare') loadPages();
+  }
+  tgChat.onclick=function(){ showTab('chat'); };
+  tgAssets.onclick=function(){ scrollStop(); showTab('assets'); window.scrollTo(0,0); };
+  tgCompare.onclick=function(){ scrollStop(); showTab('compare'); window.scrollTo(0,0); };
+  // let the global refresh button re-pull this chat's assets/pages fresh
+  window._reloadAssets=function(){
+    if(assetsPanel.style.display!=='none') loadAssets(true);
+    if(comparePanel.style.display!=='none') loadPages(true);
+  };
+  // A rebuild (e.g. from Refresh) keeps whichever tab was open — restore it
+  // instead of snapping back to Chat.
+  if(curTab!=='chat') showTab(curTab);
 
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
   if(!keepScroll) window.scrollTo(0,0);
+}
+// Full-screen viewer for a Compare page: top bar (back + title) over an
+// iframe. Freezes the page behind it, like the lightbox (design rule).
+function openPage(p){
+  scrollStop();
+  var v=document.createElement('div'); v.className='pageview';
+  v.innerHTML='<div class="pv-bar"><button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span></div>'
+    +'<iframe class="pv-frame" src="/api/chatfeed/page/'+encodeURIComponent(p.id)+(TOKEN?'?token='+encodeURIComponent(TOKEN):'')+'"></iframe>';
+  v.querySelector('.pv-back').onclick=function(){ v.remove(); document.body.style.overflow=''; };
+  document.body.appendChild(v);
+  document.body.style.overflow='hidden';
 }
 // Image lightbox — freezes the page behind it (design rule)
 function lightbox(url, caption, asset){
@@ -796,7 +855,7 @@ function lightbox(url, caption, asset){
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
-  scrollStop(); cur=null;
+  scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');

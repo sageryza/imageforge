@@ -19,7 +19,7 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     static let shared = AutoScrollDriver()
 
     @Published var playing = false
-    @Published var speedIndex = 1               // 0 slow · 1 medium · 2 fast
+    @Published var speedIndex = 2               // 0 slow · 1 medium · 2 fast (default) · 3 faster
     var direction: Double = 1
     /// The pill's on-screen frame (global/window coords), kept current by
     /// AutoScrollPill — taps inside it are the pill's own controls.
@@ -29,8 +29,8 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     /// there's never two pills stacked on top of each other.
     @Published var webPillActive = false
 
-    /// Three discrete speeds instead of a continuous dial.
-    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9)]
+    /// Four discrete speeds instead of a continuous dial.
+    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9), ("Faster", 3.2)]
     var speed: Double { Self.speeds[speedIndex].value }
     var speedLabel: String { Self.speeds[speedIndex].label }
     func slower() { speedIndex = max(0, speedIndex - 1) }
@@ -65,9 +65,12 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     }
 
     // A tap ANYWHERE on content stops autoscroll — on every screen, without
-    // per-screen wiring. cancelsTouchesInView=false so the tap still does what
-    // it was going to do (open a tile, press a button); the pill's own frame is
-    // filtered out in shouldReceive so −/‖/+ keep working while playing.
+    // per-screen wiring. (Restart is the pill's play button: the catcher only
+    // exists while playing, and a stopped-tap-starts rule would make every
+    // ordinary tap kick the page scrolling.) cancelsTouchesInView=false so the
+    // tap still does what it was going to do (open a tile, press a button); the
+    // pill's own frame is filtered out in shouldReceive so −/‖/+ keep working
+    // while playing.
     private func installTapCatcher() {
         removeTapCatcher()
         guard let window = target?.window ?? Self.keyWindow() else { return }

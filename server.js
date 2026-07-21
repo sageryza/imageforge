@@ -187,6 +187,8 @@ loadConfig().then(() => {
   const writing = require('./writing');
   const gdrive = require('./gdrive');
   const chatfeed = require('./chatfeed');
+  const tarotEmail = require('./tarot-email');
+  const nde = require('./nde');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -209,7 +211,9 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
-  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed)');
+  app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
+  app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
+  console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed + nde)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
@@ -788,31 +792,55 @@ app.get('/api/story', async (req, res) => {
 // back to redirecting to the original image rather than a broken cell.
 const THUMB_HOSTS = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
 const thumbHot = new Map(); // url|w → cached public URL (per-process)
+// Content-addressed thumb path — computable WITHOUT generating, so the assets
+// list can hand out direct storage URLs for thumbs that already exist.
+const thumbName = (url, w) => 'thumbs/'
+  + require('crypto').createHash('sha1').update(url + '|' + w).digest('hex') + '.webp';
+async function makeThumb(url, w) {
+  const key = url + '|' + w;
+  if (thumbHot.has(key)) return thumbHot.get(key);
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(thumbName(url, w));
+  const [exists] = await file.exists();
+  if (!exists) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('fetch ' + r.status);
+    const out = await require('sharp')(await r.buffer())
+      .resize({ width: w, withoutEnlargement: true })
+      .webp({ quality: 75 })
+      .toBuffer();
+    await file.save(out, { contentType: 'image/webp', resumable: false });
+    await file.makePublic();
+  }
+  const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+  thumbHot.set(key, pub);
+  return pub;
+}
+// Background warmer: pre-makes missing thumbs right after an assets-list
+// request (a few at a time), so tiles get direct storage URLs on the next
+// load instead of bouncing through this server one image at a time.
+const thumbWarmQ = []; const thumbWarmSeen = new Set(); let thumbWarmActive = 0;
+function warmThumbs(urls, w) {
+  urls.forEach((u) => {
+    const k = u + '|' + w;
+    if (!thumbWarmSeen.has(k)) { thumbWarmSeen.add(k); thumbWarmQ.push([u, w]); }
+  });
+  const tick = () => {
+    while (thumbWarmActive < 3 && thumbWarmQ.length) {
+      const [u, ww] = thumbWarmQ.shift();
+      thumbWarmActive++;
+      makeThumb(u, ww).catch(() => {}).then(() => { thumbWarmActive--; tick(); });
+    }
+  };
+  tick();
+}
 app.get('/api/story/thumb', async (req, res) => {
   const url = String(req.query.url || '');
   try {
     const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
     if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
     if (!admin.apps.length) return res.redirect(302, url);
-    const key = url + '|' + w;
-    if (thumbHot.has(key)) return res.redirect(302, thumbHot.get(key));
-    const name = 'thumbs/' + require('crypto').createHash('sha1').update(key).digest('hex') + '.webp';
-    const bucket = admin.storage().bucket();
-    const file = bucket.file(name);
-    const [exists] = await file.exists();
-    if (!exists) {
-      const r = await fetch(url);
-      if (!r.ok) return res.redirect(302, url);
-      const out = await require('sharp')(await r.buffer())
-        .resize({ width: w, withoutEnlargement: true })
-        .webp({ quality: 75 })
-        .toBuffer();
-      await file.save(out, { contentType: 'image/webp', resumable: false });
-      await file.makePublic();
-    }
-    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-    thumbHot.set(key, pub);
-    res.redirect(302, pub);
+    res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
     if (THUMB_HOSTS.test(url)) return res.redirect(302, url);
@@ -1003,6 +1031,22 @@ app.get('/api/gallery/assets', async (req, res) => {
     }
     const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
       .map((a) => ({ url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' }));
+    // Direct thumbnail URLs: the thumb path is content-addressed, so we can
+    // hand out the storage.googleapis.com URL without any lookup. Tiles load
+    // straight from storage's CDN — no per-image 302 hop through this server.
+    // If a thumb isn't made yet the direct URL 404s and the client falls back
+    // to /api/story/thumb (which generates on demand); meanwhile we warm the
+    // missing ones in the background so the next load is all-direct.
+    if (admin.apps.length) {
+      const bucket = admin.storage().bucket();
+      const warm = [];
+      assets.forEach((a) => {
+        if (!THUMB_HOSTS.test(a.url)) return;
+        a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
+        warm.push(a.url);
+      });
+      if (warm.length) warmThumbs(warm, 480);
+    }
     // Sophie's ♥/✕ curation votes ride along so the tiles can show them —
     // and so any chat reading this list sees her verdicts.
     try {
@@ -1642,6 +1686,70 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
+// ─── End-of-lesson notes: ask a question (AI) / leave a comment (to Sophie) ──
+// Public, so lightly rate-limited per IP. Questions go to Claude Haiku with
+// the lesson's own card text as context; comments land in Firestore
+// `witch-mail` AND on the forge-chat-feed (chat "witch-mail") so Sophie sees
+// them in her Chats app.
+const _lessonNoteHits = new Map();
+function lessonNoteAllowed(ip) {
+  const now = Date.now(), windowMs = 10 * 60 * 1000;
+  const hits = (_lessonNoteHits.get(ip) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= 6) return false;
+  hits.push(now); _lessonNoteHits.set(ip, hits);
+  if (_lessonNoteHits.size > 5000) _lessonNoteHits.clear(); // crude memory cap
+  return true;
+}
+app.post('/api/witch/lesson-question', async (req, res) => {
+  try {
+    const { lesson = '', lessonTitle = '', question = '', cards = '' } = req.body || {};
+    const q = String(question).trim().slice(0, 600);
+    if (!q) return res.status(400).json({ error: 'question is required' });
+    if (!lessonNoteAllowed(req.ip)) return res.status(429).json({ error: 'Give it a moment — a few questions at a time.' });
+    const system = `You are the gentle teacher behind the Witch School lessons in the app "Secretly a Witch". A reader just finished a lesson and asked a question. Answer warmly and plainly in 2-5 sentences — grounded, honest, a little literary, matching the lesson's voice. Practices are framed as tradition, folklore, and reflection, never as guaranteed supernatural fact, and never medical/legal/financial advice. If the question is unrelated to the craft or inappropriate, gently steer back to the lesson. Plain text only, no markdown.`;
+    const context = `Lesson: ${String(lessonTitle || lesson).slice(0, 80)}\n${cards ? `Lesson text (for reference):\n${String(cards).slice(0, 6000)}\n` : ''}Reader's question: ${q}`;
+    const data = await anthropicChat({
+      system,
+      messages: [{ role: 'user', content: context }],
+      max_tokens: 400,
+      model: 'claude-haiku-4-5',
+    });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const answer = anthropicText(data);
+    if (!answer) return res.status(500).json({ error: 'no answer' });
+    res.json({ answer });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post('/api/witch/lesson-note', async (req, res) => {
+  try {
+    const { lesson = '', lessonTitle = '', text = '' } = req.body || {};
+    const note = String(text).trim().slice(0, 1000);
+    if (!note) return res.status(400).json({ error: 'text is required' });
+    if (!lessonNoteAllowed(req.ip)) return res.status(429).json({ error: 'Give it a moment.' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'not configured' });
+    const created = new Date().toISOString();
+    const doc = { lesson: String(lesson).slice(0, 40), lessonTitle: String(lessonTitle).slice(0, 80), text: note, created };
+    await admin.firestore().collection('witch-mail').add(doc);
+    // Surface it in Sophie's Chats app under a "witch-mail" tile.
+    try {
+      await admin.firestore().collection('forge-chat-feed').add({
+        chat: 'witch-mail',
+        title: `A reader on “${doc.lessonTitle || doc.lesson || 'a lesson'}”`,
+        text: note,
+        tldr: note.slice(0, 140),
+        from: 'claude',
+        created,
+      });
+      await admin.firestore().collection('forge-chat-registry').doc('witch-mail').set({ lastSeen: created }, { merge: true });
+    } catch {}
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Firebase web config for the public app (Secretly a Witch accounts) ──
 // Returns the PUBLIC Firebase web config (safe to expose) so the client can
 // use Firebase Auth + Firestore. Reads from env; returns { configured:false }
@@ -1765,6 +1873,13 @@ function transitAspects(transit, natal) {
 app.post('/api/witch/daily', async (req, res) => {
   try {
     const { uid, date, cards = [], moonPhase = '', birth = null, force = false, zodiac = 'tropical' } = req.body || {};
+    // Which piece of the day to generate. The client requests three separate
+    // parts so each lands as fast as possible: 'astro' (the short teaser +
+    // omens shown right after "Reveal today's reading"), 'deep' (the long
+    // Dive-deeper page, requested in PARALLEL with the teaser so it's ready
+    // by the time the button is tapped), and 'tarot' (fired on the first
+    // card tap). No part = the legacy combined reading (stale cached clients).
+    const part = ['astro', 'deep', 'tarot'].includes(req.body && req.body.part) ? req.body.part : null;
     // 13-sign ASTRONOMICAL zodiac (real, unequal constellation boundaries the Sun
     // actually crosses, Ophiuchus included) — boundaries in tropical ecliptic
     // longitude. When zodiac==='astronomical' the reading is built from these
@@ -1774,7 +1889,7 @@ app.post('/api/witch/daily', async (req, res) => {
     const con13 = (lon) => { let L = ((lon % 360) + 360) % 360; for (const [n,a,b] of ASTRO_SEG) { if (b > 360) { if (L >= a || L < b - 360) return n; } else if (L >= a && L < b) return n; } return null; };
     const signOf = (body) => (astronomical && body && isFinite(body.lon)) ? (con13(body.lon) || body.sign) : (body && body.sign);
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date (YYYY-MM-DD) is required' });
-    if (!Array.isArray(cards) || cards.length !== 3) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
+    if ((!part || part === 'tarot') && (!Array.isArray(cards) || cards.length !== 3)) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
 
     const db = admin.apps.length ? admin.firestore() : null;
 
@@ -1782,7 +1897,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // astrology). lat/lon/tz can be passed by the client (cached from /natal) to
     // skip geocoding; otherwise geocode once here.
     let natal = null, bigThree = null, transitList = null, tAspects = null, birthErr = null;
-    if (birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
+    if (part !== 'tarot' && birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
       try {
         const [by, bm, bd] = birth.date.split('-').map(Number);
         let lat = Number(birth.lat), lon = Number(birth.lon), zone = birth.tz;
@@ -1804,26 +1919,58 @@ app.post('/api/witch/daily', async (req, res) => {
           const sun = natal.bodies.find(b => b.name === 'Sun');
           const moon = natal.bodies.find(b => b.name === 'Moon');
           bigThree = { sun: sun && signOf(sun), moon: moon && signOf(moon), rising: natal.ascendant && signOf(natal.ascendant) };
-
-          // Today's transiting positions (geocentric — location-independent).
-          const now = new Date();
-          const tChart = astro.computeChart({ y: now.getUTCFullYear(), m: now.getUTCMonth() + 1, d: now.getUTCDate(), utHours: now.getUTCHours() + now.getUTCMinutes() / 60, lat, lon, withAngles: false });
-          transitList = tChart.bodies;
-          tAspects = transitAspects(tChart.bodies, natal.bodies).slice(0, 8);
         }
       } catch (e) { birthErr = e.message; }
     }
 
-    // Cache key includes an input hash so a changed birthday / new cards
-    // regenerate instead of serving a stale reading.
+    // Today's sky (geocentric — location-independent), computed for EVERYONE
+    // on the astrology parts: it feeds the transits in both readings and the
+    // deep page's day-chart wheel, chart or no chart.
+    let todaySky = null;
+    if (part !== 'tarot' && astro) {
+      try {
+        const now = new Date();
+        todaySky = astro.computeChart({ y: now.getUTCFullYear(), m: now.getUTCMonth() + 1, d: now.getUTCDate(), utHours: now.getUTCHours() + now.getUTCMinutes() / 60, lat: 0, lon: 0, withAngles: false });
+        transitList = todaySky.bodies;
+        if (natal) tAspects = transitAspects(todaySky.bodies, natal.bodies).slice(0, 8);
+      } catch (e) { /* non-fatal — the reading degrades to no-transit copy */ }
+    }
+    // The single tightest transit today. The teaser and the deep reading are
+    // generated in PARALLEL, so they can't see each other's text — anchoring
+    // both on this one transit is what keeps them feeling like one continuous
+    // reading (the teaser opens the thread, the deep page pulls it).
+    const anchor = (tAspects && tAspects.length) ? tAspects[0] : null;
+
+    // Cache keys include an input hash so a changed birthday / new cards
+    // regenerate instead of serving a stale reading. Bump `v` whenever a
+    // prompt/shape changes so cached readings regenerate same-day instead of
+    // waiting for the next date.
     const crypto = require('crypto');
-    // Bump `v` whenever the reading's prompt/shape changes so cached readings
-    // regenerate same-day instead of waiting for the next date.
-    const inputHash = crypto.createHash('sha1').update(JSON.stringify({
+    const hashOf = (o) => crypto.createHash('sha1').update(JSON.stringify(o)).digest('hex').slice(0, 12);
+    const inputHash = hashOf({
       v: 4, z: zodiac, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
-    })).digest('hex').slice(0, 12);
+    });
     const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}${astronomical ? '_astro' : ''}`) : null;
-    if (docRef && !force) {
+    // Tarot ignores the zodiac system (cards are cards) — always the plain doc,
+    // so switching Tropical/Astronomical never regenerates the card reading.
+    const tarotRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
+    const partRef = part === 'tarot' ? tarotRef : docRef;
+    const partHash = part && hashOf(part === 'tarot'
+      ? { v: 5, part, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`) }
+      : { v: 5, part, z: zodiac, b: bigThree, moonPhase });
+    // The day's chart rides along on every 'deep' response (recomputed fresh —
+    // it's pure math, never stored) so the client can draw the wheel.
+    const skyPayload = () => todaySky ? { bodies: todaySky.bodies, aspects: (todaySky.aspects || []).slice(0, 14) } : null;
+    if (part && partRef && !force) {
+      const snap = await partRef.get();
+      const saved = snap.exists && snap.data().parts && snap.data().parts[part];
+      if (saved && saved.hash === partHash) {
+        const out = { ...saved.data, cached: true, date };
+        if (part === 'deep') out.sky = skyPayload();
+        return res.json(out);
+      }
+    }
+    if (!part && docRef && !force) {
       const snap = await docRef.get();
       if (snap.exists && snap.data().inputHash === inputHash) {
         return res.json({ ...snap.data().reading, cached: true, date });
@@ -1834,7 +1981,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // astrologer never repeats them day after day. Read prior docs by id (no
     // composite index needed); best-effort.
     let recentIngredients = [];
-    if (db && uid) {
+    if (db && uid && (!part || part === 'deep')) {
       try {
         const [yy, mm, dd] = date.split('-').map(Number);
         const priorRefs = [];
@@ -1844,7 +1991,13 @@ app.post('/api/witch/daily', async (req, res) => {
           priorRefs.push(db.collection('forge-witch-daily').doc(`${uid}_${ds}`));
         }
         const snaps = await db.getAll(...priorRefs);
-        snaps.forEach(s => { const ing = s.exists && s.data().reading && s.data().reading.astrology && s.data().reading.astrology.ingredients; if (Array.isArray(ing)) recentIngredients.push(...ing); });
+        snaps.forEach(s => {
+          if (!s.exists) return;
+          const d = s.data();
+          const legacy = d.reading && d.reading.astrology && d.reading.astrology.ingredients;
+          const deepPart = d.parts && d.parts.deep && d.parts.deep.data && d.parts.deep.data.deep && d.parts.deep.data.deep.ingredients;
+          [legacy, deepPart].forEach(ing => { if (Array.isArray(ing)) recentIngredients.push(...ing); });
+        });
         recentIngredients = [...new Set(recentIngredients.map(x => String(x)))].slice(0, 24);
       } catch (e) { /* non-fatal */ }
     }
@@ -1853,18 +2006,20 @@ app.post('/api/witch/daily', async (req, res) => {
     // astrology never influence each other: astrology sees ONLY the chart,
     // tarot sees ONLY the cards. Same JSON shape assembled from both. ──
     const cardLines = cards.map(c => `${c.position || '?'}: ${c.name} (${c.orientation || 'upright'})`).join('\n');
+    const transitLine = (transitList || []).map(b => `${b.name} in ${signOf(b)}${b.retro ? ' rx' : ''}`).join(', ');
     let astroContext;
     if (natal && bigThree) {
       const placements = natal.bodies.map(b => `${b.name} in ${signOf(b)}${b.house ? ` (house ${b.house})` : ''}${b.retro ? ' rx' : ''}`).join(', ');
-      const transits = transitList.map(b => `${b.name} in ${signOf(b)}${b.retro ? ' rx' : ''}`).join(', ');
-      const asp = (tAspects || []).map(a => `transiting ${a.t} ${a.aspect} natal ${a.n}`).join('; ') || 'none tight today';
+      const asp = (tAspects || []).map(a => `transiting ${a.t} ${a.aspect} natal ${a.n} (orb ${a.orb}°)`).join('; ') || 'none tight today';
       astroContext = `They HAVE a birth chart (interpret it, never recompute):
 Big three: Sun ${bigThree.sun}, Moon ${bigThree.moon}${bigThree.rising ? `, Rising ${bigThree.rising}` : ' (no birth time — no rising)'}.
 Natal placements: ${placements}.
-TODAY's sky (transits): ${transits}.
-Today's tightest transits to their chart: ${asp}.`;
+TODAY's sky (transits): ${transitLine}.
+Today's tightest transits to their chart: ${asp}.${anchor ? `
+ANCHOR TRANSIT (the one to build on): transiting ${anchor.t} ${anchor.aspect} natal ${anchor.n} (orb ${anchor.orb}°).` : ''}`;
     } else {
-      astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field) to add their birthday for a personalized daily reading.`;
+      astroContext = `They have NOT entered birth details yet, so you cannot personalize the astrology. Write a warm, general cosmic weather note for today and gently invite them (in the "invite" field, if the shape has one) to add their birthday for a personalized daily reading.${transitLine ? `
+TODAY's sky (real computed positions): ${transitLine}.` : ''}`;
     }
 
     const voice = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
@@ -1907,6 +2062,80 @@ ${cardLines}
 
 Write the reading now.`;
 
+    // ── Split-part generation (the current client) ────────────────────────
+    // 'astro' = the short teaser (headline/reading/omens) on the Today page;
+    // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
+    // 'tarot' = the 3-card reading. Astrology parts run on gpt-5.6-sol like
+    // the legacy combined reading; tarot stays on Claude Opus.
+    if (part) {
+      const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
+      let out;
+      if (part === 'astro') {
+        const teaserSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.${zodiacNote}
+You are given REAL, accurately computed positions — interpret them, never recompute. Anchor on the ANCHOR TRANSIT if one is given (otherwise the most interesting thing in today's sky) and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
+This is the SHORT teaser — a separate, longer reading written from the SAME anchor sits behind a "Dive deeper" button — so END WITH PULL, NOT CLOSURE: the last line should leave the thread visibly open, a reason to want more. Never mention the button or the app.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "headline": "one short, vivid, almost-aphoristic line for today — a saying, not a description of their placements",
+  "reading": "2-4 SHORT, punchy sentences — Co-Star style: clipped, declarative, direct, ~50 words TOTAL max. Say something true, concrete, and specific about today grounded in the actual transit. It can be blunt or lightly commanding (a short imperative is fine). Never soft, generic, preachy, condescending, or reassuring-for-its-own-sake; never a horoscope platitude; no cosmic or mystical language, no 'the universe', no 'energy'.",
+  "focus": "1-3 word theme for the day",
+  "invite": "",
+  "intention": "one short first-person line for today — specific, not generic",
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
+}
+Give EXACTLY 2 omens.
+Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
+        const aData = await openaiChat({ model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
+          messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
+        if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
+        let astrology;
+        try { astrology = parseJsonReply(aData); }
+        catch (e) { return res.status(502).json({ error: 'Could not parse the astrology reading — try again.', detail: e.message }); }
+        const intention = astrology.intention || '';
+        delete astrology.intention;
+        out = { astrology, intention, hasChart: Boolean(natal && bigThree) };
+        if (bigThree) out.bigThree = bigThree;
+      } else if (part === 'deep') {
+        const deepSystem = `You are the daily astrologer for "Secretly a Witch", writing the DEEPER page of today's reading — the page behind the "Dive deeper" button. The reader already saw a 2-4 sentence teaser written from the SAME sky and the SAME anchor transit; this page picks up that thread and goes further. Do not re-introduce the day, do not summarize — deepen.
+Same voice as the teaser: sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, and never tell them what they "should" or "need to" do.${zodiacNote}
+You are given REAL, accurately computed positions — interpret them, never recompute. Do NOT mention tarot.
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "reading": "4-6 SHORT paragraphs separated by blank lines (\\n\\n), 180-260 words TOTAL. Same clipped, declarative voice as the teaser, with room to move. Start from the ANCHOR TRANSIT and go past where a teaser could, then widen out. Name 2-3 placements/transits VERBATIM from the data (e.g. 'Mars in Virgo is squaring your natal Sun') and translate EACH into something concrete in a real day — a text, money, sleep, a conversation, the body, a specific mood. Every named placement must earn its place; no jargon dump.",
+  "ingredients": ["EXACTLY 3 'ingredients' for the day, 2-4 words each, like a strange little witch's recipe — CONCRETE, surprising, and tied to TODAY specifically (small physical objects, odd gestures, overheard things), e.g. 'a borrowed umbrella', 'salt on the sill', 'the unsent text'"],
+  "ritual": "a SMALL ritual for today — 2-4 sentences: one concrete physical act with a clear beginning and end, ordinary objects only, done in under two minutes, tied to the anchor transit. Bigger than a one-line gesture, never a ceremony."
+}
+INGREDIENTS — this matters most, get it right:
+- NEVER generic wellness / self-care clichés. BANNED outright: deep breath, slow exhale, breathe, glass of water, cup of tea, warm tea, self-care, gratitude, journaling, patience, rest, hydrate, sunlight, fresh air, a walk, "a candle" on its own. If it could show up in ANY generic horoscope, it is WRONG — rewrite it.
+- Make each one specific and a little strange so it feels personal to THIS day and this transit.
+- Do NOT reuse any of these recently-used ingredients: ${recentIngredients.length ? recentIngredients.join('; ') : '(none yet)'}.${natal ? '' : `
+They have NOT entered birth details, so nothing here is natal: read TODAY's real sky instead (the positions you were given), name 2-3 of today's actual placements, and end the reading with ONE gentle line inviting them to add their birthday for a personal reading.`}`;
+        const deepUser = `Date: ${date}. ${moonPhase ? `Moon phase: ${moonPhase}.` : ''}
+${astroContext}
+
+Write the deeper page now.`;
+        const dData = await openaiChat({ model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
+          messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
+        if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
+        let deep;
+        try { deep = parseJsonReply(dData); }
+        catch (e) { return res.status(502).json({ error: 'Could not parse the deeper reading — try again.', detail: e.message }); }
+        out = { deep, hasChart: Boolean(natal && bigThree) };
+      } else {
+        const tData = await anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 });
+        if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
+        let tarot;
+        try { tarot = parseAnthropicJson(tData); }
+        catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
+        out = { tarot };
+      }
+      if (partRef) partRef.set({ date, uid, parts: { [part]: { hash: partHash, data: out } } }, { merge: true }).catch(() => {});
+      const resp = { ...out, cached: false, date };
+      if (part === 'deep') resp.sky = skyPayload();
+      return res.json(resp);
+    }
+
+    // ── Legacy combined reading (stale cached clients only) ───────────────
     // Astrology now runs on OpenAI's gpt-5.6-sol (Sophie's pick — sharper, less
     // generic than the prior Claude pass). Reasoning model: omit temperature,
     // force a JSON object, keep effort low so the sync request stays snappy.
@@ -1932,7 +2161,8 @@ Write the reading now.`;
     if (bigThree) reading.bigThree = bigThree;
 
     if (docRef) {
-      docRef.set({ reading, inputHash, date, uid, createdAt: new Date().toISOString() }).catch(() => {});
+      // merge — the same doc also carries the split-part cache (`parts`).
+      docRef.set({ reading, inputHash, date, uid, createdAt: new Date().toISOString() }, { merge: true }).catch(() => {});
     }
     res.json({ ...reading, cached: false, date });
   } catch (err) {

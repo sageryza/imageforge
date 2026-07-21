@@ -10,6 +10,10 @@
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
 //   POST /api/chatfeed/polish    → { id } — render the message in the polished
 //                                  onyx-British neural voice (~1¢), cached forever
+//   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
+//                                  (self-contained HTML shown in the chat's Compare tab)
+//   GET  /api/chatfeed/pages?chat=name → list a chat's Compare pages
+//   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -25,7 +29,9 @@ const REG = 'forge-chat-registry';
 
 function gate(req, res, next) {
   const token = process.env.STUDIO_TOKEN || '';
-  if (token && req.get('x-studio-token') !== token) {
+  // ?token= accepted too — iframes/anchors (the Compare page viewer) can't
+  // send custom headers.
+  if (token && req.get('x-studio-token') !== token && req.query.token !== token) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   next();
@@ -158,6 +164,82 @@ router.post('/bookmark', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'id required' });
     await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
     res.json({ ok: true, bookmarked: !!bookmarked });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- Compare pages -------------------------------------------------------
+// A chat can publish a full self-contained HTML page (a comparison sheet, an
+// options board — what used to be a claude.ai artifact) into its own Compare
+// tab. HTML goes to Storage (can exceed Firestore's 1MB doc cap when images
+// are inlined); a small metadata doc lists it. Served back through the server
+// so viewing stays same-origin and gated with the rest of the feed.
+const PAGES = 'forge-chat-pages';
+
+router.post('/page', async (req, res) => {
+  try {
+    const { chat, title, html } = req.body || {};
+    if (!chat || !title || !html) return res.status(400).json({ error: 'chat, title and html required' });
+    const doc = {
+      chat: String(chat).slice(0, 60),
+      title: String(title).slice(0, 140),
+      created: new Date().toISOString(),
+    };
+    const ref = db().collection(PAGES).doc();
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`chat-pages/${ref.id}.html`);
+    await file.save(Buffer.from(String(html), 'utf8'), {
+      contentType: 'text/html; charset=utf-8', resumable: false,
+    });
+    doc.path = file.name;
+    await ref.set(doc);
+    res.json({ ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` });
+  } catch (err) { fail(res, err); }
+});
+
+router.get('/pages', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const snap = await db().collection(PAGES).where('chat', '==', chat).get();
+    const pages = snap.docs
+      .map((d) => ({ id: d.id, title: d.data().title, created: d.data().created }))
+      .sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ pages });
+  } catch (err) { fail(res, err); }
+});
+
+// The shared autoscroll pill, appended to every served page so Compare pages
+// scroll hands-free like the rest of the app. Self-contained snippet built by
+// scripts/gen-pill-inject.py (re-run it after changing scripts/pill.py).
+let pillSnippet = null;
+function pillInject() {
+  if (pillSnippet === null) {
+    try { pillSnippet = fs.readFileSync(path.join(__dirname, 'public', 'pill-inject.html'), 'utf8'); }
+    catch (e) { pillSnippet = ''; }
+  }
+  return pillSnippet;
+}
+
+router.get('/page/:id', async (req, res) => {
+  try {
+    const snap = await db().collection(PAGES).doc(String(req.params.id)).get();
+    if (!snap.exists) return res.status(404).send('Not found');
+    const [buf] = await admin.storage().bucket().file(snap.data().path).download();
+    let html = buf.toString('utf8');
+    // skip pages that already carry their own pill (id collision guard)
+    if (!html.includes('id="vtop"')) html += pillInject();
+    res.set('Content-Type', 'text/html; charset=utf-8').send(html);
+  } catch (err) { fail(res, err); }
+});
+
+router.delete('/page/:id', async (req, res) => {
+  try {
+    const ref = db().collection(PAGES).doc(String(req.params.id));
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    await admin.storage().bucket().file(snap.data().path).delete().catch(() => {});
+    await ref.delete();
+    res.json({ ok: true });
   } catch (err) { fail(res, err); }
 });
 

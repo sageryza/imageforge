@@ -261,13 +261,27 @@ lifted into a standalone tool later.
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
-  box (prefilled "redo") she can send per image. Votes + notes live in
+  box (under the image) she can send per image. Votes + notes live in
   `forge-asset-votes` (deckfactory, one doc per chat+url) and ride along on
   `GET /api/gallery/assets?chat=<name>` as `vote: "like" | "dislike"` and
   `note` per asset. When Sophie next messages a chat, it should check its
   votes/notes and act on them (favor the hearted ones, re-roll the ✕'d and
   anything noted "redo") — same review-loop pattern as writing notes, NOT on
   a timer.
+- **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
+  as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
+  board, side-by-side, or any custom viewing page, POST it to
+  `POST /api/chatfeed/page` with `{ "chat": "<your-chat-name>", "title": "…",
+  "html": "<the full self-contained page>" }` (x-studio-token when gated;
+  ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
+  Compare) and opens full-screen in the app — that's where she'll look for it,
+  next to your assets. Design the HTML however the comparison needs (mobile
+  first, self-contained; image URLs from Firebase Storage are fine). The server
+  auto-appends the shared autoscroll pill to every served page — do NOT add
+  your own scroll pill. List your
+  pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
+  `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
+  the page genuinely can't work as plain HTML.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
@@ -579,6 +593,36 @@ lifted into a standalone tool later.
   blogs/articles via REST. Same `STUDIO_TOKEN` gate (only `GET /status`,
   `/connect`, `/callback` open — the last two are browser redirects).
 
+## Tarot email (tap-to-reveal daily spread — Brevo)
+- `tarot-email.js` (`/api/tarot-email`) builds the **kinetic** daily tarot
+  email: the website's Past/Present/Future pull as three face-down cards, each
+  with its own pure-CSS tap-to-reveal (hidden checkboxes + `:checked` sibling
+  rules — email clients strip all JS). Apple Mail (iPhone/iPad/Mac) gets the
+  real in-email flips; Gmail/Outlook strip the `<input>`s so a pre-checked
+  "support test" checkbox never matches and they auto-fall back to the same
+  face-down spread linking out to `/witch`. Both versions are fully
+  inline-styled, so a stripped `<style>` still renders sane; images-blocked
+  keeps framed card shapes. The "tap each card" hint hides itself once all
+  three are revealed (chained `:checked ~` selectors).
+- The spread is **deterministic per day and MATCHES THE WEBSITE** — a verbatim
+  port of `witch.html`'s `dailyPull()` with the logged-out seed
+  (`<dateISO>|anon`), same FNV-1a hash + 78-card deck (deck data is a copy in
+  the module; **keep in sync**), ~28% reversed per card, baked in at build
+  time. Art = the committed `witch-tarot-manifest.json` Rider-Waite Firebase
+  URLs (reversed cards render rotated 180°). ~13KB, far under Gmail's 102KB
+  clip.
+- **Routes:** `GET /status` + `GET /preview?date=YYYY-MM-DD` (both open — it's
+  public marketing content; preview returns the raw email HTML, viewable in a
+  browser), `POST /send-test {to, date?}` (STUDIO_TOKEN-gated; one real send
+  via Brevo's transactional API to verify the flip in a real inbox).
+- **Brevo** (the ESP — free tier 300/day, accepts full custom HTML): keys via
+  config-loader MANAGED_KEYS or Render env — `BREVO_API_KEY` (app.brevo.com →
+  SMTP & API), `BREVO_FROM_EMAIL` (must be a Brevo-verified sender),
+  `BREVO_FROM_NAME` (default "Secretly a Witch"). **Campaign sends stay in
+  Brevo's dashboard** — paste the `/preview` HTML into a custom-HTML campaign
+  (Brevo appends the unsubscribe footer there); `/send-test` is only the
+  does-the-checkbox-survive check.
+
 ## Blog Studio (SEO posts → Shopify blog)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
   into an SEO blog post and publishes it to the Shopify store blog — free organic
@@ -730,6 +774,41 @@ lifted into a standalone tool later.
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
   `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
+
+## Anthony Chene NDE moments database
+- `nde.js` (`/api/nde`) — pipeline that reads Anthony Chene's near-death-
+  experience YouTube interviews and extracts a database of specific,
+  illustratable moments for a later illustrated anthology. Per video: YouTube
+  Data API for discovery/metadata → captions scraped from the watch page's
+  `ytInitialPlayerResponse` (`&fmt=json3`, no dep) → `gpt-4o-mini` extracts 3-5
+  moments that are UNIQUE to this experiencer (the system prompt hard-skips
+  tunnels / bright lights / overwhelming-love / life-review / floating-above-
+  body / beings-of-light / "not your time" / uncrossable-border unless the
+  account gives them a specific twist, and prefers concrete objects, named
+  places, unusual creatures, oddly specific sensations, and biography-anchored
+  details). Empty moment list is a valid answer — filler is worse than nothing.
+- **State:** Firestore `forge-nde-videos`, one doc per videoId
+  `{ videoId, url, title, publishedAt, channelTitle, transcript:{segments,
+  full, autoGenerated}, experiencerName, summary, moments:[{id, title,
+  description, quote, timeApprox, visualPrompt, category, uniquenessNote}],
+  status:'pending'|'transcribed'|'extracted'|'failed', error? }`.
+  `processVideo(id)` is idempotent — skips fetch/extract when data is present
+  unless `forceTranscript`/`forceExtract` (or CLI `--force`/`--force-extract`).
+- **Routes:** `GET /status`, `GET /videos` (trimmed list), `GET /videos/:id`
+  (full record), `GET /moments` (flat cross-video moment list),
+  `POST /videos {videoIdOrUrl}` (fetch + extract one), `POST /videos/:id/extract`
+  (re-extract), `POST /discover {handle?, channelId?, max?}` (channel enumeration
+  without fetching). Same `STUDIO_TOKEN` gate (only `/status` open).
+- **Batch CLI:** `node scripts/nde-batch.js` — bulk-runs the pipeline. Sources:
+  `--video-ids a,b,c`, `--file <path>`, or `--channel <handle|id>` (default
+  handle `anthonychene`, override via `NDE_CHANNEL_HANDLE`). Idempotent by
+  default; `--force` re-runs everything, `--force-extract` re-runs only the LLM
+  step (use after tuning the prompt). `--max <n>` caps discovery, `--out <path>`
+  dumps the full result set to JSON, `--dry-run` prints the plan.
+- **Env vars** (config-loader MANAGED_KEYS): `OPENAI_API_KEY` (required for
+  extraction), `YOUTUBE_API_KEY` (required for channel discovery + metadata —
+  transcript scraping needs no key), plus the usual Firebase creds. Without
+  Firebase the pipeline still runs but nothing persists (in-memory only).
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at

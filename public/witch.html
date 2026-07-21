@@ -62,7 +62,7 @@
     .sigil svg { width: 22px; height: 22px; }
     header h1 {
       font-family: var(--serif); font-style: italic; font-weight: 500;
-      font-size: 21px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
+      font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
     }
 
     /* ── Sections ── */
@@ -128,6 +128,13 @@
       letter-spacing: 0.2px; text-transform: lowercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
     }
+    /* The "Take the quiz" button wears the eyebrow font (DM Sans uppercase,
+       0.3px tracking) like the quiz's own gold buttons — everything else about
+       the house .btn (fill, outline, color) stays the same. */
+    /* Match the quiz's Continue button: solid gold, white text, no visible
+       outline (border same color as fill), plus the eyebrow font. */
+    #quiz-open { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400; letter-spacing: 0.3px; text-transform: uppercase;
+      background: var(--gold); color: #fffbf3; border-color: var(--gold); }
     .btn:active { transform: scale(0.985); }
     .btn:hover { filter: brightness(0.97); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
@@ -152,19 +159,31 @@
        actions; quiz answer lists, segmented toggles and modal buttons keep their
        own full-width/centered layouts. */
     #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
-    .dream-btns { justify-content: flex-end; }
+    /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
+       Back/Continue row. */
+    .dream-btns { justify-content: space-between; }
     .dream-btns .btn, .dream-btns .btn-ghost { width: auto; margin-left: 0; }
+    .dream-btns .btn-gold { width: auto; }  /* keeps margin-left:auto → sits right */
+    /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
+    #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; text-transform: uppercase; }
+    #dream-unlock:hover { border-color: #8f8a82; color: var(--gold); }
     /* Gold button: gold outline, lighter-gold fill, darker-gold text; auto-width, right-aligned. */
     .btn-gold {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: fit-content; margin-left: auto; padding: 8px 16px;
-      background: #ecdcb4; color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
-      font-size: 15px; font-weight: 600; font-family: var(--serif); letter-spacing: 0.2px; text-transform: lowercase;
+      /* Solid gold, white text, no visible outline (border kept same width/color
+         as the fill so the button's size is unchanged). */
+      background: var(--gold); color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
+      /* Eyebrow/kicker treatment — DM Sans, uppercase, tracked-out (matches the
+         SUSPICIOUS COINCIDENCE… card labels), not the serif lowercase. */
+      font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; text-transform: uppercase;
       cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
     }
     .btn-gold:hover { filter: brightness(0.97); }
     .btn-gold:active { transform: scale(0.985); }
-    .btn-gold svg { width: 15px; height: 15px; }
+    .btn-gold svg { width: 14px; height: 14px; }
     .btn-row { display: flex; gap: 10px; }
     .btn-white { background: #ffffff; color: var(--gold); border: 1px solid var(--gold-dim); }
     .btn-white:hover { filter: none; background: #fffdf7; }
@@ -177,8 +196,9 @@
     .coin-box:focus { border-color: var(--gold-dim); }
     .coin-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     /* Draw button lives INSIDE the box, bottom-right (matching the diary look) */
-    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; padding: 4px 12px; background: #ffffff; color: var(--gold); border: 1px solid var(--border); border-radius: 6px; font-family: var(--serif); font-size: 13.5px; font-weight: 500; letter-spacing: 0; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
-    .coin-btn:hover { background: #fffdf7; border-color: var(--gold-dim); }
+    /* Text-only button — no box/outline/fill, just the tappable gold text. */
+    .coin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; padding: 4px 2px; background: none; color: var(--gold); border: none; border-radius: 6px; font-family: var(--serif); font-size: 13.5px; font-weight: 500; letter-spacing: 0; cursor: pointer; transition: opacity 0.15s ease; }
+    .coin-btn:hover { opacity: 0.7; }
     .coin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .coin-btn svg { width: 13px; height: 13px; }
     .coin-cell.drawn .coin-btn { display: none; }
@@ -254,10 +274,33 @@
     .q-opt:hover { border-color: #8f8a82; color: var(--text); }
     /* Continue + Back row (Back on the left) */
     .quiz-btnrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
-    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; }
+    /* Match the gold Continue button exactly — same padding, border-box, and
+       eyebrow font — so Back is the same height (its outline included). */
+    .quiz-btnrow .btn-ghost { width: auto; border-color: #bdb8b0; padding: 8px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; text-transform: uppercase; }
     .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
     .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
+    /* Question-page art: smaller than the reveal art so the question and
+       answers stay above the fold on a phone. */
+    .quiz-qart { width: 58%; margin: 0 auto 10px; }
+
+    /* End-of-lesson note screen (ask a question / tell Sophie) */
+    .deck-note .tcard-img { cursor: default; }
+    /* The two ~1-inch action icons: the AI-minded witch (Ask) and Sophie
+       catching the white envelope (Tell Sophie). */
+    .note-icons { display: flex; justify-content: center; gap: 26px; margin-top: 16px; }
+    .note-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; padding: 4px; cursor: pointer; font-family: inherit; }
+    .note-icon img { width: 120px; height: 120px; border-radius: 6px; display: block; }
+    .note-icon span { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); }
+    .note-icon:active img { transform: scale(0.96); }
+    .note-ta { width: 100%; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45; resize: none; }
+    .note-ta:focus { outline: none; border-color: var(--gold); }
+    .note-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+    .note-row .btn-ghost { width: auto; padding: 9px 16px; }
+    .note-wait { text-align: center; color: var(--gold); font-size: 22px; margin-top: 14px; }
+    .note-answer { margin-top: 14px; padding: 12px 14px; background: var(--panel); border-radius: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--text); }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
@@ -285,6 +328,50 @@
     .omen-sign { flex: 1; font-size: 13.5px; color: var(--text); }
     .omen-mean { flex: 1; font-size: 13px; color: var(--text-dim); font-style: italic; }
     .ritual-line { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.5; color: var(--moon); }
+
+    /* Dive deeper — the day's full reading, its own page */
+    /* Unlike the quiz, the deep page keeps the bottom nav: it sits BELOW the
+       nav (z 50) in the stack, and its 96px bottom padding already clears it.
+       Tapping a nav tab closes the page (see go()). */
+    #deep-app, #tarot-app { z-index: 45; }
+    /* the deep page always scrolls, so the fixed Back button gets a solid
+       chip (rounded rectangle, not a pill) instead of floating over text */
+    #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
+    /* Tarot dive-deeper — per-card meanings + fun-option tiles */
+    .tdeep-card { padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+    .tdeep-card:last-of-type { border-bottom: none; }
+    .tdeep-cardpos { font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 2px; }
+    .tdeep-cardname { font-family: var(--serif); font-size: 17px; color: var(--text); }
+    .tdeep-cardname .tdeep-orient { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; }
+    .tdeep-cardmean { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-top: 3px; }
+    .tfun { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .tfun-tile { display: flex; align-items: center; gap: 12px; text-align: left; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; color: var(--text); cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.15s ease, transform 0.15s ease; }
+    .tfun-tile:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .tfun-tile:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .tfun-ti { line-height: 0; color: var(--gold); flex: none; }
+    .tfun-ti svg { width: 22px; height: 22px; stroke-width: 1.7; }
+    .tfun-tt { display: block; font-family: var(--serif); font-size: 16px; }
+    .tfun-td { display: block; font-size: 12px; color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
+
+    /* Dive deeper — the day's chart wheel + placements */
+    .dsk-wheel { max-width: 340px; margin: 14px auto 6px; }
+    .dsk-wheel svg { width: 100%; height: auto; display: block; }
+    .dsk-ring { fill: none; stroke: var(--gold-dim); stroke-width: 1.3; opacity: 0.75; }
+    .dsk-tick { stroke: var(--gold-dim); stroke-width: 0.8; opacity: 0.5; }
+    .dsk-cusp { stroke: var(--gold-dim); stroke-width: 1; opacity: 0.65; }
+    .dsk-sign { font-size: 22px; fill: var(--gold); }
+    .dsk-pl { fill: var(--surface); stroke: var(--gold-dim); stroke-width: 1; }
+    .dsk-glyph { font-size: 22px; fill: var(--moon); }
+    .dsk-deg { font-size: 13px; fill: var(--gold-dim); font-family: Georgia, serif; }
+    .dsk-asp { stroke: var(--gold-dim); stroke-width: 1; opacity: 0.35; }
+    .dsk-asp-hard { stroke: var(--moon); stroke-width: 1; opacity: 0.4; }
+    .dsk-center { font-size: 26px; fill: var(--gold); }
+    .dsk-caption { text-align: center; font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 12px; }
+    .dsk-list { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; margin: 0 0 18px; }
+    .dsk-row { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--text-dim); }
+    .dsk-g { color: var(--moon); font-size: 14px; }
+    .dsk-rx { font-size: 10px; color: var(--gold-dim); font-style: italic; margin-left: 3px; }
+    .dsk-d { margin-left: auto; color: var(--text-faint); font-size: 11.5px; }
     .tcard.noimg .glyph { font-size: 30px; color: var(--gold); }
     .tcard.noimg.rev .glyph { transform: rotate(180deg); }
 
@@ -401,15 +488,15 @@
 
     /* ── Shop ── */
     .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    /* No boxes: sharp-corner image with the text under it, no card outline */
     .shop-item {
       display: flex; flex-direction: column; text-decoration: none; color: var(--text);
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      overflow: hidden; transition: border-color 0.15s ease, transform 0.15s ease;
+      transition: transform 0.15s ease;
     }
-    .shop-item:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .shop-item:hover { transform: translateY(-2px); }
     .shop-item .simg { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--panel); display: block; }
     .shop-item .simg-ph { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; color: var(--gold-dim); font-size: 26px; background: var(--panel); }
-    .shop-item .sbody { padding: 11px 12px 13px; }
+    .shop-item .sbody { padding: 9px 2px 13px; }
     .shop-item .stitle { font-family: var(--serif); font-size: 15.5px; font-weight: 500; line-height: 1.2; }
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
@@ -452,7 +539,7 @@
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
@@ -574,6 +661,7 @@
     .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
+    .tcard-body a { color: var(--gold); text-decoration: underline; }
     .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 14px; }
     .tcard-hint svg { width: 13px; height: 13px; vertical-align: -2px; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
@@ -581,10 +669,7 @@
     .deck-prev:hover { color: var(--gold); }
     .deck-prev svg { width: 16px; height: 16px; }
     .deck-prev[disabled] { visibility: hidden; }
-    /* Experiment: the deck's continue button is solid gold, no outline, white
-       text — a bolder primary than the house light-gold/outline .btn. */
-    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px;
-      background: var(--gold); border-color: var(--gold); color: #fffbf3; }
+    .deck-next { width: auto; min-width: 150px; padding-left: 22px; padding-right: 22px; }
 
     /* ── Witch School: the path ──
        Imprint-style winding trail, witch-dressed: nodes zigzag down a central
@@ -617,15 +702,28 @@
 
     /* Course catalog tiles: sharp-corner art + text under (Sophie's no-boxes
        preference), title/desc/progress below the cover */
-    .wcourse { margin: 0 0 26px; cursor: pointer; }
-    .wcourse .cv { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
-    .wcourse .meta { padding: 10px 2px 0; }
-    .wcourse .t { font-family: var(--serif); font-size: 21px; color: var(--text); }
-    .wcourse .s { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
-    .wcourse .pr { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-top: 7px; }
+    #school-path .cat { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 16px; }
+    .wcourse { cursor: pointer; }
+    .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .wcourse .meta { padding: 8px 2px 0; }
+    .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
+    .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+    .wcourse .pr { font-size: 9.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-dim); margin-top: 6px; }
     .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
     .wback svg { width: 16px; height: 16px; }
     .wback:hover { color: var(--gold); }
+    /* z-index:1 creates a stacking context so the nodes' internal z-order
+       (nearer above farther) can never float above the lesson overlay */
+    .wroad-wrap { position: relative; margin: 4px -6px 0; z-index: 1; }
+    .cmoon { display: inline-block; vertical-align: -1px; }
+    .cmoons { display: inline-flex; align-items: flex-end; gap: 3px; vertical-align: -2px; }
+    .wpath-moon { text-align: center; margin: 6px 0 2px; }
+    .wpath-moon .lbl { display: block; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--gold-dim); margin-top: 5px; }
+    .wroad-wrap svg { width: 100%; height: 100%; display: block; }
+    .wnode.road { position: absolute; max-width: 128px; }
+    .wnode.road .ic { background: var(--surface); }
+    .wnode.road.done .ic { background: var(--gold); }
+    .wnode.road .nm { background: var(--bg); border-radius: 6px; padding: 1px 6px; }
 
     /* ── Book of Shadows: the book ──
        The cover is a flat little hardback (no gradients); opening it takes
@@ -695,6 +793,11 @@
     .nav-btn.active .ni { transform: translateY(-1px); filter: drop-shadow(0 0 6px rgba(156,111,51,0.35)); }
     .nav-btn.active::after { content: ''; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--gold); }
     .btn svg, .btn-ghost svg { width: 15px; height: 15px; }
+
+    /* ── Native app mode (?app=1): the iOS wrapper hides the web nav and
+       drives go() from its own SF-Symbols tab bar via window.__setTab ── */
+    html.in-app nav { display: none; }
+    html.in-app .app { padding-bottom: 24px; }
 
     /* ── Moon calendar ── */
     .mcal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -792,7 +895,7 @@
 
         <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Your daily reading</div>
-        <div class="section-sub">The sky, the cards, and an intention — written fresh for you each day.</div>
+        <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
         <!-- Daily reading (FIRST): account gate → birthday → reading -->
         <div class="card" id="daily-card">
@@ -825,7 +928,7 @@
           <div id="daily-reveal-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="30" height="30" viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></div>
             <div class="cards-title" style="font-size:15px; font-weight:600; color:var(--gold); margin-top:12px; text-align:center;">Today's sky is waiting</div>
-            <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">When you're ready, reveal what the stars and cards have to say about your day.</p>
+            <p class="hint" style="text-align:center; margin:0 auto 16px; max-width:300px;">When you're ready, reveal what the stars have to say about your day.</p>
             <button class="btn" id="daily-reveal-btn" style="margin-left:auto; margin-right:auto;">Reveal today's reading <span class="js-star"></span></button>
           </div>
 
@@ -864,20 +967,20 @@
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
-          <button class="btn-ghost" id="daily-save" style="display:none; margin-top:16px;">Save to Book of Shadows <span class="js-star"></span></button>
+          <button class="btn-ghost" id="daily-dive" style="display:none; margin-top:16px;">Dive deeper <span class="js-star"></span></button>
         </div>
 
         <!-- Dream reading -->
         <div class="section-title">What did you dream last night?</div>
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div class="card" id="dream-card">
-          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg> Past readings</button>
+          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
             <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
           </div>
           <div class="dream-btns">
-            <button class="btn" id="dream-unlock">Unlock the symbolism</button>
-            <button class="btn-ghost" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
+            <button class="btn-ghost" id="dream-unlock">Unlock the symbolism</button>
+            <button class="btn-gold" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
@@ -935,6 +1038,11 @@
             <div><div class="lt">Plant Magic II</div><div class="ld">Signatures, planets & preparations</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
+          <div class="lesson-card" id="open-apoth">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v5.2L5.4 16A3 3 0 0 0 8 20.5h8a3 3 0 0 0 2.6-4.5L14 8.2V3"/><path d="M7.5 13h9"/></svg></span>
+            <div><div class="lt">The Witch's Apothecary</div><div class="ld">Mugwort, wormwood, yarrow & the old shelf</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <div class="lesson-card" id="open-astro">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="M2 12h20"/><path d="m4.9 4.9 14.2 14.2"/><path d="m19.1 4.9-14.2 14.2"/></svg></span>
             <div><div class="lt">Astrology Basics</div><div class="ld">Your birth chart, decoded</div></div>
@@ -968,6 +1076,11 @@
           <div class="lesson-card" id="open-crystal">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg></span>
             <div><div class="lt">Crystals</div><div class="ld">Shapes, cleansing & charging</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <div class="lesson-card" id="open-crystal2">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></span>
+            <div><div class="lt">Crystal Energy</div><div class="ld">Channeling energy through stone</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
           <div class="lesson-card" id="open-travel">
@@ -1137,12 +1250,25 @@
     <div class="quiz-stage" id="quiz-stage"></div>
   </div>
 
+  <!-- Dive deeper — the day's full reading as its own full-screen page -->
+  <div class="quiz-app" id="deep-app" style="display:none;">
+    <button class="quiz-back" id="deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="deep-stage"></div>
+  </div>
+
+  <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
+  <div class="quiz-app" id="tarot-app" style="display:none;">
+    <button class="quiz-back" id="tarot-deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="tarot-deep-stage"></div>
+  </div>
+
   <script>
   /* ═══════════════════════════════════════════════════════════════
      Secretly a Witch — client app (4 tabs: Home / School / Book of
-     Shadows / Shop). Home = daily reading (one Claude Opus 4.8 call/day
-     via /api/witch/daily): personalized astrology + 3-card Rider-Waite
-     tarot (behind a reveal) + intention.
+     Shadows / Shop). Home = daily reading via /api/witch/daily in three
+     ON-DEMAND parts: 'astro' (short teaser + omens, behind the Reveal tap)
+     and 'deep' (the Dive-deeper page) fired in PARALLEL on reveal, 'tarot'
+     fired on the first card tap. Nothing generates on page open.
      ═══════════════════════════════════════════════════════════════ */
 
   // ── External links (set these to Sophie's real channel / shop) ──
@@ -1192,6 +1318,7 @@
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
   function go(view) {
+    if (deepOpen) closeDeep();   // the Dive-deeper page yields to the nav
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
@@ -1202,6 +1329,29 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+
+  // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
+  // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
+  if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
+  window.__setTab = go;
+
+  // ── Deep link: /witch#tarot (also #cards / #reading) lands straight on the
+  // daily three-card pull — the tap-to-reveal spread the email links to. When
+  // the spread is visible we scroll to it; when it's still behind the sign-in
+  // gate (logged-out visitor) we land on the daily card above it, where the
+  // "Enter the circle" prompt is. ──
+  function tarotAnchorEl() {
+    const spread = $('tarot-card');
+    if (spread && spread.offsetParent !== null) return spread; // revealed → the cards
+    return $('daily-card') || spread;                          // gated/hidden → the daily card
+  }
+  function scrollToTarot() {
+    go('home');
+    setTimeout(() => { const el = tarotAnchorEl(); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+  }
+  function isTarotHash() { return /^#(tarot|cards|reading)$/i.test(location.hash || ''); }
+  if (isTarotHash()) setTimeout(scrollToTarot, 500);
+  window.addEventListener('hashchange', () => { if (isTarotHash()) scrollToTarot(); });
 
   /* ══════════ TAROT DECK (78) ══════════ */
   const MAJORS = [
@@ -1372,7 +1522,13 @@
     return picks;
   }
 
-  let dailyData = null, dailyPicks = null, astroRevealed = true;  // gate reverted for now — reading auto-loads on open
+  // Nothing generates on page open: astrology waits behind the "Reveal
+  // today's reading" tap (which fires the teaser + the Dive-deeper reading in
+  // PARALLEL), tarot fires on the first card tap. Three separate API calls.
+  let dailyData = null, dailyPicks = null, astroRevealed = false;
+  let dailyDeep = null, deepLoading = false, deepError = '', deepOpen = false;
+  let dailyTarot = null, tarotLoading = false, tarotError = '';
+  let astroSeq = 0, astroLoadingKey = null;
 
   function savedBirth() {
     try {
@@ -1493,32 +1649,53 @@
     const z = btn.dataset.z; if (z === currentZodiac()) return;
     setZodiac(z); renderZodiacBar();
     if (typeof loadSavedNatal === 'function') loadSavedNatal();   // re-render chart display in the new system
-    loadDaily(false);                                              // per-system cache; regenerates if not cached
+    if (astroRevealed && homeState() === 'ready') loadDaily(false); // per-system cache; regenerates if not cached
     cloudSyncSoon();
   }));
   (function(){ const zi = $('zodiac-info'); if (zi) zi.addEventListener('click', showZodiacInfo); })();
 
+  function dailyKey() { return 'witch_daily_v5_' + todayISO() + '_' + currentZodiac() + '_' + (fbUser ? fbUser.uid : 'anon'); }
+  function tarotDayKey() { return 'witch_daily_tarot_v1_' + todayISO() + '_' + (fbUser ? fbUser.uid : 'anon'); }
+  function cachePatch(key, patch) {
+    try { const c = JSON.parse(localStorage.getItem(key) || '{}'); localStorage.setItem(key, JSON.stringify(Object.assign(c, patch))); } catch {}
+  }
+
+  // The astrology pair: the small teaser call renders as soon as it lands, the
+  // big Dive-deeper call runs in PARALLEL so it's already waiting when the
+  // button is tapped. Only ever fired by the Reveal tap (or a retry).
   async function loadDaily(force) {
-    dailyPicks = dailyPull();
-    resetDailyTarot();
-    const date = todayISO();
-    const zc = currentZodiac();
-    const cacheKey = 'witch_daily_v3_' + date + '_' + zc + '_' + (fbUser ? fbUser.uid : 'anon');
+    const key = dailyKey();
     if (!force) {
-      try { const c = JSON.parse(localStorage.getItem(cacheKey) || 'null'); if (c && c.astrology) { dailyData = c; renderDaily(); return; } } catch {}
+      try {
+        const c = JSON.parse(localStorage.getItem(key) || 'null');
+        if (c && c.astro && c.astro.astrology) {
+          dailyData = c.astro; dailyDeep = c.deep || null;
+          renderDaily();
+          if (!dailyDeep) fetchDeep(false);   // deep failed/missed earlier — refetch quietly
+          return;
+        }
+      } catch {}
+      if (astroLoadingKey === key) return;    // same request already in flight
     }
+    const seq = ++astroSeq;
+    astroLoadingKey = key;
     setAstroLoading();
+    dailyDeep = null; deepError = '';
+    fetchDeep(!!force);
     try {
       const m = moonInfo(new Date());
       const data = await api('/api/witch/daily', {
-        date, uid: fbUser ? fbUser.uid : null, moonPhase: m.name, zodiac: zc,
-        cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
-        birth: savedBirth(), force: !!force,
+        part: 'astro', date: todayISO(), uid: fbUser ? fbUser.uid : null,
+        moonPhase: m.name, zodiac: currentZodiac(), birth: savedBirth(), force: !!force,
       });
+      if (seq !== astroSeq) return;           // a newer request took over (zodiac switch)
+      astroLoadingKey = null;
       dailyData = data;
-      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
+      cachePatch(key, { astro: data });
       renderDaily();
     } catch (e) {
+      if (seq !== astroSeq) return;
+      astroLoadingKey = null;
       $('astro-headline').textContent = '';
       $('astro-extra').innerHTML = '';
       $('astro-note').textContent = '';
@@ -1526,6 +1703,25 @@
       $('astro-body').innerHTML = `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The stars are quiet right now — <button class="link-btn" id="astro-retry">try again</button>.</p>`;
       const rb = $('astro-retry'); if (rb) rb.addEventListener('click', () => loadDaily(true));
     }
+  }
+
+  async function fetchDeep(force) {
+    if (deepLoading || (dailyDeep && !force)) return;
+    const key = dailyKey(), seq = astroSeq;
+    deepLoading = true; deepError = '';
+    if (deepOpen) renderDeep();
+    try {
+      const m = moonInfo(new Date());
+      const d = await api('/api/witch/daily', {
+        part: 'deep', date: todayISO(), uid: fbUser ? fbUser.uid : null,
+        moonPhase: m.name, zodiac: currentZodiac(), birth: savedBirth(), force: !!force,
+      });
+      cachePatch(key, { deep: d });
+      if (seq === astroSeq) dailyDeep = d;
+    } catch (e) { if (seq === astroSeq) deepError = e.message; }
+    deepLoading = false;
+    if (seq !== astroSeq) { fetchDeep(false); return; }  // zodiac switched mid-flight — fetch the new system
+    if (deepOpen) renderDeep();
   }
 
   function renderDaily() {
@@ -1538,25 +1734,125 @@
     if (a.invite && !dailyData.hasChart) html += `<button class="btn-ghost" id="astro-add-birth" style="margin-top:6px;">${esc(a.invite.length > 60 ? 'Add your birthday for a personal reading' : a.invite)}</button>`;
     $('astro-body').innerHTML = html;
 
-    // Signature glance bits: the day's ingredients, omens to watch for, a tiny ritual.
+    // The glance stays a glance: blurb + omens only. The day's ingredients and
+    // the ritual live on the Dive-deeper page now.
     let ex = '';
-    if (Array.isArray(a.ingredients) && a.ingredients.length) {
-      ex += `<div class="glance-sec"><div class="glance-label">The day's ingredients</div><div class="ingredients">`
-        + a.ingredients.map(x => `<span class="ingredient">${esc(x)}</span>`).join('') + `</div></div>`;
-    }
     if (Array.isArray(a.omens) && a.omens.length) {
       ex += `<div class="glance-sec"><div class="glance-label">Omens to watch for</div>`
         + a.omens.map(o => `<div class="omen"><span class="omen-sign">${esc(o.sign)}</span><span class="omen-mean">${esc(o.meaning)}</span></div>`).join('') + `</div>`;
     }
-    if (a.ritual) {
-      ex += `<div class="glance-sec"><div class="glance-label">A tiny ritual</div><div class="ritual-line">${esc(a.ritual)}</div></div>`;
-    }
+    ex += `<button class="btn-ghost" id="astro-dive" style="margin-top:16px;">Dive deeper <span class="js-star"></span></button>`;
     $('astro-extra').innerHTML = ex;
+    renderStars();
+    const dv = $('astro-dive'); if (dv) dv.addEventListener('click', openDeep);
     $('astro-note').textContent = '';
     $('astro-note').style.display = '';
     const ab = $('astro-add-birth');
     if (ab) ab.addEventListener('click', () => { $('natal-date').scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('natal-date').focus(), 400); });
   }
+
+  /* ══════════ DIVE DEEPER — the day's full reading, its own page ══════════
+     Full-screen overlay (same shell pattern as the quiz): the longer reading,
+     the day's REAL computed star chart, the ingredients, and a small ritual.
+     Its content call runs in parallel with the teaser, so it's usually already
+     waiting here by the time the button is tapped. */
+  function dayChartSVG(sky) {
+    const cx = 340, cy = 340, R = 300;
+    // 0° Aries on the left, longitudes running counterclockwise — standard
+    // chart orientation (same geometry as the birth-chart poster).
+    const pt = (L, r) => { const a = (180 - L) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    const SIGN_GLYPHS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+    let s = '';
+    [R, R - 46, 122].forEach(r => { s += `<circle class="dsk-ring" cx="${cx}" cy="${cy}" r="${r}"/>`; });
+    for (let d = 0; d < 360; d += 5) {
+      const big = d % 30 === 0;
+      const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - (big ? 46 : 8));
+      s += `<line class="${big ? 'dsk-cusp' : 'dsk-tick'}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    }
+    for (let i = 0; i < 12; i++) {
+      const [gx, gy] = pt(i * 30 + 15, R - 23);
+      s += `<text class="dsk-sign" x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${SIGN_GLYPHS[i]}︎</text>`;
+    }
+    const byName = {}; (sky.bodies || []).forEach(b => { byName[b.name] = b; });
+    (sky.aspects || []).forEach(a => {
+      const A = byName[a.a], B = byName[a.b]; if (!A || !B) return;
+      const hard = a.aspect === 'square' || a.aspect === 'opposition' || a.aspect === 'conjunction';
+      const [ax, ay] = pt(A.lon, 122), [bx, by] = pt(B.lon, 122);
+      s += `<line class="${hard ? 'dsk-asp-hard' : 'dsk-asp'}" x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"/>`;
+    });
+    // Collision tiers so stacked planets step inward instead of overlapping.
+    const planets = (sky.bodies || []).slice().sort((p, q) => p.lon - q.lon);
+    let last = -999, tier = 0;
+    planets.forEach(b => {
+      if (last > -999 && Math.abs(b.lon - last) < 11) tier = (tier + 1) % 3; else tier = 0;
+      last = b.lon;
+      const r = 218 - tier * 38;
+      const [px, py] = pt(b.lon, r), [tx, ty] = pt(b.lon, r - 26);
+      s += `<circle class="dsk-pl" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="17"/>`;
+      s += `<text class="dsk-glyph" x="${px.toFixed(1)}" y="${py.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${(b.glyph || '') + '︎'}</text>`;
+      s += `<text class="dsk-deg" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${Math.floor(b.degInSign)}°</text>`;
+    });
+    s += `<text class="dsk-center" x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central">✦</text>`;
+    return `<svg viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+  }
+  function renderDeep() {
+    const st = $('deep-stage'); if (!st) return;
+    if (dailyDeep && dailyDeep.deep) {
+      const d = dailyDeep.deep, sky = dailyDeep.sky;
+      const headline = (dailyData && dailyData.astrology && dailyData.astrology.headline) || '';
+      const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      let h = `<div class="quiz-kicker">The deeper reading</div>`;
+      if (headline) h += `<div class="glance-headline" style="text-align:center;">${esc(headline)}</div>`;
+      const hasSky = sky && Array.isArray(sky.bodies) && sky.bodies.length;
+      // Reader gets straight into the words: the first ~2 paragraphs, THEN the
+      // chart wheel about halfway, THEN the rest of the reading. The placements
+      // list drops to the very bottom so it never blocks the reading.
+      const paras = String(d.reading || '').split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+      const firstPart = paras.slice(0, 2), restPart = paras.slice(2);
+      firstPart.forEach(p => h += `<p class="glance-p">${esc(p)}</p>`);
+      if (hasSky) {
+        h += `<div class="dsk-wheel">${dayChartSVG(sky)}</div>`;
+        h += `<div class="dsk-caption">The sky · ${esc(dateLabel)}</div>`;
+      }
+      restPart.forEach(p => h += `<p class="glance-p">${esc(p)}</p>`);
+      if (Array.isArray(d.ingredients) && d.ingredients.length) {
+        h += `<div class="glance-sec"><div class="glance-label">The day's ingredients</div><div class="ingredients">`
+          + d.ingredients.map(x => `<span class="ingredient">${esc(x)}</span>`).join('') + `</div></div>`;
+      }
+      if (d.ritual) h += `<div class="glance-sec"><div class="glance-label">A small ritual</div><div class="ritual-line">${esc(d.ritual)}</div></div>`;
+      // Placements list — at the bottom now, under its own label.
+      if (hasSky) {
+        h += `<div class="glance-sec"><div class="glance-label">The day's placements</div><div class="dsk-list">`
+          + sky.bodies.map(b =>
+            `<div class="dsk-row"><span class="dsk-g">${(b.glyph || '✦') + '︎'}</span>${esc(b.name)} in ${esc(displaySign(b))}${b.retro ? '<span class="dsk-rx">rx</span>' : ''}<span class="dsk-d">${Math.floor(b.degInSign)}°</span></div>`).join('') + `</div></div>`;
+      }
+      st.innerHTML = h;
+    } else if (deepLoading || astroLoadingKey) {
+      st.innerHTML = `<div class="quiz-kicker">The deeper reading</div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 0;">
+          <div class="skywheel" role="img" aria-label="Reading the sky">${skyWheelSVG()}</div>
+          <div style="text-align:center; font-size:13px; color:var(--text-dim); font-style:italic;">Reading the sky, deeper…</div>
+        </div>`;
+    } else {
+      st.innerHTML = `<div class="quiz-kicker">The deeper reading</div>
+        <p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The deeper sky is quiet right now — <button class="link-btn" id="deep-retry">try again</button>.</p>`;
+      const rb = $('deep-retry'); if (rb) rb.addEventListener('click', () => fetchDeep(true));
+    }
+  }
+  function openDeep() {
+    deepOpen = true;
+    document.body.style.overflow = 'hidden';
+    const app = $('deep-app'); app.style.display = ''; app.scrollTop = 0;
+    if (!dailyDeep && !deepLoading) fetchDeep(false);
+    renderDeep();
+  }
+  function closeDeep() {
+    deepOpen = false;
+    $('deep-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('deep-back').addEventListener('click', closeDeep);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && deepOpen) closeDeep(); });
 
   // Tap each card to reveal it. The Past/Present/Future label sits above every
   // slot from the start (so all three are the same height and nothing jumps),
@@ -1581,37 +1877,140 @@
   function revealTarot(i) {
     if (tarotRevealed.has(i)) return;
     tarotRevealed.add(i);
+    // The card reading starts generating on the FIRST tap, so by the time all
+    // three are turned it's usually already here. After a failure, later taps
+    // don't re-fire — the "try again" button owns retries.
+    if (!dailyTarot && !tarotError) loadTarot(false);
     const el = document.querySelector('#daily-backs .tslot-body[data-ti="' + i + '"]');
     if (el) { el.innerHTML = tarotSlotBody(i); el.style.cursor = 'default'; }
     if (tarotRevealed.size === 3) showTarotReading();
   }
+  async function loadTarot(force) {
+    if (tarotLoading || (dailyTarot && !force) || !dailyPicks) return;
+    tarotLoading = true; tarotError = '';
+    try {
+      const data = await api('/api/witch/daily', {
+        part: 'tarot', date: todayISO(), uid: fbUser ? fbUser.uid : null,
+        cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
+        force: !!force,
+      });
+      dailyTarot = data.tarot || null;
+      try { localStorage.setItem(tarotDayKey(), JSON.stringify({ tarot: dailyTarot })); } catch {}
+    } catch (e) { tarotError = e.message; }
+    tarotLoading = false;
+    if (tarotRevealed.size === 3) showTarotReading();
+  }
+  // Inline = the QUICK read: a short line per card. The full reading + fun
+  // options live on the Dive-deeper page (openTarotDeep), same pattern as the
+  // astrology glance → deep page.
   function showTarotReading() {
-    const t = dailyData && dailyData.tarot; if (!t) return;
-    $('daily-tarot-reading').innerHTML = renderReading(t, true);
-    $('daily-tarot-reading').style.display = '';
-    const sv = $('daily-save'); sv.style.display = ''; sv.disabled = false;
-    sv.innerHTML = 'Save to Book of Shadows <span class="js-star"></span>'; renderStars();
+    const box = $('daily-tarot-reading');
+    const dive = $('daily-dive');
+    if (!dailyTarot) {
+      if (!tarotLoading && !tarotError) loadTarot(false);
+      box.innerHTML = (tarotError && !tarotLoading)
+        ? `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The cards are quiet right now — <button class="link-btn" id="tarot-retry">try again</button>.</p>`
+        : `<div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0;"><span class="spin">✦</span><span style="font-size:13px;color:var(--text-dim);font-style:italic;">Reading your cards…</span></div>`;
+      box.style.display = '';
+      dive.style.display = 'none';
+      const rb = $('tarot-retry'); if (rb) rb.addEventListener('click', () => { tarotError = ''; loadTarot(true); showTarotReading(); });
+      return;
+    }
+    let html = '';
+    if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
+      const pos = c.position ? `${c.position} — ` : '';
+      html += `<div class="reading-card-meaning">${pos}<strong>${esc(c.name)}</strong> — ${esc(c.meaning)}</div>`;
+    });
+    box.innerHTML = html;
+    box.style.display = '';
+    if (dailyTarot.reading || dailyTarot.advice) { dive.style.display = ''; renderStars(); }
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
-    $('daily-save').style.display = 'none';
+    $('daily-dive').style.display = 'none';
     renderDailyTarot();
   }
 
-  $('daily-save').addEventListener('click', () => {
-    if (!dailyData || !dailyData.tarot || !dailyPicks) return;
+  /* ══════════ TAROT DIVE DEEPER — the full reading + fun options ══════════ */
+  let tarotDeepOpen = false, tarotSaved = false;
+  function saveDailyReading() {
+    if (!dailyTarot || !dailyPicks || tarotSaved) return;
     const all = loadReadings();
     all.unshift({
       id: 'r_' + Date.now(), date: nowStamp(),
       question: `Daily pull · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`,
       spread: 'three',
       cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
-      data: dailyData.tarot,
+      data: dailyTarot,
     });
-    saveReadings(all); updateSavedCount();
-    const b = $('daily-save'); b.disabled = true; b.innerHTML = 'Saved to Book of Shadows <span class="js-star"></span>'; renderStars();
-  });
+    saveReadings(all); updateSavedCount(); tarotSaved = true;
+  }
+  const T_ICON = {
+    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>',
+    deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
+    charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
+  };
+  function renderTarotDeep() {
+    const st = $('tarot-deep-stage'); if (!st) return;
+    if (!dailyTarot) { st.innerHTML = `<div class="quiz-kicker">Your reading</div><p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The cards are quiet right now.</p>`; return; }
+    const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    let h = `<div class="quiz-kicker">Your full reading</div>`;
+    h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
+    h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
+    // Each card, its position + meaning
+    if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
+      h += `<div class="tdeep-card">
+        ${c.position ? `<div class="tdeep-cardpos">${esc(c.position)}</div>` : ''}
+        <div class="tdeep-cardname">${esc(c.name)}${c.orientation ? `<span class="tdeep-orient">${esc(c.orientation)}</span>` : ''}</div>
+        <div class="tdeep-cardmean">${esc(c.meaning || '')}</div>
+      </div>`;
+    });
+    // The synthesised reading
+    if (dailyTarot.reading) {
+      h += `<div class="glance-sec"><div class="glance-label">The reading</div>`;
+      String(dailyTarot.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
+      h += `</div>`;
+    }
+    if (dailyTarot.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(dailyTarot.advice)}</p></div>`;
+    // Fun options
+    h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
+      <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
+      <button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>
+      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">Short, gentle lessons in Witch School.</span></span></button>
+    </div></div>`;
+    st.innerHTML = h;
+    const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
+    const db = $('tfun-deck'); if (db) db.addEventListener('click', () => toast('Design-your-own decks are coming soon ✦'));
+    const lb = $('tfun-learn'); if (lb) lb.addEventListener('click', () => { closeTarotDeep(); go('school'); });
+  }
+  function openTarotDeep() {
+    tarotDeepOpen = true;
+    document.body.style.overflow = 'hidden';
+    const app = $('tarot-app'); app.style.display = ''; app.scrollTop = 0;
+    renderTarotDeep();
+  }
+  function closeTarotDeep() {
+    tarotDeepOpen = false;
+    $('tarot-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('daily-dive').addEventListener('click', openTarotDeep);
+  $('tarot-deep-back').addEventListener('click', closeTarotDeep);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tarotDeepOpen) closeTarotDeep(); });
+  // Deal today's cards the moment the Today page is in 'ready' state — the
+  // pull is a free deterministic local draw, so the backs are tappable
+  // immediately, independent of the astrology reveal.
+  let dailyCardsStamp = '';
+  function ensureDailyCards() {
+    const stamp = todayISO() + '_' + (fbUser ? fbUser.uid : 'anon');
+    if (dailyCardsStamp === stamp && dailyPicks) return;
+    dailyCardsStamp = stamp;
+    dailyPicks = dailyPull();
+    dailyTarot = null; tarotError = ''; tarotSaved = false;
+    try { const c = JSON.parse(localStorage.getItem(tarotDayKey()) || 'null'); if (c && c.tarot) dailyTarot = c.tarot; } catch {}
+    resetDailyTarot();
+  }
 
   /* ══════════ SHOP ══════════ */
   async function loadShop() {
@@ -1622,13 +2021,17 @@
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
       if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now. Visit secretlyawitch.com.</div>`; wrap.dataset.loaded = '1'; return; }
+      const shortTitle = t => {
+        const cut = t.split(/\s*[~•|]\s*/)[0].trim();
+        return cut.length >= 4 ? cut : t;
+      };
       wrap.innerHTML = items.map(p => {
         const price = p.priceMin ? `$${p.priceMin}` : (p.price ? `$${p.price}` : '');
         const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
         return `<a class="shop-item" href="${esc(p.url)}" target="_blank" rel="noopener">
           ${img}
           <div class="sbody">
-            <div class="stitle">${esc(p.title)}</div>
+            <div class="stitle">${esc(shortTitle(p.title))}</div>
             ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
             ${p.available ? '' : '<div class="soos">Sold out</div>'}
           </div>
@@ -2082,14 +2485,16 @@
       return;
     }
     const s = homeState();
-    // In the 'ready' state the reading waits behind a tap (astroRevealed) — it
-    // only generates/shows once the reader chooses to reveal it.
+    // In the 'ready' state the astrology waits behind a tap (astroRevealed) —
+    // it only generates/shows once the reader chooses to reveal it. The tarot
+    // card backs show right away and generate on their own first tap.
     const revealed = s === 'ready' && astroRevealed;
     $('daily-gate').style.display = s === 'gate' ? '' : 'none';
     $('daily-birthday').style.display = s === 'birthday' ? '' : 'none';
     const gate = $('daily-reveal-gate'); if (gate) gate.style.display = (s === 'ready' && !astroRevealed) ? '' : 'none';
     $('daily-reading').style.display = revealed ? '' : 'none';
-    $('tarot-card').style.display = revealed ? '' : 'none';
+    $('tarot-card').style.display = s === 'ready' ? '' : 'none';
+    if (s === 'ready') ensureDailyCards();
     const fc = $('see-full-chart'); if (fc) fc.style.display = (revealed && natalChartHtml) ? '' : 'none';
     if (revealed) loadDaily(false);
   }
@@ -2123,27 +2528,36 @@
   // Real questions → after answering, a reveal screen (image/film + the sign
   // explained). Own full-screen overlay; the page behind is scroll-locked.
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
+  // House-style question + reveal illustrations (same pipeline as the School
+  // lessons — scripts/witch-school-cards.js, spec qz-*). bg = sampled corner
+  // hex; the quiz stage tints to it so the art floats with no box.
+  const QZ_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   const QUIZ = [
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r1.png', bg: '#fdfaf5' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r2.png', bg: '#fefbf5' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#fef5ea' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r3.png', bg: '#fefbf7' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      media: { type: 'image', url: QUIZ_ASSETS + 'synchronicity.png' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#fbf4ec' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#fdf7f1' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
-      media: { type: 'none' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5.png', bg: '#fefbf7' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r5.png', bg: '#fefaf5' },
       reveal: { name: 'You were never meant to fit', body: "Standing just outside the circle, feeling more than the people around you — that was never a flaw. It was the mark." } },
   ];
   function quizMediaHTML(m) {
@@ -2164,6 +2578,7 @@
     const sc = quizScreens[qi], stage = $('quiz-stage');
     $('quiz-app').scrollTop = 0;
     if (sc.k === 'intro') {
+      stage.style.background = '';
       stage.innerHTML =
         `<div class="quiz-kicker">A witching diagnostic</div>
          <div class="quiz-hero">Are you secretly a witch?</div>
@@ -2172,7 +2587,9 @@
       $('q-begin').onclick = () => { qi++; renderQuizScreen(); };
     } else if (sc.k === 'q') {
       const it = QUIZ[sc.i];
+      stage.style.background = (it.qmedia && it.qmedia.bg) || '';
       stage.innerHTML =
+        (it.qmedia ? `<img class="quiz-media quiz-qart" src="${it.qmedia.url}" alt="">` : '') +
         `<div class="quiz-q">${esc(it.q)}</div>` +
         (it.sub ? `<div class="quiz-sub">${esc(it.sub)}</div>` : '') +
         `<div class="quiz-opts">` +
@@ -2181,12 +2598,13 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      stage.style.background = (it.media && it.media.bg) || '';
+      const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
       const body =
-        `<div class="reveal-name">${esc(it.reveal.name)}</div>
-         <div class="reveal-body">${esc(it.reveal.body)}</div>
+        `<div class="reveal-body">${esc(it.reveal.body)}</div>
          <div class="quiz-btnrow">
            <button class="btn-ghost" id="q-back" type="button">Back</button>
-           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'}</button>
+           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'} ${arrow}</button>
          </div>`;
       const wire = () => {
         $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
@@ -2208,6 +2626,7 @@
         wire();
       }
     } else {
+      stage.style.background = '';
       stage.innerHTML = resultHTML();
       $('q-shop').onclick = () => { closeQuiz(); go('shop'); };
       $('q-again').onclick = () => { qi = 0; renderQuizScreen(); };
@@ -2278,7 +2697,6 @@
     [
       { name: 'Apothecary cards', price: '$32', badge: 'best', handle: 'witchcraft-cards-apothecary-crystal-19221', img: SHOP_CDN + 'il_fullxfull.5521065204_90tq_8495b008-592c-4ae8-9d56-4c9fbd38c9bd.jpg?v=1770947332' },
       { name: 'Travel kit', price: '$85', badge: 'tag', label: 'The essentials', handle: 'travel-witchcraft-kit-travel-altar-kit-39959', img: SHOP_CDN + 'il_fullxfull.1769851682_q7l6.jpg?v=1770947433' },
-      { name: 'Color in tarot', price: '$23', badge: 'new', handle: 'color-in-69086', img: SHOP_CDN + 'il_fullxfull.5970330348_7ht4.jpg?v=1770947425' },
     ],
     [
       { name: 'Magic of Flower Cards', price: '$20', badge: 'new', handle: 'magic-of-flower-cards-oracle-deck-33100', img: SHOP_CDN + 'il_fullxfull.7658334563_4gm0.jpg?v=1770947228' },
@@ -2295,6 +2713,9 @@
   }
   function renderProductRow(el, row) {
     if (!el) return;
+    // Size the columns to however many products are in the row, so a 2-item
+    // row fills the full width instead of leaving a 3rd empty slot.
+    el.style.gridTemplateColumns = `repeat(${row.length}, 1fr)`;
     el.innerHTML = row.map(p => `<a class="pcard" href="https://secretlyawitch.com/products/${p.handle}" target="_blank" rel="noopener">
       <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
       <div class="pname">${esc(p.name)}</div>
@@ -2491,6 +2912,30 @@
   }
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
   const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
+  // The next sabbat from today — computed at load so the Wheel lesson's last
+  // card never goes stale. Fixed calendar approximations are fine here.
+  function nextSabbat() {
+    const acts = {
+      Imbolc: 'light one candle, clean one drawer, and notice the first stirring of something new.',
+      Ostara: 'plant one seed — a literal one or a project — and name it out loud.',
+      Beltane: 'bring flowers inside, wear something alive, and celebrate something at full volume.',
+      Litha: 'be outside at golden hour and soak the longest light in on purpose.',
+      Lughnasadh: 'bake or buy a good loaf, share it with someone, and name one thing you planted this year that\'s ripening.',
+      Mabon: 'make a small feast of apples and gratitude — count what you harvested this year.',
+      Samhain: 'put out a photo of someone you miss, light a candle, and make their favorite food.',
+      Yule: 'on the longest night, light candles against the dark and name what you hope comes back with the sun.',
+    };
+    const y = new Date().getFullYear();
+    const list = [['Imbolc', 1, 1], ['Ostara', 2, 20], ['Beltane', 4, 1], ['Litha', 5, 21], ['Lughnasadh', 7, 1], ['Mabon', 8, 22], ['Samhain', 9, 31], ['Yule', 11, 21]];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (const yr of [y, y + 1]) {
+      for (const [name, m, d] of list) {
+        const dt = new Date(yr, m, d);
+        if (dt >= today) return { label: name + ', ' + dt.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }), act: acts[name] };
+      }
+    }
+    return { label: 'Imbolc, February 1', act: acts.Imbolc };
+  }
   const SPELL_CARDS = [
     { img: 'sw-01', bg: '#fdf9f3', kicker: 'Spell Work', h: 'Welcome to spell work', body: 'A spell is simpler than it sounds. We\'ll go one small idea at a time — just tap to keep going.' },
     { img: 'sw-02', bg: '#fdf8ef', kicker: 'The idea', h: 'What a spell really is', body: 'Your will in motion: a clear intention, focused with feeling and a little ritual, to nudge a change into being. Not ordering the universe around — concentrating your attention so fully that you start moving toward what you want.' },
@@ -2590,14 +3035,14 @@
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'The craft was never in the cabinet — it\'s in your attention, your intention, and your two hands. This lesson is witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
     { img: 'tw-02', bg: '#fcf6ef', kicker: 'The anchor', h: 'The moon comes with you', body: 'Wherever you land, the moon that rises is <b>your</b> moon — same phase, same face, as the one over your house. One glance up (or at this app\'s moon page) and you\'re oriented: the sky is a home that travels.' },
-    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter.' },
+    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter. <i>(Rather have it packed by a witch? The shop\'s <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> is exactly this, done beautifully.)</i>' },
     { img: 'tw-04', bg: '#fcf7f1', kicker: 'The improvisation', h: 'Salt is everywhere', body: 'Forgot supplies? The world provides: every diner and airplane meal comes with a <b>salt packet</b> — a threshold line for your hotel door. Sugar for sweetening work, pepper for banishing, a coffee stirrer for a wand. Look around; you\'re stocked.' },
     { img: 'tw-05', bg: '#fdf9f2', kicker: 'The arrival', h: 'Claim the room', body: 'A borrowed room holds everyone who slept there before you. Claim it: curtains and window open first, let light and air move through, salt at the door, and say — quietly, out loud — <i>“this room is mine tonight.”</i> Ninety seconds, and it\'s yours.' },
     { img: 'tw-06', bg: '#fef7f0', kicker: 'The locals', h: 'Meet the plants', body: 'Every place has its own green residents — the weed in the sidewalk crack is somebody\'s sacred herb. Introduce yourself: notice one plant, learn its name, touch one leaf gently. It\'s how a witch says hello to a new land.' },
     { img: 'tw-07', bg: '#fdfaf5', kicker: 'The between', h: 'Crossroads magic', body: 'Folk magic loves the places between places — crossroads, bridges, shorelines — where things can be left behind. Airports and train stations are the great modern crossroads: on your way through, name one worry and leave it at the gate.' },
     { img: 'tw-08', bg: '#fefaf6', kicker: 'The disguise', h: 'Invisible spellwork', body: 'Travel craft is quiet craft: intention stirred clockwise into a takeaway coffee, a protection word breathed onto the bus window, a charm that reads as jewelry. Nobody around you knows. That\'s not hiding — that\'s finesse.' },
     { img: 'tw-09', bg: '#fefcf8', kicker: 'The tether', h: 'A pinch of home', body: 'The old emigrant\'s charm: carry a little of your own ground — a pebble from your street, a pinch of garden earth in a tiny vial. Homesickness magic, literally: wherever you stand, you\'re standing on a bit of home.' },
-    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i>.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
+    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i> — or start with the ready-made <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> and make it yours.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
   ];
   const DIVIN_CARDS = [
     { img: 'dv-01', bg: '#fcf7f1', kicker: 'Divination', h: 'Ways of asking', body: 'Tarot is one door in a very long hallway. Humans have read answers in water, smoke, books, birds, and tea for thousands of years. This lesson is a tour of the hallway — and how to actually try each door.' },
@@ -2622,6 +3067,18 @@
     { img: 'cr-08', bg: '#fefaf4', kicker: 'The housekeeper', h: 'Selenite', body: 'The one stone that minds the others: selenite is held to be <b>self-cleansing</b>, and to cleanse and recharge whatever rests on it. A selenite blade on the shelf is the crystal collection\'s quiet housekeeper — lay the day\'s pocket stone on it overnight.' },
     { img: 'cr-09', bg: '#fefbf6', kicker: 'The grid', h: 'Stones in formation', body: 'A <b>crystal grid</b> is stones arranged in a simple geometric pattern — a triangle, a circle — around a written intention, each stone chosen for its job. The claim is that arrangement multiplies them; at minimum, building one is ten focused minutes of pure intention. That\'s a spell by any name.' },
     { img: 'cr-10', bg: '#fbf6f0', kicker: 'After', h: 'One stone, one week', body: 'Skip the giant collection. Pick <b>one</b> stone, cleanse it in tonight\'s moonlight, give it one clear job, and pocket it for a week. Notice when you reach for it — that reflex is the relationship starting. ✦' },
+  ];
+  const CRYSTAL2_CARDS = [
+    { img: 'ce-01', bg: '#fef7ef', kicker: 'Crystal Energy', h: 'The deeper current', body: 'You know your stones — how they grow, how to cleanse and charge them. This is the deeper teaching: crystals don\'t just <i>hold</i> energy. They <b>move</b> it. One idea at a time, from ancient ice to a practice you can do tonight.' },
+    { img: 'ce-02', bg: '#fbf8f4', kicker: 'Eternal ice', h: 'Where it all began', body: 'The Greeks called clear quartz <b>krystallos</b> — ice frozen so deep it could never melt again. Pliny the Elder, two thousand years ago, described crystal spheres that gathered the sun\'s rays into a point of healing heat. Energy, channeled through crystal — the idea is at least that old.' },
+    { img: 'ce-03', bg: '#fefaf4', kicker: 'Honest science', h: 'The real spark', body: 'In 1880 the <b>Curie brothers</b> proved something wild: squeeze quartz and it gives off a real, measurable electric charge — <b>piezoelectricity</b>. It\'s why quartz keeps time in watches and steadied the first radios. Whatever else you believe, energy genuinely moves through this stone. The old lore chose its mineral well.' },
+    { img: 'ce-04', bg: '#fbf8f4', kicker: 'The old way', h: 'Become the crystal', body: 'An old meditation teaching puts it beautifully: sit with your crystal and pour your whole focus into it — until the boundary thins and, for a moment, <b>you become the crystal</b>. From inside that stillness, you move outward through it, carrying your intention with you. Not commanding the stone. Joining it.' },
+    { img: 'ce-05', bg: '#fdf8f2', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'That teaching holds the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, a full heart. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
+    { img: 'ce-06', bg: '#fefbf4', kicker: 'The warning', h: 'The fire stone', body: 'Edgar Cayce\'s trance readings told of Atlantis powered by a six-sided <b>fire stone</b> — a great crystal that gathered the light of sun and stars and beamed it out to power whole cities. In the story they tuned it too high, too greedily, and sank the island. Myth or memory, keep its lesson: channel with reverence, never for force.' },
+    { img: 'ce-07', bg: '#fdf8f2', kicker: 'The scientist-mystic', h: 'Marcel Vogel\'s lens', body: 'IBM research scientist <b>Marcel Vogel</b> — a hundred-plus patents to his name — spent his later years testing quartz and concluded it could <b>amplify intention</b> the way a lens focuses light: hold a clear thought through a crystal and the crystal strengthens and directs it. Healing wands are still cut to his design today.' },
+    { img: 'ce-08', bg: '#fcf7f0', kicker: 'The practice', h: 'Load the thought', body: 'Channeling starts inside you. Cleanse your quartz, hold it at your heart, and breathe <b>one clear intention</b> into it — a single sentence, felt as much as said. You\'re not talking to a rock; you\'re doing what Vogel did: giving a thought worth focusing a lens to pass through.' },
+    { img: 'ce-09', bg: '#fdfaf7', kicker: 'The hands', h: 'Receive left, send right', body: 'The old energy-work rule of thumb: the <b>left hand receives, the right hand sends</b>. Left palm open to draw calm in; right hand holding your point, aimed at what you\'re blessing — a plant, a photo, your own heart. Three slow breaths to <b>raise</b>, one held breath to <b>gather</b>, a long exhale to <b>direct</b> it down the crystal and out the tip.' },
+    { img: 'ce-10', bg: '#fef8f1', kicker: 'After', h: 'Send someone light', body: 'Tonight: charge your clearest quartz with one loving sentence for someone you care about, aim the point their way, and send it — three breaths, gather, release.<br><br>Then write down what you sent and to whom. Watch what comes back. ✦', cta: { label: 'Write it in my Book of Shadows', go: 'book', book: 'spell' } },
   ];
   const ALTAR_CARDS = [
     { img: 'al-01', bg: '#fdf7f0', kicker: 'Building an Altar', h: 'A home for your craft', body: 'You packed a whole altar into a mint tin for traveling. This is its big sibling: a small, permanent place in your home where the craft lives. One shelf can hold the entire practice.' },
@@ -2657,9 +3114,21 @@
     { img: 'wy-07', bg: '#fef8ef', kicker: 'May 1 · summer solstice', h: 'Beltane & Litha', body: 'The full-bloom pair. <b>Beltane</b> (May 1): fire, flowers, maypoles, life at full volume — Samhain\'s bright twin, the veil thin again but merrier. <b>Litha</b> (summer solstice): the longest day, the sun\'s coronation — and the quiet secret that the wheel now turns toward dark.' },
     { img: 'wy-08', bg: '#fefbf4', kicker: 'Aug 1 · fall equinox', h: 'Lughnasadh & Mabon', body: 'The harvest pair. <b>Lughnasadh</b> (August 1): first harvest — grain cut, the year\'s first bread baked and shared. <b>Mabon</b> (fall equinox): balance again, then dark wins — the witches\' thanksgiving: apples, gratitude, taking stock of what you grew.' },
     { img: 'wy-09', bg: '#fef7ee', kicker: 'The practice', h: 'One small seasonal act', body: 'You don\'t need eight rituals a year. The wheel asks one thing: <b>notice the turn.</b> A walk under the falling leaves, bread baked in August, one candle on the longest night. A single deliberate seasonal act per spoke, and you\'re keeping the wheel.' },
-    { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>Lughnasadh, August 1</b>: first harvest.<br><br><b>This week:</b> bake or buy a good loaf, share it with someone, and name one thing you planted this year that\'s ripening. ✦' },
+    { img: 'wy-10', bg: '#fdfaf5', kicker: 'After', h: 'Find today on the wheel', body: 'Where are you standing right now? Find the nearest spoke — coming up next is <b>' + nextSabbat().label + '</b>.<br><br><b>This week:</b> ' + nextSabbat().act + ' ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS };
+  const APOTH_CARDS = [
+    { img: 'ap-01', bg: '#fef8f1', kicker: 'The Witch\'s Apothecary', h: 'Beyond the kitchen', body: 'You know the cupboard herbs. This lesson goes deeper — the witch\'s apothecary: the strange, old, potent plants kept in corked vials, and how to build a shelf of your own.' },
+    { img: 'ap-02', bg: '#fbf9f7', kicker: 'The old charm', h: 'The Nine Herbs', body: 'A thousand years ago, Anglo-Saxon healers recited the <b>Nine Herbs Charm</b> — a spell-poem naming nine plants against poison and ill. First among them: mugwort, whom the charm calls the <b>Mother of Herbs</b>. Your apothecary has ancestors.' },
+    { img: 'ap-03', bg: '#f9f1e6', kicker: 'The dreamer', h: 'Mugwort', body: 'Named for <b>Artemis</b>, moon goddess — and it works like it: mugwort is THE herb of dreams and second sight. A pinch in a dream pillow for vivid dreams; a weak tea before a reading to open the inner eye. The dreamer\'s ally, first on any witch\'s shelf.' },
+    { img: 'ap-04', bg: '#fdfcfa', kicker: 'The wild sister', h: 'Wormwood', body: 'Mugwort\'s fiercer sister (both are <i>Artemisia</i>). Wormwood works where the veil thins — cleansing, banishing, reversal; Balkan midwives burned it at births and burials. <b>Burn it, don\'t brew it</b> — this one\'s for smoke, not the teapot.' },
+    { img: 'ap-05', bg: '#fef9f2', kicker: 'The shield', h: 'Yarrow', body: 'Achilles is said to have packed his soldiers\' wounds with it, and it carries his name (<i>Achillea</i>). Yarrow is courage and boundaries: witches from Britain to Appalachia sewed it into sachets and tucked it into beds to keep the wrong people — and spirits — away.' },
+    { img: 'ap-06', bg: '#fcf8f2', kicker: 'The torch', h: 'Mullein', body: 'The tall stalk witches once dipped in tallow and burned as a torch — the <b>hag taper</b>. Mullein is illumination and safe passage through dark places, and an old ally for ancestor work: a candle for the parts of the path you can\'t see yet.' },
+    { img: 'ap-07', bg: '#fefaf7', kicker: 'The enchanter\'s herb', h: 'Vervain', body: 'Sacred to the Egyptians, the Druids, everyone in between — legend says it sprang from the tears of <b>Isis</b>. Vervain purifies, protects, breaks hexes, and blesses. When you don\'t know which herb a working needs, it\'s vervain.' },
+    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength. <i>(The shop\'s <a href="https://secretlyawitch.com/products/wooden-mortar-pestle" target="_blank" rel="noopener">wooden mortar & pestle</a> is made for exactly this.)</i>' },
+    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them. <i>(Or begin with a ready-stocked <a href="https://secretlyawitch.com/products/apothecary-box-with-wooden-mortar-and-pestle" target="_blank" rel="noopener">apothecary box</a> from the shop and grow it from there.)</i>' },
+    { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it. That\'s page one of a real apothecary.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
+  ];
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -2667,8 +3136,8 @@
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'signs', 'dream'] },
-    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, cleansing & charging', cover: 'course-crystal', lessons: ['crystal'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2', 'apoth'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'course-crystal', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
   ];
   let schoolCourse = null; // null = catalog; a course id = that course's path
@@ -2680,6 +3149,20 @@
     if (e.seen >= (LESSONS[key] || []).length) e.done = true;
     p[key] = e; saveSchoolProgress(p);
   }
+  // Sophie's "leveling" feel, v2: moons ADD UP — one simple crescent per
+  // finished lesson, growing in size along the row (no emoji; inked SVG
+  // crescents, gold-filled when earned, faint outlines still to come).
+  function courseMoon(done, total, base) {
+    base = base || 18;
+    const moons = [];
+    for (let i = 0; i < total; i++) {
+      const size = Math.round(base * (total === 1 ? 1 : 0.55 + 0.45 * (i / (total - 1))));
+      const earned = i < done;
+      const glow = earned ? `filter: drop-shadow(0 0 ${Math.round(3 + 3 * (i / Math.max(1, total - 1)))}px rgba(212,168,90,0.75));` : 'opacity:0.5;';
+      moons.push(`<svg class="cmoon" width="${size}" height="${size}" viewBox="0 0 24 24" style="${glow}"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="${earned ? '#d4a85a' : 'none'}" stroke="${earned ? '#2a2430' : '#c2bab0'}" stroke-width="1.7" stroke-linejoin="round"/></svg>`);
+    }
+    return `<span class="cmoons" title="${done} of ${total}">${moons.join('')}</span>`;
+  }
   function courseProgress(course) {
     const prog = schoolProgress();
     const done = course.lessons.filter(k => prog[k] && prog[k].done).length;
@@ -2689,57 +3172,113 @@
     const wrap = $('school-path'); if (!wrap) return;
     if (schoolCourse) { renderCoursePath(schoolCourse); return; }
     // ── The catalog: art-cover course tiles ──
-    wrap.innerHTML = SCHOOL_COURSES.map(c => {
+    wrap.innerHTML = '<div class="cat">' + SCHOOL_COURSES.map(c => {
       const p = courseProgress(c);
       return `<div class="wcourse" data-course="${c.id}" role="button">
         <img class="cv" src="${SW_IMG}${c.cover}.png" alt="" loading="lazy">
         <div class="meta">
-          <div class="t">${esc(c.title)}</div>
+          <div class="t">${esc(c.title)} ${courseMoon(p.done, p.total, 15)}</div>
           <div class="s">${esc(c.sub)}</div>
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
       </div>`;
-    }).join('') + '<p class="hint" style="text-align:center; margin-top:16px;">More courses are being written.</p>';
+    }).join('') + '</div><p class="hint" style="text-align:center; margin-top:18px;">More courses are being written.</p>';
   }
   function renderCoursePath(courseId) {
     const wrap = $('school-path'); if (!wrap) return;
     const course = SCHOOL_COURSES.find(c => c.id === courseId); if (!course) { schoolCourse = null; renderSchoolPath(); return; }
     const prog = schoolProgress();
     const current = course.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0) || course.lessons.find(k => !(prog[k] && prog[k].done));
-    let pos = 0, html = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
+    const n = course.lessons.length;
+    // ── The golden road: an S-curving path stretching AWAY from you — the
+    // first lesson at the bottom (nearest, biggest), later ones smaller with
+    // distance. Flat gold ribbon built as a tapering polygon (no gradients).
+    const W = 390, H = Math.max(340, 165 * n + 70);
+    // You stand ON the road: it opens full-width at your feet, runs straight
+    // to the first lesson right in front of you, and only starts winding as
+    // it pulls away into the distance.
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0 : i / (n - 1);
+      const amp = i === 0 ? 0 : 92 * (1 - t) + 30 * t;    // node 1 dead ahead; then the winding
+      const dir = i % 2 === 1 ? 1 : -1;
+      pts.push({ x: W / 2 + dir * amp, y: (H - 130) - t * (H - 190), t });
+    }
+    pts.unshift({ x: W / 2, y: H + 10, t: -0.12 });        // the road mouth bleeds off the bottom
+    // Vanish point: keep drifting the way the road was already heading, so
+    // the far end tapers away instead of kinking back.
+    { const a = pts[pts.length - 1], b2 = pts[pts.length - 2] || a;
+      const vx = Math.max(60, Math.min(W - 60, a.x + (a.x - b2.x) * 0.35));
+      pts.push({ x: vx, y: 18, t: 1.1 }); }
+    // Catmull-Rom → cubic bezier centerline (roomier tangents = rounder bends)
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += ` C ${p1.x + (p2.x - p0.x) / 4.6} ${p1.y + (p2.y - p0.y) / 4.6}, ${p2.x - (p3.x - p1.x) / 4.6} ${p2.y - (p3.y - p1.y) / 4.6}, ${p2.x} ${p2.y}`;
+    }
+    wrap.innerHTML = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
       <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
-      <div class="wpath"><div class="wpath-line"></div>`;
-    for (const key of course.lessons) {
-      const tile = $('open-' + key); if (!tile) continue;
-      const icon = tile.querySelector('.lg').innerHTML;
-      const title = tile.querySelector('.lt').textContent;
+      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 26)}<span class="lbl">${courseProgress(course).done ? (courseProgress(course).done === courseProgress(course).total ? 'Course complete' : courseProgress(course).done + ' of ' + courseProgress(course).total + ' lessons') : 'The path awaits'}</span></div>
+      <div class="wroad-wrap" id="wroad-wrap" style="height:${H}px;">
+        <svg id="wroad-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
+          <path id="wroad-center" d="${d}" fill="none" stroke="none"/>
+          <polygon id="wroad-ribbon" fill="#d4a85a" stroke="#2a2430" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div id="wroad-now"></div>`;
+    // Build the tapering ribbon by offsetting the centerline
+    const center = document.getElementById('wroad-center');
+    const total = center.getTotalLength();
+    const left = [], right = [];
+    for (let i = 0; i <= 60; i++) {
+      const l = (i / 60) * total;
+      const p = center.getPointAtLength(l);
+      const p2 = center.getPointAtLength(Math.min(total, l + 2));
+      let nx = -(p2.y - p.y), ny = p2.x - p.x;
+      const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
+      const u = i / 60;
+      const w = (170 * Math.pow(1 - u, 1.6) + 16) / 2;     // wide open at your feet, narrowing fast with distance
+      left.push((p.x + nx * w).toFixed(1) + ',' + (p.y + ny * w).toFixed(1));
+      right.push((p.x - nx * w).toFixed(1) + ',' + (p.y - ny * w).toFixed(1));
+    }
+    document.getElementById('wroad-ribbon').setAttribute('points', left.concat(right.reverse()).join(' '));
+    // Place the lesson nodes ON the road (skip the two anchor points)
+    const roadWrap = document.getElementById('wroad-wrap');
+    course.lessons.forEach((key, i) => {
+      const tile = $('open-' + key); if (!tile) return;
+      const pt = pts[i + 1];
+      const t = n === 1 ? 0 : i / (n - 1);
+      const scale = 1.22 - t * 0.62;                       // right in front of you → far away
       const e = prog[key] || { seen: 0, done: false };
       const pct = Math.round(100 * e.seen / (LESSONS[key] || []).length);
       const state = e.done ? 'done' : key === current ? 'now' : '';
-      html += `<div class="wpath-row pos-${pos}">
-        <button class="wnode ${state}" data-lesson="${key}">
-          <span class="ic">${e.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : icon}</span>
-          <span class="nm">${esc(title)}</span>
-          ${!e.done && e.seen > 0 ? `<span class="pct">${pct}%</span>` : ''}
-        </button>
+      const node = document.createElement('button');
+      node.className = 'wnode road ' + state;
+      node.dataset.lesson = key;
+      node.style.cssText = `left:${(pt.x / W) * 100}%; top:${pt.y}px; transform:translate(-50%,-50%) scale(${scale.toFixed(2)}); z-index:${100 - i};`;
+      node.innerHTML = `<span class="ic">${e.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : tile.querySelector('.lg').innerHTML}</span>
+        <span class="nm">${esc(tile.querySelector('.lt').textContent)}</span>
+        ${!e.done && e.seen > 0 ? `<span class="pct">${pct}%</span>` : ''}`;
+      roadWrap.appendChild(node);
+    });
+    // "You are here": the current lesson's card sits at the trailhead
+    if (current) {
+      const tile = $('open-' + current);
+      const e = prog[current] || { seen: 0, done: false };
+      const pct = Math.round(100 * e.seen / (LESSONS[current] || []).length);
+      document.getElementById('wroad-now').innerHTML = `<div class="wpath-now">
+        <div class="t">${esc(tile.querySelector('.lt').textContent)}</div>
+        <div class="p">${e.seen > 0 ? pct + '% complete' : 'The path starts here'}</div>
+        <button class="btn" data-lesson="${current}">${e.seen > 0 ? 'Continue' : 'Start'} <span class="js-star"></span></button>
       </div>`;
-      if (key === current) {
-        html += `<div class="wpath-now">
-          <div class="t">${esc(title)}</div>
-          <div class="p">${e.seen > 0 ? pct + '% complete' : 'Not started yet'}</div>
-          <button class="btn" data-lesson="${key}">${e.seen > 0 ? 'Continue' : 'Start'} <span class="js-star"></span></button>
-        </div>`;
-      }
-      pos = (pos + 1) % 3;
+    } else {
+      document.getElementById('wroad-now').innerHTML = '<div class="wpath-done-star"><span class="js-star"></span><div class="hint" style="margin-top:6px;">Course complete. ✦</div></div>';
     }
-    const allDone = course.lessons.every(k => prog[k] && prog[k].done);
-    html += allDone ? '<div class="wpath-done-star"><span class="js-star"></span><div class="hint" style="margin-top:6px;">Course complete. ✦</div></div>' : '';
-    html += '</div>';
-    wrap.innerHTML = html; renderStars();
+    renderStars();
   }
   { const sp = $('school-path'); if (sp) sp.addEventListener('click', (e) => {
     const n = e.target.closest('[data-lesson]'); if (n) { openLesson(n.dataset.lesson); return; }
-    const c = e.target.closest('[data-course]'); if (c) { schoolCourse = c.dataset.course; renderSchoolPath(); window.scrollTo({ top: 0 }); return; }
+    const c = e.target.closest('[data-course]'); if (c) { schoolCourse = c.dataset.course; renderSchoolPath(); const nw = document.getElementById('wroad-now'); if (nw) nw.scrollIntoView({ block: 'end' }); return; }
     if (e.target.closest('#school-back')) { schoolCourse = null; renderSchoolPath(); }
   }); }
   let deckCards = SPELL_CARDS, deckIdx = 0;
@@ -2789,6 +3328,7 @@
   }
   let deckKey = 'spell';
   function openLesson(key) {
+    deckOnNote = false;
     deckKey = LESSONS[key] ? key : 'spell';
     deckCards = LESSONS[deckKey] || SPELL_CARDS; preload(deckCards);
     // Resume where you left off (Imprint-style), from the path's Continue.
@@ -2796,9 +3336,61 @@
     deckIdx = e && !e.done && e.seen > 0 && e.seen < deckCards.length ? e.seen - 1 : 0;
     $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard();
   }
-  function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
-  function deckNext() { if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
-  function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
+  function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
+  // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary' };
+  function renderDeckNote() {
+    $('school-lesson').style.background = '#fefaf6';
+    $('deck-prog').innerHTML = '';
+    $('deck-stage').innerHTML = `<div class="tcard deck-note">
+      <div class="deck-head">
+        <div class="tcard-kicker">Before you go</div>
+        <div class="tcard-h">Leave a note</div>
+      </div>
+      <div class="deck-text">
+        <div class="tcard-body">Something the lesson stirred up? Write it below, then tap the <b>witch mind</b> to ask — or tap <b>Sophie</b> to send it to the real witch behind all of this.</div>
+        <textarea id="note-text" class="note-ta" rows="3" placeholder="A question, a thought, a hello…"></textarea>
+        <div class="note-icons">
+          <button class="note-icon" id="note-ask" type="button"><img src="${SW_IMG}note-ai.png?v=5" alt=""><span>Ask</span></button>
+          <button class="note-icon" id="note-send" type="button"><img src="${SW_IMG}note-sophie.png?v=5" alt=""><span>Tell Sophie</span></button>
+        </div>
+        <div id="note-out"></div>
+      </div>
+    </div>`;
+    const stop = (e) => e.stopPropagation();
+    ['note-text', 'note-ask', 'note-send', 'note-out'].forEach((id) => { const el = $(id); if (el) ['click', 'touchstart'].forEach((ev) => el.addEventListener(ev, stop)); });
+    const out = $('note-out');
+    $('note-ask').addEventListener('click', async () => {
+      const q = $('note-text').value.trim(); if (!q) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const cards = (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
+        const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards }) });
+        const j = await r.json();
+        out.innerHTML = j.answer ? `<div class="note-answer">${esc(j.answer)}</div>` : `<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>`;
+      } catch { out.innerHTML = '<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>'; }
+    });
+    $('note-send').addEventListener('click', async () => {
+      const t = $('note-text').value.trim(); if (!t) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t }) });
+        const j = await r.json();
+        out.innerHTML = j.ok ? '<div class="note-answer">Sent — Sophie reads every one. ♥</div>' : '<div class="note-answer">It didn\'t send — try again in a moment.</div>';
+        if (j.ok) $('note-text').value = '';
+      } catch { out.innerHTML = '<div class="note-answer">It didn\'t send — try again in a moment.</div>'; }
+    });
+    $('deck-prev').disabled = false;
+    $('deck-next').textContent = 'Done';
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  }
+  let deckOnNote = false;
+  function deckNext() {
+    if (deckOnNote) { deckOnNote = false; closeLesson(); return; }
+    if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); }
+    else { deckOnNote = true; renderDeckNote(); }
+  }
+  function deckPrev() { if (deckOnNote) { deckOnNote = false; renderDeckCard(); return; } if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
   { const op = $('open-plants'); if (op) op.addEventListener('click', () => openLesson('plants')); }
   { const p2 = $('open-plants2'); if (p2) p2.addEventListener('click', () => openLesson('plants2')); }
@@ -2809,15 +3401,20 @@
   { const rs = $('open-signs'); if (rs) rs.addEventListener('click', () => openLesson('signs')); }
   { const dv = $('open-divin'); if (dv) dv.addEventListener('click', () => openLesson('divin')); }
   { const cr = $('open-crystal'); if (cr) cr.addEventListener('click', () => openLesson('crystal')); }
+  { const c2 = $('open-crystal2'); if (c2) c2.addEventListener('click', () => openLesson('crystal2')); }
   { const tw = $('open-travel'); if (tw) tw.addEventListener('click', () => openLesson('travel')); }
   { const al = $('open-altar'); if (al) al.addEventListener('click', () => openLesson('altar')); }
   { const sh = $('open-shadow'); if (sh) sh.addEventListener('click', () => openLesson('shadow')); }
   { const wy = $('open-wheel'); if (wy) wy.addEventListener('click', () => openLesson('wheel')); }
+  { const ap = $('open-apoth'); if (ap) ap.addEventListener('click', () => openLesson('apoth')); }
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
   // Imprint/stories-style tap zones: the left edge steps back, the rest advances.
+  // On the note screen taps do nothing — typing must never close the lesson;
+  // only the Done button (or Back) leaves.
   $('deck-stage').addEventListener('click', (e) => {
+    if (deckOnNote) return;
     if (e.clientX < window.innerWidth * 0.28) deckPrev(); else deckNext();
   });
 
@@ -2900,7 +3497,8 @@
       try { if (v === 'ask') localStorage.removeItem('witch_zodiac_default'); else localStorage.setItem('witch_zodiac_default', v); } catch {}
       renderZodiacBar();
       if (typeof loadSavedNatal === 'function') loadSavedNatal();
-      loadDaily(false); cloudSyncSoon();
+      if (astroRevealed && homeState() === 'ready') loadDaily(false);
+      cloudSyncSoon();
       showAccount();  // re-render to reflect the new selection
     }));
     $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });

@@ -1,20 +1,9 @@
-# The autoscroll pill — ONE shared implementation for every scrollable web page
-# (Writing Room, Story Room, Chats, Wall all import these). Matches the native
-# AutoScrollPill: three discrete speeds — Slow / Medium / Fast — starting on
-# Medium, not a continuous dial. Idle: ▲ scroll-up / ▶ play / ▼ down. Playing:
-# − slower / ‖ pause / + faster (the − dims at Slow, the + dims at Fast). The
-# whole 48×52 button is the tap target, not just the glyph.
-#
-# Public hooks other page code can call (tap-to-pause, close-image, tab-switch):
-#   window.__scrollStop()    — stop autoscroll
-#   window.__scrollStart(d)  — start (d = 1 down, -1 up)
-#   window.__scrollToggle()  — toggle (starts downward)
-#
-# Change it here and every page updates on the next gen-*.py run. Plain-brace
-# strings: embed directly in a non-f-string template, or via the
-# __PILL_CSS__ / __PILL_HTML__ / __PILL_JS__ placeholder + .replace() pattern.
 
-PILL_CSS = """
+<!-- injected by the server: shared autoscroll pill (scripts/gen-pill-inject.py) -->
+<style>
+.float{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --chg:#b3443f; --rose:#a5586a;}
+@media (prefers-color-scheme: dark){.float{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --chg:#e08b84; --rose:#c98a99;}}
+
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
@@ -23,9 +12,8 @@ PILL_CSS = """
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
 #spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
-"""
+</style>
 
-PILL_HTML = """
 <div class="float">
   <div class="vseg">
     <button id="vtop" aria-label="Scroll up, or slower while playing"></button>
@@ -34,9 +22,9 @@ PILL_HTML = """
   </div>
   <span id="spd">Fast</span>
 </div>
-"""
 
-PILL_JS = """
+<script>
+
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
@@ -87,4 +75,5 @@ vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
 window.addEventListener('pagehide',scrollStop);
 paintPill();
-"""
+
+</script>

@@ -148,8 +148,10 @@ final class Recents: ObservableObject {
         order = o
     }
 
-    /// The three tools shown in the middle of the bar.
-    var recentThree: [Tool] { Array(order.prefix(3)) }
+    /// The three tools shown in the middle of the bar. Chats is excluded — it's
+    /// the always-alive launch screen, not part of the rotation (and may linger
+    /// in saved state from before that change).
+    var recentThree: [Tool] { Array(order.filter { $0 != .chats }.prefix(3)) }
 
     /// Promote a tool to most-recent (so it holds a middle slot).
     func use(_ t: Tool) {
@@ -165,7 +167,9 @@ final class Recents: ObservableObject {
 struct RootView: View {
     @StateObject private var recents = Recents()
     @ObservedObject private var autoScroll = AutoScrollDriver.shared
-    @State private var screen: Screen = .home
+    // The app opens on Chats (its home feed); the module grid is one tap away on
+    // the bottom bar's house icon.
+    @State private var screen: Screen = .tool(.chats)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -226,13 +230,20 @@ struct RootView: View {
             HomeGrid(open: open, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
-            ForEach(recents.recentThree) { t in
+            ForEach(recents.recentThree.filter { $0 != .chats }) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { screen = .home })
                     .environment(\.openTool, { open($0) })
                     .opacity(screen == .tool(t) ? 1 : 0)
                     .allowsHitTesting(screen == .tool(t))
             }
+            // Chats is the launch screen — kept always-alive (like Home and
+            // Gallery), not part of the recent-tool rotation.
+            NavigationStack { ChatFeedView() }
+                .environment(\.goHome, { screen = .home })
+                .environment(\.openTool, { open($0) })
+                .opacity(screen == .tool(.chats) ? 1 : 0)
+                .allowsHitTesting(screen == .tool(.chats))
             NavigationStack { CreationsView() }
                 .opacity(screen == .gallery ? 1 : 0)
                 .allowsHitTesting(screen == .gallery)
@@ -262,7 +273,9 @@ struct RootView: View {
     }
 
     private func open(_ t: Tool) {
-        recents.use(t)
+        // Chats is always-alive and isn't part of the recent rotation, so it
+        // never gets promoted into a bottom-bar slot.
+        if t != .chats { recents.use(t) }
         screen = .tool(t)
     }
 }

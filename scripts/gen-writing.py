@@ -141,7 +141,7 @@ for no,name in enumerate(ORDER,1):
 <button class="btn listen" data-d="{key}"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><polygon points="6 3 20 12 6 21 6 3"/></svg>&nbsp; Listen</button>
 <div class="listenwrap" id="lw-{key}"></div></header>
 <div class="tabs"><div class="seg"><button class="tab on" data-v="c">Claude&rsquo;s</button><button class="tab" data-v="o">Mine</button></div></div>
-<div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause autoscroll</div>
+<div class="legend"><mark>red</mark>&nbsp;= words Claude changed or added ({pct}%) · tap text to pause / resume</div>
 <div class="verC">{chtml}</div>
 <div class="verO" style="display:none">{ohtml}</div>
 {gallery}
@@ -423,7 +423,7 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
 __PILL_JS__
 document.querySelector('.wrap').addEventListener('click',function(e){{
   if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  window.__scrollToggle();
+  window.__scrollTap();
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}

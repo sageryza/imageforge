@@ -45,7 +45,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
     <button id="vmid" aria-label="Play or pause autoscroll"></button>
     <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
   </div>
-  <span id="spd">Medium</span>
+  <span id="spd">Fast</span>
 </div>
 
 <div class="wrap">
@@ -62,8 +62,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9]];
-var playing=false, raf=null, last=null, si=1, dir=1, acc=0;
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -100,6 +100,10 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// Content-tap gesture (a page calls __scrollTap from its own tap handler):
+// a plain toggle — tap stops, tap starts again (at the current speed; default
+// Fast). Speed changes stay on the pill's −/+ buttons.
+window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
