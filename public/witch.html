@@ -282,6 +282,18 @@
     .quiz-btnrow .btn-ghost:hover { border-color: #8f8a82; color: var(--gold); }
     .quiz-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 30px; }
     .quiz-media { width: 100%; height: auto; display: block; margin: 0 auto 14px; }
+    /* Question-page art: smaller than the reveal art so the question and
+       answers stay above the fold on a phone. */
+    .quiz-qart { width: 58%; margin: 0 auto 10px; }
+
+    /* End-of-lesson note screen (ask a question / tell Sophie) */
+    .deck-note .tcard-img { cursor: default; }
+    .note-ta { width: 100%; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45; resize: none; }
+    .note-ta:focus { outline: none; border-color: var(--gold); }
+    .note-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+    .note-row .btn-ghost { width: auto; padding: 9px 16px; }
+    .note-wait { text-align: center; color: var(--gold); font-size: 22px; margin-top: 14px; }
+    .note-answer { margin-top: 14px; padding: 12px 14px; background: var(--panel); border-radius: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--text); }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
@@ -697,6 +709,7 @@
        (nearer above farther) can never float above the lesson overlay */
     .wroad-wrap { position: relative; margin: 4px -6px 0; z-index: 1; }
     .cmoon { display: inline-block; vertical-align: -1px; }
+    .cmoons { display: inline-flex; align-items: flex-end; gap: 3px; vertical-align: -2px; }
     .wpath-moon { text-align: center; margin: 6px 0 2px; }
     .wpath-moon .lbl { display: block; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--gold-dim); margin-top: 5px; }
     .wroad-wrap svg { width: 100%; height: 100%; display: block; }
@@ -2490,27 +2503,36 @@
   // Real questions → after answering, a reveal screen (image/film + the sign
   // explained). Own full-screen overlay; the page behind is scroll-locked.
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
+  // House-style question + reveal illustrations (same pipeline as the School
+  // lessons — scripts/witch-school-cards.js, spec qz-*). bg = sampled corner
+  // hex; the quiz stage tints to it so the art floats with no box.
+  const QZ_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   const QUIZ = [
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r1.png', bg: '#fdfaf5' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#fdf8f1' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r2.png', bg: '#fefbf5' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#fef5ea' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r3.png', bg: '#fefbf7' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      media: { type: 'image', url: QUIZ_ASSETS + 'synchronicity.png' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#fbf4ec' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#fdf7f1' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
-      media: { type: 'none' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5.png', bg: '#fefbf7' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r5.png', bg: '#fefaf5' },
       reveal: { name: 'You were never meant to fit', body: "Standing just outside the circle, feeling more than the people around you — that was never a flaw. It was the mark." } },
   ];
   function quizMediaHTML(m) {
@@ -2531,6 +2553,7 @@
     const sc = quizScreens[qi], stage = $('quiz-stage');
     $('quiz-app').scrollTop = 0;
     if (sc.k === 'intro') {
+      stage.style.background = '';
       stage.innerHTML =
         `<div class="quiz-kicker">A witching diagnostic</div>
          <div class="quiz-hero">Are you secretly a witch?</div>
@@ -2539,7 +2562,9 @@
       $('q-begin').onclick = () => { qi++; renderQuizScreen(); };
     } else if (sc.k === 'q') {
       const it = QUIZ[sc.i];
+      stage.style.background = (it.qmedia && it.qmedia.bg) || '';
       stage.innerHTML =
+        (it.qmedia ? `<img class="quiz-media quiz-qart" src="${it.qmedia.url}" alt="">` : '') +
         `<div class="quiz-q">${esc(it.q)}</div>` +
         (it.sub ? `<div class="quiz-sub">${esc(it.sub)}</div>` : '') +
         `<div class="quiz-opts">` +
@@ -2548,6 +2573,7 @@
       stage.querySelectorAll('.q-opt').forEach(b => b.onclick = () => { qi++; renderQuizScreen(); });
     } else if (sc.k === 'reveal') {
       const it = QUIZ[sc.i], last = sc.i === QUIZ.length - 1;
+      stage.style.background = (it.media && it.media.bg) || '';
       const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
       const body =
         `<div class="reveal-body">${esc(it.reveal.body)}</div>
@@ -2575,6 +2601,7 @@
         wire();
       }
     } else {
+      stage.style.background = '';
       stage.innerHTML = resultHTML();
       $('q-shop').onclick = () => { closeQuiz(); go('shop'); };
       $('q-again').onclick = () => { qi = 0; renderQuizScreen(); };
@@ -3020,8 +3047,8 @@
     { img: 'ce-01', bg: '#fef7ef', kicker: 'Crystal Energy', h: 'The deeper current', body: 'You know your stones — how they grow, how to cleanse and charge them. This is the deeper teaching: crystals don\'t just <i>hold</i> energy. They <b>move</b> it. One idea at a time, from ancient ice to a practice you can do tonight.' },
     { img: 'ce-02', bg: '#fbf8f4', kicker: 'Eternal ice', h: 'Where it all began', body: 'The Greeks called clear quartz <b>krystallos</b> — ice frozen so deep it could never melt again. Pliny the Elder, two thousand years ago, described crystal spheres that gathered the sun\'s rays into a point of healing heat. Energy, channeled through crystal — the idea is at least that old.' },
     { img: 'ce-03', bg: '#fefaf4', kicker: 'Honest science', h: 'The real spark', body: 'In 1880 the <b>Curie brothers</b> proved something wild: squeeze quartz and it gives off a real, measurable electric charge — <b>piezoelectricity</b>. It\'s why quartz keeps time in watches and steadied the first radios. Whatever else you believe, energy genuinely moves through this stone. The old lore chose its mineral well.' },
-    { img: 'ce-04', bg: '#fdfbf8', kicker: 'The Essenes', h: 'The crystal at Qumran', body: 'In <b>Jesus and the Essenes</b>, Dolores Cannon\'s hypnosis subject describes the Qumran community\'s library holding a great <b>pyramid-shaped crystal</b> of shifting colors, kept behind a wall, approached only by the Master. The students poured their energy to him — and he focused it <i>through the crystal</i>, directing it wherever it was needed.' },
-    { img: 'ce-05', bg: '#fdf8f2', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'Strip that story to its bones and you have the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, many hearts together. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
+    { img: 'ce-04', bg: '#fbf8f4', kicker: 'The old way', h: 'Become the crystal', body: 'An old meditation teaching puts it beautifully: sit with your crystal and pour your whole focus into it — until the boundary thins and, for a moment, <b>you become the crystal</b>. From inside that stillness, you move outward through it, carrying your intention with you. Not commanding the stone. Joining it.' },
+    { img: 'ce-05', bg: '#fdf8f2', kicker: 'The pattern', h: 'Raise, gather, direct', body: 'That teaching holds the whole method — the same three beats every tradition repeats. <b>Raise</b> energy: breath, feeling, a full heart. <b>Gather</b> it: one focused mind. <b>Direct</b> it: through the crystal, out the point, toward the work. Everything else is technique.' },
     { img: 'ce-06', bg: '#fefbf4', kicker: 'The warning', h: 'The fire stone', body: 'Edgar Cayce\'s trance readings told of Atlantis powered by a six-sided <b>fire stone</b> — a great crystal that gathered the light of sun and stars and beamed it out to power whole cities. In the story they tuned it too high, too greedily, and sank the island. Myth or memory, keep its lesson: channel with reverence, never for force.' },
     { img: 'ce-07', bg: '#fdf8f2', kicker: 'The scientist-mystic', h: 'Marcel Vogel\'s lens', body: 'IBM research scientist <b>Marcel Vogel</b> — a hundred-plus patents to his name — spent his later years testing quartz and concluded it could <b>amplify intention</b> the way a lens focuses light: hold a clear thought through a crystal and the crystal strengthens and directs it. Healing wands are still cut to his design today.' },
     { img: 'ce-08', bg: '#fcf7f0', kicker: 'The practice', h: 'Load the thought', body: 'Channeling starts inside you. Cleanse your quartz, hold it at your heart, and breathe <b>one clear intention</b> into it — a single sentence, felt as much as said. You\'re not talking to a rock; you\'re doing what Vogel did: giving a thought worth focusing a lens to pass through.' },
@@ -3097,14 +3124,19 @@
     if (e.seen >= (LESSONS[key] || []).length) e.done = true;
     p[key] = e; saveSchoolProgress(p);
   }
-  // Sophie's pick for the "leveling" feel: each course is a moon that waxes
-  // from new to full as lessons complete, glowing brighter as it fills.
-  function courseMoon(done, total, size) {
-    const f = total ? done / total : 0;
-    const glyph = f >= 1 ? '\u{1F315}' : f >= 0.75 ? '\u{1F314}' : f >= 0.5 ? '\u{1F313}' : f > 0 ? '\u{1F312}' : '\u{1F311}';
-    const glow = f >= 1 ? 10 : Math.round(f * 7);
-    const style = `font-size:${size || 18}px;` + (glow ? `filter: drop-shadow(0 0 ${glow}px rgba(212,168,90,${0.35 + f * 0.45}));` : 'opacity:0.75;');
-    return `<span class="cmoon" style="${style}" title="${done} of ${total}">${glyph}</span>`;
+  // Sophie's "leveling" feel, v2: moons ADD UP — one simple crescent per
+  // finished lesson, growing in size along the row (no emoji; inked SVG
+  // crescents, gold-filled when earned, faint outlines still to come).
+  function courseMoon(done, total, base) {
+    base = base || 18;
+    const moons = [];
+    for (let i = 0; i < total; i++) {
+      const size = Math.round(base * (total === 1 ? 1 : 0.55 + 0.45 * (i / (total - 1))));
+      const earned = i < done;
+      const glow = earned ? `filter: drop-shadow(0 0 ${Math.round(3 + 3 * (i / Math.max(1, total - 1)))}px rgba(212,168,90,0.75));` : 'opacity:0.5;';
+      moons.push(`<svg class="cmoon" width="${size}" height="${size}" viewBox="0 0 24 24" style="${glow}"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="${earned ? '#d4a85a' : 'none'}" stroke="${earned ? '#2a2430' : '#c2bab0'}" stroke-width="1.7" stroke-linejoin="round"/></svg>`);
+    }
+    return `<span class="cmoons" title="${done} of ${total}">${moons.join('')}</span>`;
   }
   function courseProgress(course) {
     const prog = schoolProgress();
@@ -3136,30 +3168,36 @@
     // ── The golden road: an S-curving path stretching AWAY from you — the
     // first lesson at the bottom (nearest, biggest), later ones smaller with
     // distance. Flat gold ribbon built as a tapering polygon (no gradients).
-    const W = 390, H = Math.max(300, 150 * n + 90);
+    const W = 390, H = Math.max(340, 165 * n + 70);
+    // You stand ON the road: it opens full-width at your feet, runs straight
+    // to the first lesson right in front of you, and only starts winding as
+    // it pulls away into the distance.
     const pts = [];
     for (let i = 0; i < n; i++) {
       const t = n === 1 ? 0 : i / (n - 1);
-      const amp = 105 * (1 - t) + 34 * t;                 // curves converge with distance
-      const dir = i % 2 === 0 ? -1 : 1;
-      pts.push({ x: W / 2 + dir * amp, y: (H - 80) - t * (H - 150), t });
+      const amp = i === 0 ? 0 : 92 * (1 - t) + 30 * t;    // node 1 dead ahead; then the winding
+      const dir = i % 2 === 1 ? 1 : -1;
+      pts.push({ x: W / 2 + dir * amp, y: (H - 130) - t * (H - 190), t });
     }
-    pts.unshift({ x: W / 2 + 40, y: H - 6, t: -0.12 });   // the road starts at your feet
-    pts.push({ x: W / 2, y: 26, t: 1.1 });                 // and vanishes ahead
-    // Catmull-Rom → cubic bezier centerline
+    pts.unshift({ x: W / 2, y: H + 10, t: -0.12 });        // the road mouth bleeds off the bottom
+    // Vanish point: keep drifting the way the road was already heading, so
+    // the far end tapers away instead of kinking back.
+    { const a = pts[pts.length - 1], b2 = pts[pts.length - 2] || a;
+      const vx = Math.max(60, Math.min(W - 60, a.x + (a.x - b2.x) * 0.35));
+      pts.push({ x: vx, y: 18, t: 1.1 }); }
+    // Catmull-Rom → cubic bezier centerline (roomier tangents = rounder bends)
     let d = `M ${pts[0].x} ${pts[0].y}`;
     for (let i = 0; i < pts.length - 1; i++) {
       const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-      d += ` C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`;
+      d += ` C ${p1.x + (p2.x - p0.x) / 4.6} ${p1.y + (p2.y - p0.y) / 4.6}, ${p2.x - (p3.x - p1.x) / 4.6} ${p2.y - (p3.y - p1.y) / 4.6}, ${p2.x} ${p2.y}`;
     }
     wrap.innerHTML = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
       <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
-      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 30)}<span class="lbl">${courseProgress(course).done ? (courseProgress(course).done === courseProgress(course).total ? 'Full moon — course complete' : 'Waxing — ' + courseProgress(course).done + ' of ' + courseProgress(course).total + ' lessons') : 'New moon — the path awaits'}</span></div>
+      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 26)}<span class="lbl">${courseProgress(course).done ? (courseProgress(course).done === courseProgress(course).total ? 'Course complete' : courseProgress(course).done + ' of ' + courseProgress(course).total + ' lessons') : 'The path awaits'}</span></div>
       <div class="wroad-wrap" id="wroad-wrap" style="height:${H}px;">
         <svg id="wroad-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
           <path id="wroad-center" d="${d}" fill="none" stroke="none"/>
-          <polygon id="wroad-ribbon" fill="#c9a25e"/>
-          <path d="${d}" fill="none" stroke="#a37c3d" stroke-width="2" stroke-dasharray="7 9" stroke-linecap="round"/>
+          <polygon id="wroad-ribbon" fill="#d4a85a" stroke="#2a2430" stroke-width="3" stroke-linejoin="round"/>
         </svg>
       </div>
       <div id="wroad-now"></div>`;
@@ -3173,7 +3211,8 @@
       const p2 = center.getPointAtLength(Math.min(total, l + 2));
       let nx = -(p2.y - p.y), ny = p2.x - p.x;
       const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
-      const w = (52 * (1 - i / 60) + 14 * (i / 60)) / 2;   // wide at your feet, narrow far away
+      const u = i / 60;
+      const w = (170 * Math.pow(1 - u, 1.6) + 16) / 2;     // wide open at your feet, narrowing fast with distance
       left.push((p.x + nx * w).toFixed(1) + ',' + (p.y + ny * w).toFixed(1));
       right.push((p.x - nx * w).toFixed(1) + ',' + (p.y - ny * w).toFixed(1));
     }
@@ -3184,7 +3223,7 @@
       const tile = $('open-' + key); if (!tile) return;
       const pt = pts[i + 1];
       const t = n === 1 ? 0 : i / (n - 1);
-      const scale = 1 - t * 0.42;                          // farther = smaller
+      const scale = 1.22 - t * 0.62;                       // right in front of you → far away
       const e = prog[key] || { seen: 0, done: false };
       const pct = Math.round(100 * e.seen / (LESSONS[key] || []).length);
       const state = e.done ? 'done' : key === current ? 'now' : '';
@@ -3264,6 +3303,7 @@
   }
   let deckKey = 'spell';
   function openLesson(key) {
+    deckOnNote = false;
     deckKey = LESSONS[key] ? key : 'spell';
     deckCards = LESSONS[deckKey] || SPELL_CARDS; preload(deckCards);
     // Resume where you left off (Imprint-style), from the path's Continue.
@@ -3271,9 +3311,62 @@
     deckIdx = e && !e.done && e.seen > 0 && e.seen < deckCards.length ? e.seen - 1 : 0;
     $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard();
   }
-  function closeLesson() { $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
-  function deckNext() { if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); } else closeLesson(); }
-  function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
+  function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
+  // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary' };
+  function renderDeckNote() {
+    $('school-lesson').style.background = '#fefaf6';
+    $('deck-prog').innerHTML = '';
+    $('deck-stage').innerHTML = `<div class="tcard deck-note">
+      <div class="deck-head">
+        <div class="tcard-kicker">Before you go</div>
+        <div class="tcard-h">Leave a note</div>
+      </div>
+      <img class="tcard-img" src="${SW_IMG}note-mail.png" alt="">
+      <div class="deck-text">
+        <div class="tcard-body">Something the lesson stirred up? Ask and the school\'s spirit will answer — or send a note to <b>Sophie</b>, the witch behind all of this.</div>
+        <textarea id="note-text" class="note-ta" rows="3" placeholder="A question, a thought, a hello…"></textarea>
+        <div class="note-row">
+          <button class="btn-ghost" id="note-ask" type="button">Ask</button>
+          <button class="btn" id="note-send" type="button">Tell Sophie <span class="js-star"></span></button>
+        </div>
+        <div id="note-out"></div>
+      </div>
+    </div>`;
+    const stop = (e) => e.stopPropagation();
+    ['note-text', 'note-ask', 'note-send', 'note-out'].forEach((id) => { const el = $(id); if (el) ['click', 'touchstart'].forEach((ev) => el.addEventListener(ev, stop)); });
+    const out = $('note-out');
+    $('note-ask').addEventListener('click', async () => {
+      const q = $('note-text').value.trim(); if (!q) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const cards = (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
+        const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards }) });
+        const j = await r.json();
+        out.innerHTML = j.answer ? `<div class="note-answer">${esc(j.answer)}</div>` : `<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>`;
+      } catch { out.innerHTML = '<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>'; }
+    });
+    $('note-send').addEventListener('click', async () => {
+      const t = $('note-text').value.trim(); if (!t) { $('note-text').focus(); return; }
+      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      try {
+        const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t }) });
+        const j = await r.json();
+        out.innerHTML = j.ok ? '<div class="note-answer">Sent — Sophie reads every one. ♥</div>' : '<div class="note-answer">It didn\'t send — try again in a moment.</div>';
+        if (j.ok) $('note-text').value = '';
+      } catch { out.innerHTML = '<div class="note-answer">It didn\'t send — try again in a moment.</div>'; }
+    });
+    $('deck-prev').disabled = false;
+    $('deck-next').textContent = 'Done';
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  }
+  let deckOnNote = false;
+  function deckNext() {
+    if (deckOnNote) { deckOnNote = false; closeLesson(); return; }
+    if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); }
+    else { deckOnNote = true; renderDeckNote(); }
+  }
+  function deckPrev() { if (deckOnNote) { deckOnNote = false; renderDeckCard(); return; } if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
   { const os = $('open-spell'); if (os) os.addEventListener('click', () => openLesson('spell')); }
   { const op = $('open-plants'); if (op) op.addEventListener('click', () => openLesson('plants')); }
   { const p2 = $('open-plants2'); if (p2) p2.addEventListener('click', () => openLesson('plants2')); }
@@ -3294,7 +3387,10 @@
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
   // Imprint/stories-style tap zones: the left edge steps back, the rest advances.
+  // On the note screen taps do nothing — typing must never close the lesson;
+  // only the Done button (or Back) leaves.
   $('deck-stage').addEventListener('click', (e) => {
+    if (deckOnNote) return;
     if (e.clientX < window.innerWidth * 0.28) deckPrev(); else deckNext();
   });
 
