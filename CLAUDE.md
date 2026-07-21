@@ -276,7 +276,9 @@ lifted into a standalone tool later.
   ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
   Compare) and opens full-screen in the app — that's where she'll look for it,
   next to your assets. Design the HTML however the comparison needs (mobile
-  first, self-contained; image URLs from Firebase Storage are fine). List your
+  first, self-contained; image URLs from Firebase Storage are fine). The server
+  auto-appends the shared autoscroll pill to every served page — do NOT add
+  your own scroll pill. List your
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
