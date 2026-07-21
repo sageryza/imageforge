@@ -75,6 +75,12 @@ async function listVideos(limit = 200) {
   return [...memStore.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 }
 
+async function deleteVideo(videoId) {
+  const db = firestore();
+  if (db) await db.collection(COLLECTION).doc(videoId).delete();
+  else memStore.delete(videoId);
+}
+
 // ─── YouTube discovery ──────────────────────────────────────────────
 
 // Pull a videoId out of any YouTube URL shape, or accept a raw 11-char id.
@@ -595,6 +601,14 @@ router.post('/discover', async (req, res) => {
       max: Math.min(500, Math.max(1, parseInt(req.body?.max, 10) || 100)),
     });
     res.json({ count: videos.length, videos });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Remove one video doc (e.g. a test probe, or a bad extraction to redo cleanly).
+router.delete('/videos/:videoId', async (req, res) => {
+  try {
+    await deleteVideo(req.params.videoId);
+    res.json({ ok: true, deleted: req.params.videoId });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
