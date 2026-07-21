@@ -432,6 +432,10 @@ async function processVideo(videoIdOrUrl, opts = {}) {
     status: 'pending',
   };
 
+  // A caller-supplied title (e.g. from a client that already knows it) fills in
+  // when we can't fetch metadata ourselves (no YouTube API key on the host).
+  if (opts.title && !record.title) record.title = String(opts.title);
+
   // Metadata (only fetch when YouTube API key present and we don't have it).
   if (!record.title && YOUTUBE_API_KEY) {
     try {
@@ -442,10 +446,19 @@ async function processVideo(videoIdOrUrl, opts = {}) {
     }
   }
 
-  // Transcript.
+  // Transcript. A pre-fetched transcript can be supplied by the caller — this
+  // is how the local fetch helper (scripts/nde-fetch-local.js) works around
+  // YouTube's datacenter-IP block: it fetches captions from a residential IP
+  // and hands the transcript here, so the server never has to touch YouTube.
   if (!record.transcript || opts.forceTranscript) {
     try {
-      record.transcript = await fetchTranscript(videoId);
+      if (opts.transcript && Array.isArray(opts.transcript.segments) && opts.transcript.full) {
+        record.transcript = opts.transcript;
+      } else if (opts.transcript) {
+        throw new Error('supplied transcript missing segments/full');
+      } else {
+        record.transcript = await fetchTranscript(videoId);
+      }
       record.status = 'transcribed';
       delete record.error;
     } catch (err) {
@@ -488,7 +501,7 @@ router.use((req, res, next) => {
   return res.status(401).json({ error: 'unauthorized' });
 });
 
-router.use(express.json({ limit: '2mb' }));
+router.use(express.json({ limit: '12mb' })); // transcripts ride in POST bodies
 
 router.get('/status', (req, res) => {
   res.json({
@@ -559,6 +572,8 @@ router.post('/videos', async (req, res) => {
     const record = await processVideo(String(input), {
       forceTranscript: !!req.body?.forceTranscript,
       forceExtract: !!req.body?.forceExtract,
+      transcript: req.body?.transcript || null,
+      title: req.body?.title || null,
     });
     res.json(record);
   } catch (err) { res.status(500).json({ error: err.message }); }
