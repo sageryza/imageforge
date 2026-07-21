@@ -253,6 +253,19 @@ struct Dream: Codable, Identifiable {
     var updatedAt: String?
 }
 
+/// A background reading (breakdown) job: the app polls it after tapping
+/// Illustrate so the phone can lock/leave without the request timing out. Once
+/// `status == "done"`, `dreams` holds the split dreams for the chronology check.
+struct DreamBatch: Codable {
+    var id: String
+    var status: String                 // "reading" | "done" | "error"
+    var label: String?
+    var error: String?
+    var dreams: [Dream]?
+
+    var isReading: Bool { status == "reading" }
+}
+
 struct DreamBeat: Codable, Identifiable {
     let id: String
     var imagePrompt: String
