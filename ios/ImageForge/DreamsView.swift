@@ -25,6 +25,7 @@ struct DreamsView: View {
     @AppStorage("deckfactory.aiConsent.v1") private var aiConsentAccepted = false
     @AppStorage("dreams.nudgeScheduled") private var nudgeScheduled = false
     @State private var showConsent = false
+    @State private var showCharacters = false        // the "add a character" sheet (Character Creator web page)
     @State private var showAudioPicker = false
     @State private var transcribing = false          // uploading a recording → text
     @State private var pendingAudio: (data: Data, mime: String)?   // audio waiting on AI consent
@@ -110,6 +111,9 @@ struct DreamsView: View {
                 },
                 onCancel: { showConsent = false; pendingAudio = nil })
         }
+        .sheet(isPresented: $showCharacters) {
+            CharacterCreatorView()
+        }
     }
 
     // MARK: - Sections
@@ -122,13 +126,15 @@ struct DreamsView: View {
                     .foregroundColor(speech.recording ? Theme.danger : Theme.textDim)
                 Spacer()
                 if transcribing { ProgressView().scaleEffect(0.75).padding(.trailing, 2) }
-                // Add a character. NOTE: action is a stub — another chat is
-                // wiring up what this actually does.
+                // Add a character — save the recurring people in your dreams
+                // (name + photo + aliases like "me"/"Sophie", "Daddy"/"Dad").
+                // At render time the dream's cast is matched to these so they're
+                // drawn consistently. Opens the Character Creator web page.
                 Button {
                     focused = false
-                    // TODO: add-character action (wired up separately)
+                    showCharacters = true
                 } label: {
-                    Image(systemName: "person")
+                    Image(systemName: "person.crop.circle.badge.plus")
                         .font(.system(size: 18))
                         .foregroundColor(Theme.accent)
                 }

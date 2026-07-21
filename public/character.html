@@ -98,6 +98,8 @@
       <button data-g="she">She</button>
       <button data-g="they" class="on">They</button>
     </div>
+    <input id="aliases" placeholder="Also called… (me, Daddy, J — comma separated)" autocomplete="off"
+      style="width:100%;margin-top:8px;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">
     <div class="status" id="status"></div>
     <div class="result hidden" id="result">
       <img class="portrait" id="portrait" alt="">
@@ -165,14 +167,15 @@
   }
   $('gen').onclick = generate;
   $('regen').onclick = generate;
-  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; photoData=null;
+  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; $('aliases').value=''; photoData=null;
     $('thumb').classList.add('hidden'); $('drop').querySelector('svg').classList.remove('hidden'); refreshGen(); };
 
   async function save(tier) {
     if (!lastUrl) return;
     $('status').innerHTML = '<span class="spin"></span> Saving…';
+    const aliases = ($('aliases').value || '').split(',').map(s => s.trim()).filter(Boolean);
     const r = await api('/api/character/save', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ url:lastUrl, name:$('name').value.trim(), gender, tier }) });
+      body: JSON.stringify({ url:lastUrl, name:$('name').value.trim(), gender, tier, aliases }) });
     $('status').textContent = r.ok ? 'Saved ' + $('name').value.trim() + (tier==='main'?' to the sheet.':' as a side character.') : ('Error: ' + ((r.body&&r.body.error)||r.status));
     if (r.ok) loadSheet();
   }
