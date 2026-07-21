@@ -208,12 +208,27 @@ router.get('/pages', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// The shared autoscroll pill, appended to every served page so Compare pages
+// scroll hands-free like the rest of the app. Self-contained snippet built by
+// scripts/gen-pill-inject.py (re-run it after changing scripts/pill.py).
+let pillSnippet = null;
+function pillInject() {
+  if (pillSnippet === null) {
+    try { pillSnippet = fs.readFileSync(path.join(__dirname, 'public', 'pill-inject.html'), 'utf8'); }
+    catch (e) { pillSnippet = ''; }
+  }
+  return pillSnippet;
+}
+
 router.get('/page/:id', async (req, res) => {
   try {
     const snap = await db().collection(PAGES).doc(String(req.params.id)).get();
     if (!snap.exists) return res.status(404).send('Not found');
     const [buf] = await admin.storage().bucket().file(snap.data().path).download();
-    res.set('Content-Type', 'text/html; charset=utf-8').send(buf);
+    let html = buf.toString('utf8');
+    // skip pages that already carry their own pill (id collision guard)
+    if (!html.includes('id="vtop"')) html += pillInject();
+    res.set('Content-Type', 'text/html; charset=utf-8').send(html);
   } catch (err) { fail(res, err); }
 });
 
