@@ -1,7 +1,7 @@
-// Ear-hoist beat, v2 per Sophie's notes:
-// - The EAR ITSELF is the trap door — pulled open like a hinged flap, no separate wooden hatch.
-// - The soul is the SAME SIZE as the sleeping boy (same head size), out to about the waist.
-// Anchor on the silver soul (anchor-silver.png). Attach: [style ref, silver anchor].
+// Ear-hoist beat, v3: the soul must read as coming from INSIDE the head.
+// Key fix — his lower half visibly disappears INTO the ear opening (genie-from-
+// a-lamp / climbing-out-of-a-manhole read), never standing next to the head.
+// Same size as the sleeper, out to the waist. Anchor: [style ref, anchor-silver.png].
 const fs = require('fs');
 const path = require('path');
 
@@ -24,17 +24,29 @@ const ANCHOR_NOTE =
   'eyes peacefully closed, sound asleep and never waking. ';
 
 const PANELS = [
-  { name: 'escape-2-ear-hoist-v2',
-    prompt: `Whimsical, comical bedroom scene at night: the solid boy sleeps on his side in bed, head on ` +
-      `the pillow. His EAR has been pulled open like a little hinged door — the ear itself is the flap, ` +
-      `swung outward on an invisible hinge, revealing a small glowing opening in the side of his head. ` +
-      `Emerging from that opening is his silvery translucent SOUL — and the soul is EXACTLY THE SAME SIZE ` +
-      `as the sleeping boy, his head just as big as the sleeper's head. The soul is out to about his WAIST, ` +
-      `leaning forward, one hand still holding the opened ear-flap door and the other braced on the ` +
-      `sleeping boy's head, mid-hoist, magically impossible and funny. His expression is sneaky and pleased ` +
-      `with himself. The sleeping boy stays completely undisturbed, eyes closed. A faint silver cord runs ` +
-      `from the soul's chest back into the ear opening. Wide enough framing to show the whole bed and both ` +
-      `full-size figures. Storybook, magical, playful. Portrait orientation.` },
+  { name: 'escape-2-ear-hoist-v3a',
+    prompt: `Magical, comical bedroom scene at night. The solid boy sleeps on his side, his head on the ` +
+      `pillow with his EAR facing UP toward the ceiling. The ear has been pulled open like the hinged lid ` +
+      `of a tiny hatch — the ear itself is the open door flap. Out of that open ear rises his silvery ` +
+      `translucent SOUL, exactly like a GENIE emerging from a lamp: his upper body is fully out, the SAME ` +
+      `SIZE as the sleeping boy (heads equal size), but from the WAIST DOWN his body funnels and ` +
+      `disappears straight down INTO the small ear opening — no legs visible, his waist literally inside ` +
+      `the ear hole. It is clearly magically impossible: a full-size boy coming out of a tiny opening. ` +
+      `He is mid-hoist, palms braced flat on the sleeping boy's head on either side of the ear, elbows ` +
+      `locked, pushing himself up and out, glancing sideways with a sneaky, pleased expression. A faint ` +
+      `silver cord runs from his chest down into the ear opening. The sleeping boy is completely ` +
+      `undisturbed. Storybook, whimsical, funny. Portrait orientation.` },
+  { name: 'escape-2-ear-hoist-v3b',
+    prompt: `Magical, comical bedroom scene at night. The solid boy sleeps on his side on the pillow, ` +
+      `his EAR facing upward. His ear is swung open like a little hinged trap-door lid, and his silvery ` +
+      `translucent SOUL is climbing OUT OF THE INSIDE OF HIS HEAD through it, exactly like a person ` +
+      `climbing out of a MANHOLE: hands gripping the rim of the ear opening, arms straining, upper body ` +
+      `out up to the waist, and everything below the waist still INSIDE the head — hidden down in the ear ` +
+      `hole, no legs visible. The soul is the SAME SIZE as the sleeping boy — their heads are the same ` +
+      `size — which makes it wonderfully impossible, like a tent that is bigger on the inside. Sneaky, ` +
+      `mischievous face, like a kid sneaking out at night. A faint silver cord trails from the soul's ` +
+      `chest back down into the opening. The sleeper never stirs. Hand-drawn storybook charm. Portrait ` +
+      `orientation.` },
 ];
 
 async function render(panel, quality = 'high') {
@@ -62,8 +74,6 @@ async function render(panel, quality = 'high') {
 }
 
 (async () => {
-  for (const p of PANELS) {
-    try { await render(p); } catch (e) { console.error('FAIL', e.message); }
-  }
+  await Promise.all(PANELS.map(p => render(p).catch(e => console.error('FAIL', e.message))));
   console.log('DONE');
 })();
