@@ -288,6 +288,13 @@
 
     /* End-of-lesson note screen (ask a question / tell Sophie) */
     .deck-note .tcard-img { cursor: default; }
+    /* The two ~1-inch action icons: the AI-minded witch (Ask) and Sophie
+       catching the white envelope (Tell Sophie). */
+    .note-icons { display: flex; justify-content: center; gap: 26px; margin-top: 16px; }
+    .note-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; padding: 4px; cursor: pointer; font-family: inherit; }
+    .note-icon img { width: 120px; height: 120px; border-radius: 6px; display: block; }
+    .note-icon span { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); }
+    .note-icon:active img { transform: scale(0.96); }
     .note-ta { width: 100%; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45; resize: none; }
     .note-ta:focus { outline: none; border-color: var(--gold); }
     .note-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
@@ -3322,13 +3329,12 @@
         <div class="tcard-kicker">Before you go</div>
         <div class="tcard-h">Leave a note</div>
       </div>
-      <img class="tcard-img" src="${SW_IMG}note-mail.png" alt="">
       <div class="deck-text">
-        <div class="tcard-body">Something the lesson stirred up? Ask and the school\'s spirit will answer — or send a note to <b>Sophie</b>, the witch behind all of this.</div>
+        <div class="tcard-body">Something the lesson stirred up? Write it below, then tap the <b>witch mind</b> to ask — or tap <b>Sophie</b> to send it to the real witch behind all of this.</div>
         <textarea id="note-text" class="note-ta" rows="3" placeholder="A question, a thought, a hello…"></textarea>
-        <div class="note-row">
-          <button class="btn-ghost" id="note-ask" type="button">Ask</button>
-          <button class="btn" id="note-send" type="button">Tell Sophie <span class="js-star"></span></button>
+        <div class="note-icons">
+          <button class="note-icon" id="note-ask" type="button"><img src="${SW_IMG}note-ai.png" alt=""><span>Ask</span></button>
+          <button class="note-icon" id="note-send" type="button"><img src="${SW_IMG}note-sophie.png" alt=""><span>Tell Sophie</span></button>
         </div>
         <div id="note-out"></div>
       </div>
