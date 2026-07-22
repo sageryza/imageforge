@@ -1606,17 +1606,18 @@ async function runWitchJob(ref, kind, p) {
   try {
     let result;
     if (kind === 'coincidence') {
-      // Distill the coincidence into ONE simple watercolor illustration prompt —
-      // the same approach the Book of Miracles uses — so it reads at thumbnail
-      // size. Generic gpt-image watercolor (no personal style reference).
+      // Match the native Miracles "sagediagram" look — ONE clever pen-line
+      // doodle (a thing/diagram, not a scene) that reads at thumbnail size —
+      // but GENERIC: no personal reference doodles, plain gpt-image generation.
       const desc = String(p.desc || p.prompt || '').trim();
-      let imgPrompt = `Soft watercolor illustration of ${desc}. One simple subject, minimal background, gentle muted palette. No text, no words.`;
+      const DOODLE_SYS = `You distill a small real-life coincidence into ONE clever little doodle for a keepsake — HALF OBJECT, HALF DIAGRAM: a single unified image (a THING, not a scene) where every element earns its place and the whole story reads at a glance. Synchronicities are the point: find a way to draw the MATCH itself, fusing ideas into one image (one thing wearing / holding / containing / shaped like the other) rather than two things side by side restating each other. No whole people and no stick figures (a single expressive body part like a hand is fine); no background or setting. Keep it drawable in a few simple pen lines. Reply with ONLY the object / diagram to draw, named concretely and specifically, in one short sentence — no preamble, no quotes.`;
+      let concept = desc;
       try {
-        const sys = `Turn what someone noticed into ONE soft watercolor illustration prompt under 45 words capturing a single concrete, simple visual — ONE subject, a clear arrangement, lots of quiet empty space so it reads clearly at thumbnail size. Always start with "Soft watercolor illustration of" and end with "minimal background, gentle muted palette". Never put words or text in the image. Return only the prompt itself, no quotes or preamble.`;
-        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.7, messages: [{ role: 'system', content: sys }, { role: 'user', content: desc }] });
+        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DOODLE_SYS }, { role: 'user', content: desc.slice(0, 1200) }] });
         const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
-        if (t) imgPrompt = t.replace(/^["']+|["']+$/g, '');
+        if (t) concept = t.replace(/^["']+|["']+$/g, '');
       } catch {}
+      const imgPrompt = `A single object drawn as a simple doodle / icon, centered and drawn LARGE so it fills most of the frame — like a quick diagram, NOT a scene, on a plain uncluttered white background. Loose, imperfect, hand-drawn with a thin black ballpoint pen, wobbly uneven lines, childlike and minimal. No shading, no solid black fills, no color. No whole people and no stick figures — a single body part (like a hand holding something) is fine when the idea calls for it. Draw: ${concept}. Do not write the object's name or any caption anywhere; only include words if they are literally part of the idea (e.g. a "CLOSED" sign).`;
       const data = await openaiImage({ model: 'gpt-image-2', prompt: imgPrompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
       if (data.error) throw new Error(data.error.message || 'image error');
       const b64 = data.data?.[0]?.b64_json;
