@@ -57,6 +57,25 @@ function matchScore(castName, ch) {
   }
   return 0;
 }
+// For each requested name, EVERY plausible saved character, best first — the
+// dream flow shows all candidates when one name could be two people ("J" the
+// ex vs "J" the coworker) and the user picks. Cap 4 per name.
+async function matchCandidates(names) {
+  const d = db();
+  if (!d) return names.map((n) => ({ name: n, matches: [] }));
+  const snap = await d.collection(COLLECTION).get();
+  const chars = snap.docs.map((s) => ({ id: s.id, ...s.data() }));
+  return names.map((n) => {
+    const matches = chars
+      .map((ch) => ({ ch, score: matchScore(n, ch) }))
+      .filter((m) => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((m) => ({ id: m.ch.id, name: m.ch.name, url: m.ch.url, tier: m.ch.tier || 'side', score: m.score }));
+    return { name: n, matches };
+  });
+}
+
 // For each requested name, the best-scoring saved character (or null).
 async function matchCharacters(names) {
   const d = db();
@@ -496,4 +515,4 @@ router.post('/batch/generate', gated, async (req, res) => {
   }
 });
 
-module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchScore };
+module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore };
