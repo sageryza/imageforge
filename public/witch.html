@@ -2800,9 +2800,10 @@
     box.dataset.desc = desc;
     const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
     coinSpinner(box);
-    const prompt = `A hand-drawn illustration with fine ink linework and soft shading, dreamlike and quietly uncanny, like a page from an old witch's storybook. ${desc}. Muted, atmospheric, a little mysterious. No text, no words, no lettering.`;
     try {
-      const id = await startWitchJob('coincidence', { prompt, quality: 'low', size: '1024x1024' });
+      // Send the raw note — the server distills it into ONE simple watercolor
+      // illustration (Book-of-Miracles style) so it reads well at this size.
+      const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
       coinSetPending(i, { id, desc });
       watchCoin(i, id, desc);
     } catch (e) { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
