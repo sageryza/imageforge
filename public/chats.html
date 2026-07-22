@@ -656,6 +656,7 @@ function openChat(name, keepScroll){
             if(filter==='new') show=!v;
             else if(filter==='like') show=(v==='like');
             else if(filter==='nox') show=(v!=='dislike');
+            if(c.it._broken) show=false;   // a dead image stays hidden
             c.cell.style.display=show?'':'none';
           });
         }
@@ -730,11 +731,18 @@ function openChat(name, keepScroll){
           // makes it on demand. IntersectionObserver sets src from data-src.
           var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
           var srcAttr = io ? 'data-src' : 'src';
-          var onerr = it.thumb ? ' onerror="this.onerror=null;this.src=\''+esc(fb)+'\'"' : '';
-          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'"'+onerr+'>'+lbl;
+          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl;
+          var img=b.querySelector('img'), triedFb=false;
+          // Two-stage error: direct thumb → /api/story/thumb → if BOTH fail the
+          // underlying image is gone (deleted / not public), so hide the tile
+          // instead of showing a broken "?" box.
+          img.onerror=function(){
+            if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
+            it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
+          };
           b.onclick=function(){ lightbox(it.url, it.prompt, it); };
           cell.appendChild(b); voteBtns(cell,it);
-          if(io) io.observe(b.querySelector('img'));
+          if(io) io.observe(img);
           var badge=document.createElement('div'); badge.className='donebadge'; badge.innerHTML=CHECK;
           cell.appendChild(badge);
           cell.classList.toggle('done', !!it.done);
