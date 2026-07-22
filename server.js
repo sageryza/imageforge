@@ -1606,7 +1606,18 @@ async function runWitchJob(ref, kind, p) {
   try {
     let result;
     if (kind === 'coincidence') {
-      const data = await openaiImage({ model: 'gpt-image-2', prompt: p.prompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
+      // Distill the coincidence into ONE simple watercolor illustration prompt —
+      // the same approach the Book of Miracles uses — so it reads at thumbnail
+      // size. Generic gpt-image watercolor (no personal style reference).
+      const desc = String(p.desc || p.prompt || '').trim();
+      let imgPrompt = `Soft watercolor illustration of ${desc}. One simple subject, minimal background, gentle muted palette. No text, no words.`;
+      try {
+        const sys = `Turn what someone noticed into ONE soft watercolor illustration prompt under 45 words capturing a single concrete, simple visual — ONE subject, a clear arrangement, lots of quiet empty space so it reads clearly at thumbnail size. Always start with "Soft watercolor illustration of" and end with "minimal background, gentle muted palette". Never put words or text in the image. Return only the prompt itself, no quotes or preamble.`;
+        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.7, messages: [{ role: 'system', content: sys }, { role: 'user', content: desc }] });
+        const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
+        if (t) imgPrompt = t.replace(/^["']+|["']+$/g, '');
+      } catch {}
+      const data = await openaiImage({ model: 'gpt-image-2', prompt: imgPrompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
       if (data.error) throw new Error(data.error.message || 'image error');
       const b64 = data.data?.[0]?.b64_json;
       if (!b64) throw new Error('no image returned');
