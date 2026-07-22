@@ -1379,6 +1379,18 @@
     if (data.error) throw new Error(data.error);
     return data;
   }
+  // A "Load failed" / "Failed to fetch" is the browser's fetch() rejecting
+  // before any response arrived (dropped connection, flaky mobile signal,
+  // backgrounding mid-request) — genuinely transient, worth one silent retry.
+  // A real server error (4xx/5xx, already-parsed {error}) got a response, so
+  // it's NOT retried here — retrying those risks double-starting a paid job.
+  function isNetworkError(e) { return /load failed|failed to fetch|networkerror|network error/i.test(String((e && e.message) || '')); }
+  async function withRetry(fn, tries = 2, delayMs = 1200) {
+    for (let i = 0; i < tries; i++) {
+      try { return await fn(); }
+      catch (e) { if (i === tries - 1 || !isNetworkError(e)) throw e; await new Promise(r => setTimeout(r, delayMs)); }
+    }
+  }
 
   // ── Background jobs (survive leaving the app) ──
   // Slow generations run as fire-and-forget server jobs; the client starts one,
@@ -3185,7 +3197,7 @@
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
     dreamReadSpinner();
     try {
-      const id = await startWitchJob('dream-read', { dream });
+      const id = await withRetry(() => startWitchJob('dream-read', { dream }));
       pendSet(DREAMREAD_PEND, { id, dream });
       watchDreamRead(id, dream);
     } catch (e) {
@@ -3248,7 +3260,7 @@
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
     dreamIllusSpinner();
     try {
-      const { id } = await api('/api/witch/dream-illustrate', { dream });
+      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream }));
       pendSet(DREAMILLUS_PEND, { id, dream });
       watchDreamIllus(id);
     } catch (e) {
