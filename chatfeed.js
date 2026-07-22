@@ -49,6 +49,10 @@ function fail(res, err) {
 
 router.get('/', async (req, res) => {
   try {
+    // Without this the app's webview heuristically caches the feed (no
+    // Cache-Control + ETag = cache it "for a while"), so the Refresh button
+    // appeared to do nothing until minutes later. The feed must always be live.
+    res.set('Cache-Control', 'no-store');
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 100);
     const [msnap, rsnap] = await Promise.all([
       db().collection(MSGS).orderBy('created', 'desc').limit(limit).get(),
@@ -198,6 +202,7 @@ router.post('/page', async (req, res) => {
 
 router.get('/pages', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');   // always a live list
     const chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const snap = await db().collection(PAGES).where('chat', '==', chat).get();
@@ -228,6 +233,9 @@ router.get('/page/:id', async (req, res) => {
     let html = buf.toString('utf8');
     // skip pages that already carry their own pill (id collision guard)
     if (!html.includes('id="vtop"')) html += pillInject();
+    // a page id's content never changes (replacing = delete + re-post under a
+    // new id), so short-cache reopens for snappy back-and-forth
+    res.set('Cache-Control', 'public, max-age=300');
     res.set('Content-Type', 'text/html; charset=utf-8').send(html);
   } catch (err) { fail(res, err); }
 });
