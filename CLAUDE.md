@@ -268,6 +268,16 @@ lifted into a standalone tool later.
   while the hook is missing (once it's back the hook posts, and a manual post
   would duplicate). No auth header needed (STUDIO_TOKEN is off on the live
   server).
+  - **If the curl / POST is BLOCKED (network error, not a 4xx):** your cloud
+    environment's **Network access** doesn't allow `imageforge-q125.onrender.com`
+    (the default **Trusted** level only permits package registries + GitHub +
+    cloud SDKs — a Render app isn't on it). This blocks BOTH the reinstall and
+    the hook's own POST, so the chat can never appear in the Chats app until
+    it's fixed. A chat CANNOT change its own network policy — tell Sophie: edit
+    the environment (cloud icon) → **Network access → Custom** → add
+    `imageforge-q125.onrender.com` to **Allowed domains** → keep "Also include
+    default list of common package managers" checked → Save. It's a one-time
+    per-environment flip.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
