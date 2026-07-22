@@ -22,6 +22,36 @@
   - Gallery: https://imageforge-q125.onrender.com/gallery
   - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
 
+## Render keep-awake & running hours (READ THIS before blaming cold starts)
+- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
+  block) runs a `setInterval` every **10 min** that fetches
+  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
+  external uptime monitor / cron / GitHub Action. There is NO external pinger
+  anywhere in any of the four repos; do not go hunting for one. Render injects
+  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
+  (log line: `Keep-awake self-ping enabled for …`).
+- **Why it exists:** Render **free** web services spin down after ~15 min with
+  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
+  failed" / slow first render). The 10-min self-ping (under the 15-min idle
+  window) keeps the instance warm so Sophie doesn't hit that wait.
+- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
+  — right after a deploy/restart before any traffic, or if the ping ever lapses
+  — it can't ping itself back awake; the *next real visitor* eats the cold
+  start. So an occasional slow first load is still expected, especially just
+  after a deploy. (A slow generation is usually cold start **plus** the model
+  itself, e.g. gpt-image-2 medium ~30–90s.)
+- **Limited running hours (the trade-off):** Render's free tier gives **750
+  instance hours per workspace per calendar month** (reset on the 1st, no
+  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
+  is ~730 hours, so a single always-on free service *just* fits under 750 with
+  little slack. **If those 750 hours run out, Render suspends ALL free web
+  services in the workspace until the next month** — so a second free service,
+  or restart churn, can exhaust the budget early and take the app down till the
+  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
+  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
+  no hour cap); until then, the self-ping is the free-tier compromise.
+  (Verified against Render's current free-tier terms, July 2026.)
+
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
 Portland dates). The full brief, her own planning docs/mockups, illustration
