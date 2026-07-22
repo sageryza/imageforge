@@ -1564,12 +1564,26 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// A render normally finishes in under a minute (breakdown + one page of
+// image gen). The fire-and-forget job is an in-memory async closure, not a
+// durable queue — if the server process recycles mid-render (a deploy, a
+// crash, Render's free-tier idle cycling), the doc is orphaned at
+// status:'running' forever and the client polls it endlessly across app
+// resumes (each resume restarts its own local give-up timer). Past this
+// generous margin, treat 'running' as dead and surface a real error instead.
+const DREAM_ILLUS_STALE_MS = 4 * 60 * 1000;
 app.get('/api/witch/dream-illustrate/:id', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
-    const snap = await admin.firestore().collection('forge-witch-dream-illus').doc(req.params.id).get();
+    const ref = admin.firestore().collection('forge-witch-dream-illus').doc(req.params.id);
+    const snap = await ref.get();
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
-    const d = snap.data();
+    let d = snap.data();
+    if (d.status === 'running' && d.createdAt && Date.now() - d.createdAt.toMillis() > DREAM_ILLUS_STALE_MS) {
+      const error = "This is taking much longer than usual — the server may have restarted mid-render. Tap Illustrate to try again.";
+      await ref.update({ status: 'error', error }).catch(() => {});
+      d = { ...d, status: 'error', error };
+    }
     res.json({ status: d.status, label: d.label, page1: d.page1 || null, totalPages: d.totalPages || 0, title: d.title || null, error: d.error || null });
   } catch (err) {
     res.status(500).json({ error: err.message });

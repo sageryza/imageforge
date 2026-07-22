@@ -166,12 +166,9 @@
        own full-width/centered layouts. */
     #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
     /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
-       Back/Continue row. */
-    /* Stack the two dream actions on their own rows — 'Unlock the symbolism' is
-       too long to share a line with Illustrate. Both right-aligned so the stack
-       reads as deliberate, not a wrapped stagger. */
-    .dream-btns .btn-ghost { width: auto; align-self: flex-end; margin-left: 0; }
-    .dream-btns .btn { width: auto; align-self: flex-end; margin-left: 0; }
+       Back/Continue row. Both jobs are independent (can run at once), so
+       neither button ever needs to wait on or hide the other's progress. */
+    .dream-btns .btn-ghost, .dream-btns .btn { width: auto; margin-left: 0; white-space: nowrap; }
     /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
     #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
       font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
@@ -583,7 +580,7 @@
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
@@ -3214,7 +3211,10 @@
   const DREAMREAD_PEND = 'witch_dreamread_job'; // {id, dream}
   const DREAMREAD_BTN = 'Unlock the symbolism';
   function dreamReadSpinner() {
-    const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
+    // Doesn't touch #dream-book — Illustrate and Unlock the symbolism run as
+    // fully independent jobs (separate ids, separate polls) and can both be
+    // in flight at once, each in its own area of the card.
+    const out = $('dream-out'); out.style.display = '';
     out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);">Reading your dream…</div>`;
     const btn = $('dream-unlock'); if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
   }
@@ -3278,7 +3278,8 @@
   // and resume the poll on return so the ~1-2 min render survives leaving.
   const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
   function dreamIllusSpinner() {
-    const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
+    // Doesn't touch #dream-out — see the note in dreamReadSpinner().
+    const book = $('dream-book'); book.style.display = '';
     book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
