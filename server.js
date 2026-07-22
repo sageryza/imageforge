@@ -2198,7 +2198,10 @@ function shopWords(t) {
   return (t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2 && !SHOP_STOPWORDS.has(w));
 }
 // A clean one-line display name from a keyword-stuffed title.
-const SHOP_NAME_OVERRIDES = {}; // handle -> nice name (populated after review)
+const SHOP_NAME_OVERRIDES = { // handle -> nice one-line name
+  'labradorite-choose-exact-crystal-67898': 'Labradorite Crystal',
+  'fluorite-wand-point-crystal-mineral-86535': 'Fluorite Wand Point',
+};
 function shopShortName(title, handle) {
   if (handle && SHOP_NAME_OVERRIDES[handle]) return SHOP_NAME_OVERRIDES[handle];
   let s = (title || '').split(/\s*[~•|]\s*/)[0];        // before the first separator
