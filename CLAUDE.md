@@ -82,7 +82,8 @@ each opens a focused workflow that shares the same house styles.
   uploads the local file to membry Storage, makes it public, and writes the
   gallery doc — so generate → post is a single step (use `--url` instead for an
   already-hosted image). Needs the `membry-df528` Admin service account via
-  `FIREBASE_SERVICE_ACCOUNT`/`GOOGLE_APPLICATION_CREDENTIALS` and the target uid
+  `STORY_FIREBASE_SERVICE_ACCOUNT` (preferred — see the two-key note below) /
+  `FIREBASE_SERVICE_ACCOUNT` (fallback) / `GOOGLE_APPLICATION_CREDENTIALS`, and the target uid
   (neither in the repo). Doc shape:
   `{ type, url, prompt, stickers:null, createdAt:Timestamp, source, style? }`.
 - **The target uid is Sophie's device anonymous-auth id** — a personal
@@ -112,6 +113,18 @@ each opens a focused workflow that shares the same house styles.
   by the server and data read directly by the app live in DIFFERENT projects.
   `/api/story` bridges this with `STORY_FIREBASE_SERVICE_ACCOUNT` (a membry
   service-account JSON) — set it in Render or the boards read as empty.
+- **Two service accounts → two env vars (same names for the server AND for a
+  chat's local scripts).** Set BOTH so anything works, including the
+  network-proof direct-to-Firestore paths:
+  - `FIREBASE_SERVICE_ACCOUNT` = **Deck Factory** (`deckfactory-43176`) — the
+    chat feed (`forge-chat-feed`), assets/votes, thumbs, Compare pages, Storage.
+    Used by `server.js` and `scripts/post-feed-direct.js`.
+  - `STORY_FIREBASE_SERVICE_ACCOUNT` = **Memory / membry** (`membry-df528`) —
+    the iOS "My Creations" gallery and Story Boards. Used by `/api/story` and
+    `scripts/post-to-gallery.js` (which falls back to `FIREBASE_SERVICE_ACCOUNT`).
+  For a chat's cloud environment, set both as **environment variables** in the
+  environment settings (NEVER commit either to this public repo). Only ONE
+  default environment? Set both there once and every session has them.
 
 ## Image generation
 - OpenAI `gpt-image-2` (the zine; single/sticker can also use DALL·E 3).
