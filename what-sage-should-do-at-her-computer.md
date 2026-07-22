@@ -65,6 +65,21 @@ time.
 
 _Chats: add items below with a one-line reason._
 
+- **NDE supercut — fetch the rest of the transcripts + pull the audio clips.**
+  These run on the computer because YouTube blocks the cloud servers' IPs; your
+  home internet works. Needs `yt-dlp` + `ffmpeg` once: `brew install yt-dlp ffmpeg`.
+  1. **Get the remaining 14 transcripts:** `node ~/Downloads/nde-fetch-retry.js`
+     (fetches captions + files them; a few minutes). Prints a per-video count.
+  2. **Ping any chat** — say "the NDE retry finished." It will mine the new ones,
+     merge them into the existing clusters, and send you the audio-puller script.
+  3. **Pull every clip:** `node ~/Downloads/nde-pull-clips.js` — downloads each
+     source interview's audio once and slices every supercut clip into
+     `clips/<theme>/` (~5–10 min; safe to leave running). Map is `clips/INDEX.tsv`.
+  - _Optional, go bigger:_ to process more than 25 of his interviews (up to ~100),
+    ask a chat to build a wider fetch script first, then run that in place of
+    step 1 — the rest is the same. Fetching transcripts + audio is free; only the
+    AI mining costs (~$10–15 for ~100).
+
 - **Set up YouTube auto-upload (OAuth).** So a chat can push finished videos to
   your channel as private drafts (you just tap Publish). One-time browser sign-in
   only you can do. On the computer: create a Google Cloud project → enable
