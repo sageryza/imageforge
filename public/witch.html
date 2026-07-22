@@ -114,6 +114,15 @@
     select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236d6472' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px; }
     .field { margin-bottom: 14px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    /* Text birth-date field with a calendar-picker button — type freely OR tap
+       the calendar. (Native date/time inputs overflowed their flex box on iOS,
+       hence plain text inputs.) */
+    .ib-wrap { position: relative; }
+    .ib-wrap > input[type="text"] { padding-right: 42px; }
+    .ib-cal { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--gold-dim); cursor: pointer; }
+    .ib-cal:hover { color: var(--gold); }
+    .ib-cal svg { width: 18px; height: 18px; }
+    .ib-native { position: absolute; right: 8px; bottom: 6px; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
     .row > * { flex: 1 1 0; min-width: 0; }
 
     /* ── Buttons ──
@@ -913,10 +922,16 @@
             <p class="hint" style="text-align:center;">Add your birth details once, and every day you'll get a reading from your real chart. A birth time also gives your rising sign &amp; houses.</p>
             <div id="natal-form">
               <div class="row">
-                <div class="field" style="flex:2 1 160px;"><label>Birth date</label><input type="date" id="natal-date"></div>
-                <div class="field" style="flex:1 1 110px;"><label>Time (optional)</label><input type="time" id="natal-time"></div>
+                <div class="field" style="flex:2 1 170px;"><label>Birth date</label>
+                  <div class="ib-wrap">
+                    <input type="text" id="natal-date" inputmode="text" autocomplete="off" placeholder="June 15, 1990">
+                    <button type="button" class="ib-cal" id="natal-cal" aria-label="Pick from a calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg></button>
+                    <input type="date" id="natal-date-native" tabindex="-1" aria-hidden="true" class="ib-native">
+                  </div>
+                </div>
+                <div class="field" style="flex:1 1 120px;"><label>Time (optional)</label><input type="text" id="natal-time" inputmode="text" autocomplete="off" placeholder="3:30 PM"></div>
               </div>
-              <div class="field"><label>Birth city</label><input type="text" id="natal-place" placeholder="Los Angeles, USA"></div>
+              <div class="field"><label>Birth city</label><input type="text" id="natal-place" placeholder="Chicago, New York, LA…"></div>
               <button class="btn" id="natal-btn"><svg width="1.9" viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> See my daily reading</button>
               <div class="note" id="natal-note"></div>
             </div>
@@ -2467,9 +2482,51 @@
       + (aspects ? `<div class="chart-meta">Aspects</div><div class="aspect-line">${aspects}</div>` : '')
       + reading + meta;
   }
+  /* Birth date/time entered as free text — the server needs ISO YYYY-MM-DD +
+     24h HH:MM, so parse whatever the user types into those. (Reuses the shared
+     MONTHS const declared above.) */
+  function parseBirthDate(str) {
+    str = (str || '').trim(); if (!str) return null;
+    const ok = (y, mo, da) => (y >= 1900 && y <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31) ? { y, m: mo, d: da } : null;
+    let m = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);          // 1990-06-15
+    if (m) return ok(+m[1], +m[2], +m[3]);
+    m = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);            // 6/15/1990 (US order)
+    if (m) { let y = +m[3]; if (y < 100) y += (y < 30 ? 2000 : 1900); return ok(y, +m[1], +m[2]); }
+    const d = new Date(str);                                            // "June 15, 1990", "15 Jun 1990", etc.
+    if (!isNaN(d.getTime()) && /\d{4}/.test(str)) return ok(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    return null;
+  }
+  const toISO = p => `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+  const fmtHumanDate = (y, m, d) => `${MONTHS[m - 1]} ${d}, ${y}`;
+  function isoToHuman(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? fmtHumanDate(+m[1], +m[2], +m[3]) : (iso || ''); }
+  function parseBirthTime(str) {                                        // '' = none, null = unreadable, else HH:MM
+    str = (str || '').trim(); if (!str) return '';
+    let m = str.match(/^(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)?$/i);
+    if (!m) { const h = str.match(/^(\d{1,2})\s*([ap])\.?m\.?$/i); if (h) m = [h[0], h[1], '00', h[2]]; }
+    if (!m) return null;
+    let hh = +m[1]; const mm = +m[2], ap = (m[3] || '').toLowerCase();
+    if (ap.startsWith('p') && hh < 12) hh += 12;
+    if (ap.startsWith('a') && hh === 12) hh = 0;
+    if (hh > 23 || mm > 59) return null;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  }
+  const fmtHumanTime = hm => { const m = /^(\d{2}):(\d{2})$/.exec(hm || ''); if (!m) return hm || ''; let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${m[2]} ${ap}`; };
+  // Calendar button → the native date picker fills the text field.
+  (function () {
+    const cal = $('natal-cal'), nat = $('natal-date-native');
+    if (cal && nat) {
+      cal.addEventListener('click', () => { try { nat.showPicker(); } catch { nat.focus(); nat.click(); } });
+      nat.addEventListener('change', () => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(nat.value); if (m) $('natal-date').value = fmtHumanDate(+m[1], +m[2], +m[3]); });
+    }
+  })();
   async function castChart() {
-    const date = $('natal-date').value, time = $('natal-time').value, place = $('natal-place').value.trim();
-    if (!date || !place) { toast('Add your birth date and city'); return; }
+    const place = $('natal-place').value.trim();
+    const parsed = parseBirthDate($('natal-date').value);
+    if (!parsed) { toast("Couldn't read that birth date — try like “June 15, 1990”"); return; }
+    if (!place) { toast('Add your birth city'); return; }
+    const time = parseBirthTime($('natal-time').value);
+    if (time === null) { toast("Couldn't read that time — try like “3:30 PM”, or leave it blank"); return; }
+    const date = toISO(parsed);
     const btn = $('natal-btn'), note = $('natal-note');
     btn.disabled = true; note.textContent = 'Reading the sky at your birth… (a few seconds)';
     try {
@@ -2487,8 +2544,13 @@
     try {
       const s = JSON.parse(localStorage.getItem('witch_natal') || 'null');
       if (s && s.data && s.data.chart) {
-        const nd = $('natal-date'), nt = $('natal-time'), np = $('natal-place');
-        if (s.input && nd) { nd.value = s.input.date || ''; nt.value = s.input.time || ''; np.value = s.input.place || ''; }
+        const nd = $('natal-date'), nt = $('natal-time'), np = $('natal-place'), nn = $('natal-date-native');
+        if (s.input && nd) {
+          nd.value = isoToHuman(s.input.date);                       // show "June 15, 1990", not the ISO
+          nt.value = s.input.time ? fmtHumanTime(s.input.time) : ''; // show "3:30 PM"
+          np.value = s.input.place || '';
+          if (nn) nn.value = s.input.date || '';                     // seed the picker
+        }
         renderNatal(s.data);
       }
     } catch {}
