@@ -289,7 +289,9 @@
     .note-choice { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 1px solid transparent; border-radius: 12px; padding: 8px 4px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s ease, border-color 0.15s ease; }
     .note-choice:active { transform: scale(0.98); }
     .note-choice.on { background: rgba(230,194,129,0.12); border-color: var(--gold-dim); }
-    .note-choice img { width: 104px; height: 104px; display: block; }
+    /* Sized by height so both figures read the same size despite different
+       silhouettes (images are trimmed to their content). */
+    .note-choice img { height: 112px; width: auto; max-width: 100%; display: block; }
     .nc-title { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); font-weight: 600; }
     .nc-sub { font-size: 11px; line-height: 1.45; color: var(--text-faint); text-align: center; }
     .nc-sub b { color: var(--text-dim); font-weight: 600; }
@@ -2833,6 +2835,11 @@
   // ring is universal, not personal); the inner ring shows THIS reader's real
   // planets, each in the sign wedge it actually landed in, blank where no
   // planet fell. Center stays empty.
+  // The 12 zodiac emblems (ram, bull, twins, crab, lion, maiden, scales,
+  // scorpion, archer, goat, water-bearer, fish) — cropped from Sophie's own
+  // house-style illustration (witch-school/refs) so the outer ring reads as
+  // real little pictures, not typed symbols.
+  const SIGN_ICON_NAMES = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
   function skyWheelDiagramSVG(bodies) {
     const cx = 300, cy = 300, R1 = 280, R2 = 195, R3 = 108, INK = '#231e28';
     const F = `font-family="'DejaVu Sans', sans-serif"`;
@@ -2844,9 +2851,10 @@
       const [x1, y1] = pt(a, R3), [x2, y2] = pt(a, R1);
       s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${INK}" stroke-width="1.3"/>`;
     }
+    const ICON = 62;
     for (let i = 0; i < 12; i++) {
       const [x, y] = pt(-90 + i * 30 + 15, (R1 + R2) / 2);
-      s += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="30" ${F} text-anchor="middle" dominant-baseline="central" fill="${INK}">${signGlyph(i)}</text>`;
+      s += `<image href="${SW_IMG}sign-${SIGN_ICON_NAMES[i]}.png" x="${(x - ICON / 2).toFixed(1)}" y="${(y - ICON / 2).toFixed(1)}" width="${ICON}" height="${ICON}"/>`;
     }
     const bySign = {};
     (bodies || []).forEach(b => { const idx = signIdxOf(b); (bySign[idx] = bySign[idx] || []).push(b); });
