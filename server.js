@@ -2216,10 +2216,8 @@ async function etsyActiveListings() {
   const etsy = require('./etsy');
   let shopId = process.env.ETSY_SHOP_ID || ETSY_SHOP_LISTINGS.shopId;
   if (!shopId) {
-    let uid = '98999808';
-    try { const me = await etsy.getMe(); uid = (me.body && me.body.user_id) || uid; } catch {}
-    const shops = await etsy.getShops(uid);
-    shopId = ((shops.body && shops.body.results) || shops.results || [])[0]?.shop_id;
+    const me = await etsy.getMe(); // /users/me returns the owner's shop_id directly
+    if (me && me.ok && me.body && me.body.shop_id) shopId = me.body.shop_id;
   }
   if (!shopId) return null;
   const r = await etsy.getAllListings(shopId, 'active');
