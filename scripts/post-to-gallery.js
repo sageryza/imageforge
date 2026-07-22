@@ -19,10 +19,15 @@
  * everyone's work correctly. Do NOT backfill an old/skewed server clock if you
  * want a fresh batch to sit at the top — use the true generation time.
  *
- * AUTH — needs the membry-df528 Firebase Admin service account (NOT in the
- * repo). Provide it one of two ways:
- *   FIREBASE_SERVICE_ACCOUNT='<json>'   (same env var server.js uses), or
+ * AUTH — needs the **membry-df528** Firebase Admin service account (NOT in the
+ * repo). Provide it one of these ways (checked in order):
+ *   STORY_FIREBASE_SERVICE_ACCOUNT='<json>'  (the membry account — preferred;
+ *                                             same name server.js uses for it), or
+ *   FIREBASE_SERVICE_ACCOUNT='<json>'         (fallback / older single-key setups), or
  *   GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json
+ * NOTE: the gallery lives in membry-df528, but FIREBASE_SERVICE_ACCOUNT is the
+ * DECK FACTORY (deckfactory-43176) account in the standard two-key setup — so
+ * this script prefers STORY_FIREBASE_SERVICE_ACCOUNT to hit the right project.
  *
  * IMAGES MUST BE AT A PUBLIC URL the app can fetch. Firebase Storage in either
  * project works (make the object public). Temporary Replicate/OpenAI URLs
@@ -55,8 +60,13 @@ function arg(name, def) {
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : def;
 }
 
+// The gallery is in membry-df528; prefer the membry account
+// (STORY_FIREBASE_SERVICE_ACCOUNT), falling back to FIREBASE_SERVICE_ACCOUNT.
+function membryRaw() {
+  return process.env.STORY_FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT;
+}
 function projectId() {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const raw = membryRaw();
   if (raw) { try { return JSON.parse(raw).project_id; } catch {} }
   const p = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')).project_id; } catch {} }
@@ -67,13 +77,13 @@ function initAdmin() {
   if (admin.apps.length) return;
   const pid = projectId();
   const opts = pid ? { storageBucket: `${pid}.firebasestorage.app` } : {};
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const raw = membryRaw();
   if (raw) {
     admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)), ...opts });
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp({ credential: admin.credential.applicationDefault(), ...opts });
   } else {
-    console.error('No credentials: set FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS.');
+    console.error('No credentials: set STORY_FIREBASE_SERVICE_ACCOUNT (the membry account), FIREBASE_SERVICE_ACCOUNT, or GOOGLE_APPLICATION_CREDENTIALS.');
     process.exit(1);
   }
 }
