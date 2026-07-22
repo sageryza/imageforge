@@ -678,6 +678,17 @@ lifted into a standalone tool later.
   `scripts/post-to-gallery.js`, stamped with its true make-time.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
+- **Everything slow is a background job — never make anyone watch a spinner.**
+  Any generation that isn't near-instant (image gen, an LLM reading, audio,
+  video, a long fetch) MUST be a fire-and-forget background job that survives
+  leaving the app: the server starts the work and returns immediately, the
+  result is persisted (Firestore/Storage) so it's never lost, and the client
+  records the pending job id (e.g. `localStorage`/`@AppStorage`) and RESUMES
+  polling on return — the pattern the dream illustrator uses (`/api/witch/dream-
+  illustrate` + poll). Nobody — not even Sophie while testing — should have to
+  sit and stare at a spinner or risk losing a result by glancing away. If a case
+  genuinely can't be a background job (or it seems not worth it), **check with
+  Sophie first** rather than shipping a blocking wait.
 - **Research the CURRENT UI before giving click-by-click steps for any external
   dashboard** (Shopify, Render, Google, etc.). These tools change their menus,
   buttons, and URLs constantly, and guessing from memory sends Sophie hunting and
