@@ -312,6 +312,22 @@
     .note-row .btn-ghost { width: auto; padding: 9px 16px; }
     .note-wait { text-align: center; color: var(--gold); font-size: 22px; margin-top: 14px; }
     .note-answer { margin-top: 14px; padding: 12px 14px; background: var(--panel); border-radius: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--text); }
+
+    /* Your Sky, Read — personalized chart walkthrough */
+    .sky-wheel { width: 100%; max-width: 360px; height: auto; display: block; margin: 4px auto 18px; }
+    .sky-intro { font-family: var(--serif); font-size: 16px; line-height: 1.55; color: var(--text-dim); text-align: center; margin: 0 auto 20px; max-width: 30em; }
+    .sky-big3 { display: flex; justify-content: center; gap: 14px; margin: 0 auto 22px; }
+    .sky-big3 .b { text-align: center; }
+    .sky-big3 .g { font-size: 22px; color: var(--gold); }
+    .sky-big3 .l { font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
+    .sky-big3 .v { font-family: var(--serif); font-size: 15px; color: var(--text); margin-top: 1px; }
+    .sky-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--border); }
+    .sky-row .pg { font-size: 22px; color: var(--gold); flex: 0 0 26px; text-align: center; line-height: 1.3; }
+    .sky-row .body { flex: 1; }
+    .sky-row .hd { font-family: var(--serif); font-size: 16px; color: var(--text); }
+    .sky-row .hd b { color: var(--gold-dim); }
+    .sky-row .mn { font-size: 13.5px; line-height: 1.5; color: var(--text-dim); margin-top: 3px; }
+    .sky-empty { text-align: center; color: var(--text-dim); font-family: var(--serif); font-size: 16px; line-height: 1.55; margin: 30px auto; max-width: 28em; }
     .quiz-media-ph { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; background: var(--panel); }
 
     /* Quiz — full-screen "own little app" overlay */
@@ -1072,6 +1088,11 @@
             <div><div class="lt">Astrology Basics</div><div class="ld">Your birth chart, decoded</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
+          <div class="lesson-card" id="open-mysky">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg></span>
+            <div><div class="lt">Your Sky, Read</div><div class="ld">Your real chart, house by house</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <div class="lesson-card" id="open-dream">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg></span>
             <div><div class="lt">Dream Work</div><div class="ld">Remember, record & ask the night</div></div>
@@ -1278,6 +1299,12 @@
   <div class="quiz-app" id="deep-app" style="display:none;">
     <button class="quiz-back" id="deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="deep-stage"></div>
+  </div>
+
+  <!-- Your Sky, Read — personalized walkthrough of the user's real chart -->
+  <div class="quiz-app" id="sky-app" style="display:none;">
+    <button class="quiz-back" id="sky-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="sky-stage"></div>
   </div>
 
   <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
@@ -2752,6 +2779,108 @@
   $('quiz-back').addEventListener('click', () => closeQuiz());
   { const qo = $('quiz-open'); if (qo) qo.addEventListener('click', openQuiz); }
 
+  /* ══════════ Your Sky, Read — personalized chart walkthrough ══════════ */
+  // Reuses the saved birth details + /api/witch/natal chart (already computed
+  // server-side) to teach the three layers — planet, sign, house — with the
+  // reader's OWN real placements, in plain language. Deterministic + instant.
+  const HOUSE_MEANINGS = {
+    1: 'yourself, your body, how you come across',
+    2: 'money, belongings & what you value',
+    3: 'talking, learning & everyday life',
+    4: 'home, family & your roots',
+    5: 'romance, creativity, play & fun',
+    6: 'daily work, routines & health',
+    7: 'partnership & your closest one-on-ones',
+    8: 'intimacy, deep change & shared resources',
+    9: 'travel, study, big beliefs & meaning',
+    10: 'career, reputation & your place in the world',
+    11: 'friends, community & hopes for the future',
+    12: 'dreams, rest, spirituality & the inner world',
+  };
+  const PLANET_ROLES = {
+    Sun: 'who you\'re becoming', Moon: 'your feelings & what you need',
+    Mercury: 'how you think & speak', Venus: 'how you love & what you find beautiful',
+    Mars: 'your drive & your fire', Jupiter: 'where you grow & get lucky',
+    Saturn: 'your lessons & your backbone', Uranus: 'where you break the mold',
+    Neptune: 'your dreams & imagination', Pluto: 'your deep power & change',
+    'North Node': 'the direction you\'re growing toward', Chiron: 'your tender, healing place',
+  };
+  const ORD = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+  function skyChart() {
+    // Prefer the cached full natal response; it holds the computed chart.
+    try {
+      const s = JSON.parse(localStorage.getItem('witch_natal') || 'null');
+      if (s && s.data && s.data.chart) return s.data;
+    } catch {}
+    return null;
+  }
+  let skyBusy = false;
+  async function openSky() {
+    try { const p = schoolProgress(); p.mysky = { seen: 1, done: true }; saveSchoolProgress(p); } catch {}
+    $('sky-app').style.display = ''; document.body.style.overflow = 'hidden';
+    renderSky();
+  }
+  function closeSky() { $('sky-app').style.display = 'none'; document.body.style.overflow = ''; try { renderSchoolPath(); } catch {} }
+  async function renderSky() {
+    const stage = $('sky-stage'); $('sky-app').scrollTop = 0;
+    const birth = savedBirth();
+    if (!birth) {
+      stage.innerHTML = `<div class="quiz-stage-inner"><div class="quiz-hero" style="font-size:26px;">Read your own sky</div>
+        <p class="sky-empty">This lesson draws <i>your</i> real chart and walks you through it — planet by planet, house by house. First it needs your birth details.</p>
+        <button class="btn-gold" id="sky-add" style="margin:0 auto;">Add my birth details <span class="js-star"></span></button></div>`;
+      renderStars();
+      $('sky-add').onclick = () => { closeSky(); go('home'); setTimeout(() => { const f = $('natal-form'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90); };
+      return;
+    }
+    let data = skyChart();
+    if (!data) {
+      stage.innerHTML = `<div class="quiz-loading"><span class="spin">✦</span></div>`;
+      if (!skyBusy) { skyBusy = true;
+        try {
+          data = await api('/api/witch/natal', { date: birth.date, time: birth.time, place: birth.place });
+          try { localStorage.setItem('witch_natal', JSON.stringify({ input: birth, data, coords: data.coords, tz: data.tz })); } catch {}
+        } catch (e) { stage.innerHTML = `<p class="sky-empty">The sky\'s clouded over just now — try again in a moment.</p>`; skyBusy = false; return; }
+        skyBusy = false;
+      }
+    }
+    if (!data || !data.chart) { stage.innerHTML = `<p class="sky-empty">Couldn\'t read your chart — try re-adding your birth details on Home.</p>`; return; }
+    const c = data.chart, hasHouses = !!(data.hasTime && c.ascendant);
+    const find = n => c.bodies.find(b => b.name === n) || null;
+    const sun = find('Sun'), moon = find('Moon');
+    const big3 = `<div class="sky-big3">
+      <div class="b"><div class="g">☉</div><div class="l">Sun</div><div class="v">${sun ? esc(displaySign(sun)) : '—'}</div></div>
+      <div class="b"><div class="g">☽</div><div class="l">Moon</div><div class="v">${moon ? esc(displaySign(moon)) : '—'}</div></div>
+      <div class="b"><div class="g">↑</div><div class="l">Rising</div><div class="v">${hasHouses ? esc(displaySign(c.ascendant)) : '—'}</div></div>
+    </div>`;
+    const wheel = `<div class="sky-wheel">${posterSVG(c, { dateLabel: '', timeLabel: '', placeLabel: '', name: '' })}</div>`;
+    let rows;
+    if (hasHouses) {
+      rows = c.bodies.map(b => {
+        const role = PLANET_ROLES[b.name] || 'a part of you';
+        const hm = b.house ? HOUSE_MEANINGS[b.house] : null;
+        const where = b.house ? `in your <b>${ORD[b.house]} house</b> — ${hm}` : '';
+        return `<div class="sky-row"><span class="pg">${(b.glyph || '✦') + '︎'}</span><div class="body">
+          <div class="hd"><b>${esc(b.name)}</b> in ${esc(displaySign(b))}${b.retro ? ' ℞' : ''}</div>
+          <div class="mn">${esc(role)}${where ? `, ${where}.` : '.'}</div></div></div>`;
+      }).join('');
+    } else {
+      rows = `<p class="sky-empty">Your <b>houses</b> need your <b>birth time</b> — without it we can place your planets in signs, but not in the twelve rooms. Add a time on Home to unlock the full walkthrough.</p>` +
+        c.bodies.map(b => `<div class="sky-row"><span class="pg">${(b.glyph || '✦') + '︎'}</span><div class="body">
+          <div class="hd"><b>${esc(b.name)}</b> in ${esc(displaySign(b))}${b.retro ? ' ℞' : ''}</div>
+          <div class="mn">${esc(PLANET_ROLES[b.name] || 'a part of you')}.</div></div></div>`).join('');
+    }
+    stage.innerHTML = `<div class="quiz-stage-inner">
+      <div class="quiz-kicker">Your Sky, Read</div>
+      <div class="quiz-hero" style="font-size:26px;">This is your chart</div>
+      <p class="sky-intro">You in the center; the <b>signs</b> around the rim; your <b>planets</b> dropped into the <b>houses</b> — the rooms of your life. Here\'s what landed where.</p>
+      ${wheel}${big3}${rows}
+      <p class="sky-intro" style="margin-top:22px;">Empty houses are normal — there are twelve rooms and only a handful of planets. A quiet room just means that part of life runs softly in the background. ✦</p>
+    </div>`;
+    renderStars();
+  }
+  $('sky-back').addEventListener('click', () => closeSky());
+  { const t = $('open-mysky'); if (t) t.addEventListener('click', () => openSky()); }
+
   /* ══════════ Suspicious coincidence — describe it, AI draws it ══════════ */
   // Suspicious coincidence "Draw it" — a background job (gpt-image-2 low), so a
   // ~15s render survives leaving the app: the pending id per box is saved and
@@ -3161,12 +3290,13 @@
     { img: 'as-03', bg: '#fdf8f0', kicker: 'The big three', h: 'Sun, Moon, Rising', body: 'The three doors into any chart. <b>Sun</b> — who you\'re becoming. <b>Moon</b> — how you feel and what you need. <b>Rising</b> — the face you greet the world with. Read together, they\'re why a chart feels like being seen.' },
     { img: 'as-04', bg: '#fefaf5', kicker: 'The sun', h: 'Your season', body: 'The zodiac is the sun\'s year-long path cut into twelve slices, and your sun sign is the slice you were born under — your season. It\'s the engine of the chart: what you\'re here to grow into.' },
     { img: 'as-sky2', bg: '#fdf8f2', kicker: 'How the sky is cut', h: 'Twelve equal slices', body: 'Picture the sun\'s path traced as a full circle around the sky. Western astrology cuts that circle into <b>twelve equal slices of 30°</b> each — even wedges, like a pie — starting from the spring equinox. This is the <b>tropical</b> zodiac: the slices are tied to the <i>seasons</i>, not to the actual star patterns (which have drifted over the centuries). Your sun sign is simply whichever slice the sun sat in when you were born.' },
+    { img: 'as-houses', bg: '#fcf6ec', kicker: 'Signs, houses & planets', h: 'The three layers', body: 'Here\'s the whole chart in one picture — <b>you</b> in the middle. The <b>outer ring</b> is the twelve <b>signs</b> (the flavor). The inner ring is the twelve <b>houses</b> — the rooms of your life: love, money, home, work, and so on. And your <b>planets</b> drop into those rooms. So a planet always lands in one house (which area) and one sign (what flavor) — that\'s the whole language.' },
     { img: 'as-05', bg: '#fef8ee', kicker: 'The moon', h: 'Your inner weather', body: 'The moon sign is the private you — instincts, moods, what comforts you at 2am. Most people never see it. If your sun is how you shine, your moon is how you rest.' },
     { img: 'as-06', bg: '#fdfaf6', kicker: 'The rising', h: 'The hour-watcher', body: 'The ancients called the rising sign the <b>horoskopos</b> — “hour-watcher” — and prized it above everything, because it changes every two hours. It\'s why a real chart needs your birth <b>time</b>, not just the day.' },
     { img: 'as-07', bg: '#fefaf0', kicker: 'The elements', h: 'Fire, earth, air, water', body: 'Every sign belongs to an element: <b>fire</b> acts, <b>earth</b> builds, <b>air</b> thinks, <b>water</b> feels. Count the elements in a chart and you can see a temperament at a glance.' },
     { img: 'as-08', bg: '#fefcf8', kicker: 'The planets', h: 'The cast of characters', body: 'Each planet governs a domain: <b>Mercury</b> your words, <b>Venus</b> your love and taste, <b>Mars</b> your drive, <b>Jupiter</b> your luck, <b>Saturn</b> your lessons. The sign tells you <i>how</i> it plays its part; the house tells you <i>where</i>.' },
     { img: 'as-09', bg: '#fdf7ef', kicker: 'The aspects', h: 'Planets in conversation', body: 'Planets talk to each other across the wheel at set angles, called <b>aspects</b>. Some conversations flow easy, some argue — and the friction isn\'t bad luck. It\'s usually where the most growth lives.' },
-    { img: 'as-10', bg: '#fdfaf6', kicker: 'After', h: 'Cast your own', body: 'Reading about charts is nothing next to holding your own.<br><br><b>Tonight:</b> this app can draw your real birth chart. All it needs is your birth day, time, and place. ✦', cta: { label: 'Cast my birth chart', go: 'home', el: 'natal-form', fallback: 'view-home' } },
+    { img: 'as-10', bg: '#fdfaf6', kicker: 'After', h: 'Cast your own', body: 'Reading about charts is nothing next to holding your own.<br><br><b>Now:</b> see everything you just learned — signs, houses, planets — mapped onto <i>your</i> real chart. ✦', cta: { label: 'See this in my own chart', sky: true } },
   ];
   const DREAM_CARDS = [
     { img: 'dw-01', bg: '#fcfaf6', kicker: 'Dream Work', h: 'Mail from the deep', body: 'Witches have always treated dreams as letters — from the deep self, the dead, the gods, take your pick. This lesson is the craft of receiving them: remembering, recording, and asking.' },
@@ -3319,7 +3449,7 @@
      alone. The School home is a catalog of art-cover course tiles. */
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
-    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'signs', 'dream'] },
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'course-divin', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'course-crystal', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
@@ -3498,6 +3628,7 @@
     if (ctaBtn) ctaBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cta = deckCards[deckIdx].cta;
+      if (cta.sky) { closeLesson(); openSky(); return; }
       closeLesson(); go(cta.go || 'home');
       if (cta.book) { openBook(cta.book); return; }
       setTimeout(() => {
@@ -3512,6 +3643,7 @@
   }
   let deckKey = 'spell';
   function openLesson(key) {
+    if (key === 'mysky') { openSky(); return; }
     deckOnNote = false;
     deckKey = LESSONS[key] ? key : 'spell';
     deckCards = LESSONS[deckKey] || SPELL_CARDS; preload(deckCards);
