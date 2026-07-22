@@ -37,7 +37,25 @@ products that already exist on Shopify.
   - *(A third "Witchcraft Kit" Etsy listing is effectively a duplicate — Sophie
     already has witchcraft-kit products on Shopify.)*
 
+### Background jobs — two minor cases left (Sophie's call)
+Everything slow on the Home tab is now a resumable background job (survives
+leaving the app). Two low-impact cases were left synchronous on purpose —
+convert if Sophie wants, but neither loses real work:
+- **Miracles studio illustrations** (Shadows → "Open the Miracles studio",
+  legacy/toggle-gated). The page text saves to localStorage immediately; only
+  the illustration is synchronous, so leaving mid-render just leaves a page with
+  no picture (re-openable), not a lost result. Converting needs per-entry job
+  tracking. `/api/generate/replicate` + `/api/generate/dalle`, client
+  `genImage()` (~line 2263).
+- **Natal chart** ("Cast my birth chart", ~5s: geocode + gpt-4o-mini). Moderate,
+  not a long image gen; stateless so a dropped fetch = redo. `/api/witch/natal`.
+
 ## Done
+- **Background jobs:** Suspicious Coincidence (gpt-image-2 **low**, was the slow
+  medium call that lost its image on leaving), Dream "Unlock the symbolism", and
+  Dream "Illustrate" are all fire-and-forget jobs that persist a pending id and
+  resume polling on return — no spinner-watching, no lost results. Generic
+  runner: `POST /api/witch/job` + `GET /:id`. *(2026-07-21)*
 - Shop mirrors Etsy: order + filter to Etsy items only, clean one-line display
   names (long SEO titles kept on Shopify). *(2026-07-21)*
 - Shop tab is boxless (sharp-corner image + text under, no card outline).
