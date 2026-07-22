@@ -1490,53 +1490,52 @@ const DREAM_READ_SHAPE = `{
 const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Return VALID JSON only (no markdown fences), shaped exactly:
 ${DREAM_READ_SHAPE}`;
 
+// The dual-reader dream interpretation, factored out so both the (legacy)
+// synchronous route and the background-job runner share one implementation.
+async function runDreamRead(dreamRaw) {
+  const dream = String(dreamRaw || '').trim();
+  if (!dream) throw new Error('dream is required');
+  if (dream.length > 20000) throw new Error('dream is too long');
+  const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
+
+  // Claude Opus 4.8 — rejects `temperature`; the system prompt pins the JSON.
+  const claudeCall = (async () => {
+    const data = await anthropicChat({ system: DREAM_READ_VOICE, messages: [{ role: 'user', content: userMsg }], max_tokens: 1400 });
+    if (data.error) throw new Error(data.error.message || 'anthropic error');
+    return parseAnthropicJson(data);
+  })();
+  // OpenAI gpt-5.6-sol — reasoning model, force a JSON object, keep it light.
+  const gptCall = (async () => {
+    const data = await openaiChat({
+      model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: DREAM_READ_VOICE }, { role: 'user', content: userMsg }],
+    });
+    if (data.error) throw new Error(data.error.message || 'openai error');
+    return parseJsonReply(data);
+  })();
+
+  const [claudeR, gptR] = await Promise.allSettled([claudeCall, gptCall]);
+  const claude = claudeR.status === 'fulfilled' ? claudeR.value : null;
+  const gpt = gptR.status === 'fulfilled' ? gptR.value : null;
+  if (!claude && !gpt) {
+    const e = new Error('both readers failed');
+    e.detail = { claude: claudeR.reason?.message, gpt: gptR.reason?.message };
+    throw e;
+  }
+  return {
+    claude, gpt,
+    errors: {
+      claude: claudeR.status === 'rejected' ? String(claudeR.reason?.message || claudeR.reason) : null,
+      gpt: gptR.status === 'rejected' ? String(gptR.reason?.message || gptR.reason) : null,
+    },
+  };
+}
+
 app.post('/api/witch/dream-read', async (req, res) => {
   try {
-    const dream = String((req.body || {}).dream || '').trim();
-    if (!dream) return res.status(400).json({ error: 'dream is required' });
-    if (dream.length > 20000) return res.status(400).json({ error: 'dream is too long' });
-
-    const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
-
-    // Claude Opus 4.8 (Anthropic's highest). Opus rejects `temperature` here —
-    // omit it; the system prompt pins the JSON shape.
-    const claudeCall = (async () => {
-      const data = await anthropicChat({
-        system: DREAM_READ_VOICE,
-        messages: [{ role: 'user', content: userMsg }],
-        max_tokens: 1400,
-      });
-      if (data.error) throw new Error(data.error.message || 'anthropic error');
-      return parseAnthropicJson(data);
-    })();
-
-    // OpenAI gpt-5.6-sol (OpenAI's highest). Reasoning model — omit temperature,
-    // force a JSON object, keep reasoning light so the sync request stays snappy.
-    const gptCall = (async () => {
-      const data = await openaiChat({
-        model: 'gpt-5.6-sol',
-        reasoning_effort: 'low',
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'system', content: DREAM_READ_VOICE }, { role: 'user', content: userMsg }],
-      });
-      if (data.error) throw new Error(data.error.message || 'openai error');
-      return parseJsonReply(data);
-    })();
-
-    const [claudeR, gptR] = await Promise.allSettled([claudeCall, gptCall]);
-    const claude = claudeR.status === 'fulfilled' ? claudeR.value : null;
-    const gpt = gptR.status === 'fulfilled' ? gptR.value : null;
-    if (!claude && !gpt) {
-      return res.status(502).json({ error: 'both readers failed', detail: { claude: claudeR.reason?.message, gpt: gptR.reason?.message } });
-    }
-    res.json({
-      claude, gpt,
-      errors: {
-        claude: claudeR.status === 'rejected' ? String(claudeR.reason?.message || claudeR.reason) : null,
-        gpt: gptR.status === 'rejected' ? String(gptR.reason?.message || gptR.reason) : null,
-      },
-    });
+    res.json(await runDreamRead((req.body || {}).dream));
   } catch (err) {
+    if (err.message === 'both readers failed') return res.status(502).json({ error: err.message, detail: err.detail });
     res.status(500).json({ error: err.message });
   }
 });
@@ -1593,6 +1592,56 @@ app.get('/api/witch/dream-illustrate/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
     const d = snap.data();
     res.json({ status: d.status, label: d.label, page1: d.page1 || null, totalPages: d.totalPages || 0, title: d.title || null, error: d.error || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Generic background job runner (survives leaving the app) ───────
+// Any slow generation runs fire-and-forget: POST returns an id immediately,
+// the work is persisted to Firestore, the client resumes by polling GET /:id.
+// See CLAUDE.md "Everything slow is a background job — never watch a spinner".
+const WITCH_JOBS = 'forge-witch-jobs';
+async function runWitchJob(ref, kind, p) {
+  try {
+    let result;
+    if (kind === 'coincidence') {
+      const data = await openaiImage({ model: 'gpt-image-2', prompt: p.prompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
+      if (data.error) throw new Error(data.error.message || 'image error');
+      const b64 = data.data?.[0]?.b64_json;
+      if (!b64) throw new Error('no image returned');
+      result = { url: await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai') };
+    } else if (kind === 'dream-read') {
+      result = await runDreamRead(p.dream);
+    } else {
+      throw new Error('unknown job kind: ' + kind);
+    }
+    await ref.update({ status: 'done', result });
+  } catch (err) {
+    await ref.update({ status: 'error', error: String(err.message || err) }).catch(() => {});
+  }
+}
+app.post('/api/witch/job', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const kind = String(body.kind || '');
+    if (!['coincidence', 'dream-read'].includes(kind)) return res.status(400).json({ error: 'bad kind' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'jobs not configured' });
+    const ref = admin.firestore().collection(WITCH_JOBS).doc();
+    await ref.set({ kind, status: 'running', result: null, error: null, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    res.json({ id: ref.id });
+    runWitchJob(ref, kind, body); // fire-and-forget, not awaited
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/api/witch/job/:id', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'jobs not configured' });
+    const snap = await admin.firestore().collection(WITCH_JOBS).doc(req.params.id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    res.json({ status: d.status, result: d.result || null, error: d.error || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
