@@ -71,12 +71,19 @@ const os = require('os');
 
 const MANIFEST = ${JSON.stringify(manifest)};
 
-function have(cmd) { try { execFileSync(cmd, ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } }
-function bin(cands) { for (const c of cands) if (have(c)) return c; return null; }
-const YTDLP = bin(['yt-dlp', '/opt/homebrew/bin/yt-dlp', '/usr/local/bin/yt-dlp']);
-const FFMPEG = bin(['ffmpeg', '/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg']);
+// Resolve a binary: an absolute-path candidate just has to exist; a bare name
+// is probed with its version flag (ffmpeg wants a SINGLE dash: -version).
+function resolveBin(cands, flags) {
+  for (const c of cands) {
+    if (c.includes('/')) { try { if (fs.existsSync(c)) return c; } catch {} continue; }
+    for (const f of flags) { try { execFileSync(c, [f], { stdio: 'ignore' }); return c; } catch {} }
+  }
+  return null;
+}
+const YTDLP = resolveBin(['yt-dlp', '/opt/homebrew/bin/yt-dlp', '/usr/local/bin/yt-dlp'], ['--version']);
+const FFMPEG = resolveBin(['ffmpeg', '/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg'], ['-version', '--version']);
 if (!YTDLP || !FFMPEG) {
-  console.error('Missing tools. Install once:  brew install yt-dlp ffmpeg');
+  console.error('Missing: ' + [!YTDLP && 'yt-dlp', !FFMPEG && 'ffmpeg'].filter(Boolean).join(' + ') + '.  Install:  brew install yt-dlp ffmpeg');
   process.exit(1);
 }
 
