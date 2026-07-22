@@ -1485,13 +1485,14 @@ Return valid JSON only, no markdown fences, shaped:
 const DREAM_READ_SHAPE = `{
   "title": "a short, evocative title for this dream (3-6 words)",
   "symbols": [ { "symbol": "the image/motif", "meaning": "one plain sentence on what it may reflect" } ],
-  "message": "2-3 short paragraphs, speaking directly to the dreamer as \\"you\\": what the subconscious may be working through, woven from the symbols. Grounded and human, never a prediction."
+  "message": "1-2 short paragraphs, speaking directly to the dreamer as \\"you\\": what the subconscious may be working through, woven from the symbols. Grounded and human, never a prediction."
 }`;
-const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Return VALID JSON only (no markdown fences), shaped exactly:
+const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Keep it tight — this is a quick read, not an essay. Never tell them they are "powerful", "chosen", "special", or otherwise flatter them in generic empowerment-poster language — stay specific to what THIS dream actually shows, not a generic affirmation that could apply to any dream. Return VALID JSON only (no markdown fences), shaped exactly:
 ${DREAM_READ_SHAPE}`;
 
-// The dual-reader dream interpretation, factored out so both the (legacy)
-// synchronous route and the background-job runner share one implementation.
+// Single-reader dream interpretation (Claude only — was a two-model
+// Claude+GPT dual read, cut back per Sophie: it made the reading twice as
+// long and cost twice as much for no real benefit).
 async function runDreamRead(dreamRaw) {
   const dream = String(dreamRaw || '').trim();
   if (!dream) throw new Error('dream is required');
@@ -1499,36 +1500,14 @@ async function runDreamRead(dreamRaw) {
   const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
 
   // Claude Opus 4.8 — rejects `temperature`; the system prompt pins the JSON.
-  const claudeCall = (async () => {
-    const data = await anthropicChat({ system: DREAM_READ_VOICE, messages: [{ role: 'user', content: userMsg }], max_tokens: 1400 });
-    if (data.error) throw new Error(data.error.message || 'anthropic error');
-    return parseAnthropicJson(data);
-  })();
-  // OpenAI gpt-5.6-sol — reasoning model, force a JSON object, keep it light.
-  const gptCall = (async () => {
-    const data = await openaiChat({
-      model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: DREAM_READ_VOICE }, { role: 'user', content: userMsg }],
-    });
-    if (data.error) throw new Error(data.error.message || 'openai error');
-    return parseJsonReply(data);
-  })();
-
-  const [claudeR, gptR] = await Promise.allSettled([claudeCall, gptCall]);
-  const claude = claudeR.status === 'fulfilled' ? claudeR.value : null;
-  const gpt = gptR.status === 'fulfilled' ? gptR.value : null;
-  if (!claude && !gpt) {
-    const e = new Error('both readers failed');
-    e.detail = { claude: claudeR.reason?.message, gpt: gptR.reason?.message };
-    throw e;
-  }
-  return {
-    claude, gpt,
-    errors: {
-      claude: claudeR.status === 'rejected' ? String(claudeR.reason?.message || claudeR.reason) : null,
-      gpt: gptR.status === 'rejected' ? String(gptR.reason?.message || gptR.reason) : null,
-    },
-  };
+  const data = await anthropicChat({ system: DREAM_READ_VOICE, messages: [{ role: 'user', content: userMsg }], max_tokens: 900 });
+  if (data.error) throw new Error(data.error.message || 'anthropic error');
+  const claude = parseAnthropicJson(data);
+  if (!claude) throw new Error('reader failed');
+  // gpt/errors kept in the shape so older saved (dual-reader) client entries
+  // and the client's render code — which still checks data.gpt — degrade
+  // gracefully; new reads simply never populate it.
+  return { claude, gpt: null, errors: { claude: null, gpt: null } };
 }
 
 app.post('/api/witch/dream-read', async (req, res) => {
