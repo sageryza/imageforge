@@ -128,26 +128,23 @@
     /* ── Buttons ──
        House button = gold outline, light-gold fill, gold text; sized to its
        content (never full width) and right-aligned. */
+    /* THE primary button — one class for the whole app. Solid gold, white text,
+       eyebrow font (DM Sans uppercase, tracked). Deliberately compact
+       (fit-content, right-aligned) so the striking gold stays small and there's
+       one clear primary per screen; secondary actions use .btn-ghost. */
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: fit-content; max-width: 100%; margin-left: auto; padding: 8px 16px;
-      background: #ecdcb4;
-      color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius);
-      font-size: 15px; font-weight: 600; font-family: var(--serif);
-      letter-spacing: 0.2px; text-transform: lowercase; cursor: pointer;
+      background: var(--gold);
+      color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
+      font-size: 12px; font-weight: 400; font-family: 'DM Sans', sans-serif;
+      letter-spacing: 0.3px; text-transform: uppercase; cursor: pointer;
       transition: transform 0.12s ease, filter 0.15s ease; text-decoration: none;
     }
-    /* The "Take the quiz" button wears the eyebrow font (DM Sans uppercase,
-       0.3px tracking) like the quiz's own gold buttons — everything else about
-       the house .btn (fill, outline, color) stays the same. */
-    /* Match the quiz's Continue button: solid gold, white text, no visible
-       outline (border same color as fill), plus the eyebrow font. */
-    #quiz-open { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400; letter-spacing: 0.3px; text-transform: uppercase;
-      background: var(--gold); color: #fffbf3; border-color: var(--gold); }
     .btn:active { transform: scale(0.985); }
     .btn:hover { filter: brightness(0.97); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
-    .btn svg { width: 15px; height: 15px; }
+    .btn svg { width: 14px; height: 14px; }
     /* Shared star — every star in the app renders from the STAR const via this
        class, so swapping the icon later is a one-line change. */
     .js-star { display: inline-flex; align-items: center; line-height: 0; }
@@ -171,28 +168,13 @@
     /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
        Back/Continue row. */
     .dream-btns { justify-content: space-between; }
-    .dream-btns .btn, .dream-btns .btn-ghost { width: auto; margin-left: 0; }
-    .dream-btns .btn-gold { width: auto; }  /* keeps margin-left:auto → sits right */
+    .dream-btns .btn-ghost { width: auto; margin-left: 0; }  /* Unlock (ghost) → left */
+    .dream-btns .btn { width: auto; }                        /* Illustrate keeps margin-left:auto → right */
     /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
     #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
       font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
       letter-spacing: 0.3px; text-transform: uppercase; }
     #dream-unlock:hover { border-color: #8f8a82; color: var(--gold); }
-    /* Gold button: gold outline, lighter-gold fill, darker-gold text; auto-width, right-aligned. */
-    .btn-gold {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: fit-content; margin-left: auto; padding: 8px 16px;
-      /* Solid gold, white text, no visible outline (border kept same width/color
-         as the fill so the button's size is unchanged). */
-      background: var(--gold); color: #fffbf3; border: 1px solid var(--gold); border-radius: var(--radius);
-      /* Eyebrow/kicker treatment — DM Sans, uppercase, tracked-out (matches the
-         SUSPICIOUS COINCIDENCE… card labels), not the serif lowercase. */
-      font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; text-transform: uppercase;
-      cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease; text-decoration: none;
-    }
-    .btn-gold:hover { filter: brightness(0.97); }
-    .btn-gold:active { transform: scale(0.985); }
-    .btn-gold svg { width: 14px; height: 14px; }
     .btn-row { display: flex; gap: 10px; }
     .btn-white { background: #ffffff; color: var(--gold); border: 1px solid var(--gold-dim); }
     .btn-white:hover { filter: none; background: #fffdf7; }
@@ -1024,7 +1006,7 @@
           </div>
           <div class="dream-btns">
             <button class="btn-ghost" id="dream-unlock">Unlock the symbolism</button>
-            <button class="btn-gold" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
+            <button class="btn" id="dream-illustrate">Illustrate <span class="js-star"></span></button>
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
@@ -2716,7 +2698,7 @@
         `<div class="quiz-kicker">A witching diagnostic</div>
          <div class="quiz-hero">Are you secretly a witch?</div>
          <p class="reveal-body" style="margin-top:12px;">Five signs. Answer honestly — there are no wrong answers, only what's true for you.</p>
-         <button class="btn-gold" id="q-begin" style="margin-top:6px;">Begin</button>`;
+         <button class="btn" id="q-begin" style="margin-top:6px;">Begin</button>`;
       $('q-begin').onclick = () => { qi++; renderQuizScreen(); };
     } else if (sc.k === 'q') {
       const it = QUIZ[sc.i];
@@ -2737,7 +2719,7 @@
         `<div class="reveal-body">${esc(it.reveal.body)}</div>
          <div class="quiz-btnrow">
            <button class="btn-ghost" id="q-back" type="button">Back</button>
-           <button class="btn-gold" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'} ${arrow}</button>
+           <button class="btn" id="q-cont" type="button">${last ? 'See what you are' : 'Continue'} ${arrow}</button>
          </div>`;
       const wire = () => {
         $('q-cont').onclick = () => { qi++; renderQuizScreen(); };
@@ -2853,7 +2835,7 @@
     }
     let data = skyChart();
     if (!data) {
-      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><span class="spin">✦</span></div>' }];
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>' }];
       renderDeckCard();
       if (skyBusy) return; skyBusy = true;
       try {
