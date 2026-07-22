@@ -909,7 +909,9 @@ document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localSt
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); if(window._reloadAssets) window._reloadAssets(); };
 
 function load(){
-  api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){
+  // cache-bust: the webview heuristically cached the bare URL, which made the
+  // Refresh button look dead (new messages only appeared minutes later)
+  api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
     if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){
