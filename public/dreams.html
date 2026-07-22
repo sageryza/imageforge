@@ -52,6 +52,33 @@
   .arrow svg{width:13px;height:13px}
   .arrow:disabled{color:rgba(158,149,144,.4);cursor:default}
 
+  /* Approval step (dreams v2): dream cards + character picks */
+  .dreamcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);
+    padding:14px;margin-bottom:12px}
+  .dreamcard .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .dreamcard .head .t{font-family:var(--serif);font-size:17px;color:var(--text);flex:1}
+  .dreamcard .words{font-size:15px;line-height:1.55;color:var(--text);cursor:pointer}
+  .dreamcard .words.clamped{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .dreamcard .words mark{background:none;color:var(--mauve);text-decoration:underline;padding:0}
+  .whoin{font-size:12px;font-weight:600;letter-spacing:1px;color:var(--textDim);text-transform:uppercase;margin:12px 0 6px}
+  .whichone{font-size:13.5px;color:var(--textDim);margin:6px 0 4px}
+  .candrow{display:flex;gap:10px;overflow-x:auto;padding:2px 0 6px}
+  .cand{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;max-width:96px}
+  .cand img{width:62px;height:62px;object-fit:cover;border-radius:6px;display:block}
+  .cand .nm{font-size:11.5px;color:var(--textDim);max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cand.on{background:var(--gold);border:2px solid var(--mauve);padding:5px}
+  .cand.on .nm{color:var(--text)}
+  .blankcand{display:flex;gap:10px;align-items:center;margin:6px 0}
+  .blankcand .box{flex:none;width:44px;height:44px;border:1px dashed var(--border);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;color:var(--textDim)}
+  .blankcand .box svg{width:18px;height:18px}
+  .blankcand .info{flex:1}
+  .blankcand .info .nm{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+  .blankcand input{width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);
+    padding:7px 9px;font-size:14px;color:var(--text);font-family:inherit}
+  .blankcand input:focus{outline:none;border-color:var(--accent)}
+
   .page{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--radiusLg);margin-bottom:12px;
     overflow:hidden;cursor:zoom-in;display:block;min-height:120px}
   .page img{width:100%;display:block}
@@ -138,6 +165,7 @@
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
+    review:[], picks:[], originalOrder:[], expanded:{},   // the approval step
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
@@ -166,26 +194,90 @@
   function getActive(){ try{ return (localStorage.getItem('dreams_active')||'').split(',').filter(Boolean); }catch{ return []; } }
   function setActive(ids){ try{ ids.length ? localStorage.setItem('dreams_active', ids.join(',')) : localStorage.removeItem('dreams_active'); }catch{} }
 
-  // ── One tap: break the recording down and draw it, in Sol's order, with no
-  //    review step. The render is a server-side background job, so closing the
-  //    page never stops it — we record the ids and re-attach on return. ──
+  // ── Stage 1 (free, fast): the read ONLY splits the recording into its
+  //    dreams — order, drift cues, who's mentioned, saved-sheet candidates.
+  //    Runs as a server background job (poll the batch), then the approval
+  //    step renders. Nothing is drawn until Draw is tapped. ──
   async function illustrate(){
     const body = (S.text||'').trim();
     if(!body){ showToast('Write down your dream first.'); return; }
     if(S.busy) return;
     try{ localStorage.setItem('dreams_last', body); }catch{}   // remember it so it prefills next time
     if(S.recording){ recog && recog.stop(); }
-    S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[];
+    S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[]; S.review=[]; S.picks=[];
     S.session++; const session=S.session;
     render();
-    const r = await jpost('/dream', { dream: body });
+    const r = await jpost('/dream', { dream: body, background:true });
     if(session!==S.session) return;
-    if(!r.ok){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
-    const dreams = r.body.dreams || [];
+    if(!r.ok || !r.body.batchId){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
+    try{ localStorage.setItem('dreams_reading', r.body.batchId); }catch{}
+    await drainReading(r.body.batchId, session);
+  }
+
+  // Poll the background reading; when done, show the approval step.
+  async function drainReading(id, session){
+    let fails=0;
+    while(session===S.session){
+      const r = await api('/dream-batch/'+id);
+      if(r.ok){
+        fails=0; const b=r.body;
+        if(b.status==='error'){
+          try{ localStorage.removeItem('dreams_reading'); }catch{}
+          S.busy=false; S.statusLabel=''; render();
+          showToast(b.error||'Could not read that dream.'); return;
+        }
+        if(b.status==='done'){
+          try{ localStorage.removeItem('dreams_reading'); }catch{}
+          S.busy=false; S.statusLabel='';
+          beginReview(b.dreams||[]); render(); return;
+        }
+        if(b.label) S.statusLabel = b.label.charAt(0).toUpperCase()+b.label.slice(1)+'…', render();
+      } else { fails++; if(fails>=25){ S.busy=false; S.statusLabel=''; render(); return; } }
+      await sleep(3200);
+    }
+  }
+
+  // The split dreams arrive → set up the approval state: one pick row per
+  // mentioned name, best saved-sheet candidate pre-picked.
+  function beginReview(dreams){
+    if(!dreams.length){ showToast('Could not read that dream — try again.'); return; }
+    S.review = dreams;
+    S.originalOrder = dreams.map(d=>d.id);
+    S.expanded = dreams.length===1 ? {[dreams[0].id]:true} : {};
+    S.picks = [];
+    for(const d of dreams){
+      const sugg = d.castSuggestions || (d.mentions||[]).map(n=>({name:n, matches:[]}));
+      for(const s of sugg){
+        S.picks.push({ dreamId:d.id, mention:s.name, candidates:s.matches||[],
+                       selected:(s.matches&&s.matches[0])?s.matches[0].id:null, desc:'' });
+      }
+    }
+  }
+
+  // ── Stage 2 → 3: approval confirmed — persist the dream order if it moved,
+  //    then render each dream with its approved characters. The server decides
+  //    how many pages and allots the dreamer's words; renders are background
+  //    jobs recorded by id so closing the page never loses them. ──
+  async function draw(){
+    const dreams = S.review;
+    if(!dreams.length || S.busy) return;
+    const picks = S.picks;
+    const orderChanged = dreams.map(d=>d.id).join() !== S.originalOrder.join();
+    S.review=[]; S.picks=[]; S.finished=[]; S.current=null;
+    S.busy=true; S.session++; const session=S.session;
+    S.statusLabel='Planning pages…'; render();
+    if(orderChanged) await jpost('/dream/reorder', { ids: dreams.map(d=>d.id) });
     const started=[];
     for(const d of dreams){
       if(session!==S.session) return;
-      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', order:d.beats.map(b=>b.id) });
+      const characters = picks.filter(p=>p.dreamId===d.id).map(p=>{
+        const e = { name:p.mention };
+        const cand = p.selected && (p.candidates||[]).find(c=>c.id===p.selected);
+        if(cand && cand.url) e.url = cand.url;
+        else if(p.desc.trim()) e.desc = p.desc.trim();
+        return e;
+      });
+      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', characters });
       if(rr.ok){ started.push(d.id); setActive(started); }
       else showToast((rr.body&&rr.body.error)||'Render failed to start.');
     }
@@ -259,7 +351,9 @@
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
 
-    if(S.busy || S.current || S.finished.length){
+    if(S.review.length){
+      h += reviewHtml();
+    } else if(S.busy || S.current || S.finished.length){
       h += `<div class="section">`;
       S.finished.forEach(d => (d.pages||[]).forEach(p => h += pageHtml(p.url, d)));
       if(S.current && S.current.pages) S.current.pages.forEach(p => h += pageHtml(p.url, S.current));
@@ -275,6 +369,78 @@
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const i=el.dataset.page;openPopup(pageRefs[i]);});
+    wireReview();
+  }
+
+  // ── The approval step: "is this the order?" + "are these the characters?" ──
+  function reviewHtml(){
+    const n = S.review.length;
+    let h = `<div class="section">
+      <div class="eyebrow"><span>${n>1?`${n} DREAMS — IS THIS THE ORDER?`:'CHECK YOUR DREAM'}</span></div>
+      <p class="subnote">${n>1
+        ? 'That recording was more than one dream. Check the order and the characters, then draw them all.'
+        : 'Check the words and the characters, then draw. Out-of-order phrases are marked — they\'ll be drawn in the true order.'}</p>`;
+    S.review.forEach((d,di)=>{
+      let words = esc(d.dreamText || d.dream || '');
+      (d.driftCues||[]).forEach(cue=>{ const c=esc(cue); if(c) words = words.split(c).join('<mark>'+c+'</mark>'); });
+      h += `<div class="dreamcard">
+        <div class="head"><div class="t">${esc(d.title)}</div>
+          ${n>1?`<button class="arrow" data-move="${di},-1" ${di===0?'disabled':''}>${IC.up}</button>
+                 <button class="arrow" data-move="${di},1" ${di===n-1?'disabled':''}>${IC.down}</button>`:''}
+        </div>
+        <div class="words ${S.expanded[d.id]?'':'clamped'}" data-expand="${d.id}">${words}</div>`;
+      const picks = S.picks.map((p,pi)=>({p,pi})).filter(x=>x.p.dreamId===d.id);
+      if(picks.length){
+        h += `<div class="whoin">Who's in it</div>`;
+        for(const {p,pi} of picks){
+          if(!p.candidates.length){
+            h += `<div class="blankcand">
+              <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6"/><path d="M17.5 15.5c.8-.8 2.2-.8 3 0s.8 2.2 0 3l-.5.5-3-3z"/><path d="m14 22 .5-2.5 2.5-.5"/></svg></div>
+              <div class="info"><div class="nm">${esc(p.mention)}</div>
+                <input placeholder="describe them (optional)" data-desc="${pi}" value="${esc(p.desc)}"></div>
+            </div>`;
+          } else {
+            if(p.candidates.length>1) h += `<div class="whichone">${esc(p.mention)} — which one?</div>`;
+            h += `<div class="candrow">`;
+            for(const c of p.candidates){
+              const label = c.name===p.mention ? c.name : `${p.mention} = ${c.name}`;
+              h += `<div class="cand ${p.selected===c.id?'on':''}" data-pick="${pi},${esc(c.id)}">
+                ${c.url?`<img src="${c.url}" loading="lazy">`:''}<div class="nm">${esc(label)}</div>
+              </div>`;
+            }
+            h += `</div>`;
+          }
+        }
+      }
+      h += `</div>`;
+    });
+    h += `<button class="btn draw" id="drawBtn">${n>1?`Draw all ${n}`:'Draw it'}</button></div>`;
+    return h;
+  }
+
+  function wireReview(){
+    root.querySelectorAll('[data-move]').forEach(el=>el.onclick=()=>{
+      const [di,dir]=el.dataset.move.split(',').map(Number);
+      const j=di+dir;
+      if(j<0||j>=S.review.length) return;
+      const t=S.review[di]; S.review[di]=S.review[j]; S.review[j]=t;
+      render();
+    });
+    root.querySelectorAll('[data-expand]').forEach(el=>el.onclick=()=>{
+      const id=el.dataset.expand;
+      S.expanded[id]=!S.expanded[id]; render();
+    });
+    root.querySelectorAll('[data-pick]').forEach(el=>el.onclick=()=>{
+      const i=el.dataset.pick.indexOf(',');
+      const pi=Number(el.dataset.pick.slice(0,i)), cid=el.dataset.pick.slice(i+1);
+      const p=S.picks[pi]; if(!p) return;
+      p.selected = p.selected===cid ? null : cid;   // tap again = not them
+      render();
+    });
+    root.querySelectorAll('[data-desc]').forEach(el=>el.oninput=e=>{
+      const p=S.picks[Number(el.dataset.desc)]; if(p) p.desc=e.target.value;
+    });
+    const db=$('drawBtn'); if(db) db.onclick=draw;
   }
 
   // page refs table so a tile click can open the right image + dream text
@@ -390,8 +556,17 @@
   try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
 
   render();
-  // If a render was still going when the page was last closed, pick it back up.
-  resumeActive();
+  // If a reading or render was still going when the page was last closed,
+  // pick it back up — the server never stopped.
+  (async ()=>{
+    let readingId='';
+    try{ readingId = localStorage.getItem('dreams_reading')||''; }catch{}
+    if(readingId && !S.busy){
+      S.busy=true; S.statusLabel='Reading your dream…'; S.session++; render();
+      await drainReading(readingId, S.session);
+    }
+    resumeActive();
+  })();
 </script>
 </body>
 </html>
