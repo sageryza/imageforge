@@ -2282,6 +2282,7 @@ app.get('/api/witch/shop', async (req, res) => {
         if (debug) dbg = {
           etsyCount: listings.length, shopifyCount: scored.length, kept: kept.length,
           matches: kept.map(s => ({ name: shopShortName(s.p.title, s.p.handle), etsy: s.best.title, score: s.bestScore, handle: s.p.handle })),
+          unmatchedEtsy: listings.filter(l => !byEtsy.has(l.id)).map(l => l.title),
           dropped: scored.filter(s => !s.best || s.bestScore < 2).map(s => s.p.title),
         };
       } else {
