@@ -666,6 +666,10 @@
        and SHRINKS first when a card's text is long, so the text is never cut
        off behind a fixed-height picture (seen live on pm-10). */
     .tcard-img { width: 100%; height: auto; flex: 999 9 42vh; min-height: 110px; max-height: min(42vh, 430px); object-fit: contain; display: block; }
+    .tcard-html { flex: 999 9 42vh; min-height: 110px; max-height: min(42vh, 430px); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .tcard-html .sky-circle { width: min(62vw, 240px); height: auto; max-height: min(42vh, 300px); }
+    .tcard-html .sky-wheel { max-width: min(80vw, 300px); margin: 0; }
+    .tcard-html .sky-wheel svg { width: 100%; height: auto; display: block; }
     .deck-head { flex: none; padding: 10px 24px 4px; }
     .deck-text { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 8px 24px 0; overflow-y: auto; }
     /* Center the text in its slot via auto margins (not justify-content), so
@@ -2796,71 +2800,96 @@
     } catch {}
     return null;
   }
+  const SIGN_NAMES = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+  const signIdxOf = b => b && isFinite(b.lon) ? ((Math.floor(b.lon / 30) % 12) + 12) % 12 : (b && b.signIndex != null ? b.signIndex : 0);
+  // One focused circle: just the sign on that house + the planet glyph(s) in it —
+  // deliberately NO other signs/houses, so a single placement reads clearly.
+  function skyHouseSVG(signIdx, glyphs) {
+    const g = (glyphs || []).filter(Boolean);
+    const cx = 130, cy = 130, r = 104;
+    let planets = '';
+    if (g.length) {
+      const gap = 62, startX = cx - (g.length - 1) * gap / 2;
+      planets = g.map((gy, i) => `<text x="${(startX + i * gap).toFixed(0)}" y="${cy + 22}" font-size="52" fill="${CP.plum}" text-anchor="middle" dominant-baseline="central">${gy + '︎'}</text>`).join('');
+    }
+    return `<svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" class="sky-circle">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${CP.cream}" stroke="${CP.ink}" stroke-width="3"/>
+      <circle cx="${cx}" cy="${cy}" r="${r - 9}" fill="none" stroke="${CP.gold}" stroke-width="1"/>
+      <text x="${cx}" y="52" font-size="40" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">${signGlyph(signIdx)}</text>
+      ${planets}
+    </svg>`;
+  }
   let skyBusy = false;
   async function openSky() {
     try { const p = schoolProgress(); p.mysky = { seen: 1, done: true }; saveSchoolProgress(p); } catch {}
-    $('sky-app').style.display = ''; document.body.style.overflow = 'hidden';
-    renderSky();
-  }
-  function closeSky() { $('sky-app').style.display = 'none'; document.body.style.overflow = ''; try { renderSchoolPath(); } catch {} }
-  async function renderSky() {
-    const stage = $('sky-stage'); $('sky-app').scrollTop = 0;
+    deckOnNote = false; deckKey = 'mysky'; deckIdx = 0;
+    go('school'); // the lesson overlay lives inside the school view
+    $('school-lesson').style.background = '#fdf9f3';
+    $('school-lesson').style.display = ''; document.body.classList.add('lesson-open');
     const birth = savedBirth();
     if (!birth) {
-      stage.innerHTML = `<div class="quiz-stage-inner"><div class="quiz-hero" style="font-size:26px;">Read your own sky</div>
-        <p class="sky-empty">This lesson draws <i>your</i> real chart and walks you through it — planet by planet, house by house. First it needs your birth details.</p>
-        <button class="btn" id="sky-add" style="margin:0 auto;">Add my birth details <span class="js-star"></span></button></div>`;
-      renderStars();
-      $('sky-add').onclick = () => { closeSky(); go('home'); setTimeout(() => { const f = $('natal-form'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90); };
-      return;
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Read your own sky', bg: '#fdf9f3',
+        body: 'This lesson draws <i>your</i> real chart and walks you through it — one placement at a time, using where YOUR planets actually landed.<br><br>It just needs your birth details first.',
+        cta: { label: 'Add my birth details', go: 'home', el: 'natal-form', fallback: 'view-home' } }];
+      renderDeckCard(); return;
     }
     let data = skyChart();
     if (!data) {
-      stage.innerHTML = `<div class="quiz-loading"><span class="spin">✦</span></div>`;
-      if (!skyBusy) { skyBusy = true;
-        try {
-          data = await api('/api/witch/natal', { date: birth.date, time: birth.time, place: birth.place });
-          try { localStorage.setItem('witch_natal', JSON.stringify({ input: birth, data, coords: data.coords, tz: data.tz })); } catch {}
-        } catch (e) { stage.innerHTML = `<p class="sky-empty">The sky\'s clouded over just now — try again in a moment.</p>`; skyBusy = false; return; }
-        skyBusy = false;
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>' }];
+      renderDeckCard();
+      if (skyBusy) return; skyBusy = true;
+      try {
+        data = await api('/api/witch/natal', { date: birth.date, time: birth.time, place: birth.place });
+        try { localStorage.setItem('witch_natal', JSON.stringify({ input: birth, data, coords: data.coords, tz: data.tz })); } catch {}
+      } catch (e) {
+        deckCards = [{ kicker: 'Your Sky, Read', h: 'The sky\'s clouded over', bg: '#fdf9f3', body: 'Couldn\'t read your chart just now — close this and try again in a moment.' }];
+        renderDeckCard(); skyBusy = false; return;
       }
+      skyBusy = false;
     }
-    if (!data || !data.chart) { stage.innerHTML = `<p class="sky-empty">Couldn\'t read your chart — try re-adding your birth details on Home.</p>`; return; }
-    const c = data.chart, hasHouses = !!(data.hasTime && c.ascendant);
-    const find = n => c.bodies.find(b => b.name === n) || null;
-    const sun = find('Sun'), moon = find('Moon');
-    const big3 = `<div class="sky-big3">
-      <div class="b"><div class="g">☉</div><div class="l">Sun</div><div class="v">${sun ? esc(displaySign(sun)) : '—'}</div></div>
-      <div class="b"><div class="g">☽</div><div class="l">Moon</div><div class="v">${moon ? esc(displaySign(moon)) : '—'}</div></div>
-      <div class="b"><div class="g">↑</div><div class="l">Rising</div><div class="v">${hasHouses ? esc(displaySign(c.ascendant)) : '—'}</div></div>
-    </div>`;
-    const wheel = `<div class="sky-wheel">${posterSVG(c, { dateLabel: '', timeLabel: '', placeLabel: '', name: '' })}</div>`;
-    let rows;
-    if (hasHouses) {
-      rows = c.bodies.map(b => {
-        const role = PLANET_ROLES[b.name] || 'a part of you';
-        const hm = b.house ? HOUSE_MEANINGS[b.house] : null;
-        const where = b.house ? `in your <b>${ORD[b.house]} house</b> — ${hm}` : '';
-        return `<div class="sky-row"><span class="pg">${(b.glyph || '✦') + '︎'}</span><div class="body">
-          <div class="hd"><b>${esc(b.name)}</b> in ${esc(displaySign(b))}${b.retro ? ' ℞' : ''}</div>
-          <div class="mn">${esc(role)}${where ? `, ${where}.` : '.'}</div></div></div>`;
-      }).join('');
-    } else {
-      rows = `<p class="sky-empty">Your <b>houses</b> need your <b>birth time</b> — without it we can place your planets in signs, but not in the twelve rooms. Add a time on Home to unlock the full walkthrough.</p>` +
-        c.bodies.map(b => `<div class="sky-row"><span class="pg">${(b.glyph || '✦') + '︎'}</span><div class="body">
-          <div class="hd"><b>${esc(b.name)}</b> in ${esc(displaySign(b))}${b.retro ? ' ℞' : ''}</div>
-          <div class="mn">${esc(PLANET_ROLES[b.name] || 'a part of you')}.</div></div></div>`).join('');
+    if (!data || !data.chart) {
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Hmm', bg: '#fdf9f3', body: 'Couldn\'t read your chart — try re-adding your birth details on Home.' }];
+      renderDeckCard(); return;
     }
-    stage.innerHTML = `<div class="quiz-stage-inner">
-      <div class="quiz-kicker">Your Sky, Read</div>
-      <div class="quiz-hero" style="font-size:26px;">This is your chart</div>
-      <p class="sky-intro">You in the center; the <b>signs</b> around the rim; your <b>planets</b> dropped into the <b>houses</b> — the rooms of your life. Here\'s what landed where.</p>
-      ${wheel}${big3}${rows}
-      <p class="sky-intro" style="margin-top:22px;">Empty houses are normal — there are twelve rooms and only a handful of planets. A quiet room just means that part of life runs softly in the background. ✦</p>
-    </div>`;
-    renderStars();
+    deckCards = buildSkyDeck(data); deckIdx = 0; renderDeckCard();
   }
-  $('sky-back').addEventListener('click', () => closeSky());
+  function buildSkyDeck(data) {
+    const c = data.chart, hasHouses = !!(data.hasTime && c.ascendant);
+    const BG = '#fdf9f3';
+    const cards = [];
+    // 1 — the whole wheel (the one busy picture, on purpose)
+    cards.push({ kicker: 'Your Sky, Read', h: 'This is your whole sky', bg: BG,
+      html: `<div class="sky-wheel">${posterSVG(c, { dateLabel: '', timeLabel: '', placeLabel: '', name: '' })}</div>`,
+      body: 'The snapshot of the heavens at the moment you were born. It looks like a lot — so let\'s take it one piece at a time, using <i>your</i> real placements.' });
+    // 2 — the three layers (teaching diagram)
+    cards.push({ img: 'as-houses', bg: '#fcf6ec', kicker: 'The three layers', h: 'You, at the center',
+      body: 'Every piece is one of three things: <b>you</b> in the middle, the twelve <b>signs</b> on the outer ring (the flavor), and the twelve <b>houses</b> inside — the rooms of your life. Your <b>planets</b> land in those rooms. From here on, each card shows just one at a time.' });
+    // Rising (needs a birth time)
+    if (hasHouses) {
+      const ai = signIdxOf(c.ascendant);
+      cards.push({ kicker: 'Your rising', h: `${SIGN_NAMES[ai]} rising`, bg: BG,
+        html: `<div class="sky-circle-wrap">${skyHouseSVG(ai, ['↑'])}</div>`,
+        body: `Your <b>rising sign</b> is <b>${esc(displaySign(c.ascendant))}</b> — the sign that was climbing over the horizon at your birth, and the doorway to your whole 1st house (<i>yourself, how you come across</i>). It\'s the face you meet the world with.` });
+    }
+    // Planets, in a friendly order
+    const order = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+    const bodies = c.bodies.slice().sort((a, b) => (order.indexOf(a.name) + 99 * (order.indexOf(a.name) < 0)) - (order.indexOf(b.name) + 99 * (order.indexOf(b.name) < 0)));
+    bodies.forEach(b => {
+      const idx = signIdxOf(b);
+      const mates = c.bodies.filter(x => signIdxOf(x) === idx).map(x => x.glyph).filter(Boolean);
+      const role = PLANET_ROLES[b.name] || 'a part of you';
+      const houseBit = (hasHouses && b.house) ? ` It landed in your <b>${ORD[b.house]} house</b> — ${HOUSE_MEANINGS[b.house]}.` : '';
+      const rx = b.retro ? ' Right now it\'s <b>retrograde</b> — turned inward.' : '';
+      cards.push({ kicker: b.name, h: `${esc(b.name)} in ${esc(displaySign(b))}`, bg: BG,
+        html: `<div class="sky-circle-wrap">${skyHouseSVG(idx, mates)}</div>`,
+        body: `<b>${esc(b.name)}</b> is ${role}, and yours sits in <b>${esc(displaySign(b))}</b>.${houseBit}${rx}` });
+    });
+    // Closing
+    cards.push({ kicker: 'After', h: 'That\'s your sky', bg: BG,
+      body: 'Every planet you just met is one sentence of you — a <i>what</i> (the planet), a <i>where</i> (the house), and a <i>how</i> (the sign). Put them together and the chart starts to read like a person.<br><br>Want the full written reading of it? ✦',
+      cta: { label: 'Read my full chart', go: 'home', el: 'see-full-chart', fallback: 'natal-form' } });
+    return cards;
+  }
   { const t = $('open-mysky'); if (t) t.addEventListener('click', () => openSky()); }
 
   /* ══════════ Suspicious coincidence — describe it, AI draws it ══════════ */
@@ -3597,7 +3626,7 @@
         <div class="tcard-kicker">${esc(c.kicker)}</div>
         <div class="tcard-h">${esc(c.h)}</div>
       </div>
-      <img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">
+      ${c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">`}
       <div class="deck-text">
         <div class="tcard-body">${c.body}</div>
         ${c.cta ? `<button class="btn deck-cta" id="deck-cta" style="margin:16px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button>` : ''}
@@ -3636,7 +3665,7 @@
   }
   function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
   // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
-  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary' };
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
   function renderDeckNote() {
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
