@@ -1813,6 +1813,36 @@ app.post('/api/witch/lesson-note', async (req, res) => {
   }
 });
 
+// ─── Your Sky, Read — pick 3 of their real placements to teach the 3 layers ──
+// The tap-through lesson uses only a FEW of the reader's placements as worked
+// examples: one to teach what a SIGN is, one a HOUSE, one a PLANET. This picks
+// the clearest examples from their chart and writes the plain teaching copy.
+// The client caches the result per birth so retaking costs nothing.
+app.post('/api/witch/sky-lesson', async (req, res) => {
+  try {
+    const { placements = '', big3 = '', hasTime = false } = req.body || {};
+    if (!String(placements).trim()) return res.status(400).json({ error: 'placements required' });
+    const system = `You are a warm astrology teacher for the app "Secretly a Witch". You are given someone's REAL, already-computed birth placements. Do NOT recompute or invent — use only what's given.
+
+Pick exactly THREE of their placements to use as worked teaching examples, one for each concept, in this order:
+1. concept "sign" — a placement whose SIGN flavor teaches what a zodiac sign is (a "how").
+2. concept "planet" — a placement whose PLANET teaches what a planet is (a "what/who").
+3. concept "house" — a placement whose HOUSE teaches what a house is (a "where", a life-area).
+${hasTime ? '' : 'NOTE: no birth time was given, so there are NO houses. For the "house" concept, instead teach the idea of houses generally and gently say a birth time would place their planets in one — still pick a real planet+sign for the example, house null.'}
+
+Warm, plain, second person, 2-3 sentences each, teaching the CONCEPT through their specific placement. Never fatalistic, never medical/financial. Return VALID JSON only, no fences:
+{ "cards": [ { "concept": "sign", "planet": "Venus", "sign": "Libra", "house": 7, "title": "3-5 word title", "body": "2-3 sentences teaching what a sign is, using their Venus in Libra" }, … three total, in the order sign, planet, house ] }`;
+    const user = `Their placements:\n${String(placements).slice(0, 1500)}\n${big3 ? `Big three: ${String(big3).slice(0, 200)}` : ''}`;
+    const data = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.7, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    const out = parseJsonReply(data);
+    if (!out || !Array.isArray(out.cards)) return res.status(500).json({ error: 'bad lesson' });
+    res.json(out);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Firebase web config for the public app (Secretly a Witch accounts) ──
 // Returns the PUBLIC Firebase web config (safe to expose) so the client can
 // use Firebase Auth + Firestore. Reads from env; returns { configured:false }
