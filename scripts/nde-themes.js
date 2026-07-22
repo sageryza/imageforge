@@ -51,6 +51,7 @@ const THEMES = {
   'travel-by-thought': 'moving instantly by thinking of a place',
   'purpose-mission': 'being given a purpose, mission, or unfinished task',
   'welcomed-home': 'a feeling of returning home, or deep familiarity',
+  'why-me': 'wondering why it happened to them, why they were saved or chosen, or feeling undeserving ("why me", "why did God save me", "I don\'t deserve it", "why not someone who could spread it better")',
 };
 
 const SYS = `You are indexing near-death-experience interviews to build a SUPERCUT — a montage where many different people describe the SAME element back to back. Your job: scan ONE interview transcript and find every passage where the experiencer describes one of these RECURRING NDE elements (or another element likely to recur across many accounts).
