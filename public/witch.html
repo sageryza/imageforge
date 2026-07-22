@@ -1836,28 +1836,28 @@
       let h = `<div class="quiz-kicker">The deeper reading</div>`;
       if (headline) h += `<div class="glance-headline" style="text-align:center;">${esc(headline)}</div>`;
       const hasSky = sky && Array.isArray(sky.bodies) && sky.bodies.length;
-      // Reader gets straight into the words: the first ~2 paragraphs, THEN the
-      // chart wheel about halfway, THEN the rest of the reading. The placements
-      // list drops to the very bottom so it never blocks the reading.
-      const paras = String(d.reading || '').split(/\n\n+/).map(s => s.trim()).filter(Boolean);
-      const firstPart = paras.slice(0, 2), restPart = paras.slice(2);
-      firstPart.forEach(p => h += `<p class="glance-p">${esc(p)}</p>`);
+      // Break up the text so it never gets monotonous: paragraph 1 → the sky
+      // wheel → paragraph 2 → the placements → paragraph 3 → then the ritual.
+      // Capped at 3 paragraphs so the deeper reading stays punchy.
+      const paras = String(d.reading || '').split(/\n\n+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
+      const placementsHtml = hasSky
+        ? `<div class="glance-sec"><div class="glance-label">The day's placements</div><div class="dsk-list">`
+          + sky.bodies.map(b =>
+            `<div class="dsk-row"><span class="dsk-g">${(b.glyph || '✦') + '︎'}</span>${esc(b.name)} in ${esc(displaySign(b))}${b.retro ? '<span class="dsk-rx">rx</span>' : ''}<span class="dsk-d">${Math.floor(b.degInSign)}°</span></div>`).join('') + `</div></div>`
+        : '';
+      if (paras[0]) h += `<p class="glance-p">${esc(paras[0])}</p>`;
       if (hasSky) {
         h += `<div class="dsk-wheel">${dayChartSVG(sky)}</div>`;
         h += `<div class="dsk-caption">The sky · ${esc(dateLabel)}</div>`;
       }
-      restPart.forEach(p => h += `<p class="glance-p">${esc(p)}</p>`);
+      if (paras[1]) h += `<p class="glance-p">${esc(paras[1])}</p>`;
+      if (placementsHtml) h += placementsHtml;
+      if (paras[2]) h += `<p class="glance-p">${esc(paras[2])}</p>`;
       if (Array.isArray(d.ingredients) && d.ingredients.length) {
         h += `<div class="glance-sec"><div class="glance-label">The day's ingredients</div><div class="ingredients">`
           + d.ingredients.map(x => `<span class="ingredient">${esc(x)}</span>`).join('') + `</div></div>`;
       }
       if (d.ritual) h += `<div class="glance-sec"><div class="glance-label">A small ritual</div><div class="ritual-line">${esc(d.ritual)}</div></div>`;
-      // Placements list — at the bottom now, under its own label.
-      if (hasSky) {
-        h += `<div class="glance-sec"><div class="glance-label">The day's placements</div><div class="dsk-list">`
-          + sky.bodies.map(b =>
-            `<div class="dsk-row"><span class="dsk-g">${(b.glyph || '✦') + '︎'}</span>${esc(b.name)} in ${esc(displaySign(b))}${b.retro ? '<span class="dsk-rx">rx</span>' : ''}<span class="dsk-d">${Math.floor(b.degInSign)}°</span></div>`).join('') + `</div></div>`;
-      }
       st.innerHTML = h;
     } else if (deepLoading || astroLoadingKey) {
       st.innerHTML = `<div class="quiz-kicker">The deeper reading</div>
