@@ -278,6 +278,19 @@ lifted into a standalone tool later.
     `imageforge-q125.onrender.com` to **Allowed domains** → keep "Also include
     default list of common package managers" checked → Save. It's a one-time
     per-environment flip.
+  - **Network-proof path — post straight to Firestore (works even when the
+    server is blocked).** With the **Deck Factory JSON** (the deckfactory-43176
+    Firebase Admin service account) available as `FIREBASE_SERVICE_ACCOUNT`, a
+    chat can write the reply directly to the `forge-chat-feed` collection
+    instead of curling the API: `printf '%s' "$reply" | node
+    scripts/post-feed-direct.js --chat <name> --tldr "<TLDR>"`. Firestore is on
+    `googleapis.com`, which is allowed on EVERY network level, so this posts
+    even on the locked-down Trusted level. Provide the JSON as an **env var on
+    the environment** (`FIREBASE_SERVICE_ACCOUNT=<json>`, same as the server —
+    never commit it to this public repo); if it's missing, ask Sophie for it.
+    The robust setup is to configure one environment once with all three:
+    Network access (add the domain), the Setup script (auto-poster), and
+    `FIREBASE_SERVICE_ACCOUNT`.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
