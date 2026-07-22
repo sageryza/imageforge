@@ -256,6 +256,18 @@ lifted into a standalone tool later.
   `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
   (x-studio-token header when gated). The hook names the chat from the git
   branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
+- **Self-heal if you're NOT posting (any chat).** If your replies aren't
+  showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
+  If it's MISSING, your session's environment didn't install the hook —
+  reinstall it: `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
+  (writes the hook + `/home/user/.claude/settings.json`). Hooks only load at
+  Claude Code startup, so the reinstall kicks in on your NEXT session — to
+  surface THIS session's replies now, post each by hand once with
+  `POST https://imageforge-q125.onrender.com/api/chatfeed`
+  `{ "chat":"<branch-name>", "text":"<reply>", "tldr":"<TLDR>" }`, but ONLY
+  while the hook is missing (once it's back the hook posts, and a manual post
+  would duplicate). No auth header needed (STUDIO_TOKEN is off on the live
+  server).
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
