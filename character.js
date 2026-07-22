@@ -118,7 +118,22 @@ function buildPrompt(name, gender, note, subjectCount = 1) {
 async function generatePortrait(photoBuffers, name, gender, quality = 'medium', note = '', retries = 2) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   if (!styleRef) throw new Error('style reference missing');
-  const buffers = Array.isArray(photoBuffers) ? photoBuffers : [photoBuffers];
+  // Normalize every subject photo to a clean sRGB PNG: iPhone photos arrive
+  // with an EXIF orientation tag, a non-sRGB profile, or bytes (HEIC/odd mode)
+  // that gpt-image-2's edits endpoint rejects as "invalid image file or mode".
+  // Re-encoding with sharp (auto-orient, sRGB, RGBA, PNG) makes them valid and
+  // makes the bytes match the image/png label we send.
+  const sharp = require('sharp');
+  const raw = Array.isArray(photoBuffers) ? photoBuffers : [photoBuffers];
+  const buffers = [];
+  for (const b of raw) {
+    try {
+      buffers.push(await sharp(b).rotate().toColourspace('srgb').ensureAlpha().png().toBuffer());
+    } catch (e) {
+      console.warn('character: photo normalize failed —', e.message);
+      buffers.push(b);
+    }
+  }
   const prompt = buildPrompt(name, gender, note, buffers.length);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
