@@ -281,19 +281,43 @@
        answers stay above the fold on a phone. */
     .quiz-qart { width: 58%; margin: 0 auto 10px; }
 
-    /* End-of-lesson note screen (ask a question / tell Sophie) */
+    /* End-of-lesson note screen — pick a path, nothing to type until you do. */
     .deck-note .tcard-img { cursor: default; }
-    /* The two ~1-inch action icons: the AI-minded witch (Ask) and Sophie
-       catching the white envelope (Tell Sophie). */
-    .note-icons { display: flex; justify-content: center; gap: 26px; margin-top: 16px; }
-    .note-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; padding: 4px; cursor: pointer; font-family: inherit; }
-    .note-icon img { width: 120px; height: 120px; border-radius: 6px; display: block; }
-    .note-icon span { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); }
-    .note-icon:active img { transform: scale(0.96); }
-    .note-ta { width: 100%; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45; resize: none; }
-    .note-ta:focus { outline: none; border-color: var(--gold); }
-    .note-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-    .note-row .btn-ghost { width: auto; padding: 9px 16px; }
+    .note-lead { font-family: var(--serif); font-size: 18px; line-height: 1.35; text-align: center; color: var(--text); margin: 2px auto 6px; max-width: 300px; }
+    /* Two choices side by side: Tell Sophie (real, slow) + Ask (AI, instant). */
+    .note-choices { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
+    .note-choice { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 1px solid transparent; border-radius: 12px; padding: 8px 4px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s ease, border-color 0.15s ease; }
+    .note-choice:active { transform: scale(0.98); }
+    .note-choice.on { background: rgba(230,194,129,0.12); border-color: var(--gold-dim); }
+    .note-choice img { width: 104px; height: 104px; display: block; }
+    .nc-title { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); font-weight: 600; }
+    .nc-sub { font-size: 11px; line-height: 1.45; color: var(--text-faint); text-align: center; }
+    .nc-sub b { color: var(--text-dim); font-weight: 600; }
+    .nc-star svg { width: 11px; height: 11px; }
+    /* Ask → a little instant chat with the resident witch */
+    .nchat { margin-top: 16px; }
+    .nchat-log { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 42vh; overflow-y: auto; }
+    .nbubble { max-width: 84%; padding: 9px 12px; border-radius: 13px; font-size: 14px; line-height: 1.5; }
+    .nbubble.me { align-self: flex-end; background: var(--gold); color: #fffbf3; border-bottom-right-radius: 4px; }
+    .nbubble.witch { align-self: flex-start; background: var(--panel); color: var(--text); border-bottom-left-radius: 4px; font-family: var(--serif); }
+    .nchat-input { display: flex; gap: 8px; align-items: flex-end; }
+    .nchat-input textarea { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 16px; line-height: 1.4; resize: none; }
+    .nchat-input textarea:focus { outline: none; border-color: var(--gold); }
+    .nchat-send { flex: none; margin-left: 0; }
+    /* Tell Sophie → a letter, written on paper inside an envelope */
+    .nletter { margin-top: 16px; }
+    .nenvelope { position: relative; background: #efe4c9; border: 1px solid #d8c69e; border-radius: 6px; padding: 16px 14px 14px; box-shadow: 0 5px 16px rgba(120,90,40,0.16); }
+    .nflap { position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 120px solid transparent; border-right: 120px solid transparent; border-top: 46px solid #e6d8b4; }
+    .npaper { position: relative; background: #fdfaf2; border: 1px solid #eadfc6; border-radius: 3px; padding: 14px 14px 12px; box-shadow: 0 2px 6px rgba(120,90,40,0.10); }
+    .npaper-to { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text-dim); margin-bottom: 6px; }
+    .npaper-ta { width: 100%; border: none; background: none; resize: none; font-family: var(--serif); font-size: 16px; line-height: 1.7; color: var(--text); }
+    .npaper-ta:focus { outline: none; }
+    .npaper-email { width: 100%; margin-top: 10px; padding: 8px 10px; border: none; border-top: 1px solid #eadfc6; background: none; font-family: var(--serif); font-size: 14px; color: var(--text); }
+    .npaper-email:focus { outline: none; }
+    .nletter-note { text-align: center; font-size: 12px; color: var(--text-faint); font-style: italic; margin: 12px 0 12px; }
+    .nletter-send { margin: 0 auto; }
+    .nletter-sent { text-align: center; font-family: var(--serif); font-size: 18px; color: var(--gold); margin-top: 20px; line-height: 1.5; }
+    .nletter-sent span { display: block; font-size: 13px; font-style: italic; color: var(--text-dim); margin-top: 6px; }
     .note-wait { text-align: center; color: var(--gold); font-size: 22px; margin-top: 14px; }
     .note-answer { margin-top: 14px; padding: 12px 14px; background: var(--panel); border-radius: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--text); }
 
@@ -3709,41 +3733,99 @@
     $('deck-stage').innerHTML = `<div class="tcard deck-note">
       <div class="deck-head">
         <div class="tcard-kicker">Before you go</div>
-        <div class="tcard-h">Leave a note</div>
       </div>
       <div class="deck-text">
-        <div class="tcard-body">Something the lesson stirred up? Write it below, then tap the <b>witch mind</b> to ask — or tap <b>Sophie</b> to send it to the real witch behind all of this.</div>
-        <textarea id="note-text" class="note-ta" rows="3" placeholder="A question, a thought, a hello…"></textarea>
-        <div class="note-icons">
-          <button class="note-icon" id="note-ask" type="button"><img src="${SW_IMG}note-ai.png?v=5" alt=""><span>Ask</span></button>
-          <button class="note-icon" id="note-send" type="button"><img src="${SW_IMG}note-sophie.png?v=5" alt=""><span>Tell Sophie</span></button>
+        <div class="note-lead">Have a question, or want to understand something better?</div>
+        <div class="note-choices">
+          <button class="note-choice" id="note-sophie-btn" type="button">
+            <img src="/witch-note-sophie.png" alt="">
+            <span class="nc-title">Tell Sophie</span>
+            <span class="nc-sub">She'll reply when she can.</span>
+          </button>
+          <button class="note-choice" id="note-ai-btn" type="button">
+            <img src="/witch-note-ai.png" alt="">
+            <span class="nc-title">Ask</span>
+            <span class="nc-sub"><b>Resident witch</b><br>(with a little AI <span class="js-star nc-star"></span> magic)<br>responds immediately</span>
+          </button>
         </div>
-        <div id="note-out"></div>
+        <div id="note-panel"></div>
       </div>
     </div>`;
+    renderStars();
     const stop = (e) => e.stopPropagation();
-    ['note-text', 'note-ask', 'note-send', 'note-out'].forEach((id) => { const el = $(id); if (el) ['click', 'touchstart'].forEach((ev) => el.addEventListener(ev, stop)); });
-    const out = $('note-out');
-    $('note-ask').addEventListener('click', async () => {
-      const q = $('note-text').value.trim(); if (!q) { $('note-text').focus(); return; }
-      out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
-      try {
-        const cards = (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
-        const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards }) });
-        const j = await r.json();
-        out.innerHTML = j.answer ? `<div class="note-answer">${esc(j.answer)}</div>` : `<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>`;
-      } catch { out.innerHTML = '<div class="note-answer">The spirits are quiet right now — try again in a moment.</div>'; }
-    });
-    $('note-send').addEventListener('click', async () => {
-      const t = $('note-text').value.trim(); if (!t) { $('note-text').focus(); return; }
-      out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
-      try {
-        const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t }) });
-        const j = await r.json();
-        out.innerHTML = j.ok ? '<div class="note-answer">Sent — Sophie reads every one. ♥</div>' : '<div class="note-answer">It didn\'t send — try again in a moment.</div>';
-        if (j.ok) $('note-text').value = '';
-      } catch { out.innerHTML = '<div class="note-answer">It didn\'t send — try again in a moment.</div>'; }
-    });
+    const panel = $('note-panel');
+    ['note-sophie-btn', 'note-ai-btn', 'note-panel'].forEach((id) => { const el = $(id); if (el) ['click', 'touchstart'].forEach((ev) => el.addEventListener(ev, stop)); });
+    const lessonCards = () => (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
+    function selectChoice(which) {
+      $('note-sophie-btn').classList.toggle('on', which === 'sophie');
+      $('note-ai-btn').classList.toggle('on', which === 'ai');
+    }
+
+    // ── Ask: a little instant chat with the resident witch (AI) ──
+    function openAskChat() {
+      selectChoice('ai');
+      panel.innerHTML = `<div class="nchat">
+        <div class="nchat-log" id="nchat-log"></div>
+        <div class="nchat-input">
+          <textarea id="nchat-text" rows="1" placeholder="Ask the resident witch…"></textarea>
+          <button class="btn nchat-send" id="nchat-send" type="button">Ask <span class="js-star"></span></button>
+        </div></div>`;
+      renderStars();
+      const log = $('nchat-log'), ta = $('nchat-text');
+      const add = (who, html) => { const d = document.createElement('div'); d.className = 'nbubble ' + who; d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
+      async function send() {
+        const q = ta.value.trim(); if (!q) { ta.focus(); return; }
+        add('me', esc(q)); ta.value = ''; ta.style.height = 'auto';
+        const wait = add('witch', '<img class="hl-inline" src="/hoonie-loading.gif" alt="">');
+        try {
+          const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards: lessonCards() }) });
+          const j = await r.json();
+          wait.innerHTML = esc(j.answer || 'The spirits are quiet right now — try again in a moment.');
+        } catch { wait.innerHTML = 'The spirits are quiet right now — try again in a moment.'; }
+        log.scrollTop = log.scrollHeight;
+      }
+      $('nchat-send').addEventListener('click', send);
+      ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; });
+      ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+      ta.focus();
+    }
+
+    // ── Tell Sophie: a letter, snail-mailed to the real witch ──
+    function openLetter() {
+      selectChoice('sophie');
+      const signedIn = (typeof fbUser !== 'undefined' && fbUser);
+      panel.innerHTML = `<div class="nletter">
+        <div class="nenvelope">
+          <div class="nflap"></div>
+          <div class="npaper">
+            <div class="npaper-to">Dear Sophie,</div>
+            <textarea id="nletter-text" class="npaper-ta" rows="4" placeholder="write your letter…"></textarea>
+            ${signedIn ? '' : '<input type="email" id="nletter-email" class="npaper-email" placeholder="your email (so she can write back)">'}
+          </div>
+        </div>
+        <div class="nletter-note">✉&nbsp; Snail-mailed to Sophie — she'll write back when she can.</div>
+        <button class="btn nletter-send" id="nletter-send" type="button">Send my letter <span class="js-star"></span></button>
+        <div id="nletter-out"></div>
+      </div>`;
+      renderStars();
+      const out = $('nletter-out');
+      $('nletter-send').addEventListener('click', async () => {
+        const t = $('nletter-text').value.trim(); if (!t) { $('nletter-text').focus(); return; }
+        const email = $('nletter-email') ? $('nletter-email').value.trim() : '';
+        const btn = $('nletter-send'); btn.disabled = true;
+        out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
+        try {
+          const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t, email }) });
+          const j = await r.json();
+          if (j.ok) { panel.innerHTML = `<div class="nletter-sent">Your letter is on its way ✦<br><span>Sophie reads every one — she'll write back when she can.</span></div>`; }
+          else { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
+        } catch { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
+      });
+      $('nletter-text').focus();
+    }
+
+    $('note-ai-btn').addEventListener('click', openAskChat);
+    $('note-sophie-btn').addEventListener('click', openLetter);
     $('deck-prev').disabled = false;
     $('deck-next').textContent = 'Done';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });

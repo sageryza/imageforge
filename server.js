@@ -1787,20 +1787,23 @@ app.post('/api/witch/lesson-question', async (req, res) => {
 });
 app.post('/api/witch/lesson-note', async (req, res) => {
   try {
-    const { lesson = '', lessonTitle = '', text = '' } = req.body || {};
+    const { lesson = '', lessonTitle = '', text = '', email = '' } = req.body || {};
     const note = String(text).trim().slice(0, 1000);
     if (!note) return res.status(400).json({ error: 'text is required' });
     if (!lessonNoteAllowed(req.ip)) return res.status(429).json({ error: 'Give it a moment.' });
     if (!admin.apps.length) return res.status(503).json({ error: 'not configured' });
     const created = new Date().toISOString();
-    const doc = { lesson: String(lesson).slice(0, 40), lessonTitle: String(lessonTitle).slice(0, 80), text: note, created };
+    // Reply-to address (optional — only asked of logged-out readers).
+    const replyTo = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email).trim()) ? String(email).trim().slice(0, 120) : '';
+    const doc = { lesson: String(lesson).slice(0, 40), lessonTitle: String(lessonTitle).slice(0, 80), text: note, email: replyTo || null, created };
     await admin.firestore().collection('witch-mail').add(doc);
     // Surface it in Sophie's Chats app under a "witch-mail" tile.
     try {
+      const feedText = replyTo ? `${note}\n\n— reply to: ${replyTo}` : note;
       await admin.firestore().collection('forge-chat-feed').add({
         chat: 'witch-mail',
         title: `A reader on “${doc.lessonTitle || doc.lesson || 'a lesson'}”`,
-        text: note,
+        text: feedText,
         tldr: note.slice(0, 140),
         from: 'claude',
         created,
