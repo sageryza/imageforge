@@ -2188,25 +2188,64 @@ app.get('/api/witch/tarot-deck', (req, res) => {
 // (image, title, price, link) without any storefront token. Cached in memory
 // ~10 min. Every product's own URL still opens the real Shopify checkout.
 let SHOP_CACHE = { at: 0, data: null };
+// ── Shop curation: order + filter the app shop to mirror Sophie's Etsy ──
+// Words that appear on nearly every listing carry no matching signal — drop
+// them so the score reflects the distinctive product words.
+const SHOP_STOPWORDS = new Set(('the a an and or of for to with in on set kit gift her him your my ' +
+  'pagan wiccan wicca witch witchy witchcraft craft magic magical magick ritual altar supplies ' +
+  'crystal crystals stone gift gifts new').split(/\s+/));
+function shopWords(t) {
+  return (t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2 && !SHOP_STOPWORDS.has(w));
+}
+// A clean one-line display name from a keyword-stuffed title.
+const SHOP_NAME_OVERRIDES = {}; // handle -> nice name (populated after review)
+function shopShortName(title, handle) {
+  if (handle && SHOP_NAME_OVERRIDES[handle]) return SHOP_NAME_OVERRIDES[handle];
+  let s = (title || '').split(/\s*[~•|]\s*/)[0];        // before the first separator
+  s = s.replace(/\*[^*]*\*/g, ' ').replace(/\s{2,}/g, ' ').trim(); // drop *ASIDE* text
+  const words = s.split(' ');
+  if (s.length > 32 && words.length > 4) s = words.slice(0, 4).join(' '); // cap space-stuffed titles
+  if (s && s === s.toUpperCase()) s = s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s || title;
+}
+let ETSY_SHOP_LISTINGS = { at: 0, list: null, shopId: null };
+async function etsyActiveListings() {
+  const now = Date.now();
+  if (ETSY_SHOP_LISTINGS.list && now - ETSY_SHOP_LISTINGS.at < 30 * 60 * 1000) return ETSY_SHOP_LISTINGS.list;
+  const etsy = require('./etsy');
+  let shopId = process.env.ETSY_SHOP_ID || ETSY_SHOP_LISTINGS.shopId;
+  if (!shopId) {
+    let uid = '98999808';
+    try { const me = await etsy.getMe(); uid = (me.body && me.body.user_id) || uid; } catch {}
+    const shops = await etsy.getShops(uid);
+    shopId = ((shops.body && shops.body.results) || shops.results || [])[0]?.shop_id;
+  }
+  if (!shopId) return null;
+  const r = await etsy.getAllListings(shopId, 'active');
+  if (!r || !r.ok) return null;
+  const list = (r.results || []).map((l, i) => ({ idx: i, id: l.listing_id, title: l.title, words: new Set(shopWords(l.title)) }));
+  ETSY_SHOP_LISTINGS = { at: now, list, shopId };
+  return list;
+}
+
 app.get('/api/witch/shop', async (req, res) => {
   try {
+    const debug = req.query.debug === '1';
     const now = Date.now();
-    if (SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
+    if (!debug && SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
     const base = 'https://secretlyawitch.com';
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
     if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
     const j = await r.json();
-    // The store is shared with other brands; keep non-witch products (e.g. the
-    // People Watching Club items) out of the witch app's shop.
-    const EXCLUDE = /people\s*watching/i;
-    const products = (j.products || []).filter(p => !EXCLUDE.test(p.title || '')).map(p => {
+    // The store is shared with other brands; drop obvious non-witch items.
+    const EXCLUDE = /people\s*watching|in case of amnesia|remember things|custom order|incel/i;
+    let products = (j.products || []).filter(p => !EXCLUDE.test(p.title || '')).map(p => {
       const v = (p.variants || [])[0] || {};
       const img = (p.images || [])[0] || {};
       const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));
       return {
-        id: p.id,
-        title: p.title,
-        handle: p.handle,
+        id: p.id, title: p.title, handle: p.handle,
         url: `${base}/products/${p.handle}`,
         image: img.src || null,
         price: v.price || null,
@@ -2215,7 +2254,47 @@ app.get('/api/witch/shop', async (req, res) => {
         type: p.product_type || '',
       };
     });
+
+    // Cross-reference Etsy: keep only products that match an active Etsy
+    // listing, order them the way Etsy lists them, and use a clean short name.
+    let dbg = null;
+    try {
+      const listings = await etsyActiveListings();
+      if (listings && listings.length) {
+        const scored = products.map(p => {
+          const pw = shopWords(p.title);
+          let best = null, bestScore = 0;
+          for (const l of listings) {
+            let sc = 0; for (const w of pw) if (l.words.has(w)) sc++;
+            if (sc > bestScore) { bestScore = sc; best = l; }
+          }
+          return { p, best, bestScore };
+        });
+        const byEtsy = new Map(); // one shopify product per etsy listing (best score wins)
+        for (const s of scored) {
+          if (!s.best || s.bestScore < 2) continue;
+          const cur = byEtsy.get(s.best.id);
+          if (!cur || s.bestScore > cur.bestScore) byEtsy.set(s.best.id, s);
+        }
+        const kept = [...byEtsy.values()].sort((a, b) => a.best.idx - b.best.idx);
+        products = kept.map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
+        if (debug) dbg = {
+          etsyCount: listings.length, shopifyCount: scored.length, kept: kept.length,
+          matches: kept.map(s => ({ name: shopShortName(s.p.title, s.p.handle), etsy: s.best.title, score: s.bestScore, handle: s.p.handle })),
+          dropped: scored.filter(s => !s.best || s.bestScore < 2).map(s => s.p.title),
+        };
+      } else {
+        // Etsy unavailable — fall back to short names on the Shopify set.
+        products = products.map(p => ({ ...p, title: shopShortName(p.title, p.handle), fullTitle: p.title }));
+        if (debug) dbg = { etsyCount: 0, note: 'etsy listings unavailable; showing all shopify' };
+      }
+    } catch (e) {
+      products = products.map(p => ({ ...p, title: shopShortName(p.title, p.handle), fullTitle: p.title }));
+      if (debug) dbg = { error: e.message };
+    }
+
     const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, products };
+    if (debug) return res.json({ ...out, debug: dbg });
     SHOP_CACHE = { at: now, data: out };
     res.json(out);
   } catch (err) {
