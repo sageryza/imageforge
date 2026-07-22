@@ -1315,6 +1315,32 @@
     return data;
   }
 
+  // ── Background jobs (survive leaving the app) ──
+  // Slow generations run as fire-and-forget server jobs; the client starts one,
+  // persists the pending id to localStorage, and RESUMES polling on return —
+  // so nothing is lost by glancing away. See CLAUDE.md background-job rule.
+  async function startWitchJob(kind, body) {
+    const d = await api('/api/witch/job', Object.assign({ kind }, body || {}));
+    return d.id;
+  }
+  // Poll any job endpoint that returns { status:'running'|'done'|'error', ... }.
+  // Resilient to transient failures (cold start / phone lock); a 404 is terminal.
+  function pollJob(url, { onDone, onError, onTick, interval = 3000, maxTries = 100 } = {}) {
+    let tries = 0;
+    const timer = setInterval(async () => {
+      if (++tries > maxTries) { clearInterval(timer); onError && onError({ message: 'timed out' }); return; }
+      let d;
+      try { d = await apiGet(url); }
+      catch (e) { if (String(e.message).includes('404')) { clearInterval(timer); onError && onError({ message: 'expired' }); } return; }
+      if (onTick) try { onTick(d); } catch {}
+      if (d.status === 'done') { clearInterval(timer); onDone && onDone(d); }
+      else if (d.status === 'error') { clearInterval(timer); onError && onError({ message: d.error || 'failed' }); }
+    }, interval);
+    return timer;
+  }
+  function pendGet(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } }
+  function pendSet(key, v) { try { v == null ? localStorage.removeItem(key) : localStorage.setItem(key, JSON.stringify(v)); } catch {} }
+
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
   function go(view) {
@@ -2657,27 +2683,51 @@
   { const qo = $('quiz-open'); if (qo) qo.addEventListener('click', openQuiz); }
 
   /* ══════════ Suspicious coincidence — describe it, AI draws it ══════════ */
+  // Suspicious coincidence "Draw it" — a background job (gpt-image-2 low), so a
+  // ~15s render survives leaving the app: the pending id per box is saved and
+  // resumed on return.
+  const COIN_PEND = 'witch_coin_jobs'; // { "0": {id, desc}, ... }
+  const COIN_BTN_HTML = 'Draw it! <span class="js-star"></span>';
+  function coinPending() { return pendGet(COIN_PEND) || {}; }
+  function coinSetPending(i, v) { const m = coinPending(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_PEND, Object.keys(m).length ? m : null); }
+  function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
+  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<span class="spin">✦</span>'; }
+  function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
+  function watchCoin(i, id, desc) {
+    const box = $('coin-' + i); if (!box) return;
+    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    pollJob('/api/witch/job/' + id, {
+      onDone: (d) => {
+        coinSetPending(i, null); coinRestoreBtn(btn);
+        const url = d.result && d.result.url;
+        if (url) { box.innerHTML = `<img src="${esc(url)}" alt="">`; box.closest('.coin-cell')?.classList.add('drawn'); }
+        else { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+      },
+      onError: () => { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); },
+    });
+  }
   async function drawCoinBox(i) {
     const box = $('coin-' + i);
     const desc = (box.dataset.desc || box.textContent || '').trim();
     if (!desc) { box.focus(); return; }
     box.dataset.desc = desc;
-    const btn = document.querySelector('.coin-btn[data-i="' + i + '"]');
-    const orig = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.textContent = '…'; }
-    box.setAttribute('contenteditable', 'false');
-    box.innerHTML = '<span class="spin">✦</span>';
+    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    coinSpinner(box);
     const prompt = `Black and white vintage film photograph, grainy and dreamlike, quietly uncanny and a little unsettling. ${desc}. Moody, cinematic, atmospheric. No text, no words.`;
     try {
-      const r = await fetch('/api/generate/gptimage', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt, quality: 'medium', size: '1024x1024' }),
-      });
-      const d = await r.json();
-      if (d.url) { box.innerHTML = `<img src="${esc(d.url)}" alt="">`; box.closest('.coin-cell')?.classList.add('drawn'); }
-      else { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
-    } catch { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
-    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      const id = await startWitchJob('coincidence', { prompt, quality: 'low', size: '1024x1024' });
+      coinSetPending(i, { id, desc });
+      watchCoin(i, id, desc);
+    } catch { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+  }
+  function resumeCoinJobs() {
+    const m = coinPending();
+    Object.keys(m).forEach(i => {
+      const { id, desc } = m[i] || {};
+      const box = $('coin-' + i); if (!box || !id) return;
+      box.dataset.desc = desc; coinSpinner(box);
+      watchCoin(+i, id, desc);
+    });
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); drawCoinBox(+b.dataset.i); }));
   // Tap a drawn box to edit its text again (restores the description + the button).
@@ -2781,22 +2831,47 @@
     if (e.target.closest('.dream-past-back')) { showDreamPast(); return; }
   });
   $('dream-past').addEventListener('click', showDreamPast);
+  // Dream "Unlock the symbolism" — dual-LLM reading as a background job, so it
+  // survives leaving the app (pending id saved + resumed on return).
+  const DREAMREAD_PEND = 'witch_dreamread_job'; // {id, dream}
+  const DREAMREAD_BTN = 'Unlock the symbolism';
+  function dreamReadSpinner() {
+    const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
+    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Two readers are sitting with your dream…</div>`;
+    const btn = $('dream-unlock'); if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
+  }
+  function watchDreamRead(id, dream) {
+    const out = $('dream-out'); const btn = $('dream-unlock');
+    const finish = () => { if (btn) { btn.disabled = false; btn.textContent = DREAMREAD_BTN; } };
+    pollJob('/api/witch/job/' + id, {
+      onDone: (d) => {
+        pendSet(DREAMREAD_PEND, null); finish();
+        const data = d.result || {};
+        out.style.display = '';
+        out.innerHTML = renderDreamReading('Anthropic · Claude Opus 4.8', data.claude) + renderDreamReading('OpenAI · GPT‑5.6', data.gpt);
+        if (data.claude || data.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: data.claude, gpt: data.gpt } }); saveDreams(all); }
+      },
+      onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
+    });
+  }
   $('dream-unlock').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
-    const out = $('dream-out'); out.style.display = '';
-    $('dream-book').style.display = 'none';
-    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Two readers are sitting with your dream…</div>`;
-    const btn = $('dream-unlock'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Reading…';
+    dreamReadSpinner();
     try {
-      const d = await api('/api/witch/dream-read', { dream });
-      out.innerHTML = renderDreamReading('Anthropic · Claude Opus 4.8', d.claude) + renderDreamReading('OpenAI · GPT‑5.6', d.gpt);
-      if (d.claude || d.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: d.claude, gpt: d.gpt } }); saveDreams(all); }
+      const id = await startWitchJob('dream-read', { dream });
+      pendSet(DREAMREAD_PEND, { id, dream });
+      watchDreamRead(id, dream);
     } catch (e) {
-      out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`;
+      const btn = $('dream-unlock'); if (btn) { btn.disabled = false; btn.textContent = DREAMREAD_BTN; }
+      $('dream-out').style.display = ''; $('dream-out').innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again.</div>`;
     }
-    btn.disabled = false; btn.textContent = o;
   });
+  function resumeDreamRead() {
+    const p = pendGet(DREAMREAD_PEND); if (!p || !p.id) return;
+    dreamReadSpinner();
+    watchDreamRead(p.id, p.dream);
+  }
 
   // Illustrate → the diary-comic dreams engine, as a background job (start +
   // poll) so the ~1-2 min render survives cold starts / phone lock. Renders
@@ -2820,29 +2895,46 @@
     const sub = document.getElementById('dream-subscribe');
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
   }
+  // Illustrate is already a server-side background job; persist the pending id
+  // and resume the poll on return so the ~1-2 min render survives leaving.
+  const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
+  function dreamIllusSpinner() {
+    const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
+    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
+    const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
+  }
+  function watchDreamIllus(id) {
+    const book = $('dream-book'); const btn = $('dream-illustrate');
+    clearInterval(dreamIllusTimer);
+    let tries = 0;
+    dreamIllusTimer = setInterval(async () => {
+      if (++tries > 100) { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; book.innerHTML = `<div class="dread-fail">This is taking longer than usual — tap Illustrate to try again.</div>`; return; }
+      let d;
+      try { d = await apiGet('/api/witch/dream-illustrate/' + id); }
+      catch (e) { if (String(e.message).includes('404')) { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; book.innerHTML = `<div class="dread-fail">That illustration expired — tap Illustrate to try again.</div>`; } return; }
+      const lab = document.getElementById('dream-illus-label'); if (lab && d.label) lab.textContent = d.label.charAt(0).toUpperCase() + d.label.slice(1) + '…';
+      if (d.status === 'done' && d.page1) { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; renderDreamBook(d.page1); }
+      else if (d.status === 'error') { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(d.error || 'try again')}. Tap Illustrate to retry.</div>`; }
+    }, 3000);
+  }
   $('dream-illustrate').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
-    const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
-    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
-    const btn = $('dream-illustrate'); btn.disabled = true;
-    clearInterval(dreamIllusTimer);
+    dreamIllusSpinner();
     try {
       const { id } = await api('/api/witch/dream-illustrate', { dream });
-      let tries = 0;
-      dreamIllusTimer = setInterval(async () => {
-        if (++tries > 80) { clearInterval(dreamIllusTimer); btn.disabled = false; book.innerHTML = `<div class="dread-fail">This is taking longer than usual — tap Illustrate to try again.</div>`; return; }
-        let d;
-        try { d = await apiGet('/api/witch/dream-illustrate/' + id); } catch { return; } // transient — keep polling
-        const lab = document.getElementById('dream-illus-label'); if (lab && d.label) lab.textContent = d.label.charAt(0).toUpperCase() + d.label.slice(1) + '…';
-        if (d.status === 'done' && d.page1) { clearInterval(dreamIllusTimer); btn.disabled = false; renderDreamBook(d.page1); }
-        else if (d.status === 'error') { clearInterval(dreamIllusTimer); btn.disabled = false; book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(d.error || 'try again')}. Tap Illustrate to retry.</div>`; }
-      }, 3000);
+      pendSet(DREAMILLUS_PEND, { id, dream });
+      watchDreamIllus(id);
     } catch (e) {
-      btn.disabled = false;
-      book.innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
+      const btn = $('dream-illustrate'); if (btn) btn.disabled = false;
+      $('dream-book').innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
     }
   });
+  function resumeDreamIllus() {
+    const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;
+    dreamIllusSpinner();
+    watchDreamIllus(p.id);
+  }
 
   /* ══════════ Birth chart poster ══════════ */
   // Renders an accurate natal chart (from /api/witch/natal → chart) as an inline
@@ -3578,6 +3670,10 @@
   loadSavedNatal();
   renderStyleGrid().catch(() => toast('Could not load illustration styles'));
   initAccounts();
+  // Resume any background jobs that were mid-flight when the app was left.
+  try { resumeCoinJobs(); } catch (e) {}
+  try { resumeDreamRead(); } catch (e) {}
+  try { resumeDreamIllus(); } catch (e) {}
   // Load the real Rider-Waite art first, then render the home state (which
   // calls the daily reading once signed in + birthday is set).
   loadDeckImages().finally(() => renderHome());
