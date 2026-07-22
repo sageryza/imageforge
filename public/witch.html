@@ -417,6 +417,13 @@
     .sh-line { height: 13px; margin-bottom: 9px; }
     .spin { display: inline-block; animation: spin 1.4s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    /* Default loading animation — the hoonie linocut engraving. Used app-wide
+       in place of the ✦ spinner (the astrology sky-wheel stays its own thing).
+       .hl-inline sits beside a line of text; .hl-block is the centered large
+       loader for full loading panels. */
+    .hl-inline { width: 40px; height: 40px; vertical-align: middle; object-fit: contain; }
+    .hl-block { display: block; margin: 0 auto; width: 96px; height: 96px; object-fit: contain; }
+    .coin-box img.coin-load { object-fit: contain; padding: 12%; background: #fff; }
 
     /* Sky wheel — astrology loading. A huge black line-art wheel rising over a
        straight horizon; only the top sliver shows and it turns slowly (wheel of
@@ -1956,7 +1963,7 @@
       if (!tarotLoading && !tarotError) loadTarot(false);
       box.innerHTML = (tarotError && !tarotLoading)
         ? `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The cards are quiet right now — <button class="link-btn" id="tarot-retry">try again</button>.</p>`
-        : `<div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0;"><span class="spin">✦</span><span style="font-size:13px;color:var(--text-dim);font-style:italic;">Reading your cards…</span></div>`;
+        : `<div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0;"><img class="hl-inline" src="/hoonie-loading.gif" alt=""><span style="font-size:13px;color:var(--text-dim);font-style:italic;">Reading your cards…</span></div>`;
       box.style.display = '';
       dive.style.display = 'none';
       const rb = $('tarot-retry'); if (rb) rb.addEventListener('click', () => { tarotError = ''; loadTarot(true); showTarotReading(); });
@@ -2062,7 +2069,7 @@
   async function loadShop() {
     const wrap = $('shop-grid');
     if (wrap.dataset.loaded === '1') return;
-    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><span class="spin">✦</span>&nbsp; Gathering the shelves…</div>`;
+    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Gathering the shelves…</div>`;
     try {
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
@@ -2706,7 +2713,7 @@
       // Wait for the video to actually load before showing the screen, so it
       // never flashes text-without-video.
       if (it.media && it.media.type === 'video') {
-        stage.innerHTML = `<div class="quiz-loading"><span class="spin">✦</span></div>`;
+        stage.innerHTML = `<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>`;
         const v = document.createElement('video');
         v.className = 'quiz-media'; v.src = it.media.url; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
         let done = false;
@@ -2752,7 +2759,7 @@
   function coinPending() { return pendGet(COIN_PEND) || {}; }
   function coinSetPending(i, v) { const m = coinPending(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_PEND, Object.keys(m).length ? m : null); }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<span class="spin">✦</span>'; }
+  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function watchCoin(i, id, desc) {
     const box = $('coin-' + i); if (!box) return;
@@ -2898,7 +2905,7 @@
   const DREAMREAD_BTN = 'Unlock the symbolism';
   function dreamReadSpinner() {
     const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
-    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; Two readers are sitting with your dream…</div>`;
+    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Two readers are sitting with your dream…</div>`;
     const btn = $('dream-unlock'); if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
   }
   function watchDreamRead(id, dream) {
@@ -2961,7 +2968,7 @@
   const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
   function dreamIllusSpinner() {
     const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
-    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><span class="spin">✦</span>&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
+    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
   function watchDreamIllus(id) {
@@ -3522,7 +3529,7 @@
     const out = $('note-out');
     $('note-ask').addEventListener('click', async () => {
       const q = $('note-text').value.trim(); if (!q) { $('note-text').focus(); return; }
-      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
       try {
         const cards = (LESSONS[deckKey] || []).map((c) => `${c.h}: ${c.body.replace(/<[^>]+>/g, '')}`).join('\n');
         const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards }) });
@@ -3532,7 +3539,7 @@
     });
     $('note-send').addEventListener('click', async () => {
       const t = $('note-text').value.trim(); if (!t) { $('note-text').focus(); return; }
-      out.innerHTML = '<div class="note-wait"><span class="spin">✦</span></div>';
+      out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
       try {
         const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t }) });
         const j = await r.json();
