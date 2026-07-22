@@ -2702,7 +2702,7 @@
         if (url) { box.innerHTML = `<img src="${esc(url)}" alt="">`; box.closest('.coin-cell')?.classList.add('drawn'); }
         else { box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
       },
-      onError: () => { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); },
+      onError: (e) => { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t draw that one — try rewording it ✦'); },
     });
   }
   async function drawCoinBox(i) {
@@ -2717,7 +2717,7 @@
       const id = await startWitchJob('coincidence', { prompt, quality: 'low', size: '1024x1024' });
       coinSetPending(i, { id, desc });
       watchCoin(i, id, desc);
-    } catch { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+    } catch (e) { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
   }
   function resumeCoinJobs() {
     const m = coinPending();
