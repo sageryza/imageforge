@@ -4,15 +4,33 @@ import UserNotifications
 import UniformTypeIdentifiers
 
 /// Dreams — write down a dream and it's illustrated as a short hand-drawn
-/// diary comic: GPT breaks it into beats + captions AND reconstructs the true
-/// chronology from your cues, you get a quick "check the chronology" step to
-/// nudge the order, then it renders as 2x2 comic pages in the baked style with
-/// a locked character. Kept as a journal, with a daily ~11am nudge.
+/// diary comic, in user-approved stages: a fast read ONLY splits the recording
+/// into its separate dreams (order + who's mentioned — no beats), you approve
+/// "is this the order?" and "are these the characters?" (picking between
+/// look-alike candidates from the saved sheet, or describing someone new),
+/// and only then does the server decide how many pages each dream needs —
+/// allotting your exact words to each image — and draw them. Kept as a
+/// journal, with a daily ~11am nudge.
 struct DreamsView: View {
+    /// One mentioned name in a dream and what the user decided about it:
+    /// a picked saved-character candidate, a typed description, or neither
+    /// (the model just draws them fresh from the dream's words).
+    struct CastPick: Identifiable {
+        let id = UUID()
+        let dreamId: String
+        let mention: String
+        var candidates: [CastMatch]
+        var selected: String?          // picked candidate's id (nil = none)
+        var desc: String = ""          // for people not on the sheet
+    }
+
     @State private var text = ""
     @State private var busy = false
     @State private var statusLabel = ""
-    @State private var reviewDreams: [Dream] = []   // dreams split from the recording, to check the chronology of
+    @State private var reviewDreams: [Dream] = []   // dreams split from the recording, awaiting approval
+    @State private var castPicks: [CastPick] = []   // the character approvals, across all review dreams
+    @State private var originalOrder: [String] = [] // dream ids as the server returned them
+    @State private var expandedDreams: Set<String> = []   // tapped-to-expand review text blocks
     @State private var current: Dream?              // the dream currently rendering
     @State private var finished: [Dream] = []       // dreams already drawn this run (pages kept on screen)
     @State private var errorText: String?
@@ -209,28 +227,21 @@ struct DreamsView: View {
         }
     }
 
-    /// The chronology check — dreams come out of order, so the breakdown's best
-    /// guess at the real sequence, with ▲▼ to nudge any beat before drawing.
+    /// The approval step — the fast read only split the recording, so this asks
+    /// two questions at once: "is this the order of your dreams?" (▲▼ moves a
+    /// whole dream) and "are these the characters?" (candidate cards from the
+    /// saved sheet; a blank describe-them card for anyone it doesn't know).
     private var chronologySection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(reviewDreams.count > 1 ? "\(reviewDreams.count) DREAMS — CHECK THE CHRONOLOGY" : "CHECK THE CHRONOLOGY")
+            Text(reviewDreams.count > 1 ? "\(reviewDreams.count) DREAMS — IS THIS THE ORDER?" : "CHECK YOUR DREAM")
                 .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
             Text(reviewDreams.count > 1
-                 ? "That recording was more than one dream. Each is split out and put in order — nudge any beat, then draw them all."
-                 : "Dreams come out of order. Nudge any beat into place, then draw.")
+                 ? "That recording was more than one dream. Check the order and the characters, then draw them all."
+                 : "Check the words and the characters, then draw. Out-of-order phrases are marked — they'll be drawn in the true order.")
                 .font(.footnote).foregroundColor(Theme.textDim)
             ForEach(Array(reviewDreams.enumerated()), id: \.element.id) { di, dream in
-                VStack(alignment: .leading, spacing: 8) {
-                    if reviewDreams.count > 1 {
-                        Text(dream.title)
-                            .font(Theme.serif(17)).foregroundColor(Theme.text)
-                            .padding(.top, di == 0 ? 0 : 6)
-                    }
-                    ForEach(Array(dream.beats.enumerated()), id: \.element.id) { bi, beat in
-                        beatRow(dreamIndex: di, beatIndex: bi, beat: beat, count: dream.beats.count)
-                    }
-                }
+                dreamApprovalCard(dream, index: di)
             }
             Button { draw() } label: {
                 Text(reviewDreams.count > 1 ? "Draw all \(reviewDreams.count)" : "Draw it")
@@ -245,26 +256,122 @@ struct DreamsView: View {
         }
     }
 
-    private func beatRow(dreamIndex di: Int, beatIndex bi: Int, beat: DreamBeat, count: Int) -> some View {
-        let label = (beat.caption?.isEmpty == false) ? (beat.caption ?? "") : beat.imagePrompt
-        return HStack(spacing: 12) {
-            Text("\(bi + 1)")
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                .foregroundColor(Theme.mauve)
-                .frame(width: 20)
-            Text(label)
+    /// One split dream: title (+ ▲▼ to move the whole dream when there are
+    /// several), its own words with the out-of-order phrases marked, and its
+    /// character picks.
+    private func dreamApprovalCard(_ dream: Dream, index di: Int) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(dream.title)
+                    .font(Theme.serif(17)).foregroundColor(Theme.text)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if reviewDreams.count > 1 {
+                    arrowButton("chevron.up", disabled: di == 0) { moveDream(di, -1) }
+                    arrowButton("chevron.down", disabled: di == reviewDreams.count - 1) { moveDream(di, 1) }
+                }
+            }
+            Text(highlightedText(dream))
                 .font(.callout).foregroundColor(Theme.text)
+                .lineLimit(expandedDreams.contains(dream.id) ? nil : 5)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .lineLimit(2)
-            VStack(spacing: 6) {
-                arrowButton("chevron.up", disabled: bi == 0) { moveBeat(di, bi, -1) }
-                arrowButton("chevron.down", disabled: bi == count - 1) { moveBeat(di, bi, 1) }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if expandedDreams.contains(dream.id) { expandedDreams.remove(dream.id) }
+                    else { expandedDreams.insert(dream.id) }
+                }
+            let picks = castPicks.enumerated().filter { $0.element.dreamId == dream.id }
+            if !picks.isEmpty {
+                Text("WHO'S IN IT")
+                    .font(.caption2.weight(.semibold)).tracking(1)
+                    .foregroundColor(Theme.textDim)
+                    .padding(.top, 2)
+                ForEach(picks, id: \.element.id) { idx, pick in
+                    castPickRow(pick, at: idx)
+                }
             }
         }
-        .padding(12)
+        .padding(14)
         .background(Theme.surface)
-        .cornerRadius(Theme.radius)
-        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+        .cornerRadius(Theme.radiusLg)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+    }
+
+    /// One mentioned name: its saved-sheet candidates as tappable cards (tap to
+    /// pick, tap again to unpick — unpicked means "not them, draw fresh"), or a
+    /// blank card with a describe-them box when the sheet has no match.
+    private func castPickRow(_ pick: CastPick, at idx: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if pick.candidates.isEmpty {
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Theme.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .frame(width: 44, height: 44)
+                        .overlay(Image(systemName: "person.fill.questionmark")
+                            .font(.system(size: 16)).foregroundColor(Theme.textDim))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(pick.mention).font(.footnote.weight(.semibold)).foregroundColor(Theme.text)
+                        TextField("describe them (optional)", text: Binding(
+                            get: { castPicks.indices.contains(idx) ? castPicks[idx].desc : "" },
+                            set: { if castPicks.indices.contains(idx) { castPicks[idx].desc = $0 } }))
+                            .font(.footnote)
+                            .foregroundColor(Theme.text)
+                            .focused($focused)
+                    }
+                }
+            } else {
+                if pick.candidates.count > 1 {
+                    Text("\(pick.mention) — which one?")
+                        .font(.footnote).foregroundColor(Theme.textDim)
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(pick.candidates) { cand in
+                            castCandidateCard(cand, mention: pick.mention,
+                                              selected: pick.selected == cand.id) {
+                                guard castPicks.indices.contains(idx) else { return }
+                                castPicks[idx].selected = castPicks[idx].selected == cand.id ? nil : cand.id
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func castCandidateCard(_ cand: CastMatch, mention: String, selected: Bool, tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            VStack(spacing: 4) {
+                Group {
+                    if let url = cand.imageURL { CachedImageView(url: url, contentMode: .fill) }
+                    else { Image(systemName: "person.fill").foregroundColor(Theme.textDim) }
+                }
+                .frame(width: 62, height: 62)
+                .clipped()
+                .cornerRadius(6)
+                Text(cand.name == mention ? cand.name : "\(mention) = \(cand.name)")
+                    .font(.caption2)
+                    .foregroundColor(selected ? Theme.text : Theme.textDim)
+                    .lineLimit(1)
+            }
+            .padding(6)
+            .background(selected ? Theme.lightGold : Theme.bg)
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(selected ? Theme.mauve : Theme.border, lineWidth: selected ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The dream's own words with each out-of-order phrase marked.
+    private func highlightedText(_ dream: Dream) -> AttributedString {
+        var attr = AttributedString(dream.reviewText)
+        for cue in dream.driftCues ?? [] where !cue.isEmpty {
+            if let r = attr.range(of: cue) {
+                attr[r].foregroundColor = Theme.mauve
+                attr[r].underlineStyle = .single
+            }
+        }
+        return attr
     }
 
     private func arrowButton(_ icon: String, disabled: Bool, _ tap: @escaping () -> Void) -> some View {
@@ -300,7 +407,7 @@ struct DreamsView: View {
         Button {
             AutoScrollDriver.shared.stop()
             selectedPage = DreamPageRef(id: page.id, url: page.pageURL,
-                                        title: dream.title, dreamText: dream.dream)
+                                        title: dream.title, dreamText: dream.reviewText)
         } label: { pageImage(page.pageURL) }
         .buttonStyle(.plain)
     }
@@ -354,6 +461,8 @@ struct DreamsView: View {
         current = nil
         finished = []
         reviewDreams = []
+        castPicks = []
+        originalOrder = []
         renderSession += 1
         let session = renderSession
         Task {
@@ -394,7 +503,7 @@ struct DreamsView: View {
                     busy = false; statusLabel = ""
                     let dreams = batch.dreams ?? []
                     if dreams.isEmpty { errorText = "Couldn't read that dream — try again." }
-                    else { reviewDreams = dreams }
+                    else { beginReview(dreams) }
                     return
                 default:   // still reading
                     if let label = batch.label, !label.isEmpty {
@@ -517,26 +626,50 @@ struct DreamsView: View {
         }
     }
 
-    /// Draw each reviewed dream in its confirmed beat order. The renders are
-    /// kicked off on the server FIRST (recording their ids), then polled — so if
-    /// the app closes or you leave the screen, they finish server-side and are
-    /// picked back up when you return.
+    /// The split dreams arrive — set up the approval state: dreams in server
+    /// order, one CastPick per mentioned name (best saved-sheet candidate
+    /// pre-picked; no match = a blank describe-them card).
+    private func beginReview(_ dreams: [Dream]) {
+        reviewDreams = dreams
+        originalOrder = dreams.map { $0.id }
+        expandedDreams = dreams.count == 1 ? [dreams[0].id] : []
+        castPicks = dreams.flatMap { dream in
+            (dream.castSuggestions ?? (dream.mentions ?? []).map { CastSuggestion(name: $0, matches: []) })
+                .map { s in
+                    CastPick(dreamId: dream.id, mention: s.name,
+                             candidates: s.matches, selected: s.matches.first?.id)
+                }
+        }
+    }
+
+    /// Draw each approved dream. The approved whole-dream order is persisted
+    /// first (if it changed), then each render is kicked off with that dream's
+    /// approved characters — the server decides the pages and allots the words.
+    /// Renders are recorded by id, so leaving the screen never loses them.
     private func draw() {
         let dreams = reviewDreams
         guard !dreams.isEmpty else { return }
+        focused = false
+        let picks = castPicks
+        let orderChanged = dreams.map({ $0.id }) != originalOrder
         reviewDreams = []
+        castPicks = []
         finished = []
         current = nil
         busy = true
         renderSession += 1
         let session = renderSession
         Task {
-            statusLabel = "Drawing the character…"
+            statusLabel = "Planning pages…"
+            if orderChanged {
+                try? await MovieService.shared.reorderDreams(dreams.map { $0.id })
+            }
             var started: [String] = []
             for dream in dreams {
                 guard session == renderSession else { return }   // left the screen — server keeps going
                 do {
-                    _ = try await MovieService.shared.renderDream(dream.id, order: dream.beats.map { $0.id })
+                    _ = try await MovieService.shared.renderDream(
+                        dream.id, characters: charactersPayload(for: dream, picks: picks))
                     started.append(dream.id)
                     activeRenderIDsRaw = started.joined(separator: ",")
                 } catch {
@@ -544,6 +677,22 @@ struct DreamsView: View {
                 }
             }
             await drainActiveRenders(started, total: dreams.count, session: session)
+        }
+    }
+
+    /// The approved cast for one dream, in the render endpoint's shape: every
+    /// mention rides along (so the page planner knows the cast); a picked
+    /// candidate contributes its card image, a typed description its text.
+    private func charactersPayload(for dream: Dream, picks: [CastPick]) -> [[String: Any]] {
+        picks.filter { $0.dreamId == dream.id }.map { pick in
+            var entry: [String: Any] = ["name": pick.mention]
+            if let sel = pick.selected, let cand = pick.candidates.first(where: { $0.id == sel }) {
+                if let u = cand.url { entry["url"] = u }
+            } else {
+                let d = pick.desc.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !d.isEmpty { entry["desc"] = d }
+            }
+            return entry
         }
     }
 
@@ -616,11 +765,10 @@ struct DreamsView: View {
         return false   // view went away; the render continues server-side
     }
 
-    private func moveBeat(_ di: Int, _ bi: Int, _ dir: Int) {
-        guard di >= 0, di < reviewDreams.count else { return }
-        let j = bi + dir
-        guard j >= 0, j < reviewDreams[di].beats.count else { return }
-        reviewDreams[di].beats.swapAt(bi, j)
+    private func moveDream(_ di: Int, _ dir: Int) {
+        let j = di + dir
+        guard di >= 0, di < reviewDreams.count, j >= 0, j < reviewDreams.count else { return }
+        reviewDreams.swapAt(di, j)
     }
 
     /// Ask for notification permission once and schedule a daily 11am nudge.

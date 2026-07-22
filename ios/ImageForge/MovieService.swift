@@ -218,17 +218,28 @@ final class MovieService {
                                body: ["audio": audioDataURL], timeout: 240).text
     }
 
-    /// Draw the beats as 2x2 comic pages — a background job; poll `dream(id)`.
-    /// `order` draws the beats in that sequence (the chronology check);
-    /// `reanchor` re-rolls the locked character's look.
+    /// Draw the dream — a background job; poll `dream(id)`.
+    /// v2 staged flow: `characters` is the APPROVED cast — each entry
+    /// `["name": mentionName]` plus optionally `"url"` (a saved character card,
+    /// attached as an image reference on that character's pages) or `"desc"`
+    /// (a typed description for someone not on the sheet). The server then
+    /// decides how many pages the dream needs and allots the dreamer's own
+    /// words to each. `order` (beat ids) only applies to legacy beat docs.
     func renderDream(_ id: String, quality: String = "medium", reanchor: Bool = false,
-                     order: [String]? = nil) async throws -> Dream {
+                     order: [String]? = nil, characters: [[String: Any]]? = nil) async throws -> Dream {
         var body: [String: Any] = ["quality": quality]
         if reanchor { body["reanchor"] = true }
         if let order, !order.isEmpty { body["order"] = order }
+        if let characters { body["characters"] = characters }
         let raw = try await data("POST", "/dream/\(id)/render", body: body)
         if let env = try? decoder.decode(DreamEnvelope.self, from: raw) { return env.dream }
         return try decoder.decode(Dream.self, from: raw)
+    }
+
+    /// Persist an approved whole-dream order (a recording split into several) —
+    /// the server re-staggers createdAt so the order sticks everywhere.
+    func reorderDreams(_ ids: [String]) async throws {
+        _ = try await data("POST", "/dream/reorder", body: ["ids": ids])
     }
 
     func deleteDream(_ id: String) async throws {
