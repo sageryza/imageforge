@@ -167,9 +167,11 @@
     #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
     /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
        Back/Continue row. */
-    .dream-btns { justify-content: space-between; }
-    .dream-btns .btn-ghost { width: auto; margin-left: 0; }  /* Unlock (ghost) → left */
-    .dream-btns .btn { width: auto; }                        /* Illustrate keeps margin-left:auto → right */
+    /* Stack the two dream actions on their own rows — 'Unlock the symbolism' is
+       too long to share a line with Illustrate. Both right-aligned so the stack
+       reads as deliberate, not a wrapped stagger. */
+    .dream-btns .btn-ghost { width: auto; align-self: flex-end; margin-left: 0; }
+    .dream-btns .btn { width: auto; align-self: flex-end; margin-left: 0; }
     /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
     #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
       font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
@@ -555,7 +557,7 @@
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
