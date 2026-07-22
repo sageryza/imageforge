@@ -289,7 +289,9 @@
     .note-choice { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 1px solid transparent; border-radius: 12px; padding: 8px 4px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s ease, border-color 0.15s ease; }
     .note-choice:active { transform: scale(0.98); }
     .note-choice.on { background: rgba(230,194,129,0.12); border-color: var(--gold-dim); }
-    .note-choice img { width: 104px; height: 104px; display: block; }
+    /* Sized by height so both figures read the same size despite different
+       silhouettes (images are trimmed to their content). */
+    .note-choice img { height: 112px; width: auto; max-width: 100%; display: block; }
     .nc-title { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); font-weight: 600; }
     .nc-sub { font-size: 11px; line-height: 1.45; color: var(--text-faint); text-align: center; }
     .nc-sub b { color: var(--text-dim); font-weight: 600; }
