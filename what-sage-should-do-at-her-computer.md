@@ -68,8 +68,9 @@ _Chats: add items below with a one-line reason._
 - **NDE supercut — fetch the rest of the transcripts + pull the audio clips.**
   These run on the computer because YouTube blocks the cloud servers' IPs; your
   home internet works. Needs `yt-dlp` + `ffmpeg` once: `brew install yt-dlp ffmpeg`.
-  1. **Get the remaining 14 transcripts:** `node ~/Downloads/nde-fetch-retry.js`
-     (fetches captions + files them; a few minutes). Prints a per-video count.
+  1. **Get the remaining 18 transcripts (completes the 29-video playlist):**
+     `node ~/Downloads/nde-fetch-retry.js` (fetches captions + files them; a few
+     minutes). Prints a per-video count.
   2. **Ping any chat** — say "the NDE retry finished." It will mine the new ones,
      merge them into the existing clusters, and send you the audio-puller script.
   3. **Pull every clip:** `node ~/Downloads/nde-pull-clips.js` — downloads each
