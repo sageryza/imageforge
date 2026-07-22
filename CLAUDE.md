@@ -468,67 +468,49 @@ lifted into a standalone tool later.
   `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
   the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
-- **Dreams (dream → comic):** the dream-illustration path — replicates the
-  daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
-  free breakdown. **Model (experiment, July 2026): OpenAI frontier
-  `gpt-5.6-sol`** does the WHOLE breakdown — splitting AND the image
-  descriptions — set by `DREAM_BREAKDOWN_MODEL` (default `gpt-5.6-sol`; set a
-  `claude-*` id to route back through `anthropicChatJSON`/Claude Opus, the prior
-  default, for comparison). Chosen deliberately as the smart tier — a small
-  model can't split/segment/order a rambling recording — and to test whether the
-  model that owns the image generator writes descriptions its own image model
-  draws better. **There is NO silent fallback between providers**: whichever
-  `DREAM_BREAKDOWN_MODEL` names either works or errors (no drop to gpt-4o-mini).
-  `openaiChatJSON` takes a `model` and omits temperature for `gpt-5*` reasoning
-  models; ~$0.066 and ~60s per breakdown on Sol. `OPENAI_API_KEY`/
-  `ANTHROPIC_API_KEY` are `config-loader` MANAGED_KEYs (Render env OR the
-  Firestore config doc). **One recording → one or MORE dreams:**
-  `dreamBreakdown()` first SPLITS the recording into the distinct dreams (on the
-  dreamer's boundary cues — "that was that dream", "the next dream", "yesterday
-  I had a dream") and returns `{dreams:[{title,text,driftCues,cast,beats}]}`;
-  `POST /dream` creates one `forge-dreams` doc per dream (staggered `createdAt`
-  so array order = time; each stores `dreamText` = its own verbatim slice and
-  `driftCues` = the verbatim out-of-order phrases to highlight) and returns
-  `{dreams:[doc,…]}`. Within each dream it reconstructs TRUE chronology from the
-  cues ("that was before", "at first", "at the very end", "right before I woke
-  up"), emits coarse beats already in order, and lists in `driftCues` the exact
-  phrases where the narration drifted from chronological (for the review UI to
-  highlight; `[]` when told in order). iOS `createDream` returns `[Dream]`; the "check the
-  chronology" step shows each split dream as its own titled group (▲▼ within it)
-  and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
-  `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
-  2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
-  packs beats **four per image** (an 8-beat dream = two pages; a short tail
-  page lays out with fewer), captions = the beats' own lines (no cover),
-  ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
-  background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Render survives leaving the app:** the
-  render is a fire-and-forget server job, and iOS `DreamsView` records the
-  rendering dream ids in `@AppStorage("dreams.activeRenderIDs")`, so closing the
-  app or leaving the screen never stops the draw — on return, `resumeActiveRenders`
-  re-polls those ids and shows the pages as they land. Polling is resilient to
-  dropped connections (phone locked / Render cold start) — a transient failure
-  retries instead of surfacing "Couldn't illustrate"; only a real job error does.
-  **Multi-character consistency by reusing earlier pages** (a dream usually has
-  several recurring people — dad, J, Sean — not one): the breakdown returns a
-  `cast:[{name,look}]` (≤5 named figures) and each beat carries a `who:[name]`
-  of who appears in it. Pages render **in order** (`makeDreamPages`, a
-  sequential loop — dreams are short); each page feeds the **already-drawn
-  earlier pages** back in as the reference, NOT freshly-generated solo sheets.
-  For every recurring character on a page, `dreamPageRefs` finds the earliest
-  page that showed them and attaches it (style ref FIRST, then up to 3 earlier
-  pages), and `dreamZinePagePrompt` names each by attachment position ("the #2
-  attached image is an EARLIER PAGE — draw J with the exact same face/hair/
-  clothing"). A character's FIRST appearance has no earlier page and is drawn
-  fresh; the page it lands on then anchors it everywhere after. This is the
-  cheaper, more faithful version of the ChatGPT technique — reuse an existing
-  image of the character instead of inventing a reference sheet (gpt-image-2
-  `edits` attends to the attached images; array up to ~16, we cap at style + 3).
-  So an N-character dream generates **only** its comic pages — 0 extra images
-  (previously it drew one solo sheet per character, ~$0.06 each). Legacy dreams
-  with no `who` fall back to anchoring each page to the most recent earlier one.
-  Same `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
-  rest of movies.
+- **Dreams (dream → comic), v2 STAGED pipeline (July 2026):** the
+  dream-illustration path, rebuilt around user approval BETWEEN cheap stages
+  (Sophie approves order + characters before anything paid runs). **Stage 1 —
+  `POST /api/movies/dream`** runs `dreamSplit()`: ONLY splits the recording
+  into its distinct dreams (boundary cues — "that was that dream", "the next
+  dream"), each `{title, text (verbatim slice), driftCues (out-of-order
+  phrases, exact substrings to highlight), mentions (people, "me" first)}` —
+  NO beats, NO image descriptions. Runs `DREAM_BREAKDOWN_MODEL` (default
+  `gpt-5.6-sol`; a `claude-*` id routes via Anthropic, NO silent fallback) at
+  `DREAM_SPLIT_EFFORT` (default `none` — validated: still splits/orders
+  right, ~18s vs ~60s). Each split dream doc also gets `castSuggestions`:
+  every mention looked up in the saved character sheet via
+  `character.js:matchCandidates` — ALL plausible candidates per name (an
+  ambiguous "Jonathan" returns both Jonathans; unmatched "Miriam" returns
+  `[]` → the UI shows a blank describe-them card). **Stage 2 — approval in
+  the app:** "is this the order of your dreams?" (▲▼ moves WHOLE dreams;
+  persisted via `POST /dream/reorder {ids}` which re-staggers `createdAt`)
+  and "are these the characters?" (pick a candidate / unpick = not them /
+  type a description). **Stage 3 — `POST /dream/:id/render {quality,
+  characters:[{name, url|image|desc}]}`:** `dreamPaginate()` lets the model
+  decide how many IMAGES the dream needs (1-8, never padded) and allots each
+  image a verbatim slice of the dreamer's words in TRUE chronological order
+  (drift cues fix the narration order); then `makeDreamPagesV2` draws
+  sequentially — each page gets the style ref FIRST, then ONLY that slot's
+  approved character cards (image refs; desc-only people ride as text
+  continuity lines), then up to 3 already-drawn earlier pages
+  (`dreamPageRefs` — a face is carried from the page it first appeared on),
+  plus the whole dream for context and "THIS page tells ONLY this part".
+  **The model decides each page's layout** (single drawing or panels — no
+  fixed 2x2). Pages store `{url, promptUsed, text, who}`; plan kept on
+  `dream.pagePlan`. ~$0.06/page medium. Legacy beat docs still render
+  through the old `makeDreamPages` 2x2 path (`order:[beatId]` still
+  honored). Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`,
+  `GET /dream-batch/:id` for the background read), background job on the
+  doc, `pageHistory` capped 3, separate `forge-dreams` collection.
+  **Render survives leaving the app:** fire-and-forget server job; iOS
+  `DreamsView` records rendering ids in `@AppStorage("dreams.activeRenderIDs")`
+  and resumes polling on return; transient poll failures retry (phone locked /
+  Render cold start) — only a real job error surfaces. Characters keep their
+  ORIGINAL backgrounds (the transparent cleanBox step was removed by request
+  — background separation only matters if a character is composited later).
+  Same `STUDIO_TOKEN` gate. iOS is the frontend; a web page port of the new
+  flow is planned to follow the TestFlight build.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
