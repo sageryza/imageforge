@@ -65,21 +65,21 @@ time.
 
 _Chats: add items below with a one-line reason._
 
-- **NDE supercut — fetch the rest of the transcripts + pull the audio clips.**
-  These run on the computer because YouTube blocks the cloud servers' IPs; your
-  home internet works. Needs `yt-dlp` + `ffmpeg` once: `brew install yt-dlp ffmpeg`.
-  1. **Get the remaining 18 transcripts (completes the 29-video playlist):**
-     `node ~/Downloads/nde-fetch-retry.js` (fetches captions + files them; a few
-     minutes). Prints a per-video count.
-  2. **Ping any chat** — say "the NDE retry finished." It will mine the new ones,
-     merge them into the existing clusters, and send you the audio-puller script.
-  3. **Pull every clip:** `node ~/Downloads/nde-pull-clips.js` — downloads each
-     source interview's audio once and slices every supercut clip into
-     `clips/<theme>/` (~5–10 min; safe to leave running). Map is `clips/INDEX.tsv`.
-  - _Optional, go bigger:_ to process more than 25 of his interviews (up to ~100),
-    ask a chat to build a wider fetch script first, then run that in place of
-    step 1 — the rest is the same. Fetching transcripts + audio is free; only the
-    AI mining costs (~$10–15 for ~100).
+- **NDE supercut — ONE computer session banks everything (July 2026 flow).**
+  Run on the computer because YouTube blocks the cloud servers' IPs; your home
+  internet works. Needs `yt-dlp` once (`brew install yt-dlp`).
+  1. **Run the grab-everything script** (`scripts/nde-grab-all.js`, a chat sends
+     it as a download): `node "$(ls -t ~/Downloads/*grab-all*.js | head -1)"`.
+     It self-discovers EVERY "near death experience of …" interview on Anthony
+     Chene's channel, stores each transcript (free — no AI call) AND uploads the
+     full-quality audio straight to Firebase (`nde-audio/`). Safe to leave
+     running unattended (~1-2h); re-running resumes/skips what's done.
+  2. **That's it — the computer is done forever.** Any chat can then mine themes
+     (`scripts/nde-themes.js`, ~$1-2/25 videos on gpt-5.6-sol) and cut clips
+     server-side from the banked audio (`scripts/nde-slice-server.js` — needs
+     ffmpeg: `apt-get install -y --no-install-recommends ffmpeg`, plus the
+     deckfactory service account; outputs public clip links + a ZIP), with no
+     computer involved — works while Sophie is traveling.
 
 - **Set up YouTube auto-upload (OAuth).** So a chat can push finished videos to
   your channel as private drafts (you just tap Publish). One-time browser sign-in
