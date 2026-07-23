@@ -4051,9 +4051,32 @@
     $('acct-close').addEventListener('click', closeModal);
   }
   async function signInGoogle() {
+    // Inside the iOS app, Google's web popup can't complete (WKWebView blocks
+    // it) — hand off to the native sign-in bridge, which runs the real Google
+    // sheet and calls __witchGoogleCredential below with the tokens.
+    const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.witchAuth;
+    if (bridge) {
+      const m = $('acct-msg'); if (m) m.textContent = '';
+      try { bridge.postMessage('google'); } catch (e) { if (m) m.textContent = e.message; }
+      return;
+    }
     try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); closeModal(); }
     catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
   }
+  // Native bridge callbacks (iOS app): finish Firebase sign-in with the token
+  // the native Google flow got, or surface why it didn't.
+  window.__witchGoogleCredential = async (idToken, accessToken) => {
+    try {
+      await fbAuth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(idToken, accessToken || null));
+      closeModal();
+    } catch (e) {
+      const m = $('acct-msg');
+      if (m) m.textContent = e.message; else toast('Sign-in error: ' + e.message);
+    }
+  };
+  window.__witchGoogleFailed = (msg) => {
+    const m = $('acct-msg'); if (m) m.textContent = msg || '';
+  };
   // Email + password sign-in (secondary option; primarily for a demo/reviewer
   // account that can't receive a magic link or complete Google in a web view).
   async function signInPassword() {
