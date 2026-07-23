@@ -1406,7 +1406,11 @@
   }
   // Poll any job endpoint that returns { status:'running'|'done'|'error', ... }.
   // Resilient to transient failures (cold start / phone lock); a 404 is terminal.
-  function pollJob(url, { onDone, onError, onTick, interval = 3000, maxTries = 100 } = {}) {
+  // key: dedups poll loops — re-arming the same job (the foreground watchdog
+  // does this) replaces the old timer instead of stacking a second one.
+  const jobTimers = {};
+  function pollJob(url, { key, onDone, onError, onTick, interval = 3000, maxTries = 100 } = {}) {
+    if (key && jobTimers[key]) clearInterval(jobTimers[key]);
     let tries = 0;
     const timer = setInterval(async () => {
       if (++tries > maxTries) { clearInterval(timer); onError && onError({ message: 'timed out' }); return; }
@@ -1417,6 +1421,7 @@
       if (d.status === 'done') { clearInterval(timer); onDone && onDone(d); }
       else if (d.status === 'error') { clearInterval(timer); onError && onError({ message: d.error || 'failed' }); }
     }, interval);
+    if (key) jobTimers[key] = timer;
     return timer;
   }
   function pendGet(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } }
@@ -3046,6 +3051,7 @@
     const box = $('coin-' + i); if (!box) return;
     const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
     pollJob('/api/witch/job/' + id, {
+      key: 'coin' + i,
       onDone: (d) => {
         const url = d.result && d.result.url;
         if (url) { coinShowDrawn(i, url, desc); }
@@ -3223,6 +3229,7 @@
     const out = $('dream-out'); const btn = $('dream-unlock');
     const finish = () => { if (btn) { btn.disabled = false; btn.textContent = DREAMREAD_BTN; } };
     pollJob('/api/witch/job/' + id, {
+      key: 'dreamread',
       onDone: (d) => {
         pendSet(DREAMREAD_PEND, null); finish();
         const data = d.result || {};
@@ -4147,9 +4154,21 @@
   renderStyleGrid().catch(() => toast('Could not load illustration styles'));
   initAccounts();
   // Resume any background jobs that were mid-flight when the app was left.
-  try { resumeCoinJobs(); } catch (e) {}
-  try { resumeDreamRead(); } catch (e) {}
-  try { resumeDreamIllus(); } catch (e) {}
+  function resumePendingJobs() {
+    try { resumeCoinJobs(); } catch (e) {}
+    try { resumeDreamRead(); } catch (e) {}
+    try { resumeDreamIllus(); } catch (e) {}
+  }
+  resumePendingJobs();
+  // Foreground watchdog: the iOS shell keeps this page alive for the whole
+  // app session, and iOS freezes (or reclaims) webview JS in the background —
+  // a poll loop can silently die while its job is pending, leaving the button
+  // disabled forever. Every return to the foreground re-arms the resume paths;
+  // watchers are keyed, so re-arming replaces a live loop instead of stacking.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumePendingJobs();
+  });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) resumePendingJobs(); });
   // Load the real Rider-Waite art first, then render the home state (which
   // calls the daily reading once signed in + birthday is set).
   loadDeckImages().finally(() => renderHome());
