@@ -330,15 +330,16 @@ async function listDreams(owner) {
     if (owner) {
       // A single equality filter needs no composite index; sort in code.
       const snap = await db.collection(DREAM_COLLECTION).where('owner', '==', owner).limit(200).get();
-      all = snap.docs.map(d => d.data()).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      all = snap.docs.map(d => d.data()).filter(d => !d.hidden).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
     } else {
-      // Hers = ownerless. Fetch a generous window and drop any guest-owned docs.
+      // Hers = ownerless. Fetch a generous window and drop any guest-owned or
+      // hidden docs (hidden = kept in Firestore but taken out of the journal).
       const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(300).get();
-      all = snap.docs.map(d => d.data()).filter(d => !d.owner).slice(0, 100);
+      all = snap.docs.map(d => d.data()).filter(d => !d.owner && !d.hidden).slice(0, 100);
     }
   } else {
     all = [...memDream.values()]
-      .filter(d => owner ? d.owner === owner : !d.owner)
+      .filter(d => (owner ? d.owner === owner : !d.owner) && !d.hidden)
       .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   }
   // Summaries only — the list stays light for the phone.
@@ -2532,6 +2533,18 @@ router.get('/dream/:id', async (req, res) => {
 router.delete('/dream/:id', async (req, res) => {
   try { await deleteDream(req.params.id); res.json({ ok: true }); }
   catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Hide a dream from the journal WITHOUT deleting it — kept in Firestore, just
+// filtered out of the past-dreams list (listDreams). Reversible via {hidden:false}.
+router.post('/dream/:id/hidden', async (req, res) => {
+  try {
+    const doc = await loadDream(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'dream not found' });
+    doc.hidden = (req.body && req.body.hidden !== false);
+    await saveDream(doc);
+    res.json({ ok: true, id: doc.id, hidden: doc.hidden });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Draw the beats as comic pages (paid: ~PANEL_COST per 4-beat page). Runs as a
