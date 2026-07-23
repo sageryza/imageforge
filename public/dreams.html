@@ -140,6 +140,24 @@
 <script>
   const STUDIO_TOKEN = '__STUDIO_TOKEN__';
   const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+
+  // Public "try it" mode (/trydreams): mint a per-device guest id so this
+  // visitor's dreams are namespaced to them — their own past-dreams archive,
+  // never Sophie's or another friend's. Sophie's own page (/dreams) has no
+  // owner, so her archive is unchanged.
+  const PUBLIC = location.pathname.replace(/\/+$/,'').toLowerCase() === '/trydreams';
+  let OWNER = '';
+  if (PUBLIC) {
+    try {
+      OWNER = localStorage.getItem('dreams_guest') || '';
+      if (!/^guest_[a-z0-9]{4,40}$/i.test(OWNER)) {
+        OWNER = 'guest_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+        localStorage.setItem('dreams_guest', OWNER);
+      }
+    } catch {}
+  }
+  // The archive/zine list endpoint, scoped to this visitor when in guest mode.
+  const dreamListPath = () => '/dream' + (OWNER ? ('?owner=' + encodeURIComponent(OWNER)) : '');
   async function api(path, opts = {}) {
     if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
     const res = await fetch('/api/movies' + path, opts);
@@ -207,7 +225,7 @@
     S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[]; S.review=[]; S.picks=[];
     S.session++; const session=S.session;
     render();
-    const r = await jpost('/dream', { dream: body, background:true });
+    const r = await jpost('/dream', { dream: body, background:true, owner: OWNER || undefined });
     if(session!==S.session) return;
     if(!r.ok || !r.body.batchId){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
     try{ localStorage.setItem('dreams_reading', r.body.batchId); }catch{}
@@ -464,7 +482,7 @@
   }
   async function loadArchive(){
     S.archiveLoading = true; render();
-    const list = await api('/dream'); const dreams = (list.ok && list.body.dreams) || [];
+    const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
     const out = [];
     for(const s of dreams){
@@ -496,7 +514,7 @@
   }
   async function loadZine(){
     S.zineLoading = true; render();
-    const list = await api('/dream'); const dreams = (list.ok && list.body.dreams) || [];
+    const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (a.createdAt||'').localeCompare(b.createdAt||''));  // oldest first: a book forward in time
     const pages=[];
     for(const s of dreams){ const r = await api('/dream/'+s.id); if(r.ok) (r.body.pages||[]).forEach(p=>pages.push(p.url)); }

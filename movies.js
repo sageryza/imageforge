@@ -319,14 +319,27 @@ async function loadDream(id) {
   return memDream.get(id) || null;
 }
 
-async function listDreams() {
+// List dreams for ONE archive. `owner` scopes it: a guest owner (the public
+// "try it" page) sees only its OWN dreams; no owner = Sophie's archive, which
+// is every dream with NO owner field (her app/page never sets one, so guests'
+// namespaced dreams never appear in it, and hers never leak to a guest).
+async function listDreams(owner) {
   const db = firestore();
   let all;
   if (db) {
-    const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(100).get();
-    all = snap.docs.map(d => d.data());
+    if (owner) {
+      // A single equality filter needs no composite index; sort in code.
+      const snap = await db.collection(DREAM_COLLECTION).where('owner', '==', owner).limit(200).get();
+      all = snap.docs.map(d => d.data()).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    } else {
+      // Hers = ownerless. Fetch a generous window and drop any guest-owned docs.
+      const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(300).get();
+      all = snap.docs.map(d => d.data()).filter(d => !d.owner).slice(0, 100);
+    }
   } else {
-    all = [...memDream.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    all = [...memDream.values()]
+      .filter(d => owner ? d.owner === owner : !d.owner)
+      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   }
   // Summaries only — the list stays light for the phone.
   return all.map(d => ({
@@ -378,7 +391,7 @@ async function loadDreamBatch(id) {
 
 // Turn a breakdown's plans into stored dream docs. Factored out so both the
 // synchronous POST /dream (back-compat) and the background batch use it.
-async function createDreamDocs(plans, text, title) {
+async function createDreamDocs(plans, text, title, owner) {
   const now = Date.now();
   const docs = [];
   for (let i = 0; i < plans.length; i++) {
@@ -388,6 +401,10 @@ async function createDreamDocs(plans, text, title) {
     const ts = new Date(now + i * 1000).toISOString();
     const doc = {
       id: 'd' + (now + i).toString(36) + crypto.randomBytes(3).toString('hex'),
+      // Owner namespace: set only for guests (the public "try it" page), so
+      // their dreams stay in their own archive and out of Sophie's. Omitted
+      // for Sophie so her (ownerless) archive is unchanged.
+      ...(owner ? { owner } : {}),
       // Only honor a client-supplied title when the recording is a single dream.
       title: (plans.length === 1 && title && String(title).trim()) || plan.title,
       dream: text,
@@ -2326,7 +2343,7 @@ router.post('/morphfilm', async (req, res) => {
 // diary-comic style reference. Registered BEFORE '/:id' so "/dream" isn't
 // swallowed by the movie-by-id route.
 router.get('/dream', async (req, res) => {
-  try { res.json({ dreams: await listDreams() }); }
+  try { res.json({ dreams: await listDreams(cleanOwner(req.query.owner)) }); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -2360,9 +2377,16 @@ router.post('/dream/transcribe', async (req, res) => {
   }
 });
 
+// A guest owner id from the public "try it" page — only accept the shape the
+// page mints (`guest_<alnum>`), so nothing else can be jammed into the field.
+function cleanOwner(o) {
+  return /^guest_[a-z0-9]{4,40}$/i.test(String(o || '')) ? String(o) : null;
+}
+
 router.post('/dream', async (req, res) => {
   try {
     const { dream, title, background } = req.body || {};
+    const owner = cleanOwner((req.body || {}).owner);
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
     const text = String(dream).trim();
 
@@ -2389,7 +2413,7 @@ router.post('/dream', async (req, res) => {
           // beats/pages are decided later, after the user approves.
           const { dreams: plans } = await dreamSplit(text);
           for (const p of plans) await attachCastSuggestions(p);
-          const docs = await createDreamDocs(plans, text, title);
+          const docs = await createDreamDocs(plans, text, title, owner);
           batch.dreamIds = docs.map(d => d.id);
           batch.dreamCount = docs.length;
           batch.status = 'done';
@@ -2408,7 +2432,7 @@ router.post('/dream', async (req, res) => {
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
     for (const p of plans) await attachCastSuggestions(p);
-    const docs = await createDreamDocs(plans, text, title);
+    const docs = await createDreamDocs(plans, text, title, owner);
     res.json({ dreams: docs });
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
