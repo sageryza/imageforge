@@ -12,7 +12,15 @@ KEY = os.environ["OPENAI_API_KEY"]
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BG, C_LABEL, C_QUOTE, C_NAME = "0x141422", "0x7c7c96", "0xF2EEE2", "0xE0A94A"
-W, H = 1280, 720
+VERT = os.environ.get("VERTICAL") == "1"
+if VERT:
+    W, H = 1080, 1920
+    LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
+    LABEL_Y, NAME_Y, WRAP = "200", "h-300", 20
+else:
+    W, H = 1280, 720
+    LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 26, 40, 30, 60
+    LABEL_Y, NAME_Y, WRAP = "80", "h-130", 38
 
 CAND = sys.argv[1]
 TITLE = sys.argv[2] if len(sys.argv) > 2 else "THE COLORS"
@@ -21,6 +29,14 @@ tmp = tempfile.mkdtemp(prefix="precise-")
 
 def run(a): subprocess.run(a, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 def norm(s): return re.sub(r"[^a-z0-9 ]", "", s.lower()).split()
+
+def clean_name(n):
+    n = (n or "").strip()
+    m = re.match(r"(?:the )?near[- ]death experiences? of (.+)", n, re.I)
+    if m: return m.group(1).strip().rstrip(".")
+    m = re.search(r"(?:interview with|with) ([A-Z][\w.'-]+(?: [A-Z][\w.'-]+){0,2})", n)
+    if m: return m.group(1).strip()
+    return n
 
 def whisper_words(path):
     """OpenAI verbose_json with word+segment timestamps."""
@@ -65,7 +81,8 @@ def find_sentence(win_json, quote):
     text = " ".join(text_parts).strip() or quote
     return (max(0, s0 - 0.15), s1 + 0.35, text)
 
-def wrap(text, width=38):
+def wrap(text, width=None):
+    if width is None: width = WRAP
     words, lines, cur = text.split(), [], ""
     for w in words:
         if len(cur) + len(w) + 1 > width: lines.append(cur); cur = w
@@ -89,7 +106,7 @@ def title_card(title):
     t = tf(f"t{seg_i}.txt", title); seg = os.path.join(tmp, f"s{seg_i:03d}.mp4"); seg_i += 1
     run(["ffmpeg","-y","-f","lavfi","-i",f"color=c={BG}:s={W}x{H}:r=30:d=2.4",
          "-f","lavfi","-i","anullsrc=r=48000:cl=stereo","-t","2.4",
-         "-vf",draw(t,FONT_B,60,C_QUOTE,"(h-text_h)/2"),
+         "-vf",draw(t,FONT_B,TITLE_SZ,C_QUOTE,"(h-text_h)/2"),
          "-c:v","libx264","-pix_fmt","yuv420p","-r","30","-c:a","aac","-b:a","192k","-ar","48000","-ac","2","-shortest",seg])
     segments.append(seg)
 
@@ -98,7 +115,7 @@ def clip_card(label, name, quote_text, clip_mp3):
     d = float(subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0",clip_mp3],
         capture_output=True,text=True).stdout.strip() or 8)
     lf,qf,nf = tf(f"l{seg_i}.txt",label), tf(f"q{seg_i}.txt",wrap(quote_text)), tf(f"n{seg_i}.txt",name)
-    vf = ",".join([draw(lf,FONT,26,C_LABEL,"80"),draw(qf,FONT_B,40,C_QUOTE,"(h-text_h)/2"),draw(nf,FONT,30,C_NAME,"h-130")])
+    vf = ",".join([draw(lf,FONT,LABEL_SZ,C_LABEL,LABEL_Y),draw(qf,FONT_B,QUOTE_SZ,C_QUOTE,"(h-text_h)/2"),draw(nf,FONT,NAME_SZ,C_NAME,NAME_Y)])
     seg = os.path.join(tmp, f"s{seg_i:03d}.mp4"); seg_i += 1
     run(["ffmpeg","-y","-f","lavfi","-i",f"color=c={BG}:s={W}x{H}:r=30:d={d+0.2}","-i",clip_mp3,
          "-vf",vf,"-map","0:v","-map","1:a","-af","loudnorm=I=-16:TP=-1.5:LRA=11",
@@ -111,7 +128,7 @@ title_card(TITLE)
 kept = 0
 for i, c in enumerate(cands, 1):
     url, quote, t = c.get("audioUrl"), c.get("quote",""), int(c.get("timeSec") or 0)
-    name = c.get("experiencer","—")
+    name = clean_name(c.get("experiencer","—")) or "—"
     if not url:
         print(f"  [{i}] {name}: no audio, skip"); continue
     win_start = max(0, t - 25)
