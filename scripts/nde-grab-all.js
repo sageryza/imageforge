@@ -110,7 +110,10 @@ const KNOWN = [
   {"id": "7kDx-wkVzCM", "title": "The near death experience of Malcolm Nair"},
   {"id": "VsWjCA_e3bY", "title": "The near death experience of John Paul Martinez"},
   {"id": "yXSnS2jMY4k", "title": "The near death experience of Jonathan Ashford"},
-  {"id": "GA5eHmZ3_pM", "title": "The near death experience of Gabe Poirot"}
+  {"id": "GA5eHmZ3_pM", "title": "The near death experience of Gabe Poirot"},
+  // From Sophie's link list (July 2026) — unlisted extras beyond the playlist:
+  {"id": "UYBGm_rDvso", "title": "Renaissance — NDE documentary"},
+  {"id": "yByEQfaD314", "title": "The nature of consciousness - Interview with Alan Hugenot"}
 ];
 
 function discoverOnce() {
