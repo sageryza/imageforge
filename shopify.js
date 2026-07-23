@@ -44,7 +44,7 @@ const CLIENT_ID = process.env.SHOPIFY_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET || '';
 const API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
-const SCOPES = process.env.SHOPIFY_SCOPES || 'read_customers,read_content,write_content';
+const SCOPES = process.env.SHOPIFY_SCOPES || 'read_customers,read_content,write_content,read_products,write_products';
 const TOKENS_DOC = process.env.SHOPIFY_TOKENS_DOC || 'config/shopify-tokens';
 
 function hasOAuthApp() {
