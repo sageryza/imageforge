@@ -627,6 +627,51 @@ router.post('/videos/:videoId/audio', express.raw({ type: '*/*', limit: '200mb' 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Direct-to-Storage upload lane for FULL-quality audio banking. The relay
+// route above buffers the whole file in Render's small memory, which is fine
+// for one-offs but shaky for a 100-file unattended run — so the laptop asks
+// here for a V4 signed PUT URL, uploads the bytes STRAIGHT to Google Storage
+// (no Render in the data path), then confirms with /audio-done which makes the
+// object public and records audioUrl on the doc.
+router.get('/videos/:videoId/audio-upload', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const videoId = parseVideoId(req.params.videoId);
+    if (!videoId) return res.status(400).json({ error: 'bad videoId' });
+    const ext = String(req.query.ext || 'm4a').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'm4a';
+    const contentType = ext === 'webm' ? 'audio/webm' : ext === 'opus' ? 'audio/opus' : 'audio/mp4';
+    const bucket = admin.storage().bucket();
+    const dest = `nde-audio/${videoId}.${ext}`;
+    const [uploadUrl] = await bucket.file(dest).getSignedUrl({
+      version: 'v4', action: 'write', expires: Date.now() + 60 * 60 * 1000, contentType,
+    });
+    res.json({ uploadUrl, contentType, dest });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/videos/:videoId/audio-done', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const videoId = parseVideoId(req.params.videoId);
+    if (!videoId) return res.status(400).json({ error: 'bad videoId' });
+    const ext = String(req.body?.ext || 'm4a').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'm4a';
+    const bucket = admin.storage().bucket();
+    const dest = `nde-audio/${videoId}.${ext}`;
+    const file = bucket.file(dest);
+    const [exists] = await file.exists();
+    if (!exists) return res.status(400).json({ error: 'object not found — upload did not complete' });
+    await file.makePublic();
+    const [meta] = await file.getMetadata();
+    const audioUrl = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    const existing = (await getVideo(videoId)) || { videoId, url: `https://www.youtube.com/watch?v=${videoId}`, createdAt: new Date().toISOString(), status: 'pending' };
+    existing.audioUrl = audioUrl;
+    existing.audioBytes = Number(meta.size) || null;
+    if (req.body?.title && !existing.title) existing.title = String(req.body.title);
+    await saveVideo(existing);
+    res.json({ ok: true, videoId, audioUrl, bytes: existing.audioBytes });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.post('/discover', async (req, res) => {
   try {
     if (!YOUTUBE_API_KEY) return res.status(400).json({ error: 'YOUTUBE_API_KEY not set — cannot discover' });
