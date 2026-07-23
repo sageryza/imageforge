@@ -148,6 +148,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .cr-sub{font-size:.95em; color:var(--ink2); line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
+/* "Answered" check — mark a chat done; it grays until a newer message arrives */
+.ckbtn{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92); color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.ckbtn svg{width:14px; height:14px; display:block;}
+.ckbtn.on{background:#5d7a5a; color:#fff;}
+.t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
+.crow .ckbtn{width:31px; height:31px; flex:none; margin-left:2px;}
+.tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
+.tile.done .t-cover.t-blank span{opacity:.38;}
+.crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
@@ -495,6 +504,30 @@ function renderHome(){
     if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
   }
 }
+// A chat is "answered" (grayed) while its answeredAt stamp is >= its latest
+// message — so any newer message (from Sophie or the chat) un-grays it.
+function chatDone(name,last){
+  var a=(chats[name]&&chats[name].answeredAt)||'';
+  if(!a) return false;
+  return !last || a>=(last.created||'');
+}
+var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+function mkCheck(name,last,container){
+  var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
+  ck.innerHTML=CK; ck.setAttribute('aria-label','Mark answered');
+  ck.onclick=function(e){ e.stopPropagation(); toggleDone(name,last,ck,container); };
+  return ck;
+}
+function toggleDone(name,last,ck,container){
+  var prev=(chats[name]&&chats[name].answeredAt)||null;
+  var willDone=!chatDone(name,last);
+  chats[name]=chats[name]||{}; chats[name].answeredAt = willDone ? new Date().toISOString() : null;
+  container.classList.toggle('done',willDone); ck.classList.toggle('on',willDone);
+  api('/api/chatfeed/answered',{method:'POST',body:JSON.stringify({chat:name, answered:willDone})})
+    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    .catch(function(){ chats[name].answeredAt=prev; var d2=chatDone(name,last);
+      container.classList.toggle('done',d2); ck.classList.toggle('on',d2); toast('Couldn’t save that'); });
+}
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
   names.forEach(function(name){
@@ -503,12 +536,13 @@ function renderTiles(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
-    var b=document.createElement('button'); b.className='tile';
+    var b=document.createElement('button'); b.className='tile'+(chatDone(name,last)?' done':'');
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(name)+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
+    b.querySelector('.t-cover').appendChild(mkCheck(name,last,b));
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
@@ -520,12 +554,13 @@ function renderList(el,g,names){
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
-    var row=document.createElement('button'); row.className='crow';
+    var row=document.createElement('button'); row.className='crow'+(chatDone(name,last)?' done':'');
     row.innerHTML=iconHtml(name,'cr-ic')
       +'<span class="cr-body"><span class="cr-name">'+esc(name)+'</span>'
       +'<span class="cr-sub">'+esc(status)+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
+    row.appendChild(mkCheck(name,last,row));
     row.onclick=function(){ openChat(name); };
     wrap.appendChild(row);
   });
