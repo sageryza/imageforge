@@ -2383,12 +2383,45 @@ function cleanOwner(o) {
   return /^guest_[a-z0-9]{4,40}$/i.test(String(o || '')) ? String(o) : null;
 }
 
+// ─── Guest daily cap (public /trydreams) ────────────────────────────
+// A friend gets ONE batch of dreams per day — one reading plus the sheets for
+// the dreams it produced. This bounds the spend on Sophie's key to ~15-50¢ per
+// person per day. Sophie's own dreams (no owner) are never capped.
+const GUEST_COLLECTION = process.env.DREAM_GUEST_COLLECTION || 'forge-dream-guests';
+const memGuest = new Map();
+function pacificDay(d = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+}
+// Consume today's allowance; true = allowed (and recorded), false = already used.
+async function claimGuestDay(owner) {
+  const day = pacificDay();
+  const db = firestore();
+  if (!db) {
+    const cur = memGuest.get(owner);
+    if (cur && cur.day === day) return false;
+    memGuest.set(owner, { day });
+    return true;
+  }
+  const ref = db.collection(GUEST_COLLECTION).doc(owner);
+  const snap = await ref.get();
+  const data = snap.exists ? snap.data() : {};
+  if (data.day === day) return false;
+  await ref.set({ day, batches: (data.batches || 0) + 1, updatedAt: new Date().toISOString() }, { merge: true });
+  return true;
+}
+
 router.post('/dream', async (req, res) => {
   try {
     const { dream, title, background } = req.body || {};
     const owner = cleanOwner((req.body || {}).owner);
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
     const text = String(dream).trim();
+    // Guest daily cap: one reading per person per day.
+    if (owner && !(await claimGuestDay(owner))) {
+      return res.status(429).json({ error: "That's your dream for today ✨ — come back tomorrow to illustrate another." });
+    }
 
     // Background reading (the app's default): return a batch id instantly and do
     // the slow breakdown off the request, so the phone can lock/leave without the
@@ -2486,6 +2519,12 @@ router.post('/dream/:id/render', async (req, res) => {
   try {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
+    // Guest (public /trydreams) dreams draw their sheets ONCE, as part of that
+    // day's single batch — no re-rolls, so the daily cap actually bounds cost.
+    // A fully-failed render (no pages yet) can still be retried.
+    if (doc.owner && Array.isArray(doc.pages) && doc.pages.length) {
+      return res.status(429).json({ error: "These pages are already drawn — re-rolls aren't available on the shared demo." });
+    }
     const { quality = 'medium', order, characterRefs, characters } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
     // v2 staged flow: the APPROVED cast — [{name, url?|image?(dataURL), desc?}].
