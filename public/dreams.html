@@ -220,6 +220,8 @@
     return { ok: res.ok, status: res.status, body: b };
   }
   const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  // Live browser dictation exists here? (No inside the iOS app webview.)
+  const SR_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   // ── Speech (mic) ──
   let recog = null;
@@ -417,10 +419,13 @@
   function renderMain(){
     pageRefs = [];
     let h = '';
-    // input
+    // input — the in-page mic uses browser speech recognition, which doesn't
+    // run inside the iOS app webview; hide it there (the keyboard's own
+    // dictation mic still works in the text box).
+    const micBtn = SR_OK ? `<button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button>` : '';
     h += `<div class="section">
       <div class="eyebrow ${S.recording?'rec':''}"><span>${S.recording?'LISTENING…':'WHAT DID YOU DREAM?'}</span>
-        <button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button></div>
+        ${micBtn}</div>
       <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;

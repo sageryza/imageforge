@@ -27,6 +27,7 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Record your dream out loud so it can be transcribed and illustrated."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Turn your spoken dream into text as you talk."
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Save your creations to your photo library."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Take a photo of someone in your dream to turn them into a character card."
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
     dependencies:
