@@ -28,9 +28,15 @@ const fs = require('fs'), os = require('os'), path = require('path');
 
 const SERVER = process.env.NDE_SERVER || 'https://imageforge-q125.onrender.com';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
-const CHANNEL = process.env.NDE_CHANNEL_URL || 'https://www.youtube.com/channel/UCF3j_4PND5orr6RK-sOFSDw/videos';
-const TITLE_RE = /near.?death experiences? of/i;
-const MIN_SECONDS = 600; // skip trailers/shorts
+// Source of truth = Anthony Chene's own curated "Near-death experiences"
+// playlist — he already collected the experiencer interviews there, so we take
+// the WHOLE playlist instead of guessing from titles (channel-page enumeration
+// also proved unreliable: yt-dlp only saw recent uploads). Title filter is
+// gone on purpose; a playlist entry IS the signal. Override with
+// NDE_PLAYLIST_URL to point at any other playlist later (e.g. podcasts).
+const CHANNEL = process.env.NDE_PLAYLIST_URL || 'https://www.youtube.com/playlist?list=PLCATdvkgqUV3NW_ewfvzBcV_O8lGxv6er';
+const TITLE_RE = /./; // accept every playlist entry
+const MIN_SECONDS = 600; // still skip trailers/shorts if any slip in
 
 function ytdlpPath() { for (const c of ['yt-dlp', '/opt/homebrew/bin/yt-dlp', '/usr/local/bin/yt-dlp']) { try { execFileSync(c, ['--version'], { stdio: 'ignore' }); return c; } catch {} } return null; }
 const YTDLP = ytdlpPath();
