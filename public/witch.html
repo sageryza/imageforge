@@ -164,11 +164,16 @@
        their content and sit at the right. Applies to the secondary (ghost) module
        actions; quiz answer lists, segmented toggles and modal buttons keep their
        own full-width/centered layouts. */
-    #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
+    #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
     /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
        Back/Continue row. Both jobs are independent (can run at once), so
        neither button ever needs to wait on or hide the other's progress. */
     .dream-btns .btn-ghost, .dream-btns .btn { width: auto; margin-left: 0; white-space: nowrap; }
+    /* Two side-by-side actions at the end of the deeper reading. */
+    .deep-btns { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 22px; }
+    /* Two labels side by side is tight on a small phone — slim the padding and
+       tracking so both fit without clipping. */
+    .deep-btns .btn { width: auto; margin-left: 0; white-space: nowrap; flex: 0 1 auto; min-width: 0; padding: 8px 10px; font-size: 11px; letter-spacing: 0.2px; }
     /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
     #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
       font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
@@ -994,7 +999,6 @@
             <div id="astro-body"></div>
             <div id="astro-extra"></div>
             <div class="note" id="astro-note"></div>
-            <button class="btn-ghost" id="see-full-chart" style="margin-top:14px;">See your full birth chart <span class="js-star"></span></button>
           </div>
         </div>
 
@@ -1722,7 +1726,6 @@
     // hidden while loading — the empty .note still reserves 26px otherwise
     $('astro-note').textContent = '';
     $('astro-note').style.display = 'none';
-    const fc = $('see-full-chart'); if (fc) fc.style.display = 'none';
   }
 
   /* ══════════ Zodiac system (Tropical / 13-sign Astronomical) ══════════ */
@@ -1934,7 +1937,12 @@
           + d.ingredients.map(x => `<span class="ingredient">${esc(x)}</span>`).join('') + `</div></div>`;
       }
       if (d.ritual) h += `<div class="glance-sec"><div class="glance-label">A small ritual</div><div class="ritual-line">${esc(d.ritual)}</div></div>`;
+      // End of the reading: go learn what the placements mean, or open the
+      // full birth chart (modal sits above this page, so Back returns here).
+      h += `<div class="deep-btns"><button class="btn" id="deep-learn">Understand your chart</button>${natalChartHtml ? `<button class="btn" id="deep-chart">See my birth chart</button>` : ''}</div>`;
       st.innerHTML = h;
+      const dl = $('deep-learn'); if (dl) dl.addEventListener('click', () => { closeDeep(); openSky(); });
+      const dc = $('deep-chart'); if (dc) dc.addEventListener('click', openBirthChart);
     } else if (deepLoading || astroLoadingKey) {
       st.innerHTML = `<div class="quiz-kicker">The deeper reading</div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 0;">
@@ -2635,7 +2643,6 @@
       $('daily-birthday').style.display = 'none';
       $('daily-reading').style.display = '';
       $('tarot-card').style.display = 'none';
-      const fcp = $('see-full-chart'); if (fcp) fcp.style.display = 'none';
       setAstroLoading();
       return;
     }
@@ -2650,16 +2657,16 @@
     $('daily-reading').style.display = revealed ? '' : 'none';
     $('tarot-card').style.display = s === 'ready' ? '' : 'none';
     if (s === 'ready') ensureDailyCards();
-    const fc = $('see-full-chart'); if (fc) fc.style.display = (revealed && natalChartHtml) ? '' : 'none';
     if (revealed) loadDaily(false);
   }
   (function(){ const rb = $('daily-reveal-btn'); if (rb) rb.addEventListener('click', () => { astroRevealed = true; renderHome(); }); })();
   $('natal-btn').addEventListener('click', castChart);
   $('daily-signin').addEventListener('click', () => showSignIn());
-  $('see-full-chart').addEventListener('click', () => {
+  function openBirthChart() {
     if (!natalChartHtml) return;
-    // Second screen after the daily reading: the framed birth-chart POSTER
-    // (drawn from the birth details already given), then the full placements.
+    // The birth-chart screen (opened from the deeper reading and the sky
+    // lesson): the framed birth-chart POSTER (drawn from the birth details
+    // already given), then the full placements.
     let poster = '';
     try {
       const st = JSON.parse(localStorage.getItem('witch_natal') || 'null');
@@ -2677,7 +2684,7 @@
     $('chart-close').addEventListener('click', closeModal);
     const ord = $('cp-order'); if (ord) ord.addEventListener('click', () => toast('Framed prints are coming soon ✦'));
     $('chart-redo').addEventListener('click', () => { closeModal(); try { localStorage.removeItem('witch_natal'); } catch {} natalChartHtml = ''; cloudSyncSoon(); renderHome(); });
-  });
+  }
 
   /* ══════════ QUIZ: Are you secretly a witch? — full-screen app ══════════ */
   // Real questions → after answering, a reveal screen (image/film + the sign
@@ -2994,7 +3001,7 @@
     // 5 — closing
     cards.push({ kicker: 'After', h: 'That\'s the whole language', bg: BG,
       body: 'A <i>what</i> (the planet), a <i>how</i> (the sign), and a <i>where</i> (the house) — every one of your placements is just those three. Now the busy wheel makes sense: it\'s that little sentence, over and over.<br><br>Want the full written reading of your chart? ✦',
-      cta: { label: 'Read my full chart', go: 'home', el: 'see-full-chart', fallback: 'natal-form' } });
+      cta: { label: 'Read my full chart', chart: true } });
     return cards;
   }
   { const t = $('open-mysky'); if (t) t.addEventListener('click', () => openSky()); }
@@ -3789,6 +3796,7 @@
       e.stopPropagation();
       const cta = deckCards[deckIdx].cta;
       if (cta.sky) { closeLesson(); openSky(); return; }
+      if (cta.chart) { closeLesson(); if (natalChartHtml) openBirthChart(); else { go('home'); setTimeout(() => { const el = $('natal-form'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80); } return; }
       closeLesson(); go(cta.go || 'home');
       if (cta.book) { openBook(cta.book); return; }
       setTimeout(() => {
