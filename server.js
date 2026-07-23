@@ -1485,13 +1485,14 @@ Return valid JSON only, no markdown fences, shaped:
 const DREAM_READ_SHAPE = `{
   "title": "a short, evocative title for this dream (3-6 words)",
   "symbols": [ { "symbol": "the image/motif", "meaning": "one plain sentence on what it may reflect" } ],
-  "message": "2-3 short paragraphs, speaking directly to the dreamer as \\"you\\": what the subconscious may be working through, woven from the symbols. Grounded and human, never a prediction."
+  "message": "1-2 short paragraphs, speaking directly to the dreamer as \\"you\\": what the subconscious may be working through, woven from the symbols. Grounded and human, never a prediction."
 }`;
-const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Return VALID JSON only (no markdown fences), shaped exactly:
+const DREAM_READ_VOICE = `You are a warm, perceptive dream interpreter for an app called "Secretly a Witch". You read a dream as a mirror for the subconscious — the feelings, tensions, and wishes it may be surfacing — never as prophecy, diagnosis, or fixed meaning. Speak directly to the dreamer as "you", plainly and kindly. 3-5 symbols. No woo lecturing, no "the universe", no medical/psychiatric claims, no telling them what they must do. Keep it tight — this is a quick read, not an essay. Never tell them they are "powerful", "chosen", "special", or otherwise flatter them in generic empowerment-poster language — stay specific to what THIS dream actually shows, not a generic affirmation that could apply to any dream. Return VALID JSON only (no markdown fences), shaped exactly:
 ${DREAM_READ_SHAPE}`;
 
-// The dual-reader dream interpretation, factored out so both the (legacy)
-// synchronous route and the background-job runner share one implementation.
+// Single-reader dream interpretation (Claude only — was a two-model
+// Claude+GPT dual read, cut back per Sophie: it made the reading twice as
+// long and cost twice as much for no real benefit).
 async function runDreamRead(dreamRaw) {
   const dream = String(dreamRaw || '').trim();
   if (!dream) throw new Error('dream is required');
@@ -1499,36 +1500,14 @@ async function runDreamRead(dreamRaw) {
   const userMsg = `Here is the dream, in the dreamer's own words:\n\n"""${dream}"""\n\nInterpret it.`;
 
   // Claude Opus 4.8 — rejects `temperature`; the system prompt pins the JSON.
-  const claudeCall = (async () => {
-    const data = await anthropicChat({ system: DREAM_READ_VOICE, messages: [{ role: 'user', content: userMsg }], max_tokens: 1400 });
-    if (data.error) throw new Error(data.error.message || 'anthropic error');
-    return parseAnthropicJson(data);
-  })();
-  // OpenAI gpt-5.6-sol — reasoning model, force a JSON object, keep it light.
-  const gptCall = (async () => {
-    const data = await openaiChat({
-      model: 'gpt-5.6-sol', reasoning_effort: 'low', response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: DREAM_READ_VOICE }, { role: 'user', content: userMsg }],
-    });
-    if (data.error) throw new Error(data.error.message || 'openai error');
-    return parseJsonReply(data);
-  })();
-
-  const [claudeR, gptR] = await Promise.allSettled([claudeCall, gptCall]);
-  const claude = claudeR.status === 'fulfilled' ? claudeR.value : null;
-  const gpt = gptR.status === 'fulfilled' ? gptR.value : null;
-  if (!claude && !gpt) {
-    const e = new Error('both readers failed');
-    e.detail = { claude: claudeR.reason?.message, gpt: gptR.reason?.message };
-    throw e;
-  }
-  return {
-    claude, gpt,
-    errors: {
-      claude: claudeR.status === 'rejected' ? String(claudeR.reason?.message || claudeR.reason) : null,
-      gpt: gptR.status === 'rejected' ? String(gptR.reason?.message || gptR.reason) : null,
-    },
-  };
+  const data = await anthropicChat({ system: DREAM_READ_VOICE, messages: [{ role: 'user', content: userMsg }], max_tokens: 900 });
+  if (data.error) throw new Error(data.error.message || 'anthropic error');
+  const claude = parseAnthropicJson(data);
+  if (!claude) throw new Error('reader failed');
+  // gpt/errors kept in the shape so older saved (dual-reader) client entries
+  // and the client's render code — which still checks data.gpt — degrade
+  // gracefully; new reads simply never populate it.
+  return { claude, gpt: null, errors: { claude: null, gpt: null } };
 }
 
 app.post('/api/witch/dream-read', async (req, res) => {
@@ -1585,12 +1564,26 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// A render normally finishes in under a minute (breakdown + one page of
+// image gen). The fire-and-forget job is an in-memory async closure, not a
+// durable queue — if the server process recycles mid-render (a deploy, a
+// crash, Render's free-tier idle cycling), the doc is orphaned at
+// status:'running' forever and the client polls it endlessly across app
+// resumes (each resume restarts its own local give-up timer). Past this
+// generous margin, treat 'running' as dead and surface a real error instead.
+const DREAM_ILLUS_STALE_MS = 4 * 60 * 1000;
 app.get('/api/witch/dream-illustrate/:id', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
-    const snap = await admin.firestore().collection('forge-witch-dream-illus').doc(req.params.id).get();
+    const ref = admin.firestore().collection('forge-witch-dream-illus').doc(req.params.id);
+    const snap = await ref.get();
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
-    const d = snap.data();
+    let d = snap.data();
+    if (d.status === 'running' && d.createdAt && Date.now() - d.createdAt.toMillis() > DREAM_ILLUS_STALE_MS) {
+      const error = "This is taking much longer than usual — the server may have restarted mid-render. Tap Illustrate to try again.";
+      await ref.update({ status: 'error', error }).catch(() => {});
+      d = { ...d, status: 'error', error };
+    }
     res.json({ status: d.status, label: d.label, page1: d.page1 || null, totalPages: d.totalPages || 0, title: d.title || null, error: d.error || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1606,18 +1599,50 @@ async function runWitchJob(ref, kind, p) {
   try {
     let result;
     if (kind === 'coincidence') {
-      // Match the native Miracles "sagediagram" look — ONE clever pen-line
-      // doodle (a thing/diagram, not a scene) that reads at thumbnail size —
-      // but GENERIC: no personal reference doodles, plain gpt-image generation.
+      // Art-director distill (finds the one visual idea) → flat pastel
+      // editorial spot illustration. Validated live against ~15 test moments
+      // (long/rambling, intentionally confusing, purely abstract feelings) —
+      // reliably reduces to ONE concrete, isolated image every time.
       const desc = String(p.desc || p.prompt || '').trim();
-      const DOODLE_SYS = `You distill a small real-life coincidence into ONE clever little doodle for a keepsake — HALF OBJECT, HALF DIAGRAM: a single unified image (a THING, not a scene) where every element earns its place and the whole story reads at a glance. Synchronicities are the point: find a way to draw the MATCH itself, fusing ideas into one image (one thing wearing / holding / containing / shaped like the other) rather than two things side by side restating each other. No whole people and no stick figures (a single expressive body part like a hand is fine); no background or setting. Keep it drawable in a few simple pen lines. Reply with ONLY the object / diagram to draw, named concretely and specifically, in one short sentence — no preamble, no quotes.`;
-      let concept = desc;
+      const DISTILL_SYS = `You are an art director for an illustrated journal.
+
+Read the user's memory and reduce it to a single simple visual that captures its emotional essence.
+
+Rules:
+* Return only one visual idea.
+* Choose the simplest image that still communicates the memory.
+* Prefer symbolic or cropped compositions over full scenes.
+* Focus on one subject whenever possible.
+* Eliminate unnecessary people, backgrounds, and objects.
+* If an emotion can be shown through an object instead of a person, prefer the object.
+* The illustration should be immediately understandable at a small size.
+* Preserve the feeling, not the literal sequence of events.
+* Do not describe artistic style, colors, lighting, or rendering.
+* Output 1-3 concise sentences describing only what should appear in the illustration.`;
+      let visualBrief = desc;
       try {
-        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DOODLE_SYS }, { role: 'user', content: desc.slice(0, 1200) }] });
+        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DISTILL_SYS }, { role: 'user', content: `Memory:\n${desc.slice(0, 1200)}` }] });
         const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
-        if (t) concept = t.replace(/^["']+|["']+$/g, '');
+        if (t) visualBrief = t;
       } catch {}
-      const imgPrompt = `A single object drawn as a simple doodle / icon, centered and drawn LARGE so it fills most of the frame — like a quick diagram, NOT a scene, on a plain uncluttered white background. Loose, imperfect, hand-drawn with a thin black ballpoint pen, wobbly uneven lines, childlike and minimal. No shading, no solid black fills, no color. No whole people and no stick figures — a single body part (like a hand holding something) is fine when the idea calls for it. Draw: ${concept}. Do not write the object's name or any caption anywhere; only include words if they are literally part of the idea (e.g. a "CLOSED" sign).`;
+      const imgPrompt = `Create a simple editorial spot illustration based on this visual brief:
+
+${visualBrief}
+
+Style:
+* clean white background
+* bold black outlines
+* flat, muted pastel colors (such as lilac, mint green, and light pink)
+* very little shading
+* simplified shapes
+* one clear focal point
+* playful but not childish
+* hand-drawn, slightly imperfect linework
+* no detailed scenery
+* no decorative border
+* no text
+
+Keep the composition isolated and instantly readable at a small size. Use only the objects or body parts necessary to communicate the idea.`;
       const data = await openaiImage({ model: 'gpt-image-2', prompt: imgPrompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
       if (data.error) throw new Error(data.error.message || 'image error');
       const b64 = data.data?.[0]?.b64_json;

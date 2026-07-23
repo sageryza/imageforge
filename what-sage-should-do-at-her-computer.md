@@ -65,6 +65,22 @@ time.
 
 _Chats: add items below with a one-line reason._
 
+- **NDE supercut — ONE computer session banks everything (July 2026 flow).**
+  Run on the computer because YouTube blocks the cloud servers' IPs; your home
+  internet works. Needs `yt-dlp` once (`brew install yt-dlp`).
+  1. **Run the grab-everything script** (`scripts/nde-grab-all.js`, a chat sends
+     it as a download): `node "$(ls -t ~/Downloads/*grab-all*.js | head -1)"`.
+     It self-discovers EVERY "near death experience of …" interview on Anthony
+     Chene's channel, stores each transcript (free — no AI call) AND uploads the
+     full-quality audio straight to Firebase (`nde-audio/`). Safe to leave
+     running unattended (~1-2h); re-running resumes/skips what's done.
+  2. **That's it — the computer is done forever.** Any chat can then mine themes
+     (`scripts/nde-themes.js`, ~$1-2/25 videos on gpt-5.6-sol) and cut clips
+     server-side from the banked audio (`scripts/nde-slice-server.js` — needs
+     ffmpeg: `apt-get install -y --no-install-recommends ffmpeg`, plus the
+     deckfactory service account; outputs public clip links + a ZIP), with no
+     computer involved — works while Sophie is traveling.
+
 - **Set up YouTube auto-upload (OAuth).** So a chat can push finished videos to
   your channel as private drafts (you just tap Publish). One-time browser sign-in
   only you can do. On the computer: create a Google Cloud project → enable

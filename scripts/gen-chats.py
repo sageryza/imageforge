@@ -590,6 +590,7 @@ function openChat(name, keepScroll){
             if(filter==='new') show=!v;
             else if(filter==='like') show=(v==='like');
             else if(filter==='nox') show=(v!=='dislike');
+            if(c.it._broken) show=false;   // a dead image stays hidden
             c.cell.style.display=show?'':'none';
           });
         }
@@ -662,11 +663,18 @@ function openChat(name, keepScroll){
           // makes it on demand. IntersectionObserver sets src from data-src.
           var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
           var srcAttr = io ? 'data-src' : 'src';
-          var onerr = it.thumb ? ' onerror="this.onerror=null;this.src=\''+esc(fb)+'\'"' : '';
-          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'"'+onerr+'>';
+          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">';
+          var img=b.querySelector('img'), triedFb=false;
+          // Two-stage error: direct thumb → /api/story/thumb → if BOTH fail the
+          // underlying image is gone (deleted / not public), so hide the tile
+          // instead of showing a broken "?" box.
+          img.onerror=function(){
+            if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
+            it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
+          };
           b.onclick=function(){ lightbox(it.url, it); };
           cell.appendChild(b); voteBtns(cell,it);
-          if(io) io.observe(b.querySelector('img'));
+          if(io) io.observe(img);
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
         });
@@ -835,7 +843,9 @@ document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localSt
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
 
 function load(){
-  api('/api/chatfeed').then(function(r){return r.json()}).then(function(data){
+  // cache-bust: the webview heuristically cached the bare URL, which made the
+  // Refresh button look dead (new messages only appeared minutes later)
+  api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
     if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){

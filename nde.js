@@ -476,7 +476,10 @@ async function processVideo(videoIdOrUrl, opts = {}) {
     await saveVideo(record);
   }
 
-  // Moments.
+  // Moments. Skipped entirely when noExtract is set — the supercut path only
+  // needs the stored transcript (the shared-beat mining reads it directly), so
+  // there's no reason to spend the gpt-4o-mini call. Transcript-only = free.
+  if (opts.noExtract) return record;
   if (!record.moments || opts.forceExtract) {
     try {
       const extracted = await extractMoments({
@@ -578,6 +581,9 @@ router.post('/videos', async (req, res) => {
     const record = await processVideo(String(input), {
       forceTranscript: !!req.body?.forceTranscript,
       forceExtract: !!req.body?.forceExtract,
+      // extract:false stores the transcript only (no gpt-4o-mini moment call) —
+      // the free path for the supercut, which mines the transcript separately.
+      noExtract: req.body?.extract === false,
       transcript: req.body?.transcript || null,
       title: req.body?.title || null,
     });
@@ -589,6 +595,113 @@ router.post('/videos/:videoId/extract', async (req, res) => {
   try {
     const record = await processVideo(req.params.videoId, { forceExtract: true });
     res.json(record);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Bank a video's full audio in Firebase Storage. The laptop downloads the audio
+// from YouTube (residential IP) and PUTs/POSTs the bytes here as the raw request
+// body; the server stores it public at nde-audio/<videoId>.<ext> and records the
+// URL on the doc — so all clip-slicing can then happen server-side, for free,
+// without the laptop. Raw body (any content-type), generous size cap.
+router.post('/videos/:videoId/audio', express.raw({ type: '*/*', limit: '200mb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const videoId = parseVideoId(req.params.videoId);
+    if (!videoId) return res.status(400).json({ error: 'bad videoId' });
+    const buf = req.body;
+    if (!buf || !buf.length) return res.status(400).json({ error: 'empty body' });
+    const ext = String(req.query.ext || 'm4a').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'm4a';
+    const contentType = req.get('content-type') && req.get('content-type') !== 'application/octet-stream'
+      ? req.get('content-type') : (ext === 'webm' ? 'audio/webm' : 'audio/mp4');
+    const bucket = admin.storage().bucket();
+    const dest = `nde-audio/${videoId}.${ext}`;
+    const file = bucket.file(dest);
+    await file.save(buf, { metadata: { contentType } });
+    await file.makePublic();
+    const audioUrl = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    const existing = (await getVideo(videoId)) || { videoId, url: `https://www.youtube.com/watch?v=${videoId}`, createdAt: new Date().toISOString(), status: 'pending' };
+    existing.audioUrl = audioUrl;
+    existing.audioBytes = buf.length;
+    await saveVideo(existing);
+    res.json({ ok: true, videoId, audioUrl, bytes: buf.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Bank an already-cut clip (the local puller sliced ~258 to Sophie's disk before
+// the Firebase flow existed; this lets her computer push them up as a safety
+// copy). Small files, so a simple relay is fine. Stored public at
+// nde-clips/original/<theme>/<file>. GET /clips lists what's banked.
+router.post('/clip', express.raw({ type: '*/*', limit: '20mb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const rel = String(req.query.path || '').replace(/\\/g, '/').replace(/\.\.+/g, '').replace(/^\/+/, '').replace(/[^A-Za-z0-9._/-]/g, '_');
+    if (!/\.(mp3|m4a|wav|webm|ogg)$/i.test(rel)) return res.status(400).json({ error: 'path must be an audio file' });
+    const buf = req.body;
+    if (!buf || !buf.length) return res.status(400).json({ error: 'empty body' });
+    const bucket = admin.storage().bucket();
+    const dest = `nde-clips/original/${rel}`;
+    await bucket.file(dest).save(buf, { metadata: { contentType: 'audio/mpeg' } });
+    await bucket.file(dest).makePublic();
+    res.json({ ok: true, url: `https://storage.googleapis.com/${bucket.name}/${dest}`, bytes: buf.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/clips', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const prefix = 'nde-clips/' + String(req.query.run || 'original') + '/';
+    const [files] = await admin.storage().bucket().getFiles({ prefix });
+    const clips = files.filter(f => /\.(mp3|m4a|wav)$/i.test(f.name)).map(f => ({
+      path: f.name.slice(prefix.length),
+      url: `https://storage.googleapis.com/${f.bucket.name}/${f.name}`,
+      bytes: Number(f.metadata.size) || null,
+    }));
+    res.json({ count: clips.length, clips });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Direct-to-Storage upload lane for FULL-quality audio banking. The relay
+// route above buffers the whole file in Render's small memory, which is fine
+// for one-offs but shaky for a 100-file unattended run — so the laptop asks
+// here for a V4 signed PUT URL, uploads the bytes STRAIGHT to Google Storage
+// (no Render in the data path), then confirms with /audio-done which makes the
+// object public and records audioUrl on the doc.
+router.get('/videos/:videoId/audio-upload', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const videoId = parseVideoId(req.params.videoId);
+    if (!videoId) return res.status(400).json({ error: 'bad videoId' });
+    const ext = String(req.query.ext || 'm4a').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'm4a';
+    const contentType = ext === 'webm' ? 'audio/webm' : ext === 'opus' ? 'audio/opus' : 'audio/mp4';
+    const bucket = admin.storage().bucket();
+    const dest = `nde-audio/${videoId}.${ext}`;
+    const [uploadUrl] = await bucket.file(dest).getSignedUrl({
+      version: 'v4', action: 'write', expires: Date.now() + 60 * 60 * 1000, contentType,
+    });
+    res.json({ uploadUrl, contentType, dest });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/videos/:videoId/audio-done', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const videoId = parseVideoId(req.params.videoId);
+    if (!videoId) return res.status(400).json({ error: 'bad videoId' });
+    const ext = String(req.body?.ext || 'm4a').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'm4a';
+    const bucket = admin.storage().bucket();
+    const dest = `nde-audio/${videoId}.${ext}`;
+    const file = bucket.file(dest);
+    const [exists] = await file.exists();
+    if (!exists) return res.status(400).json({ error: 'object not found — upload did not complete' });
+    await file.makePublic();
+    const [meta] = await file.getMetadata();
+    const audioUrl = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    const existing = (await getVideo(videoId)) || { videoId, url: `https://www.youtube.com/watch?v=${videoId}`, createdAt: new Date().toISOString(), status: 'pending' };
+    existing.audioUrl = audioUrl;
+    existing.audioBytes = Number(meta.size) || null;
+    if (req.body?.title && !existing.title) existing.title = String(req.body.title);
+    await saveVideo(existing);
+    res.json({ ok: true, videoId, audioUrl, bytes: existing.audioBytes });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

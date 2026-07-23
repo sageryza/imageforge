@@ -22,6 +22,36 @@
   - Gallery: https://imageforge-q125.onrender.com/gallery
   - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
 
+## Render keep-awake & running hours (READ THIS before blaming cold starts)
+- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
+  block) runs a `setInterval` every **10 min** that fetches
+  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
+  external uptime monitor / cron / GitHub Action. There is NO external pinger
+  anywhere in any of the four repos; do not go hunting for one. Render injects
+  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
+  (log line: `Keep-awake self-ping enabled for …`).
+- **Why it exists:** Render **free** web services spin down after ~15 min with
+  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
+  failed" / slow first render). The 10-min self-ping (under the 15-min idle
+  window) keeps the instance warm so Sophie doesn't hit that wait.
+- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
+  — right after a deploy/restart before any traffic, or if the ping ever lapses
+  — it can't ping itself back awake; the *next real visitor* eats the cold
+  start. So an occasional slow first load is still expected, especially just
+  after a deploy. (A slow generation is usually cold start **plus** the model
+  itself, e.g. gpt-image-2 medium ~30–90s.)
+- **Limited running hours (the trade-off):** Render's free tier gives **750
+  instance hours per workspace per calendar month** (reset on the 1st, no
+  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
+  is ~730 hours, so a single always-on free service *just* fits under 750 with
+  little slack. **If those 750 hours run out, Render suspends ALL free web
+  services in the workspace until the next month** — so a second free service,
+  or restart churn, can exhaust the budget early and take the app down till the
+  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
+  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
+  no hour cap); until then, the self-ping is the free-tier compromise.
+  (Verified against Render's current free-tier terms, July 2026.)
+
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
 Portland dates). The full brief, her own planning docs/mockups, illustration
@@ -82,7 +112,8 @@ each opens a focused workflow that shares the same house styles.
   uploads the local file to membry Storage, makes it public, and writes the
   gallery doc — so generate → post is a single step (use `--url` instead for an
   already-hosted image). Needs the `membry-df528` Admin service account via
-  `FIREBASE_SERVICE_ACCOUNT`/`GOOGLE_APPLICATION_CREDENTIALS` and the target uid
+  `STORY_FIREBASE_SERVICE_ACCOUNT` (preferred — see the two-key note below) /
+  `FIREBASE_SERVICE_ACCOUNT` (fallback) / `GOOGLE_APPLICATION_CREDENTIALS`, and the target uid
   (neither in the repo). Doc shape:
   `{ type, url, prompt, stickers:null, createdAt:Timestamp, source, style? }`.
 - **The target uid is Sophie's device anonymous-auth id** — a personal
@@ -112,6 +143,18 @@ each opens a focused workflow that shares the same house styles.
   by the server and data read directly by the app live in DIFFERENT projects.
   `/api/story` bridges this with `STORY_FIREBASE_SERVICE_ACCOUNT` (a membry
   service-account JSON) — set it in Render or the boards read as empty.
+- **Two service accounts → two env vars (same names for the server AND for a
+  chat's local scripts).** Set BOTH so anything works, including the
+  network-proof direct-to-Firestore paths:
+  - `FIREBASE_SERVICE_ACCOUNT` = **Deck Factory** (`deckfactory-43176`) — the
+    chat feed (`forge-chat-feed`), assets/votes, thumbs, Compare pages, Storage.
+    Used by `server.js` and `scripts/post-feed-direct.js`.
+  - `STORY_FIREBASE_SERVICE_ACCOUNT` = **Memory / membry** (`membry-df528`) —
+    the iOS "My Creations" gallery and Story Boards. Used by `/api/story` and
+    `scripts/post-to-gallery.js` (which falls back to `FIREBASE_SERVICE_ACCOUNT`).
+  For a chat's cloud environment, set both as **environment variables** in the
+  environment settings (NEVER commit either to this public repo). Only ONE
+  default environment? Set both there once and every session has them.
 
 ## Image generation
 - OpenAI `gpt-image-2` (the zine; single/sticker can also use DALL·E 3).
@@ -256,6 +299,41 @@ lifted into a standalone tool later.
   `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
   (x-studio-token header when gated). The hook names the chat from the git
   branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
+- **Self-heal if you're NOT posting (any chat).** If your replies aren't
+  showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
+  If it's MISSING, your session's environment didn't install the hook —
+  reinstall it: `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
+  (writes the hook + `/home/user/.claude/settings.json`). Hooks only load at
+  Claude Code startup, so the reinstall kicks in on your NEXT session — to
+  surface THIS session's replies now, post each by hand once with
+  `POST https://imageforge-q125.onrender.com/api/chatfeed`
+  `{ "chat":"<branch-name>", "text":"<reply>", "tldr":"<TLDR>" }`, but ONLY
+  while the hook is missing (once it's back the hook posts, and a manual post
+  would duplicate). No auth header needed (STUDIO_TOKEN is off on the live
+  server).
+  - **If the curl / POST is BLOCKED (network error, not a 4xx):** your cloud
+    environment's **Network access** doesn't allow `imageforge-q125.onrender.com`
+    (the default **Trusted** level only permits package registries + GitHub +
+    cloud SDKs — a Render app isn't on it). This blocks BOTH the reinstall and
+    the hook's own POST, so the chat can never appear in the Chats app until
+    it's fixed. A chat CANNOT change its own network policy — tell Sophie: edit
+    the environment (cloud icon) → **Network access → Custom** → add
+    `imageforge-q125.onrender.com` to **Allowed domains** → keep "Also include
+    default list of common package managers" checked → Save. It's a one-time
+    per-environment flip.
+  - **Network-proof path — post straight to Firestore (works even when the
+    server is blocked).** With the **Deck Factory JSON** (the deckfactory-43176
+    Firebase Admin service account) available as `FIREBASE_SERVICE_ACCOUNT`, a
+    chat can write the reply directly to the `forge-chat-feed` collection
+    instead of curling the API: `printf '%s' "$reply" | node
+    scripts/post-feed-direct.js --chat <name> --tldr "<TLDR>"`. Firestore is on
+    `googleapis.com`, which is allowed on EVERY network level, so this posts
+    even on the locked-down Trusted level. Provide the JSON as an **env var on
+    the environment** (`FIREBASE_SERVICE_ACCOUNT=<json>`, same as the server —
+    never commit it to this public repo); if it's missing, ask Sophie for it.
+    The robust setup is to configure one environment once with all three:
+    Network access (add the domain), the Setup script (auto-poster), and
+    `FIREBASE_SERVICE_ACCOUNT`.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
@@ -390,67 +468,49 @@ lifted into a standalone tool later.
   `movie.zine` (prior zines in `zineHistory`, capped 3). Lulu print step is
   the planned follow-up (`lulu.js` keys are live; a 32-page standard-color
   uncoated paperback ≈ $3.40/copy, saddle-stitch premium ≈ $4.34-7.11).
-- **Dreams (dream → comic):** the dream-illustration path — replicates the
-  daily "get my dream illustrated" experience. `POST /api/movies/dream` is the
-  free breakdown. **Model (experiment, July 2026): OpenAI frontier
-  `gpt-5.6-sol`** does the WHOLE breakdown — splitting AND the image
-  descriptions — set by `DREAM_BREAKDOWN_MODEL` (default `gpt-5.6-sol`; set a
-  `claude-*` id to route back through `anthropicChatJSON`/Claude Opus, the prior
-  default, for comparison). Chosen deliberately as the smart tier — a small
-  model can't split/segment/order a rambling recording — and to test whether the
-  model that owns the image generator writes descriptions its own image model
-  draws better. **There is NO silent fallback between providers**: whichever
-  `DREAM_BREAKDOWN_MODEL` names either works or errors (no drop to gpt-4o-mini).
-  `openaiChatJSON` takes a `model` and omits temperature for `gpt-5*` reasoning
-  models; ~$0.066 and ~60s per breakdown on Sol. `OPENAI_API_KEY`/
-  `ANTHROPIC_API_KEY` are `config-loader` MANAGED_KEYs (Render env OR the
-  Firestore config doc). **One recording → one or MORE dreams:**
-  `dreamBreakdown()` first SPLITS the recording into the distinct dreams (on the
-  dreamer's boundary cues — "that was that dream", "the next dream", "yesterday
-  I had a dream") and returns `{dreams:[{title,text,driftCues,cast,beats}]}`;
-  `POST /dream` creates one `forge-dreams` doc per dream (staggered `createdAt`
-  so array order = time; each stores `dreamText` = its own verbatim slice and
-  `driftCues` = the verbatim out-of-order phrases to highlight) and returns
-  `{dreams:[doc,…]}`. Within each dream it reconstructs TRUE chronology from the
-  cues ("that was before", "at first", "at the very end", "right before I woke
-  up"), emits coarse beats already in order, and lists in `driftCues` the exact
-  phrases where the narration drifted from chronological (for the review UI to
-  highlight; `[]` when told in order). iOS `createDream` returns `[Dream]`; the "check the
-  chronology" step shows each split dream as its own titled group (▲▼ within it)
-  and "Draw all N" renders each via `POST .../render {order:[beatId]}`.
-  `POST /api/movies/dream/:id/render` then draws the beats as hand-lettered
-  2x2 comic pages through the SAME style-ref zine engine — `makeDreamPages`
-  packs beats **four per image** (an 8-beat dream = two pages; a short tail
-  page lays out with fewer), captions = the beats' own lines (no cover),
-  ~$0.06/page. Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`),
-  background job on the doc, `pageHistory` capped 3. Separate collection so
-  dreams never clutter the movies list. **Render survives leaving the app:** the
-  render is a fire-and-forget server job, and iOS `DreamsView` records the
-  rendering dream ids in `@AppStorage("dreams.activeRenderIDs")`, so closing the
-  app or leaving the screen never stops the draw — on return, `resumeActiveRenders`
-  re-polls those ids and shows the pages as they land. Polling is resilient to
-  dropped connections (phone locked / Render cold start) — a transient failure
-  retries instead of surfacing "Couldn't illustrate"; only a real job error does.
-  **Multi-character consistency by reusing earlier pages** (a dream usually has
-  several recurring people — dad, J, Sean — not one): the breakdown returns a
-  `cast:[{name,look}]` (≤5 named figures) and each beat carries a `who:[name]`
-  of who appears in it. Pages render **in order** (`makeDreamPages`, a
-  sequential loop — dreams are short); each page feeds the **already-drawn
-  earlier pages** back in as the reference, NOT freshly-generated solo sheets.
-  For every recurring character on a page, `dreamPageRefs` finds the earliest
-  page that showed them and attaches it (style ref FIRST, then up to 3 earlier
-  pages), and `dreamZinePagePrompt` names each by attachment position ("the #2
-  attached image is an EARLIER PAGE — draw J with the exact same face/hair/
-  clothing"). A character's FIRST appearance has no earlier page and is drawn
-  fresh; the page it lands on then anchors it everywhere after. This is the
-  cheaper, more faithful version of the ChatGPT technique — reuse an existing
-  image of the character instead of inventing a reference sheet (gpt-image-2
-  `edits` attends to the attached images; array up to ~16, we cap at style + 3).
-  So an N-character dream generates **only** its comic pages — 0 extra images
-  (previously it drew one solo sheet per character, ~$0.06 each). Legacy dreams
-  with no `who` fall back to anchoring each page to the most recent earlier one.
-  Same `STUDIO_TOKEN` gate. No web page — iOS is the intended frontend, like the
-  rest of movies.
+- **Dreams (dream → comic), v2 STAGED pipeline (July 2026):** the
+  dream-illustration path, rebuilt around user approval BETWEEN cheap stages
+  (Sophie approves order + characters before anything paid runs). **Stage 1 —
+  `POST /api/movies/dream`** runs `dreamSplit()`: ONLY splits the recording
+  into its distinct dreams (boundary cues — "that was that dream", "the next
+  dream"), each `{title, text (verbatim slice), driftCues (out-of-order
+  phrases, exact substrings to highlight), mentions (people, "me" first)}` —
+  NO beats, NO image descriptions. Runs `DREAM_BREAKDOWN_MODEL` (default
+  `gpt-5.6-sol`; a `claude-*` id routes via Anthropic, NO silent fallback) at
+  `DREAM_SPLIT_EFFORT` (default `none` — validated: still splits/orders
+  right, ~18s vs ~60s). Each split dream doc also gets `castSuggestions`:
+  every mention looked up in the saved character sheet via
+  `character.js:matchCandidates` — ALL plausible candidates per name (an
+  ambiguous "Jonathan" returns both Jonathans; unmatched "Miriam" returns
+  `[]` → the UI shows a blank describe-them card). **Stage 2 — approval in
+  the app:** "is this the order of your dreams?" (▲▼ moves WHOLE dreams;
+  persisted via `POST /dream/reorder {ids}` which re-staggers `createdAt`)
+  and "are these the characters?" (pick a candidate / unpick = not them /
+  type a description). **Stage 3 — `POST /dream/:id/render {quality,
+  characters:[{name, url|image|desc}]}`:** `dreamPaginate()` lets the model
+  decide how many IMAGES the dream needs (1-8, never padded) and allots each
+  image a verbatim slice of the dreamer's words in TRUE chronological order
+  (drift cues fix the narration order); then `makeDreamPagesV2` draws
+  sequentially — each page gets the style ref FIRST, then ONLY that slot's
+  approved character cards (image refs; desc-only people ride as text
+  continuity lines), then up to 3 already-drawn earlier pages
+  (`dreamPageRefs` — a face is carried from the page it first appeared on),
+  plus the whole dream for context and "THIS page tells ONLY this part".
+  **The model decides each page's layout** (single drawing or panels — no
+  fixed 2x2). Pages store `{url, promptUsed, text, who}`; plan kept on
+  `dream.pagePlan`. ~$0.06/page medium. Legacy beat docs still render
+  through the old `makeDreamPages` 2x2 path (`order:[beatId]` still
+  honored). Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`,
+  `GET /dream-batch/:id` for the background read), background job on the
+  doc, `pageHistory` capped 3, separate `forge-dreams` collection.
+  **Render survives leaving the app:** fire-and-forget server job; iOS
+  `DreamsView` records rendering ids in `@AppStorage("dreams.activeRenderIDs")`
+  and resumes polling on return; transient poll failures retry (phone locked /
+  Render cold start) — only a real job error surfaces. Characters keep their
+  ORIGINAL backgrounds (the transparent cleanBox step was removed by request
+  — background separation only matters if a character is composited later).
+  Same `STUDIO_TOKEN` gate. iOS is the frontend; a web page port of the new
+  flow is planned to follow the TestFlight build.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into

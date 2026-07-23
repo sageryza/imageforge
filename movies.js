@@ -398,6 +398,10 @@ async function createDreamDocs(plans, text, title) {
       driftCues: plan.driftCues || [],
       characters: plan.characters,
       cast: plan.cast,
+      // v2 staged flow: who the dream mentions + saved-sheet candidates for
+      // each (filled by attachCastSuggestions after the split).
+      mentions: plan.mentions || [],
+      castSuggestions: plan.castSuggestions || null,
       imageStyle: DEFAULT_IMAGE_STYLE,
       characterAnchor: null,
       beats: plan.beats,
@@ -934,6 +938,60 @@ HARD RULES:
   return { dreams };
 }
 
+// ─── Dream split (v2 staged pipeline) ───────────────────────────────
+// The fast FIRST call of the staged flow: ONLY split the recording into its
+// separate dreams, in order, with drift cues and the people mentioned. No
+// beats, no image prompts — deciding pages and describing images happens
+// later (dreamPaginate), after the user has approved order + characters.
+// Much smaller task than the old all-in-one breakdown, so it runs with
+// minimal reasoning (validated: effort 'none' still splits and orders
+// correctly, ~18s vs ~60s).
+const DREAM_SPLIT_EFFORT = process.env.DREAM_SPLIT_EFFORT || 'none';
+async function dreamSplit(recording) {
+  const sys = `Someone tells you their real dream recording. A single recording is often SEVERAL separate dreams told in one breath, sometimes out of order. Do ONLY two things: split it into the distinct dreams, and note ordering + who appears. Do NOT describe images, do NOT break dreams into scenes or beats. Return STRICT JSON and nothing else:
+{"dreams": [
+  {"title": a short 2-5 word title for THIS dream,
+   "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), so it can be shown back to the dreamer as a block,
+   "driftCues": [the exact short phrases WITHIN "text" where the dreamer told events OUT of chronological order — e.g. "before that", "at first", "actually that was earlier", "right before I woke up". Verbatim substrings of "text". [] if this dream was narrated in the order it happened],
+   "mentions": [every person or recurring figure who appears in THIS dream, as the dreamer refers to them — "me", "J", "Dad", "Miriam", "the baby". If the dreamer themself is in the dream, "me" comes FIRST. [] only if the dream truly has no people]}
+]}
+
+HARD RULES:
+- SPLIT into separate dreams. Start a new dream at the dreamer's own boundary cues: "that was that dream", "the next dream", "another dream I had", "then yesterday I had a dream", or an unmistakable change of setting/cast with no continuity. When unsure whether two stretches are one dream or two, prefer keeping a coherent continuous scene together. Emit the dreams in the order they were dreamt (earliest first) when the dreamer gives day cues ("the night before", "yesterday"); otherwise keep their narrated order.
+- "text" must be a verbatim slice of the recording. "driftCues" must be exact substrings of that "text" — never paraphrased — so they can be highlighted in place.
+- "mentions" are short labels in the dreamer's own words, deduplicated ("my dad" and "Dad" are one entry).`;
+  const user = `The dream recording:\n\n${recording}`;
+  const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
+    ? await anthropicChatJSON(sys, user, { maxTokens: 6000 })
+    : await openaiChatJSON(
+        [{ role: 'system', content: sys }, { role: 'user', content: user }],
+        { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: DREAM_SPLIT_EFFORT, retries: 2 });
+  const raw = Array.isArray(out.dreams) ? out.dreams : [];
+  const dreams = raw.map((d) => ({
+    title: String(d.title || 'Untitled dream').trim(),
+    text: String(d.text || '').trim(),
+    driftCues: (Array.isArray(d.driftCues) ? d.driftCues : []).map(s => String(s).trim()).filter(Boolean).slice(0, 12),
+    mentions: (Array.isArray(d.mentions) ? d.mentions : []).map(s => String(s).trim()).filter(Boolean).slice(0, 10),
+    cast: [], characters: '', beats: [],
+  })).filter(d => d.text);
+  if (!dreams.length) throw new Error('dream split found no dreams in the recording');
+  return { dreams };
+}
+
+// Look each mentioned name up in the saved character sheet and store ALL the
+// plausible candidates on the dream doc — the approval UI shows them as cards
+// (every candidate when a name is ambiguous, a blank describe-yourself card
+// when there's no match). Best-effort: an empty sheet just means all blanks.
+async function attachCastSuggestions(doc) {
+  try {
+    const { matchCandidates } = require('./character');
+    doc.castSuggestions = await matchCandidates(doc.mentions || []);
+  } catch (err) {
+    console.warn('movies: cast suggestions failed —', err.message);
+    doc.castSuggestions = (doc.mentions || []).map(n => ({ name: n, matches: [] }));
+  }
+}
+
 // A scene folded into the previous scene's clip (it's the "after" of a
 // before/after pair): it has a panel but never its own clip or stitch slot.
 function isMerged(movie, idx) {
@@ -1450,6 +1508,117 @@ async function makeDreamPages(dream, quality, progress) {
   dream.pagesQuality = quality;
   dream.pagesMadeAt = new Date().toISOString();
   if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; re-render to fill the gaps`);
+}
+
+// ─── Dream pages v2 (staged flow): allot text per image, then draw ──
+// No beats: the model decides how many IMAGES the dream needs and which exact
+// slice of the dreamer's words each image tells. The image model gets the
+// whole dream for context plus its allotment, the style ref, and ONLY that
+// slot's approved characters — and lays out its own page (no fixed 2x2).
+async function dreamPaginate(dream, castNames) {
+  const sys = `You are planning a short hand-drawn comic that tells someone's real dream in their own words. Decide how many IMAGES the dream honestly needs to be told well — a simple dream may be ONE image; a long eventful one several. Never pad. For each image, allot the exact slice of the dreamer's words that image tells. Return STRICT JSON and nothing else:
+{"pages": [
+  {"text": the verbatim words from the dream allotted to THIS image. Together the pages cover the whole dream in the TRUE chronological order events happened — use the dreamer's ordering cues ("before that", "at first", "right before I woke up") to fix any out-of-order narration; reorder whole passages if needed but do not paraphrase (dropping filler is fine),
+   "who": [names from the CAST list of the people who appear in THIS image's part] ([] if none)}
+]}
+RULES: between 1 and 8 pages, as FEW as the dream needs. "who" must use the CAST names EXACTLY as given, only names from that list.`;
+  const cues = (dream.driftCues || []).length
+    ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
+    : '';
+  const user = `The dream:\n\n${dream.dreamText || dream.dream}${cues}\n\nCAST: ${JSON.stringify(castNames)}`;
+  const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
+    ? await anthropicChatJSON(sys, user, { maxTokens: 4000 })
+    : await openaiChatJSON(
+        [{ role: 'system', content: sys }, { role: 'user', content: user }],
+        { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: 'low', retries: 2 });
+  const nameSet = new Set(castNames);
+  const pages = (Array.isArray(out.pages) ? out.pages : [])
+    .map(p => ({
+      text: String(p.text || '').trim(),
+      who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
+    }))
+    .filter(p => p.text)
+    .slice(0, 8);
+  if (!pages.length) throw new Error('page planning produced no pages');
+  return pages;
+}
+
+// One v2 page: style ref first, then THIS slot's approved character cards,
+// then earlier pages (characters carried from the page they first appeared
+// on). Described-but-unsaved characters ride as text continuity lines.
+async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
+  const cast = Array.isArray(dream.castApproved) ? dream.castApproved : [];
+  const onPage = cast.filter(c => (plan.who || []).includes(c.name));
+  const refs = [];
+  if (styleRef) refs.push(styleRef);
+  const clauses = [];
+  let n = refs.length + 1;
+  for (const c of onPage) {
+    if (!c.url) continue;
+    const buf = await refBufferFromUrl(c.url);
+    if (!buf) continue;
+    refs.push(buf);
+    clauses.push(`the #${n++} attached image is a CHARACTER REFERENCE for ${c.name} — whenever ` +
+      `${c.name} appears, draw them with the exact same face, hair and clothing as in it; do not redesign them`);
+  }
+  for (const r of dreamPageRefs([{ who: plan.who || [] }], rendered)) {
+    const buf = await refBufferFromUrl(r.url);
+    if (!buf) continue;
+    refs.push(buf);
+    clauses.push(r.names.length
+      ? `the #${n++} attached image is an EARLIER PAGE of this same comic — draw ${r.names.join(' and ')} with the exact same face, hair and clothing they have there, and do not redesign them`
+      : `the #${n++} attached image is an EARLIER PAGE of this same comic — keep the drawing style and scenery consistent with it`);
+  }
+  for (const c of onPage) {
+    if (c.url || !c.desc) continue;
+    clauses.push(`${c.name} is ${c.desc} — keep ${c.name} looking exactly the same everywhere they appear`);
+  }
+  const styleIntro = styleRef
+    ? 'The FIRST attached image is a STYLE reference — copy its hand-lettered drawing style exactly, but do NOT copy its content or subjects. '
+    : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
+  const continuity = clauses.length
+    ? `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them. `
+    : '';
+  const body =
+    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream in the dreamer's own words. ` +
+    `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
+    `THIS page tells ONLY this part of it: "${plan.text}". Draw only that part. ` +
+    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best — ' +
+    'with short hand-lettered caption boxes in the dreamer\'s own words from this part, spelled exactly as written.';
+  const prompt = `${styleIntro}${continuity}${body}`;
+  const buf = refs.length
+    ? await openaiPanelEdit(prompt, refs, quality)
+    : await openaiPanel(prompt, quality);
+  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
+}
+
+async function makeDreamPagesV2(dream, quality, progress) {
+  const castNames = (Array.isArray(dream.castApproved) ? dream.castApproved : []).map(c => c.name);
+  await progress(0, 0, 'planning pages');
+  const plans = await dreamPaginate(dream, castNames);
+  dream.pagePlan = plans;
+  const total = plans.length;
+  let done = 0;
+  await progress(done, total, 'drawing pages');
+  const rendered = [];
+  const pages = [];
+  let failed = 0;
+  for (let i = 0; i < plans.length; i++) {
+    try {
+      const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
+      dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+      rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
+      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, who: plans[i].who || [] });
+    } catch { failed++; }
+    await progress(++done, total, 'drawing pages');
+  }
+  if (dream.pages?.length) {
+    dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
+  }
+  dream.pages = pages;
+  dream.pagesQuality = quality;
+  dream.pagesMadeAt = new Date().toISOString();
+  if (failed) throw new Error(`${failed} of ${total} pages failed — the finished pages are kept; re-render to fill the gaps`);
 }
 
 // Same background-job envelope as startJob, but persisted to the dreams
@@ -2215,8 +2384,11 @@ router.post('/dream', async (req, res) => {
       await saveDreamBatch(batch);
       (async () => {
         try {
-          // One recording can hold several dreams — the breakdown splits them.
-          const { dreams: plans } = await dreamBreakdown(text);
+          // One recording can hold several dreams — the split-only call (v2
+          // staged flow) separates + orders them and lists who's mentioned;
+          // beats/pages are decided later, after the user approves.
+          const { dreams: plans } = await dreamSplit(text);
+          for (const p of plans) await attachCastSuggestions(p);
           const docs = await createDreamDocs(plans, text, title);
           batch.dreamIds = docs.map(d => d.id);
           batch.dreamCount = docs.length;
@@ -2234,7 +2406,8 @@ router.post('/dream', async (req, res) => {
 
     // Synchronous path (kept for back-compat with older app builds): read and
     // return the split dreams in one call. One recording can hold several dreams.
-    const { dreams: plans } = await dreamBreakdown(text);
+    const { dreams: plans } = await dreamSplit(text);
+    for (const p of plans) await attachCastSuggestions(p);
     const docs = await createDreamDocs(plans, text, title);
     res.json({ dreams: docs });
   } catch (err) {
@@ -2289,9 +2462,33 @@ router.post('/dream/:id/render', async (req, res) => {
   try {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
-    if (!(doc.beats || []).length) return res.status(400).json({ error: 'no beats to draw' });
-    const { quality = 'medium', order, characterRefs } = req.body || {};
+    const { quality = 'medium', order, characterRefs, characters } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
+    // v2 staged flow: the APPROVED cast — [{name, url?|image?(dataURL), desc?}].
+    // A url/image entry is a saved character card attached as an image ref on
+    // that character's pages; a desc-only entry rides as a text continuity
+    // line ("Miriam: dark brown hair, tall"). Persisted so re-renders keep it.
+    const useV2 = Array.isArray(characters) || !(doc.beats || []).length;
+    if (Array.isArray(characters)) {
+      const kept = [];
+      for (const c of characters.slice(0, 8)) {
+        if (!c || !c.name) continue;
+        let url = typeof c.url === 'string' && /^https?:\/\//.test(c.url) ? c.url : null;
+        const m = /^data:([^;]+);base64,(.*)$/.exec(String(c.image || ''));
+        if (!url && m) url = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1] || 'image/png', 'movies/character-refs');
+        const desc = typeof c.desc === 'string' && c.desc.trim() ? c.desc.trim().slice(0, 300) : null;
+        if (url || desc || c.name) kept.push({ name: String(c.name).slice(0, 60), url, desc });
+      }
+      doc.castApproved = kept;
+    }
+    if (useV2) {
+      if (!String(doc.dreamText || doc.dream || '').trim()) return res.status(400).json({ error: 'dream has no text' });
+      await startDreamJob(doc, 'render', async (progress) => {
+        await makeDreamPagesV2(doc, q, progress);
+      });
+      return res.json({ ok: true, dream: doc });
+    }
+    // ── Legacy path (older builds / beat docs) ──
     // Optional pre-made character cards: [{name, url}] or [{name, image:dataURL}]
     // (data URLs are uploaded to Storage). Persisted on the doc so re-renders keep them.
     if (Array.isArray(characterRefs)) {
@@ -2312,13 +2509,31 @@ router.post('/dream/:id/render', async (req, res) => {
       doc.beats.forEach(b => { if (!order.includes(b.id)) reordered.push(b); }); // keep any not named
       if (reordered.length) doc.beats = reordered;
     }
-    // (Every render redraws all pages fresh, so there's no separate re-anchor
-    // step any more — an old `reanchor` flag in the body is simply ignored.)
     await startDreamJob(doc, 'render', async (progress) => {
       await makeDreamPages(doc, q, progress);
     });
     res.json({ ok: true, dream: doc });
   } catch (err) { res.status(/already running/.test(err.message) ? 409 : 500).json({ error: err.message }); }
+});
+
+// The chronology approval can also REORDER whole dreams (a recording split
+// into several) — re-stagger createdAt so the given order becomes the stored
+// order everywhere that sorts by time.
+router.post('/dream/reorder', async (req, res) => {
+  try {
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map(String).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'ids required' });
+    const base = Date.now() - ids.length * 1000;
+    const dreams = [];
+    for (let i = 0; i < ids.length; i++) {
+      const d = await loadDream(ids[i]);
+      if (!d) continue;
+      d.createdAt = new Date(base + i * 1000).toISOString();
+      await saveDream(d);
+      dreams.push(d);
+    }
+    res.json({ ok: true, dreams });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:id', async (req, res) => {
@@ -2733,7 +2948,10 @@ module.exports = {
   generateClipFor,
   makeZine,
   dreamBreakdown,
+  dreamSplit,
+  dreamPaginate,
   makeDreamPages,
+  makeDreamPagesV2,
   normalizeDreamCast,
   dreamPageRefs,
   dreamZinePagePrompt,

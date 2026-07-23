@@ -57,6 +57,25 @@ function matchScore(castName, ch) {
   }
   return 0;
 }
+// For each requested name, EVERY plausible saved character, best first — the
+// dream flow shows all candidates when one name could be two people ("J" the
+// ex vs "J" the coworker) and the user picks. Cap 4 per name.
+async function matchCandidates(names) {
+  const d = db();
+  if (!d) return names.map((n) => ({ name: n, matches: [] }));
+  const snap = await d.collection(COLLECTION).get();
+  const chars = snap.docs.map((s) => ({ id: s.id, ...s.data() }));
+  return names.map((n) => {
+    const matches = chars
+      .map((ch) => ({ ch, score: matchScore(n, ch) }))
+      .filter((m) => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((m) => ({ id: m.ch.id, name: m.ch.name, url: m.ch.url, tier: m.ch.tier || 'side', score: m.score }));
+    return { name: n, matches };
+  });
+}
+
 // For each requested name, the best-scoring saved character (or null).
 async function matchCharacters(names) {
   const d = db();
@@ -71,7 +90,9 @@ async function matchCharacters(names) {
     }
     return {
       name: n,
-      match: best ? { id: best.id, name: best.name, url: best.url, cleanUrl: best.cleanUrl || best.url, score: bestScore } : null,
+      // cleanUrl mirrors url: characters keep their original backgrounds now
+      // (the field name survives for older clients that read cleanUrl).
+      match: best ? { id: best.id, name: best.name, url: best.url, cleanUrl: best.url, score: bestScore } : null,
     };
   });
 }
@@ -165,34 +186,6 @@ async function generatePortrait(photoBuffers, name, gender, quality = 'medium', 
     }
   }
   throw lastErr;
-}
-
-// Remove the cream paper OUTSIDE the framed box in one flood-fill pass (from
-// the four corners), leaving the box + name on transparency — so the sheet
-// tiles cleanly on uniform cream with no mismatched halos. Server-side (sharp)
-// so the browser needs no CORS-tainted canvas. Falls back to the raw image if
-// anything goes wrong.
-async function cleanBox(buffer) {
-  const sharp = require('sharp');
-  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width: w, height: h, channels: ch } = info;
-  const cr = data[0], cg = data[1], cb = data[2];         // top-left = paper colour
-  const TOL = 120;                                        // sum of abs channel diffs
-  const visited = new Uint8Array(w * h);
-  const stack = [];
-  for (const [sx, sy] of [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]]) stack.push(sx, sy);
-  while (stack.length) {
-    const y = stack.pop(), x = stack.pop();
-    if (x < 0 || y < 0 || x >= w || y >= h) continue;
-    const p = y * w + x;
-    if (visited[p]) continue;
-    visited[p] = 1;
-    const i = p * ch;
-    if (Math.abs(data[i] - cr) + Math.abs(data[i + 1] - cg) + Math.abs(data[i + 2] - cb) > TOL) continue;
-    data[i + 3] = 0;                                      // paper → transparent
-    stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
-  }
-  return await sharp(data, { raw: { width: w, height: h, channels: ch } }).trim().png().toBuffer();
 }
 
 // ── Batch mode: find every person in a photo, crop head-and-shoulders ──
@@ -295,18 +288,10 @@ router.post('/save', gated, async (req, res) => {
     if (!url) return res.status(400).json({ error: 'url required' });
     const d = db();
     if (!d) return res.status(503).json({ error: 'firestore unavailable' });
-    // flood-fill a clean (transparent-background) version for the sheet
-    let cleanUrl = String(url);
-    try {
-      const src = await (await fetch(String(url), { redirect: 'follow' })).buffer();
-      const clean = await cleanBox(src);
-      cleanUrl = await saveBufferToStorage(clean, 'image/png', 'characters/clean');
-    } catch (e) { console.warn('character: cleanBox failed —', e.message); }
     const doc = {
       name: String(name || '').trim(),
       gender: String(gender || 'they'),
       url: String(url),
-      cleanUrl,
       tier: tier === 'main' ? 'main' : 'side',
       // Other names this character is called in dreams/stories ("me"/"Sophie",
       // "Daddy"/"Dad") — the matcher checks these alongside the primary name.
@@ -327,22 +312,16 @@ router.post('/save', gated, async (req, res) => {
   }
 });
 
-// Build the clean version + write the character doc. Shared by /save and the
-// detached /make job — so a generate that finishes after the client left still
-// persists.
+// Write the character doc. Shared by /save and the detached /make job — so a
+// generate that finishes after the client left still persists. Characters keep
+// their original backgrounds (no transparent version is made).
 async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null }) {
   const d = db();
   if (!d) throw new Error('firestore unavailable');
-  let cleanUrl = String(url);
-  try {
-    const src = await (await fetch(String(url), { redirect: 'follow' })).buffer();
-    const clean = await cleanBox(src);
-    cleanUrl = await saveBufferToStorage(clean, 'image/png', 'characters/clean');
-  } catch (e) { console.warn('character: cleanBox failed —', e.message); }
   const doc = {
     name: String(name || '').trim(),
     gender: String(gender || 'they'),
-    url: String(url), cleanUrl,
+    url: String(url),
     tier: tier === 'main' ? 'main' : 'side',
     aliases: normAliases(aliases),
     quality: ['low', 'medium', 'high'].includes(quality) ? quality : null,
@@ -401,7 +380,7 @@ router.get('/', gated, async (req, res) => {
     const snap = await d.collection(COLLECTION).orderBy('createdAt', 'desc').limit(200).get();
     const characters = snap.docs.map(s => {
       const v = s.data();
-      return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.cleanUrl || v.url, tier: v.tier,
+      return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.url, tier: v.tier,
         aliases: Array.isArray(v.aliases) ? v.aliases : [],
         quality: v.quality || null, model: v.model || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
@@ -514,18 +493,16 @@ router.post('/batch/generate', gated, async (req, res) => {
           const src = await (await fetch(it.cropUrl, { redirect: 'follow' })).buffer();
           const out = await generatePortrait(src, it.name, it.gender, 'medium');
           const url = await saveBufferToStorage(out, 'image/webp', 'characters');
-          let cleanUrl = url, id = null;
+          let id = null;
           const tier = it.tier === 'main' ? 'main' : 'side';
           if (d) {
-            try { cleanUrl = await saveBufferToStorage(await cleanBox(out), 'image/png', 'characters/clean'); }
-            catch (e) { console.warn('character: cleanBox failed —', e.message); }
             const ref = await d.collection(COLLECTION).add({
-              name: String(it.name).trim(), gender: it.gender || 'they', url, cleanUrl, tier,
+              name: String(it.name).trim(), gender: it.gender || 'they', url, tier,
               createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             id = ref.id;
           }
-          results.push({ ok: true, id, name: String(it.name).trim(), url, cleanUrl, tier });
+          results.push({ ok: true, id, name: String(it.name).trim(), url, tier });
         } catch (e) {
           results.push({ ok: false, name: it.name, error: e.message });
         }
@@ -538,4 +515,4 @@ router.post('/batch/generate', gated, async (req, res) => {
   }
 });
 
-module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchScore };
+module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore };

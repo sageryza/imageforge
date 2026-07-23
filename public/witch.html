@@ -166,12 +166,9 @@
        own full-width/centered layouts. */
     #see-full-chart, #daily-save { display: flex; width: fit-content; max-width: 100%; margin-left: auto; }
     /* Unlock (ghost) sits left, Illustrate (gold) sits right — like the quiz
-       Back/Continue row. */
-    /* Stack the two dream actions on their own rows — 'Unlock the symbolism' is
-       too long to share a line with Illustrate. Both right-aligned so the stack
-       reads as deliberate, not a wrapped stagger. */
-    .dream-btns .btn-ghost { width: auto; align-self: flex-end; margin-left: 0; }
-    .dream-btns .btn { width: auto; align-self: flex-end; margin-left: 0; }
+       Back/Continue row. Both jobs are independent (can run at once), so
+       neither button ever needs to wait on or hide the other's progress. */
+    .dream-btns .btn-ghost, .dream-btns .btn { width: auto; margin-left: 0; white-space: nowrap; }
     /* 'Unlock the symbolism' = the quiz Back button style (outlined eyebrow). */
     #dream-unlock { padding: 8px 16px; border-color: #bdb8b0;
       font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
@@ -583,7 +580,7 @@
     /* ── Dream reading (Home) ── */
     .dream-ta-wrap { position: relative; }
     #dream-input { min-height: 84px; resize: vertical; }
-    .dream-btns { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 12px; }
+    .dream-btns { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
@@ -595,21 +592,18 @@
     .dsym .dsym-star svg { width: 12px; height: 12px; }
     .dsym b { font-weight: 600; }
     .dsym-txt { font-size: 14px; line-height: 1.55; }
-    .dread-more { margin-top: 14px; }
-    .dread-msg { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
+    .dream-dive { margin-top: 14px; }
+    .dread p { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
+    .dread p + p { margin-top: 10px; }
     .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; margin-bottom: 14px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
     .dream-past:hover { color: var(--gold); }
     .dream-past svg { width: 15px; height: 15px; }
-    .dream-past-back { background: none; border: none; padding: 2px 0 12px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-    .dream-past-back:hover { color: var(--gold); }
-    .dream-past-back svg { width: 16px; height: 16px; }
     .dpast-head { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 12px; }
     .dpast-item { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 9px; cursor: pointer; font-family: inherit; transition: border-color 0.15s ease; }
     .dpast-item:hover { border-color: var(--gold-dim); }
     .dpast-t { font-family: var(--serif); font-size: 16px; color: var(--text); line-height: 1.2; }
     .dpast-d { font-size: 11px; color: var(--gold-dim); margin-top: 3px; }
     .dpast-s { font-size: 12.5px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
-    .dread-msg p { margin-bottom: 10px; }
     .dread-fail { font-size: 13px; color: var(--text-faint); font-style: italic; }
     /* Illustrated dream book (free page 1 + locked pages) */
     .dbook { margin-top: 18px; }
@@ -1327,6 +1321,12 @@
     <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
+  <!-- Dream reading dive-deeper — the full interpretation, its own page -->
+  <div class="quiz-app" id="dreamread-app" style="display:none;">
+    <button class="quiz-back" id="dreamread-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="dreamread-stage"></div>
+  </div>
+
   <script>
   /* ═══════════════════════════════════════════════════════════════
      Secretly a Witch — client app (4 tabs: Home / School / Book of
@@ -1378,6 +1378,18 @@
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data;
+  }
+  // A "Load failed" / "Failed to fetch" is the browser's fetch() rejecting
+  // before any response arrived (dropped connection, flaky mobile signal,
+  // backgrounding mid-request) — genuinely transient, worth one silent retry.
+  // A real server error (4xx/5xx, already-parsed {error}) got a response, so
+  // it's NOT retried here — retrying those risks double-starting a paid job.
+  function isNetworkError(e) { return /load failed|failed to fetch|networkerror|network error/i.test(String((e && e.message) || '')); }
+  async function withRetry(fn, tries = 2, delayMs = 1200) {
+    for (let i = 0; i < tries; i++) {
+      try { return await fn(); }
+      catch (e) { if (i === tries - 1 || !isNetworkError(e)) throw e; await new Promise(r => setTimeout(r, delayMs)); }
+    }
   }
 
   // ── Background jobs (survive leaving the app) ──
@@ -3106,6 +3118,7 @@
 
   /* ══════════ Home dream reading ══════════ */
   function dreamText() { return ($('dream-input').value || '').trim(); }
+  let lastDreamRead = null;   // the live reading's data, for the teaser's Dive-deeper button
   // Saved dream readings (localStorage), viewable via "Past readings".
   const DREAM_STORE = 'witch_dream_readings';
   function loadDreams() { try { return JSON.parse(localStorage.getItem(DREAM_STORE) || '[]'); } catch { return []; } }
@@ -3114,7 +3127,6 @@
     const d = new Date(ts);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
-  const PAST_BACK = '<button class="dream-past-back" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>';
   function showDreamPast() {
     const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
     const all = loadDreams();
@@ -3127,28 +3139,65 @@
   }
   function showDreamDetail(i) {
     const r = loadDreams()[i]; if (!r) return;
-    const out = $('dream-out'); out.style.display = '';
-    out.innerHTML = PAST_BACK + renderDreamReading('Anthropic · Claude Opus 4.8', r.data.claude) + renderDreamReading('OpenAI · GPT‑5.6', r.data.gpt);
+    openDreamReadDeep(r.data);   // the list stays underneath — Back reveals it again
   }
-  function renderDreamReading(src, r) {
-    if (!r) return `<div class="dread"><div class="dread-src">${esc(src)}</div><div class="dread-fail">This reader couldn't be reached — try again in a moment.</div></div>`;
-    const syms = (r.symbols || []).map(s =>
+  // Inline = a QUICK teaser (title + symbols only, like the tarot quick
+  // read) + a Dive deeper button. The full message lives on its own
+  // full-screen page (openDreamReadDeep) so nobody has to scroll the home
+  // feed to read it.
+  function renderDreamTeaser(data) {
+    const r = data && data.claude;
+    if (!r) return `<div class="dread-fail">The reading didn't come through — try again in a moment.</div>`;
+    const syms = (r.symbols || []).slice(0, 3).map(s =>
       `<div class="dsym"><span class="dsym-star">${STAR}</span><div class="dsym-txt"><b>${esc(s.symbol)}</b> — ${esc(s.meaning)}</div></div>`).join('');
-    const msg = String(r.message || '').split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
     return `<div class="dread">
-      <div class="dread-src">${esc(src)}</div>
       ${r.title ? `<div class="dread-title">${esc(r.title)}</div>` : ''}
       ${syms}
-      ${msg ? `<button class="btn-ghost dread-more" type="button">Dive deeper ${STAR}</button><div class="dread-msg" style="display:none;">${msg}</div>` : ''}
+      <button class="btn-ghost dream-dive" type="button">Dive deeper ${STAR}</button>
     </div>`;
   }
-  // "Dive deeper" reveal + Past-readings list/detail navigation.
+  // The full page: title + every symbol + the full message. `readings` is an
+  // array of {src?, r} — src only shown when there's more than one (legacy
+  // saved dual-reader entries); a fresh single-reader read has no src label.
+  function renderDreamFull(readings) {
+    return readings.map(({ src, r }) => {
+      if (!r) return src ? `<div class="dread"><div class="dread-src">${esc(src)}</div><div class="dread-fail">This reader couldn't be reached.</div></div>` : '';
+      const syms = (r.symbols || []).map(s =>
+        `<div class="dsym"><span class="dsym-star">${STAR}</span><div class="dsym-txt"><b>${esc(s.symbol)}</b> — ${esc(s.meaning)}</div></div>`).join('');
+      const msg = String(r.message || '').split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
+      return `<div class="dread">
+        ${src ? `<div class="dread-src">${esc(src)}</div>` : ''}
+        ${r.title ? `<div class="dread-title">${esc(r.title)}</div>` : ''}
+        ${syms}
+        ${msg}
+      </div>`;
+    }).join('');
+  }
+  function dreamReadingsFor(data) {
+    const both = data && data.claude && data.gpt;
+    return both
+      ? [{ src: 'Claude', r: data.claude }, { src: 'GPT', r: data.gpt }]
+      : [{ src: null, r: (data && data.claude) || (data && data.gpt) }];
+  }
+  let dreamReadDeepOpen = false;
+  function openDreamReadDeep(data) {
+    dreamReadDeepOpen = true;
+    document.body.style.overflow = 'hidden';
+    const app = $('dreamread-app'); app.style.display = ''; app.scrollTop = 0;
+    $('dreamread-stage').innerHTML = `<div class="quiz-kicker">Your dream, read</div>${renderDreamFull(dreamReadingsFor(data))}`;
+  }
+  function closeDreamReadDeep() {
+    dreamReadDeepOpen = false;
+    $('dreamread-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('dreamread-back').addEventListener('click', closeDreamReadDeep);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dreamReadDeepOpen) closeDreamReadDeep(); });
+  // Dive deeper (live reading) + Past-readings list/detail navigation.
   $('dream-out').addEventListener('click', (e) => {
-    const more = e.target.closest('.dread-more');
-    if (more) { const msg = more.closest('.dread')?.querySelector('.dread-msg'); if (msg) { msg.style.display = ''; more.style.display = 'none'; } return; }
+    if (e.target.closest('.dream-dive')) { openDreamReadDeep(lastDreamRead); return; }
     const item = e.target.closest('.dpast-item');
     if (item) { showDreamDetail(+item.dataset.past); return; }
-    if (e.target.closest('.dream-past-back')) { showDreamPast(); return; }
   });
   $('dream-past').addEventListener('click', showDreamPast);
   // Dream "Unlock the symbolism" — dual-LLM reading as a background job, so it
@@ -3156,8 +3205,11 @@
   const DREAMREAD_PEND = 'witch_dreamread_job'; // {id, dream}
   const DREAMREAD_BTN = 'Unlock the symbolism';
   function dreamReadSpinner() {
-    const out = $('dream-out'); out.style.display = ''; $('dream-book').style.display = 'none';
-    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Two readers are sitting with your dream…</div>`;
+    // Doesn't touch #dream-book — Illustrate and Unlock the symbolism run as
+    // fully independent jobs (separate ids, separate polls) and can both be
+    // in flight at once, each in its own area of the card.
+    const out = $('dream-out'); out.style.display = '';
+    out.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);">Reading your dream…</div>`;
     const btn = $('dream-unlock'); if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
   }
   function watchDreamRead(id, dream) {
@@ -3167,8 +3219,9 @@
       onDone: (d) => {
         pendSet(DREAMREAD_PEND, null); finish();
         const data = d.result || {};
+        lastDreamRead = data;
         out.style.display = '';
-        out.innerHTML = renderDreamReading('Anthropic · Claude Opus 4.8', data.claude) + renderDreamReading('OpenAI · GPT‑5.6', data.gpt);
+        out.innerHTML = renderDreamTeaser(data);
         if (data.claude || data.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: data.claude, gpt: data.gpt } }); saveDreams(all); }
       },
       onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
@@ -3179,7 +3232,7 @@
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
     dreamReadSpinner();
     try {
-      const id = await startWitchJob('dream-read', { dream });
+      const id = await withRetry(() => startWitchJob('dream-read', { dream }));
       pendSet(DREAMREAD_PEND, { id, dream });
       watchDreamRead(id, dream);
     } catch (e) {
@@ -3219,7 +3272,8 @@
   // and resume the poll on return so the ~1-2 min render survives leaving.
   const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
   function dreamIllusSpinner() {
-    const book = $('dream-book'); book.style.display = ''; $('dream-out').style.display = 'none';
+    // Doesn't touch #dream-out — see the note in dreamReadSpinner().
+    const book = $('dream-book'); book.style.display = '';
     book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
@@ -3242,7 +3296,7 @@
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
     dreamIllusSpinner();
     try {
-      const { id } = await api('/api/witch/dream-illustrate', { dream });
+      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream }));
       pendSet(DREAMILLUS_PEND, { id, dream });
       watchDreamIllus(id);
     } catch (e) {

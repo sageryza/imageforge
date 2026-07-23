@@ -241,6 +241,10 @@ struct Dream: Codable, Identifiable {
     let id: String
     var title: String
     var dream: String                 // the dream text the dreamer wrote
+    var dreamText: String?            // THIS dream's verbatim slice of the recording
+    var driftCues: [String]?          // phrases narrated out of chronological order
+    var mentions: [String]?           // people the dream mentions ("me" first)
+    var castSuggestions: [CastSuggestion]?   // saved-sheet candidates per mention
     var characters: String?
     var beats: [DreamBeat]
     var pages: [DreamPage]?
@@ -251,6 +255,26 @@ struct Dream: Codable, Identifiable {
     var spend: Double?
     var createdAt: String?
     var updatedAt: String?
+
+    /// The text shown in the review block (falls back for legacy docs).
+    var reviewText: String { dreamText?.isEmpty == false ? (dreamText ?? "") : dream }
+}
+
+/// One mentioned name and every saved character it could plausibly be
+/// (best first; empty = no match → the blank describe-them card).
+struct CastSuggestion: Codable {
+    var name: String
+    var matches: [CastMatch]
+}
+
+struct CastMatch: Codable, Identifiable {
+    let id: String
+    var name: String
+    var url: String?
+    var tier: String?
+    var score: Int?
+
+    var imageURL: URL? { url.flatMap(URL.init(string:)) }
 }
 
 /// A background reading (breakdown) job: the app polls it after tapping
@@ -277,6 +301,8 @@ struct DreamPage: Codable, Identifiable {
     var url: String
     var promptUsed: String?
     var beatIds: [String]?
+    var text: String?                 // v2: this page's allotted slice of the dream
+    var who: [String]?                // v2: cast names appearing on this page
 
     var id: String { url }
     var pageURL: URL? { URL(string: url) }
