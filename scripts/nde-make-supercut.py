@@ -65,10 +65,10 @@ def add_title(title):
     tf = textfile(f"t{seg_i}.txt", title)
     seg = os.path.join(tmp, f"seg{seg_i:03d}.mp4"); seg_i += 1
     run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c={BG}:s={W}x{H}:r=30:d=2.4",
-         "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "2.4",
+         "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "2.4",
          "-vf", draw(tf, FONT_B, 60, C_QUOTE, "(h-text_h)/2"),
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30",
-         "-c:a", "aac", "-b:a", "192k", "-shortest", seg])
+         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-shortest", seg])
     segments.append(seg)
 
 def add_clip(theme_title, name, quote, url):
@@ -89,7 +89,7 @@ def add_clip(theme_title, name, quote, url):
          "-i", mp3, "-vf", vf, "-map", "0:v", "-map", "1:a",
          "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30",
-         "-c:a", "aac", "-b:a", "192k", "-shortest", seg])
+         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-shortest", seg])
     segments.append(seg)
 
 for key, title in SECTIONS:
@@ -113,5 +113,5 @@ with open(listf, "w") as f:
     for s in segments:
         f.write(f"file '{s}'\n")
 run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", listf,
-     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "192k", OUT])
+     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", OUT])
 print(f"\nWrote {OUT} ({len(segments)} segments)")
