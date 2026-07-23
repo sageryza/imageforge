@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 import WebKit
 
@@ -15,6 +16,9 @@ struct WitchWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
+        // Native sign-in bridge: the page's Google button posts here and gets
+        // a Firebase credential back (Google OAuth can't run inside WKWebView).
+        config.userContentController.add(context.coordinator, name: "witchAuth")
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -44,12 +48,42 @@ struct WitchWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WitchWebView
         var lastTab: WitchTab
         init(_ parent: WitchWebView) {
             self.parent = parent
             self.lastTab = parent.tab
+        }
+
+        // "Continue with Google" tapped in the page → run the native OAuth
+        // sheet, then hand the tokens back so Firebase JS finishes sign-in.
+        func userContentController(_ userContentController: WKUserContentController,
+                                   didReceive message: WKScriptMessage) {
+            guard message.name == "witchAuth",
+                  let body = message.body as? String, body == "google",
+                  let web = message.webView else { return }
+            GoogleNativeAuth.shared.signIn { result in
+                switch result {
+                case .success(let t):
+                    let access = t.accessToken.map { "'\($0)'" } ?? "null"
+                    web.evaluateJavaScript(
+                        "window.__witchGoogleCredential && window.__witchGoogleCredential('\(t.idToken)', \(access))",
+                        completionHandler: nil)
+                case .failure(let err):
+                    let ns = err as NSError
+                    // User closed the sheet — not an error worth showing.
+                    let cancelled = ns.domain == ASWebAuthenticationSessionError.errorDomain
+                        && ns.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
+                    let msg = cancelled ? "" : err.localizedDescription
+                        .replacingOccurrences(of: "\\", with: "")
+                        .replacingOccurrences(of: "'", with: "\u{2019}")
+                        .replacingOccurrences(of: "\n", with: " ")
+                    web.evaluateJavaScript(
+                        "window.__witchGoogleFailed && window.__witchGoogleFailed('\(msg)')",
+                        completionHandler: nil)
+                }
+            }
         }
 
         private func isAppHost(_ url: URL?) -> Bool {

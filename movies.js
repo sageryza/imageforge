@@ -319,14 +319,27 @@ async function loadDream(id) {
   return memDream.get(id) || null;
 }
 
-async function listDreams() {
+// List dreams for ONE archive. `owner` scopes it: a guest owner (the public
+// "try it" page) sees only its OWN dreams; no owner = Sophie's archive, which
+// is every dream with NO owner field (her app/page never sets one, so guests'
+// namespaced dreams never appear in it, and hers never leak to a guest).
+async function listDreams(owner) {
   const db = firestore();
   let all;
   if (db) {
-    const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(100).get();
-    all = snap.docs.map(d => d.data());
+    if (owner) {
+      // A single equality filter needs no composite index; sort in code.
+      const snap = await db.collection(DREAM_COLLECTION).where('owner', '==', owner).limit(200).get();
+      all = snap.docs.map(d => d.data()).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    } else {
+      // Hers = ownerless. Fetch a generous window and drop any guest-owned docs.
+      const snap = await db.collection(DREAM_COLLECTION).orderBy('updatedAt', 'desc').limit(300).get();
+      all = snap.docs.map(d => d.data()).filter(d => !d.owner).slice(0, 100);
+    }
   } else {
-    all = [...memDream.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    all = [...memDream.values()]
+      .filter(d => owner ? d.owner === owner : !d.owner)
+      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   }
   // Summaries only — the list stays light for the phone.
   return all.map(d => ({
@@ -378,7 +391,7 @@ async function loadDreamBatch(id) {
 
 // Turn a breakdown's plans into stored dream docs. Factored out so both the
 // synchronous POST /dream (back-compat) and the background batch use it.
-async function createDreamDocs(plans, text, title) {
+async function createDreamDocs(plans, text, title, owner) {
   const now = Date.now();
   const docs = [];
   for (let i = 0; i < plans.length; i++) {
@@ -388,6 +401,10 @@ async function createDreamDocs(plans, text, title) {
     const ts = new Date(now + i * 1000).toISOString();
     const doc = {
       id: 'd' + (now + i).toString(36) + crypto.randomBytes(3).toString('hex'),
+      // Owner namespace: set only for guests (the public "try it" page), so
+      // their dreams stay in their own archive and out of Sophie's. Omitted
+      // for Sophie so her (ownerless) archive is unchanged.
+      ...(owner ? { owner } : {}),
       // Only honor a client-supplied title when the recording is a single dream.
       title: (plans.length === 1 && title && String(title).trim()) || plan.title,
       dream: text,
@@ -2326,7 +2343,7 @@ router.post('/morphfilm', async (req, res) => {
 // diary-comic style reference. Registered BEFORE '/:id' so "/dream" isn't
 // swallowed by the movie-by-id route.
 router.get('/dream', async (req, res) => {
-  try { res.json({ dreams: await listDreams() }); }
+  try { res.json({ dreams: await listDreams(cleanOwner(req.query.owner)) }); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -2360,11 +2377,51 @@ router.post('/dream/transcribe', async (req, res) => {
   }
 });
 
+// A guest owner id from the public "try it" page — only accept the shape the
+// page mints (`guest_<alnum>`), so nothing else can be jammed into the field.
+function cleanOwner(o) {
+  return /^guest_[a-z0-9]{4,40}$/i.test(String(o || '')) ? String(o) : null;
+}
+
+// ─── Guest daily cap (public /trydreams) ────────────────────────────
+// A friend gets ONE batch of dreams per day — one reading plus the sheets for
+// the dreams it produced. This bounds the spend on Sophie's key to ~15-50¢ per
+// person per day. Sophie's own dreams (no owner) are never capped.
+const GUEST_COLLECTION = process.env.DREAM_GUEST_COLLECTION || 'forge-dream-guests';
+const memGuest = new Map();
+function pacificDay(d = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+}
+// Consume today's allowance; true = allowed (and recorded), false = already used.
+async function claimGuestDay(owner) {
+  const day = pacificDay();
+  const db = firestore();
+  if (!db) {
+    const cur = memGuest.get(owner);
+    if (cur && cur.day === day) return false;
+    memGuest.set(owner, { day });
+    return true;
+  }
+  const ref = db.collection(GUEST_COLLECTION).doc(owner);
+  const snap = await ref.get();
+  const data = snap.exists ? snap.data() : {};
+  if (data.day === day) return false;
+  await ref.set({ day, batches: (data.batches || 0) + 1, updatedAt: new Date().toISOString() }, { merge: true });
+  return true;
+}
+
 router.post('/dream', async (req, res) => {
   try {
     const { dream, title, background } = req.body || {};
+    const owner = cleanOwner((req.body || {}).owner);
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
     const text = String(dream).trim();
+    // Guest daily cap: one reading per person per day.
+    if (owner && !(await claimGuestDay(owner))) {
+      return res.status(429).json({ error: "That's your dream for today ✨ — come back tomorrow to illustrate another." });
+    }
 
     // Background reading (the app's default): return a batch id instantly and do
     // the slow breakdown off the request, so the phone can lock/leave without the
@@ -2388,8 +2445,13 @@ router.post('/dream', async (req, res) => {
           // staged flow) separates + orders them and lists who's mentioned;
           // beats/pages are decided later, after the user approves.
           const { dreams: plans } = await dreamSplit(text);
-          for (const p of plans) await attachCastSuggestions(p);
-          const docs = await createDreamDocs(plans, text, title);
+          // Match mentions to the saved sheet ONLY for Sophie — a guest must
+          // never see (or borrow) her characters, so guests get describe-only.
+          for (const p of plans) {
+            if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+            else await attachCastSuggestions(p);
+          }
+          const docs = await createDreamDocs(plans, text, title, owner);
           batch.dreamIds = docs.map(d => d.id);
           batch.dreamCount = docs.length;
           batch.status = 'done';
@@ -2407,8 +2469,11 @@ router.post('/dream', async (req, res) => {
     // Synchronous path (kept for back-compat with older app builds): read and
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
-    for (const p of plans) await attachCastSuggestions(p);
-    const docs = await createDreamDocs(plans, text, title);
+    for (const p of plans) {
+      if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+      else await attachCastSuggestions(p);
+    }
+    const docs = await createDreamDocs(plans, text, title, owner);
     res.json({ dreams: docs });
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
@@ -2462,6 +2527,12 @@ router.post('/dream/:id/render', async (req, res) => {
   try {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
+    // Guest (public /trydreams) dreams draw their sheets ONCE, as part of that
+    // day's single batch — no re-rolls, so the daily cap actually bounds cost.
+    // A fully-failed render (no pages yet) can still be retried.
+    if (doc.owner && Array.isArray(doc.pages) && doc.pages.length) {
+      return res.status(429).json({ error: "These pages are already drawn — re-rolls aren't available on the shared demo." });
+    }
     const { quality = 'medium', order, characterRefs, characters } = req.body || {};
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
     // v2 staged flow: the APPROVED cast — [{name, url?|image?(dataURL), desc?}].

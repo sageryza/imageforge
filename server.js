@@ -413,6 +413,14 @@ app.get('/song', serveGated('song.html'));
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
 app.get('/dreams', serveGated('dreams.html'));
+// Public "try it" version of Dreams for friends: same page, NO gate, and it
+// runs in guest mode (the page mints a per-device guest id and namespaces every
+// dream to it) — so each visitor gets their OWN private past-dreams archive and
+// never sees Sophie's or anyone else's. Serve the raw file (token left blank).
+app.get('/trydreams', (req, res) => {
+  const html = fs.readFileSync(__dirname + '/public/dreams.html', 'utf8');
+  res.type('html').send(html.replace('__STUDIO_TOKEN__', ''));
+});
 // Films: the staged-approval movie pipeline as a web page (story → one probe
 // image → approve/notes → three more → the rest → motion → stitched film).
 // Same /api/movies engine the iOS Movies tab uses; same gate.

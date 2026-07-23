@@ -52,32 +52,46 @@
   .arrow svg{width:13px;height:13px}
   .arrow:disabled{color:rgba(158,149,144,.4);cursor:default}
 
-  /* Approval step (dreams v2): dream cards + character picks */
+  /* Approval step: a read-only glance at what was captured… */
   .dreamcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);
-    padding:14px;margin-bottom:12px}
-  .dreamcard .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-  .dreamcard .head .t{font-family:var(--serif);font-size:17px;color:var(--text);flex:1}
-  .dreamcard .words{font-size:15px;line-height:1.55;color:var(--text);cursor:pointer}
-  .dreamcard .words.clamped{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+    padding:14px;margin-bottom:10px}
+  .dreamcard .t{font-family:var(--serif);font-size:16px;color:var(--text);margin-bottom:6px}
+  .dreamcard .words{font-size:14px;line-height:1.5;color:var(--textDim);cursor:pointer}
+  .dreamcard .words.clamped{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .dreamcard .words mark{background:none;color:var(--mauve);text-decoration:underline;padding:0}
-  .whoin{font-size:12px;font-weight:600;letter-spacing:1px;color:var(--textDim);text-transform:uppercase;margin:12px 0 6px}
-  .whichone{font-size:13.5px;color:var(--textDim);margin:6px 0 4px}
-  .candrow{display:flex;gap:10px;overflow-x:auto;padding:2px 0 6px}
-  .cand{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;
-    background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;max-width:96px}
-  .cand img{width:62px;height:62px;object-fit:cover;border-radius:6px;display:block}
-  .cand .nm{font-size:11.5px;color:var(--textDim);max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .cand.on{background:var(--gold);border:2px solid var(--mauve);padding:5px}
-  .cand.on .nm{color:var(--text)}
-  .blankcand{display:flex;gap:10px;align-items:center;margin:6px 0}
-  .blankcand .box{flex:none;width:44px;height:44px;border:1px dashed var(--border);border-radius:6px;
-    display:flex;align-items:center;justify-content:center;color:var(--textDim)}
-  .blankcand .box svg{width:18px;height:18px}
-  .blankcand .info{flex:1}
-  .blankcand .info .nm{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
-  .blankcand input{width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);
-    padding:7px 9px;font-size:14px;color:var(--text);font-family:inherit}
-  .blankcand input:focus{outline:none;border-color:var(--accent)}
+
+  /* …then the cast sheet: a cream page of who's in your dreams. */
+  .castsheet{background:#f3ecdd;border:1px solid #e2d6bd;border-radius:var(--radiusLg);
+    padding:16px 14px;margin:14px 0}
+  .castsheet .lbl{font-size:12px;font-weight:600;letter-spacing:1px;color:#9c8f72;
+    text-transform:uppercase;margin:0 0 12px}
+  .castgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:380px){.castgrid{grid-template-columns:repeat(2,1fr)}}
+  /* one character slot (portrait card) */
+  .cslot{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
+    padding:6px;border-radius:8px;border:2px solid transparent;background:transparent}
+  .cslot .frame{width:100%;aspect-ratio:1;background:#fff;border:1px solid #d8c9a8;border-radius:6px;
+    overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .cslot .frame img{width:100%;height:100%;object-fit:cover;display:block}
+  .cslot .nm{font-size:12px;color:#7d7157;text-align:center;line-height:1.2;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cslot.on{border-color:var(--mauve);background:#fff7ea}
+  .cslot.on .nm{color:var(--text);font-weight:600}
+  .cslot .frame .ph{color:#c3b48f}
+  /* a "describe them" slot — same card shape, a text box where the face goes */
+  .cslot.describe{cursor:default}
+  .cslot.describe .frame{flex-direction:column;padding:6px;gap:4px;position:relative}
+  .cslot.describe textarea{width:100%;flex:1;border:0;resize:none;background:transparent;
+    font-family:inherit;font-size:11.5px;line-height:1.3;color:var(--text);outline:none;padding-top:20px}
+  .cslot.describe textarea::placeholder{color:#c3b48f}
+  .cslot .upload{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:1px solid #d8c9a8;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:#9c8f72;padding:0}
+  .cslot .upload svg{width:13px;height:13px}
+  .cslot .mini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.7)}
+  /* the inset divider between "picked" and "everyone else" */
+  .castdiv{height:1px;background:#d8c9a8;margin:18px 22px 14px;border:0}
 
   .page{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--radiusLg);margin-bottom:12px;
     overflow:hidden;cursor:zoom-in;display:block;min-height:120px}
@@ -140,6 +154,30 @@
 <script>
   const STUDIO_TOKEN = '__STUDIO_TOKEN__';
   const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+
+  // Public "try it" mode (/trydreams): mint a per-device guest id so this
+  // visitor's dreams are namespaced to them — their own past-dreams archive,
+  // never Sophie's or another friend's. Sophie's own page (/dreams) has no
+  // owner, so her archive is unchanged.
+  const PUBLIC = location.pathname.replace(/\/+$/,'').toLowerCase() === '/trydreams';
+  const GUEST_RE = /^guest_[a-z0-9]{4,40}$/i;
+  let OWNER = '';
+  if (PUBLIC) {
+    try {
+      // A restore link (?id=guest_…) adopts an existing archive onto THIS device
+      // — so a lost/replaced phone (or a code Sophie hands back) recovers all the
+      // dreams, which live safely in Firebase regardless of the device.
+      const claim = new URLSearchParams(location.search).get('id') || '';
+      if (GUEST_RE.test(claim)) { OWNER = claim; localStorage.setItem('dreams_guest', OWNER); }
+      if (!OWNER) OWNER = localStorage.getItem('dreams_guest') || '';
+      if (!GUEST_RE.test(OWNER)) {
+        OWNER = 'guest_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+        localStorage.setItem('dreams_guest', OWNER);
+      }
+    } catch {}
+  }
+  // The archive/zine list endpoint, scoped to this visitor when in guest mode.
+  const dreamListPath = () => '/dream' + (OWNER ? ('?owner=' + encodeURIComponent(OWNER)) : '');
   async function api(path, opts = {}) {
     if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
     const res = await fetch('/api/movies' + path, opts);
@@ -165,12 +203,25 @@
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
-    review:[], picks:[], originalOrder:[], expanded:{},   // the approval step
+    review:[], castTop:[], castOthers:[], expanded:{},   // the approval step
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
     zinePages:[], zineSpread:0, zineLoading:false,
   };
+
+  // Character API (separate base from /api/movies) — the saved sheet + the
+  // detached "make a card from a photo" job. Sophie's page only (guests never
+  // touch her sheet).
+  async function capi(path, opts={}) {
+    if (_tok) opts = { ...opts, headers: { ...(opts.headers||{}), 'x-studio-token': _tok } };
+    const res = await fetch('/api/character' + path, opts);
+    const t = await res.text(); let b; try{ b=JSON.parse(t); }catch{ b=t; }
+    return { ok: res.ok, status: res.status, body: b };
+  }
+  const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  // Live browser dictation exists here? (No inside the iOS app webview.)
+  const SR_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   // ── Speech (mic) ──
   let recog = null;
@@ -204,10 +255,10 @@
     if(S.busy) return;
     try{ localStorage.setItem('dreams_last', body); }catch{}   // remember it so it prefills next time
     if(S.recording){ recog && recog.stop(); }
-    S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[]; S.review=[]; S.picks=[];
+    S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[]; S.review=[]; S.castTop=[]; S.castOthers=[];
     S.session++; const session=S.session;
     render();
-    const r = await jpost('/dream', { dream: body, background:true });
+    const r = await jpost('/dream', { dream: body, background:true, owner: OWNER || undefined });
     if(session!==S.session) return;
     if(!r.ok || !r.body.batchId){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
     try{ localStorage.setItem('dreams_reading', r.body.batchId); }catch{}
@@ -229,7 +280,7 @@
         if(b.status==='done'){
           try{ localStorage.removeItem('dreams_reading'); }catch{}
           S.busy=false; S.statusLabel='';
-          beginReview(b.dreams||[]); render(); return;
+          await beginReview(b.dreams||[]); render(); return;
         }
         if(b.label) S.statusLabel = b.label.charAt(0).toUpperCase()+b.label.slice(1)+'…', render();
       } else { fails++; if(fails>=25){ S.busy=false; S.statusLabel=''; render(); return; } }
@@ -237,47 +288,72 @@
     }
   }
 
-  // The split dreams arrive → set up the approval state: one pick row per
-  // mentioned name, best saved-sheet candidate pre-picked.
-  function beginReview(dreams){
+  // The split dreams arrive → build ONE global cast for the whole recording
+  // (not per dream). Chronology is already fixed by the split, so there's no
+  // order step. Top = the people it picked (matched from the saved sheet, or a
+  // describe slot when unmatched); below a divider = the rest of the sheet to
+  // add. Guests get describe-only (no sheet).
+  async function beginReview(dreams){
     if(!dreams.length){ showToast('Could not read that dream — try again.'); return; }
     S.review = dreams;
-    S.originalOrder = dreams.map(d=>d.id);
-    S.expanded = dreams.length===1 ? {[dreams[0].id]:true} : {};
-    S.picks = [];
+    S.expanded = {};
+    // Merge every mention across all dreams, keeping first-seen casing and the
+    // union of candidate matches (deduped by id).
+    const byKey = new Map();
     for(const d of dreams){
       const sugg = d.castSuggestions || (d.mentions||[]).map(n=>({name:n, matches:[]}));
       for(const s of sugg){
-        S.picks.push({ dreamId:d.id, mention:s.name, candidates:s.matches||[],
-                       selected:(s.matches&&s.matches[0])?s.matches[0].id:null, desc:'' });
+        const k = norm(s.name); if(!k) continue;
+        if(!byKey.has(k)) byKey.set(k, { mention:s.name, candidates:[], selected:null, desc:'', photoUrl:null, creating:false });
+        const e = byKey.get(k);
+        for(const m of (s.matches||[])) if(!e.candidates.some(c=>c.id===m.id)) e.candidates.push(m);
       }
+    }
+    // Default selection: a lone match is pre-picked; an ambiguous name shows
+    // both/all and waits for you to choose.
+    for(const e of byKey.values()) if(e.candidates.length===1) e.selected = e.candidates[0].id;
+    S.castTop = [...byKey.values()];
+    // The rest of the saved sheet (Sophie only) — everyone not already up top.
+    S.castOthers = [];
+    if(!PUBLIC){
+      const usedIds = new Set(S.castTop.flatMap(e=>e.candidates.map(c=>c.id)));
+      const r = await capi('/');
+      const chars = (r.ok && r.body.characters) || [];
+      S.castOthers = chars.filter(c=>!usedIds.has(c.id))
+        .map(c=>({ id:c.id, name:c.name, url:c.url, on:false }));
     }
   }
 
-  // ── Stage 2 → 3: approval confirmed — persist the dream order if it moved,
-  //    then render each dream with its approved characters. The server decides
-  //    how many pages and allots the dreamer's words; renders are background
-  //    jobs recorded by id so closing the page never loses them. ──
+  // Build the ONE global cast from the sheet: picked matches (or uploaded
+  // cards) contribute a reference image; described people ride as text; added
+  // sheet characters come along by name. The same cast goes to every dream —
+  // the server's paginator decides who actually appears on each page.
+  function buildCast(){
+    const cast = [];
+    for(const e of S.castTop){
+      const cand = e.selected && e.candidates.find(c=>c.id===e.selected);
+      if(cand && cand.url) cast.push({ name:e.mention, url:cand.url });
+      else if(e.photoUrl) cast.push({ name:e.mention, url:e.photoUrl });
+      else if(e.desc.trim()) cast.push({ name:e.mention, desc:e.desc.trim() });
+    }
+    for(const c of S.castOthers) if(c.on && c.url) cast.push({ name:c.name, url:c.url });
+    return cast;
+  }
+
+  // Approval confirmed → render each dream with the one global cast. Chronology
+  // is already set by the split, so no reorder call. Renders are background
+  // jobs recorded by id so closing the page never loses them.
   async function draw(){
     const dreams = S.review;
     if(!dreams.length || S.busy) return;
-    const picks = S.picks;
-    const orderChanged = dreams.map(d=>d.id).join() !== S.originalOrder.join();
-    S.review=[]; S.picks=[]; S.finished=[]; S.current=null;
+    const cast = buildCast();
+    S.review=[]; S.castTop=[]; S.castOthers=[]; S.finished=[]; S.current=null;
     S.busy=true; S.session++; const session=S.session;
     S.statusLabel='Planning pages…'; render();
-    if(orderChanged) await jpost('/dream/reorder', { ids: dreams.map(d=>d.id) });
     const started=[];
     for(const d of dreams){
       if(session!==S.session) return;
-      const characters = picks.filter(p=>p.dreamId===d.id).map(p=>{
-        const e = { name:p.mention };
-        const cand = p.selected && (p.candidates||[]).find(c=>c.id===p.selected);
-        if(cand && cand.url) e.url = cand.url;
-        else if(p.desc.trim()) e.desc = p.desc.trim();
-        return e;
-      });
-      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', characters });
+      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', characters:cast });
       if(rr.ok){ started.push(d.id); setActive(started); }
       else showToast((rr.body&&rr.body.error)||'Render failed to start.');
     }
@@ -343,10 +419,13 @@
   function renderMain(){
     pageRefs = [];
     let h = '';
-    // input
+    // input — the in-page mic uses browser speech recognition, which doesn't
+    // run inside the iOS app webview; hide it there (the keyboard's own
+    // dictation mic still works in the text box).
+    const micBtn = SR_OK ? `<button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button>` : '';
     h += `<div class="section">
       <div class="eyebrow ${S.recording?'rec':''}"><span>${S.recording?'LISTENING…':'WHAT DID YOU DREAM?'}</span>
-        <button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button></div>
+        ${micBtn}</div>
       <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
@@ -372,75 +451,110 @@
     wireReview();
   }
 
-  // ── The approval step: "is this the order?" + "are these the characters?" ──
+  // ── The approval step: a glance at the dream(s), then ONE cast sheet ──
+  const IC_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  const IC_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+
   function reviewHtml(){
     const n = S.review.length;
-    let h = `<div class="section">
-      <div class="eyebrow"><span>${n>1?`${n} DREAMS — IS THIS THE ORDER?`:'CHECK YOUR DREAM'}</span></div>
-      <p class="subnote">${n>1
-        ? 'That recording was more than one dream. Check the order and the characters, then draw them all.'
-        : 'Check the words and the characters, then draw. Out-of-order phrases are marked — they\'ll be drawn in the true order.'}</p>`;
-    S.review.forEach((d,di)=>{
+    let h = `<div class="section">`;
+    // A read-only glance at what was captured — no order step, that's automatic.
+    S.review.forEach(d=>{
       let words = esc(d.dreamText || d.dream || '');
       (d.driftCues||[]).forEach(cue=>{ const c=esc(cue); if(c) words = words.split(c).join('<mark>'+c+'</mark>'); });
       h += `<div class="dreamcard">
-        <div class="head"><div class="t">${esc(d.title)}</div>
-          ${n>1?`<button class="arrow" data-move="${di},-1" ${di===0?'disabled':''}>${IC.up}</button>
-                 <button class="arrow" data-move="${di},1" ${di===n-1?'disabled':''}>${IC.down}</button>`:''}
-        </div>
-        <div class="words ${S.expanded[d.id]?'':'clamped'}" data-expand="${d.id}">${words}</div>`;
-      const picks = S.picks.map((p,pi)=>({p,pi})).filter(x=>x.p.dreamId===d.id);
-      if(picks.length){
-        h += `<div class="whoin">Who's in it</div>`;
-        for(const {p,pi} of picks){
-          if(!p.candidates.length){
-            h += `<div class="blankcand">
-              <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6"/><path d="M17.5 15.5c.8-.8 2.2-.8 3 0s.8 2.2 0 3l-.5.5-3-3z"/><path d="m14 22 .5-2.5 2.5-.5"/></svg></div>
-              <div class="info"><div class="nm">${esc(p.mention)}</div>
-                <input placeholder="describe them (optional)" data-desc="${pi}" value="${esc(p.desc)}"></div>
-            </div>`;
-          } else {
-            if(p.candidates.length>1) h += `<div class="whichone">${esc(p.mention)} — which one?</div>`;
-            h += `<div class="candrow">`;
-            for(const c of p.candidates){
-              const label = c.name===p.mention ? c.name : `${p.mention} = ${c.name}`;
-              h += `<div class="cand ${p.selected===c.id?'on':''}" data-pick="${pi},${esc(c.id)}">
-                ${c.url?`<img src="${c.url}" loading="lazy">`:''}<div class="nm">${esc(label)}</div>
-              </div>`;
-            }
-            h += `</div>`;
-          }
-        }
-      }
-      h += `</div>`;
+        ${n>1?`<div class="t">${esc(d.title)}</div>`:''}
+        <div class="words ${S.expanded[d.id]?'':'clamped'}" data-expand="${d.id}">${words}</div>
+      </div>`;
     });
-    h += `<button class="btn draw" id="drawBtn">${n>1?`Draw all ${n}`:'Draw it'}</button></div>`;
+    // The cast sheet.
+    h += `<div class="castsheet">
+      <p class="lbl">Who's in your ${n>1?'dreams':'dream'}</p>
+      <div class="castgrid">`;
+    S.castTop.forEach((e,ei)=>{
+      if(e.candidates.length){
+        e.candidates.forEach(c=>{
+          // Show the character's real name so look-alikes (two Jonathans) are
+          // distinguishable; the mention is only used for the describe slot.
+          h += `<div class="cslot ${e.selected===c.id?'on':''}" data-pick="${ei}|${esc(c.id)}">
+            <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
+            <div class="nm">${esc(c.name)}</div></div>`;
+        });
+      } else if(e.photoUrl){
+        h += `<div class="cslot on" data-pick="${ei}|photo">
+          <div class="frame"><img src="${esc(e.photoUrl)}"></div>
+          <div class="nm">${esc(e.mention)}</div></div>`;
+      } else {
+        h += `<div class="cslot describe">
+          <div class="frame">
+            ${!PUBLIC?`<button class="upload" data-upload="${ei}" title="Upload a photo">${IC_CAM}</button>`:''}
+            ${e.creating?`<div class="mini"><div class="spinner"></div></div>`:''}
+            <textarea data-desc="${ei}" placeholder="describe them…">${esc(e.desc)}</textarea>
+          </div>
+          <div class="nm">${esc(e.mention)}</div></div>`;
+      }
+    });
+    h += `</div>`;
+    if(S.castOthers.length){
+      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p><div class="castgrid">`;
+      S.castOthers.forEach(c=>{
+        h += `<div class="cslot ${c.on?'on':''}" data-add="${esc(c.id)}">
+          <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
+          <div class="nm">${esc(c.name)}</div></div>`;
+      });
+      h += `</div>`;
+    }
+    h += `</div>
+      <button class="btn draw" id="drawBtn">${n>1?`Draw all ${n}`:'Draw it'}</button></div>`;
     return h;
   }
 
   function wireReview(){
-    root.querySelectorAll('[data-move]').forEach(el=>el.onclick=()=>{
-      const [di,dir]=el.dataset.move.split(',').map(Number);
-      const j=di+dir;
-      if(j<0||j>=S.review.length) return;
-      const t=S.review[di]; S.review[di]=S.review[j]; S.review[j]=t;
-      render();
-    });
     root.querySelectorAll('[data-expand]').forEach(el=>el.onclick=()=>{
-      const id=el.dataset.expand;
-      S.expanded[id]=!S.expanded[id]; render();
+      const id=el.dataset.expand; S.expanded[id]=!S.expanded[id]; render();
     });
+    // pick / unpick a candidate (or the uploaded card) for one mention
     root.querySelectorAll('[data-pick]').forEach(el=>el.onclick=()=>{
-      const i=el.dataset.pick.indexOf(',');
-      const pi=Number(el.dataset.pick.slice(0,i)), cid=el.dataset.pick.slice(i+1);
-      const p=S.picks[pi]; if(!p) return;
-      p.selected = p.selected===cid ? null : cid;   // tap again = not them
+      const [eiS,cid]=el.dataset.pick.split('|'); const e=S.castTop[Number(eiS)]; if(!e) return;
+      if(cid==='photo'){ e.photoUrl=null; render(); return; }   // tap the made card = undo it
+      e.selected = e.selected===cid ? null : cid;               // tap again = not them
       render();
     });
-    root.querySelectorAll('[data-desc]').forEach(el=>el.oninput=e=>{
-      const p=S.picks[Number(el.dataset.desc)]; if(p) p.desc=e.target.value;
+    root.querySelectorAll('[data-desc]').forEach(el=>el.oninput=ev=>{
+      const e=S.castTop[Number(el.dataset.desc)]; if(e) e.desc=ev.target.value;
     });
+    root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{
+      const c=S.castOthers.find(x=>x.id===el.dataset.add); if(c){ c.on=!c.on; render(); }
+    });
+    root.querySelectorAll('[data-upload]').forEach(el=>el.onclick=()=>uploadPhotoFor(Number(el.dataset.upload)));
     const db=$('drawBtn'); if(db) db.onclick=draw;
+  }
+
+  // Optional: upload a photo of a described person → make a real character card
+  // (saved to the sheet, so they auto-match next time) and use it here.
+  function uploadPhotoFor(ei){
+    const e=S.castTop[ei]; if(!e || e.creating) return;
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+    inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+      const rd=new FileReader();
+      rd.onload=async()=>{
+        e.creating=true; render();
+        try{
+          const mk=await capi('/make',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({name:e.mention, photo:rd.result, quality:'medium'})});
+          if(!mk.ok||!mk.body.jobId) throw new Error((mk.body&&mk.body.error)||'could not start');
+          for(let i=0;i<60;i++){ await sleep(3000);
+            const st=await capi('/make/'+mk.body.jobId);
+            if(st.ok&&st.body.status==='done'&&st.body.character){ e.photoUrl=st.body.character.url; break; }
+            if(st.ok&&st.body.status==='error') throw new Error(st.body.error||'generation failed');
+          }
+          if(!e.photoUrl) throw new Error('timed out');
+        }catch(err){ showToast(err.message||'Photo card failed'); }
+        e.creating=false; render();
+      };
+      rd.readAsDataURL(f);
+    };
+    inp.click();
   }
 
   // page refs table so a tile click can open the right image + dream text
@@ -464,7 +578,7 @@
   }
   async function loadArchive(){
     S.archiveLoading = true; render();
-    const list = await api('/dream'); const dreams = (list.ok && list.body.dreams) || [];
+    const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
     const out = [];
     for(const s of dreams){
@@ -496,7 +610,7 @@
   }
   async function loadZine(){
     S.zineLoading = true; render();
-    const list = await api('/dream'); const dreams = (list.ok && list.body.dreams) || [];
+    const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (a.createdAt||'').localeCompare(b.createdAt||''));  // oldest first: a book forward in time
     const pages=[];
     for(const s of dreams){ const r = await api('/dream/'+s.id); if(r.ok) (r.body.pages||[]).forEach(p=>pages.push(p.url)); }
