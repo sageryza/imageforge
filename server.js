@@ -1680,12 +1680,23 @@ app.post('/api/witch/job', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// A 'running' job doc far older than any real job means the server restarted
+// mid-job (the fire-and-forget closure died with the process) — without this,
+// the doc stays 'running' forever and clients poll it endlessly. Real jobs
+// finish in well under a minute (dream-read ~10-30s, coincidence ~30-90s).
+const WITCH_JOB_STALE_MS = 4 * 60 * 1000;
 app.get('/api/witch/job/:id', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'jobs not configured' });
     const snap = await admin.firestore().collection(WITCH_JOBS).doc(req.params.id).get();
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
     const d = snap.data();
+    if (d.status === 'running' && d.createdAt && typeof d.createdAt.toMillis === 'function'
+        && Date.now() - d.createdAt.toMillis() > WITCH_JOB_STALE_MS) {
+      const error = 'This took much longer than usual — the server may have restarted mid-job. Please try again.';
+      await snap.ref.update({ status: 'error', error }).catch(() => {});
+      return res.json({ status: 'error', result: null, error });
+    }
     res.json({ status: d.status, result: d.result || null, error: d.error || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
