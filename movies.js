@@ -1541,12 +1541,13 @@ async function makeDreamPages(dream, quality, progress) {
 // whole dream for context plus its allotment, the style ref, and ONLY that
 // slot's approved characters — and lays out its own page (no fixed 2x2).
 async function dreamPaginate(dream, castNames) {
-  const sys = `You are planning a short hand-drawn comic that tells someone's real dream in their own words. Decide how many IMAGES the dream honestly needs to be told well — a simple dream may be ONE image; a long eventful one several. Never pad. For each image, allot the exact slice of the dreamer's words that image tells. Return STRICT JSON and nothing else:
+  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
 {"pages": [
-  {"text": the verbatim words from the dream allotted to THIS image. Together the pages cover the whole dream in the TRUE chronological order events happened — use the dreamer's ordering cues ("before that", "at first", "right before I woke up") to fix any out-of-order narration; reorder whole passages if needed but do not paraphrase (dropping filler is fine),
-   "who": [names from the CAST list of the people who appear in THIS image's part] ([] if none)}
+  {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
+   "caption": a SHORT hand-lettered caption for this image, at most ~12 words, in the DREAMER'S OWN VOICE and phrasing — but TRIM the filler (drop "like", "you know", "I mean", "I don't know if", "I guess", "kind of", repeated false starts). Present tense, evocative, their words distilled — NOT the full transcript,
+   "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: between 1 and 8 pages, as FEW as the dream needs. "who" must use the CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might first seem — merge adjacent moments). "caption" keeps the dreamer's voice but is trimmed and short. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1560,10 +1561,11 @@ RULES: between 1 and 8 pages, as FEW as the dream needs. "who" must use the CAST
   const pages = (Array.isArray(out.pages) ? out.pages : [])
     .map(p => ({
       text: String(p.text || '').trim(),
+      caption: String(p.caption || '').trim().slice(0, 160),
       who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
     }))
     .filter(p => p.text)
-    .slice(0, 8);
+    .slice(0, 4);
   if (!pages.length) throw new Error('page planning produced no pages');
   return pages;
 }
@@ -1604,12 +1606,15 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
   const continuity = clauses.length
     ? `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them. `
     : '';
+  const cap = String(plan.caption || '').trim();
   const body =
-    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream in the dreamer's own words. ` +
+    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. ` +
     `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
-    `THIS page tells ONLY this part of it: "${plan.text}". Draw only that part. ` +
-    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best — ' +
-    'with short hand-lettered caption boxes in the dreamer\'s own words from this part, spelled exactly as written.';
+    `THIS page covers ONLY this part of it: "${plan.text}". Draw only that part. ` +
+    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. ' +
+    (cap
+      ? `Hand-letter ONE short caption box on the page containing EXACTLY this text, spelled exactly, and nothing more: "${cap}".`
+      : 'Add one short hand-lettered caption in the dreamer\'s own voice.');
   const prompt = `${styleIntro}${continuity}${body}`;
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
@@ -1633,7 +1638,7 @@ async function makeDreamPagesV2(dream, quality, progress) {
       const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
       dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
       rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
-      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, who: plans[i].who || [] });
+      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, caption: plans[i].caption || '', who: plans[i].who || [] });
     } catch { failed++; }
     await progress(++done, total, 'drawing pages');
   }
@@ -2550,7 +2555,7 @@ router.post('/dream/:id/render', async (req, res) => {
     const useV2 = Array.isArray(characters) || !(doc.beats || []).length;
     if (Array.isArray(characters)) {
       const kept = [];
-      for (const c of characters.slice(0, 8)) {
+      for (const c of characters.slice(0, 12)) {
         if (!c || !c.name) continue;
         let url = typeof c.url === 'string' && /^https?:\/\//.test(c.url) ? c.url : null;
         const m = /^data:([^;]+);base64,(.*)$/.exec(String(c.image || ''));
