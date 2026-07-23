@@ -8,6 +8,8 @@
 //   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr? }
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
+//   GET  /api/chatfeed/search?q= → substring search across every message
+//                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
 //   POST /api/chatfeed/polish    → { id } — render the message in the polished
 //                                  onyx-British neural voice (~1¢), cached forever
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
@@ -61,6 +63,68 @@ router.get('/', async (req, res) => {
     const chats = {};
     rsnap.docs.forEach((d) => { chats[d.id] = d.data(); });
     res.json({ chats, messages: msnap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- Search ---------------------------------------------------------------
+// Firestore has no full-text search, so we keep a lightweight in-memory index
+// of every message and substring-filter it. The feed is append-only, so the
+// index loads once and then only tops up with newer docs — searches stay fast
+// as history grows (Sophie posts ~125/day). Throttled so a burst of keystrokes
+// doesn't re-query Firestore each time; the Render process losing the cache on
+// spin-down just means one full reload on the next search.
+let searchIndex = [];        // [{chat, id, text, tldr, created, url}]
+const searchSeen = new Set(); // doc ids already in the index
+let indexMaxCreated = '';
+let indexInit = false;
+let indexRefreshedAt = 0;
+let indexRefreshing = null;
+function refreshSearchIndex(force) {
+  const now = Date.now();
+  if (!force && indexInit && now - indexRefreshedAt < 15000) return Promise.resolve();
+  if (indexRefreshing) return indexRefreshing;
+  indexRefreshing = (async () => {
+    let q = db().collection(MSGS);
+    // `>=` (not `>`) + id de-dupe catches multiple docs sharing a created ms.
+    if (indexInit && indexMaxCreated) q = q.where('created', '>=', indexMaxCreated);
+    const snap = await q.get();
+    snap.docs.forEach((d) => {
+      if (searchSeen.has(d.id)) return;
+      searchSeen.add(d.id);
+      const m = d.data();
+      searchIndex.push({ chat: m.chat || '', id: d.id, text: m.text || '', tldr: m.tldr || '', created: m.created || '', url: m.url || '' });
+      if ((m.created || '') > indexMaxCreated) indexMaxCreated = m.created || '';
+    });
+    indexInit = true;
+    indexRefreshedAt = Date.now();
+  })().finally(() => { indexRefreshing = null; });
+  return indexRefreshing;
+}
+
+router.get('/search', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const q = String(req.query.q || '').trim().toLowerCase();
+    if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
+    await refreshSearchIndex();
+    const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
+    const hits = searchIndex.filter((m) =>
+      (m.chat + '\n' + m.tldr + '\n' + m.text).toLowerCase().indexOf(q) !== -1);
+    hits.sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
+    const results = hits.slice(0, limit).map((m) => {
+      // snippet centred on the match — prefer the body, else the tldr/chat name
+      const src = m.text && m.text.toLowerCase().includes(q) ? m.text
+        : (m.tldr && m.tldr.toLowerCase().includes(q) ? m.tldr : (m.text || m.tldr || ''));
+      const i = src.toLowerCase().indexOf(q);
+      let snip = src;
+      if (i > -1) {
+        const s = Math.max(0, i - 45);
+        snip = (s > 0 ? '…' : '') + src.slice(s, i + q.length + 70).replace(/\s+/g, ' ')
+          + (i + q.length + 70 < src.length ? '…' : '');
+      }
+      return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
+    });
+    res.json({ results, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
 });
 

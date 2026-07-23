@@ -110,6 +110,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 /* Labeled Refresh button, left-grouped next to the view toggle so it never
    sits under the floating autoscroll pill in the top-right corner. */
 .refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
+/* Search across every chat (in-memory index on the server). */
+.searchrow{position:relative; margin:0 0 1.4em;}
+#qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
+#qsearch:focus{outline:none; border-color:var(--rose);}
+#qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
+.qclear{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
+.sres{display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.sr-top{display:flex; align-items:baseline; gap:8px; margin-bottom:3px;}
+.sr-chat{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--rose); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+.sr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto; flex:none;}
+.sr-snip{font-size:15.5px; line-height:1.4; color:var(--ink);}
+.sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Compare tab: a chat's published pages (comparison sheets / option boards) */
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
@@ -195,10 +207,15 @@ body.reading .backwrap{display:block;}
       <h1>Chats</h1>
       <div class="rule"></div>
     </header>
-    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1.5em;">
+    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
     </div>
+    <div class="searchrow">
+      <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
+      <button id="qclear" class="qclear" aria-label="Clear search" style="display:none">&times;</button>
+    </div>
+    <div id="searchresults" style="display:none"></div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
   <section id="thread" style="display:none"></section>
@@ -868,9 +885,47 @@ function goHome(){
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
   renderHome();
+  if(window._resetSearch) window._resetSearch();
   window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
 document.getElementById('back').onclick=goHome;
+
+// Search across every chat. Debounced; hits the server's in-memory index and
+// shows matching messages (chat + snippet, match highlighted); tap opens the
+// chat. Empty/short query falls back to the normal grid.
+(function(){
+  var qi=document.getElementById('qsearch'), qc=document.getElementById('qclear'),
+      sr=document.getElementById('searchresults'), grid=document.getElementById('grid'), t=null;
+  function showGrid(){ sr.style.display='none'; sr.innerHTML=''; grid.style.display=''; }
+  window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
+  function hl(snip,q){
+    var e=esc(snip||'');
+    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
+    catch(_){ return e; }
+  }
+  function run(q){
+    q=(q||'').trim(); qc.style.display=q?'':'none';
+    if(q.length<2){ showGrid(); return; }
+    api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(qi.value.trim()!==q) return;   // a newer keystroke already fired
+        var rs=(d&&d.results)||[];
+        grid.style.display='none'; sr.style.display=''; sr.innerHTML='';
+        if(!rs.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
+        rs.forEach(function(m){
+          var b=document.createElement('button'); b.className='sres';
+          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(m.chat)+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
+            +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
+          b.onclick=function(){ openChat(m.chat); };
+          sr.appendChild(b);
+        });
+      })
+      .catch(function(){ grid.style.display='none'; sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
+  }
+  qi.addEventListener('input', function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  qc.onclick=function(){ window._resetSearch(); qi.focus(); };
+})();
 
 // Floating audio bar: while a message's audio is in play, a tappable bar pins
 // to the top. It STAYS as a play/pause toggle even when paused or finished —
