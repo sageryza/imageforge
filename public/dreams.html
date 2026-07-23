@@ -343,10 +343,16 @@
   function buildCast(){
     const cast = [];
     for(const e of S.castTop){
+      // Always include the NAME so the page planner can tag this person to the
+      // pages they appear on (their `who`) — with a reference image or a
+      // description when we have one, otherwise bare (drawn fresh, then carried
+      // forward from the page they first appear on).
+      const entry = { name:e.mention };
       const cand = e.selected && e.candidates.find(c=>c.id===e.selected);
-      if(cand && cand.url) cast.push({ name:e.mention, url:cand.url });
-      else if(e.photoUrl) cast.push({ name:e.mention, url:e.photoUrl });
-      else if(e.desc.trim()) cast.push({ name:e.mention, desc:e.desc.trim() });
+      if(cand && cand.url) entry.url = cand.url;
+      else if(e.photoUrl) entry.url = e.photoUrl;
+      else if(e.desc.trim()) entry.desc = e.desc.trim();
+      cast.push(entry);
     }
     for(const c of S.castOthers) if(c.on && c.url) cast.push({ name:c.name, url:c.url });
     return cast;
