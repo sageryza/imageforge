@@ -2206,7 +2206,7 @@ Write the reading now.`;
     // 'astro' = the short teaser (headline/reading/omens) on the Today page;
     // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
     // 'tarot' = the 3-card reading. Astrology parts run on gpt-4o at a HIGH
-    // temperature (1.5) — Sophie's pick, to make the readings get really weird;
+    // temperature (1.1) — Sophie's pick, to make the readings get really weird;
     // tarot stays on Claude Opus.
     if (part) {
       const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
@@ -2226,7 +2226,7 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
 }
 Give EXACTLY 2 omens.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.5, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
@@ -2255,7 +2255,7 @@ They have NOT entered birth details, so nothing here is natal: read TODAY's real
 ${astroContext}
 
 Write the deeper page now.`;
-        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.5, response_format: { type: 'json_object' },
+        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
         if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
         let deep;
@@ -2277,12 +2277,12 @@ Write the deeper page now.`;
     }
 
     // ── Legacy combined reading (stale cached clients only) ───────────────
-    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.5) — Sophie's
+    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.1) — Sophie's
     // pick, to make the daily reading get really weird. Force a JSON object so
     // the weirdness stays parseable. Tarot stays on Claude Opus. The two never
     // see each other's context.
     const [aData, tData] = await Promise.all([
-      openaiChat({ model: 'gpt-4o', temperature: 1.5, response_format: { type: 'json_object' },
+      openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
