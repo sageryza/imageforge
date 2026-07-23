@@ -65,8 +65,10 @@
     padding:16px 14px;margin:14px 0}
   .castsheet .lbl{font-size:12px;font-weight:600;letter-spacing:1px;color:#9c8f72;
     text-transform:uppercase;margin:0 0 12px}
-  .castgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  @media(max-width:380px){.castgrid{grid-template-columns:repeat(2,1fr)}}
+  /* minmax(0,1fr) forces strictly equal columns — without the 0 minimum, a
+     textarea's or long name's min-content stretches its column wider. */
+  .castgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+  @media(max-width:380px){.castgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   /* one character slot (portrait card) */
   .cslot{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
     padding:6px;border-radius:8px;border:2px solid transparent;background:transparent}
@@ -301,11 +303,13 @@
     // union of candidate matches (deduped by id).
     const byKey = new Map();
     for(const d of dreams){
-      const sugg = d.castSuggestions || (d.mentions||[]).map(n=>({name:n, matches:[]}));
+      const sugg = d.castSuggestions || (d.mentions||[]).map(m=>({name:(m&&m.name)||m, matches:[], desc:(m&&m.desc)||''}));
       for(const s of sugg){
         const k = norm(s.name); if(!k) continue;
         if(!byKey.has(k)) byKey.set(k, { mention:s.name, candidates:[], selected:null, desc:'', photoUrl:null, creating:false });
         const e = byKey.get(k);
+        // Preload any description the dreamer gave this person (first non-empty).
+        if(!e.desc && s.desc) e.desc = String(s.desc);
         for(const m of (s.matches||[])) if(!e.candidates.some(c=>c.id===m.id)) e.candidates.push(m);
       }
     }
