@@ -13,7 +13,8 @@ FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BG, C_LABEL, C_QUOTE, C_NAME = "0x141422", "0x7c7c96", "0xF2EEE2", "0xE0A94A"
 VERT = os.environ.get("VERTICAL") == "1"
-TIGHT = os.environ.get("TIGHT") == "1"  # cut ONLY the punch-phrase, no sentence expansion
+TIGHT = os.environ.get("TIGHT") == "1"   # cut ONLY the punch-phrase, no sentence expansion
+FINISH = os.environ.get("FINISH") == "1"  # cut the COMPLETE sentence containing the phrase (finish the thought)
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -26,7 +27,8 @@ else:
 CAND = sys.argv[1]
 TITLE = sys.argv[2] if len(sys.argv) > 2 else "THE COLORS"
 OUT = sys.argv[3] if len(sys.argv) > 3 else "/tmp/nde-precise.mp4"
-MAX_TIGHT = float(os.environ.get("MAX_TIGHT", "12"))  # drop a tight clip longer than this (bad match)
+MAX_TIGHT = float(os.environ.get("MAX_TIGHT", "12"))   # drop a tight clip longer than this (bad match)
+MAX_FINISH = float(os.environ.get("MAX_FINISH", "20"))  # drop a finish-the-sentence clip longer than this
 CACHE = os.environ.get("WCACHE", "/home/user/whisper-cache")
 os.makedirs(CACHE, exist_ok=True)
 tmp = tempfile.mkdtemp(prefix="precise-")
@@ -64,6 +66,22 @@ def find_phrase(win_json, phrase):
     best-matching CONTIGUOUS run — so a repeated word later in the clip can't
     stretch the cut across half a minute. Caption = the real audio words."""
     words = win_json.get("words") or []
+    span = _phrase_span(win_json, phrase)
+    if not span:
+        return None
+    wi_start, wi_end = span
+    t0 = words[wi_start]["start"] - 0.12
+    t1 = words[wi_end]["end"] + 0.28
+    if t1 - t0 < 1.1:  # min length floor so a 3-word phrase isn't a blip
+        pad = (1.1 - (t1 - t0)) / 2
+        t0 -= pad; t1 += pad
+    text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
+    return (max(0, t0), t1, text)
+
+def _phrase_span(win_json, phrase):
+    """Word indices (start,end) of the best CONTIGUOUS match of `phrase` in the
+    audio words — the reliable anchor everything else hangs off. None if weak."""
+    words = win_json.get("words") or []
     if not words:
         return None
     ww = [norm(w["word"])[0] if norm(w["word"]) else "" for w in words]
@@ -80,16 +98,48 @@ def find_phrase(win_json, phrase):
             r = difflib.SequenceMatcher(a=pw, b=win, autojunk=False).ratio()
             if best is None or r > best[0]:
                 best = (r, i, min(i + L - 1, len(words) - 1))
-    if not best or best[0] < 0.5:  # no trustworthy contiguous match
+    if not best or best[0] < 0.5:
         return None
-    _, wi_start, wi_end = best
-    t0 = words[wi_start]["start"] - 0.12
-    t1 = words[wi_end]["end"] + 0.28
-    if t1 - t0 < 1.1:  # min length floor so a 3-word phrase isn't a blip
-        pad = (1.1 - (t1 - t0)) / 2
-        t0 -= pad; t1 += pad
-    text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
-    return (max(0, t0), t1, text)
+    return (best[1], best[2])
+
+def find_quote_sentence(win_json, phrase, quote):
+    """FINISH: pick the ONE sentence in the person's quote that contains the
+    punch-phrase, anchor on the phrase's audio position, then extend outward by
+    that sentence's word count on each side. Caption = the quote's own
+    punctuated sentence. Returns a long span for a no-punctuation run-on quote
+    (the whole quote reads as one 'sentence') — the caller falls back to a tight
+    phrase cut in that case."""
+    words = win_json.get("words") or []
+    q = (quote or "").strip()
+    span = _phrase_span(win_json, phrase)
+    if not q or not span:
+        return None
+    pi_start, pi_end = span
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", q) if s.strip()] or [q]
+    pn = norm(phrase or "")
+    def cover(sent):
+        sn = norm(sent)
+        if not sn or not pn:
+            return 0
+        return sum(b.size for b in difflib.SequenceMatcher(a=pn, b=sn, autojunk=False).get_matching_blocks())
+    target = max(sentences, key=cover) if pn else sentences[0]
+    tnorm = norm(target)
+    n_before, n_after = 0, 0
+    if pn and tnorm:
+        blocks = [b for b in difflib.SequenceMatcher(a=pn, b=tnorm, autojunk=False).get_matching_blocks() if b.size > 0]
+        if blocks:
+            n_before = blocks[0].b
+            n_after = (len(tnorm) - 1) - min(len(tnorm) - 1, blocks[-1].b + blocks[-1].size - 1)
+    wi_start = max(0, pi_start - n_before)
+    wi_end = min(len(words) - 1, pi_end + n_after)
+    # guard: the chosen sentence must actually match the audio we're about to cut,
+    # else the picker grabbed the wrong sentence — signal a tight fallback
+    audio_txt = " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))
+    if difflib.SequenceMatcher(a=norm(target), b=norm(audio_txt), autojunk=False).ratio() < 0.45:
+        return None
+    t0 = words[wi_start]["start"] - 0.15
+    t1 = words[wi_end]["end"] + 0.30
+    return (max(0, t0), t1, target)
 
 def find_sentence(win_json, quote):
     """Return (rel_start, rel_end, text) of the complete sentence(s) matching quote."""
@@ -185,6 +235,15 @@ for i, c in enumerate(cands, 1):
                 # phrase isn't really in this window (bad timestamp) — dropping
                 # beats pasting the caption over unrelated audio
                 print(f"  [{i}] {name}: no tight phrase match in window, dropping"); continue
+        elif FINISH and phrase:
+            found = find_quote_sentence(wj, phrase, quote)
+            if found and (found[1] - found[0]) > MAX_FINISH:
+                found = None  # no-punctuation run-on → prefer a clean tight cut
+            if not found:
+                # wrong-sentence or run-on → clean tight phrase beats a ramble
+                found = find_phrase(wj, phrase)
+            if not found:
+                print(f"  [{i}] {name}: no phrase match in window, dropping"); continue
         else:
             found = find_sentence(wj, quote)
             if not found:
@@ -192,6 +251,8 @@ for i, c in enumerate(cands, 1):
         rs, re_, text = found
         if TIGHT and (re_ - rs) > MAX_TIGHT:
             print(f"  [{i}] {name}: tight match too long ({re_-rs:.1f}s), dropping"); continue
+        if FINISH and (re_ - rs) > MAX_FINISH:
+            print(f"  [{i}] {name}: sentence too long ({re_-rs:.1f}s), dropping"); continue
         clip = os.path.join(tmp, f"c{i}.mp3")
         run(["ffmpeg","-y","-ss",str(rs),"-to",str(re_),"-i",win,"-c:a","libmp3lame","-q:a","3",clip])
         clip_card(f"· {TITLE.lower()} ·", name, f"“{text}”", clip)
