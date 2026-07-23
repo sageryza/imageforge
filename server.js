@@ -1599,18 +1599,50 @@ async function runWitchJob(ref, kind, p) {
   try {
     let result;
     if (kind === 'coincidence') {
-      // Match the native Miracles "sagediagram" look — ONE clever pen-line
-      // doodle (a thing/diagram, not a scene) that reads at thumbnail size —
-      // but GENERIC: no personal reference doodles, plain gpt-image generation.
+      // Art-director distill (finds the one visual idea) → flat pastel
+      // editorial spot illustration. Validated live against ~15 test moments
+      // (long/rambling, intentionally confusing, purely abstract feelings) —
+      // reliably reduces to ONE concrete, isolated image every time.
       const desc = String(p.desc || p.prompt || '').trim();
-      const DOODLE_SYS = `You distill a small real-life coincidence into ONE clever little doodle for a keepsake — HALF OBJECT, HALF DIAGRAM: a single unified image (a THING, not a scene) where every element earns its place and the whole story reads at a glance. Synchronicities are the point: find a way to draw the MATCH itself, fusing ideas into one image (one thing wearing / holding / containing / shaped like the other) rather than two things side by side restating each other. No whole people and no stick figures (a single expressive body part like a hand is fine); no background or setting. Keep it drawable in a few simple pen lines. Reply with ONLY the object / diagram to draw, named concretely and specifically, in one short sentence — no preamble, no quotes.`;
-      let concept = desc;
+      const DISTILL_SYS = `You are an art director for an illustrated journal.
+
+Read the user's memory and reduce it to a single simple visual that captures its emotional essence.
+
+Rules:
+* Return only one visual idea.
+* Choose the simplest image that still communicates the memory.
+* Prefer symbolic or cropped compositions over full scenes.
+* Focus on one subject whenever possible.
+* Eliminate unnecessary people, backgrounds, and objects.
+* If an emotion can be shown through an object instead of a person, prefer the object.
+* The illustration should be immediately understandable at a small size.
+* Preserve the feeling, not the literal sequence of events.
+* Do not describe artistic style, colors, lighting, or rendering.
+* Output 1-3 concise sentences describing only what should appear in the illustration.`;
+      let visualBrief = desc;
       try {
-        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DOODLE_SYS }, { role: 'user', content: desc.slice(0, 1200) }] });
+        const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DISTILL_SYS }, { role: 'user', content: `Memory:\n${desc.slice(0, 1200)}` }] });
         const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
-        if (t) concept = t.replace(/^["']+|["']+$/g, '');
+        if (t) visualBrief = t;
       } catch {}
-      const imgPrompt = `A single object drawn as a simple doodle / icon, centered and drawn LARGE so it fills most of the frame — like a quick diagram, NOT a scene, on a plain uncluttered white background. Loose, imperfect, hand-drawn with a thin black ballpoint pen, wobbly uneven lines, childlike and minimal. No shading, no solid black fills, no color. No whole people and no stick figures — a single body part (like a hand holding something) is fine when the idea calls for it. Draw: ${concept}. Do not write the object's name or any caption anywhere; only include words if they are literally part of the idea (e.g. a "CLOSED" sign).`;
+      const imgPrompt = `Create a simple editorial spot illustration based on this visual brief:
+
+${visualBrief}
+
+Style:
+* clean white background
+* bold black outlines
+* flat, muted pastel colors (such as lilac, mint green, and light pink)
+* very little shading
+* simplified shapes
+* one clear focal point
+* playful but not childish
+* hand-drawn, slightly imperfect linework
+* no detailed scenery
+* no decorative border
+* no text
+
+Keep the composition isolated and instantly readable at a small size. Use only the objects or body parts necessary to communicate the idea.`;
       const data = await openaiImage({ model: 'gpt-image-2', prompt: imgPrompt, n: 1, size: p.size || '1024x1024', quality: p.quality || 'low', output_format: 'webp' });
       if (data.error) throw new Error(data.error.message || 'image error');
       const b64 = data.data?.[0]?.b64_json;
