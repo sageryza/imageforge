@@ -94,6 +94,14 @@
     background:rgba(255,255,255,.7)}
   /* the inset divider between "picked" and "everyone else" */
   .castdiv{height:1px;background:#d8c9a8;margin:18px 22px 14px;border:0}
+  /* search within the saved sheet ("add anyone else") */
+  .castsearch{width:100%;border:1px solid #d8c9a8;border-radius:var(--radius);background:#fff;
+    padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);margin-bottom:12px}
+  .castsearch:focus{outline:none;border-color:var(--accent)}
+  .castsearch::placeholder{color:#b8a985}
+  /* Draw button sticks to the bottom of the screen so it's always in reach —
+     no scrolling past the whole sheet to find it. */
+  .btn.draw{position:sticky;bottom:8px;z-index:5;box-shadow:0 3px 12px rgba(60,53,48,.22)}
 
   .page{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--radiusLg);margin-bottom:12px;
     overflow:hidden;cursor:zoom-in;display:block;min-height:120px}
@@ -205,7 +213,7 @@
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
-    review:[], castTop:[], castOthers:[], expanded:{},   // the approval step
+    review:[], castTop:[], castOthers:[], expanded:{}, othersFilter:'',   // the approval step
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
@@ -500,12 +508,17 @@
     });
     h += `</div>`;
     if(S.castOthers.length){
-      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p><div class="castgrid">`;
-      S.castOthers.forEach(c=>{
+      const q = norm(S.othersFilter);
+      const shown = q ? S.castOthers.filter(c=>norm(c.name).includes(q)) : S.castOthers;
+      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p>
+        <input class="castsearch" id="castSearch" placeholder="Search your characters…" value="${esc(S.othersFilter)}">
+        <div class="castgrid">`;
+      shown.forEach(c=>{
         h += `<div class="cslot ${c.on?'on':''}" data-add="${esc(c.id)}">
           <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
           <div class="nm">${esc(c.name)}</div></div>`;
       });
+      if(!shown.length) h += `<p class="nm" style="grid-column:1/-1;color:#9c8f72;text-align:center;padding:8px">no matches</p>`;
       h += `</div>`;
     }
     h += `</div>
@@ -530,6 +543,15 @@
     root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{
       const c=S.castOthers.find(x=>x.id===el.dataset.add); if(c){ c.on=!c.on; render(); }
     });
+    // Live-filter the saved sheet without re-rendering (keeps input focus).
+    const cs=$('castSearch');
+    if(cs) cs.oninput=e=>{
+      S.othersFilter=e.target.value; const q=norm(S.othersFilter);
+      root.querySelectorAll('[data-add]').forEach(el=>{
+        const c=S.castOthers.find(x=>x.id===el.dataset.add);
+        el.style.display=(!q||(c&&norm(c.name).includes(q)))?'':'none';
+      });
+    };
     root.querySelectorAll('[data-upload]').forEach(el=>el.onclick=()=>uploadPhotoFor(Number(el.dataset.upload)));
     const db=$('drawBtn'); if(db) db.onclick=draw;
   }
