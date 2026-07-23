@@ -2445,7 +2445,12 @@ router.post('/dream', async (req, res) => {
           // staged flow) separates + orders them and lists who's mentioned;
           // beats/pages are decided later, after the user approves.
           const { dreams: plans } = await dreamSplit(text);
-          for (const p of plans) await attachCastSuggestions(p);
+          // Match mentions to the saved sheet ONLY for Sophie — a guest must
+          // never see (or borrow) her characters, so guests get describe-only.
+          for (const p of plans) {
+            if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+            else await attachCastSuggestions(p);
+          }
           const docs = await createDreamDocs(plans, text, title, owner);
           batch.dreamIds = docs.map(d => d.id);
           batch.dreamCount = docs.length;
@@ -2464,7 +2469,10 @@ router.post('/dream', async (req, res) => {
     // Synchronous path (kept for back-compat with older app builds): read and
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
-    for (const p of plans) await attachCastSuggestions(p);
+    for (const p of plans) {
+      if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+      else await attachCastSuggestions(p);
+    }
     const docs = await createDreamDocs(plans, text, title, owner);
     res.json({ dreams: docs });
   } catch (err) {
