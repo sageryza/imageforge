@@ -956,27 +956,27 @@ HARD RULES:
 }
 
 // ─── Dream split (v2 staged pipeline) ───────────────────────────────
-// The fast FIRST call of the staged flow: ONLY split the recording into its
-// separate dreams, in order, with drift cues and the people mentioned. No
-// beats, no image prompts — deciding pages and describing images happens
-// later (dreamPaginate), after the user has approved order + characters.
-// Much smaller task than the old all-in-one breakdown, so it runs with
-// minimal reasoning (validated: effort 'none' still splits and orders
-// correctly, ~18s vs ~60s).
+// The fast FIRST call of the staged flow: split the recording into its
+// separate dreams and note WHO appears (with any description the dreamer gave
+// them). It deliberately does NOT do chronology — no drift cues, no ordering
+// work — because that's not needed to pick characters and only slows the one
+// call the user waits on. Chronology (putting the images in true order) is
+// reconstructed later in dreamPaginate, at render time, after the user has
+// picked their cast and stepped away.
 const DREAM_SPLIT_EFFORT = process.env.DREAM_SPLIT_EFFORT || 'none';
 async function dreamSplit(recording) {
-  const sys = `Someone tells you their real dream recording. A single recording is often SEVERAL separate dreams told in one breath, sometimes out of order. Do ONLY two things: split it into the distinct dreams, and note ordering + who appears. Do NOT describe images, do NOT break dreams into scenes or beats. Return STRICT JSON and nothing else:
+  const sys = `Someone tells you their real dream recording. A single recording is often SEVERAL separate dreams told in one breath. Do ONLY two things: split it into the distinct dreams, and note who appears in each. Do NOT reorder anything, do NOT flag chronology, do NOT describe images or break dreams into scenes. Return STRICT JSON and nothing else:
 {"dreams": [
   {"title": a short 2-5 word title for THIS dream,
-   "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), so it can be shown back to the dreamer as a block,
-   "driftCues": [the exact short phrases WITHIN "text" where the dreamer told events OUT of chronological order — e.g. "before that", "at first", "actually that was earlier", "right before I woke up". Verbatim substrings of "text". [] if this dream was narrated in the order it happened],
-   "mentions": [every person or recurring figure who appears in THIS dream, as the dreamer refers to them — "me", "J", "Dad", "Miriam", "the baby". If the dreamer themself is in the dream, "me" comes FIRST. [] only if the dream truly has no people]}
+   "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), in the order they were said,
+   "mentions": [ {"name": a short label for a person/figure in THIS dream, exactly as the dreamer refers to them — "me", "J", "Dad", "Miriam", "the baby", "this guy"; if the dreamer themself is in it, "me" comes FIRST,
+     "desc": any description the dreamer actually gave of that person's appearance in the recording — "serious face", "tall with red hair", "wearing a suit" — VERBATIM-ish, or "" if they gave none} ] }
 ]}
 
 HARD RULES:
-- SPLIT into separate dreams. Start a new dream at the dreamer's own boundary cues: "that was that dream", "the next dream", "another dream I had", "then yesterday I had a dream", or an unmistakable change of setting/cast with no continuity. When unsure whether two stretches are one dream or two, prefer keeping a coherent continuous scene together. Emit the dreams in the order they were dreamt (earliest first) when the dreamer gives day cues ("the night before", "yesterday"); otherwise keep their narrated order.
-- "text" must be a verbatim slice of the recording. "driftCues" must be exact substrings of that "text" — never paraphrased — so they can be highlighted in place.
-- "mentions" are short labels in the dreamer's own words, deduplicated ("my dad" and "Dad" are one entry).`;
+- SPLIT into separate dreams at the dreamer's own boundary cues: "that was that dream", "the next dream", "another dream I had", "then yesterday I had a dream", or an unmistakable change of setting/cast. When unsure whether two stretches are one dream or two, keep a coherent continuous scene together. Keep the dreams in the order the dreamer narrated them; do NOT try to reorder them.
+- "text" must be a verbatim slice of the recording, left in narrated order.
+- "mentions": one entry per distinct person, deduplicated ("my dad" and "Dad" are one). "desc" is ONLY what the dreamer said about how they looked — never invent one; use "" when none was given.`;
   const user = `The dream recording:\n\n${recording}`;
   const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
     ? await anthropicChatJSON(sys, user, { maxTokens: 6000 })
@@ -987,8 +987,13 @@ HARD RULES:
   const dreams = raw.map((d) => ({
     title: String(d.title || 'Untitled dream').trim(),
     text: String(d.text || '').trim(),
-    driftCues: (Array.isArray(d.driftCues) ? d.driftCues : []).map(s => String(s).trim()).filter(Boolean).slice(0, 12),
-    mentions: (Array.isArray(d.mentions) ? d.mentions : []).map(s => String(s).trim()).filter(Boolean).slice(0, 10),
+    driftCues: [],   // chronology deferred to render (dreamPaginate)
+    // Normalize mentions to { name, desc }; tolerate the model returning plain
+    // strings (older shape) too.
+    mentions: (Array.isArray(d.mentions) ? d.mentions : []).map((m) => {
+      if (m && typeof m === 'object') return { name: String(m.name || '').trim(), desc: String(m.desc || '').trim() };
+      return { name: String(m || '').trim(), desc: '' };
+    }).filter(m => m.name).slice(0, 12),
     cast: [], characters: '', beats: [],
   })).filter(d => d.text);
   if (!dreams.length) throw new Error('dream split found no dreams in the recording');
@@ -998,14 +1003,17 @@ HARD RULES:
 // Look each mentioned name up in the saved character sheet and store ALL the
 // plausible candidates on the dream doc — the approval UI shows them as cards
 // (every candidate when a name is ambiguous, a blank describe-yourself card
-// when there's no match). Best-effort: an empty sheet just means all blanks.
+// when there's no match). Each suggestion also carries the `desc` the dreamer
+// gave that person, so the describe card can preload it. Best-effort.
 async function attachCastSuggestions(doc) {
+  const mentions = (doc.mentions || []).map(m => (m && typeof m === 'object') ? m : { name: String(m), desc: '' });
   try {
     const { matchCandidates } = require('./character');
-    doc.castSuggestions = await matchCandidates(doc.mentions || []);
+    const matched = await matchCandidates(mentions.map(m => m.name));
+    doc.castSuggestions = matched.map((s, i) => ({ ...s, desc: mentions[i] ? mentions[i].desc : '' }));
   } catch (err) {
     console.warn('movies: cast suggestions failed —', err.message);
-    doc.castSuggestions = (doc.mentions || []).map(n => ({ name: n, matches: [] }));
+    doc.castSuggestions = mentions.map(m => ({ name: m.name, matches: [], desc: m.desc }));
   }
 }
 
@@ -1533,12 +1541,13 @@ async function makeDreamPages(dream, quality, progress) {
 // whole dream for context plus its allotment, the style ref, and ONLY that
 // slot's approved characters — and lays out its own page (no fixed 2x2).
 async function dreamPaginate(dream, castNames) {
-  const sys = `You are planning a short hand-drawn comic that tells someone's real dream in their own words. Decide how many IMAGES the dream honestly needs to be told well — a simple dream may be ONE image; a long eventful one several. Never pad. For each image, allot the exact slice of the dreamer's words that image tells. Return STRICT JSON and nothing else:
+  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
 {"pages": [
-  {"text": the verbatim words from the dream allotted to THIS image. Together the pages cover the whole dream in the TRUE chronological order events happened — use the dreamer's ordering cues ("before that", "at first", "right before I woke up") to fix any out-of-order narration; reorder whole passages if needed but do not paraphrase (dropping filler is fine),
-   "who": [names from the CAST list of the people who appear in THIS image's part] ([] if none)}
+  {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
+   "caption": a SHORT hand-lettered caption for this image, at most ~12 words, in the DREAMER'S OWN VOICE and phrasing — but TRIM the filler (drop "like", "you know", "I mean", "I don't know if", "I guess", "kind of", repeated false starts). Present tense, evocative, their words distilled — NOT the full transcript,
+   "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: between 1 and 8 pages, as FEW as the dream needs. "who" must use the CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might first seem — merge adjacent moments). "caption" keeps the dreamer's voice but is trimmed and short. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1552,10 +1561,11 @@ RULES: between 1 and 8 pages, as FEW as the dream needs. "who" must use the CAST
   const pages = (Array.isArray(out.pages) ? out.pages : [])
     .map(p => ({
       text: String(p.text || '').trim(),
+      caption: String(p.caption || '').trim().slice(0, 160),
       who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
     }))
     .filter(p => p.text)
-    .slice(0, 8);
+    .slice(0, 4);
   if (!pages.length) throw new Error('page planning produced no pages');
   return pages;
 }
@@ -1596,12 +1606,15 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
   const continuity = clauses.length
     ? `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them. `
     : '';
+  const cap = String(plan.caption || '').trim();
   const body =
-    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream in the dreamer's own words. ` +
+    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. ` +
     `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
-    `THIS page tells ONLY this part of it: "${plan.text}". Draw only that part. ` +
-    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best — ' +
-    'with short hand-lettered caption boxes in the dreamer\'s own words from this part, spelled exactly as written.';
+    `THIS page covers ONLY this part of it: "${plan.text}". Draw only that part. ` +
+    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. ' +
+    (cap
+      ? `Hand-letter ONE short caption box on the page containing EXACTLY this text, spelled exactly, and nothing more: "${cap}".`
+      : 'Add one short hand-lettered caption in the dreamer\'s own voice.');
   const prompt = `${styleIntro}${continuity}${body}`;
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
@@ -1625,7 +1638,7 @@ async function makeDreamPagesV2(dream, quality, progress) {
       const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
       dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
       rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
-      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, who: plans[i].who || [] });
+      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, caption: plans[i].caption || '', who: plans[i].who || [] });
     } catch { failed++; }
     await progress(++done, total, 'drawing pages');
   }
@@ -2448,7 +2461,7 @@ router.post('/dream', async (req, res) => {
           // Match mentions to the saved sheet ONLY for Sophie — a guest must
           // never see (or borrow) her characters, so guests get describe-only.
           for (const p of plans) {
-            if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+            if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
             else await attachCastSuggestions(p);
           }
           const docs = await createDreamDocs(plans, text, title, owner);
@@ -2470,7 +2483,7 @@ router.post('/dream', async (req, res) => {
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
     for (const p of plans) {
-      if (owner) p.castSuggestions = (p.mentions || []).map(n => ({ name: n, matches: [] }));
+      if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
       else await attachCastSuggestions(p);
     }
     const docs = await createDreamDocs(plans, text, title, owner);
@@ -2542,7 +2555,7 @@ router.post('/dream/:id/render', async (req, res) => {
     const useV2 = Array.isArray(characters) || !(doc.beats || []).length;
     if (Array.isArray(characters)) {
       const kept = [];
-      for (const c of characters.slice(0, 8)) {
+      for (const c of characters.slice(0, 12)) {
         if (!c || !c.name) continue;
         let url = typeof c.url === 'string' && /^https?:\/\//.test(c.url) ? c.url : null;
         const m = /^data:([^;]+);base64,(.*)$/.exec(String(c.image || ''));

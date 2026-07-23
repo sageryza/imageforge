@@ -120,6 +120,12 @@ struct WitchWebView: UIViewRepresentable {
                 webView.evaluateJavaScript("window.__setTab && window.__setTab('\(parent.tab.rawValue)')", completionHandler: nil)
             }
         }
+        // iOS reclaims backgrounded webview processes under memory pressure;
+        // without this the app comes back as a frozen snapshot (nothing taps).
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
+        }
+
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             parent.loading = false
             parent.failed = true

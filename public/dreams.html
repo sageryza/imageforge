@@ -65,8 +65,10 @@
     padding:16px 14px;margin:14px 0}
   .castsheet .lbl{font-size:12px;font-weight:600;letter-spacing:1px;color:#9c8f72;
     text-transform:uppercase;margin:0 0 12px}
-  .castgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  @media(max-width:380px){.castgrid{grid-template-columns:repeat(2,1fr)}}
+  /* minmax(0,1fr) forces strictly equal columns — without the 0 minimum, a
+     textarea's or long name's min-content stretches its column wider. */
+  .castgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+  @media(max-width:380px){.castgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   /* one character slot (portrait card) */
   .cslot{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
     padding:6px;border-radius:8px;border:2px solid transparent;background:transparent}
@@ -92,6 +94,14 @@
     background:rgba(255,255,255,.7)}
   /* the inset divider between "picked" and "everyone else" */
   .castdiv{height:1px;background:#d8c9a8;margin:18px 22px 14px;border:0}
+  /* search within the saved sheet ("add anyone else") */
+  .castsearch{width:100%;border:1px solid #d8c9a8;border-radius:var(--radius);background:#fff;
+    padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);margin-bottom:12px}
+  .castsearch:focus{outline:none;border-color:var(--accent)}
+  .castsearch::placeholder{color:#b8a985}
+  /* Draw button sticks to the bottom of the screen so it's always in reach —
+     no scrolling past the whole sheet to find it. */
+  .btn.draw{position:sticky;bottom:8px;z-index:5;box-shadow:0 3px 12px rgba(60,53,48,.22)}
 
   .page{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--radiusLg);margin-bottom:12px;
     overflow:hidden;cursor:zoom-in;display:block;min-height:120px}
@@ -203,7 +213,7 @@
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
-    review:[], castTop:[], castOthers:[], expanded:{},   // the approval step
+    review:[], castTop:[], castOthers:[], expanded:{}, othersFilter:'',   // the approval step
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
@@ -301,11 +311,13 @@
     // union of candidate matches (deduped by id).
     const byKey = new Map();
     for(const d of dreams){
-      const sugg = d.castSuggestions || (d.mentions||[]).map(n=>({name:n, matches:[]}));
+      const sugg = d.castSuggestions || (d.mentions||[]).map(m=>({name:(m&&m.name)||m, matches:[], desc:(m&&m.desc)||''}));
       for(const s of sugg){
         const k = norm(s.name); if(!k) continue;
         if(!byKey.has(k)) byKey.set(k, { mention:s.name, candidates:[], selected:null, desc:'', photoUrl:null, creating:false });
         const e = byKey.get(k);
+        // Preload any description the dreamer gave this person (first non-empty).
+        if(!e.desc && s.desc) e.desc = String(s.desc);
         for(const m of (s.matches||[])) if(!e.candidates.some(c=>c.id===m.id)) e.candidates.push(m);
       }
     }
@@ -331,10 +343,16 @@
   function buildCast(){
     const cast = [];
     for(const e of S.castTop){
+      // Always include the NAME so the page planner can tag this person to the
+      // pages they appear on (their `who`) — with a reference image or a
+      // description when we have one, otherwise bare (drawn fresh, then carried
+      // forward from the page they first appear on).
+      const entry = { name:e.mention };
       const cand = e.selected && e.candidates.find(c=>c.id===e.selected);
-      if(cand && cand.url) cast.push({ name:e.mention, url:cand.url });
-      else if(e.photoUrl) cast.push({ name:e.mention, url:e.photoUrl });
-      else if(e.desc.trim()) cast.push({ name:e.mention, desc:e.desc.trim() });
+      if(cand && cand.url) entry.url = cand.url;
+      else if(e.photoUrl) entry.url = e.photoUrl;
+      else if(e.desc.trim()) entry.desc = e.desc.trim();
+      cast.push(entry);
     }
     for(const c of S.castOthers) if(c.on && c.url) cast.push({ name:c.name, url:c.url });
     return cast;
@@ -496,12 +514,17 @@
     });
     h += `</div>`;
     if(S.castOthers.length){
-      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p><div class="castgrid">`;
-      S.castOthers.forEach(c=>{
+      const q = norm(S.othersFilter);
+      const shown = q ? S.castOthers.filter(c=>norm(c.name).includes(q)) : S.castOthers;
+      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p>
+        <input class="castsearch" id="castSearch" placeholder="Search your characters…" value="${esc(S.othersFilter)}">
+        <div class="castgrid">`;
+      shown.forEach(c=>{
         h += `<div class="cslot ${c.on?'on':''}" data-add="${esc(c.id)}">
           <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
           <div class="nm">${esc(c.name)}</div></div>`;
       });
+      if(!shown.length) h += `<p class="nm" style="grid-column:1/-1;color:#9c8f72;text-align:center;padding:8px">no matches</p>`;
       h += `</div>`;
     }
     h += `</div>
@@ -526,6 +549,15 @@
     root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{
       const c=S.castOthers.find(x=>x.id===el.dataset.add); if(c){ c.on=!c.on; render(); }
     });
+    // Live-filter the saved sheet without re-rendering (keeps input focus).
+    const cs=$('castSearch');
+    if(cs) cs.oninput=e=>{
+      S.othersFilter=e.target.value; const q=norm(S.othersFilter);
+      root.querySelectorAll('[data-add]').forEach(el=>{
+        const c=S.castOthers.find(x=>x.id===el.dataset.add);
+        el.style.display=(!q||(c&&norm(c.name).includes(q)))?'':'none';
+      });
+    };
     root.querySelectorAll('[data-upload]').forEach(el=>el.onclick=()=>uploadPhotoFor(Number(el.dataset.upload)));
     const db=$('drawBtn'); if(db) db.onclick=draw;
   }

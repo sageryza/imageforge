@@ -10,6 +10,8 @@
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
 //   GET  /api/chatfeed/search?q= → substring search across every message
 //                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
+//   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
+//                                  (grayed until a newer message arrives)
 //   POST /api/chatfeed/polish    → { id } — render the message in the polished
 //                                  onyx-British neural voice (~1¢), cached forever
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
@@ -208,6 +210,20 @@ router.get('/assets', async (req, res) => {
       .sort((a, b) => (a.created < b.created ? 1 : -1))
       .slice(0, limit);
     res.json({ chat, assets });
+  } catch (err) { fail(res, err); }
+});
+
+// Mark a chat "answered" (or clear it). Stores answeredAt = now; the client
+// treats a chat as done (grayed) while answeredAt >= its latest message, so
+// any new message — from Sophie or the chat — un-grays it automatically.
+router.post('/answered', async (req, res) => {
+  try {
+    const { chat, answered } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const stamp = new Date().toISOString();
+    const val = answered ? stamp : admin.firestore.FieldValue.delete();
+    await db().collection(REG).doc(String(chat).slice(0, 60)).set({ answeredAt: val }, { merge: true });
+    res.json({ ok: true, answeredAt: answered ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
