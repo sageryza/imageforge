@@ -76,10 +76,46 @@ function putFile(uploadUrl, filePath, contentType) {
 }
 
 // ── discovery ──
-function discover() {
-  console.log('Discovering the channel with yt-dlp (this takes ~30-60s)…');
+// The 29 curated NDE interviews are BAKED IN as a guaranteed floor — YouTube
+// silently truncates channel listings for automated requests (a live run
+// surfaced only 6 of the channel), so discovery can never be trusted alone.
+// Discovery then ADDS whatever else it can enumerate (podcasts, documentaries),
+// retrying a few times, with yt-dlp's errors shown instead of hidden.
+const KNOWN = [
+  {"id": "eH3-WZWEMqY", "title": "The near death experience of Deborah King"},
+  {"id": "zXB_F8EfDNA", "title": "The near death experience of Bruce Van Natta"},
+  {"id": "DXQh28N7eis", "title": "The near death experience of Landon Dennis"},
+  {"id": "6GsWknK5r-8", "title": "The near death experience of Dr. Mary Helen Hensley"},
+  {"id": "RCQkIutaqgs", "title": "The near death experience of Penny Wittbrodt"},
+  {"id": "1FD5lReqe64", "title": "The near-death experience of Jeff Olsen"},
+  {"id": "F-rp6bqfJWQ", "title": "The near death experience of Nancy Rynes"},
+  {"id": "iWG_rLdW4Ng", "title": "The near death experience of Tammy Lee Anderson"},
+  {"id": "WTESmsletG4", "title": "The near-death experience of Jane Thompson"},
+  {"id": "B7vEdwuJBEg", "title": "The near death experience of Scott Drummond"},
+  {"id": "zg3HnkSg38s", "title": "The near-death experience of Barbara Bartolome"},
+  {"id": "5XrA79_T_R0", "title": "The near-death experience of Peter Anthony"},
+  {"id": "j8mGcC2jq0Q", "title": "The near death experience of Karen Thomas"},
+  {"id": "pRRJ3u6O2QI", "title": "The near death experience of David Ditchfield"},
+  {"id": "2GFT_89YMWE", "title": "The near-death experience of Tricia Barker"},
+  {"id": "ePBzS8hS36k", "title": "The near-death experience of Chris Batts"},
+  {"id": "xwAYFEkYJE4", "title": "The near death experience of Graeme O'Connor"},
+  {"id": "p5DLmCf6WaE", "title": "The near death experience of Rob Gentile"},
+  {"id": "peE-A-VlUtw", "title": "The Near death experience of Chris Kito"},
+  {"id": "0m5BQWiM--o", "title": "The near-death experience of Nadia McCaffrey"},
+  {"id": "8eJQg9zfo1w", "title": "The near death experience of Ray Kinman"},
+  {"id": "4xrtyOqwr9E", "title": "The near-death experiences of Bill McDonald"},
+  {"id": "Ag_5i2c95U4", "title": "The near-death experience of Ingrid Honkala"},
+  {"id": "YSa3El8VFOo", "title": "The near-death experience of Heidi Craig"},
+  {"id": "0q39gcW71gQ", "title": "The near death experience of Pegi Robinson"},
+  {"id": "7kDx-wkVzCM", "title": "The near death experience of Malcolm Nair"},
+  {"id": "VsWjCA_e3bY", "title": "The near death experience of John Paul Martinez"},
+  {"id": "yXSnS2jMY4k", "title": "The near death experience of Jonathan Ashford"},
+  {"id": "GA5eHmZ3_pM", "title": "The near death experience of Gabe Poirot"}
+];
+
+function discoverOnce() {
   const out = execFileSync(YTDLP, ['--flat-playlist', '--print', '%(id)s\t%(duration)s\t%(title)s', CHANNEL],
-    { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+    { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] });
   const vids = [];
   for (const line of out.split('\n')) {
     const [id, dur, ...rest] = line.split('\t');
@@ -90,9 +126,28 @@ function discover() {
     if (Number.isFinite(seconds) && seconds < MIN_SECONDS) continue; // trailer/short
     vids.push({ id, title });
   }
-  // de-dupe, keep channel order (newest first)
+  return vids;
+}
+
+async function discover() {
+  console.log('Discovering the channel with yt-dlp (this takes ~30-60s)…');
+  let found = [];
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const v = discoverOnce();
+      if (v.length > found.length) found = v;
+      if (found.length > KNOWN.length) break; // got a full-looking listing
+      console.log(`  attempt ${attempt}: channel listing returned ${v.length} — retrying (YouTube truncates automated listings)…`);
+      await sleep(20000 * attempt);
+    } catch (e) { console.log(`  attempt ${attempt} failed: ${String(e.message).slice(0, 120)}`); await sleep(20000 * attempt); }
+  }
+  // union: known interviews are guaranteed; discovery adds the rest
   const seen = new Set();
-  return vids.filter(v => !seen.has(v.id) && seen.add(v.id));
+  const all = [...KNOWN, ...found].filter(v => !seen.has(v.id) && seen.add(v.id));
+  const extra = all.length - KNOWN.length;
+  console.log(`Video set: ${KNOWN.length} known interviews + ${extra} more discovered = ${all.length} total.`);
+  if (extra === 0) console.log('(YouTube would not list the wider channel this run — the 29 interviews still bank fully; re-run later to add podcasts/documentaries.)');
+  return all;
 }
 
 // ── captions ──
@@ -155,7 +210,7 @@ function ytdlpAudio(id, dir) {
 }
 
 (async () => {
-  const videos = discover();
+  const videos = await discover();
   console.log(`Found ${videos.length} NDE interviews on the channel.\n`);
   if (!videos.length) { console.error('Nothing matched — tell the chat, the filter may need adjusting.'); process.exit(1); }
 
