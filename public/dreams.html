@@ -89,6 +89,11 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   .sunflower{width:100%;max-width:420px;margin:10px auto 0;display:block}
+  /* Guest restore link (public /trydreams only) */
+  .restore{margin-top:12px;font-size:12px;color:var(--textDim);display:flex;flex-direction:column;gap:4px}
+  .restore button{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;
+    color:var(--text);font-size:12px;font-family:ui-monospace,Menlo,monospace;cursor:pointer;text-align:left;
+    word-break:break-all;line-height:1.4}
 
   /* Archive grid */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -146,16 +151,23 @@
   // never Sophie's or another friend's. Sophie's own page (/dreams) has no
   // owner, so her archive is unchanged.
   const PUBLIC = location.pathname.replace(/\/+$/,'').toLowerCase() === '/trydreams';
+  const GUEST_RE = /^guest_[a-z0-9]{4,40}$/i;
   let OWNER = '';
   if (PUBLIC) {
     try {
-      OWNER = localStorage.getItem('dreams_guest') || '';
-      if (!/^guest_[a-z0-9]{4,40}$/i.test(OWNER)) {
+      // A restore link (?id=guest_…) adopts an existing archive onto THIS device
+      // — so a lost/replaced phone (or a code Sophie hands back) recovers all the
+      // dreams, which live safely in Firebase regardless of the device.
+      const claim = new URLSearchParams(location.search).get('id') || '';
+      if (GUEST_RE.test(claim)) { OWNER = claim; localStorage.setItem('dreams_guest', OWNER); }
+      if (!OWNER) OWNER = localStorage.getItem('dreams_guest') || '';
+      if (!GUEST_RE.test(OWNER)) {
         OWNER = 'guest_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
         localStorage.setItem('dreams_guest', OWNER);
       }
     } catch {}
   }
+  const restoreLink = () => location.origin + '/trydreams?id=' + encodeURIComponent(OWNER);
   // The archive/zine list endpoint, scoped to this visitor when in guest mode.
   const dreamListPath = () => '/dream' + (OWNER ? ('?owner=' + encodeURIComponent(OWNER)) : '');
   async function api(path, opts = {}) {
@@ -367,6 +379,8 @@
         <button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button></div>
       <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
+      ${PUBLIC?`<div class="restore"><span>Keep this link to find your dreams on any device:</span>
+        <button id="copyRestore" title="Copy">${esc(restoreLink())}</button></div>`:''}
     </div>`;
 
     if(S.review.length){
@@ -386,6 +400,7 @@
     const ta = $('ta'); if(ta) ta.oninput = e => S.text = e.target.value;
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
+    const cr = $('copyRestore'); if(cr) cr.onclick = ()=>{ try{ navigator.clipboard.writeText(restoreLink()); showToast('Link copied — save it somewhere'); }catch{ showToast('Select and copy the link'); } };
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const i=el.dataset.page;openPopup(pageRefs[i]);});
     wireReview();
   }
