@@ -1380,7 +1380,10 @@
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Server ${res.status}`);
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    // Job-status payloads carry BOTH a status and (for failed jobs) an error
+    // message — those must flow through so pollers can see status:'error' and
+    // stop. Only a bare {error} (no status) is a failed request.
+    if (data.error && data.status === undefined) throw new Error(data.error);
     return data;
   }
   // A "Load failed" / "Failed to fetch" is the browser's fetch() rejecting
@@ -3256,6 +3259,9 @@
   });
   function resumeDreamRead() {
     const p = pendGet(DREAMREAD_PEND); if (!p || !p.id) return;
+    // Put the dream back in the box — a resumed page starts with an empty
+    // input, which reads as "reading… what dream?"
+    const inp = $('dream-input'); if (inp && !inp.value && p.dream) inp.value = p.dream;
     dreamReadSpinner();
     watchDreamRead(p.id, p.dream);
   }
@@ -3320,6 +3326,7 @@
   });
   function resumeDreamIllus() {
     const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;
+    const inp = $('dream-input'); if (inp && !inp.value && p.dream) inp.value = p.dream;
     dreamIllusSpinner();
     watchDreamIllus(p.id);
   }
