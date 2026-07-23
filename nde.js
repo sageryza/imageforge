@@ -627,6 +627,39 @@ router.post('/videos/:videoId/audio', express.raw({ type: '*/*', limit: '200mb' 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Bank an already-cut clip (the local puller sliced ~258 to Sophie's disk before
+// the Firebase flow existed; this lets her computer push them up as a safety
+// copy). Small files, so a simple relay is fine. Stored public at
+// nde-clips/original/<theme>/<file>. GET /clips lists what's banked.
+router.post('/clip', express.raw({ type: '*/*', limit: '20mb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const rel = String(req.query.path || '').replace(/\\/g, '/').replace(/\.\.+/g, '').replace(/^\/+/, '').replace(/[^A-Za-z0-9._/-]/g, '_');
+    if (!/\.(mp3|m4a|wav|webm|ogg)$/i.test(rel)) return res.status(400).json({ error: 'path must be an audio file' });
+    const buf = req.body;
+    if (!buf || !buf.length) return res.status(400).json({ error: 'empty body' });
+    const bucket = admin.storage().bucket();
+    const dest = `nde-clips/original/${rel}`;
+    await bucket.file(dest).save(buf, { metadata: { contentType: 'audio/mpeg' } });
+    await bucket.file(dest).makePublic();
+    res.json({ ok: true, url: `https://storage.googleapis.com/${bucket.name}/${dest}`, bytes: buf.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/clips', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const prefix = 'nde-clips/' + String(req.query.run || 'original') + '/';
+    const [files] = await admin.storage().bucket().getFiles({ prefix });
+    const clips = files.filter(f => /\.(mp3|m4a|wav)$/i.test(f.name)).map(f => ({
+      path: f.name.slice(prefix.length),
+      url: `https://storage.googleapis.com/${f.bucket.name}/${f.name}`,
+      bytes: Number(f.metadata.size) || null,
+    }));
+    res.json({ count: clips.length, clips });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Direct-to-Storage upload lane for FULL-quality audio banking. The relay
 // route above buffers the whole file in Render's small memory, which is fine
 // for one-offs but shaky for a 100-file unattended run — so the laptop asks
