@@ -475,17 +475,9 @@
 
   function reviewHtml(){
     const n = S.review.length;
+    // Straight to the character sheet — the dream text / chronology isn't shown
+    // (chronology is handled automatically at render). Just pick who's in it.
     let h = `<div class="section">`;
-    // A read-only glance at what was captured — no order step, that's automatic.
-    S.review.forEach(d=>{
-      let words = esc(d.dreamText || d.dream || '');
-      (d.driftCues||[]).forEach(cue=>{ const c=esc(cue); if(c) words = words.split(c).join('<mark>'+c+'</mark>'); });
-      h += `<div class="dreamcard">
-        ${n>1?`<div class="t">${esc(d.title)}</div>`:''}
-        <div class="words ${S.expanded[d.id]?'':'clamped'}" data-expand="${d.id}">${words}</div>
-      </div>`;
-    });
-    // The cast sheet.
     h += `<div class="castsheet">
       <p class="lbl">Who's in your ${n>1?'dreams':'dream'}</p>
       <div class="castgrid">`;
