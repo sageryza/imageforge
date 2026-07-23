@@ -369,10 +369,11 @@
     .ritual-line { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.5; color: var(--moon); }
 
     /* Dive deeper — the day's full reading, its own page */
-    /* Unlike the quiz, the deep page keeps the bottom nav: it sits BELOW the
-       nav (z 50) in the stack, and its 96px bottom padding already clears it.
-       Tapping a nav tab closes the page (see go()). */
-    #deep-app, #tarot-app { z-index: 45; }
+    /* Unlike the quiz, these pages keep the bottom nav: they sit BELOW the
+       nav (z 50) in the stack, and their 96px bottom padding already clears it.
+       Tapping a nav tab closes the page (see go()). Past readings + the dream
+       reading page are here too so you can jump tabs, not just Back out. */
+    #deep-app, #tarot-app, #dreampast-app, #dreamread-app { z-index: 45; }
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
     #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
@@ -1440,7 +1441,12 @@
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
   function go(view) {
+    // These full-screen pages sit below the nav (z 45), so a nav tap must
+    // close them — otherwise the overlay stays covering the view you switched to.
     if (deepOpen) closeDeep();   // the Dive-deeper page yields to the nav
+    if (typeof tarotDeepOpen !== 'undefined' && tarotDeepOpen) closeTarotDeep();
+    if (typeof dreamReadDeepOpen !== 'undefined' && dreamReadDeepOpen) closeDreamReadDeep();
+    if (typeof dreamPastOpen !== 'undefined' && dreamPastOpen) closeDreamPast();
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
