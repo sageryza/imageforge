@@ -382,7 +382,8 @@
        nav (z 50) in the stack, and their 96px bottom padding already clears it.
        Tapping a nav tab closes the page (see go()). Past readings + the dream
        reading page are here too so you can jump tabs, not just Back out. */
-    #deep-app, #tarot-app, #dreampast-app, #dreamread-app { z-index: 45; }
+    #deep-app, #tarot-app, #dream-app, #dreamread-app { z-index: 45; }
+    #dreampast-app { z-index: 46; }  /* opens over the dream page */
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
     #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
@@ -598,6 +599,33 @@
     .dream-btns { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
+    /* The dream's own page: the same card, moved into a full-screen overlay.
+       Past-readings stays a Home affordance — hidden while the card is here. */
+    #dream-app #dream-past { display: none; }
+    #dream-app .card { border: none; background: none; padding: 0; box-shadow: none; }
+    /* Describe-yourself step (before Illustrate draws) */
+    .dpeople-label { font-size: 13px; color: var(--text); margin-bottom: 8px; }
+    .dpeople-label .dpeople-opt { color: var(--text-faint); font-size: 11.5px; }
+    #dream-people { min-height: 56px; resize: vertical; }
+    /* The drawing-in-progress frame: a page-shaped placeholder the finished
+       art replaces, with the linocut loader living inside it. */
+    .dframe { width: min(68%, 230px); aspect-ratio: 2 / 3; margin: 4px auto 0; border: 1px solid var(--border); border-radius: var(--radius); background: #fdfbf7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; box-sizing: border-box; }
+    .dframe-cap { font-size: 12.5px; color: var(--text-dim); font-style: italic; text-align: center; }
+    /* Tap-to-enlarge lightbox (page one) */
+    .img-lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(24,19,28,0.93); display: flex; align-items: center; justify-content: center; padding: 18px; }
+    .img-lightbox img { max-width: 94vw; max-height: 86vh; border-radius: 6px; }
+    /* Pinned mini-cards at the top of the tarot reading page */
+    /* The page's own top padding moves INTO the pin row (sticky can't cover a
+       scroll container's padding band — content scrolls visibly through it). */
+    #tarot-app { padding-top: 0; }
+    #tarot-app .tpin { position: sticky; top: 0; z-index: 1; display: flex; justify-content: center; gap: 16px; background: var(--bg); border-bottom: 1px solid var(--border); margin: 0 -18px 14px; padding: calc(env(safe-area-inset-top, 0px) + 40px) 18px 8px; }
+    /* No pin row (cards not drawn yet) → the first element restores the gap. */
+    #tarot-app .quiz-stage > :first-child:not(.tpin) { margin-top: calc(env(safe-area-inset-top, 0px) + 46px); }
+    .tpin-slot { text-align: center; }
+    .tpin-img { height: 62px; border-radius: 3px; display: block; margin: 0 auto; }
+    .tpin-img.rev { transform: rotate(180deg); }
+    .tpin-noimg { width: 38px; height: 62px; border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+    .tpin-pos { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); margin-top: 4px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
     .dread:first-child { border-top: 0; padding-top: 0; }
     .dread-src { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
@@ -1035,6 +1063,7 @@
         <!-- Dream reading -->
         <div class="section-title">What did you dream last night?</div>
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
+        <div id="dream-home-slot">
         <div class="card" id="dream-card">
           <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
@@ -1046,6 +1075,7 @@
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
+        </div>
         </div>
 
         <!-- Products (row 2) — rendered from PRODUCT_ROWS[1] -->
@@ -1346,6 +1376,17 @@
   <div class="quiz-app" id="dreamread-app" style="display:none;">
     <button class="quiz-back" id="dreamread-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="dreamread-stage"></div>
+  </div>
+
+  <!-- The dream's own page: the Home dream card MOVES here (same DOM node, so
+       every listener and in-flight job state rides along) the moment Illustrate
+       or Unlock is tapped — it looks identical, just on its own page. -->
+  <div class="quiz-app" id="dream-app" style="display:none;">
+    <button class="quiz-back" id="dream-page-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage">
+      <div class="quiz-kicker">Your dream</div>
+      <div id="dream-page-slot"></div>
+    </div>
   </div>
 
   <script>
@@ -2122,7 +2163,7 @@
     saveReadings(all); updateSavedCount(); tarotSaved = true;
   }
   const T_ICON = {
-    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>',
+    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
     deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
     charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
   };
@@ -2130,7 +2171,19 @@
     const st = $('tarot-deep-stage'); if (!st) return;
     if (!dailyTarot) { st.innerHTML = `<div class="quiz-kicker">Your reading</div><p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The cards are quiet right now.</p>`; return; }
     const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    let h = `<div class="quiz-kicker">Your full reading</div>`;
+    let h = '';
+    // The drawn cards ride pinned at the top of this page — the reading below
+    // scrolls, the cards you pulled don't leave.
+    if (dailyPicks) {
+      h += `<div class="tpin">` + dailyPicks.map(p => {
+        const img = DECK_IMG[p.card.name];
+        const rev = p.orientation === 'reversed';
+        return `<div class="tpin-slot">${img
+          ? `<img class="tpin-img${rev ? ' rev' : ''}" src="${img}" alt="${esc(p.card.name)}">`
+          : `<div class="tpin-noimg">✦</div>`}<div class="tpin-pos">${esc(p.position || '')}</div></div>`;
+      }).join('') + `</div>`;
+    }
+    h += `<div class="quiz-kicker">Your full reading</div>`;
     h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
     h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
     // Each card, its position + meaning
@@ -3384,9 +3437,31 @@
       onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
     });
   }
+  /* The dream's own page: tapping Illustrate or Unlock re-homes the Home
+     card's DOM node into a full-screen page — identical look, and every
+     listener + in-flight job state rides along because it's the same node. */
+  let dreamPageOpen = false;
+  function openDreamPage() {
+    if (dreamPageOpen) return;
+    dreamPageOpen = true;
+    $('dream-page-slot').appendChild($('dream-card'));
+    document.body.style.overflow = 'hidden';
+    const app = $('dream-app'); app.style.display = ''; app.scrollTop = 0;
+  }
+  function closeDreamPage() {
+    if (!dreamPageOpen) return;
+    dreamPageOpen = false;
+    $('dream-home-slot').appendChild($('dream-card'));
+    $('dream-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('dream-page-back').addEventListener('click', closeDreamPage);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dreamPageOpen) closeDreamPage(); });
+
   $('dream-unlock').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
+    openDreamPage();
     dreamReadSpinner();
     try {
       const id = await withRetry(() => startWitchJob('dream-read', { dream }));
@@ -3415,7 +3490,7 @@
     const img = esc(url);
     $('dream-book').innerHTML = `
       <div class="dbook-pages">
-        <div class="dpage"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
+        <div class="dpage" id="dream-page1" style="cursor:zoom-in;"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
@@ -3427,14 +3502,31 @@
       </div>`;
     const sub = document.getElementById('dream-subscribe');
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
+    const p1 = document.getElementById('dream-page1');
+    if (p1) p1.addEventListener('click', () => openImgLightbox(url));
+  }
+  // Tap page one → see it big. Scroll behind is locked while it's open.
+  function openImgLightbox(url) {
+    const lb = document.createElement('div');
+    lb.className = 'img-lightbox';
+    const im = document.createElement('img'); im.src = url; im.alt = '';
+    lb.appendChild(im);
+    lb.addEventListener('click', () => {
+      lb.remove();
+      document.body.style.overflow = (dreamPageOpen || deepOpen || tarotDeepOpen) ? 'hidden' : '';
+    });
+    document.body.appendChild(lb);
+    document.body.style.overflow = 'hidden';
   }
   // Illustrate is already a server-side background job; persist the pending id
   // and resume the poll on return so the ~1-2 min render survives leaving.
   const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
   function dreamIllusSpinner() {
     // Doesn't touch #dream-out — see the note in dreamReadSpinner().
+    // A page-shaped frame where the finished art will land, with the linocut
+    // loader living inside it — the drawing visibly "happening".
     const book = $('dream-book'); book.style.display = '';
-    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
+    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading.gif" alt=""><div class="dframe-cap" id="dream-illus-label">Reading your dream…</div></div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
   function watchDreamIllus(id) {
@@ -3451,18 +3543,46 @@
       else if (d.status === 'error') { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(d.error || 'try again')}. Tap Illustrate to retry.</div>`; }
     }, 3000);
   }
-  $('dream-illustrate').addEventListener('click', async () => {
+  // One quick optional step before drawing: describe the dreamer (and anyone
+  // else in the dream) so the main character actually resembles them. Saved on
+  // the device and pre-filled next time; skipping draws a generic young woman.
+  const DREAM_PEOPLE_KEY = 'witch_dream_people';
+  function renderDescribeStep() {
+    const book = $('dream-book'); book.style.display = '';
+    let saved = ''; try { saved = localStorage.getItem(DREAM_PEOPLE_KEY) || ''; } catch {}
+    book.innerHTML = `<div class="dpeople">
+        <div class="dpeople-label">Describe yourself — and anyone else in the dream <span class="dpeople-opt">(optional)</span></div>
+        <textarea id="dream-people" rows="2" placeholder="young woman, bangs, pierced nose">${esc(saved)}</textarea>
+        <div class="dream-btns">
+          <button class="btn-ghost" id="dream-people-skip">Just make my dream</button>
+          <button class="btn" id="dream-people-go">Draw my dream <span class="js-star"></span></button>
+        </div>
+      </div>`;
+    renderStars();
+    $('dream-people-go').addEventListener('click', () => {
+      const people = ($('dream-people').value || '').trim();
+      if (people) try { localStorage.setItem(DREAM_PEOPLE_KEY, people); } catch {}
+      startDreamIllustrate(people || 'a young woman');
+    });
+    $('dream-people-skip').addEventListener('click', () => startDreamIllustrate('a young woman'));
+  }
+  async function startDreamIllustrate(people) {
     const dream = dreamText();
-    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
     dreamIllusSpinner();
     try {
-      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream }));
+      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream, people }));
       pendSet(DREAMILLUS_PEND, { id, dream });
       watchDreamIllus(id);
     } catch (e) {
       const btn = $('dream-illustrate'); if (btn) btn.disabled = false;
       $('dream-book').innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
     }
+  }
+  $('dream-illustrate').addEventListener('click', () => {
+    const dream = dreamText();
+    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
+    openDreamPage();
+    renderDescribeStep();
   });
   function resumeDreamIllus() {
     const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;

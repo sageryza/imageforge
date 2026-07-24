@@ -1465,7 +1465,13 @@ function dreamZinePagePrompt(dream, group, refPages) {
     refNote = `For character continuity, ${pageLines}. `;
   }
   const stylePrefix = styleRef ? '' : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
-  return `${stylePrefix}${refNote}${distinctNote}${layout}${body}`;
+  // The dreamer's self-description (witch app's describe-yourself step): the
+  // "me"/"I" of the captions is a real person — draw them (and anyone else
+  // described) to match, in every panel where they appear.
+  const lookNote = dream.dreamerLook
+    ? `Character appearance — the dreamer is the "me"/"I" of this dream: ${String(dream.dreamerLook).trim()}. Draw the people to match this description in every panel where they appear. `
+    : '';
+  return `${stylePrefix}${refNote}${lookNote}${distinctNote}${layout}${body}`;
 }
 
 // Render one dream page: style ref first, then the earlier pages we're carrying

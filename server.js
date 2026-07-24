@@ -1538,13 +1538,16 @@ app.post('/api/witch/dream-read', async (req, res) => {
 app.post('/api/witch/dream-illustrate', async (req, res) => {
   try {
     const dream = String((req.body || {}).dream || '').trim();
+    // Who the dreamer (and anyone else) looks like — optional, from the
+    // describe-yourself step; the client sends a generic fallback when skipped.
+    const people = String((req.body || {}).people || '').trim().slice(0, 600);
     if (!dream) return res.status(400).json({ error: 'dream is required' });
     if (dream.length > 20000) return res.status(400).json({ error: 'dream is too long' });
     if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
     const db = admin.firestore();
     const ref = db.collection('forge-witch-dream-illus').doc();
     await ref.set({
-      status: 'running', label: 'reading your dream', dream,
+      status: 'running', label: 'reading your dream', dream, people: people || null,
       page1: null, totalPages: 0, title: null, error: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -1558,7 +1561,9 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
         const beats = Array.isArray(dr.beats) ? dr.beats : [];
         const totalPages = Math.max(1, Math.ceil(beats.length / 4));
         await ref.update({ label: 'illustrating page one', totalPages, title: dr.title || null });
-        const first = { ...dr, beats: beats.slice(0, 4) };   // page one = first 4 beats
+        // page one = first 4 beats; dreamerLook feeds the page prompt so the
+        // "me" of the dream is drawn to the given description.
+        const first = { ...dr, beats: beats.slice(0, 4), dreamerLook: people || null };
         await movies.makeDreamPages(first, 'medium', async () => {});
         const page1 = first.pages && first.pages[0] && first.pages[0].url;
         if (!page1) throw new Error('no page rendered');
