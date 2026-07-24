@@ -5,6 +5,36 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Paywall / subscription across the app ("get a taste, then pay")
+The membership model: free users get a *taste* of each generative feature, the
+rest is paywalled. Examples: Dream = 1 illustrated page free, rest blurred;
+Coincidence = 1 free draw + limited redraws/day. Applies in "all sorts of
+places" — treat as ONE membership that unlocks everything (confirm with Sophie).
+- **Hard constraint — Apple In-App Purchase.** On iOS, unlocking digital
+  features/subscriptions must go through Apple's IAP (StoreKit), Apple takes
+  15–30%. Because Secretly a Witch is a WKWebView wrapper, this is the one place
+  that likely needs real *native* code (StoreKit purchase in the shell →
+  entitlement bridged into the web view) + subscription products configured in
+  App Store Connect (which requires the Paid Apps agreement + banking/tax info
+  signed first). A 2025 US ruling now lets apps link out to external web
+  payment — could allow selling via Stripe on web and skipping Apple's cut —
+  but that area is changing fast; **research current App Store rules before
+  committing to an approach** (see the "research current dashboards" design rule).
+- **Needed from Sophie:** the model (one membership vs per-feature), price +
+  billing period (monthly/annual/trial), the full free-vs-paid list per feature,
+  App Store Connect Paid-Apps agreement signed, and (if web path) a Stripe acct.
+- **Sequence:** build the paywall UI + entitlement scaffolding first (with a
+  test/"coming soon" entitlement) so the visible paywall ships now; wire real
+  payment once the agreements + products exist.
+
+### Blurred paywalled pages should look DIFFERENT (not the same page repeated)
+Right now the blurred/locked pages behind a paywall (e.g. Dream's un-purchased
+pages) are literally the SAME page duplicated with a blur, so they all look
+identical. They should look like *distinct* pages even though the real ones
+don't exist yet — vary the blurred placeholders (different faint layouts /
+compositions) so it reads as "there's more real content here," not one page
+copied. Applies wherever the taste-then-blur pattern is used.
+
 ### Etsy → Shopify product transfer (replace the "Shuttle" app)
 Let a chat (or a button in the app) add Etsy listings that aren't yet on Shopify
 **into** Shopify automatically — taking over the job Sophie currently does with
