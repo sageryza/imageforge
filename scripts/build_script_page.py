@@ -4,7 +4,7 @@ top in the building order (Tammy → Gabe → the rest), everything else at the
 bottom. Replaces the prior Compare page."""
 import json, html, urllib.request
 
-OLD_ID = "XjgT30LgCUMfwAkduhJB"  # prior script page to replace
+OLD_ID = "FtXebbnPCqH5RejKctnW"  # prior script page to replace
 d = json.load(open("/home/user/telepathy-tight.json"))
 
 NAMES = {
@@ -22,8 +22,9 @@ NAMES = {
     37: "Julien Chameroy · Doorway to Oneness", 38: "Julien Chameroy · Doorway to Oneness",
 }
 
-# FAVORITES — the discovery moments, in the order we're building (Tammy, Gabe, …)
-FAV = [33, 10, 35, 34, 16, 12, 17, 18, 30, 26, 29, 22]
+# FAVORITES — the discovery moments, in the order we're building
+# Tammy, Gabe, Heidi … building to Karen's specific story, ending on Landon (richest)
+FAV = [33, 10, 16, 34, 12, 17, 18, 30, 26, 22, 29, 35]
 # the rest, borderline first then the plain statements
 MAYBE_REST = [2, 7, 8, 14, 19, 20, 21, 24, 25, 31, 36, 37]
 UNMARKED_REST = [0, 1, 3, 4, 5, 9, 11, 13, 15, 23, 27, 28, 32, 38]
