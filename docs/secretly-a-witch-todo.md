@@ -127,6 +127,26 @@ with caveats:
   update DNS at the registrar. RESEARCH the current Render custom-domain flow
   before giving Sophie steps (it changes; and Render free vs paid may matter for
   custom domains). Decide apex-vs-subdomain split with Sophie first.
+- **UPDATE (Sophie, 2026-07): do the port.** Checkout through Shopify is fine —
+  but she's also open to **retiring the Shopify SITE entirely** and selling via
+  the **Shopify Buy Button** (embedded buy/cart widgets — the storefront-token
+  path the People Watching Club site already uses) inside the witch app's Shop
+  tab. Research what that changes before committing: the Buy Button keeps
+  Shopify checkout/fulfilment but drops the themed store pages — which also
+  drops the **Shopify blog** (Blog Studio's destination) and any store-page SEO,
+  so those need a new home (e.g. serve a blog from the witch app) or an OK to
+  lose them. Nav-fix shipped first per Sophie; this is the next big item.
+
+### App Store screenshots — refresh with the new features (Sophie: "later today")
+The `ios-witch-screenshots.yml` workflow (memory-library-react) boots a
+simulator and captures per-tab shots via `?shot=<sectionId>` + `WITCH_TAB`.
+Now that big features shipped (coincidence redraws, Book of Shadows, dreams,
+membership), refresh the App Store set before submission:
+- Sophie picks WHICH features to feature (suggested: Home moon+card, daily
+  tarot, coincidence, your-sky, School, Book of Shadows, Shop, dream).
+- Fresh simulators show EMPTY states — add a `?demo=1` seed that fills demo
+  content (sample coincidence drawings, a sample chart, a revealed pull) so
+  shots aren't blank. Sophie hasn't approved demo-seeding yet — confirm first.
 
 ### ⚠️ Unit economics — check BEFORE committing to $4/mo (Sophie flagged)
 Many paid features cost real API money per use, so an unlimited $4/mo membership

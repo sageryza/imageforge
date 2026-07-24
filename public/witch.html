@@ -1280,7 +1280,7 @@
         </div>
 
         <!-- Lesson reader: tap-based deck (cards injected by JS) -->
-        <div id="school-lesson" style="display:none;">
+        <div id="school-lesson" data-fullpage style="display:none;">
           <div class="deck-top">
             <button class="les-back" id="lesson-back" aria-label="Back to lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
             <div class="deck-prog" id="deck-prog"></div>
@@ -1398,13 +1398,13 @@
   </div>
 
   <!-- "Are you secretly a witch?" — full-screen quiz app -->
-  <div class="quiz-app" id="quiz-app" style="display:none;">
+  <div class="quiz-app" id="quiz-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="quiz-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="quiz-stage"></div>
   </div>
 
   <!-- Dive deeper — the day's full reading as its own full-screen page -->
-  <div class="quiz-app" id="deep-app" style="display:none;">
+  <div class="quiz-app" id="deep-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="deep-stage"></div>
   </div>
@@ -1416,14 +1416,14 @@
   </div>
 
   <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
-  <div class="quiz-app" id="tarot-app" style="display:none;">
+  <div class="quiz-app" id="tarot-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="tarot-deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
   <!-- Past dream readings — its own full-screen page (not the Home feed), so the
        list can't be scrolled past and has room for paid content later. -->
-  <div class="quiz-app" id="dreampast-app" style="display:none;">
+  <div class="quiz-app" id="dreampast-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="dreampast-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="dreampast-stage"></div>
   </div>
@@ -1433,7 +1433,7 @@
        sibling of the .quiz-app pages, OUTSIDE .app) so its position:fixed always
        maps to the viewport — nested inside the tab, a transformed ancestor (the
        tab-switch fade) would push it below the app header (double-header bug). -->
-  <div id="bos-reader" style="display:none;">
+  <div id="bos-reader" data-fullpage style="display:none;">
     <div class="bos-head">
       <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <span class="sigil" data-sigil-clone></span>
@@ -1448,7 +1448,7 @@
     </div>
   </div>
 
-  <div class="quiz-app" id="dreamread-app" style="display:none;">
+  <div class="quiz-app" id="dreamread-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="dreamread-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="dreamread-stage"></div>
   </div>
@@ -1456,7 +1456,7 @@
   <!-- The dream's own page: the Home dream card MOVES here (same DOM node, so
        every listener and in-flight job state rides along) the moment Illustrate
        or Unlock is tapped — it looks identical, just on its own page. -->
-  <div class="quiz-app" id="dream-app" style="display:none;">
+  <div class="quiz-app" id="dream-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="dream-page-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage">
       <div class="quiz-kicker">Your dream</div>
@@ -1632,17 +1632,38 @@
 
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
+  /* ── Full-page overlay registry (root fix for "the nav stopped working") ──
+     Every full-screen surface (lesson deck, quiz, book reader, dive-deeper
+     pages, dream page…) toggles its own display + scroll lock. go() used to
+     keep a HAND-WRITTEN list of close calls, and every new surface forgot to
+     join it — so a nav tap switched the view UNDERNEATH while the overlay
+     stayed on top, and the nav "did nothing" (school-lesson, quiz-app and
+     dream-app were all missing when this was fixed). Now surfaces register
+     once here, go() closes whatever is open, and a data-fullpage DOM sweep +
+     scroll-lock reset catches anything that forgot — an unregistered overlay
+     can never trap the nav again.
+     ADDING A NEW FULL-PAGE SURFACE: put data-fullpage on its root element and
+     call registerFullPage('element-id', itsCloseFunction) in the registration
+     block near INIT. That's the whole contract. */
+  const FULL_PAGES = [];
+  function registerFullPage(id, close) { FULL_PAGES.push({ id, close }); }
+  function closeFullPages() {
+    // Registered surfaces close via their own close fn (restores their state).
+    FULL_PAGES.forEach(p => {
+      const el = document.getElementById(p.id);
+      if (el && el.style.display !== 'none') { try { p.close(); } catch (e) {} }
+    });
+    // Safety net: force-hide any still-visible [data-fullpage] overlay (one
+    // that never registered), drop lightboxes, clear every scroll lock, and
+    // dismiss any open dialog — the nav must always win.
+    document.querySelectorAll('[data-fullpage]').forEach(el => { if (el.style.display !== 'none') el.style.display = 'none'; });
+    document.querySelectorAll('.img-lightbox').forEach(el => el.remove());
+    document.body.classList.remove('lesson-open', 'book-open');
+    document.body.style.overflow = '';
+    try { closeModal(); } catch (e) {}
+  }
   function go(view) {
-    // These full-screen pages sit below the nav (z 45), so a nav tap must
-    // close them — otherwise the overlay stays covering the view you switched to.
-    if (deepOpen) closeDeep();   // the Dive-deeper page yields to the nav
-    if (typeof tarotDeepOpen !== 'undefined' && tarotDeepOpen) closeTarotDeep();
-    if (typeof dreamReadDeepOpen !== 'undefined' && dreamReadDeepOpen) closeDreamReadDeep();
-    if (typeof dreamPastOpen !== 'undefined' && dreamPastOpen) closeDreamPast();
-    // The book reader is a top-level overlay too — a nav tap (incl. the iOS
-    // native tab bar via __setTab) must close it, or you switch tabs behind it
-    // and get stuck on the book until Back.
-    if ($('bos-reader') && $('bos-reader').style.display !== 'none') closeBook();
+    closeFullPages(); // a nav tap always lands on the tab itself, never behind an overlay
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
@@ -4666,6 +4687,19 @@
       });
     } catch (e) { console.warn('accounts init failed', e.message); }
   }
+
+  /* ── Full-page surface registrations (see closeFullPages, the nav fix) ──
+     One line per full-screen surface. If you add a surface and skip this, the
+     data-fullpage sweep still frees the nav — but register it anyway so its
+     own close logic (state flags, URL cleanup, re-renders) runs. */
+  registerFullPage('deep-app', closeDeep);          // astrology dive-deeper
+  registerFullPage('tarot-app', closeTarotDeep);    // daily tarot deep page
+  registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
+  registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
+  registerFullPage('dream-app', closeDreamPage);    // the dream card full page
+  registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
+  registerFullPage('school-lesson', closeLesson);   // School lesson deck
+  registerFullPage('quiz-app', closeQuiz);          // the witch quiz
 
   /* ══════════ INIT ══════════ */
   const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();
