@@ -32,9 +32,32 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
   **paid features require being signed in** (that's how the app knows you
   subscribed); the free taste stays signed-out. The in-app "link out to
   subscribe" is US-only / legally shifting — verify current rules before relying
-  on it; worst case people subscribe on the site and the app just unlocks. No
-  Stripe integration/keys exist in the app yet — Sophie has a Stripe account
-  from another project; key gets pasted in at build time.
+  on it; worst case people subscribe on the site and the app just unlocks.
+- **STRIPE INTEGRATION — SHIPPED (TEST MODE, 2026-07).** `stripe.js`
+  (`/api/stripe`): `GET /status`, `GET /entitlement` (verifies the app's
+  Firebase ID token vs membry-df528, reads `users/{uid}.membership`),
+  `POST /checkout` ($4/mo Checkout Session), `POST /webhook` (crypto-verified;
+  `checkout.session.completed` + `customer.subscription.*` flip
+  `users/{uid}.membership.active`). Entitlement is server-authoritative, stored
+  OUTSIDE the client-synced bundle. `witch.html`: `isPaid()` backed by
+  `refreshEntitlement()` on sign-in; "Become a member" → Stripe Checkout
+  (external browser on iOS, inline on web); handles `?subscribe=1` / `?sub=success`.
+  Test **Product + $4/mo Price + webhook** created via `scripts/stripe-bootstrap.js`;
+  test keys stored in the config doc. **Verified live e2e:** status ok, auth
+  gating (401 no-token), signed webhook → wrote membership to Firestore, bad
+  signature rejected (400). The QA switch `?paid=1`/`?paid=0` still works.
+- **LAUNCH CHECKLIST (Sophie + a chat, before real payments):**
+  1. Finish the Stripe **account verification** (business name + a reachable
+     website — the CWIW account's overdue "confirm your website" task) so
+     payouts release. Test mode works without this; live charging needs it.
+  2. Create the **LIVE** Product/Price/webhook: `STRIPE_SECRET_KEY=sk_live_… node
+     scripts/stripe-bootstrap.js` → put the live `STRIPE_SECRET_KEY` +
+     `STRIPE_PRICE_ID` + `STRIPE_WEBHOOK_SECRET` in the config doc (swaps test→live).
+  3. Verify the full **card checkout** in a browser with a Stripe test card
+     (`4242 4242 4242 4242`) before flipping to live.
+  4. (Optional) set `STRIPE_TRIAL_DAYS` for the card-up-front free trial.
+  5. Point `secretlyawitch.com` at the witch app (see the Domain item) so the
+     subscribe page lives on the real domain.
 - **Pricing (Sophie, 2026-07):** **$4/month** to start (may rise depending on
   real per-feature model costs), **monthly only — no annual** (feels deceptive),
   **free trial: CARD UP FRONT** (Stripe collects card, N days free, auto-charges
