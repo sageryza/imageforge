@@ -57,14 +57,34 @@ router.get('/', async (req, res) => {
     // Cache-Control + ETag = cache it "for a while"), so the Refresh button
     // appeared to do nothing until minutes later. The feed must always be live.
     res.set('Cache-Control', 'no-store');
-    const limit = Math.min(200, parseInt(req.query.limit, 10) || 100);
+    // NOTE: nothing is ever deleted — every message stays in Firestore. This
+    // only controls how many we hand the app at once. The old flat cap (newest
+    // 200 across ALL chats) meant a chat you hadn't touched in a day or two
+    // scrolled entirely out of view. Instead we keep the newest RECENT globally
+    // (so an active chat shows its full recent thread) AND the last KEEP of
+    // EVERY chat within the scan window — so any chat you touched recently
+    // still has its tail loaded and you can pick it back up. Overridable via
+    // ?recent= / ?keep= / ?scan= for a future "load older" control.
+    const RECENT = Math.min(600, Math.max(50, parseInt(req.query.recent, 10) || 250));
+    const KEEP = Math.min(50, Math.max(1, parseInt(req.query.keep, 10) || 6));
+    const SCAN = Math.min(5000, Math.max(RECENT, parseInt(req.query.scan, 10) || 1500));
     const [msnap, rsnap] = await Promise.all([
-      db().collection(MSGS).orderBy('created', 'desc').limit(limit).get(),
+      db().collection(MSGS).orderBy('created', 'desc').limit(SCAN).get(),
       db().collection(REG).get(),
     ]);
     const chats = {};
     rsnap.docs.forEach((d) => { chats[d.id] = d.data(); });
-    res.json({ chats, messages: msnap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+    // msnap is newest-first: the first KEEP docs seen per chat are that chat's
+    // most recent; i < RECENT keeps the global newest regardless of chat.
+    const perChat = {};
+    const messages = [];
+    msnap.docs.forEach((d, i) => {
+      const m = d.data();
+      const c = m.chat || '';
+      const n = (perChat[c] = (perChat[c] || 0) + 1);
+      if (i < RECENT || n <= KEEP) messages.push({ id: d.id, ...m });
+    });
+    res.json({ chats, messages });
   } catch (err) { fail(res, err); }
 });
 
