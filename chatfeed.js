@@ -311,8 +311,10 @@ router.get('/page/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).send('Not found');
     const [buf] = await admin.storage().bucket().file(snap.data().path).download();
     let html = buf.toString('utf8');
-    // skip pages that already carry their own pill (id collision guard)
-    if (!html.includes('id="vtop"')) html += pillInject();
+    // Inject the shared pill for direct/browser viewing. Skip it when embedded
+    // in the app's Compare viewer (?embed=1): iOS renders position:fixed badly
+    // inside an iframe, so the parent page supplies a pill that scrolls this one.
+    if (req.query.embed !== '1' && !html.includes('id="vtop"')) html += pillInject();
     // a page id's content never changes (replacing = delete + re-post under a
     // new id), so short-cache reopens for snappy back-and-forth
     res.set('Cache-Control', 'public, max-age=300');

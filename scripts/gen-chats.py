@@ -135,6 +135,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .pv-back{width:38px; height:38px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; flex:none;}
 .pv-title{font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
 .pv-frame{flex:1; width:100%; border:none; background:#fff;}
+.pv-title{padding-right:60px;}
+.pps{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
 .m-tools audio{flex:1; height:32px; min-width:0;}
 /* view toggle (List / Tiles) */
 .viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
@@ -787,14 +789,64 @@ function openChat(name, keepScroll){
   document.body.classList.add('reading');
   if(!keepScroll) window.scrollTo(0,0);
 }
+// An autoscroll pill that lives in THIS page and drives a same-origin iframe's
+// scroll — because iOS renders position:fixed unreliably INSIDE an iframe, so a
+// pill injected into the Compare page itself won't stay put on a phone. Same
+// look/behavior as the shared pill (default Fast; tap play/pause; -/+ speed).
+function mkPagePill(getWin){
+  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+  var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+  var I={
+    up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+    down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+    pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+    plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+  };
+  var pill=document.createElement('div'); pill.className='float';
+  pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>';
+  var vt=pill.querySelector('.ppt'), vm=pill.querySelector('.ppm'), vb=pill.querySelector('.ppb'), sp=pill.querySelector('.pps');
+  function paint(){
+    if(playing){ vt.innerHTML=I.minus; vb.innerHTML=I.plus; vm.innerHTML=I.pause; vm.classList.add('on');
+      vt.classList.toggle('dim',si===0); vb.classList.toggle('dim',si===SPEEDS.length-1);
+    } else { vt.innerHTML=I.up; vb.innerHTML=I.down; vm.innerHTML=I.play; vm.classList.remove('on'); vt.classList.remove('dim'); vb.classList.remove('dim'); }
+    sp.textContent=SPEEDS[si][0];
+  }
+  function step(ts){
+    if(!playing) return;
+    var w=getWin();
+    if(w && last!=null){
+      acc+=dir*(ts-last)/1000*42*SPEEDS[si][1];
+      var move=acc>0?Math.floor(acc):Math.ceil(acc);
+      if(move){ try{ w.scrollBy(0,move); }catch(_){} acc-=move; }
+      try{ var d=w.document.documentElement, atEnd=dir>0?(w.innerHeight+w.scrollY>=d.scrollHeight-4):(w.scrollY<=2); if(atEnd) stop(); }catch(_){}
+    }
+    last=ts; raf=requestAnimationFrame(step);
+  }
+  function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
+  function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
+  vt.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
+  vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
+  vm.onclick=function(){ playing? stop() : start(1); };
+  paint(); pill._stop=stop;
+  return pill;
+}
 // Full-screen viewer for a Compare page: top bar (back + title) over an
-// iframe. Freezes the page behind it, like the lightbox (design rule).
+// iframe, with a pill (above) that scrolls the iframe. Freezes the page
+// behind it, like the lightbox (design rule). embed=1 tells the server not to
+// inject its own in-page pill (this parent pill drives it instead).
 function openPage(p){
   scrollStop();
   var v=document.createElement('div'); v.className='pageview';
-  v.innerHTML='<div class="pv-bar"><button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span></div>'
-    +'<iframe class="pv-frame" src="/api/chatfeed/page/'+encodeURIComponent(p.id)+(TOKEN?'?token='+encodeURIComponent(TOKEN):'')+'"></iframe>';
-  v.querySelector('.pv-back').onclick=function(){ v.remove(); document.body.style.overflow=''; };
+  var bar=document.createElement('div'); bar.className='pv-bar';
+  bar.innerHTML='<button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span>';
+  var frame=document.createElement('iframe'); frame.className='pv-frame';
+  frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+  v.appendChild(bar); v.appendChild(frame);
+  var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
+  v.appendChild(pill);
+  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
   document.body.appendChild(v);
   document.body.style.overflow='hidden';
 }
