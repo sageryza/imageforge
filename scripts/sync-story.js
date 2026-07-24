@@ -10,6 +10,12 @@
 // status, file }] }] }] with `file` paths relative to the manifest. Written
 // docs live in the `forge-story` collection, one doc per project, each beat
 // card getting a public Storage URL in place of its local file path.
+//
+// Story docs can also carry fields Sophie sets herself in the Story Room —
+// `text` (the prose), `voiceover` ({url,text}), `inbox`, `archived`. A sync
+// PRESERVES those unless the manifest explicitly provides them, so a board
+// re-sync never wipes her story or voiceover. (The manifest may include
+// `text`/`voiceover` too, e.g. when a chat builds a whole story.)
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
@@ -59,6 +65,11 @@ async function main() {
           delete card.file;
         }
       }
+    }
+    // Carry over the Story Room's own fields when the manifest doesn't set them.
+    const prev = (await db.collection('forge-story').doc(p.id).get()).data() || {};
+    for (const keep of ['text', 'voiceover', 'inbox', 'archived', 'createdAt']) {
+      if (p[keep] === undefined && prev[keep] !== undefined) p[keep] = prev[keep];
     }
     await db.collection('forge-story').doc(p.id).set({
       ...p,

@@ -1,53 +1,95 @@
-// stories.js — the shared story library.
+// stories.js — the shared story library, now living ON the story boards.
 //
 // Three of the media are stories wearing different clothes (Movies, Storybook,
 // the zine), so stories get their own home: save a story once, reuse it in any
-// module. Also hosts the story → storybook-pages breakdown (whole story in,
-// per-page words + picture prompts out) so the Storybook can build a whole
-// book in one go instead of page by page.
+// module. Since July 2026 that home is the `forge-story` collection (membry) —
+// the same docs the Story Room shows — with the prose on the doc's `text`
+// field. A story typed into the Movies box appears on the Story Room shelf,
+// and a shelf story with text shows up in the Movies picker. The old separate
+// `forge-stories` collection is retired (scripts/migrate-stories.js moved it).
+// Also hosts the story → storybook-pages breakdown (whole story in, per-page
+// words + picture prompts out).
 //
-// Self-contained module in the movies.js pattern: Firestore-backed
-// (`forge-stories`, in-memory fallback for dev), STUDIO_TOKEN gate with only
-// GET /status open.
+// The routes and response shapes are unchanged, so the iOS StoryPickerSheet /
+// MovieService keep working as-is. server.js calls init({ storyDb }) at mount
+// to hand over the membry Firestore getter; in-memory fallback for dev.
 
 const express = require('express');
 const fetch = require('node-fetch');
-const crypto = require('crypto');
 const admin = require('firebase-admin');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
-const COLLECTION = process.env.STORIES_COLLECTION || 'forge-stories';
+const COLLECTION = process.env.STORIES_COLLECTION || 'forge-story';
 
 const memStore = new Map();
 
-function firestore() {
+let getStoryDb = null;
+function init({ storyDb }) { getStoryDb = storyDb; }
+
+async function firestore() {
+  if (getStoryDb) {
+    try { const db = await getStoryDb(); if (db) return db; } catch (e) { /* fall through */ }
+  }
   return admin.apps.length ? admin.firestore() : null;
 }
 
 function plain(obj) { return JSON.parse(JSON.stringify(obj)); }
 
+// The picker's trimmed view of a board doc — only what the composers need.
+function asStory(d) {
+  return { id: d.id, title: d.title || d.id, text: d.text || '',
+           createdAt: d.createdAt, updatedAt: d.updatedAt || d.createdAt };
+}
+
+function storySlug(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
 async function saveStory(story) {
   story.updatedAt = new Date().toISOString();
-  const db = firestore();
-  if (db) await db.collection(COLLECTION).doc(story.id).set(plain(story));
-  else memStore.set(story.id, plain(story));
+  const db = await firestore();
+  if (!db) { memStore.set(story.id, plain(story)); return story; }
+  // New text-only story = a board doc with prose and no beats yet. Unique
+  // slug id like /api/story/project so the shelf tile reads nicely.
+  const col = db.collection(COLLECTION);
+  let docId = storySlug(story.title) || 'story';
+  const base = docId; let n = 1;
+  while ((await col.doc(docId).get()).exists) { n++; docId = base + '-' + n; }
+  story.id = docId;
+  const all = await col.get();
+  const order = all.docs.reduce((mx, d) => Math.max(mx, d.data().order ?? 0), 0) + 1;
+  await col.doc(docId).set(plain({ ...story, order, beats: [] }));
   return story;
 }
 
 async function listStories() {
-  const db = firestore();
+  const db = await firestore();
   if (db) {
-    const snap = await db.collection(COLLECTION).orderBy('updatedAt', 'desc').limit(100).get();
-    return snap.docs.map(d => d.data());
+    // The boards collection is small; filter for prose in code (a Firestore
+    // where() on text would drop docs missing the field anyway).
+    const snap = await db.collection(COLLECTION).get();
+    return snap.docs.map(d => d.data())
+      .filter(d => String(d.text || '').trim() && !d.archived)
+      .map(asStory)
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
   }
   return [...memStore.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 }
 
 async function deleteStory(id) {
-  const db = firestore();
-  if (db) await db.collection(COLLECTION).doc(id).delete();
-  else memStore.delete(id);
+  const db = await firestore();
+  if (!db) { memStore.delete(id); return; }
+  // A story doc may have grown a board (beats/art/cover) since it was saved —
+  // the Movies picker's delete must not nuke that work, so archive instead of
+  // deleting when anything beyond prose exists.
+  const ref = db.collection(COLLECTION).doc(String(id));
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const d = snap.data();
+  const hasBoard = d.cover || (d.beats || []).some(b => (b.cards || []).length) || (d.inbox || []).length;
+  if (hasBoard) await ref.set({ archived: true }, { merge: true });
+  else await ref.delete();
 }
 
 async function openaiChatJSON(messages, { temperature = 0.7, retries = 2 } = {}) {
@@ -126,7 +168,7 @@ router.post('/', async (req, res) => {
     const body = String(text || '').trim();
     if (!body) return res.status(400).json({ error: 'text is required' });
     const story = {
-      id: 'st' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+      id: 'st' + Date.now().toString(36),   // placeholder; saveStory slugs it
       title: (title && String(title).trim()) || body.split(/\s+/).slice(0, 6).join(' ') + '…',
       text: body,
       createdAt: new Date().toISOString(),
@@ -159,4 +201,4 @@ router.post('/breakdown', async (req, res) => {
   }
 });
 
-module.exports = { router, storybookPages };
+module.exports = { router, storybookPages, init };

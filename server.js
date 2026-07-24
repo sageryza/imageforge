@@ -248,6 +248,9 @@ loadConfig().then(() => {
   app.use('/api/photostudio', photostudio.router);
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
+  // Stories live on the boards now: hand the module the story-project
+  // Firestore getter so /api/stories reads/writes forge-story (membry).
+  stories.init({ storyDb });
   app.use('/api/stories', stories.router);
   app.use('/api/mpc', mpc.router);
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
@@ -493,11 +496,9 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
-// Story view: the Evan & Charlie video asset board — approved art placed
-// inside the narration with missing beats flagged. A committed snapshot
-// (assets embedded as data URIs); regenerate when the asset set changes.
-// Same gate as the Studio.
-app.get('/story', serveGated('story.html'));
+// The old static /story snapshot page is retired (July 2026) — the Story
+// Room (/storyroom, live) is the one story surface now.
+app.get('/story', (req, res) => res.redirect('/storyroom'));
 
 // Story-board API: the same projects, served live from Firestore (synced by
 // scripts/sync-story.js) so the iOS app updates without an app build. Reads
@@ -642,6 +643,23 @@ async function saveStoryImage(image, namePrefix) {
   await file.makePublic();
   return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
 }
+// Same, for audio (voiceover recordings / TTS renders). Buffer variant is
+// shared by the upload and TTS paths; the data-URL variant tolerates the
+// `;codecs=…` param MediaRecorder puts before base64.
+async function saveStoryAudioBuffer(buffer, mime, namePrefix) {
+  const sub = ((String(mime).split('/')[1] || 'mp3').split(';')[0] || 'mp3').toLowerCase();
+  const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
+  const rand = Math.random().toString(36).slice(2, 8);
+  const bucket = storyApp.storage().bucket();
+  const file = bucket.file(`story/${namePrefix}-${Date.now()}-${rand}.${ext}`);
+  await file.save(buffer, { contentType: String(mime).split(';')[0], resumable: false });
+  await file.makePublic();
+  return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+}
+function parseAudioDataUrl(audio) {
+  const m = String(audio || '').match(/^data:(audio\/[^;,]+(?:;codecs=[^;,]+)?);base64,(.+)$/);
+  return m ? { buffer: Buffer.from(m[2], 'base64'), mime: m[1] } : null;
+}
 function storySlug(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 }
@@ -655,7 +673,7 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { id, title, cover, order } = req.body || {};
+    const { id, title, cover, order, text } = req.body || {};
     if (!id && !String(title || '').trim()) return res.status(400).json({ error: 'title required' });
     const db = await storyDb();
     if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
@@ -679,6 +697,7 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
       const url = await saveStoryImage(cover, `cover-${docId}`);
       if (url) data.cover = url;
     }
+    if (text != null) data.text = String(text).slice(0, 60000);
     if (!Array.isArray(data.beats)) data.beats = [];
     await ref.set(data);
     res.json({ ok: true, id: docId, project: data });
@@ -717,6 +736,169 @@ app.post('/api/story/beat', express.json(), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Set / edit a story's prose — the story itself, one doc field, reusable by
+// Movies / Storybook / the zine (the old forge-stories library, folded in).
+app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, text } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    data.text = String(text || '').slice(0, 60000);
+    await ref.set(data);
+    res.json({ ok: true, chars: data.text.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Whole-story voiceover: `voiceover: { url, text, status?, error?, source? }`
+// — an audio recording and/or its script; either half can be derived (text →
+// TTS render, audio → Whisper transcript). Body: { projectId, audio? (data
+// URL) | url? (https), text?, tts? (render the script to audio), voice?,
+// transcribe? }. Mirrors movie.voiceover so a story's narration can hand
+// straight to the film pipeline later. The slow parts (TTS, Whisper) run as
+// background jobs recorded on the doc (`voiceover.status`) — clients poll
+// GET /api/story; nobody watches a spinner.
+app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, audio, url, text, tts, voice, transcribe } = req.body || {};
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const vo = (data.voiceover && typeof data.voiceover === 'object') ? data.voiceover : {};
+    delete vo.error;
+    const hadText = Boolean(vo.text);
+    if (text != null) vo.text = String(text).slice(0, 20000);
+
+    let newAudio = null;   // { buffer, mime } freshly uploaded this call
+    if (audio) {
+      newAudio = parseAudioDataUrl(audio);
+      if (!newAudio) return res.status(400).json({ error: 'audio must be a data:audio/* URL' });
+      vo.url = await saveStoryAudioBuffer(newAudio.buffer, newAudio.mime, `vo-${projectId}`);
+      vo.source = 'recording';
+    } else if (url && /^https?:\/\//.test(String(url))) {
+      vo.url = String(url);
+      vo.source = 'recording';
+    }
+
+    // What still needs deriving? TTS wants a script and no fresh recording;
+    // transcription defaults ON when audio arrives without its words.
+    const wantTts = Boolean(tts) && !newAudio && !url;
+    if (wantTts && !String(vo.text || '').trim()) {
+      return res.status(400).json({ error: 'tts needs voiceover text' });
+    }
+    const wantTranscribe = Boolean(vo.url) && (newAudio || url)
+      && (transcribe === true || (transcribe !== false && !vo.text && !hadText && text == null));
+
+    if (wantTts) vo.status = 'rendering';
+    else if (wantTranscribe) vo.status = 'transcribing';
+    else delete vo.status;
+    data.voiceover = vo;
+    await ref.set(data);
+    res.json({ ok: true, voiceover: { url: vo.url || null, text: vo.text || '', status: vo.status || null } });
+
+    // ── background: derive the missing half, then update the doc ──
+    const finish = async (patch) => {
+      try {
+        const snap = await ref.get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        d.voiceover = { ...(d.voiceover || {}), ...patch };
+        delete d.voiceover.status;
+        if (!patch.error) delete d.voiceover.error;
+        await ref.set(d);
+      } catch (e) { console.error('story voiceover update failed:', e.message); }
+    };
+    if (wantTts) {
+      (async () => {
+        try {
+          const buf = await storyTts(String(vo.text), String(voice || 'nova'));
+          const pub = await saveStoryAudioBuffer(buf, 'audio/mpeg', `vo-tts-${projectId}`);
+          await finish({ url: pub, source: 'tts' });
+        } catch (e) { await finish({ error: 'TTS failed: ' + e.message }); }
+      })();
+    } else if (wantTranscribe) {
+      (async () => {
+        try {
+          let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
+          if (!buffer) {
+            const r = await fetch(vo.url);
+            if (!r.ok) throw new Error('audio fetch ' + r.status);
+            buffer = await r.buffer();
+            mime = r.headers.get('content-type') || '';
+          }
+          const { transcribeAudio } = require('./movies');
+          const sub = ((String(mime).split('/')[1] || 'm4a').split(';')[0] || 'm4a');
+          const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
+          const t = await transcribeAudio(buffer, 'voiceover.' + ext);
+          await finish({ text: t.text, duration: t.duration });
+        } catch (e) { await finish({ error: 'transcription failed: ' + e.message }); }
+      })();
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TTS for a story voiceover: same chunk-at-sentence + ffmpeg-concat pattern
+// as the Chats app's Play button (chatfeed.js /polish) — one OpenAI call per
+// ≤3200-char chunk so long narrations aren't silently truncated at the
+// API's 4096 cap.
+async function storyTts(text, voice) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const clean = String(text).trim().slice(0, 16000);
+  const sentences = clean.replace(/\n+/g, ' ').match(/[^.!?…]+[.!?…]+["”']?\s*/g) || [clean];
+  const chunks = []; let cur = '';
+  for (const s of sentences) {
+    if (cur && (cur + s).length > 3200) { chunks.push(cur.trim()); cur = ''; }
+    cur += s;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  const bufs = [];
+  for (const chunk of chunks) {
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini-tts', voice, input: chunk,
+        instructions: 'Narrate warmly and naturally, like reading a storybook aloud — unhurried, gentle.',
+      }),
+    });
+    if (!r.ok) throw new Error('tts ' + r.status + ' ' + (await r.text().catch(() => '')).slice(0, 150));
+    bufs.push(Buffer.from(await r.arrayBuffer()));
+  }
+  if (bufs.length === 1) return bufs[0];
+  const os = require('os');
+  const { spawn } = require('child_process');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'storyvo-'));
+  try {
+    const files = bufs.map((b, i) => { const f = path.join(tmp, `c${i}.mp3`); fs.writeFileSync(f, b); return f; });
+    const listFile = path.join(tmp, 'list.txt');
+    fs.writeFileSync(listFile, files.map((f) => `file '${f}'`).join('\n'));
+    const mp3 = path.join(tmp, 'out.mp3');
+    const ffmpeg = process.env.FFMPEG_PATH || require('ffmpeg-static');
+    await new Promise((resolve, reject) => {
+      const p = spawn(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', mp3]);
+      let err = ''; p.stderr.on('data', (c) => err += c);
+      p.on('close', (code) => (code === 0 ? resolve() : reject(new Error('ffmpeg: ' + err.slice(-200)))));
+    });
+    return fs.readFileSync(mp3);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
 
 // Bulk-dump many images into a project's INBOX (unsorted holding area) in one
 // request — "add lots of art, sort it out later". Accepts data URLs or https
