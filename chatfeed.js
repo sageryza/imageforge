@@ -126,18 +126,26 @@ function refreshSearchIndex(force) {
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const q = String(req.query.q || '').trim().toLowerCase();
+    const q = String(req.query.q || '').trim();
     if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
-    const hits = searchIndex.filter((m) =>
-      (m.chat + '\n' + m.tldr + '\n' + m.text).toLowerCase().indexOf(q) !== -1);
+    // Word-aware match: anchor the query at a word start (\b) so "aries" no
+    // longer matches inside "boundaries", while a prefix like "bound" still
+    // finds "boundaries"/"boundary". Falls back to a plain substring match if
+    // the query is all punctuation (regex would be empty).
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let re = null;
+    try { re = /[a-z0-9]/i.test(q) ? new RegExp('\\b' + esc, 'i') : null; } catch (e) { re = null; }
+    const matches = (s) => (re ? re.test(s) : s.toLowerCase().indexOf(q.toLowerCase()) !== -1);
+    const findIn = (s) => (re ? s.search(re) : s.toLowerCase().indexOf(q.toLowerCase()));
+    const hits = searchIndex.filter((m) => matches(m.chat + '\n' + m.tldr + '\n' + m.text));
     hits.sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
     const results = hits.slice(0, limit).map((m) => {
       // snippet centred on the match — prefer the body, else the tldr/chat name
-      const src = m.text && m.text.toLowerCase().includes(q) ? m.text
-        : (m.tldr && m.tldr.toLowerCase().includes(q) ? m.tldr : (m.text || m.tldr || ''));
-      const i = src.toLowerCase().indexOf(q);
+      const src = m.text && findIn(m.text) > -1 ? m.text
+        : (m.tldr && findIn(m.tldr) > -1 ? m.tldr : (m.text || m.tldr || ''));
+      const i = findIn(src);
       let snip = src;
       if (i > -1) {
         const s = Math.max(0, i - 45);
@@ -147,6 +155,22 @@ router.get('/search', async (req, res) => {
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
     res.json({ results, indexed: searchIndex.length });
+  } catch (err) { fail(res, err); }
+});
+
+// A single chat's FULL history, oldest→newest. The main feed only loads each
+// chat's recent tail, so opening a search hit that's hundreds of messages back
+// needs the whole thread pulled in to actually read it. Equality-only query
+// (no orderBy) needs no composite index; we sort in memory.
+router.get('/thread', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const snap = await db().collection(MSGS).where('chat', '==', chat).get();
+    const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0));
+    res.json({ messages });
   } catch (err) { fail(res, err); }
 });
 
