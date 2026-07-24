@@ -265,9 +265,30 @@ router.post('/answered', async (req, res) => {
     const { chat, answered } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const stamp = new Date().toISOString();
-    const val = answered ? stamp : admin.firestore.FieldValue.delete();
-    await db().collection(REG).doc(String(chat).slice(0, 60)).set({ answeredAt: val }, { merge: true });
+    const del = admin.firestore.FieldValue.delete();
+    // Answered and flagged are exclusive — marking one clears the other.
+    const patch = answered
+      ? { answeredAt: stamp, flaggedAt: del }
+      : { answeredAt: del };
+    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
     res.json({ ok: true, answeredAt: answered ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// Flag a chat "come back to this later" (or clear it). Like answeredAt it grays
+// the tile and auto-clears once a newer message arrives; it's exclusive with
+// answered, so setting one removes the other.
+router.post('/flag', async (req, res) => {
+  try {
+    const { chat, flagged } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const stamp = new Date().toISOString();
+    const del = admin.firestore.FieldValue.delete();
+    const patch = flagged
+      ? { flaggedAt: stamp, answeredAt: del }
+      : { flaggedAt: del };
+    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
+    res.json({ ok: true, flaggedAt: flagged ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
