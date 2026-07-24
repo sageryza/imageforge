@@ -2226,7 +2226,7 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
 }
 Give EXACTLY 2 omens.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.4, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
