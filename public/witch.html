@@ -4,7 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f5efe2">
-  <title>Secretly a Witch</title>
+  <title>Secretly a Witch — moon phases, daily tarot &amp; everyday magic</title>
+  <meta name="description" content="A little pocket of everyday magic: today's moon phase, a daily tarot pull, spellcraft, dream illustration, Witch School lessons, and a shop of handmade witchcraft kits.">
+  <!-- The app is served at both secretlyawitch.com/ and the onrender host's
+       /witch — one canonical keeps search engines on the real domain. -->
+  <link rel="canonical" href="https://secretlyawitch.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Secretly a Witch">
+  <meta property="og:title" content="Secretly a Witch">
+  <meta property="og:description" content="Moon phases, a daily tarot pull, spells, dream illustration and Witch School — everyday magic in your pocket.">
+  <meta property="og:url" content="https://secretlyawitch.com/">
+  <meta property="og:image" content="https://storage.googleapis.com/membry-df528.firebasestorage.app/witch-tarot/the-moon.webp">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -571,6 +582,44 @@
     .shop-item .stitle { font-family: var(--serif); font-size: 15.5px; font-weight: 500; line-height: 1.2; }
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+    /* In-app buying: cart button, product sheet, cart sheet */
+    .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .cart-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+    .cart-btn svg { width: 16px; height: 16px; }
+    .cart-btn .cbadge { background: var(--gold); color: #fff; border-radius: 50%; min-width: 18px; height: 18px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .sheet-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); z-index: 210; display: none; align-items: flex-end; justify-content: center; }
+    .sheet-bg.show { display: flex; }
+    .sheet { background: var(--bg); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(26px + env(safe-area-inset-bottom)); position: relative; }
+    .sheet .sx { position: sticky; top: 0; float: right; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; z-index: 2; }
+    .sheet .sx svg { width: 15px; height: 15px; }
+    .ps-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); background: var(--panel); display: block; }
+    .ps-thumbs { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; }
+    .ps-thumbs img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; cursor: pointer; flex: 0 0 auto; }
+    .ps-thumbs img.on { border-color: var(--gold); }
+    .ps-title { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.2; margin-top: 14px; }
+    .ps-price { color: var(--gold); font-size: 16px; margin-top: 6px; font-weight: 500; }
+    .ps-vars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .ps-var { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+    .ps-var.on { border-color: var(--gold); color: var(--gold); }
+    .ps-var.oos { opacity: .45; text-decoration: line-through; }
+    .ps-row { display: flex; gap: 10px; align-items: stretch; margin-top: 16px; }
+    .qty { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+    .qty button { width: 36px; height: 100%; min-height: 42px; background: none; border: none; color: var(--text); font-size: 17px; cursor: pointer; font-family: inherit; }
+    .qty span { min-width: 22px; text-align: center; font-size: 14px; }
+    .ps-add { flex: 1; background: var(--gold); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; min-height: 42px; }
+    .ps-add:disabled { opacity: .5; }
+    .ps-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-top: 16px; }
+    .ps-desc p { margin: 8px 0; }
+    .cl-line { display: flex; gap: 11px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+    .cl-line img { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); flex: 0 0 auto; }
+    .cl-info { flex: 1; min-width: 0; }
+    .cl-title { font-size: 13.5px; font-weight: 500; line-height: 1.25; }
+    .cl-var { font-size: 11.5px; color: var(--text-faint); margin-top: 1px; }
+    .cl-price { font-size: 12.5px; color: var(--gold); margin-top: 3px; }
+    .cl-sub { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 14px; }
+    .cl-sub b { font-family: var(--serif); font-size: 18px; }
+    .cl-note { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; line-height: 1.5; }
+    .cl-checkout { display: block; width: 100%; margin-top: 14px; background: var(--gold); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; min-height: 44px; }
 
     /* ── Product row (Home — three across, no cream bubble) ── */
     .prow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin: 4px 0 26px; }
@@ -1374,10 +1423,16 @@
       <!-- ═══════════ SHOP ═══════════ -->
       <section class="view" id="view-shop">
         <div class="kicker">The apothecary</div>
-        <div class="section-title">Shop</div>
-        <div class="section-sub">Crystals, herbs &amp; ritual goods from secretlyawitch.com.</div>
+        <div class="shop-head">
+          <div class="section-title">Shop</div>
+          <button class="cart-btn" onclick="openCartSheet()" aria-label="Open cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+            <span>Cart</span><span class="cbadge" id="cart-badge" style="display:none;">0</span>
+          </button>
+        </div>
+        <div class="section-sub">Crystals, herbs &amp; ritual goods — buy right here; only the pay screen is Shopify's.</div>
         <div id="shop-grid" class="shop-grid"></div>
-        <a class="btn-ghost" id="shop-all" href="https://secretlyawitch.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
+        <a class="btn-ghost" id="shop-all" href="https://cod-god-inc.myshopify.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
       </section>
     </main>
 
@@ -1395,6 +1450,14 @@
 
   <div class="modal-bg" id="modal-bg">
     <div class="modal" id="modal"></div>
+  </div>
+
+  <!-- In-app buying: product sheet + cart sheet (bottom sheets over the shop) -->
+  <div class="sheet-bg" id="prod-sheet-bg" data-fullpage>
+    <div class="sheet" id="prod-sheet"></div>
+  </div>
+  <div class="sheet-bg" id="cart-sheet-bg" data-fullpage>
+    <div class="sheet" id="cart-sheet"></div>
   </div>
 
   <!-- "Are you secretly a witch?" — full-screen quiz app -->
@@ -1478,7 +1541,9 @@
     // TODO: replace `youtube` with the real channel URL (e.g. https://youtube.com/@handle).
     // The backend YouTube token is upload-only scope, so it can't reveal the channel — needs the handle.
     youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
-    shop: 'https://secretlyawitch.com',
+    // The store's permanent Shopify home. secretlyawitch.com itself now points
+    // at THIS app, so shop links must go to the store directly.
+    shop: 'https://cod-god-inc.myshopify.com',
     instagram: 'https://instagram.com/moonsickbaby',
     // TODO: point at the real membership/subscribe page once it exists on the
     // website (Stripe checkout). Placeholder = the site root for now.
@@ -2386,7 +2451,7 @@
     try {
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
-      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now. Visit secretlyawitch.com.</div>`; wrap.dataset.loaded = '1'; return; }
+      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const shortTitle = t => {
         const cut = t.split(/\s*[~•|]\s*/)[0].trim();
         return cut.length >= 4 ? cut : t;
@@ -2394,7 +2459,9 @@
       wrap.innerHTML = items.map(p => {
         const price = p.priceMin ? `$${p.priceMin}` : (p.price ? `$${p.price}` : '');
         const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
-        return `<a class="shop-item" href="${esc(p.url)}" target="_blank" rel="noopener">
+        // In-app buying: tap opens the product sheet. The href stays as a
+        // long-press/no-JS fallback to the store's product page.
+        return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
           ${img}
           <div class="sbody">
             <div class="stitle">${esc(shortTitle(p.title))}</div>
@@ -2404,10 +2471,146 @@
         </a>`;
       }).join('');
       wrap.dataset.loaded = '1';
+      refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
-      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open secretlyawitch.com</a>.</div>`;
+      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
   }
+
+  /* ── In-app buying: product sheet + cart (Storefront API via the server) ──
+     Browsing, variants and the cart all live INSIDE the app; only the final
+     pay screen is Shopify's secure checkout (required — it also handles
+     shipping and taxes). Cart id persists in localStorage; Shopify expires
+     carts after ~10 days, and an expired id just quietly starts a fresh one. */
+  let CART_ID = localStorage.getItem('witch_cart_id') || '';
+  const PROD_CACHE = {};
+  let psState = null; // { p, variantId, qty, img }
+
+  function money(a) { const n = parseFloat(a); return isFinite(n) ? '$' + n.toFixed(2) : ''; }
+  function cartBadge(n) {
+    const b = $('cart-badge');
+    b.textContent = n > 99 ? '99+' : String(n || 0);
+    b.style.display = n > 0 ? '' : 'none';
+  }
+  async function refreshCartBadge() {
+    if (!CART_ID) return cartBadge(0);
+    try {
+      const d = await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID));
+      if (!d.cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); return cartBadge(0); }
+      cartBadge(d.cart.count);
+    } catch (e) { /* badge only */ }
+  }
+
+  // ── product sheet ──
+  async function openProduct(handle) {
+    const bg = $('prod-sheet-bg'), sh = $('prod-sheet');
+    bg.style.display = ''; bg.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Fetching…</div>`;
+    try {
+      const p = PROD_CACHE[handle] || (PROD_CACHE[handle] = await apiGet('/api/witch/shop/product/' + encodeURIComponent(handle)));
+      const firstAvail = p.variants.find(v => v.available) || p.variants[0] || null;
+      psState = { p, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0 };
+      renderProdSheet();
+    } catch (e) {
+      sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't load this item — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">try the full shop</a>.</div>`;
+    }
+  }
+  function renderProdSheet() {
+    const { p, variantId, qty, img } = psState, sh = $('prod-sheet');
+    const v = p.variants.find(x => x.id === variantId) || p.variants[0] || {};
+    const showVars = p.variants.length > 1;
+    sh.innerHTML = `
+      <button class="sx" onclick="closeProdSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
+      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(u)}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
+      <div class="ps-title">${esc(p.title)}</div>
+      <div class="ps-price">${money(v.price)}</div>
+      ${showVars ? `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>` : ''}
+      <div class="ps-row">
+        <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
+        <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
+      </div>
+      <div class="ps-desc">${p.descriptionHtml || ''}</div>`;
+  }
+  function psImg(i) { psState.img = i; renderProdSheet(); }
+  function psVar(id) { psState.variantId = id; renderProdSheet(); }
+  function psQty(d) { psState.qty = Math.max(1, Math.min(20, psState.qty + d)); $('ps-qty').textContent = psState.qty; }
+  function closeProdSheet() {
+    const bg = $('prod-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
+    if (!$('cart-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
+  }
+  async function addToCart() {
+    if (!psState || !psState.variantId) return;
+    const btn = $('ps-add'); btn.disabled = true; btn.textContent = 'Adding…';
+    try {
+      const d = await api('/api/witch/cart/add', { cartId: CART_ID || undefined, variantId: psState.variantId, quantity: psState.qty });
+      if (d.cart) { CART_ID = d.cart.id; localStorage.setItem('witch_cart_id', CART_ID); cartBadge(d.cart.count); }
+      closeProdSheet();
+      toast('Added to your cart ✦');
+    } catch (e) {
+      toast("Couldn't add that — " + e.message);
+      btn.disabled = false; btn.textContent = 'Add to cart ✦';
+    }
+  }
+
+  // ── cart sheet ──
+  async function openCartSheet() {
+    const bg = $('cart-sheet-bg'), sh = $('cart-sheet');
+    bg.style.display = ''; bg.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Opening the cart…</div>`;
+    await renderCart();
+  }
+  async function renderCart(cartArg) {
+    const sh = $('cart-sheet');
+    let cart = cartArg;
+    if (cart === undefined) {
+      cart = null;
+      if (CART_ID) {
+        try { cart = (await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID))).cart; }
+        catch (e) { sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
+      }
+    }
+    if (!cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); }
+    const x = `<button class="sx" onclick="closeCartSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
+    if (!cart || !cart.lines.length) {
+      cartBadge(0);
+      sh.innerHTML = `${x}<div class="ps-title">Your cart</div><div class="empty" style="padding:22px 0;">Nothing gathered yet — the shelves await. ✦</div>`;
+      return;
+    }
+    cartBadge(cart.count);
+    sh.dataset.checkout = cart.checkoutUrl;
+    sh.innerHTML = `${x}<div class="ps-title">Your cart</div>
+      ${cart.lines.map(l => `<div class="cl-line">
+        ${l.image ? `<img src="${esc(l.image)}" alt="">` : ''}
+        <div class="cl-info">
+          <div class="cl-title">${esc(l.title)}</div>
+          ${l.variant && l.variant !== 'Default Title' ? `<div class="cl-var">${esc(l.variant)}</div>` : ''}
+          <div class="cl-price">${money(l.total)}</div>
+        </div>
+        <div class="qty"><button onclick="cartQty('${esc(l.id)}', ${l.quantity - 1})" aria-label="Less">−</button><span>${l.quantity}</span><button onclick="cartQty('${esc(l.id)}', ${l.quantity + 1})" aria-label="More">+</button></div>
+      </div>`).join('')}
+      <div class="cl-sub"><span>Subtotal</span><b>${money(cart.subtotal)}</b></div>
+      <div class="cl-note">Shipping &amp; taxes are worked out at checkout — Shopify's secure pay page.</div>
+      <button class="cl-checkout" onclick="goCheckout()">Checkout ✦</button>`;
+  }
+  async function cartQty(lineId, q) {
+    try {
+      const d = await api('/api/witch/cart/update', { cartId: CART_ID, lineId, quantity: Math.max(0, q) });
+      await renderCart(d.cart);
+    } catch (e) { toast('Cart hiccup — ' + e.message); }
+  }
+  function goCheckout() {
+    const url = $('cart-sheet').dataset.checkout;
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+  function closeCartSheet() {
+    const bg = $('cart-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
+    if (!$('prod-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
+  }
+  $('prod-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeProdSheet(); });
+  $('cart-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeCartSheet(); });
 
   /* ══════════ BOOK OF SHADOWS: the journal ══════════
      One chronological book. New entries live in localStorage['witch_journal'];
@@ -4727,6 +4930,8 @@
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  registerFullPage('prod-sheet-bg', closeProdSheet); // shop product sheet
+  registerFullPage('cart-sheet-bg', closeCartSheet); // shop cart sheet
 
   /* ══════════ INIT ══════════ */
   const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();

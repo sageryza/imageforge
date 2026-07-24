@@ -113,13 +113,17 @@
 
   <!-- Step 4 — publish -->
   <section class="panel">
-    <div class="step">Step 4 · Publish to your Shopify blog</div>
+    <div class="step">Step 4 · Publish</div>
     <div id="pubBanner"></div>
-    <label class="fld">Which blog?</label>
+    <div class="sub">The site blog lives at <b>secretlyawitch.com/blog</b> — that's the SEO home now that the domain points at the witch app. Shopify publishing still works if you want a post on the store blog too.</div>
+    <div class="row" style="margin-top:4px">
+      <button class="btn" id="sitePubBtn" onclick="publishSite()">Publish to secretlyawitch.com/blog</button>
+    </div>
+    <label class="fld" style="margin-top:16px">Shopify blog (optional)</label>
     <select id="blogSel"><option value="">(default blog)</option></select>
     <div class="row" style="margin-top:12px">
       <button class="btn ghost" id="draftPubBtn" onclick="publish(false)">Save as hidden draft</button>
-      <button class="btn" id="livePubBtn" onclick="publish(true)">Publish live</button>
+      <button class="btn ghost" id="livePubBtn" onclick="publish(true)">Publish live on Shopify</button>
     </div>
     <div class="sub" style="margin-top:8px">A hidden draft lands in your Shopify admin for you to review before it goes public.</div>
     <div id="pubOut"></div>
@@ -283,13 +287,34 @@ async function publish(live) {
   finally { busy(btn, false); }
 }
 
+async function publishSite() {
+  if (!$('title').value.trim()) { alert('Write a post first.'); return; }
+  if (!current.id) { alert('This draft was never saved (Firestore is off) — the site blog needs a saved draft.'); return; }
+  const btn = $('sitePubBtn'); busy(btn, true, 'Publishing…');
+  $('pubOut').innerHTML = '';
+  try {
+    const out = await api('/api/blog/publish-site', { method: 'POST', body: JSON.stringify({
+      id: current.id,
+      title: $('title').value.trim(),
+      bodyHtml: $('body').value,
+      metaDescription: $('meta').value.trim(),
+      slug: current.slug,
+      tags: $('tags').value.split(',').map(t => t.trim()).filter(Boolean),
+      imageUrl: current.featured || undefined,
+    }) });
+    $('pubOut').innerHTML = `<div class="banner ok" style="margin-top:12px">On the site! <a href="${esc(out.liveUrl)}" target="_blank" rel="noopener">View the live post</a> · <a href="/blog?public=1" target="_blank" rel="noopener">View the blog</a></div>`;
+    loadRecent();
+  } catch (e) { $('pubOut').innerHTML = `<div class="banner" style="margin-top:12px">${esc(e.message)}</div>`; }
+  finally { busy(btn, false); }
+}
+
 // ── recent drafts ──
 async function loadRecent() {
   try {
     const { posts } = await api('/api/blog/posts');
     if (!posts || !posts.length) { $('recent').innerHTML = '<div class="muted">None yet.</div>'; return; }
     $('recent').innerHTML = posts.map(p =>
-      `<div class="li"><a href="#" onclick="openPost('${p.id}');return false">${esc(p.title || '(untitled)')}</a><span class="muted">${p.published ? 'published' : 'draft'}</span></div>`
+      `<div class="li"><a href="#" onclick="openPost('${p.id}');return false">${esc(p.title || '(untitled)')}</a><span class="muted">${[p.site ? 'on site' : '', p.published ? 'shopify' : ''].filter(Boolean).join(' · ') || 'draft'}</span></div>`
     ).join('');
   } catch (e) { /* persistence may be off */ }
 }

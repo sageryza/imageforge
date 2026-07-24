@@ -203,31 +203,60 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
     OK'd a soft limit). Drawings following the account is a pre-release must.
 
 ### Domain: point secretlyawitch.com at the witch app (front door)
-Right now `secretlyawitch.com` resolves to the Shopify store. Sophie wants it to
-point at the **witch web app** (`/witch`) instead — it's the richer experience
-and already has the shop baked in (the Shop tab mirrors her Shopify products),
-and it's where the **membership/Stripe** page will live. Reasonable direction,
-with caveats:
-- **Checkout still happens on Shopify** — the witch app can't process orders; the
-  Shop tab hands off to Shopify product/checkout pages. So Shopify must stay
-  reachable (e.g. keep it on a subdomain like `shop.secretlyawitch.com`, or point
-  the Shop tab links at the `.myshopify.com` domain) and those links must not break.
-- **SEO / blog / email** live on Shopify today (Blog Studio publishes to the
-  Shopify blog for organic traffic; email capture). Moving the apex away from
-  Shopify affects those — plan for it.
-- **Execution:** add the domain as a **custom domain on the Render service** +
-  update DNS at the registrar. RESEARCH the current Render custom-domain flow
-  before giving Sophie steps (it changes; and Render free vs paid may matter for
-  custom domains). Decide apex-vs-subdomain split with Sophie first.
-- **UPDATE (Sophie, 2026-07): do the port.** Checkout through Shopify is fine —
-  but she's also open to **retiring the Shopify SITE entirely** and selling via
-  the **Shopify Buy Button** (embedded buy/cart widgets — the storefront-token
-  path the People Watching Club site already uses) inside the witch app's Shop
-  tab. Research what that changes before committing: the Buy Button keeps
-  Shopify checkout/fulfilment but drops the themed store pages — which also
-  drops the **Shopify blog** (Blog Studio's destination) and any store-page SEO,
-  so those need a new home (e.g. serve a blog from the witch app) or an OK to
-  lose them. Nav-fix shipped first per Sophie; this is the next big item.
+**CODE SHIPPED (2026-07-24) — waiting on Sophie's DNS/dashboard flip.** The
+server is host-aware: requests arriving on `secretlyawitch.com` (or www) get
+the witch app at `/`, old Shopify-storefront URLs (`/products/*`,
+`/collections/*`, `/cart`, `/pages/*`, …) 301 to the store's permanent home
+(`WITCH_STORE_ORIGIN`, default `cod-god-inc.myshopify.com`), old `/blogs/*`
+URLs 301 to the new **on-site blog** at `/blog` (+ `/blog/:slug`, server-
+rendered from Firestore `forge-blog` — Blog Studio grew a "Publish to
+secretlyawitch.com/blog" button, `POST /api/blog/publish-site`; preview at
+`/blog?public=1` on the onrender host), plus `robots.txt`, `sitemap.xml`,
+canonical/OG tags in `witch.html`, and Stripe checkout returns to the domain
+the buyer started on. The onrender host is untouched (hub/studio unchanged;
+`/blog` there is still the gated Blog Studio). The SEO story: the blog moves
+INTO the witch app, so organic posts now build the real domain instead of
+Shopify.
+- **Sophie's flip checklist (each step is safe; the site keeps working
+  throughout — DNS just switches which thing the domain shows):**
+  1. **Render** (dashboard → the imageforge service → Settings → Custom
+     Domains → **+ Add Custom Domain**): add `secretlyawitch.com`. Free
+     (Hobby) workspaces include 2 custom domains. Render will show the DNS
+     records to set and auto-handles the www redirect.
+  2. **Hover** (hover.com → secretlyawitch.com → **DNS** tab): DELETE the A
+     record `@ → 23.227.38.65` and the CNAME `www → shops.myshopify.com`;
+     ADD `A @ → 216.24.57.1` and `CNAME www → imageforge-q125.onrender.com`.
+     Delete any AAAA records if present (Render is IPv4-only).
+  3. Back in Render: **Verify** → certificate issues automatically (minutes).
+  4. **Firebase** (console → project `membry-df528` → Authentication →
+     Settings → **Authorized domains**): add `secretlyawitch.com` — sign-in
+     (Google popup, email link) fails on the new domain without this.
+  5. **Shopify** (admin → Settings → Domains): remove `secretlyawitch.com`
+     so the store's primary domain reverts to `cod-god-inc.myshopify.com`
+     (checkout + product pages keep working there; the app's Shop tab and the
+     redirect layer already point at it).
+- **IN-APP BUYING SHIPPED (2026-07-24, Sophie asked for it):** the Shop tab
+  now sells inside the app — tap a product → bottom-sheet with images/
+  variants/description → **Add to cart** → cart sheet (qty steppers, subtotal)
+  → **Checkout** hands off to Shopify's secure pay page only. Storefront API
+  (modern replacement for the legacy Buy Button JS), via server proxy:
+  `GET /api/witch/shop/product/:handle`, `GET /api/witch/cart?id=`,
+  `POST /api/witch/cart/add` (auto-recreates an expired cart),
+  `POST /api/witch/cart/update` (qty 0 = remove). Cart id persists in
+  `localStorage['witch_cart_id']` (Shopify expires carts ~10 days — handled).
+  The token is the PUBLIC storefront token (safe committed; same one embedded
+  in thepeoplewatchingclub.com's source, same store). Verified live e2e
+  against the real store: create/read/update/remove/stale-cart-recovery.
+  NOTE: Shopify emits `checkoutUrl` on the store's PRIMARY domain — today
+  that's secretlyawitch.com, and post-flip our `/cart/*` 301 forwards it to
+  the store, so checkout works before, during, and after the DNS move.
+- **Open (Sophie's call, not blocking):** optionally give Shopify a branded
+  subdomain — Hover CNAME `shop → shops.myshopify.com`, add
+  `shop.secretlyawitch.com` in Shopify Domains as primary, then set
+  `WITCH_STORE_ORIGIN=https://shop.secretlyawitch.com` (Render env or the
+  config doc) so store links/redirects use it. With in-app buying live, the
+  themed Shopify store pages are now just a fallback surface — retiring them
+  is purely cosmetic whenever Sophie wants.
 
 ### App Store screenshots — refresh with the new features (Sophie: "later today")
 The `ios-witch-screenshots.yml` workflow (memory-library-react) boots a

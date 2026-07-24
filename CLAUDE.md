@@ -21,6 +21,15 @@
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
   - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
+  - **secretlyawitch.com → the witch app (July 2026).** The server is
+    host-aware: on `secretlyawitch.com` the witch app serves at `/`, old
+    Shopify-storefront paths 301 to `WITCH_STORE_ORIGIN` (default
+    `cod-god-inc.myshopify.com`), old `/blogs/*` 301 to the on-site blog at
+    `/blog` (+ `/blog/:slug`, rendered from Firestore by `blog-public.js`;
+    preview via `/blog?public=1` on the onrender host), and `robots.txt` /
+    `sitemap.xml` are served for SEO. The onrender host is unaffected. DNS
+    lives at **Hover** (not Shopify); the flip checklist is in
+    `docs/secretly-a-witch-todo.md` (Domain section).
 
 ## Render keep-awake & running hours (READ THIS before blaming cold starts)
 - **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
@@ -683,10 +692,14 @@ lifted into a standalone tool later.
   (Brevo appends the unsubscribe footer there); `/send-test` is only the
   does-the-checkbox-survive check.
 
-## Blog Studio (SEO posts → Shopify blog)
+## Blog Studio (SEO posts → the site blog and/or Shopify)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
-  into an SEO blog post and publishes it to the Shopify store blog — free organic
-  search traffic to the shop. Built around 2026 SEO reality: target **long-tail**
+  into an SEO blog post. **Primary destination (July 2026): the on-site blog at
+  `secretlyawitch.com/blog`** (`POST /api/blog/publish-site` flags the saved
+  Firestore draft `site:true`; `blog-public.js` server-renders `/blog` +
+  `/blog/:slug` in the witch theme, with canonical/OG/JSON-LD + sitemap) —
+  organic traffic now builds the real domain. Publishing to the Shopify store
+  blog still works as a secondary option. Built around 2026 SEO reality: target **long-tail**
   keywords (specific 3-6 word buyer phrases, KD low) that big sites ignore and
   Google's AI Overviews can't fully answer, so the click still comes to you;
   organize as topic clusters (a pillar + specific cluster posts).
@@ -726,8 +739,16 @@ lifted into a standalone tool later.
     `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **The Shop tab sells IN the app (July 2026):** product bottom-sheet →
+  cart → hand off to Shopify checkout only for the pay screen. Storefront
+  API via server proxy — `GET /api/witch/shop/product/:handle`,
+  `GET /api/witch/cart?id=`, `POST /api/witch/cart/{add,update}` (public
+  storefront token, committed by design; `WITCH_STOREFRONT_TOKEN` overrides).
+  Cart id in `localStorage['witch_cart_id']`; expired carts recreate quietly.
 - **External links** live in a `LINKS` const at the top of the client script.
-  Shop = `secretlyawitch.com` (Shopify), Instagram = `@moonsickbaby`. **Watch =
+  Shop = `cod-god-inc.myshopify.com` (the store's permanent home —
+  `secretlyawitch.com` itself now points at the app), Instagram =
+  `@moonsickbaby`. **Watch =
   YouTube is still a placeholder search** — the channel URL isn't stored anywhere
   (the YouTube token is upload-only scope and can't read the channel), so it
   needs Sophie's `@handle` pasted in.

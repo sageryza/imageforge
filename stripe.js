@@ -119,7 +119,9 @@ function createRouter({ membryDb, membryAuth, appUrl }) {
       if (!configured() || !priceId()) return res.status(503).json({ error: 'stripe not configured' });
       const who = await identify(req);
       if (!who) return res.status(401).json({ error: 'sign in first' });
-      const base = appUrl();
+      // appUrl may inspect the request (checkout started on secretlyawitch.com
+      // should return there, not to the onrender host).
+      const base = appUrl(req);
       const trialDays = Number(process.env.STRIPE_TRIAL_DAYS || 0);
       const session = await stripeReq('POST', '/checkout/sessions', {
         mode: 'subscription',
