@@ -143,14 +143,28 @@ Shopify.
      so the store's primary domain reverts to `cod-god-inc.myshopify.com`
      (checkout + product pages keep working there; the app's Shop tab and the
      redirect layer already point at it).
+- **IN-APP BUYING SHIPPED (2026-07-24, Sophie asked for it):** the Shop tab
+  now sells inside the app — tap a product → bottom-sheet with images/
+  variants/description → **Add to cart** → cart sheet (qty steppers, subtotal)
+  → **Checkout** hands off to Shopify's secure pay page only. Storefront API
+  (modern replacement for the legacy Buy Button JS), via server proxy:
+  `GET /api/witch/shop/product/:handle`, `GET /api/witch/cart?id=`,
+  `POST /api/witch/cart/add` (auto-recreates an expired cart),
+  `POST /api/witch/cart/update` (qty 0 = remove). Cart id persists in
+  `localStorage['witch_cart_id']` (Shopify expires carts ~10 days — handled).
+  The token is the PUBLIC storefront token (safe committed; same one embedded
+  in thepeoplewatchingclub.com's source, same store). Verified live e2e
+  against the real store: create/read/update/remove/stale-cart-recovery.
+  NOTE: Shopify emits `checkoutUrl` on the store's PRIMARY domain — today
+  that's secretlyawitch.com, and post-flip our `/cart/*` 301 forwards it to
+  the store, so checkout works before, during, and after the DNS move.
 - **Open (Sophie's call, not blocking):** optionally give Shopify a branded
   subdomain — Hover CNAME `shop → shops.myshopify.com`, add
   `shop.secretlyawitch.com` in Shopify Domains as primary, then set
   `WITCH_STORE_ORIGIN=https://shop.secretlyawitch.com` (Render env or the
-  config doc) so store links/redirects use it. And the bigger later item:
-  retiring Shopify's themed pages entirely for a **Buy Button** in the Shop
-  tab (storefront-token path PWC already uses) — checkout/fulfilment stay
-  Shopify; the blog/SEO concern is already solved by the on-site blog.
+  config doc) so store links/redirects use it. With in-app buying live, the
+  themed Shopify store pages are now just a fallback surface — retiring them
+  is purely cosmetic whenever Sophie wants.
 
 ### App Store screenshots — refresh with the new features (Sophie: "later today")
 The `ios-witch-screenshots.yml` workflow (memory-library-react) boots a

@@ -739,6 +739,12 @@ lifted into a standalone tool later.
     `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **The Shop tab sells IN the app (July 2026):** product bottom-sheet →
+  cart → hand off to Shopify checkout only for the pay screen. Storefront
+  API via server proxy — `GET /api/witch/shop/product/:handle`,
+  `GET /api/witch/cart?id=`, `POST /api/witch/cart/{add,update}` (public
+  storefront token, committed by design; `WITCH_STOREFRONT_TOKEN` overrides).
+  Cart id in `localStorage['witch_cart_id']`; expired carts recreate quietly.
 - **External links** live in a `LINKS` const at the top of the client script.
   Shop = `cod-god-inc.myshopify.com` (the store's permanent home —
   `secretlyawitch.com` itself now points at the app), Instagram =
