@@ -16,6 +16,7 @@ VERT = os.environ.get("VERTICAL") == "1"
 TIGHT = os.environ.get("TIGHT") == "1"   # cut ONLY the punch-phrase, no sentence expansion
 FINISH = os.environ.get("FINISH") == "1"  # cut the COMPLETE sentence containing the phrase (finish the thought)
 AUDIO_ONLY = os.environ.get("AUDIO_ONLY") == "1"  # just stitch the voice clips (no cards) — art goes on top later
+FINISH_PAUSE = os.environ.get("FINISH_TO_PAUSE") == "1"  # extend each clip end to the speaker's next pause (finish the thought)
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -138,6 +139,12 @@ def find_quote_sentence(win_json, phrase, quote):
     audio_txt = " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))
     if difflib.SequenceMatcher(a=norm(target), b=norm(audio_txt), autojunk=False).ratio() < 0.45:
         return None
+    if FINISH_PAUSE:  # extend the END to the speaker's next real pause so the thought completes
+        steps = 0
+        while wi_end < len(words) - 1 and steps < 12:
+            if words[wi_end + 1]["start"] - words[wi_end]["end"] >= 0.45:
+                break
+            wi_end += 1; steps += 1
     t0 = words[wi_start]["start"] - 0.15
     t1 = words[wi_end]["end"] + 0.30
     return (max(0, t0), t1, target)
