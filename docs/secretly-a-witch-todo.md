@@ -26,6 +26,26 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
 - **Sequence:** build the paywall UI + entitlement scaffolding first (with a
   test/"coming soon" entitlement) so the visible paywall ships now; wire real
   payment once the agreements + products exist.
+- **PAYMENT = WEB / STRIPE (decided 2026-07).** Sell the subscription on the
+  Secretly a Witch *website* via Stripe (like Claude/Spotify) → sign into the
+  app → it unlocks. No Apple IAP, no Apple cut, no native StoreKit. Tradeoff:
+  **paid features require being signed in** (that's how the app knows you
+  subscribed); the free taste stays signed-out. The in-app "link out to
+  subscribe" is US-only / legally shifting — verify current rules before relying
+  on it; worst case people subscribe on the site and the app just unlocks. No
+  Stripe integration/keys exist in the app yet — Sophie has a Stripe account
+  from another project; key gets pasted in at build time.
+- **Pricing (Sophie, 2026-07):** **$4/month** to start (may rise depending on
+  real per-feature model costs), **monthly only — no annual** (feels deceptive),
+  **free trial OK** if it's the standard card-up-front auto-converting kind.
+- **Free vs paid map (draft — confirm/expand with Sophie):** ONE membership
+  unlocks all of it.
+  - **Dream illustration** — 1 illustrated page free, rest paywalled (blurred).
+  - **Suspicious Coincidence** — 1 draw/day + 1 redraw/day free; more redraws paid.
+  - **Birth chart** — your OWN chart free; charts for friends / other people paid
+    (Costar model).
+  - **Make-your-own-tarot-deck** (new feature, not built) — major arcana free;
+    the full deck (incl. minor arcana) paid.
 
 ### Blurred paywalled pages should look DIFFERENT (not the same page repeated)
 Right now the blurred/locked pages behind a paywall (e.g. Dream's un-purchased
