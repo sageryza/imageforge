@@ -4,7 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f5efe2">
-  <title>Secretly a Witch</title>
+  <title>Secretly a Witch — moon phases, daily tarot &amp; everyday magic</title>
+  <meta name="description" content="A little pocket of everyday magic: today's moon phase, a daily tarot pull, spellcraft, dream illustration, Witch School lessons, and a shop of handmade witchcraft kits.">
+  <!-- The app is served at both secretlyawitch.com/ and the onrender host's
+       /witch — one canonical keeps search engines on the real domain. -->
+  <link rel="canonical" href="https://secretlyawitch.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Secretly a Witch">
+  <meta property="og:title" content="Secretly a Witch">
+  <meta property="og:description" content="Moon phases, a daily tarot pull, spells, dream illustration and Witch School — everyday magic in your pocket.">
+  <meta property="og:url" content="https://secretlyawitch.com/">
+  <meta property="og:image" content="https://storage.googleapis.com/membry-df528.firebasestorage.app/witch-tarot/the-moon.webp">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -1377,7 +1388,7 @@
         <div class="section-title">Shop</div>
         <div class="section-sub">Crystals, herbs &amp; ritual goods from secretlyawitch.com.</div>
         <div id="shop-grid" class="shop-grid"></div>
-        <a class="btn-ghost" id="shop-all" href="https://secretlyawitch.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
+        <a class="btn-ghost" id="shop-all" href="https://cod-god-inc.myshopify.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
       </section>
     </main>
 
@@ -1478,7 +1489,9 @@
     // TODO: replace `youtube` with the real channel URL (e.g. https://youtube.com/@handle).
     // The backend YouTube token is upload-only scope, so it can't reveal the channel — needs the handle.
     youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
-    shop: 'https://secretlyawitch.com',
+    // The store's permanent Shopify home. secretlyawitch.com itself now points
+    // at THIS app, so shop links must go to the store directly.
+    shop: 'https://cod-god-inc.myshopify.com',
     instagram: 'https://instagram.com/moonsickbaby',
     // TODO: point at the real membership/subscribe page once it exists on the
     // website (Stripe checkout). Placeholder = the site root for now.
@@ -2386,7 +2399,7 @@
     try {
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
-      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now. Visit secretlyawitch.com.</div>`; wrap.dataset.loaded = '1'; return; }
+      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const shortTitle = t => {
         const cut = t.split(/\s*[~•|]\s*/)[0].trim();
         return cut.length >= 4 ? cut : t;
@@ -2405,7 +2418,7 @@
       }).join('');
       wrap.dataset.loaded = '1';
     } catch (e) {
-      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open secretlyawitch.com</a>.</div>`;
+      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
   }
 

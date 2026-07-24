@@ -32,6 +32,7 @@ function tryRequire(name) {
   }
 }
 const shopify = tryRequire('./shopify');
+const blogPublic = require('./blog-public'); // the public site blog (secretlyawitch.com/blog)
 
 function db() {
   return admin.apps.length ? admin.firestore() : null;
@@ -290,7 +291,7 @@ router.get('/posts', async (req, res) => {
     const snap = await store.collection('forge-blog').orderBy('createdAt', 'desc').limit(30).get();
     res.json({ posts: snap.docs.map(d => {
       const v = d.data();
-      return { id: d.id, title: v.title, keyword: v.keyword, published: Boolean(v.published), articleUrl: v.articleUrl || null };
+      return { id: d.id, title: v.title, keyword: v.keyword, published: Boolean(v.published), articleUrl: v.articleUrl || null, site: Boolean(v.site), siteSlug: v.siteSlug || null };
     }) });
   } catch (err) {
     res.status(502).json({ error: err.message });
@@ -358,6 +359,50 @@ router.post('/publish', express.json({ limit: '2mb' }), async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(/required|not configured|no blog/.test(err.message) ? 400 : 502).json({ error: err.message });
+  }
+});
+
+// Publish (or unpublish) a saved draft to the SITE blog — the public pages at
+// secretlyawitch.com/blog served by blog-public.js. No Shopify involved: it
+// just stamps the Firestore doc with the final content + `site: true`.
+// Body: { id, title?, bodyHtml?, metaDescription?, tags?, slug?, imageUrl?,
+// unpublish? }. Edited fields from the studio override the saved draft.
+router.post('/publish-site', express.json({ limit: '2mb' }), async (req, res) => {
+  const store = db();
+  if (!store) return res.status(400).json({ error: 'persistence unavailable' });
+  const b = req.body || {};
+  if (!b.id) return res.status(400).json({ error: 'no saved draft — write the post first (drafts save automatically)' });
+  try {
+    const ref = store.collection('forge-blog').doc(b.id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'draft not found' });
+    const cur = doc.data();
+    if (b.unpublish) {
+      await ref.update({ site: false, siteUpdatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      blogPublic.bust();
+      return res.json({ ok: true, site: false });
+    }
+    let slug = slugify(b.slug || cur.siteSlug || cur.slug || b.title || cur.title) || b.id;
+    // Keep slugs unique across site posts (another doc already using it gets priority).
+    const clash = await store.collection('forge-blog').where('siteSlug', '==', slug).limit(2).get();
+    if (clash.docs.some((d) => d.id !== b.id)) slug = `${slug}-${b.id.slice(0, 5).toLowerCase()}`;
+    await ref.update({
+      site: true,
+      siteSlug: slug,
+      title: b.title || cur.title || '(untitled)',
+      metaDescription: b.metaDescription !== undefined ? b.metaDescription : (cur.metaDescription || ''),
+      tags: Array.isArray(b.tags) ? b.tags : (cur.tags || []),
+      // The studio's body textarea already has the FAQ appended inline; a bare
+      // API draft doesn't, so compose it in that case.
+      siteBodyHtml: b.bodyHtml || composeBodyHtml(cur),
+      siteImage: b.imageUrl || (Array.isArray(cur.images) && cur.images[0]) || null,
+      sitePublishedAt: cur.sitePublishedAt || admin.firestore.FieldValue.serverTimestamp(),
+      siteUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    blogPublic.bust();
+    res.json({ ok: true, site: true, slug, liveUrl: `${blogPublic.siteOrigin()}/blog/${slug}` });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
   }
 });
 

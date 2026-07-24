@@ -32,6 +32,54 @@ app.options('*', cors(corsOptions)); // explicit preflight for every route
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
 app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
+
+// ─── Secretly a Witch front door (secretlyawitch.com) ───────────────
+// The apex domain points at this service (it used to be the Shopify
+// storefront), and on that host the witch app IS the site: `/` serves the
+// app, old Shopify-storefront paths 301 to the store's permanent
+// .myshopify.com home so nothing ever 404s, the old /blogs/* URLs land on
+// the on-site blog (blog-public.js), and robots/sitemap are served for SEO.
+// Inert for imageforge-q125.onrender.com traffic — the studio is unchanged.
+// blog-public reads no env keys at require time, so requiring it here (before
+// the Firestore config loader runs) is safe — unlike blog.js.
+const blogPublic = require('./blog-public');
+const WITCH_HOSTS = new Set(['secretlyawitch.com', 'www.secretlyawitch.com']);
+const isWitchHost = (req) => WITCH_HOSTS.has(String(req.hostname || '').toLowerCase());
+// The store's permanent home once the domain flips (Shopify serves the same
+// storefront + checkout there). Overridable so it can later become e.g.
+// shop.secretlyawitch.com without a code change.
+const witchStoreOrigin = () => (process.env.WITCH_STORE_ORIGIN || 'https://cod-god-inc.myshopify.com').replace(/\/$/, '');
+const WITCH_ROBOTS = [
+  'User-agent: *',
+  'Disallow: /api/',
+  'Disallow: /*.html$',
+  // Studio/hub surfaces that share this server — not part of the public site.
+  ...['/studio', '/photo', '/song', '/dreams', '/films', '/report', '/character', '/story', '/storyroom',
+    '/wall', '/writing', '/chats', '/import', '/test', '/book', '/talking', '/gallery', '/set', '/stickers']
+    .map((p) => `Disallow: ${p}`),
+  'Sitemap: https://secretlyawitch.com/sitemap.xml',
+].join('\n') + '\n';
+app.use((req, res, next) => {
+  if (!isWitchHost(req)) return next();
+  const p = req.path;
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  if (p === '/') return res.sendFile(__dirname + '/public/witch.html');
+  // Canonical home — keeps query params (Stripe returns to /witch?sub=success).
+  if (p === '/witch' || p === '/witch/') return res.redirect(301, '/' + qs);
+  if (p === '/privacy') return res.sendFile(__dirname + '/public/witch-privacy.html');
+  if (p === '/robots.txt') return res.type('text/plain').send(WITCH_ROBOTS);
+  if (p === '/sitemap.xml') return blogPublic.sitemap(req, res);
+  // Old Shopify-storefront URLs (indexed pages, School lesson product links,
+  // saved carts) → the store's real home, path preserved.
+  if (/^\/(products|collections|cart|checkout|pages|account|policies|password|discount)(\/|$)/.test(p)) {
+    return res.redirect(301, witchStoreOrigin() + req.originalUrl);
+  }
+  // Old Shopify blog URLs (/blogs/<blog-handle>/<post-handle>) → on-site blog.
+  const mBlog = p.match(/^\/blogs(?:\/[^/]+)?\/?([^/]*)\/?$/);
+  if (mBlog) return res.redirect(301, mBlog[1] ? `/blog/${mBlog[1]}` : '/blog');
+  next(); // everything else (/, /api/*, /blog, static assets) flows through
+});
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
@@ -220,7 +268,11 @@ loadConfig().then(() => {
   app.use('/api/stripe', stripeMod.createRouter({
     membryDb: storyDb,                                    // membry-df528 Firestore
     membryAuth: async () => { await storyDb(); return storyApp.auth(); }, // verify witch ID tokens
-    appUrl: () => (process.env.RENDER_EXTERNAL_URL || 'https://imageforge-q125.onrender.com').replace(/\/$/, ''),
+    // Checkout should return the buyer to the domain they started on — the
+    // public site when they came from secretlyawitch.com, Render otherwise.
+    appUrl: (req) => (req && isWitchHost(req))
+      ? 'https://secretlyawitch.com'
+      : (process.env.RENDER_EXTERNAL_URL || 'https://imageforge-q125.onrender.com').replace(/\/$/, ''),
   }));
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed + nde)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
@@ -1219,7 +1271,13 @@ app.get('/chats', serveGated('chats.html'));
 
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
-app.get('/blog', serveGated('blog.html'));
+// On the public witch domain (or with ?public=1 for previewing) /blog is the
+// SITE blog, server-rendered from Firestore; elsewhere it's the gated studio.
+app.get('/blog', (req, res) => {
+  if (isWitchHost(req) || req.query.public === '1') return blogPublic.renderIndex(req, res);
+  return serveGated('blog.html')(req, res);
+});
+app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));
@@ -2388,7 +2446,9 @@ app.get('/api/witch/shop', async (req, res) => {
     const debug = req.query.debug === '1';
     const now = Date.now();
     if (!debug && SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
-    const base = 'https://secretlyawitch.com';
+    // The store's permanent .myshopify.com home — NOT secretlyawitch.com,
+    // which now points at this very app (fetching it would loop back to us).
+    const base = witchStoreOrigin();
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
     if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
     const j = await r.json();

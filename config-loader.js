@@ -39,6 +39,11 @@ const MANAGED_KEYS = [
   'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REDIRECT_URI',
   'YOUTUBE_API_KEY',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_TRIAL_DAYS',
+  // secretlyawitch.com front door: where old store URLs 301 to (default
+  // cod-god-inc.myshopify.com) and the site's public origin (default
+  // https://secretlyawitch.com). Rarely need setting — they exist so e.g. a
+  // future shop.secretlyawitch.com can take over without a code change.
+  'WITCH_STORE_ORIGIN', 'WITCH_SITE_ORIGIN',
 ];
 
 // The Anthropic key already lives in its OWN Firestore doc (`config/anthropic`,
