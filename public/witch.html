@@ -2972,6 +2972,10 @@
   /* ══════════ HOME STATE (account gate → birthday → reading) ══════════ */
   // accountsConfigured: null=unknown (assume gated), true=Firebase live, false=off.
   let accountsConfigured = null;
+  // witchAuthReady: true once onAuthStateChanged has fired at least once (the
+  // cloud doc has had its chance to load), so a one-time cleanup knows the
+  // signed-in/out state is settled and a local clear won't be undone by a pull.
+  let witchAuthReady = false;
   function homeState() {
     if (!savedBirth()) return 'birthday';                          // birthday FIRST — no account needed
     if (accountsConfigured !== false && !fbUser) return 'gate';    // then create an account to unlock it
@@ -3378,6 +3382,25 @@
     }
     try { localStorage.setItem(COIN_DAY, today); } catch {}
   }
+  // One-time cleanup (per device/account): before the daily-reset model shipped,
+  // the Home coincidences were adopted as "today's" and lingered. They're already
+  // filed in the Synchronicities archive, so this clears the three Home boxes ONCE
+  // — nothing is lost. Guarded so the flag only commits once the cleared state
+  // will actually stick (the cloud can't re-restore it on the next pull).
+  const COIN_RESET_V = '2026-07-24';
+  function coinResetDone() { try { return localStorage.getItem('witch_coin_reset') === COIN_RESET_V; } catch { return false; } }
+  function coinOneTimeReset() {
+    if (coinResetDone()) return;
+    pendSet(COIN_DONE, null); pendSet(COIN_PEND, null);
+    // Only commit when nothing will restore the old draws:
+    //  • signed in            → push the cleared doc up first, then commit
+    //  • ungated / signed-out with auth resolved → commit
+    //  • auth still resolving  → leave uncommitted; re-runs after pullCloud
+    let canCommit = false;
+    if (fbUser && fbDb) { try { cloudSyncSoon(); } catch {} canCommit = true; }
+    else if (accountsConfigured === false || witchAuthReady) { canCommit = true; }
+    if (canCommit) { try { localStorage.setItem('witch_coin_reset', COIN_RESET_V); } catch {} }
+  }
   // "Saved to your Book of Shadows" bookmark — fills once you've drawn one today.
   function coinSavedToday() { const d = coinDoneAll(); return Object.keys(d).some(i => { const st = d[i]; return st && st.v && st.v.length; }); }
   function updateCoinBookmark(animate) {
@@ -3518,6 +3541,7 @@
   function resumeCoinJobs() {
     coinMigrate();
     coinDailyRollover();   // clear Home boxes if it's a new day (archive keeps them)
+    coinOneTimeReset();    // one-time: clear pre-daily-reset draws that lingered
     const done = coinDoneAll();
     Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
@@ -4648,7 +4672,7 @@
   }
   async function initAccounts() {
     let cfg; try { cfg = await (await fetch('/api/witch/firebase-config')).json(); } catch { cfg = null; }
-    if (!cfg || !cfg.configured) { accountsConfigured = false; renderHome(); return; } // ungated fallback
+    if (!cfg || !cfg.configured) { accountsConfigured = false; try { coinOneTimeReset(); } catch {} renderHome(); return; } // ungated fallback
     accountsConfigured = true; renderHome();
     try {
       const base = 'https://www.gstatic.com/firebasejs/10.12.0/';
@@ -4664,18 +4688,21 @@
         if (!email) email = window.prompt('Confirm your email to finish signing in:');
         if (email) { try { await fbAuth.signInWithEmailLink(email, location.href); history.replaceState(null, '', location.pathname); } catch (e) { toast('Sign-in link error: ' + e.message); } }
       }
-      let authReady = false;
       fbAuth.onAuthStateChanged(async (user) => {
         // A fresh sign-in (a deliberate action after load), not the restored
         // session on first load — used to take them straight to the reading.
-        const freshSignIn = authReady && !fbUser && !!user;
+        const freshSignIn = witchAuthReady && !fbUser && !!user;
         fbUser = user || null; renderAcctBtn();
         if (fbUser) { await pullCloud(); loadSavedNatal(); await refreshEntitlement(); } // pull may bring their saved birthday + membership
         // Made the account to unlock a reading they'd already set up → reveal it
         // now (that's the promise of the account step). Returning users still
         // land on the reveal gate, so we never auto-generate on a cold load.
         if (freshSignIn && savedBirth()) astroRevealed = true;
-        authReady = true;
+        witchAuthReady = true;
+        // Auth is settled now — give the one-time Home cleanup a guaranteed
+        // commit point (for signed-in it pushes the cleared doc; for signed-out
+        // it commits so it can't re-run and wipe a future draw).
+        try { coinOneTimeReset(); } catch {}
         renderHome();
         // Stripe flow: a pending subscribe (external-browser entry) or a return
         // from a successful checkout.
