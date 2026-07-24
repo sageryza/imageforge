@@ -835,9 +835,13 @@
        slab of page running clean off the screen edge — and it alternates
        sides with page parity (odd pages sit on the right of their spread, so
        their neighbor bleeds off the LEFT; even pages the mirror). */
-    .bos-row { display: flex; align-items: stretch; justify-content: center; width: 100%; max-height: 100%; }
-    .bos-row .bos-book { flex: 0 1 auto; margin: 0 14px; }
-    .bos-neighbor { flex: none; width: 18px; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: none; }
+    /* center, NOT stretch: align-items:stretch lets the flex row override the
+       book's aspect-ratio-derived height (WebKit distorted the spread taller
+       after paging through). The book keeps its own height; ONLY the neighbor
+       strip stretches to match it. */
+    .bos-row { display: flex; align-items: center; justify-content: center; width: 100%; max-height: 100%; }
+    .bos-row .bos-book { flex: 0 1 auto; margin: 0 14px; align-self: center; }
+    .bos-neighbor { flex: none; width: 18px; align-self: stretch; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: none; }
     .bos-row.nleft .bos-neighbor, .bos-row.nright .bos-neighbor { display: block; }
     .bos-row.nleft .bos-neighbor { order: -1; box-shadow: inset -9px 0 10px -8px rgba(48,30,20,0.28); }
     .bos-row.nright .bos-neighbor { order: 2; box-shadow: inset 9px 0 10px -8px rgba(48,30,20,0.28); }
@@ -1574,6 +1578,10 @@
     if (typeof tarotDeepOpen !== 'undefined' && tarotDeepOpen) closeTarotDeep();
     if (typeof dreamReadDeepOpen !== 'undefined' && dreamReadDeepOpen) closeDreamReadDeep();
     if (typeof dreamPastOpen !== 'undefined' && dreamPastOpen) closeDreamPast();
+    // The book reader is a top-level overlay too — a nav tap (incl. the iOS
+    // native tab bar via __setTab) must close it, or you switch tabs behind it
+    // and get stuck on the book until Back.
+    if ($('bos-reader') && $('bos-reader').style.display !== 'none') closeBook();
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
