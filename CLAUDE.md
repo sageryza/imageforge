@@ -947,30 +947,52 @@ lifted into a standalone tool later.
   re-dispatch from your branch (`imageforge_ref` input) if a main build
   buries it.
 
-## Story Boards (forge-story) — how ANY chat adds projects/assets
-The video-project asset boards (Evan, Charlie, Spellcasting, …) shown in the
-iOS app (Story Boards tile — a VHS-shelf wall, 3 covers per shelf, tap to open
-a project's beat board) and mirrored at `/story` (gated snapshot page).
+## Story Room (forge-story) — THE story surface (merged July 2026)
+The three old story features — native Story Boards, the Story Room page, and
+the `stories.js`/`forge-stories` saved-text library — are ONE surface now: the
+**Story Room** (`/storyroom`, live web page; iOS tile "Story Room" =
+`StoryRoomView.swift`, a WKWebView on it). The native `StoryBoardView.swift`
+and the static `/story` snapshot are deleted (`/story` 301s to `/storyroom`);
+the `forge-stories` collection is retired (see migration below).
 
-- **Data:** Firestore collection `forge-story`, one doc per project:
-  `{ id, title, order, cover, beats:[{ vo, cards:[{ label, status, url }] }] }`.
-  `status` ∈ `ok` (approved) | `cand` (candidate) | `draft` (storyboard
-  placeholder) | `miss` (no art yet — omit `url`). `vo` is Sophie's actual
-  narration for that beat. `cover` is REQUIRED for the shelf (pick one hero
-  shot; without it the case renders as a "?" box).
-- **To add/update:** build a manifest JSON (array of projects; use
-  `file`/`cover_file` with local paths for any new images — ~700px webp
-  preferred) and run `node scripts/sync-story.js manifest.json` with
-  `FIREBASE_SERVICE_ACCOUNT` (or `FIREBASE_KEY_FILE`) set. Images upload to
-  Storage `story/` (content-addressed by basename — reuse basenames to
-  overwrite) and docs are replaced wholesale, so ALWAYS write the full project,
-  not a partial. The iOS app updates live (snapshot listener) — no build.
-- **Clients are read-only** (Firestore rules in memory-library-react allow
-  authenticated reads only); all writes go through the sync script.
+- **Data:** Firestore `forge-story` (membry-df528, via
+  `STORY_FIREBASE_SERVICE_ACCOUNT`), one doc per story. **Every content field
+  is optional — any one of them starts a project:**
+  `{ id, title, order, cover, text, voiceover:{ url, text, status?, source? },
+  beats:[{ vo, cards:[{ label, status, url }] }], inbox:[], archived }`.
+  `text` = the story prose (what the Movies "saved stories" picker lists);
+  `voiceover` = whole-story narration — audio and/or its words, either half
+  derivable (text → TTS render, audio → Whisper transcript; `status` =
+  `rendering`/`transcribing` while the background job runs). `vo` on a beat
+  stays the per-beat script. `voiceover` mirrors `movie.voiceover` so a
+  story's narration can hand straight to the film pipeline.
+- **Shelf look:** flat tiles in rows of three with a thin `--line` rule under
+  each row (`shelfRows()` in `scripts/gen-storyroom.py`). NO shadows, NO wood,
+  NO 3D tilt — Sophie asked for "just a line."
+- **Server:** `/api/story/*` inline in server.js — project/beat/art/inbox/
+  assign/status/archive/delete plus (new) `POST /text` `{projectId, text}` and
+  `POST /voiceover` `{projectId, audio?|url?, text?, tts?, voice?, transcribe?}`
+  (TTS chunk+ffmpeg-concat like chatfeed's /polish; Whisper via
+  movies.transcribeAudio; slow parts are background jobs on the doc).
+- **The Movies picker reads the same docs:** `stories.js` (`/api/stories`)
+  now lists/saves/deletes `forge-story` docs with `text` (routes and response
+  shapes unchanged, so `StoryPickerSheet.swift`/`MovieService` work as-is).
+  A story typed in the Movies box appears on the shelf; deleting from the
+  picker archives (not deletes) once a story has grown a board.
+  **Migration:** `node scripts/migrate-stories.js [--dry-run]` (needs both
+  service accounts) moved the old `forge-stories` docs; the old collection is
+  left as a backup, delete it once verified.
+- **Chats add/update boards** the same as before: manifest JSON +
+  `node scripts/sync-story.js manifest.json`. Docs are replaced wholesale BUT
+  the sync now preserves Story-Room-owned fields (`text`, `voiceover`,
+  `inbox`, `archived`) unless the manifest sets them — a board re-sync never
+  wipes Sophie's story or voiceover. Sophie also writes directly from the
+  page (the old "clients are read-only" note is obsolete — her writes go
+  through `/api/story/*`, not Firestore rules).
 - **iOS UI changes** (not content) need a TestFlight build: run the
   `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
-  secrets; `imageforge_ref` input picks the imageforge branch). The
-  imageforge-local `ios-testflight.yml` is a placeholder without secrets.
+  secrets; `imageforge_ref` input picks the imageforge branch). Page/content
+  changes ship via Render deploy — no build.
 - Approvals happen in chat with Sophie; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix
