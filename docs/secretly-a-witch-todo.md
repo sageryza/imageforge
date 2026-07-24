@@ -61,10 +61,39 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
   - **Text coincidence moments in the book** (Book of Miracles / Shadows — which
     one TBD, ties into the BoS rework) — adding a **text-only** moment is free;
     **paying to illustrate it** is the paid action. New feature, not built.
-- **Coincidence spec (decided 2026-07):** KEEP the **three** Home boxes.
-  Drawings **persist** (stay in the box — you can't freely change them). Free =
-  **one redraw per day** (across the boxes); more redraws paid. "Draw it!" →
-  "Redraw" after a drawing exists; redraw popup + version arrows as before.
+- **Coincidence spec (decided 2026-07, REVISED):** KEEP the **three** Home
+  boxes. Within a day the drawings persist (you can't freely change them, only
+  redraw). Free = **one redraw per day** (across the boxes); more redraws paid.
+  "Draw it!" → "Redraw"; redraw popup + version arrows. **SHIPPED (chunk 1).**
+  - **REVISION (Sophie, 2026-07): the 3 boxes RESET at local midnight** — fresh
+    empty boxes each day. Before the reset, the day's drawings **archive to the
+    Book of Shadows** (Signs & synchronicities) so nothing is lost. If someone
+    wants MORE than 3 coincidences in one day, they add them in the **Book of
+    Shadows** (text moment → pay to draw). NOT yet built — depends on the Book
+    of Shadows rework (larger decision). Chunk 1 shipped the persist-only
+    version; this changes it to daily-reset + archive.
+  - **Account sync: SHIPPED** — coincidence drawings (`witch_coin_done`) now
+    sync to the signed-in account's cloud doc (added to `WITCH_KEYS`; pushes on
+    change, re-renders on pull). The redraw counter stays device-local (Sophie
+    OK'd a soft limit). Drawings following the account is a pre-release must.
+
+### Domain: point secretlyawitch.com at the witch app (front door)
+Right now `secretlyawitch.com` resolves to the Shopify store. Sophie wants it to
+point at the **witch web app** (`/witch`) instead — it's the richer experience
+and already has the shop baked in (the Shop tab mirrors her Shopify products),
+and it's where the **membership/Stripe** page will live. Reasonable direction,
+with caveats:
+- **Checkout still happens on Shopify** — the witch app can't process orders; the
+  Shop tab hands off to Shopify product/checkout pages. So Shopify must stay
+  reachable (e.g. keep it on a subdomain like `shop.secretlyawitch.com`, or point
+  the Shop tab links at the `.myshopify.com` domain) and those links must not break.
+- **SEO / blog / email** live on Shopify today (Blog Studio publishes to the
+  Shopify blog for organic traffic; email capture). Moving the apex away from
+  Shopify affects those — plan for it.
+- **Execution:** add the domain as a **custom domain on the Render service** +
+  update DNS at the registrar. RESEARCH the current Render custom-domain flow
+  before giving Sophie steps (it changes; and Render free vs paid may matter for
+  custom domains). Decide apex-vs-subdomain split with Sophie first.
 
 ### ⚠️ Unit economics — check BEFORE committing to $4/mo (Sophie flagged)
 Many paid features cost real API money per use, so an unlimited $4/mo membership
