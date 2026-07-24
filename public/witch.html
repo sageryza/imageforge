@@ -1467,14 +1467,52 @@
   document.getElementById('shop-all').href = LINKS.shop;
 
   // ── Membership entitlement (paywall) ──────────────────────────────
-  // Paid features call isPaid(). For now this reads a TEST override so we can
-  // build + see the paywall BEFORE Stripe is wired. Real payment (web/Stripe →
-  // account flag) comes later and makes this server-authoritative. Flip it for
-  // QA with ?paid=1 (turn on) / ?paid=0 (turn off).
-  const PAID_KEY = 'witch_is_paid';    // future: set from the account / Stripe webhook
+  // Paid features call isPaid(). Source of truth = the account's Stripe
+  // membership, read from GET /api/stripe/entitlement on sign-in and cached in
+  // PAID_KEY. The ?paid=1 / ?paid=0 override stays for QA (wins over the cache).
+  const PAID_KEY = 'witch_is_paid';    // cached entitlement ("1"/"0") from the server
   const PAID_TEST = 'witch_test_paid'; // dev/QA override
+  const IS_APP = new URLSearchParams(location.search).has('app'); // iOS webview wrapper
+  let pendingSubscribe = false, subJustSucceeded = false;
   (function () { const m = /[?&]paid=([01])/.exec(location.search); if (m) { try { localStorage.setItem(PAID_TEST, m[1]); } catch (e) {} } })();
+  // Handle the Stripe return + the external-browser subscribe entry point.
+  (function () {
+    const p = new URLSearchParams(location.search);
+    if (p.get('subscribe') === '1') pendingSubscribe = true;
+    const sub = p.get('sub');
+    if (sub === 'success') subJustSucceeded = true;
+    else if (sub === 'cancel') setTimeout(() => { try { toast('Checkout canceled ✦'); } catch (e) {} }, 700);
+    if (sub) { try { history.replaceState(null, '', location.pathname + (IS_APP ? '?app=1' : '')); } catch (e) {} }
+  })();
   function isPaid() { try { return localStorage.getItem(PAID_TEST) === '1' || localStorage.getItem(PAID_KEY) === '1'; } catch (e) { return false; } }
+  // Ask the server whether this signed-in account is a paying member.
+  async function refreshEntitlement() {
+    try {
+      if (!fbAuth || !fbUser) return;
+      const tok = await fbUser.getIdToken();
+      const r = await fetch('/api/stripe/entitlement', { headers: { Authorization: 'Bearer ' + tok } });
+      const j = await r.json().catch(() => null);
+      if (j && j.signedIn) { try { localStorage.setItem(PAID_KEY, j.active ? '1' : '0'); } catch (e) {} }
+    } catch (e) {}
+  }
+  // Kick off Stripe Checkout for the signed-in user (redirects to Stripe).
+  async function startCheckout() {
+    try {
+      if (!fbAuth) { toast('One moment — still loading ✦'); return; }
+      if (!fbUser) { pendingSubscribe = true; if (typeof showSignIn === 'function') showSignIn(); return; }
+      const tok = await fbUser.getIdToken();
+      const r = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: '{}' });
+      const j = await r.json().catch(() => ({}));
+      if (j && j.url) location.href = j.url;
+      else toast(j.error || 'Could not start checkout ✦');
+    } catch (e) { toast('Checkout error: ' + e.message); }
+  }
+  // In the iOS app, Apple forbids selling digital goods in-app, so hand off to
+  // the external browser to subscribe; on the web, check out inline.
+  function beginSubscribe() {
+    if (IS_APP) { try { window.open(location.origin + '/witch?subscribe=1', '_blank'); } catch (e) {} return; }
+    startCheckout();
+  }
   function openUpgrade(feature) {
     const blurb = ({
       coincidence: 'unlimited redraws',
@@ -1484,11 +1522,11 @@
     })[feature] || 'every members-only feature';
     openModal(
       '<h2 style="margin-bottom:4px;">Secretly a Witch membership</h2>' +
-      '<p class="sub">Unlock ' + blurb + ' — plus everything members get — for $4/month. You subscribe on the website, then it unlocks right here. ✦</p>' +
-      '<button class="gbtn" id="up-go">Subscribe on the website</button>' +
+      '<p class="sub">Unlock ' + blurb + ' — plus everything members get — for $4/month. ✦</p>' +
+      '<button class="gbtn" id="up-go">Become a member</button>' +
       '<button class="close-x" id="up-x">maybe later</button>'
     );
-    const g = $('up-go'); if (g) g.addEventListener('click', () => { try { window.open(LINKS.subscribe, '_blank'); } catch (e) {} closeModal(); });
+    const g = $('up-go'); if (g) g.addEventListener('click', () => { closeModal(); beginSubscribe(); });
     const x = $('up-x'); if (x) x.addEventListener('click', closeModal);
   }
 
@@ -4519,13 +4557,20 @@
         // session on first load — used to take them straight to the reading.
         const freshSignIn = authReady && !fbUser && !!user;
         fbUser = user || null; renderAcctBtn();
-        if (fbUser) { await pullCloud(); loadSavedNatal(); } // pull may bring their saved birthday
+        if (fbUser) { await pullCloud(); loadSavedNatal(); await refreshEntitlement(); } // pull may bring their saved birthday + membership
         // Made the account to unlock a reading they'd already set up → reveal it
         // now (that's the promise of the account step). Returning users still
         // land on the reveal gate, so we never auto-generate on a cold load.
         if (freshSignIn && savedBirth()) astroRevealed = true;
         authReady = true;
         renderHome();
+        // Stripe flow: a pending subscribe (external-browser entry) or a return
+        // from a successful checkout.
+        if (pendingSubscribe) {
+          if (fbUser) { pendingSubscribe = false; startCheckout(); }
+          else showSignIn(); // sign in first — this handler re-fires once signed in
+        }
+        if (fbUser && subJustSucceeded) { subJustSucceeded = false; try { toast('You’re a member — everything’s unlocked ✦'); } catch (e) {} }
       });
     } catch (e) { console.warn('accounts init failed', e.message); }
   }
