@@ -52,13 +52,32 @@ in chat; ready to build.
 - **Expectation:** with the current user count the line will rarely fire; the
   feature compounds as the app grows. Quiet is by design.
 
-### "Just Dream" — public dream-sharing site (research findings, 2026-07-24)
-The banked shared-dream platform (named above under the paywall section). What
-exists and what to reuse, from a two-repo dig:
-- **Nothing is built.** No Supabase anywhere (it was a decided-against note in
-  memory-library-react's TODO, never code). The memory app's Group Dream
-  Journal (membry-df528.web.app/dream-journal) is TEXT-only private groups —
-  wrong shape to convert; it predates illustration.
+### "Dream app" — public dream-sharing site (research findings, 2026-07-24)
+The banked shared-dream platform (called "Just Dream" above under the paywall
+section — that name is a MISNOMER, Sophie 2026-07-24: it has no name yet; say
+"Dream app". Name research is a later task — Latin stems, somnus/somnium
+territory). What exists and what to reuse:
+- **CORRECTION (2026-07-24): the site's home already exists —
+  `sageryza/collective-dreams`.** A Next.js 15 + Supabase app (Vercel),
+  last touched Sept 2025, that no repo note here knew about. Schema + RLS are
+  done and well-shaped: `dreams` / threaded `comments` / `hearts`, anyone-reads
+  / only-author-writes policies, anonymity structural ("A dreamer", no
+  profiles). Working feed/composer/comments/auth UI (~860 lines). Sophie had
+  already set up Supabase and WANTED it — the memory-library TODO's
+  "Firebase now, Supabase later" note was written blind and is overruled.
+  Build the sharing site THERE; gaps to add: dreams are text-only (no
+  image/panel support — biggest gap), no reciprocity gate, no per-panel or
+  text-optional publishing, no safety screen on posts, no bridge from the
+  witch app. Theme uses gradients — violates the no-gradients rule; restyle.
+- **Accounts:** witch users won't need a second account — the witch app
+  publishes panels via the imageforge server (verify Firebase sign-in, write
+  to Supabase with the service key). True shared accounts across the
+  Firebase apps (XI etc.) and this Supabase app = open question, only worth
+  deciding if the Dream app becomes a direct sign-in destination. XI growing
+  does NOT itself call for Supabase (Firestore fits its patterns).
+- The memory app's Group Dream Journal (membry-df528.web.app/dream-journal)
+  is TEXT-only private groups — wrong shape to convert; it predates
+  illustration.
 - **Reuse 1 — the publish gate:** XI's "stories i tell" (`publishMemory` Cloud
   Function, memory-library-react `functions/index.js`) — clients can never
   write the public collection; a server function re-reads, runs a Claude
