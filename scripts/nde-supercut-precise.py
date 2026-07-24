@@ -15,6 +15,7 @@ BG, C_LABEL, C_QUOTE, C_NAME = "0x141422", "0x7c7c96", "0xF2EEE2", "0xE0A94A"
 VERT = os.environ.get("VERTICAL") == "1"
 TIGHT = os.environ.get("TIGHT") == "1"   # cut ONLY the punch-phrase, no sentence expansion
 FINISH = os.environ.get("FINISH") == "1"  # cut the COMPLETE sentence containing the phrase (finish the thought)
+AUDIO_ONLY = os.environ.get("AUDIO_ONLY") == "1"  # just stitch the voice clips (no cards) — art goes on top later
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -186,6 +187,7 @@ def draw(f, font, size, color, y):
             f"x=(w-text_w)/2:y={y}:line_spacing=12:text_align=C")
 
 segments = []
+audio_clips = []  # AUDIO_ONLY: normalized voice clips to stitch
 seg_i = 0
 
 def title_card(title):
@@ -211,7 +213,8 @@ def clip_card(label, name, quote_text, clip_mp3):
 
 cands = json.load(open(CAND))
 print(f"{len(cands)} candidates → precise cutting\n")
-title_card(TITLE)
+if not AUDIO_ONLY:
+    title_card(TITLE)
 kept = 0
 for i, c in enumerate(cands, 1):
     url, quote, t = c.get("audioUrl"), c.get("quote",""), int(c.get("timeSec") or 0)
@@ -255,14 +258,27 @@ for i, c in enumerate(cands, 1):
             print(f"  [{i}] {name}: sentence too long ({re_-rs:.1f}s), dropping"); continue
         clip = os.path.join(tmp, f"c{i}.mp3")
         run(["ffmpeg","-y","-ss",str(rs),"-to",str(re_),"-i",win,"-c:a","libmp3lame","-q:a","3",clip])
-        clip_card(f"· {TITLE.lower()} ·", name, f"“{text}”", clip)
+        if AUDIO_ONLY:
+            nrm = os.path.join(tmp, f"a{i}.mp3")
+            run(["ffmpeg","-y","-i",clip,"-af","loudnorm=I=-16:TP=-1.5:LRA=11",
+                 "-ar","44100","-ac","1","-c:a","libmp3lame","-q:a","2",nrm])
+            audio_clips.append(nrm)
+        else:
+            clip_card(f"· {TITLE.lower()} ·", name, f"“{text}”", clip)
         kept += 1
         print(f"  [{i}] {name}: {re_-rs:.1f}s  “{text[:60]}”")
     except Exception as e:
         print(f"  [{i}] {name}: ERROR {str(e)[:80]}")
 
-listf = os.path.join(tmp, "l.txt")
-open(listf,"w").write("".join(f"file '{s}'\n" for s in segments))
-run(["ffmpeg","-y","-f","concat","-safe","0","-i",listf,
-     "-c:v","libx264","-pix_fmt","yuv420p","-r","30","-c:a","aac","-b:a","192k","-ar","48000","-ac","2",OUT])
-print(f"\nWrote {OUT} — {kept} clips")
+if AUDIO_ONLY:
+    listf = os.path.join(tmp, "al.txt")
+    open(listf,"w").write("".join(f"file '{s}'\n" for s in audio_clips))
+    run(["ffmpeg","-y","-f","concat","-safe","0","-i",listf,
+         "-ar","44100","-ac","1","-c:a","libmp3lame","-q:a","2",OUT])
+    print(f"\nWrote {OUT} — {kept} audio clips")
+else:
+    listf = os.path.join(tmp, "l.txt")
+    open(listf,"w").write("".join(f"file '{s}'\n" for s in segments))
+    run(["ffmpeg","-y","-f","concat","-safe","0","-i",listf,
+         "-c:v","libx264","-pix_fmt","yuv420p","-r","30","-c:a","aac","-b:a","192k","-ar","48000","-ac","2",OUT])
+    print(f"\nWrote {OUT} — {kept} clips")
