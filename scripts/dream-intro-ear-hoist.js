@@ -1,9 +1,6 @@
-// Ear-hoist beat, v4 per Sophie's notes on v3:
-// - He must be INSIDE the ear opening (waist in), not next to it.
-// - Softer face: gentle, quietly delighted — the smirk read as annoying.
-// - The ear must NOT be grotesque: small, simply drawn, opened like a neat
-//   little door with a soft glow inside — never a big fleshy stretched flap.
-// v4a edits off v3b as a composition reference; v4b is a fresh top-down take.
+// Ear-hoist beat, v5: graft v4b's cute little golden ear-door onto v4a's
+// winning composition (soul emerging from INSIDE the opening, waist-deep).
+// Attach: [style ref, silver anchor, v4a composition, v4b door reference].
 const fs = require('fs');
 const path = require('path');
 
@@ -12,7 +9,8 @@ const STYLE_REF = path.join(__dirname, '..', 'refs', 'movie-style.jpg');
 const REPO_DIR = path.join(__dirname, '..', 'docs', 'dream-intro');
 const OUT = process.argv[2] || '/tmp/claude-0/-home-user/33d10e33-f4e6-52c9-b476-eb825381c56a/scratchpad/dream-intro';
 const ANCHOR = path.join(REPO_DIR, 'anchor-silver.png');
-const V3B = path.join(REPO_DIR, 'escape-2-ear-hoist-v3b.png');
+const V4A = path.join(REPO_DIR, 'escape-2-ear-hoist-v4a.png');
+const V4B = path.join(REPO_DIR, 'escape-2-ear-hoist-v4b.png');
 
 const STYLE_NOTE =
   'The #1 attached image is a STYLE reference only — copy its hand-drawn ink and ' +
@@ -23,43 +21,27 @@ const ANCHOR_NOTE =
   'Draw HIM exactly — same face, same tousled hair, same light-blue-and-white striped pajamas, and ' +
   'the same VERY see-through, translucent, ethereal, softly-glowing pale silver-white look. His ' +
   'expression is GENTLE and quietly delighted — a soft, sweet, wonder-filled half-smile, kind eyes — ' +
-  'NOT smug, NOT smirking, NOT sneaky-looking. The SLEEPING boy is the same boy but SOLID and fully ' +
-  'opaque, eyes peacefully closed, sound asleep and never waking. ';
-const EAR_NOTE =
-  'THE EAR MUST BE CUTE, small and SIMPLY drawn — a neat little stylized storybook ear opened like a ' +
-  'tiny door on a hinge, with a soft warm glow spilling from the opening. Absolutely NOT fleshy, NOT ' +
-  'stretched, NOT enlarged, NOT anatomically detailed, never grotesque. ';
+  'NOT smug, NOT smirking. The SLEEPING boy is the same boy but SOLID and fully opaque, eyes ' +
+  'peacefully closed, sound asleep and never waking. ';
 
 const PANELS = [
-  { name: 'escape-2-ear-hoist-v4a', extra: V3B,
-    prompt: `The #3 attached image is a PREVIOUS DRAFT of this exact scene — keep its overall ` +
-      `composition, bedroom, bed, lighting and the sleeping boy, but FIX it as follows: the soul boy ` +
-      `must be emerging FROM INSIDE the sleeping boy's head THROUGH the little open ear-door — his body ` +
-      `visible only from the waist up, waist and legs INSIDE the opening, like someone halfway up ` +
-      `through a manhole, hands braced on the rim pushing himself out. He is the same size as the ` +
-      `sleeper (equal head sizes) which is magically impossible and charming. Redraw the ear as a small ` +
-      `neat hinged door per the ear instructions, and give the soul the gentle delighted expression per ` +
-      `the character instructions. A faint silver cord runs from his chest back into the opening. ` +
-      `Portrait orientation.` },
-  { name: 'escape-2-ear-hoist-v4b', extra: null,
-    prompt: `Whimsical storybook bedroom scene at night, viewed from slightly ABOVE the bed looking ` +
-      `down. The solid boy sleeps on his side, head on the pillow, his ear facing up toward us. In the ` +
-      `side of his head, his ear stands open like a tiny neat hinged door, warm light glowing from the ` +
-      `little doorway. Rising straight up OUT of that glowing opening is his silvery translucent SOUL — ` +
-      `visible ONLY from the waist up, his hips and legs down inside the opening, exactly like a person ` +
-      `halfway out of a manhole. His head is the SAME SIZE as the sleeping boy's head, making the scene ` +
-      `wonderfully impossible. His hands rest on the rim of the doorway mid-climb, and he looks out at ` +
-      `the moonlit room with a gentle, quietly delighted expression. A faint silver cord runs from his ` +
-      `chest back down into the glow. The sleeper never stirs. Cozy, magical, softly funny. Portrait ` +
-      `orientation.` },
+  { name: 'escape-2-ear-hoist-v5',
+    prompt: `The #3 attached image is the APPROVED COMPOSITION of this scene — keep everything about ` +
+      `it: the bedroom, bed, lighting, the sleeping boy's pose, and especially the soul boy emerging ` +
+      `FROM INSIDE the head through the opening, visible only from the waist up with his legs down ` +
+      `inside, same size as the sleeper. Make ONE change: replace the opened ear-lid with the little ` +
+      `DOOR from the #4 attached image — the small, neat, hinged golden ear-door on the side of the ` +
+      `sleeping boy's head (a tiny cute hatch with the ear on its inner face), now swung fully OPEN ` +
+      `with the soul boy rising out through that doorway, warm light glowing from it. Keep the door ` +
+      `small, simple and charming — never fleshy or grotesque. A faint silver cord runs from the ` +
+      `soul's chest back into the opening. Portrait orientation.` },
 ];
 
 async function render(panel, quality = 'high') {
   const form = new FormData();
   form.append('model', 'gpt-image-2');
-  form.append('prompt', STYLE_NOTE + ANCHOR_NOTE + EAR_NOTE + panel.prompt);
-  const files = [[STYLE_REF, 'style.jpg'], [ANCHOR, 'anchor.png']];
-  if (panel.extra) files.push([panel.extra, 'draft.png']);
+  form.append('prompt', STYLE_NOTE + ANCHOR_NOTE + panel.prompt);
+  const files = [[STYLE_REF, 'style.jpg'], [ANCHOR, 'anchor.png'], [V4A, 'composition.png'], [V4B, 'door.png']];
   for (const [p, fn] of files) {
     const bytes = new Uint8Array(fs.readFileSync(p));
     form.append('image[]', new Blob([bytes], { type: fn.endsWith('png') ? 'image/png' : 'image/jpeg' }), fn);
