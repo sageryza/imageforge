@@ -825,8 +825,11 @@
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 19px; color: var(--gold); letter-spacing: 0.5px; }
-    .bos-pageno { font-size: 11px; color: var(--text-faint); min-width: 52px; text-align: right; }
+    .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 16px 20px 14px; }
+    .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
+    .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+    /* The page number lives at the BOTTOM of the page, serif, like a book. */
+    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
     .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px 14px 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
     /* The book pages match the Home cards: light cream on the darker cream
        background, softly-rounded corners, card border — not a floating slab. */
@@ -848,7 +851,7 @@
     .bos-toc-row { display: flex; align-items: baseline; gap: 6px; padding: 9px 0; cursor: pointer; }
     .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
     .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
-    .bos-toc-row .p { font-size: 13.5px; color: #221c14; }
+    .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
     /* Reading pages: the pulled cards first, reading text behind an expand. */
     .bos-cards { display: flex; gap: 10px; justify-content: center; margin: 14px 0 4px; }
     .bos-cardslot { flex: 1; max-width: 92px; text-align: center; }
@@ -1326,10 +1329,14 @@
 
         <!-- The open book: full-screen reader (Imprint-style takeover, like lessons) -->
         <div id="bos-reader" style="display:none;">
-          <div class="deck-top">
+          <!-- The same header as every other screen — sigils + centered italic
+               title, no divider — cloned from the real one at init, with just
+               a back button added at the left. -->
+          <div class="bos-head">
             <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-            <div class="bos-crumb" id="bos-crumb">Secretly a Witch</div>
-            <div class="bos-pageno" id="bos-pageno"></div>
+            <span class="sigil" data-sigil-clone></span>
+            <h1>Secretly a Witch</h1>
+            <span class="sigil" data-sigil-clone></span>
           </div>
           <div class="bos-stage" id="bos-stage"><div class="bos-book"><div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div></div></div>
           <div class="deck-nav">
@@ -2356,14 +2363,12 @@
     if (bosPageIdx > total) bosPageIdx = total;
     if (!total) {
       $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
-      $('bos-pageno').textContent = '';
       return;
     }
     document.querySelector('#bos-stage .bos-book').classList.remove('spread');
     document.querySelector('#bos-stage .bos-book').innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     const p = pages[bosPageIdx - 1];
-    $('bos-pageno').textContent = 'p. ' + bosPageIdx + ' of ' + total;
-    let inner = `<div class="bos-date">${esc(bosDate(p.ts))}<span class="bos-type">${esc(BOS_TYPES[p.kind] || p.kind)}</span></div>`;
+    let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
     if (p.src === 'journal') {
       const e = p.e;
       inner += e.title ? `<h3>${esc(e.title)}</h3>` : '';
@@ -2393,7 +2398,7 @@
       inner += `<div class="bos-actions"><button class="link-btn" data-expand="1">Read the full reading</button></div>
         <div class="bos-fullreading" style="display:none; margin-top:10px;">${renderReading(r.data, true)}</div>`;
     }
-    $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}</div>`;
+    $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
   }
   // The open book: title page on the left leaf, contents on the right —
   // gold section names, dot leaders, black page numbers, like a real book.
@@ -2401,7 +2406,6 @@
     const n = bosAllPages().length;
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.add('spread');
-    $('bos-pageno').textContent = '';
     const rows = BOS_SECTS.map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     book.innerHTML = `
@@ -4491,6 +4495,12 @@
 
   /* ══════════ INIT ══════════ */
   const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();
+  // The Book of Shadows header is a copy of the real one — fill its sigil
+  // slots from the actual header so there's exactly one source of the glyph.
+  (function () {
+    const src = document.querySelector('header .sigil');
+    if (src) document.querySelectorAll('[data-sigil-clone]').forEach(el => { el.innerHTML = src.innerHTML; });
+  })();
   renderMoon();
   renderMoonCalendar();
   renderEntries();
