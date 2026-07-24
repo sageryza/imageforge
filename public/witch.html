@@ -825,12 +825,38 @@
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 15px; color: var(--text); }
+    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 19px; color: var(--gold); letter-spacing: 0.5px; }
     .bos-pageno { font-size: 11px; color: var(--text-faint); min-width: 52px; text-align: right; }
     .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px 14px 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
-    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 62vh); max-height: 100%; background: #fefcf7; border-radius: 6px 14px 14px 6px; box-shadow: 0 10px 34px rgba(0,0,0,0.45); position: relative; display: flex; overflow: hidden; }
-    .bos-spine { flex: none; width: 12px; height: 100%; background: #f1ebdf; border-right: 1px solid #e4dccb; }
-    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #e9e2d2; }
+    /* The book pages match the Home cards: light cream on the darker cream
+       background, softly-rounded corners, card border — not a floating slab. */
+    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 62vh); max-height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(48,30,20,0.10); position: relative; display: flex; overflow: hidden; }
+    .bos-spine { flex: none; width: 12px; height: 100%; background: #f4eddd; border-right: 1px solid var(--border-soft); }
+    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #ece3d0; }
+    /* First view: the OPEN book — two facing pages with a center gutter. */
+    .bos-book.spread { aspect-ratio: 10 / 7.2; width: 100%; }
+    .bos-book.spread .bos-spine { display: none; }
+    .bos-leaf { flex: 1; min-width: 0; overflow: hidden; padding: 20px 15px; }
+    .bos-leaf.left { border-right: 1px solid var(--border-soft); box-shadow: inset -10px 0 14px -12px rgba(48,30,20,0.18); }
+    .bos-leaf.right { box-shadow: inset 10px 0 14px -12px rgba(48,30,20,0.18); }
+    .bos-title-page { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+    .bos-title-page .star { color: var(--gold); font-size: 20px; }
+    .bos-title-page .t { font-family: var(--serif); font-size: 21px; color: #221c14; line-height: 1.25; }
+    .bos-title-page .s { font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); }
+    /* Contents: gold section names, dot leaders, black page numbers. */
+    .bos-toc-h { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; margin-bottom: 10px; }
+    .bos-toc-row { display: flex; align-items: baseline; gap: 6px; padding: 9px 0; cursor: pointer; }
+    .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
+    .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
+    .bos-toc-row .p { font-size: 13.5px; color: #221c14; }
+    /* Reading pages: the pulled cards first, reading text behind an expand. */
+    .bos-cards { display: flex; gap: 10px; justify-content: center; margin: 14px 0 4px; }
+    .bos-cardslot { flex: 1; max-width: 92px; text-align: center; }
+    .bos-cardslot img { width: 100%; border-radius: 4px; display: block; margin: 0 auto 6px; }
+    .bos-cardslot img.rev { transform: rotate(180deg); }
+    .bos-cardslot .cn { font-family: var(--serif); font-size: 12.5px; color: #221c14; line-height: 1.25; }
+    .bos-cardslot .co { font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
+    .bos-cardph { width: 100%; aspect-ratio: 3 / 5; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); margin-bottom: 6px; }
     .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; }
     @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
     .bos-page { animation: bosPageIn 0.2s ease; }
@@ -1220,8 +1246,7 @@
       <!-- ═══════════ BOOK OF SHADOWS ═══════════ -->
       <section class="view" id="view-book">
         <div class="kicker">Your grimoire</div>
-        <div class="section-title">Book of Shadows</div>
-        <div class="section-sub">Your days, spells, signs and dreams — kept like a real book.</div>
+        <div class="section-sub">Your readings, synchronicities, spell work and dreams — kept like a real book.</div>
 
         <!-- The book itself: a cover you open -->
         <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
@@ -1303,7 +1328,7 @@
         <div id="bos-reader" style="display:none;">
           <div class="deck-top">
             <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-            <div class="bos-crumb" id="bos-crumb">Book of Shadows</div>
+            <div class="bos-crumb" id="bos-crumb">Secretly a Witch</div>
             <div class="bos-pageno" id="bos-pageno"></div>
           </div>
           <div class="bos-stage" id="bos-stage"><div class="bos-book"><div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div></div></div>
@@ -2275,9 +2300,18 @@
      One chronological book. New entries live in localStorage['witch_journal'];
      legacy content (miracles, saved readings) folds into the same page stream
      as its own page types, so nothing is lost. Page 0 is the contents page. */
-  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A sign', dream: 'A dream', miracle: 'Miracle', reading: 'Reading' };
-  const BOS_SECTIONS = { all: 'Book of Shadows', note: 'Day notes', spell: 'Spells & outcomes', sign: 'Signs & synchronicities', dream: 'Dreams', reading: 'Readings', miracle: 'Miracles' };
-  let bosFilter = 'all', bosPageIdx = 0;
+  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A synchronicity', dream: 'A dream', miracle: 'A synchronicity', reading: 'Reading' };
+  // The book reads like a real book: sections in a fixed order, each holding
+  // its pages chronologically. Old 'note' and 'miracle' entries live on inside
+  // Synchronicities so nothing already written is ever lost.
+  const BOS_SECTS = [
+    { key: 'reading', name: 'Readings', kinds: ['reading'] },
+    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
+    { key: 'spell', name: 'Spell work', kinds: ['spell'] },
+    { key: 'dream', name: 'Dreams', kinds: ['dream'] },
+  ];
+  const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
+  let bosPageIdx = 0;   // 0 = the open spread (title + contents), 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function tsOf(id) { const m = String(id || '').match(/(\d{13})/); return m ? +m[1] : 0; }
@@ -2289,13 +2323,28 @@
     pages.sort((a, b) => a.ts - b.ts);
     return pages;
   }
-  function bosPages() { return bosFilter === 'all' ? bosAllPages() : bosAllPages().filter(p => p.kind === bosFilter); }
+  function bosPages() {
+    const all = bosAllPages();
+    const out = [];
+    for (const s of BOS_SECTS) out.push(...all.filter(p => s.kinds.includes(p.kind)));
+    return out;
+  }
+  // 1-based page number where a section starts — the contents' page numbers.
+  function bosSectStart(key) {
+    const all = bosAllPages();
+    let n = 1;
+    for (const s of BOS_SECTS) {
+      if (s.key === key) return n;
+      n += all.filter(p => s.kinds.includes(p.kind)).length;
+    }
+    return n;
+  }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
   function openBook(filter) {
-    bosFilter = filter || 'all';
-    // Open to the contents page for a filtered visit, else to the latest page.
-    bosPageIdx = filter && filter !== 'all' ? 1 : 0;
-    if (!filter || filter === 'all') bosPageIdx = 0;
+    // Always open on the spread; a section request (school lesson CTAs) jumps
+    // straight to that section's first page.
+    bosPageIdx = 0;
+    if (filter && filter !== 'all') bosPageIdx = Math.min(bosSectStart(bosSectOf(filter)), Math.max(1, bosPages().length));
     $('bos-reader').style.display = '';
     document.body.classList.add('book-open');
     renderBosPage();
@@ -2303,16 +2352,17 @@
   function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
   function renderBosPage() {
     const pages = bosPages(), total = pages.length;
-    $('bos-crumb').textContent = BOS_SECTIONS[bosFilter] || 'Book of Shadows';
-    if (bosPageIdx <= 0) { renderBosIndex(); return; }
+    if (bosPageIdx <= 0) { renderBosSpread(); return; }
     if (bosPageIdx > total) bosPageIdx = total;
     if (!total) {
       $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
       $('bos-pageno').textContent = '';
       return;
     }
+    document.querySelector('#bos-stage .bos-book').classList.remove('spread');
+    document.querySelector('#bos-stage .bos-book').innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     const p = pages[bosPageIdx - 1];
-    $('bos-pageno').textContent = bosPageIdx + ' of ' + total;
+    $('bos-pageno').textContent = 'p. ' + bosPageIdx + ' of ' + total;
     let inner = `<div class="bos-date">${esc(bosDate(p.ts))}<span class="bos-type">${esc(BOS_TYPES[p.kind] || p.kind)}</span></div>`;
     if (p.src === 'journal') {
       const e = p.e;
@@ -2329,22 +2379,41 @@
       if (e.url) inner += `<img src="${e.url}" alt="">`;
       inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
     } else if (p.src === 'reading') {
+      // The pulled cards ARE the page; the written reading waits behind a tap.
       const r = p.e;
-      const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
-      inner += `<h3>${esc(r.question || 'A reading')}</h3><div class="bos-context">${esc(cards)}</div><div style="margin-top:10px;">${renderReading(r.data, true)}</div>`;
+      inner += `<h3>${esc(r.question || 'A reading')}</h3>`;
+      inner += `<div class="bos-cards">${(r.cards || []).map(c => {
+        const img = DECK_IMG[c.name];
+        return `<div class="bos-cardslot">${img
+          ? `<img src="${img}" class="${c.orientation === 'reversed' ? 'rev' : ''}" alt="${esc(c.name)}">`
+          : `<div class="bos-cardph">✦</div>`}
+          <div class="cn">${esc(c.name)}</div>
+          <div class="co">${c.orientation === 'reversed' ? 'reversed' : 'upright'}${c.position ? ' · ' + esc(c.position) : ''}</div></div>`;
+      }).join('')}</div>`;
+      inner += `<div class="bos-actions"><button class="link-btn" data-expand="1">Read the full reading</button></div>
+        <div class="bos-fullreading" style="display:none; margin-top:10px;">${renderReading(r.data, true)}</div>`;
     }
     $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}</div>`;
   }
-  function renderBosIndex() {
-    const all = bosAllPages();
-    const count = k => all.filter(p => p.kind === k).length;
-    const rows = [['all', 'All pages', all.length], ['note', 'Day notes', count('note')], ['spell', 'Spells & outcomes', count('spell')], ['sign', 'Signs & synchronicities', count('sign')], ['dream', 'Dreams', count('dream')], ['reading', 'Readings', count('reading')], ['miracle', 'Miracles', count('miracle')]];
-    $('bos-pageno').textContent = 'contents';
-    $('bos-pagewrap').innerHTML = `<div class="bos-page">
-      <div class="bos-date">Contents</div>
-      ${rows.map(([k, n, c]) => `<div class="bos-index-row" data-sect="${k}"><span class="n">${n}</span><span class="c">${c ? c + (c === 1 ? ' page' : ' pages') : '—'}</span></div>`).join('')}
-      <p class="hint" style="margin-top:16px;">Tap a section, or tap the right side of any page to turn it.</p>
-    </div>`;
+  // The open book: title page on the left leaf, contents on the right —
+  // gold section names, dot leaders, black page numbers, like a real book.
+  function renderBosSpread() {
+    const n = bosAllPages().length;
+    const book = document.querySelector('#bos-stage .bos-book');
+    book.classList.add('spread');
+    $('bos-pageno').textContent = '';
+    const rows = BOS_SECTS.map(s =>
+      `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
+    book.innerHTML = `
+      <div class="bos-leaf left"><div class="bos-title-page">
+        <div class="star">✦</div>
+        <div class="t">Book of<br>Shadows</div>
+        <div class="s">${n ? n + (n === 1 ? ' page' : ' pages') : 'blank & waiting'}</div>
+      </div></div>
+      <div class="bos-leaf right">
+        <div class="bos-toc-h">Contents</div>
+        ${rows}
+      </div>`;
   }
   $('bos-cover').addEventListener('click', () => openBook('all'));
   $('bos-close').addEventListener('click', closeBook);
@@ -2352,7 +2421,15 @@
   $('bos-next').addEventListener('click', () => { if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); } });
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
-    if (sect) { bosFilter = sect.dataset.sect; bosPageIdx = bosFilter === 'all' ? 1 : (bosPages().length ? 1 : 1); renderBosPage(); return; }
+    if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const ex = e.target.closest('[data-expand]');
+    if (ex) {
+      const fr = ex.closest('.bos-page').querySelector('.bos-fullreading');
+      const show = fr.style.display === 'none';
+      fr.style.display = show ? '' : 'none';
+      ex.textContent = show ? 'Hide the full reading' : 'Read the full reading';
+      return;
+    }
     const oc = e.target.closest('[data-outcome]');
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
@@ -2363,12 +2440,12 @@
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
   /* Composer */
-  let bosComposeType = 'note', bosOutcomeFor = null;
+  let bosComposeType = 'sign', bosOutcomeFor = null;
   function openComposer(mode) {
     const isOutcome = mode === 'outcome';
     openModal(`<h2 style="margin-bottom:4px;">${isOutcome ? 'How did it turn out?' : 'Write a page'}</h2>
       ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
-        ${['note', 'spell', 'sign', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
+        ${['sign', 'spell', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
       </div>`}
       <textarea id="bos-compose-text" rows="6" placeholder="${isOutcome ? 'The candle burned clean, and two days later…' : 'Write it as it happened…'}" style="width:100%;"></textarea>
       <div id="bos-context-wrap" style="display:${!isOutcome && bosComposeType === 'sign' ? '' : 'none'}; margin-top:10px;">
