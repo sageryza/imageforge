@@ -1545,10 +1545,10 @@ async function dreamPaginate(dream, castNames) {
   const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
 {"pages": [
   {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
-   "caption": a SHORT hand-lettered caption for this image, at most ~12 words, in the DREAMER'S OWN VOICE and phrasing — but TRIM the filler (drop "like", "you know", "I mean", "I don't know if", "I guess", "kind of", repeated false starts). Present tense, evocative, their words distilled — NOT the full transcript,
+   "captions": [1 to 3 short hand-lettered caption lines for this image, IN ORDER, narrating this part in the DREAMER'S OWN WORDS AND VOICE. Use their actual phrasing — lightly clean the worst filler ("like", "you know", "I mean", "um", stutters/false starts) but KEEP their real words and tone; do NOT rewrite them to sound darker, more poetic, or more "haunting" to match the art. Each line up to ~15 words. Together the lines should let the dreamer narrate what's happening on this page — err toward keeping MORE of their voice, not less. [] only if this image truly needs no words],
    "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might first seem — merge adjacent moments). "caption" keeps the dreamer's voice but is trimmed and short. "who" must use CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1560,11 +1560,17 @@ RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might
         { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: 'low', retries: 2 });
   const nameSet = new Set(castNames);
   const pages = (Array.isArray(out.pages) ? out.pages : [])
-    .map(p => ({
-      text: String(p.text || '').trim(),
-      caption: String(p.caption || '').trim().slice(0, 160),
-      who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
-    }))
+    .map(p => {
+      // Accept the new `captions` array; tolerate an older single `caption`.
+      let caps = Array.isArray(p.captions) ? p.captions
+        : (p.caption ? [p.caption] : []);
+      caps = caps.map(c => String(c || '').trim()).filter(Boolean).slice(0, 3).map(c => c.slice(0, 120));
+      return {
+        text: String(p.text || '').trim(),
+        captions: caps,
+        who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
+      };
+    })
     .filter(p => p.text)
     .slice(0, 4);
   if (!pages.length) throw new Error('page planning produced no pages');
@@ -1607,15 +1613,17 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
   const continuity = clauses.length
     ? `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them. `
     : '';
-  const cap = String(plan.caption || '').trim();
+  const caps = Array.isArray(plan.captions) ? plan.captions.filter(Boolean)
+    : (plan.caption ? [plan.caption] : []);
+  const capInstr = caps.length
+    ? `Hand-letter ${caps.length === 1 ? 'this caption' : 'these ' + caps.length + ' captions, in order,'} onto the page as small caption boxes in the dreamer's handwriting, each spelled EXACTLY as written and nothing added: ${caps.map(c => `"${c}"`).join(', ')}.`
+    : 'Add a short hand-lettered caption in the dreamer\'s own voice.';
   const body =
     `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. ` +
     `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
     `THIS page covers ONLY this part of it: "${plan.text}". Draw only that part. ` +
     'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. ' +
-    (cap
-      ? `Hand-letter ONE short caption box on the page containing EXACTLY this text, spelled exactly, and nothing more: "${cap}".`
-      : 'Add one short hand-lettered caption in the dreamer\'s own voice.');
+    capInstr;
   const prompt = `${styleIntro}${continuity}${body}`;
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
@@ -1639,7 +1647,7 @@ async function makeDreamPagesV2(dream, quality, progress) {
       const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
       dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
       rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
-      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, caption: plans[i].caption || '', who: plans[i].who || [] });
+      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, captions: plans[i].captions || [], who: plans[i].who || [] });
     } catch { failed++; }
     await progress(++done, total, 'drawing pages');
   }
