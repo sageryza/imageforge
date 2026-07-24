@@ -13,6 +13,33 @@
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
 
+## Dashboard deep links (give Sophie EXACT links, never "go find it")
+Sophie reads on a phone and hunting through a dashboard's menus wastes her
+time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
+you can't guess — none of them is a credential (every link still demands her
+login), so they're safe here even though this repo is public. Pair them with
+the "research the CURRENT UI" design rule: the ids stay valid, the menu labels
+around them change, so verify the labels and use these for the URL.
+- **Render service** (the ImageForge web service): `srv-d660igvgi27c73a5u6eg`
+  - Settings incl. **Custom Domains**: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/settings
+  - Env vars: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/env
+  - Logs: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/logs ·
+    Deploys: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/deploys
+  - Pattern: `dashboard.render.com/web/<srv-id>/<settings|env|logs|deploys|metrics>`
+- **Firebase** — membry (`membry-df528`, the iOS gallery / witch auth):
+  - Auth **Authorized domains**: https://console.firebase.google.com/project/membry-df528/authentication/settings
+  - Firestore: https://console.firebase.google.com/project/membry-df528/firestore
+  - Deck Factory (`deckfactory-43176`, server data/Storage): swap the project id
+    into the same paths.
+- **Shopify admin** (store handle `cod-god-inc`):
+  - Domains: https://admin.shopify.com/store/cod-god-inc/settings/domains
+  - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
+  - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
+- **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Missing an id you need?** Ask Sophie to paste the URL from her address bar
+  while she's on that page, build the exact link from it, and ADD THE ID HERE
+  so no future chat has to ask twice.
+
 ## Live app
 - **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
   - Hub: https://imageforge-q125.onrender.com/
