@@ -2226,7 +2226,7 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
 }
 Give EXACTLY 2 omens.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
@@ -2255,7 +2255,7 @@ They have NOT entered birth details, so nothing here is natal: read TODAY's real
 ${astroContext}
 
 Write the deeper page now.`;
-        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
         if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
         let deep;
@@ -2282,7 +2282,7 @@ Write the deeper page now.`;
     // the weirdness stays parseable. Tarot stays on Claude Opus. The two never
     // see each other's context.
     const [aData, tData] = await Promise.all([
-      openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+      openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
