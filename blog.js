@@ -20,6 +20,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
+const googleads = require('./googleads'); // real keyword search-volume data (when Basic access is live)
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -116,7 +117,7 @@ async function researchKeywords({ topic, context = '' } = {}) {
     { role: 'system', content: sys },
     { role: 'user', content: `Topic / product: ${topic}\nShop context: ${context || '(a small handmade / illustrated goods shop)'}` },
   ], { temperature: 0.7 });
-  return {
+  const out = {
     pillar: String(raw.pillar || '').trim(),
     keywords: Array.isArray(raw.keywords) ? raw.keywords.slice(0, 16).map(k => ({
       phrase: String(k.phrase || '').trim(),
@@ -129,6 +130,26 @@ async function researchKeywords({ topic, context = '' } = {}) {
       keyword: String(c.keyword || '').trim(),
     })).filter(c => c.title) : [],
   };
+  // Enrich each keyword with REAL monthly search volume from Google Ads when
+  // it's wired up + approved. Best-effort: if the token is still on Test access
+  // (PERMISSION_DENIED) or anything errors, we silently keep the AI estimates.
+  out.volumeSource = 'estimated';
+  if (googleads.configured && googleads.configured() && out.keywords.length) {
+    try {
+      const metrics = await googleads.generateHistoricalMetrics({ keywords: out.keywords.map(k => k.phrase) });
+      const byPhrase = new Map(metrics.map(m => [String(m.text || '').toLowerCase(), m]));
+      out.keywords = out.keywords.map((k) => {
+        const m = byPhrase.get(k.phrase.toLowerCase());
+        return m ? { ...k, avgMonthlySearches: m.avgMonthlySearches, competition: m.competition ?? k.difficulty } : k;
+      });
+      // Sort by real demand when we have it.
+      out.keywords.sort((a, b) => (b.avgMonthlySearches || -1) - (a.avgMonthlySearches || -1));
+      out.volumeSource = 'google_ads';
+    } catch (err) {
+      out.volumeNote = `real volumes unavailable (${err.message}) — showing AI estimates`;
+    }
+  }
+  return out;
 }
 
 // ─── Draft a full SEO post ──────────────────────────────────────────
