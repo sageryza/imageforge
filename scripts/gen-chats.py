@@ -48,6 +48,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
+.renamebtn:active{color:var(--ink);}
+.nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
 .assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
 .assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer;}
 .assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
@@ -373,6 +376,37 @@ function editAbout(chat, row, current){
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
 }
 
+// Rename a chat from its thread header (WKWebView blocks window.prompt, so an
+// inline input). Saves a cosmetic displayName; the chat key never changes, so
+// messages keep grouping the same way. Empty clears back to the key.
+function editName(chat, head){
+  var th=head.querySelector('.thread-head'); var h1=th.querySelector('h1');
+  var btn=th.querySelector('.renamebtn'); if(btn) btn.style.display='none';
+  var inp=document.createElement('input'); inp.type='text'; inp.className='nameed';
+  inp.value=dispName(chat); inp.placeholder=chat; inp.maxLength=60;
+  h1.style.display='none'; th.insertBefore(inp,h1); inp.focus(); inp.select();
+  var done=false;
+  function restore(label){
+    h1.textContent=label; h1.style.display=''; if(btn) btn.style.display='';
+    if(inp.parentNode) inp.parentNode.removeChild(inp);
+  }
+  function save(){
+    if(done) return; done=true;
+    var v=inp.value.trim();
+    api('/api/chatfeed/rename',{method:'POST',body:JSON.stringify({chat:chat,name:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        chats[chat]=chats[chat]||{}; chats[chat].displayName=v||null;
+        restore(dispName(chat)); toast('Renamed'); })
+      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn\\u2019t save that'); inp.focus(); });
+  }
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+    else if(e.key==='Escape'){ done=true; restore(dispName(chat)); }
+  });
+}
+
 function setIcon(chat){
   var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
   inp.onchange=function(){
@@ -399,10 +433,14 @@ function groups(){
     .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
   return g;
 }
+// The label Sophie sees for a chat. Defaults to the underlying chat key
+// (branch-derived); a custom displayName set in-app overrides it. Messages
+// still group by the real key, so renaming only changes the label.
+function dispName(name){ return (chats[name]&&chats[name].displayName)||name; }
 function iconHtml(name, cls){
   var icon=chats[name]&&chats[name].icon;
   if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
-  return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((name||'?').slice(0,1).toUpperCase())+'</span></span>';
+  return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((dispName(name)||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
 function sortedChatNames(g){
@@ -476,7 +514,7 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatDone(name,last)?' done':'');
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+esc(name)+'</span>'
+      +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
@@ -494,7 +532,7 @@ function renderList(el,g,names){
     var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
     var row=document.createElement('button'); row.className='crow'+(chatDone(name,last)?' done':'');
     row.innerHTML=iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(name)+'</span>'
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
       +'<span class="cr-sub">'+esc(status)+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
@@ -589,12 +627,13 @@ function openChat(name, keepScroll){
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(name)+'</h1></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
+  head.querySelector('.renamebtn').onclick=function(){ editName(name, head); };
 
   // Chat panel — the messages (newest at top) + archive control
   var chatPanel=document.createElement('div');

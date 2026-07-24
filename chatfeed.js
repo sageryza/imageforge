@@ -346,6 +346,21 @@ router.post('/about', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Give a chat a custom display name shown in the app. Purely cosmetic — the
+// underlying `chat` key (branch-derived) is unchanged, so every reply still
+// groups into the same chat; only the label Sophie sees changes. Empty name
+// clears it (falls back to the chat key). Stored on the registry doc.
+router.post('/rename', async (req, res) => {
+  try {
+    const { chat, name } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(name || '').trim().slice(0, 60);
+    await db().collection(REG).doc(String(chat).slice(0, 60))
+      .set({ displayName: val || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, displayName: val || null });
+  } catch (err) { fail(res, err); }
+});
+
 // Render a message in the polished neural voice (same onyx-British read as
 // the Writing Room's Listen button). Result is cached on the message doc as
 // audioUrl, so each message costs at most one render (~1¢).
