@@ -41,13 +41,21 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
   when the trial ends; send a reminder email before the charge). Decided 2026-07.
 - **Free vs paid map (draft — confirm/expand with Sophie):** ONE membership
   unlocks all of it.
-  - **Dream illustration** — 1 illustrated page free, rest paywalled (blurred).
+  - **Dream illustration** — LEAVE FULLY OPEN FOR NOW (Sophie, 2026-07): not
+    paywalling/capping dreams yet — it's fun to see people's dreams and it's
+    marketing research for her planned "Just Dream" shared-dream platform. The
+    cost is accepted as research spend. (The 1-page-free/blur-rest paywall is
+    still the eventual model, just deferred.)
   - **Suspicious Coincidence** — 3 boxes, drawings persist; 1 redraw/day free;
     more redraws paid.
   - **Birth chart** — your OWN chart free; charts for friends / other people paid
     (Costar model).
-  - **Make-your-own-tarot-deck** (new feature, not built) — major arcana free;
-    the full deck (incl. minor arcana) paid.
+  - **Make-your-own-tarot-deck** (new feature, not built) — REVISED (Sophie,
+    2026-07) to cap cost: free = **3 cards**; paid = the **major arcana (22)**;
+    the **full 78-card deck is never offered** (no minor arcana) — this caps the
+    spendiest action at ~22 cards, generated once.
+  - **Suspicious Coincidence — generous for paid** (Sophie: "could go forever").
+    It's ~1.5¢/draw, so paid = effectively unlimited redraws; free = 1/day.
   - **Advanced / special-topic Witch School lessons** — possible paid tier
     (basic lessons free, advanced or interesting-topic ones paid).
   - **Text coincidence moments in the book** (Book of Miracles / Shadows — which
