@@ -830,6 +830,7 @@ function mkPagePill(getWin){
   vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
   vm.onclick=function(){ playing? stop() : start(1); };
   paint(); pill._stop=stop;
+  pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
   return pill;
 }
 // Full-screen viewer for a Compare page: top bar (back + title) over an
@@ -846,6 +847,18 @@ function openPage(p){
   v.appendChild(bar); v.appendChild(frame);
   var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
   v.appendChild(pill);
+  // Tap the page itself to start/stop autoscroll (same-origin iframe, so we can
+  // listen on its document). Taps on links/buttons still do their own thing.
+  frame.addEventListener('load', function(){
+    try{
+      var doc=frame.contentDocument;
+      if(doc) doc.addEventListener('click', function(e){
+        var t=e.target;
+        if(t && t.closest && t.closest('a,button,input,textarea,select,label,summary')) return;
+        pill._tap();
+      });
+    }catch(_){}
+  });
   bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
   document.body.appendChild(v);
   document.body.style.overflow='hidden';
