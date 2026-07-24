@@ -19,6 +19,7 @@ AUDIO_ONLY = os.environ.get("AUDIO_ONLY") == "1"  # just stitch the voice clips 
 FINISH_PAUSE = os.environ.get("FINISH_TO_PAUSE") == "1"  # extend each clip end to the speaker's next pause (finish the thought)
 FINISH_GAP = float(os.environ.get("FINISH_GAP", "0.45"))  # a pause this long counts as a sentence end
 FINISH_CAP = int(os.environ.get("FINISH_CAP", "12"))      # never extend more than this many words
+WHOLE = os.environ.get("WHOLE") == "1"  # cut the ENTIRE quote (opening words → closing words), then to next pause
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -151,6 +152,32 @@ def find_quote_sentence(win_json, phrase, quote):
     t1 = words[wi_end]["end"] + 0.30
     return (max(0, t0), t1, target)
 
+def find_whole_quote(win_json, quote):
+    """Cut the ENTIRE quote: locate its opening words and its closing words in
+    the audio and span between them (so every sentence in the quote is kept),
+    then extend to the next real pause so nothing trails off mid-thought."""
+    words = win_json.get("words") or []
+    qw = norm(quote)
+    if not words or len(qw) < 3:
+        return None
+    head = " ".join(qw[:min(6, len(qw))])
+    tail = " ".join(qw[-min(6, len(qw)):])
+    hs = _phrase_span(win_json, head)
+    if not hs:
+        return None
+    ts = _phrase_span(win_json, tail)
+    wi_start = hs[0]
+    wi_end = ts[1] if (ts and ts[1] >= wi_start) else hs[1]
+    steps = 0  # let the final thought land at a pause
+    while wi_end < len(words) - 1 and steps < 8:
+        if words[wi_end + 1]["start"] - words[wi_end]["end"] >= FINISH_GAP:
+            break
+        wi_end += 1; steps += 1
+    t0 = words[wi_start]["start"] - 0.15
+    t1 = words[wi_end]["end"] + 0.30
+    text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
+    return (max(0, t0), t1, text)
+
 def find_sentence(win_json, quote):
     """Return (rel_start, rel_end, text) of the complete sentence(s) matching quote."""
     words = win_json.get("words") or []
@@ -241,7 +268,11 @@ for i, c in enumerate(cands, 1):
             wj = whisper_words(win)
             json.dump(wj, open(cachef, "w"))
         phrase = (c.get("phrase") or "").strip()
-        if TIGHT and phrase:
+        if WHOLE:
+            found = find_whole_quote(wj, quote) or find_sentence(wj, quote)
+            if not found:
+                print(f"  [{i}] {name}: no match in audio, skip"); continue
+        elif TIGHT and phrase:
             found = find_phrase(wj, phrase)
             if not found:
                 # phrase isn't really in this window (bad timestamp) — dropping
