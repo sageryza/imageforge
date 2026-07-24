@@ -31,7 +31,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
@@ -215,6 +215,13 @@ loadConfig().then(() => {
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
+  // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
+  const stripeMod = require('./stripe');
+  app.use('/api/stripe', stripeMod.createRouter({
+    membryDb: storyDb,                                    // membry-df528 Firestore
+    membryAuth: async () => { await storyDb(); return storyApp.auth(); }, // verify witch ID tokens
+    appUrl: () => (process.env.RENDER_EXTERNAL_URL || 'https://imageforge-q125.onrender.com').replace(/\/$/, ''),
+  }));
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed + nde)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
