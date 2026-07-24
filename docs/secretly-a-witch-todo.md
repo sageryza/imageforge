@@ -37,15 +37,41 @@ places" — treat as ONE membership that unlocks everything (confirm with Sophie
   from another project; key gets pasted in at build time.
 - **Pricing (Sophie, 2026-07):** **$4/month** to start (may rise depending on
   real per-feature model costs), **monthly only — no annual** (feels deceptive),
-  **free trial OK** if it's the standard card-up-front auto-converting kind.
+  **free trial: CARD UP FRONT** (Stripe collects card, N days free, auto-charges
+  when the trial ends; send a reminder email before the charge). Decided 2026-07.
 - **Free vs paid map (draft — confirm/expand with Sophie):** ONE membership
   unlocks all of it.
   - **Dream illustration** — 1 illustrated page free, rest paywalled (blurred).
-  - **Suspicious Coincidence** — 1 draw/day + 1 redraw/day free; more redraws paid.
+  - **Suspicious Coincidence** — 3 boxes, drawings persist; 1 redraw/day free;
+    more redraws paid.
   - **Birth chart** — your OWN chart free; charts for friends / other people paid
     (Costar model).
   - **Make-your-own-tarot-deck** (new feature, not built) — major arcana free;
     the full deck (incl. minor arcana) paid.
+  - **Advanced / special-topic Witch School lessons** — possible paid tier
+    (basic lessons free, advanced or interesting-topic ones paid).
+  - **Text coincidence moments in the book** (Book of Miracles / Shadows — which
+    one TBD, ties into the BoS rework) — adding a **text-only** moment is free;
+    **paying to illustrate it** is the paid action. New feature, not built.
+- **Coincidence spec (decided 2026-07):** KEEP the **three** Home boxes.
+  Drawings **persist** (stay in the box — you can't freely change them). Free =
+  **one redraw per day** (across the boxes); more redraws paid. "Draw it!" →
+  "Redraw" after a drawing exists; redraw popup + version arrows as before.
+
+### ⚠️ Unit economics — check BEFORE committing to $4/mo (Sophie flagged)
+Many paid features cost real API money per use, so an unlimited $4/mo membership
+can LOSE money on power users. Rough per-action costs (cheap tiers we already use):
+- Coincidence draw (gpt-image-2 low): **~1.5¢**
+- Dream page (gpt-image-2 medium): **~6¢** (a dream is several pages)
+- Full 78-card tarot deck: **~$1.20 (low) – ~$4.70 (medium)** — the spendiest single action
+- Friend birth chart (gpt-4o-mini text): **fractions of a cent**
+- Advanced lessons: **~$0/user** if pre-generated ONCE and shared (do this)
+Stripe fee on $4 ≈ 42¢, so real budget ≈ **$3.58/paying user/mo**. A heavy user
+doing daily multi-page dreams alone blows past that. **Levers:** (a) per-feature
+fair-use caps even for PAID (e.g. N dreams/day, N deck-gens/mo), (b) a credit/
+allowance system, (c) higher price. ALSO watch FREE-user cost (they pay nothing
+but still burn API $ — keep the taste genuinely small). Recommend: caps + cheap
+tiers + pre-generate shared content. TODO: build a proper break-even model.
 
 ### Blurred paywalled pages should look DIFFERENT (not the same page repeated)
 Right now the blurred/locked pages behind a paywall (e.g. Dream's un-purchased
