@@ -3075,7 +3075,7 @@
   function coinPending() { return pendGet(COIN_PEND) || {}; }
   function coinSetPending(i, v) { const m = coinPending(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_PEND, Object.keys(m).length ? m : null); }
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
-  function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); }
+  function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
   function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
@@ -4117,7 +4117,7 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
@@ -4127,6 +4127,7 @@
     try { updateBosCoverSub(); } catch {}
     try { loadSavedNatal(); } catch {}
     try { renderHome(); } catch {}
+    try { resumeCoinJobs(); } catch {}
   }
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); }); }
 
