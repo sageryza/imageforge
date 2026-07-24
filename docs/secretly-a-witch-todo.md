@@ -5,6 +5,16 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Book of Shadows — Synchronicities 4th box "draw another" is a PAID button (TODO)
+The Synchronicities section shows the day's coincidences 4-to-a-page. The 3
+Home coincidences file in automatically; the **4th box is left empty on
+purpose**. Sophie wants a **"Draw it" / draw-another button on that empty box
+that opens the pay screen** (buying an extra synchronicity draw beyond the free
+3/day). Not built yet — currently the 4th box is just a plain empty square.
+When building: reuse `openUpgrade('coincidence')` / the membership flow, gate
+the draw, then write the result into the sync archive (`witch_sync_archive`)
+under that day so it fills the 4th slot. Ties into the paywall section below.
+
 ### Paywall / subscription across the app ("get a taste, then pay")
 The membership model: free users get a *taste* of each generative feature, the
 rest is paywalled. Examples: Dream = 1 illustrated page free, rest blurred;

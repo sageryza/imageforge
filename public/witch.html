@@ -185,6 +185,20 @@
     .btn-white svg { width: 15px; height: 15px; }
 
     /* Suspicious coincidence — describe it, AI draws it */
+    .coin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .coin-saved { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
+    .coin-saved.filled { color: var(--gold); }
+    .coin-saved .coin-bm { line-height: 0; }
+    .coin-saved .coin-bm svg { width: 15px; height: 15px; stroke: currentColor; fill: none; transition: fill 0.25s ease; }
+    .coin-saved.filled .coin-bm svg { fill: var(--gold); }
+    .coin-saved.just .coin-bm svg { animation: bmPop 0.5s ease; }
+    @keyframes bmPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+    /* Book of Shadows — Synchronicities: 4 boxes a page (Little Book of Miracles look) */
+    .bos-sync-date { text-align: right; font-family: var(--serif); font-size: 18px; color: #221c14; margin-bottom: 16px; }
+    .bos-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
+    .bos-sync-box { width: 100%; aspect-ratio: 1; border: 1px solid #d9cbb4; border-radius: 3px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
+    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -1026,7 +1040,13 @@
         <div class="section-sub">Which ones have been put in your path today?</div>
         <!-- Suspicious coincidence — describe it, AI draws it -->
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
-          <div class="kicker">Suspicious coincidence…</div>
+          <div class="coin-head">
+            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
+            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
+              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
+              <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+            </button>
+          </div>
           <div class="coin-boxes">
             <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <span class="js-star"></span></button></div>
             <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <span class="js-star"></span></button></div>
@@ -2395,20 +2415,40 @@
     pages.sort((a, b) => a.ts - b.ts);
     return pages;
   }
+  function isoOfTs(ts) { if (!ts) return '0000-00-00'; const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  function syncDateLabel(iso) { const p = iso.split('-').map(Number); const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[p[1] - 1] ? `${M[p[1] - 1]} ${p[2]}` : ''; }
+  // Synchronicities = the drawn coincidences (archived daily) + any legacy
+  // hand-written sign/note/miracle entries — grouped by day, 4 to a page.
+  function syncItems() {
+    const out = [];
+    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '' }); });
+    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: null, desc: e.text || '' }); } });
+    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
+    return out.sort((a, b) => a.ts - b.ts);
+  }
+  function syncPages() {
+    const byDay = {};
+    syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
+    const out = [];
+    Object.keys(byDay).sort().forEach(d => { const items = byDay[d]; for (let k = 0; k < items.length; k += 4) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: items.slice(k, k + 4) }); });
+    return out;
+  }
   function bosPages() {
     const all = bosAllPages();
     const out = [];
-    for (const s of BOS_SECTS) out.push(...all.filter(p => s.kinds.includes(p.kind)));
+    for (const s of BOS_SECTS) {
+      if (s.key === 'sync') syncPages().forEach(p => out.push(p));
+      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; out.push(p); });
+    }
     return out;
   }
   // 1-based page number where a section starts — the contents' page numbers.
   function bosSectStart(key) {
-    const all = bosAllPages();
-    let n = 1;
-    for (const s of BOS_SECTS) {
-      if (s.key === key) return n;
-      n += all.filter(p => s.kinds.includes(p.kind)).length;
-    }
+    const pages = bosPages();
+    const idx = pages.findIndex(p => p.sect === key);
+    if (idx >= 0) return idx + 1;
+    let n = 1;   // empty section: point where it WOULD start
+    for (const s of BOS_SECTS) { if (s.key === key) return n; n += pages.filter(p => p.sect === s.key).length; }
     return n;
   }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
@@ -2440,6 +2480,20 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    if (p.page === 'sync') {
+      // 2×2 grid: the day's coincidences, image in the box + caption under it.
+      let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
+      for (let k = 0; k < 4; k++) {
+        const it = p.items[k];
+        g += `<div class="bos-sync-cell">
+          <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
+          <div class="bos-sync-cap">${it && it.desc ? esc(it.desc) : ''}</div>
+        </div>`;
+      }
+      g += `</div>`;
+      $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      return;
+    }
     let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
     if (p.src === 'journal') {
       const e = p.e;
@@ -3279,7 +3333,38 @@
   // ~15s render survives leaving the app: the pending id per box is saved and
   // resumed on return.
   const COIN_PEND = 'witch_coin_jobs'; // pending job per box: { "0": {id, desc}, ... }
-  const COIN_DONE = 'witch_coin_done'; // finished draw per box: { "0": {url, desc}, ... }
+  const COIN_DONE = 'witch_coin_done'; // TODAY's finished draws per box: { "0": {desc,v,i}, ... }
+  // ── Synchronicities archive ──────────────────────────────────────────
+  // The Home coincidence boxes are DAILY (they reset at midnight). Every draw is
+  // also filed, permanently, into the archive, keyed per (day, box) so redraws
+  // update the same entry. The Book of Shadows' Synchronicities section reads
+  // this, grouped by day, 4 to a page.
+  const SYNC_ARCH = 'witch_sync_archive';   // [{ id, dateISO, ts, url, desc }]
+  const COIN_DAY = 'witch_coin_day';        // the day the Home boxes belong to
+  function syncArchLoad() { try { return JSON.parse(localStorage.getItem(SYNC_ARCH) || '[]'); } catch { return []; } }
+  function syncArchSave(a) { try { localStorage.setItem(SYNC_ARCH, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
+  function syncArchUpsert(entry) { const a = syncArchLoad(); const i = a.findIndex(x => x.id === entry.id); if (i >= 0) a[i] = { ...a[i], ...entry }; else a.push(entry); syncArchSave(a); }
+  // A new day: the previous day's draws are already archived, so clear the Home
+  // boxes. First run under the daily model: fold any existing draws in first.
+  function coinDailyRollover() {
+    let day = null; try { day = localStorage.getItem(COIN_DAY); } catch {}
+    const today = todayISO();
+    if (day === today) return;
+    if (day) { pendSet(COIN_DONE, null); pendSet(COIN_PEND, null); }
+    else {
+      const done = coinDoneAll();
+      Object.keys(done).forEach(i => { const st = done[i]; const u = st && st.v && st.v[st.i]; if (u) syncArchUpsert({ id: 'coin_' + today + '_' + i, dateISO: today, ts: Date.now(), url: u, desc: st.desc || '' }); });
+    }
+    try { localStorage.setItem(COIN_DAY, today); } catch {}
+  }
+  // "Saved to your Book of Shadows" bookmark — fills once you've drawn one today.
+  function coinSavedToday() { const d = coinDoneAll(); return Object.keys(d).some(i => { const st = d[i]; return st && st.v && st.v.length; }); }
+  function updateCoinBookmark(animate) {
+    const el = $('coin-saved'); if (!el) return;
+    const on = coinSavedToday();
+    el.classList.toggle('filled', on);
+    if (on && animate) { el.classList.remove('just'); void el.offsetWidth; el.classList.add('just'); }
+  }
   const COIN_BTN_HTML = 'Draw it! <span class="js-star"></span>';
   function coinPending() { return pendGet(COIN_PEND) || {}; }
   function coinSetPending(i, v) { const m = coinPending(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_PEND, Object.keys(m).length ? m : null); }
@@ -3357,6 +3442,9 @@
           if (redraw && st && st.v) { st.v.push(url); st.i = st.v.length - 1; coinSetDone(i, st); if (!isPaid()) coinBumpRedraw(); }
           else { coinSetDone(i, { desc, v: [url], i: 0 }); }
           coinSetPending(i, null); coinRenderDrawn(i);
+          // File it permanently into the Synchronicities archive + light the bookmark.
+          syncArchUpsert({ id: 'coin_' + todayISO() + '_' + i, dateISO: todayISO(), ts: Date.now(), url, desc: (redraw && st ? st.desc : desc) || '' });
+          updateCoinBookmark(true);
         } else { coinSetPending(i, null); if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); }
       },
       onError: (e) => { coinSetPending(i, null); if (redraw) { coinRenderDrawn(i); toast('Couldn\'t redraw — try again ✦'); } else { coinToEdit(i, desc); toast('Couldn\'t draw that one — try rewording it ✦'); } },
@@ -3408,15 +3496,19 @@
   }
   function resumeCoinJobs() {
     coinMigrate();
+    coinDailyRollover();   // clear Home boxes if it's a new day (archive keeps them)
     const done = coinDoneAll();
     Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
     Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
+    updateCoinBookmark(false);
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
     drawCoinBox(+b.dataset.i);
   }));
+  // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
@@ -4393,7 +4485,7 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done', 'witch_sync_archive', 'witch_coin_day'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
