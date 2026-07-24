@@ -5,6 +5,98 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Dream Currents — cross-user symbol matching (dreams × synchronicities) (SPEC — approved to build)
+Sophie's idea (2026-07-24): broadcast that synchronicity is real — "you dreamed
+about a kitten today? So did 5 other people. Small animals are on the rise."
+Anonymous by default (the shared data is counts, never text/images/uids), and
+maybe never publicly accessible — an in-app whisper, not a feed. Design settled
+in chat; ready to build.
+
+- **Four-way pollination — ONE shared pool.** Dreams match dreams OR
+  synchronicities; synchronicities match either too. There is no dream pool vs
+  sync pool — just *today's pool* of symbol phrases, each entry tagged
+  `dream`/`sync` only for flavor in the copy.
+- **Emergent matching, NOT a fixed vocabulary.** Never look up predefined
+  symbols. Layer 1 logs raw near-verbatim phrases ("three kittens", "a wave
+  over the house") into the day's pool. Layer 2, every ~20-30 min (only when
+  the pool changed), ONE AI call reads the whole day's phrase list (a few
+  hundred strings max — one prompt) and writes the day's **currents**: named
+  groupings it discovered, with member phrases + counts — e.g. "small animals —
+  kittens ×4, puppies ×2, a hamster". Cross-category groupings are the point
+  (puppies + kittens → "small animals"). The model names the current, so the
+  poetry comes from the same intelligence that spotted the pattern.
+- **Symbol extraction is FREE for dream readings** — the dream-read JSON shape
+  (`server.js` `DREAM_READ_SHAPE`) already returns `symbols[]` from the same
+  frontier-model call; just log them. Coincidences have no read call — add a
+  fire-and-forget extraction beside the draw job (never delays the drawing).
+- **NEVER delay the reading (Sophie: those seconds are precious).** The reading
+  renders the moment it's ready, untouched. THEN the client asks "any currents
+  matching these symbols?" (server fuzzy-matches against current members) and
+  the "others are dreaming this too" line fades in beneath. No match / quiet
+  day → the line simply never appears (honest silence). Re-check on revisit:
+  a morning dream can join a current that formed by evening — that's how
+  synchronicity feels in real life.
+- **Real science in the background, woo voice up front.** Keep a trailing
+  ~30-day baseline per current/symbol; compare today for honest lift. Speak it
+  as "kittens are moving through the world today — you're the 8th person
+  they've found", never "95% increase". Count **unique accounts** per symbol
+  per day, not entries (3 kitten dreams from one person ≠ 3 kitten-visited
+  souls).
+- **Firestore only — no Supabase.** Clustering symbols (not full texts) keeps
+  the day's corpus tiny; this is the pre-aggregated-counter case the
+  memory-library TODO said Firestore handles. Embeddings/pgvector only if the
+  app ever sees thousands of entries/day.
+- **Later follow-up: push notification** — "5 other people dreamed about cats
+  today." The clustering job already knows when a current spikes; it pushes
+  instead of waiting to be fetched. Needs iOS push infra, so NOT v1.
+- **Expectation:** with the current user count the line will rarely fire; the
+  feature compounds as the app grows. Quiet is by design.
+
+### "Dream app" — public dream-sharing site (research findings, 2026-07-24)
+The banked shared-dream platform (called "Just Dream" above under the paywall
+section — that name is a MISNOMER, Sophie 2026-07-24: it has no name yet; say
+"Dream app". Name research is a later task — Latin stems, somnus/somnium
+territory). What exists and what to reuse:
+- **CORRECTION (2026-07-24): the site's home already exists —
+  `sageryza/collective-dreams`.** A Next.js 15 + Supabase app (Vercel),
+  last touched Sept 2025, that no repo note here knew about. Schema + RLS are
+  done and well-shaped: `dreams` / threaded `comments` / `hearts`, anyone-reads
+  / only-author-writes policies, anonymity structural ("A dreamer", no
+  profiles). Working feed/composer/comments/auth UI (~860 lines). Sophie had
+  already set up Supabase and WANTED it — the memory-library TODO's
+  "Firebase now, Supabase later" note was written blind and is overruled.
+  Build the sharing site THERE; gaps to add: dreams are text-only (no
+  image/panel support — biggest gap), no reciprocity gate, no per-panel or
+  text-optional publishing, no safety screen on posts, no bridge from the
+  witch app. Theme uses gradients — violates the no-gradients rule; restyle.
+- **Accounts:** witch users won't need a second account — the witch app
+  publishes panels via the imageforge server (verify Firebase sign-in, write
+  to Supabase with the service key). True shared accounts across the
+  Firebase apps (XI etc.) and this Supabase app = open question, only worth
+  deciding if the Dream app becomes a direct sign-in destination. XI growing
+  does NOT itself call for Supabase (Firestore fits its patterns).
+- The memory app's Group Dream Journal (membry-df528.web.app/dream-journal)
+  is TEXT-only private groups — wrong shape to convert; it predates
+  illustration.
+- **Reuse 1 — the publish gate:** XI's "stories i tell" (`publishMemory` Cloud
+  Function, memory-library-react `functions/index.js`) — clients can never
+  write the public collection; a server function re-reads, runs a Claude
+  safety/PII screen, then copies out. Un-publish, anonymous attribution, and a
+  reports collection all shipped. Copy the PATTERN into imageforge; do NOT
+  connect to the memory database — the two stay separate (Sophie, 2026-07-24).
+- **Reuse 2 — the dream schema:** `src/utils/dreamSchema.js` (structured
+  `symbols[]`/`emotions[]` — also feeds Dream Currents above).
+- **To reconcile:** witch dreams (`forge-witch-dream-illus`) vs Deck Factory
+  dreams (`forge-dreams`) are different collections; a shared library needs
+  one shape. `/trydreams` already proves anonymous guests + daily caps work.
+- **Sophie's rules for the site:** a button in Secretly a Witch ("want to see
+  other people's dreams? you're not the only one"); you must make YOUR dream
+  public for the day to see anyone else's (reciprocity gate); per-PANEL
+  publishing (share one page of a multi-page dream); text optional (image
+  without words). None of these exist yet — pages[] has no per-page
+  visibility, nothing anywhere has a public-for-the-day TTL.
+- Not an app yet — web first; its own app is the eventual final build.
+
 ### Book of Shadows — Synchronicities 4th box "draw another" is a PAID button (TODO)
 The Synchronicities section shows the day's coincidences 4-to-a-page. The 3
 Home coincidences file in automatically; the **4th box is left empty on
