@@ -189,6 +189,7 @@ loadConfig().then(() => {
   const chatfeed = require('./chatfeed');
   const tarotEmail = require('./tarot-email');
   const nde = require('./nde');
+  const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -210,6 +211,7 @@ loadConfig().then(() => {
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
+  app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
