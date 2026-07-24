@@ -78,7 +78,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
-.msg{padding:14px 0; border-bottom:1px solid var(--line);}
+.msg{padding:14px 0; border-bottom:1px solid var(--line); transition:background-color .3s;}
+.msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); font-weight:600;}
 .m-chat.sophie{color:var(--rose);}
@@ -607,7 +608,7 @@ function renderList(el,g,names){
 }
 
 function renderMsg(m){
-  var row=document.createElement('div'); row.className='msg';
+  var row=document.createElement('div'); row.className='msg'; if(m.id) row.dataset.mid=m.id;
   var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
@@ -685,7 +686,10 @@ function bookmarkBtn(m){
   return b;
 }
 
-function openChat(name, keepScroll){
+// focusId: scroll to & highlight a specific message after opening (used by
+// search, so a hit hundreds of messages back is actually shown, not the newest
+// message). noFetch guards the one-shot full-history load so it can't loop.
+function openChat(name, keepScroll, focusId, noFetch){
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
@@ -898,7 +902,32 @@ function openChat(name, keepScroll){
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
-  if(!keepScroll) window.scrollTo(0,0);
+  if(!keepScroll && !focusId) window.scrollTo(0,0);
+  if(focusId){ showTab('chat'); focusMessage(name, focusId, noFetch); }
+}
+// Jump to a specific message in the open thread (from a search hit). If it's
+// not in the loaded tail, pull the chat's full history once, rebuild, then
+// scroll to it. Expands the message and flashes it so it's easy to spot.
+function focusMessage(name, id, noFetch){
+  var row=document.querySelector('#thread .msg[data-mid="'+String(id).replace(/"/g,'')+'"]');
+  if(row){
+    row.classList.add('open');
+    row.scrollIntoView({block:'center'});
+    row.classList.add('flash');
+    setTimeout(function(){ row.classList.remove('flash'); }, 2400);
+    return;
+  }
+  if(noFetch){ toast('Couldn’t find that message'); return; }
+  toast('Loading full history…');
+  api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(cur!==name) return;
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; } });
+      openChat(name, true, id, true);   // rebuild with full thread; noFetch=true
+    })
+    .catch(function(){ toast('Couldn’t load history'); });
 }
 // An autoscroll pill that lives in THIS page and drives a same-origin iframe's
 // scroll — because iOS renders position:fixed unreliably INSIDE an iframe, so a
@@ -1056,7 +1085,7 @@ document.getElementById('back').onclick=goHome;
           var b=document.createElement('button'); b.className='sres';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(m.chat)+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
-          b.onclick=function(){ openChat(m.chat); };
+          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
           sr.appendChild(b);
         });
       })
