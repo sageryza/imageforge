@@ -23,7 +23,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
 .t-blank{display:flex; align-items:center; justify-content:center;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
-.t-new{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
+.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
 .t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
 .t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
@@ -160,7 +160,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .ckbtn.on{background:#5d7a5a; color:#fff;}
 .flagbtn.on{background:#c2703a; color:#fff;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
-.t-cover .flagbtn{position:absolute; top:5px; left:36px; width:26px; height:26px; z-index:2;}
+.t-cover .flagbtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
 .crow .ckbtn,.crow .flagbtn{width:31px; height:31px; flex:none; margin-left:2px;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
@@ -631,7 +631,8 @@ function renderList(el,g,names){
       +'<span class="cr-sub">'+esc(status)+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    row.appendChild(mkFlag(name,last,row)); row.appendChild(mkCheck(name,last,row));
+    row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
+    row.appendChild(mkCheck(name,last,row));
     row.onclick=function(){ openChat(name); };
     wrap.appendChild(row);
   });
