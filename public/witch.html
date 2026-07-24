@@ -199,6 +199,15 @@
     /* Drawn state: the description becomes a small caption under the image. */
     .coin-btn.coin-caption { color: var(--text-dim); font-style: italic; font-weight: 400; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; text-align: center; }
     .coin-cell.drawn .coin-btn { display: none; }
+    /* Drawn state: caption (moment text) + [◀ Redraw ▶] version controls */
+    .coin-cap { font-size: 12px; color: var(--text-dim); font-style: italic; line-height: 1.25; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .coin-ctl { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .coin-redraw { background: none; color: var(--gold); border: none; font-family: var(--serif); font-size: 13.5px; font-weight: 500; cursor: pointer; padding: 4px 2px; transition: opacity 0.15s ease; }
+    .coin-redraw:hover { opacity: 0.7; }
+    .coin-redraw:disabled { opacity: 0.6; cursor: not-allowed; }
+    .coin-arrow { display: none; background: none; border: none; color: var(--gold); cursor: pointer; padding: 2px; align-items: center; }
+    .coin-arrow.show { display: inline-flex; }
+    .coin-arrow svg { width: 15px; height: 15px; }
     .note { font-size: 12px; color: var(--text-faint); font-style: italic; margin-top: 10px; min-height: 16px; }
 
     /* ── Chips (segmented) ── */
@@ -1355,8 +1364,37 @@
     youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
     shop: 'https://secretlyawitch.com',
     instagram: 'https://instagram.com/moonsickbaby',
+    // TODO: point at the real membership/subscribe page once it exists on the
+    // website (Stripe checkout). Placeholder = the site root for now.
+    subscribe: 'https://secretlyawitch.com',
   };
   document.getElementById('shop-all').href = LINKS.shop;
+
+  // ── Membership entitlement (paywall) ──────────────────────────────
+  // Paid features call isPaid(). For now this reads a TEST override so we can
+  // build + see the paywall BEFORE Stripe is wired. Real payment (web/Stripe →
+  // account flag) comes later and makes this server-authoritative. Flip it for
+  // QA with ?paid=1 (turn on) / ?paid=0 (turn off).
+  const PAID_KEY = 'witch_is_paid';    // future: set from the account / Stripe webhook
+  const PAID_TEST = 'witch_test_paid'; // dev/QA override
+  (function () { const m = /[?&]paid=([01])/.exec(location.search); if (m) { try { localStorage.setItem(PAID_TEST, m[1]); } catch (e) {} } })();
+  function isPaid() { try { return localStorage.getItem(PAID_TEST) === '1' || localStorage.getItem(PAID_KEY) === '1'; } catch (e) { return false; } }
+  function openUpgrade(feature) {
+    const blurb = ({
+      coincidence: 'unlimited redraws',
+      dream: 'your whole illustrated dream',
+      tarot: 'the full major arcana',
+      chart: 'birth charts for your friends',
+    })[feature] || 'every members-only feature';
+    openModal(
+      '<h2 style="margin-bottom:4px;">Secretly a Witch membership</h2>' +
+      '<p class="sub">Unlock ' + blurb + ' — plus everything members get — for $4/month. You subscribe on the website, then it unlocks right here. ✦</p>' +
+      '<button class="gbtn" id="up-go">Subscribe on the website</button>' +
+      '<button class="close-x" id="up-x">maybe later</button>'
+    );
+    const g = $('up-go'); if (g) g.addEventListener('click', () => { try { window.open(LINKS.subscribe, '_blank'); } catch (e) {} closeModal(); });
+    const x = $('up-x'); if (x) x.addEventListener('click', closeModal);
+  }
 
   // ── Helpers ──
   const $ = (id) => document.getElementById(id);
@@ -3042,66 +3080,133 @@
   function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
-  // Drawn state: the image stays in the box; the (shortened) description sits
-  // underneath it, in place of the "Draw it" button. Tap the caption to redo.
-  function coinShowDrawn(i, url, desc) {
-    const box = $('coin-' + i); if (!box) return;
-    box.setAttribute('contenteditable', 'false');
-    box.innerHTML = `<img src="${esc(url)}" alt="">`;
-    box.closest('.coin-cell')?.classList.add('drawn');
-    const btn = coinBtn(i);
-    if (btn) { btn.disabled = false; btn.classList.add('coin-caption'); btn.textContent = coinShortText(desc); }
-    coinSetDone(i, { url, desc });
-    coinSetPending(i, null);
+  // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
+  // The drawing PERSISTS; you can't edit the moment, only Redraw it (a re-roll).
+  // Free = 1 redraw/day (device-local soft limit); members = unlimited. The
+  // ◀ ▶ arrows walk the versions (free — navigating never generates).
+  const COIN_REDRAW = 'witch_coin_redraws'; // free daily counter: { date, n }
+  const FREE_REDRAWS_PER_DAY = 1;
+  const ICON_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  const ICON_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  function coinTodayKey() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function coinRedrawsToday() { try { const r = JSON.parse(localStorage.getItem(COIN_REDRAW) || '{}'); return r.date === coinTodayKey() ? (r.n || 0) : 0; } catch (e) { return 0; } }
+  function coinBumpRedraw() { try { localStorage.setItem(COIN_REDRAW, JSON.stringify({ date: coinTodayKey(), n: coinRedrawsToday() + 1 })); } catch (e) {} }
+  // Migrate the old single-draw shape { url, desc } → versioned { desc, v:[url], i:0 }.
+  function coinMigrate() {
+    const all = coinDoneAll(); let changed = false;
+    Object.keys(all).forEach(i => { const e = all[i]; if (e && e.url && !e.v) { all[i] = { desc: e.desc, v: [e.url], i: 0 }; changed = true; } });
+    if (changed) pendSet(COIN_DONE, all);
   }
-  function coinResetToEdit(i) {
+  function coinRenderDrawn(i) {
+    const st = coinDoneAll()[i]; const box = $('coin-' + i);
+    if (!st || !box || !st.v || !st.v.length) return;
+    if (st.i == null || st.i < 0 || st.i >= st.v.length) { st.i = st.v.length - 1; coinSetDone(i, st); }
+    box.setAttribute('contenteditable', 'false');
+    box.innerHTML = `<img src="${esc(st.v[st.i])}" alt="">`;
+    const cell = box.closest('.coin-cell'); if (!cell) return;
+    cell.classList.add('drawn');
+    let cap = cell.querySelector('.coin-cap');
+    if (!cap) { cap = document.createElement('div'); cap.className = 'coin-cap'; cell.appendChild(cap); }
+    cap.textContent = coinShortText(st.desc);
+    let ctl = cell.querySelector('.coin-ctl');
+    if (!ctl) {
+      ctl = document.createElement('div'); ctl.className = 'coin-ctl';
+      const l = document.createElement('button'); l.type = 'button'; l.className = 'coin-arrow coin-prev'; l.setAttribute('aria-label', 'Previous drawing'); l.innerHTML = ICON_L; l.addEventListener('click', (e) => { e.stopPropagation(); coinNav(i, -1); });
+      const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'coin-redraw'; rd.textContent = 'Redraw'; rd.addEventListener('click', (e) => { e.stopPropagation(); coinRedraw(i); });
+      const r = document.createElement('button'); r.type = 'button'; r.className = 'coin-arrow coin-next'; r.setAttribute('aria-label', 'Next drawing'); r.innerHTML = ICON_R; r.addEventListener('click', (e) => { e.stopPropagation(); coinNav(i, 1); });
+      ctl.append(l, rd, r); cell.appendChild(ctl);
+    }
+    ctl.querySelector('.coin-prev').classList.toggle('show', st.i > 0);
+    ctl.querySelector('.coin-next').classList.toggle('show', st.i < st.v.length - 1);
+    const rd = ctl.querySelector('.coin-redraw'); if (rd) { rd.disabled = false; rd.textContent = 'Redraw'; }
+  }
+  function coinNav(i, dir) {
+    const st = coinDoneAll()[i]; if (!st || !st.v) return;
+    const ni = Math.min(st.v.length - 1, Math.max(0, (st.i || 0) + dir));
+    if (ni === st.i) return; st.i = ni; coinSetDone(i, st); coinRenderDrawn(i);
+  }
+  // Back to an editable empty-ish box (used only on error recovery).
+  function coinToEdit(i, desc) {
     const box = $('coin-' + i); if (!box) return;
+    const cell = box.closest('.coin-cell');
+    cell?.querySelector('.coin-cap')?.remove();
+    cell?.querySelector('.coin-ctl')?.remove();
+    cell?.classList.remove('drawn');
     coinSetDone(i, null); coinSetPending(i, null);
     box.setAttribute('contenteditable', 'true');
-    box.textContent = box.dataset.desc || '';
-    box.closest('.coin-cell')?.classList.remove('drawn');
+    box.textContent = desc || box.dataset.desc || '';
     coinRestoreBtn(coinBtn(i));
-    box.focus();
   }
-  function watchCoin(i, id, desc) {
+  function coinWatch(i, id, desc, redraw) {
     const box = $('coin-' + i); if (!box) return;
-    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
     pollJob('/api/witch/job/' + id, {
       key: 'coin' + i,
       onDone: (d) => {
         const url = d.result && d.result.url;
-        if (url) { coinShowDrawn(i, url, desc); }
-        else { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+        if (url) {
+          const st = coinDoneAll()[i];
+          if (redraw && st && st.v) { st.v.push(url); st.i = st.v.length - 1; coinSetDone(i, st); if (!isPaid()) coinBumpRedraw(); }
+          else { coinSetDone(i, { desc, v: [url], i: 0 }); }
+          coinSetPending(i, null); coinRenderDrawn(i);
+        } else { coinSetPending(i, null); if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); }
       },
-      onError: (e) => { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t draw that one — try rewording it ✦'); },
+      onError: (e) => { coinSetPending(i, null); if (redraw) { coinRenderDrawn(i); toast('Couldn\'t redraw — try again ✦'); } else { coinToEdit(i, desc); toast('Couldn\'t draw that one — try rewording it ✦'); } },
     });
+  }
+  async function coinGenerate(i, desc, redraw) {
+    const box = $('coin-' + i); if (!box) return;
+    box.dataset.desc = desc;
+    if (redraw) { const rd = box.closest('.coin-cell')?.querySelector('.coin-redraw'); if (rd) { rd.disabled = true; rd.textContent = '…'; } }
+    else { const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; } }
+    coinSpinner(box);
+    try {
+      // Raw note → server distills it into ONE simple pastel spot illustration.
+      const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
+      coinSetPending(i, { id, desc, redraw });
+      coinWatch(i, id, desc, redraw);
+    } catch (e) { if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
   }
   async function drawCoinBox(i) {
     const box = $('coin-' + i);
     const desc = (box.dataset.desc || box.textContent || '').trim();
     if (!desc) { box.focus(); return; }
-    box.dataset.desc = desc;
-    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
-    coinSpinner(box);
-    try {
-      // Send the raw note — the server distills it into ONE simple watercolor
-      // illustration (Book-of-Miracles style) so it reads well at this size.
-      const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
-      coinSetPending(i, { id, desc });
-      watchCoin(i, id, desc);
-    } catch (e) { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
+    coinGenerate(i, desc, false);
+  }
+  function coinRedraw(i) {
+    const st = coinDoneAll()[i]; if (!st) return;
+    if (isPaid()) { coinGenerate(i, st.desc, true); return; } // members: unlimited, no popup
+    if (coinRedrawsToday() >= FREE_REDRAWS_PER_DAY) {
+      openModal(
+        '<h2 style="margin-bottom:4px;">One redraw a day</h2>' +
+        '<p class="sub">You’ve used today’s free redraw. Members get <b>unlimited</b> redraws — or come back tomorrow for another free one. ✦</p>' +
+        '<button class="gbtn" id="coin-up">Become a member</button>' +
+        '<button class="close-x" id="coin-x">maybe later</button>'
+      );
+      $('coin-up')?.addEventListener('click', () => { closeModal(); openUpgrade('coincidence'); });
+      $('coin-x')?.addEventListener('click', closeModal);
+      return;
+    }
+    openModal(
+      '<h2 style="margin-bottom:4px;">Redraw this one?</h2>' +
+      '<p class="sub">You get <b>one free redraw a day</b>. Use it on this coincidence? Members get unlimited redraws. ✦</p>' +
+      '<button class="gbtn" id="coin-yes">Yes, redraw it</button>' +
+      '<button class="gbtn" id="coin-up">Unlimited with membership</button>' +
+      '<button class="close-x" id="coin-x">never mind</button>'
+    );
+    $('coin-yes')?.addEventListener('click', () => { closeModal(); coinGenerate(i, st.desc, true); });
+    $('coin-up')?.addEventListener('click', () => { closeModal(); openUpgrade('coincidence'); });
+    $('coin-x')?.addEventListener('click', closeModal);
   }
   function resumeCoinJobs() {
+    coinMigrate();
     const done = coinDoneAll();
-    Object.keys(done).forEach(i => { const { url, desc } = done[i] || {}; const box = $('coin-' + i); if (box && url) { box.dataset.desc = desc; coinShowDrawn(+i, url, desc); } });
+    Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
-    Object.keys(pend).forEach(i => { const { id, desc } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { box.dataset.desc = desc; coinSpinner(box); watchCoin(+i, id, desc); } });
+    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
-    const i = +b.dataset.i;
-    if (b.classList.contains('coin-caption')) coinResetToEdit(i); // tap the caption → start over
-    else drawCoinBox(i);
+    drawCoinBox(+b.dataset.i);
   }));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();

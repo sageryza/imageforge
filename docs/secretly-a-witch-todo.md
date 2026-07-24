@@ -5,6 +5,90 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Paywall / subscription across the app ("get a taste, then pay")
+The membership model: free users get a *taste* of each generative feature, the
+rest is paywalled. Examples: Dream = 1 illustrated page free, rest blurred;
+Coincidence = 1 free draw + limited redraws/day. Applies in "all sorts of
+places" — treat as ONE membership that unlocks everything (confirm with Sophie).
+- **Hard constraint — Apple In-App Purchase.** On iOS, unlocking digital
+  features/subscriptions must go through Apple's IAP (StoreKit), Apple takes
+  15–30%. Because Secretly a Witch is a WKWebView wrapper, this is the one place
+  that likely needs real *native* code (StoreKit purchase in the shell →
+  entitlement bridged into the web view) + subscription products configured in
+  App Store Connect (which requires the Paid Apps agreement + banking/tax info
+  signed first). A 2025 US ruling now lets apps link out to external web
+  payment — could allow selling via Stripe on web and skipping Apple's cut —
+  but that area is changing fast; **research current App Store rules before
+  committing to an approach** (see the "research current dashboards" design rule).
+- **Needed from Sophie:** the model (one membership vs per-feature), price +
+  billing period (monthly/annual/trial), the full free-vs-paid list per feature,
+  App Store Connect Paid-Apps agreement signed, and (if web path) a Stripe acct.
+- **Sequence:** build the paywall UI + entitlement scaffolding first (with a
+  test/"coming soon" entitlement) so the visible paywall ships now; wire real
+  payment once the agreements + products exist.
+- **PAYMENT = WEB / STRIPE (decided 2026-07).** Sell the subscription on the
+  Secretly a Witch *website* via Stripe (like Claude/Spotify) → sign into the
+  app → it unlocks. No Apple IAP, no Apple cut, no native StoreKit. Tradeoff:
+  **paid features require being signed in** (that's how the app knows you
+  subscribed); the free taste stays signed-out. The in-app "link out to
+  subscribe" is US-only / legally shifting — verify current rules before relying
+  on it; worst case people subscribe on the site and the app just unlocks. No
+  Stripe integration/keys exist in the app yet — Sophie has a Stripe account
+  from another project; key gets pasted in at build time.
+- **Pricing (Sophie, 2026-07):** **$4/month** to start (may rise depending on
+  real per-feature model costs), **monthly only — no annual** (feels deceptive),
+  **free trial: CARD UP FRONT** (Stripe collects card, N days free, auto-charges
+  when the trial ends; send a reminder email before the charge). Decided 2026-07.
+- **Free vs paid map (draft — confirm/expand with Sophie):** ONE membership
+  unlocks all of it.
+  - **Dream illustration** — LEAVE FULLY OPEN FOR NOW (Sophie, 2026-07): not
+    paywalling/capping dreams yet — it's fun to see people's dreams and it's
+    marketing research for her planned "Just Dream" shared-dream platform. The
+    cost is accepted as research spend. (The 1-page-free/blur-rest paywall is
+    still the eventual model, just deferred.)
+  - **Suspicious Coincidence** — 3 boxes, drawings persist; 1 redraw/day free;
+    more redraws paid.
+  - **Birth chart** — your OWN chart free; charts for friends / other people paid
+    (Costar model).
+  - **Make-your-own-tarot-deck** (new feature, not built) — REVISED (Sophie,
+    2026-07) to cap cost: free = **3 cards**; paid = the **major arcana (22)**;
+    the **full 78-card deck is never offered** (no minor arcana) — this caps the
+    spendiest action at ~22 cards, generated once.
+  - **Suspicious Coincidence — generous for paid** (Sophie: "could go forever").
+    It's ~1.5¢/draw, so paid = effectively unlimited redraws; free = 1/day.
+  - **Advanced / special-topic Witch School lessons** — possible paid tier
+    (basic lessons free, advanced or interesting-topic ones paid).
+  - **Text coincidence moments in the book** (Book of Miracles / Shadows — which
+    one TBD, ties into the BoS rework) — adding a **text-only** moment is free;
+    **paying to illustrate it** is the paid action. New feature, not built.
+- **Coincidence spec (decided 2026-07):** KEEP the **three** Home boxes.
+  Drawings **persist** (stay in the box — you can't freely change them). Free =
+  **one redraw per day** (across the boxes); more redraws paid. "Draw it!" →
+  "Redraw" after a drawing exists; redraw popup + version arrows as before.
+
+### ⚠️ Unit economics — check BEFORE committing to $4/mo (Sophie flagged)
+Many paid features cost real API money per use, so an unlimited $4/mo membership
+can LOSE money on power users. Rough per-action costs (cheap tiers we already use):
+- Coincidence draw (gpt-image-2 low): **~1.5¢**
+- Dream page (gpt-image-2 medium): **~6¢** (a dream is several pages)
+- Full 78-card tarot deck: **~$1.20 (low) – ~$4.70 (medium)** — the spendiest single action
+- Friend birth chart (gpt-4o-mini text): **fractions of a cent**
+- Advanced lessons: **~$0/user** if pre-generated ONCE and shared (do this)
+Stripe fee on $4 ≈ 42¢, so real budget ≈ **$3.58/paying user/mo**. A heavy user
+doing daily multi-page dreams alone blows past that. **Levers:** (a) per-feature
+fair-use caps even for PAID (e.g. N dreams/day, N deck-gens/mo), (b) a credit/
+allowance system, (c) higher price. ALSO watch FREE-user cost (they pay nothing
+but still burn API $ — keep the taste genuinely small). Recommend: caps + cheap
+tiers + pre-generate shared content. TODO: build a proper break-even model.
+
+### Blurred paywalled pages should look DIFFERENT (not the same page repeated)
+Right now the blurred/locked pages behind a paywall (e.g. Dream's un-purchased
+pages) are literally the SAME page duplicated with a blur, so they all look
+identical. They should look like *distinct* pages even though the real ones
+don't exist yet — vary the blurred placeholders (different faint layouts /
+compositions) so it reads as "there's more real content here," not one page
+copied. Applies wherever the taste-then-blur pattern is used.
+
 ### Etsy → Shopify product transfer (replace the "Shuttle" app)
 Let a chat (or a button in the app) add Etsy listings that aren't yet on Shopify
 **into** Shopify automatically — taking over the job Sophie currently does with
