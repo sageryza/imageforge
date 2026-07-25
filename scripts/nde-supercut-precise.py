@@ -147,6 +147,43 @@ def find_quote_sentence(win_json, phrase, quote):
     t0, t1 = clamp_bounds(words, wi_start, wi_end)
     return (t0, t1, target)
 
+def detect_silences(path):
+    """Real silences in the waveform via ffmpeg silencedetect — ground truth the
+    Whisper timestamps lack (they drift 100ms-1s; documented, it's why WhisperX
+    exists). A cut placed INSIDE a detected silence cannot clip a word."""
+    p = subprocess.run(["ffmpeg", "-i", path, "-af", "silencedetect=noise=-32dB:d=0.2",
+                        "-f", "null", "-"], capture_output=True, text=True)
+    starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", p.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", p.stderr)]
+    sil, ei = [], 0
+    for s in starts:
+        while ei < len(ends) and ends[ei] <= s:
+            ei += 1
+        sil.append((s, ends[ei] if ei < len(ends) else s + 0.5))
+    return sil
+
+def snap_to_silence(rs, re_, silences):
+    """Move both cut points into real silences near the Whisper-derived bounds.
+    End: first silence starting within [-0.45,+1.3]s of the target — close enough
+    to finish the word/thought, near enough not to drag in the next sentence.
+    Start: the silence ending just before the first word. No match → keep as-is."""
+    re2 = re_
+    for s, e in silences:
+        if re_ - 0.45 <= s <= re_ + 1.3:
+            re2 = s + min(0.18, max(0.05, (e - s) * 0.4))
+            break
+    rs2 = rs
+    cand = None
+    for s, e in silences:
+        if rs - 1.3 <= e <= rs + 0.45:
+            cand = (s, e)
+    if cand:
+        s, e = cand
+        rs2 = max(s, e - min(0.15, max(0.04, (e - s) * 0.4)))
+    if re2 <= rs2 + 0.4:
+        return rs, re_  # degenerate snap — keep originals
+    return rs2, re2
+
 def clamp_bounds(words, wi_start, wi_end):
     """Gap-aware clip bounds: pad outward for a natural feel, but NEVER past the
     midpoint of the silence to the neighboring word — fixed padding used to
@@ -182,11 +219,8 @@ def find_whole_quote(win_json, quote):
     ts = _phrase_span(win_json, tail)
     wi_start = hs[0]
     wi_end = ts[1] if (ts and ts[1] >= wi_start) else hs[1]
-    steps = 0  # let the final thought land at a pause
-    while wi_end < len(words) - 1 and steps < 8:
-        if words[wi_end + 1]["start"] - words[wi_end]["end"] >= FINISH_GAP:
-            break
-        wi_end += 1; steps += 1
+    # NO word-by-word extension here — it used to drag in fragments of the next
+    # sentence ("because if I had to…"). The silence snap finishes the thought.
     t0, t1 = clamp_bounds(words, wi_start, wi_end)
     text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
     return (t0, t1, text)
@@ -309,11 +343,14 @@ for i, c in enumerate(cands, 1):
             print(f"  [{i}] {name}: tight match too long ({re_-rs:.1f}s), dropping"); continue
         if FINISH and (re_ - rs) > MAX_FINISH:
             print(f"  [{i}] {name}: sentence too long ({re_-rs:.1f}s), dropping"); continue
+        rs, re_ = snap_to_silence(rs, re_, detect_silences(win))
         clip = os.path.join(tmp, f"c{i}.mp3")
         run(["ffmpeg","-y","-ss",str(rs),"-to",str(re_),"-i",win,"-c:a","libmp3lame","-q:a","3",clip])
         if AUDIO_ONLY:
             nrm = os.path.join(tmp, f"a{i}.mp3")
-            run(["ffmpeg","-y","-i",clip,"-af","loudnorm=I=-16:TP=-1.5:LRA=11",
+            # micro-fades on the edges (editor standard) — any residual edge is inaudible
+            run(["ffmpeg","-y","-i",clip,"-af",
+                 "loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse",
                  "-ar","44100","-ac","1","-c:a","libmp3lame","-q:a","2",nrm])
             audio_clips.append(nrm)
         else:
