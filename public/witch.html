@@ -823,8 +823,49 @@
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
     .tcard-body a { color: var(--gold); text-decoration: underline; }
-    .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 14px; }
-    .tcard-hint svg { width: 13px; height: 13px; vertical-align: -2px; }
+    .tap-arrow { text-align: center; margin-top: 14px; opacity: 0; animation: tapArrowIn .8s ease 4s forwards, tapArrowNudge 1.4s ease 4.8s infinite; }
+    .tap-arrow svg { width: 28px; height: 28px; color: var(--gold); }
+    @keyframes tapArrowIn { to { opacity: 1; } }
+    @keyframes tapArrowNudge { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(3px); } 75% { transform: translateX(-3px); } }
+    /* Lesson bookmark: saves the current card into the Book of Shadows */
+    .les-bmk { position: relative; background: none; border: none; padding: 2px 0 10px; color: var(--gold); cursor: pointer; line-height: 0; }
+    .les-bmk svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; transition: fill 0.25s ease; }
+    .les-bmk.filled svg { fill: var(--gold); }
+    .les-bmk.just svg { animation: bmPop 0.5s ease; }
+    .bmk-pop { position: absolute; top: calc(100% - 4px); right: 0; background: var(--text); color: var(--surface); font-size: 11px; letter-spacing: 0.3px; padding: 6px 10px; border-radius: 6px; white-space: nowrap; opacity: 0; animation: bmkPopIn 1.6s ease forwards; pointer-events: none; z-index: 5; }
+    @keyframes bmkPopIn { 0% { opacity: 0; transform: translateY(-3px); } 12% { opacity: 1; transform: translateY(0); } 78% { opacity: 1; } 100% { opacity: 0; } }
+    /* "Brew a potion" quiz card: pick the right blend, the cauldron glows */
+    .brew { max-width: 340px; margin: 0 auto; text-align: center; }
+    .brew-lead { font-size: 15px; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
+    .brew-pot { color: var(--text); margin: 0 auto; width: 96px; transition: filter 0.4s ease; }
+    .brew-pot svg { width: 96px; height: 78px; display: block; margin: 0 auto; }
+    .brew-pot .bstar { opacity: 0; transition: opacity 0.35s ease; fill: var(--gold); stroke: none; }
+    .brew-pot.g1 .bs1, .brew-pot.g2 .bs1, .brew-pot.g2 .bs2, .brew-pot.g3 .bs1, .brew-pot.g3 .bs2, .brew-pot.g3 .bs3 { opacity: 1; }
+    .brew-pot.glow { filter: drop-shadow(0 0 12px rgba(156, 111, 51, 0.75)); }
+    .brew-pot.glow .brew-brim { fill: var(--gold); }
+    .brew-shelf { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0 8px; }
+    .brew-ing { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 13.5px; padding: 9px 13px; cursor: pointer; }
+    .brew-ing.in { background: var(--gold); border-color: var(--gold); color: var(--surface); }
+    .brew-ing.fizz { animation: brewFizz 0.55s ease; }
+    @keyframes brewFizz { 0% { transform: translateX(0); opacity: 1; } 25% { transform: translateX(-4px); opacity: 0.55; } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); opacity: 0.7; } 100% { transform: translateX(0); opacity: 1; } }
+    .brew-line { min-height: 42px; font-size: 13.5px; line-height: 1.5; color: var(--text-dim); font-style: italic; margin-top: 4px; }
+    .brew-line.done { color: var(--gold); font-style: normal; font-size: 14.5px; }
+    /* "Check your knowing" quiz card: a wrong tap flips the card and warmly tells you */
+    .know { width: min(340px, 88vw); margin: 0 auto; perspective: 900px; }
+    .know-n { text-align: center; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+    .know-flip { position: relative; width: 100%; transform-style: preserve-3d; transition: transform 0.55s ease; min-height: 280px; }
+    .know-flip.flipped { transform: rotateY(180deg); }
+    .know-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--border); border-radius: 10px; padding: 18px 16px; background: var(--surface); display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+    .know-face.back { transform: rotateY(180deg); text-align: center; }
+    .know-q { font-size: 16px; line-height: 1.5; color: var(--text); text-align: center; margin-bottom: 2px; }
+    .know-opt { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 14px; padding: 11px 12px; cursor: pointer; text-align: left; }
+    .know-opt:hover { border-color: var(--gold); }
+    .know-verdict { font-size: 15px; color: var(--gold); }
+    .know-tell { font-size: 14.5px; line-height: 1.55; color: var(--text); }
+    .know-hint { font-size: 11px; color: var(--text-faint); }
+    /* A bookmarked lesson card, rendered as a Book of Shadows page */
+    .bos-lpk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 4px; }
+    .bos-lreturn { margin-top: 12px; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
     .deck-prev { background: none; border: none; padding: 10px 4px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .deck-prev:hover { color: var(--gold); }
@@ -1229,7 +1270,7 @@
       <section class="view" id="view-school">
         <div class="kicker">Learn the craft</div>
         <div class="section-title">Witch School</div>
-        <div class="section-sub">Short, gentle lessons in the everyday magic arts.</div>
+        <div class="section-sub">Discover the power within ✦</div>
         <!-- The path: a winding trail of lesson nodes (rendered by JS) -->
         <div id="school-path"></div>
         <!-- Legacy lesson tiles — hidden; kept as the icon + title source the
@@ -1328,6 +1369,7 @@
           <div class="deck-top">
             <button class="les-back" id="lesson-back" aria-label="Back to lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
             <div class="deck-prog" id="deck-prog"></div>
+            <button class="les-bmk" id="deck-bmk" aria-label="Save this page to your Book of Shadows"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
           </div>
           <div class="deck-stage" id="deck-stage"></div>
           <div class="deck-nav">
@@ -2437,7 +2479,7 @@
     h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
       <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
       <button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>
-      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">Short, gentle lessons in Witch School.</span></span></button>
+      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
     </div></div>`;
     st.innerHTML = h;
     const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
@@ -2681,7 +2723,14 @@
     { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
     { key: 'spell', name: 'Spell work', kinds: ['spell'] },
     { key: 'dream', name: 'Dreams', kinds: ['dream'] },
+    // Bookmarked school pages. Invisible until the first bookmark exists, so
+    // the book is unchanged for anyone who hasn't used the feature.
+    { key: 'lesson', name: 'Lessons', kinds: ['lessonmark'] },
   ];
+  // Bookmarked lesson cards (saved from the lesson reader's bookmark) as pages.
+  function lessonMarkPages() {
+    return marksLoad().slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(m => ({ sect: 'lesson', page: 'lesson', m }));
+  }
   const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
   let bosPageIdx = 0;   // 0 = the open spread (title + contents), 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
@@ -2718,6 +2767,7 @@
     const out = [];
     for (const s of BOS_SECTS) {
       if (s.key === 'sync') syncPages().forEach(p => out.push(p));
+      else if (s.key === 'lesson') lessonMarkPages().forEach(p => out.push(p));
       else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; out.push(p); });
     }
     return out;
@@ -2774,6 +2824,21 @@
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
       return;
     }
+    if (p.page === 'lesson') {
+      // A bookmarked school page: a snapshot of the card — title, picture,
+      // text in its own formation (no progress dashes) — with a plain-text
+      // link right under it back to that exact place in the lesson.
+      const m = p.m, c = (LESSONS[m.lesson] || []).find(x => x.img === m.card);
+      let g;
+      if (c) {
+        g = `<div class="bos-lpk">${esc(c.kicker)}</div><h3>${esc(c.h)}</h3><img src="${SW_IMG}${c.img}.png" alt=""><div class="bos-body">${c.body}</div>`;
+      } else {
+        g = `<div class="bos-body">This page of “${esc(LESSON_TITLES[m.lesson] || 'a lesson')}” has been rewritten since it was saved.</div>`;
+      }
+      g += `<div class="bos-actions bos-lreturn"><button class="link-btn" data-golesson="${esc(m.lesson)}" data-gocard="${esc(m.card || '')}">Return to this lesson ✦</button></div>`;
+      $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      return;
+    }
     let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
     if (p.src === 'journal') {
       const e = p.e;
@@ -2813,7 +2878,7 @@
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.add('spread');
     const row = $('bos-row'); if (row) row.className = 'bos-row';  // the spread shows both pages itself
-    const rows = BOS_SECTS.map(s =>
+    const rows = BOS_SECTS.filter(s => s.key !== 'lesson' || lessonMarkPages().length).map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     book.innerHTML = `
       <div class="bos-leaf left"><div class="bos-title-page">
@@ -2832,6 +2897,8 @@
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const gl = e.target.closest('[data-golesson]');
+    if (gl) { closeBook(); go('school'); openLesson(gl.dataset.golesson, gl.dataset.gocard); return; }
     const ex = e.target.closest('[data-expand]');
     if (ex) {
       const fr = ex.closest('.bos-page').querySelector('.bos-fullreading');
@@ -4301,6 +4368,14 @@
     { img: 'pm-07', bg: '#fcf3e9', kicker: 'The heart', h: 'Rose & chamomile', body: 'Rose opens love — every kind, including for yourself. Chamomile softens grief and settles a worried heart. Tea is the easiest door in.' },
     { img: 'pm-08', bg: '#fdf7f1', kicker: 'Kitchen craft', h: 'Stir with intention', body: 'Cooking becomes casting the moment you mean it. Stir <b>clockwise</b> to draw things in, <b>counter-clockwise</b> to banish, and name what you\'re stirring into the pot: calm, protection, enough.' },
     { img: 'pm-09', bg: '#fbf8f6', kicker: 'A first charm', h: 'Make a sachet', body: 'Take a small square of cloth, add a pinch of whichever herbs match your intention, and tie it closed while picturing it already done. Keep it in a pocket, a bag, or by the bed.' },
+    { bg: '#fdf9f4', kicker: 'Try it', h: 'Brew a potion', brew: { goal: 'Blend a protection sachet', lead: 'A dark doorstep needs guarding. Three from your kitchen cabinet go into the cloth — choose like a witch.', need: ['rosemary', 'salt', 'pepper'], shelf: [
+      { k: 'rosemary', t: 'Rosemary', line: 'The guardian herself — when in doubt, rosemary.' },
+      { k: 'basil', t: 'Basil', line: 'Basil calls money in — sweet, but tonight we guard.' },
+      { k: 'salt', t: 'Salt', line: 'Salt scours the way clean.' },
+      { k: 'rose', t: 'Rose', line: 'Rose opens hearts. This working closes a door.' },
+      { k: 'pepper', t: 'Pepper', line: 'Pepper sends the unwanted on their way.' },
+      { k: 'chamomile', t: 'Chamomile', line: 'Chamomile soothes — she\'s off duty tonight.' },
+    ], done: 'The cauldron glows — rosemary to guard, salt to cleanse, pepper to banish. Tie it closed and hang it by the door. ✦' } },
     { img: 'pm-10', bg: '#faf7f2', kicker: 'After', h: 'Then tend', body: 'Plant magic is a relationship — water something, season something, notice what grows back.<br><br><b>Tonight:</b> brew one cup of tea slowly, name what you need, and drink it warm. That\'s a potion. ✦' },
   ];
   const PLANT2_CARDS = [
@@ -4313,6 +4388,11 @@
     { img: 'pa-07', bg: '#faf5ee', kicker: 'Preparations', h: 'The folk tincture', body: 'Pack a jar with your herb, cover it, lid it, and leave it in the dark for <b>four to six weeks</b>, shaking it whenever you pass by. No measuring — this is the folk method, made by feel and patience.' },
     { img: 'pa-08', bg: '#fefcf8', kicker: 'Preparations', h: 'The simpler\'s oil', body: 'The sun does the work: a jar half-filled with dried herbs, covered in oil, set on a bright windowsill for two to six weeks. Rosemary oil to cook protection into dinner; lavender oil for calm at your wrists.' },
     { img: 'pa-09', bg: '#fcfafa', kicker: 'Respect', h: 'The poison path', body: 'The witch\'s dark shelf — belladonna, henbane, mandrake — is real lore, sacred to Hecate in the old stories. Know these plants to honor them, <b>never to touch or brew them</b>. Their safe cousins mugwort and wormwood carry the visionary work.' },
+    { bg: '#fdfaf5', kicker: 'Try it', h: 'Check your knowing', know: { qs: [
+      { q: 'You want rose at full strength for love work. When does the old craft cut it?', a: ['Friday, under a waxing moon', 'Any rainy Tuesday', 'Midnight at the new moon'], ok: 0, tell: 'Friday is Venus\'s own day, and the waxing moon gathers strength — exactly as Culpeper would have it.' },
+      { q: 'The folk tincture sits in the dark for…', a: ['One night', 'Four to six weeks', 'A year and a day'], ok: 1, tell: 'Four to six weeks, shaken whenever you pass by — made by feel and patience, not measuring.' },
+      { q: 'Belladonna, henbane, mandrake — the poison path. The witch\'s rule?', a: ['Brew them, but weakly', 'Only touch them at full moon', 'Know them, never touch or brew them'], ok: 2, tell: 'Know them to honor them — never to touch or brew. Their safe cousins mugwort and wormwood carry the visionary work.' },
+    ] } },
     { img: 'pa-10', bg: '#fefaf6', kicker: 'After', h: 'Choose one ally', body: 'The deepest plant magic isn\'t a shelf of jars — it\'s one plant known well. Choose a single green ally this season: learn its planet, its signature, its time of day.<br><br><b>Tonight:</b> pick your plant. ✦' },
   ];
   const ASTRO_CARDS = [
@@ -4469,8 +4549,16 @@
     { img: 'ap-05', bg: '#fef9f2', kicker: 'The shield', h: 'Yarrow', body: 'Achilles is said to have packed his soldiers\' wounds with it, and it carries his name (<i>Achillea</i>). Yarrow is courage and boundaries: witches from Britain to Appalachia sewed it into sachets and tucked it into beds to keep the wrong people — and spirits — away.' },
     { img: 'ap-06', bg: '#fcf8f2', kicker: 'The torch', h: 'Mullein', body: 'The tall stalk witches once dipped in tallow and burned as a torch — the <b>hag taper</b>. Mullein is illumination and safe passage through dark places, and an old ally for ancestor work: a candle for the parts of the path you can\'t see yet.' },
     { img: 'ap-07', bg: '#fefaf7', kicker: 'The enchanter\'s herb', h: 'Vervain', body: 'Sacred to the Egyptians, the Druids, everyone in between — legend says it sprang from the tears of <b>Isis</b>. Vervain purifies, protects, breaks hexes, and blesses. When you don\'t know which herb a working needs, it\'s vervain.' },
-    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength. <i>(The shop\'s <a href="https://secretlyawitch.com/products/wooden-mortar-pestle" target="_blank" rel="noopener">wooden mortar & pestle</a> is made for exactly this.)</i>' },
-    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them. <i>(Or begin with a ready-stocked <a href="https://secretlyawitch.com/products/apothecary-box-with-wooden-mortar-and-pestle" target="_blank" rel="noopener">apothecary box</a> from the shop and grow it from there.)</i>' },
+    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength.', cta: { label: 'The wooden mortar & pestle', product: 'wooden-mortar-pestle' } },
+    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them, or begin with a ready-stocked apothecary box from the shop and grow it from there.', cta: { label: 'The apothecary box', product: 'apothecary-box-with-wooden-mortar-and-pestle' } },
+    { bg: '#faf5ec', kicker: 'Try it', h: 'Brew a potion', brew: { goal: 'Brew a dream tea', lead: 'Tonight you want vivid dreams — three for the pot, from the new shelf and the kitchen you already know.', need: ['mugwort', 'lavender', 'chamomile'], shelf: [
+      { k: 'mugwort', t: 'Mugwort', line: 'The dreamer\'s ally, named for the moon goddess.' },
+      { k: 'wormwood', t: 'Wormwood', line: 'She fizzes right out of the pot — wormwood is smoke, never the teapot.' },
+      { k: 'lavender', t: 'Lavender', line: 'Lavender walks you gently down to sleep.' },
+      { k: 'yarrow', t: 'Yarrow', line: 'Yarrow guards doors. Tonight we\'re opening one.' },
+      { k: 'chamomile', t: 'Chamomile', line: 'Chamomile settles the worried heart for the road down.' },
+      { k: 'mullein', t: 'Mullein', line: 'Mullein lights dark paths, not dreams — save the hag taper.' },
+    ], done: 'The cauldron glows — mugwort for the dreams, lavender for the way in, chamomile for the calm. Warm cup, dark room. ✦' } },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it. That\'s page one of a real apothecary.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
   const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
@@ -4494,19 +4582,37 @@
     if (e.seen >= (LESSONS[key] || []).length) e.done = true;
     p[key] = e; saveSchoolProgress(p);
   }
-  // Sophie's "leveling" feel, v2: moons ADD UP — one simple crescent per
-  // finished lesson, growing in size along the row (no emoji; inked SVG
-  // crescents, gold-filled when earned, faint outlines still to come).
+  // Sophie's "leveling" feel, v3: moons ADD UP and MATURE — one moon per
+  // lesson, growing in size along the row AND waxing through the phases:
+  // a thin crescent first, quarter, gibbous… the last lesson is always the
+  // FULL moon, so finishing a course lands on full (gold-filled when earned,
+  // faint outlines still to come; glow strongest at full).
+  // Waxing phase path: right semicircle is always lit; the terminator arc
+  // bows right for crescents, straightens at the quarter, bows left toward
+  // full (k = lit fraction, 0..1; k=1 is the complete disc).
+  function moonPhasePath(k) {
+    const rx = (Math.abs(1 - 2 * k) * 10).toFixed(2);
+    const sweep = k < 0.5 ? 0 : 1;
+    return `M12 2 A10 10 0 0 1 12 22 A${rx} 10 0 0 ${sweep} 12 2 Z`;
+  }
   function courseMoon(done, total, base) {
     base = base || 18;
     const moons = [];
     for (let i = 0; i < total; i++) {
       const size = Math.round(base * (total === 1 ? 1 : 0.55 + 0.45 * (i / (total - 1))));
       const earned = i < done;
+      const k = (i + 1) / total;   // phase matures along the row; last = full
       const glow = earned ? `filter: drop-shadow(0 0 ${Math.round(3 + 3 * (i / Math.max(1, total - 1)))}px rgba(212,168,90,0.75));` : 'opacity:0.5;';
-      moons.push(`<svg class="cmoon" width="${size}" height="${size}" viewBox="0 0 24 24" style="${glow}"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="${earned ? '#d4a85a' : 'none'}" stroke="${earned ? '#2a2430' : '#c2bab0'}" stroke-width="1.7" stroke-linejoin="round"/></svg>`);
+      moons.push(`<svg class="cmoon" width="${size}" height="${size}" viewBox="0 0 24 24" style="${glow}"><path d="${moonPhasePath(k)}" fill="${earned ? '#d4a85a' : 'none'}" stroke="${earned ? '#2a2430' : '#c2bab0'}" stroke-width="1.7" stroke-linejoin="round"/></svg>`);
     }
     return `<span class="cmoons" title="${done} of ${total}">${moons.join('')}</span>`;
+  }
+  // The label speaks in phases: "Waxing — 2 of 5 lessons" → "Full moon —
+  // course complete" (from Sophie's original quiz/moon notes).
+  function coursePhaseLabel(done, total) {
+    if (!done) return 'The path awaits';
+    if (done >= total) return 'Full moon — course complete';
+    return `Waxing — ${done} of ${total} lessons`;
   }
   function courseProgress(course) {
     const prog = schoolProgress();
@@ -4563,7 +4669,7 @@
     }
     wrap.innerHTML = `<button class="wback" id="school-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> All courses</button>
       <div class="wpath-head" style="margin-top:2px;"><span class="t">${esc(course.title)}</span></div>
-      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 26)}<span class="lbl">${courseProgress(course).done ? (courseProgress(course).done === courseProgress(course).total ? 'Course complete' : courseProgress(course).done + ' of ' + courseProgress(course).total + ' lessons') : 'The path awaits'}</span></div>
+      <div class="wpath-moon">${courseMoon(courseProgress(course).done, courseProgress(course).total, 26)}<span class="lbl">${coursePhaseLabel(courseProgress(course).done, courseProgress(course).total)}</span></div>
       <div class="wroad-wrap" id="wroad-wrap" style="height:${H}px;">
         <svg id="wroad-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
           <path id="wroad-center" d="${d}" fill="none" stroke="none"/>
@@ -4633,15 +4739,116 @@
   const preloaded = new Set();
   const preload = (cards) => cards.forEach(c => { if (preloaded.has(c.img)) return; preloaded.add(c.img); const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
   Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
-  const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
+  const TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
+  /* ── Lesson quizzes (from Sophie's quiz-ideas notes). House rules: no
+     timers, no lives, no streak-shaming, nothing red — a wrong pick just
+     fizzes or warmly tells you, and you always finish. ── */
+  // An inked cauldron; the three stars light as the right picks drop in.
+  const BREW_POT_SVG = `<svg viewBox="0 0 96 78" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 26 C17 44 28 60 48 60 C68 60 79 44 78 26" />
+    <ellipse class="brew-brim" cx="48" cy="26" rx="30" ry="7" />
+    <path d="M34 60 L28 70" /><path d="M62 60 L68 70" />
+    <path class="bstar bs1" d="M38 38 Q39.3 42.7 44 44 Q39.3 45.3 38 50 Q36.7 45.3 32 44 Q36.7 42.7 38 38 Z" />
+    <path class="bstar bs2" d="M53 33 Q54 36.2 57.5 37 Q54 37.8 53 41 Q52 37.8 48.5 37 Q52 36.2 53 33 Z" />
+    <path class="bstar bs3" d="M60 43 Q61.1 46.9 65 48 Q61.1 49.1 60 53 Q58.9 49.1 55 48 Q58.9 46.9 60 43 Z" />
+  </svg>`;
+  // "Brew a potion": pick the right blend from the shelf. Wrong picks fizz
+  // softly and stay tappable; the full blend makes the cauldron glow.
+  function renderBrewStage(c) {
+    const b = c.brew, picked = new Set();
+    $('deck-stage').innerHTML = `<div class="tcard">
+      <div class="deck-head">
+        <div class="tcard-kicker">${esc(c.kicker)}</div>
+        <div class="tcard-h">${esc(c.h)}</div>
+      </div>
+      <div class="brew">
+        <div class="brew-lead"><b>${esc(b.goal)}.</b> ${esc(b.lead)}</div>
+        <div class="brew-pot" id="brew-pot">${BREW_POT_SVG}</div>
+        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button">${esc(s.t)}</button>`).join('')}</div>
+        <div class="brew-line" id="brew-line">Tap an ingredient to add it to the pot.</div>
+      </div>
+    </div>`;
+    const pot = $('brew-pot'), line = $('brew-line');
+    $('deck-stage').querySelectorAll('.brew-ing').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const s = b.shelf[+btn.dataset.bi];
+      if (picked.has(s.k)) return;
+      if (b.need.includes(s.k)) {
+        picked.add(s.k); btn.classList.add('in');
+        pot.className = 'brew-pot g' + picked.size + (picked.size >= b.need.length ? ' glow' : '');
+        if (picked.size >= b.need.length) { line.className = 'brew-line done'; line.textContent = b.done; }
+        else { line.className = 'brew-line'; line.textContent = s.line; }
+      } else {
+        btn.classList.remove('fizz'); void btn.offsetWidth; btn.classList.add('fizz');
+        line.className = 'brew-line'; line.textContent = s.line;
+      }
+    }));
+  }
+  // "Check your knowing": a gentle question moment — any wrong tap flips the
+  // card over and warmly tells you the answer. No score; you always finish.
+  function renderKnowStage(c) {
+    const qs = c.know.qs; let qi = 0;
+    $('deck-stage').innerHTML = `<div class="tcard">
+      <div class="deck-head">
+        <div class="tcard-kicker">${esc(c.kicker)}</div>
+        <div class="tcard-h">${esc(c.h)}</div>
+      </div>
+      <div class="know"><div class="know-n" id="know-n"></div><div class="know-flip" id="know-flip"></div></div>
+    </div>`;
+    const flip = $('know-flip'), nEl = $('know-n');
+    function renderQ() {
+      if (qi >= qs.length) {
+        nEl.textContent = '';
+        flip.className = 'know-flip';
+        flip.innerHTML = `<div class="know-face"><div class="know-verdict">You always finish. ✦</div><div class="know-tell">That\'s the whole test — no scores in this school. Tap on when you\'re ready.</div></div>`;
+        return;   // from here, page taps advance the deck as usual
+      }
+      const q = qs[qi];
+      nEl.textContent = (qi + 1) + ' of ' + qs.length;
+      flip.className = 'know-flip';
+      flip.innerHTML = `<div class="know-face front">
+          <div class="know-q">${esc(q.q)}</div>
+          ${q.a.map((t, i) => `<button class="know-opt" data-ki="${i}" type="button">${esc(t)}</button>`).join('')}
+        </div>
+        <div class="know-face back" id="know-back"></div>`;
+      flip.querySelectorAll('.know-opt').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const right = +btn.dataset.ki === q.ok;
+        $('know-back').innerHTML = `<div class="know-verdict">${right ? '✦ Just so.' : 'Actually —'}</div>
+          <div class="know-tell">${esc(q.tell)}</div>
+          <div class="know-hint">tap the card to keep going</div>`;
+        flip.classList.add('flipped');
+      }));
+    }
+    // Tapping the flipped card moves to the next question (and never the deck).
+    flip.addEventListener('click', (e) => {
+      if (!flip.classList.contains('flipped')) return;
+      e.stopPropagation(); qi++; renderQ();
+    });
+    renderQ();
+  }
+  /* ── Lesson bookmarks → the Book of Shadows (Lessons section). A tap saves
+     the CURRENT card as a snapshot page; tapping again removes it. ── */
+  const LESSON_MARKS = 'witch_lesson_marks';
+  function marksLoad() { try { return JSON.parse(localStorage.getItem(LESSON_MARKS) || '[]'); } catch { return []; } }
+  function marksSave(a) { try { localStorage.setItem(LESSON_MARKS, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
+  function markIdOf(key, card) { return key + '_' + (card.img || 'x'); }
+  function updateDeckBmk(c) {
+    const b = $('deck-bmk'); if (!b) return;
+    const hide = !c || !!c.brew || !!c.know;   // quiz cards have no snapshot to keep
+    b.style.display = hide ? 'none' : '';
+    if (!hide) b.classList.toggle('filled', marksLoad().some(m => m.id === markIdOf(deckKey, c)));
+  }
   function renderDeckCard() {
-    const c = deckCards[deckIdx], last = deckIdx === deckCards.length - 1;
+    const c = deckCards[deckIdx];
     try { markSeen(deckKey, deckIdx); } catch {}
     // Each card's bg is sampled from its own illustration's corner pixels, so
     // the art floats seamlessly on the screen even though the creams differ.
     $('school-lesson').style.background = c.bg || '#fdf9f3';
     $('deck-prog').innerHTML = deckCards.map((_, i) => `<span class="deck-seg${i <= deckIdx ? ' on' : ''}"></span>`).join('');
-    $('deck-stage').innerHTML = `<div class="tcard">
+    if (c.brew) renderBrewStage(c);
+    else if (c.know) renderKnowStage(c);
+    else $('deck-stage').innerHTML = `<div class="tcard">
       <div class="deck-head">
         <div class="tcard-kicker">${esc(c.kicker)}</div>
         <div class="tcard-h">${esc(c.h)}</div>
@@ -4653,12 +4860,14 @@
         ${deckIdx === 0 ? TAP_HINT : ''}
       </div>
     </div>`;
+    updateDeckBmk(c);
     // The CTA lives inside the tap-zone stage, so stop the tap from also
     // advancing the deck; jump to the feature the lesson taught.
     const ctaBtn = $('deck-cta');
     if (ctaBtn) ctaBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cta = deckCards[deckIdx].cta;
+      if (cta.product) { openProduct(cta.product); return; }
       if (cta.sky) { closeLesson(); openSky(); return; }
       if (cta.chart) { closeLesson(); if (natalChartHtml) openBirthChart(); else { go('home'); setTimeout(() => { const el = $('natal-form'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80); } return; }
       closeLesson(); go(cta.go || 'home');
@@ -4670,11 +4879,11 @@
       }, 80);
     });
     $('deck-prev').disabled = deckIdx === 0;
-    $('deck-next').textContent = last ? 'Finish' : 'Continue';
+    $('deck-next').style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
   let deckKey = 'spell';
-  function openLesson(key) {
+  function openLesson(key, atCard) {
     if (key === 'mysky') { openSky(); return; }
     deckOnNote = false;
     deckKey = LESSONS[key] ? key : 'spell';
@@ -4682,6 +4891,8 @@
     // Resume where you left off (Imprint-style), from the path's Continue.
     const e = schoolProgress()[deckKey];
     deckIdx = e && !e.done && e.seen > 0 && e.seen < deckCards.length ? e.seen - 1 : 0;
+    // A Book of Shadows bookmark jumps straight to its saved card.
+    if (atCard) { const i = deckCards.findIndex(c => c.img === atCard); if (i >= 0) deckIdx = i; }
     $('school-lesson').style.display = ''; document.body.classList.add('lesson-open'); renderDeckCard();
   }
   function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
@@ -4787,7 +4998,9 @@
     $('note-ai-btn').addEventListener('click', openAskChat);
     $('note-sophie-btn').addEventListener('click', openLetter);
     $('deck-prev').disabled = false;
+    $('deck-next').style.display = '';
     $('deck-next').textContent = 'Done';
+    updateDeckBmk(null);   // nothing to bookmark on the note screen
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
   let deckOnNote = false;
@@ -4816,6 +5029,22 @@
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
+  // The bookmark lives in the top bar (outside the tap zones): tap to save
+  // this page to the Book of Shadows — it fills, pops, and a little label
+  // confirms, gone in a blink. Tap again to remove.
+  { const b = $('deck-bmk'); if (b) b.addEventListener('click', () => {
+    const c = deckCards[deckIdx]; if (!c || c.brew || c.know) return;
+    const id = markIdOf(deckKey, c);
+    const a = marksLoad(), i = a.findIndex(m => m.id === id);
+    b.querySelector('.bmk-pop')?.remove();
+    if (i >= 0) { a.splice(i, 1); marksSave(a); b.classList.remove('filled', 'just'); }
+    else {
+      a.push({ id, lesson: deckKey, card: c.img, ts: Date.now() }); marksSave(a);
+      b.classList.add('filled'); b.classList.remove('just'); void b.offsetWidth; b.classList.add('just');
+      const pop = document.createElement('span'); pop.className = 'bmk-pop'; pop.textContent = 'Added to your Book of Shadows ✦'; b.appendChild(pop);
+      setTimeout(() => pop.remove(), 1700);
+    }
+  }); }
   // Imprint/stories-style tap zones: the left edge steps back, the rest advances.
   // On the note screen taps do nothing — typing must never close the lesson;
   // only the Done button (or Back) leaves.
@@ -4827,7 +5056,7 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done', 'witch_sync_archive', 'witch_coin_day'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done', 'witch_sync_archive', 'witch_coin_day', 'witch_lesson_marks'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
