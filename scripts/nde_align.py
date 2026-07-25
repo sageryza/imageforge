@@ -29,7 +29,9 @@ def align_words(wav_path, words):
     """words: [{word, start, end}, …] (times ignored). Returns new list with
     aligned times; words that can't be tokenized get interpolated times."""
     model, dic = _load()
-    wave, sr = torchaudio.load(wav_path)
+    import soundfile as sf  # torchaudio.load needs torchcodec; soundfile is lighter
+    data, sr = sf.read(wav_path, dtype="float32", always_2d=True)
+    wave = torch.from_numpy(data.T)
     if sr != _bundle.sample_rate:
         wave = torchaudio.functional.resample(wave, sr, _bundle.sample_rate)
         sr = _bundle.sample_rate

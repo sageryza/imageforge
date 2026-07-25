@@ -20,6 +20,7 @@ FINISH_PAUSE = os.environ.get("FINISH_TO_PAUSE") == "1"  # extend each clip end 
 FINISH_GAP = float(os.environ.get("FINISH_GAP", "0.45"))  # a pause this long counts as a sentence end
 FINISH_CAP = int(os.environ.get("FINISH_CAP", "12"))      # never extend more than this many words
 WHOLE = os.environ.get("WHOLE") == "1"  # cut the ENTIRE quote (opening words → closing words), then to next pause
+ALIGN = os.environ.get("ALIGN", "1") == "1"  # repair Whisper's drifting word times via forced alignment (local, free)
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -35,7 +36,9 @@ OUT = sys.argv[3] if len(sys.argv) > 3 else "/tmp/nde-precise.mp4"
 MAX_TIGHT = float(os.environ.get("MAX_TIGHT", "12"))   # drop a tight clip longer than this (bad match)
 MAX_FINISH = float(os.environ.get("MAX_FINISH", "20"))  # drop a finish-the-sentence clip longer than this
 CACHE = os.environ.get("WCACHE", "/home/user/whisper-cache")
+ACACHE = os.environ.get("ACACHE", "/home/user/align-cache")
 os.makedirs(CACHE, exist_ok=True)
+os.makedirs(ACACHE, exist_ok=True)
 tmp = tempfile.mkdtemp(prefix="precise-")
 
 def run(a): subprocess.run(a, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -169,13 +172,13 @@ def snap_to_silence(rs, re_, silences):
     Start: the silence ending just before the first word. No match → keep as-is."""
     re2 = re_
     for s, e in silences:
-        if re_ - 0.45 <= s <= re_ + 1.3:
+        if re_ - 0.05 <= s <= re_ + 1.0:  # forward-only: never eat the last word
             re2 = s + min(0.18, max(0.05, (e - s) * 0.4))
             break
     rs2 = rs
     cand = None
     for s, e in silences:
-        if rs - 1.3 <= e <= rs + 0.45:
+        if rs - 0.35 <= e <= rs + 0.15:  # only a silence that truly abuts the first word
             cand = (s, e)
     if cand:
         s, e = cand
@@ -314,6 +317,18 @@ for i, c in enumerate(cands, 1):
         else:
             wj = whisper_words(win)
             json.dump(wj, open(cachef, "w"))
+        if ALIGN and wj.get("words"):
+            acf = os.path.join(ACACHE, f"{c.get('videoId','x')}_{win_start}.json")
+            if os.path.exists(acf):
+                wj = {**wj, "words": json.load(open(acf))}
+            else:
+                wav16 = os.path.join(tmp, f"w{i}.wav")
+                run(["ffmpeg","-y","-i",win,"-ar","16000","-ac","1",wav16])
+                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                from nde_align import align_words
+                aligned = align_words(wav16, wj["words"])
+                json.dump(aligned, open(acf, "w"))
+                wj = {**wj, "words": aligned}
         phrase = (c.get("phrase") or "").strip()
         if WHOLE:
             found = find_whole_quote(wj, quote) or find_sentence(wj, quote)
