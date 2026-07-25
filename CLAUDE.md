@@ -960,7 +960,8 @@ lifted into a standalone tool later.
   `nde-align-cache/<videoId>_<winStart>.json` as
   `{videoId, winStart, winDur, words}` — publish/refresh them with
   `node scripts/upload-align-cache.js ~/align-cache:80 ~/align-cache-150:150`
-  (139 windows uploaded July 2026). A render picks the cached window that covers
+  (127 windows live as of July 2026 — pass the 80s dir FIRST so the 12 that also
+  exist at 150s overwrite it with the longer window). A render picks the one that covers
   the snippet's anchor; with no covering window (or if the phrase isn't really in
   it) it listens to a fresh window with OpenAI `whisper-1` word timestamps. Each
   render's `notes[]` records which path every clip took.
