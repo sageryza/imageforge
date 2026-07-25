@@ -70,6 +70,22 @@ def gettext(rec):
                    if isinstance(b, dict) and b.get('type') == 'text')
 IMG = re.compile(r'\.(?:png|jpe?g|webp|gif)$', re.I)
 FIRE = re.compile(r'''https://(?:storage|firebasestorage)\.googleapis\.com/[^\s)\]"'<>]+?\.(?:png|jpe?g|webp|gif)''', re.I)
+# A reply that writes an image as [Penny — the blue Kleenex](https://…/p02.webp)
+# is naming what the picture IS, so that text becomes the asset's description
+# in the Chats app (also matches the alt of ![alt](url)). Bare urls, filenames
+# and one-word slot codes ("p01", "p01-penny") are labels, not descriptions.
+MDLINK = re.compile(r'''\[([^\]\n]{1,300})\]\(\s*(https://(?:storage|firebasestorage)\.googleapis\.com/[^\s)]+?\.(?:png|jpe?g|webp|gif))[^)]*\)''', re.I)
+GENERIC = {'here', 'link', 'image', 'img', 'photo', 'picture', 'view', 'open',
+           'download', 'this', 'this one', 'full size', 'full-size', 'preview'}
+def gooddesc(t):
+    t = (t or '').strip()
+    if not t or re.match(r'^\w+://', t):          # link text that IS a url
+        return ''
+    if t.lower() in GENERIC:
+        return ''
+    if ' ' not in t and (len(t) <= 16 or IMG.search(t)):   # p01 / p01-penny / a filename
+        return ''
+    return t[:300]
 
 # Split the transcript into TURNS (one assistant reply per real user turn), in
 # order. Each turn = the joined text of every assistant text block in it, keyed
@@ -130,12 +146,27 @@ if not first:
     except Exception:
         pass
 gallery = []
+descs = {}             # url -> what the reply called it (markdown link text)
+for m in MDLINK.finditer(text):
+    d = gooddesc(m.group(1))
+    if d:
+        descs.setdefault(m.group(2), d)
 finished_urls = set()  # URLs shown to Sophie in the reply → the finished gallery
 for u in FIRE.findall(text):
     finished_urls.add(u)
     k = 'u:' + u
+    d = descs.get(u, '')
     if k not in done:
-        done.add(k); gallery.append({'url': u})
+        done.add(k)
+        g = {'url': u}
+        if d:
+            done.add('d:' + u); g['desc'] = d
+        gallery.append(g)
+    elif d and ('d:' + u) not in done:
+        # already filed (often as a work-in-progress) and NOW named — re-post so
+        # the server de-dupes onto the same asset and just sets the description
+        done.add('d:' + u)
+        gallery.append({'url': u, 'desc': d})
 for i, p in sends:
     k = 'f:' + p
     if k in done:
@@ -223,10 +254,12 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   f=$(printf '%s' "$g" | jq -r '.file // empty')
   w=$(printf '%s' "$g" | jq -r '.wip // empty')
   cj=$(printf '%s' "$name" | jq -Rs .)
+  # what the reply called this image, when it named it — shown as the caption
+  dj=$(printf '%s' "$g" | jq -r 'if .desc then ",\"description\":" + (.desc|tostring|@json) else "" end')
   if [ -n "$u" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj$dj}"
   elif [ -n "$w" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true$dj}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
       png) mime=image/png;; webp) mime=image/webp;; gif) mime=image/gif;; *) mime=image/jpeg;;
@@ -234,7 +267,7 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
     tmp=$(mktemp)
     printf '{"image":"data:%s;base64,' "$mime" > "$tmp"
     base64 -w0 "$f" >> "$tmp" 2>/dev/null || base64 "$f" | tr -d '\n' >> "$tmp"
-    printf '","prompt":%s,"created":%s,"chat":%s}' "$pj" "$nowms" "$cj" >> "$tmp"
+    printf '","prompt":%s,"created":%s,"chat":%s%s}' "$pj" "$nowms" "$cj" "$dj" >> "$tmp"
     curl -s -m 120 -X POST "$GALLERY" -H "Content-Type: application/json" \
       ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d @"$tmp" >/dev/null 2>&1 || true
     rm -f "$tmp"

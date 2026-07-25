@@ -1145,6 +1145,35 @@ async function galleryUid() {
   }
   return best;
 }
+// An image can reach a chat's Assets twice — once as a link in the reply, once
+// as the inline picture Sophie was sent — so both a canonical URL (query/hash
+// stripped) and a sha256 of the decoded bytes identify an asset. Either match
+// inside the same chat means "already filed": update the description, never
+// add a second tile.
+const assetDescription = (d) => String(d == null ? '' : d).trim().slice(0, 300);
+function canonicalAssetUrl(u) {
+  const s = String(u || '').trim();
+  if (!s) return '';
+  return s.split('#')[0].split('?')[0];
+}
+// Find this chat's existing asset record by content hash or canonical URL.
+// Equality-only queries merge single-field indexes, so no composite index.
+async function findChatAsset(chat, { hash, url } = {}) {
+  if (!chat || !admin.apps.length) return null;
+  const col = admin.firestore().collection('forge-chat-assets');
+  const tries = [];
+  if (hash) tries.push(col.where('chat', '==', chat).where('hash', '==', hash));
+  if (url) tries.push(col.where('chat', '==', chat).where('url', '==', url));
+  const key = canonicalAssetUrl(url);
+  if (key && key !== url) tries.push(col.where('chat', '==', chat).where('urlKey', '==', key));
+  for (const q of tries) {
+    try {
+      const snap = await q.limit(1).get();
+      if (!snap.empty) return snap.docs[0];
+    } catch (e) { /* a lookup failing must never block filing */ }
+  }
+  return null;
+}
 app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1152,6 +1181,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   try {
     const { url, image, prompt, created, style, type, dry, chat, assetsOnly } = req.body || {};
     const createdMs = Number(created) || Date.now();
+    const description = assetDescription(req.body && req.body.description);
+    const chatName = chat ? String(chat).slice(0, 60) : '';
     // assetsOnly: a work-in-progress image caught behind the scenes — file it to
     // the chat's Assets tab (forge-chat-assets, deckfactory) ONLY, never the main
     // "My Creations" gallery, so that stays curated to finished deliverables.
@@ -1161,29 +1192,34 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       const wipUrl = url && /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(String(url))
         ? String(url) : null;
       if (!wipUrl) return res.status(400).json({ error: 'assetsOnly requires a hosted url' });
-      if (!chat || !admin.apps.length) return res.json({ ok: true, skipped: 'no chat/admin' });
+      if (!chatName || !admin.apps.length) return res.json({ ok: true, skipped: 'no chat/admin' });
       const acol = admin.firestore().collection('forge-chat-assets');
-      const adup = await acol.where('chat', '==', String(chat).slice(0, 60))
-        .where('url', '==', wipUrl).limit(1).get();
-      if (!adup.empty) {
-        // A curated caption (e.g. "gpt-image-2 · medium") may arrive after the
-        // hook's generic record — upgrade the existing doc in place instead of
-        // silently dropping it.
-        const existing = adup.docs[0];
+      const existing = await findChatAsset(chatName, { url: wipUrl });
+      if (existing) {
+        // A curated caption (e.g. "gpt-image-2 · medium") or a description may
+        // arrive after the hook's generic record — upgrade the existing doc in
+        // place instead of silently dropping it.
+        const patch = {};
         const curated = String(prompt || '').trim();
         const old = String(existing.data().prompt || '');
         if (curated && !/^from /.test(curated) && (!old || /^from /.test(old))) {
-          await existing.ref.update({ prompt: curated.slice(0, 500) });
-          return res.json({ ok: true, updated: true, url: wipUrl });
+          patch.prompt = curated.slice(0, 500);
         }
-        return res.json({ ok: true, deduped: true, url: wipUrl });
+        if (description && description !== existing.data().description) patch.description = description;
+        if (Object.keys(patch).length) {
+          await existing.ref.update(patch);
+          return res.json({ ok: true, updated: true, deduped: true, url: wipUrl, description: description || existing.data().description || '' });
+        }
+        return res.json({ ok: true, deduped: true, url: wipUrl, description: existing.data().description || '' });
       }
-      await acol.add({
-        chat: String(chat).slice(0, 60), url: wipUrl,
+      const wipDoc = {
+        chat: chatName, url: wipUrl, urlKey: canonicalAssetUrl(wipUrl),
         prompt: String(prompt || '').slice(0, 500),
         created: new Date(createdMs).toISOString(), wip: true,
-      });
-      return res.json({ ok: true, assetsOnly: true, url: wipUrl });
+      };
+      if (description) wipDoc.description = description;
+      await acol.add(wipDoc);
+      return res.json({ ok: true, assetsOnly: true, url: wipUrl, description });
     }
     await storyDb();
     if (!storyApp) return res.status(503).json({ error: 'membry credential not configured' });
@@ -1191,37 +1227,64 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     if (dry) return res.json({ ok: true, dry: true, uid: uid.slice(0, 6) + '…' });
     let finalUrl = url && /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(String(url))
       ? String(url) : null;
+    let bytesHash = null;
+    let assetDoc = null;
     if (!finalUrl && image) {
       const m = String(image).match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
       if (!m) return res.status(400).json({ error: 'image must be a data URL' });
-      const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
-      const bucket = storyApp.storage().bucket();
-      const f = bucket.file(`claude-deliveries/${createdMs}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
-      await f.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
-      await f.makePublic();
-      finalUrl = `https://storage.googleapis.com/${bucket.name}/${f.name}`;
+      const buf = Buffer.from(m[2], 'base64');
+      bytesHash = require('crypto').createHash('sha256').update(buf).digest('hex');
+      // Same bytes already filed for this chat (e.g. posted as a link earlier)?
+      // Reuse that image instead of uploading a second copy of it.
+      assetDoc = await findChatAsset(chatName, { hash: bytesHash });
+      if (assetDoc) {
+        finalUrl = assetDoc.data().url;
+      } else {
+        const ext = m[1].split('/')[1].split(';')[0].replace('jpeg', 'jpg');
+        const bucket = storyApp.storage().bucket();
+        const f = bucket.file(`claude-deliveries/${createdMs}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
+        await f.save(buf, { contentType: m[1], resumable: false });
+        await f.makePublic();
+        finalUrl = `https://storage.googleapis.com/${bucket.name}/${f.name}`;
+      }
     }
     if (!finalUrl) return res.status(400).json({ error: 'url (Firebase Storage) or image (data URL) required' });
     // Per-chat asset record (deckfactory, where forge-chat-* live) — powers the
     // Assets tab inside each chat. Independent of the iOS-gallery de-dupe below.
-    if (chat && admin.apps.length) {
+    let assetDeduped = false;
+    if (chatName && admin.apps.length) {
       try {
         const acol = admin.firestore().collection('forge-chat-assets');
-        const adup = await acol.where('chat', '==', String(chat).slice(0, 60))
-          .where('url', '==', finalUrl).limit(1).get();
-        if (adup.empty) {
-          await acol.add({
-            chat: String(chat).slice(0, 60), url: finalUrl,
+        if (!assetDoc) assetDoc = await findChatAsset(chatName, { hash: bytesHash, url: finalUrl });
+        if (assetDoc) {
+          assetDeduped = true;
+          // Converge: a later post may carry the description (or the content
+          // hash) the first one lacked — fill those in, never a second tile.
+          const cur = assetDoc.data();
+          const patch = {};
+          if (description && description !== cur.description) patch.description = description;
+          if (bytesHash && !cur.hash) patch.hash = bytesHash;
+          if (!cur.urlKey) patch.urlKey = canonicalAssetUrl(cur.url);
+          if (cur.wip) patch.wip = false;   // it's a finished deliverable now
+          if (Object.keys(patch).length) await assetDoc.ref.update(patch);
+        } else {
+          const aDoc = {
+            chat: chatName, url: finalUrl, urlKey: canonicalAssetUrl(finalUrl),
             prompt: String(prompt || '').slice(0, 500),
             created: new Date(createdMs).toISOString(),
-          });
+          };
+          if (description) aDoc.description = description;
+          if (bytesHash) aDoc.hash = bytesHash;
+          await acol.add(aDoc);
         }
       } catch (e) { /* per-chat record is best-effort */ }
     }
     const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
-    if (url) { // de-dupe hosted URLs (uploads are always fresh objects)
+    { // de-dupe hosted URLs — an upload can now resolve to an already-filed image
       const dup = await col.where('url', '==', finalUrl).limit(1).get();
-      if (!dup.empty) return res.json({ ok: true, deduped: true, url: finalUrl });
+      if (!dup.empty) {
+        return res.json({ ok: true, deduped: true, url: finalUrl, description, assetDeduped });
+      }
     }
     const doc = {
       type: String(type || 'image'), url: finalUrl,
@@ -1254,15 +1317,16 @@ app.get('/api/gallery/assets', async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
     await storyDb();
     const seen = new Map();
-    const add = (url, ms, prompt) => {
+    const add = (url, ms, prompt, description) => {
       if (!url) return;
       const existing = seen.get(url);
-      if (!existing) { seen.set(url, { url, ms: ms || 0, prompt: prompt || '' }); return; }
+      if (!existing) { seen.set(url, { url, ms: ms || 0, prompt: prompt || '', description: description || '' }); return; }
       // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
       // label for the same image, so the model/quality caption wins.
       if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
         existing.prompt = prompt;
       }
+      if (description && !existing.description) existing.description = description;
     };
     // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
     if (storyApp) {
@@ -1282,11 +1346,15 @@ app.get('/api/gallery/assets', async (req, res) => {
       try {
         const asnap = await admin.firestore().collection('forge-chat-assets')
           .where('chat', '==', chat).get();
-        asnap.docs.forEach((d) => { const a = d.data(); add(a.url, Date.parse(a.created) || 0, a.prompt); });
+        asnap.docs.forEach((d) => { const a = d.data(); add(a.url, Date.parse(a.created) || 0, a.prompt, a.description); });
       } catch (e) { /* best effort */ }
     }
     const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
-      .map((a) => ({ url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' }));
+      .map((a) => {
+        const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
+        if (a.description) o.description = a.description;   // what this image IS, when a chat said so
+        return o;
+      });
     // Direct thumbnail URLs: the thumb path is content-addressed, so we can
     // hand out the storage.googleapis.com URL without any lookup. Tiles load
     // straight from storage's CDN — no per-image 302 hop through this server.
