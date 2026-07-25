@@ -2657,13 +2657,21 @@ app.get('/api/witch/shop', async (req, res) => {
     let products = (j.products || []).filter(p => !EXCLUDE.test(p.title || '')).map(p => {
       const v = (p.variants || [])[0] || {};
       const img = (p.images || [])[0] || {};
-      const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));
+      // Price the shelf off the variants a shopper can actually buy — a
+      // sold-out cheap option would otherwise advertise a floor that isn't
+      // purchasable. Fall back to all variants when nothing is in stock.
+      const priceable = (p.variants || []).filter(x => x.available);
+      const prices = (priceable.length ? priceable : (p.variants || []))
+        .map(x => parseFloat(x.price)).filter(n => isFinite(n));
       return {
         id: p.id, title: p.title, handle: p.handle,
         url: `${base}/products/${p.handle}`,
         image: img.src || null,
         price: v.price || null,
         priceMin: prices.length ? Math.min(...prices).toFixed(2) : null,
+        // Lets the tile say "from $X" instead of implying the cheapest option
+        // is the product's price (kits start at a just-the-cards variant).
+        priceMax: prices.length ? Math.max(...prices).toFixed(2) : null,
         available: (p.variants || []).some(x => x.available),
         type: p.product_type || '',
       };

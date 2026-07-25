@@ -2469,7 +2469,12 @@
         return cut.length >= 4 ? cut : t;
       };
       wrap.innerHTML = items.map(p => {
-        const price = p.priceMin ? `$${p.priceMin}` : (p.price ? `$${p.price}` : '');
+        // Variant prices span a real range on the kits (a just-the-cards
+        // option sits far below the kit itself), so a bare number reads as
+        // the product's price. Say "from" whenever the range isn't flat.
+        const lo = p.priceMin || p.price;
+        const ranged = p.priceMin && p.priceMax && parseFloat(p.priceMax) > parseFloat(p.priceMin);
+        const price = lo ? `${ranged ? 'from ' : ''}$${lo}` : '';
         const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
         // In-app buying: tap opens the product sheet. The href stays as a
         // long-press/no-JS fallback to the store's product page.
