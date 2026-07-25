@@ -604,27 +604,34 @@
     return `<div class="page" data-page="${i}"><img src="${url}" loading="lazy"></div>`;
   }
 
-  // ── Archive ──
+  // ── Archive ── (lazy: newest dreams appear first, the rest fill in)
   async function renderArchive(){
-    if(S.archiveLoading){ root.innerHTML = `<div class="progress"><div class="spinner"></div><span>Loading…</span></div>`; return; }
+    if(S.archiveLoading && !S.archive.length){ root.innerHTML = `<div class="progress"><div class="spinner"></div><span>Loading…</span></div>`; return; }
     if(!S.archive.length){ root.innerHTML = `<div class="empty">No dreams yet — illustrate one and it'll show up here.</div>`; return; }
     pageRefs = [];
     let h = `<div class="grid">`;
     S.archive.forEach(item => { h += pageHtml(item.url, item.dream); });
     h += `</div>`;
+    if(S.archiveLoading) h += `<div class="progress" style="margin-top:12px"><div class="spinner"></div><span>Loading more…</span></div>`;
     root.innerHTML = h;
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>openPopup(pageRefs[el.dataset.page]));
   }
   async function loadArchive(){
-    S.archiveLoading = true; render();
+    S.archive = []; S.archiveLoading = true; render();
     const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
-    const out = [];
+    // Fetch each dream's pages newest-first and render as they land, so the most
+    // recent dream shows almost immediately instead of waiting for all of them.
+    const built = [];
     for(const s of dreams){
+      if(S.view!=='archive'){ S.archiveLoading=false; return; }   // left the tab
       const r = await api('/dream/'+s.id);
-      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => out.push({ url:p.url, dream:d })); }
+      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => built.push({ url:p.url, dream:d })); }
+      else if(s.poster){ built.push({ url:s.poster, dream:{ title:s.title, id:s.id } }); }
+      S.archive = built.slice();
+      render();
     }
-    S.archive = out; S.archiveLoading = false; render();
+    S.archiveLoading = false; render();
   }
 
   // ── Zine (two-page book) ──
