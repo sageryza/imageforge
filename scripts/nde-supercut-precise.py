@@ -371,6 +371,11 @@ for i, c in enumerate(cands, 1):
                  "loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse",
                  "-ar","44100","-ac","1","-c:a","libmp3lame","-q:a","2",nrm])
             audio_clips.append(nrm)
+            keep = os.environ.get("KEEP_CLIPS")
+            if keep:
+                os.makedirs(keep, exist_ok=True)
+                import shutil
+                shutil.copy(nrm, os.path.join(keep, f"c{i:02d}.mp3"))
         else:
             clip_card(f"· {TITLE.lower()} ·", name, f"“{text}”", clip)
         kept += 1
