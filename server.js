@@ -2683,7 +2683,23 @@ app.get('/api/witch/shop', async (req, res) => {
     try {
       const listings = await etsyActiveListings();
       if (listings && listings.length) {
+        // The Shuttle importer stamped each Shopify handle with the last 4-6
+        // digits of the Etsy listing it came from
+        // (huge-witchcraft-kit-witch-alter-sets-86658 -> listing 710086658).
+        // That is an EXACT key and resolves 39/39 of the suffixed catalog, so
+        // it wins outright — word overlap can't separate near-identical titles
+        // and was handing "HUGE WITCHCRAFT KIT" to the wrong kit (the 77-review
+        // product instead of the 980-review one), which also dropped the real
+        // best seller from the shelves entirely.
+        const bySuffix = (handle) => {
+          const m = /-(\d{4,6})$/.exec(handle || '');
+          if (!m) return null;
+          const hits = listings.filter(l => String(l.id).endsWith(m[1]));
+          return hits.length === 1 ? hits[0] : null; // ambiguous suffix -> fall through
+        };
         const scored = products.map(p => {
+          const pinned = bySuffix(p.handle);
+          if (pinned) return { p, best: pinned, bestScore: Infinity, pinned: true };
           const pw = shopWords(p.title);
           let best = null, bestScore = 0;
           for (const l of listings) {
@@ -2692,11 +2708,19 @@ app.get('/api/witch/shop', async (req, res) => {
           }
           return { p, best, bestScore };
         });
-        const byEtsy = new Map(); // one shopify product per etsy listing (best score wins)
+        // One Shopify product per Etsy listing. A handle-pinned match always
+        // beats a guessed one, so a fuzzy hit can never steal a listing that
+        // its real twin claims by id.
+        const byEtsy = new Map();
         for (const s of scored) {
           if (!s.best || s.bestScore < 2) continue;
           const cur = byEtsy.get(s.best.id);
           if (!cur || s.bestScore > cur.bestScore) byEtsy.set(s.best.id, s);
+        }
+        // A pinned product must never be dropped just because some other
+        // product also fuzzy-matched its listing first.
+        for (const s of scored) {
+          if (s.pinned && byEtsy.get(s.best.id) !== s) byEtsy.set(s.best.id, s);
         }
         const kept = [...byEtsy.values()].sort((a, b) => a.best.idx - b.best.idx);
         products = kept.map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
