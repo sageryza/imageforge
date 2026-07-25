@@ -674,11 +674,13 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
   }
   try {
     const { id, title, cover, order, text } = req.body || {};
-    if (!id && !String(title || '').trim()) return res.status(400).json({ error: 'title required' });
     const db = await storyDb();
     if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
     const col = db.collection('forge-story');
-    let docId = id ? String(id) : (storySlug(title) || 'story');
+    // A story may start with NO name — Sophie often doesn't know the title
+    // until she's into it, so a nameless story is created as "Untitled" and
+    // renamed later (POST again with { id, title }).
+    let docId = id ? String(id) : (storySlug(title) || 'untitled');
     if (!id) {
       let base = docId, n = 1;
       while ((await col.doc(docId).get()).exists) { n++; docId = base + '-' + n; }
@@ -688,6 +690,7 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
     const data = snap.exists ? snap.data() : { id: docId, beats: [] };
     data.id = docId;
     if (title != null && String(title).trim()) data.title = String(title).slice(0, 120);
+    else if (!data.title) data.title = 'Untitled';
     if (order != null && order !== '') data.order = Number(order);
     else if (data.order == null) {
       const all = await col.get();
