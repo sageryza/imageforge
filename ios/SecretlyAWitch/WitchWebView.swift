@@ -113,6 +113,14 @@ struct WitchWebView: UIViewRepresentable {
             return nil
         }
 
+        // Lift the "Summoning…" splash the moment the page STARTS rendering
+        // (didCommit) instead of waiting for the full load — the page paints
+        // its own cream shell immediately, so there's nothing to hide. The
+        // splash used to sit through fonts/scripts/images on every open.
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            parent.loading = false
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             parent.loading = false
             // Honor a non-default starting tab (CI screenshots / restored state).

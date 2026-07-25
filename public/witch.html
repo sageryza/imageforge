@@ -3757,7 +3757,11 @@
   // filed in the Synchronicities archive, so this clears the three Home boxes ONCE
   // — nothing is lost. Guarded so the flag only commits once the cleared state
   // will actually stick (the cloud can't re-restore it on the next pull).
-  const COIN_RESET_V = '2026-07-24';
+  // Bumped 2026-07-26: devices poisoned BEFORE the coin-day cloud fix shipped
+  // (today's day stamp + yesterday's cloud-restored draws) never trigger the
+  // daily rollover until midnight — this purges them once. The archive keeps
+  // every draw, so nothing is lost.
+  const COIN_RESET_V = '2026-07-26-stale-purge';
   function coinResetDone() { try { return localStorage.getItem('witch_coin_reset') === COIN_RESET_V; } catch { return false; } }
   function coinOneTimeReset() {
     if (coinResetDone()) return;
