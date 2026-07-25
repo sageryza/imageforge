@@ -823,8 +823,10 @@
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
     .tcard-body a { color: var(--gold); text-decoration: underline; }
-    .tcard-hint { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 14px; }
-    .tcard-hint svg { width: 13px; height: 13px; vertical-align: -2px; }
+    .tap-arrow { text-align: center; margin-top: 14px; opacity: 0; animation: tapArrowIn .8s ease 4s forwards, tapArrowNudge 1.4s ease 4.8s infinite; }
+    .tap-arrow svg { width: 28px; height: 28px; color: var(--gold); }
+    @keyframes tapArrowIn { to { opacity: 1; } }
+    @keyframes tapArrowNudge { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(3px); } 75% { transform: translateX(-3px); } }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
     .deck-prev { background: none; border: none; padding: 10px 4px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .deck-prev:hover { color: var(--gold); }
@@ -1229,7 +1231,7 @@
       <section class="view" id="view-school">
         <div class="kicker">Learn the craft</div>
         <div class="section-title">Witch School</div>
-        <div class="section-sub">Short, gentle lessons in the everyday magic arts.</div>
+        <div class="section-sub">Discover the power within ✦</div>
         <!-- The path: a winding trail of lesson nodes (rendered by JS) -->
         <div id="school-path"></div>
         <!-- Legacy lesson tiles — hidden; kept as the icon + title source the
@@ -2437,7 +2439,7 @@
     h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
       <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
       <button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>
-      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">Short, gentle lessons in Witch School.</span></span></button>
+      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
     </div></div>`;
     st.innerHTML = h;
     const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
@@ -4469,8 +4471,8 @@
     { img: 'ap-05', bg: '#fef9f2', kicker: 'The shield', h: 'Yarrow', body: 'Achilles is said to have packed his soldiers\' wounds with it, and it carries his name (<i>Achillea</i>). Yarrow is courage and boundaries: witches from Britain to Appalachia sewed it into sachets and tucked it into beds to keep the wrong people — and spirits — away.' },
     { img: 'ap-06', bg: '#fcf8f2', kicker: 'The torch', h: 'Mullein', body: 'The tall stalk witches once dipped in tallow and burned as a torch — the <b>hag taper</b>. Mullein is illumination and safe passage through dark places, and an old ally for ancestor work: a candle for the parts of the path you can\'t see yet.' },
     { img: 'ap-07', bg: '#fefaf7', kicker: 'The enchanter\'s herb', h: 'Vervain', body: 'Sacred to the Egyptians, the Druids, everyone in between — legend says it sprang from the tears of <b>Isis</b>. Vervain purifies, protects, breaks hexes, and blesses. When you don\'t know which herb a working needs, it\'s vervain.' },
-    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength. <i>(The shop\'s <a href="https://secretlyawitch.com/products/wooden-mortar-pestle" target="_blank" rel="noopener">wooden mortar & pestle</a> is made for exactly this.)</i>' },
-    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them. <i>(Or begin with a ready-stocked <a href="https://secretlyawitch.com/products/apothecary-box-with-wooden-mortar-and-pestle" target="_blank" rel="noopener">apothecary box</a> from the shop and grow it from there.)</i>' },
+    { img: 'ap-08', bg: '#fef7ee', kicker: 'The craft', h: 'Grind with intention', body: 'The mortar and pestle is the apothecary\'s wand. Grinding is where the spell begins: name the herb\'s job as you work it, clockwise to draw in, counter to banish — kitchen craft rules, apothecary strength.', cta: { label: 'The wooden mortar & pestle', product: 'wooden-mortar-pestle' } },
+    { img: 'ap-09', bg: '#fcf7f1', kicker: 'The shelf', h: 'Build your apothecary', body: 'Corked vials, labeled and dated, kept dark and dry — herbs fade in sunlight. Start with the five from this lesson; add one at a time as you actually use them, or begin with a ready-stocked apothecary box from the shop and grow it from there.', cta: { label: 'The apothecary box', product: 'apothecary-box-with-wooden-mortar-and-pestle' } },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it. That\'s page one of a real apothecary.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
   const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
@@ -4633,9 +4635,9 @@
   const preloaded = new Set();
   const preload = (cards) => cards.forEach(c => { if (preloaded.has(c.img)) return; preloaded.add(c.img); const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
   Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
-  const TAP_HINT = '<div class="tcard-hint">Tap to continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
+  const TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   function renderDeckCard() {
-    const c = deckCards[deckIdx], last = deckIdx === deckCards.length - 1;
+    const c = deckCards[deckIdx];
     try { markSeen(deckKey, deckIdx); } catch {}
     // Each card's bg is sampled from its own illustration's corner pixels, so
     // the art floats seamlessly on the screen even though the creams differ.
@@ -4659,6 +4661,7 @@
     if (ctaBtn) ctaBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cta = deckCards[deckIdx].cta;
+      if (cta.product) { openProduct(cta.product); return; }
       if (cta.sky) { closeLesson(); openSky(); return; }
       if (cta.chart) { closeLesson(); if (natalChartHtml) openBirthChart(); else { go('home'); setTimeout(() => { const el = $('natal-form'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80); } return; }
       closeLesson(); go(cta.go || 'home');
@@ -4670,7 +4673,7 @@
       }, 80);
     });
     $('deck-prev').disabled = deckIdx === 0;
-    $('deck-next').textContent = last ? 'Finish' : 'Continue';
+    $('deck-next').style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
   let deckKey = 'spell';
@@ -4787,6 +4790,7 @@
     $('note-ai-btn').addEventListener('click', openAskChat);
     $('note-sophie-btn').addEventListener('click', openLetter);
     $('deck-prev').disabled = false;
+    $('deck-next').style.display = '';
     $('deck-next').textContent = 'Done';
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
