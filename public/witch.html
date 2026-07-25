@@ -3444,73 +3444,63 @@
   }
   const SIGN_NAMES = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
   const signIdxOf = b => b && isFinite(b.lon) ? ((Math.floor(b.lon / 30) % 12) + 12) % 12 : (b && b.signIndex != null ? b.signIndex : 0);
-  // The whole-chart overview card: a clean two-ring black-line diagram (no
-  // color, no person) — outer ring always shows the 12 zodiac signs (that
-  // ring is universal, not personal); the inner ring shows THIS reader's real
-  // planets, each in the sign wedge it actually landed in, blank where no
-  // planet fell. Center stays empty.
-  function skyWheelDiagramSVG(bodies) {
-    const cx = 300, cy = 300, R1 = 280, R2 = 195, R3 = 108, INK = '#231e28';
-    const F = `font-family="'DejaVu Sans', sans-serif"`;
+  // The lesson's art is REAL drawings cut from Sophie's hearted b&w wheel
+  // (as-houses-bw.png) + the matching planets wheel (as-planets-bw.png):
+  // one PNG per sign / planet / house symbol, hosted in sky-cells/.
+  const SKY_CELL = n => `https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/sky-cells/${n}.png`;
+  const PLANET_CELLS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  // The SAME white wheel skeleton every screen — outer circle, sign ring,
+  // house ring, hub, 12 spokes — but only the piece being taught is drawn on
+  // it: everything else is left blank so the eye goes straight to the one
+  // ingredient. Pieces are the real cut-out drawings, placed where they live:
+  // sign in its outer wedge, planet just inside it, house in the inner ring.
+  function skyFocusSVG(o) {
+    o = o || {};
+    const cx = 150, cy = 150, R = 141, Rin = 97, Rhub = 44, INK = '#231e28';
     const pt = (deg, r) => [cx + r * Math.cos(deg * Math.PI / 180), cy + r * Math.sin(deg * Math.PI / 180)];
-    let s = '';
-    [R1, R2, R3].forEach(r => { s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${INK}" stroke-width="2.2"/>`; });
+    // Wedge centers matched to the hearted wheel's layout: boundaries at 12
+    // o'clock, Aries in the wedge just LEFT of vertical, Taurus just right.
+    const seg = i => -105 + i * 30;
+    let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="#ffffff" stroke="${INK}" stroke-width="2.4"/>`
+      + `<circle cx="${cx}" cy="${cy}" r="${Rin}" fill="none" stroke="${INK}" stroke-width="1.4"/>`
+      + `<circle cx="${cx}" cy="${cy}" r="${Rhub}" fill="none" stroke="${INK}" stroke-width="1.4"/>`;
     for (let i = 0; i < 12; i++) {
       const a = -90 + i * 30;
-      const [x1, y1] = pt(a, R3), [x2, y2] = pt(a, R1);
-      s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${INK}" stroke-width="1.3"/>`;
+      const [x1, y1] = pt(a, Rhub), [x2, y2] = pt(a, R);
+      s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${INK}" stroke-width="0.9"/>`;
     }
-    for (let i = 0; i < 12; i++) {
-      const [x, y] = pt(-90 + i * 30 + 15, (R1 + R2) / 2);
-      s += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="30" ${F} text-anchor="middle" dominant-baseline="central" fill="${INK}">${signGlyph(i)}</text>`;
+    // Draw the trine chord FIRST so the drawings (white-backed) sit on top of
+    // it — the line reads as running between them.
+    if (o.trine) {
+      const [ax, ay] = pt(seg(10), (Rin + Rhub) / 2 + 6), [bx2, by2] = pt(seg(2), (Rin + Rhub) / 2 + 6);
+      s += `<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx2.toFixed(1)}" y2="${by2.toFixed(1)}" stroke="${INK}" stroke-width="1.6" stroke-dasharray="6 5"/>`;
+      s += `<image href="${SKY_CELL('planet-sun')}" x="${(ax - 31).toFixed(1)}" y="${(ay - 31).toFixed(1)}" width="62" height="62"/>`;
+      s += `<image href="${SKY_CELL('planet-moon')}" x="${(bx2 - 31).toFixed(1)}" y="${(by2 - 31).toFixed(1)}" width="62" height="62"/>`;
     }
-    const bySign = {};
-    (bodies || []).forEach(b => { const idx = signIdxOf(b); (bySign[idx] = bySign[idx] || []).push(b); });
-    Object.keys(bySign).forEach(k => {
-      const idx = +k, group = bySign[idx], n = group.length, mid = -90 + idx * 30 + 15, r = (R2 + R3) / 2;
-      group.forEach((b, j) => {
-        const a = mid + (j - (n - 1) / 2) * 9;
-        const [x, y] = pt(a, r);
-        s += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="26" ${F} text-anchor="middle" dominant-baseline="central" fill="${INK}">${(b.glyph || '') + '︎'}</text>`;
-      });
-    });
-    return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" class="sky-circle">${s}</svg>`;
-  }
-  // The FULL wheel every time — outer sign-ring + 12 divisions + hub — but only
-  // ONE thing is actually drawn on it: the sign glyph in its wedge, and the
-  // planet glyph(s) sitting there. Every other position is left blank (the
-  // reader knows the rest are still there, just hidden), so the eye goes
-  // straight to what this card teaches.
-  function skyWheelFocusSVG(signIdx, glyphs) {
-    const g = (glyphs || []).filter(Boolean);
-    const cx = 130, cy = 130, R = 116, Rb = 82, Rc = 34;
-    const rad = a => (a) * Math.PI / 180;
-    const pt = (deg, r) => [cx + r * Math.cos(rad(deg)), cy + r * Math.sin(rad(deg))];
-    let spokes = '';
-    for (let i = 0; i < 12; i++) {
-      const [x1, y1] = pt(-105 + i * 30, Rb), [x2, y2] = pt(-105 + i * 30, R);
-      spokes += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${CP.gold}" stroke-width="0.9"/>`;
+    const img = (url, x, y, size) => `<image href="${url}" x="${(x - size / 2).toFixed(1)}" y="${(y - size / 2).toFixed(1)}" width="${size}" height="${size}"/>`;
+    // Sizes deliberately overflow their band a little, like the original art
+    // where each drawing fills its cell generously; the blank wheel leaves
+    // them all the room they need.
+    if (o.signIdx != null && o.signIdx >= 0) {
+      const [x, y] = pt(seg(o.signIdx), (R + Rin) / 2);
+      s += img(SKY_CELL('sign-' + SIGN_NAMES[o.signIdx].toLowerCase()), x, y, 62);
+      if (o.planet) {
+        const [px, py] = pt(seg(o.signIdx), (Rin + Rhub) / 2);
+        s += PLANET_CELLS.includes(o.planet)
+          ? img(SKY_CELL('planet-' + o.planet.toLowerCase()), px, py, 56)
+          : `<text x="${px.toFixed(1)}" y="${py.toFixed(1)}" font-size="30" fill="${INK}" text-anchor="middle" dominant-baseline="central">${o.planetGlyph || '✦'}</text>`;
+        // the traditional glyph rides along, small + tentative
+        if (o.planetGlyph && PLANET_CELLS.includes(o.planet)) {
+          const [gx, gy] = pt(seg(o.signIdx), Rhub * 0.45);
+          s += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="15" fill="${INK}" opacity="0.55" text-anchor="middle" dominant-baseline="central">${o.planetGlyph}︎</text>`;
+        }
+      }
     }
-    let marks = '';
-    if (signIdx != null) {
-      const c = -90 + signIdx * 30;
-      const [sx, sy] = pt(c, (R + Rb) / 2);
-      marks += `<text x="${sx.toFixed(1)}" y="${sy.toFixed(1)}" font-size="26" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">${signGlyph(signIdx)}</text>`;
-      const n = g.length;
-      g.forEach((gy, i) => {
-        const [bx, by] = pt(c, (Rb + Rc) / 2 + 4);
-        const x = bx + (i - (n - 1) / 2) * 34;
-        marks += `<text x="${x.toFixed(1)}" y="${by.toFixed(1)}" font-size="40" fill="${CP.plum}" text-anchor="middle" dominant-baseline="central">${gy + '︎'}</text>`;
-      });
+    if (o.house) {
+      const [hx, hy] = pt(seg(o.house - 1), (Rin + Rhub) / 2);
+      s += img(SKY_CELL('house-h' + o.house), hx, hy, 52);
     }
-    return `<svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" class="sky-circle">
-      <circle cx="${cx}" cy="${cy}" r="${R}" fill="${CP.cream}" stroke="${CP.ink}" stroke-width="3"/>
-      <circle cx="${cx}" cy="${cy}" r="${Rb}" fill="none" stroke="${CP.gold}" stroke-width="1"/>
-      <circle cx="${cx}" cy="${cy}" r="${Rc}" fill="none" stroke="${CP.gold}" stroke-width="1"/>
-      ${spokes}
-      <text x="${cx}" y="${cy}" font-size="22" fill="${CP.gold}" text-anchor="middle" dominant-baseline="central">✦</text>
-      ${marks}
-    </svg>`;
+    return `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" class="sky-circle">${s}</svg>`;
   }
   let skyBusy = false;
   async function openSky() {
@@ -3580,22 +3570,41 @@
         { concept: 'house', planet: h.name, sign: h.sign, house: h.house, title: h.house ? `${h.name} in the ${ORD[h.house]} house` : `${h.name}`, body: h.house ? `A <b>house</b> is a <i>where</i> — an area of life. Your <b>${h.name}</b> landed in the <b>${ORD[h.house]} house</b>: ${HOUSE_MEANINGS[h.house]}.` : `A <b>house</b> is a <i>where</i> — an area of life. Add your birth <b>time</b> and we can place your ${h.name} in one.` },
       ];
     }
-    const CONCEPT_KICKER = { sign: 'What a sign is', planet: 'What a planet is', house: 'What a house is' };
+    const CONCEPT_KICKER = { sign: 'Your sign at work', planet: 'Your planet at work', house: 'Your house at work' };
+    const sunBody = c.bodies.find(b => b.name === 'Sun');
+    const sunSign = sunBody ? sunBody.sign : null;
+    const sunSignIdx = Math.max(0, SIGN_NAMES.indexOf(sunSign || 'Aries'));
+    const sunHouse = (sunBody && sunBody.house) || 5;
     const cards = [];
-    // 1 — the whole chart, everything on it (the overview)
-    cards.push({ kicker: 'Your Sky, Read', h: 'This is your whole sky', bg: BG,
-      html: `<div class="sky-circle-wrap">${skyWheelDiagramSVG(c.bodies)}</div>`,
-      body: 'The outer ring is the twelve signs — always the same twelve, for everyone. The inner ring is where your <i>real</i> planets actually landed. Let\'s pull out just three of them, one at a time, to learn the three things every placement is made of.' });
-    // 2-4 — one placement per concept, full wheel but only that symbol drawn
+    // 1 — the whole chart: Sophie's hearted b&w wheel, everything on it
+    cards.push({ kicker: 'Your Sky, Read', h: 'This is your whole sky', bg: BG, img: 'as-houses-bw',
+      body: 'A chart is a snapshot of the sky at the moment you were born, drawn as a wheel. The outer ring holds the twelve <b>signs</b>, the inner ring the twelve <b>houses</b> — and the person at the center is you. Every chart ever drawn is this same wheel; what makes it <i>yours</i> is where your planets landed on it. First, the three pieces every chart is made of.' });
+    // 2-5 — the ingredients, one concept per screen, before any of YOUR placements
+    cards.push({ kicker: 'The first ingredient', h: 'What a planet is', bg: BG, img: 'as-planets-bw',
+      body: 'A <b>planet</b> is a <i>what</i> — a force alive in you. There are ten: the Sun is who you\'re becoming, the Moon your feelings, Mercury how you speak, Venus how you love, Mars your drive. Each one was somewhere in the sky the moment you were born — and wherever it sat, it picked up a sign and a house.' });
+    cards.push({ kicker: 'The second ingredient', h: 'What a sign is', bg: BG,
+      html: `<div class="sky-circle-wrap">${skyFocusSVG({ signIdx: sunSignIdx })}</div>`,
+      body: `A <b>sign</b> is a <i>how</i> — the flavor a planet moves in. The twelve signs are fixed on the wheel, the same for everyone who has ever lived. ${sunSign ? `Your Sun wears <b>${esc(sunSign)}</b> — that\'s its drawing, alone in its slice — so that flavor runs through everything you are.` : 'Whichever slice a planet lands in, that\'s the flavor it takes.'}` });
+    cards.push({ kicker: 'The third ingredient', h: 'What a house is', bg: BG,
+      html: `<div class="sky-circle-wrap">${skyFocusSVG({ house: hasHouses ? sunHouse : 5 })}</div>`,
+      body: `A <b>house</b> is a <i>where</i> — a slice of everyday life: money, home, love, work. ${hasHouses ? `Your Sun sits in the <b>${ORD[sunHouse]} house</b> — ${HOUSE_MEANINGS[sunHouse]} — marked here by its little emblem.` : `This emblem marks the 5th — romance, creativity &amp; play.`} Houses come from your birth <b>time</b> and place, which is why two people born the same day can live such different charts.${hasHouses ? '' : ' Add your birth time and yours snap into place.'}` });
+    cards.push({ kicker: 'How they talk', h: 'Trines & conflicts', bg: BG,
+      html: `<div class="sky-circle-wrap">${skyFocusSVG({ trine: true })}</div>`,
+      body: 'Planets also sit at <i>angles</i> to each other, and the angles have moods. A <b>trine</b> — a third of the wheel apart, like these two — is an easy road: talents that simply flow. A <b>square</b> is a <b>conflict</b>: friction that pushes you to grow. Neither is good or bad; a chart is a conversation, not a report card.' });
+    // 6-8 — YOUR three placements, same wheel, only that piece drawn
     lesson.slice(0, 3).forEach(l => {
       const idx = Math.max(0, SIGN_NAMES.indexOf(l.sign));
+      const focus = l.concept === 'house' && l.house
+        ? { house: l.house }                                       // the house alone, zeroed in
+        : { signIdx: idx, planet: l.planet, planetGlyph: glyphOf(l.planet) };
       cards.push({ kicker: CONCEPT_KICKER[l.concept] || 'Your chart', h: esc(l.title || `${l.planet} in ${l.sign}`), bg: BG,
-        html: `<div class="sky-circle-wrap">${skyWheelFocusSVG(idx, [glyphOf(l.planet)])}</div>`,
+        html: `<div class="sky-circle-wrap">${skyFocusSVG(focus)}</div>`,
         body: l.body || '' });
     });
-    // 5 — closing
+    // 9 — closing: back to the woman at the center
     cards.push({ kicker: 'After', h: 'That\'s the whole language', bg: BG,
-      body: 'A <i>what</i> (the planet), a <i>how</i> (the sign), and a <i>where</i> (the house) — every one of your placements is just those three. Now the busy wheel makes sense: it\'s that little sentence, over and over.<br><br>Want the full written reading of your chart? ✦',
+      html: `<div class="sky-circle-wrap"><img class="tcard-img" style="max-width:200px;" src="${SKY_CELL('house-h1')}" alt=""></div>`,
+      body: 'A <i>what</i> (the planet), a <i>how</i> (the sign), a <i>where</i> (the house) — and the angles between them. Every line of your chart is just that sentence, over and over, about the person at the center of the wheel.<br><br>Want the full written reading of your chart? ✦',
       cta: { label: 'Read my full chart', chart: true } });
     return cards;
   }
