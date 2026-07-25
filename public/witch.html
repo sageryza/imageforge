@@ -17,7 +17,13 @@
   <meta property="og:image" content="https://storage.googleapis.com/membry-df528.firebasestorage.app/witch-tarot/the-moon.webp">
   <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Fonts load async (preload->stylesheet swap) so the CSS fetch never
+       blocks first paint or the window load event — the native app's
+       "Summoning…" splash waits on load, so every blocking resource here is
+       time Sophie stares at the spinner. display=swap shows real text
+       immediately in system fonts, then swaps. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -2454,7 +2460,7 @@
         const img = DECK_IMG[p.card.name];
         const rev = p.orientation === 'reversed';
         return `<div class="tpin-slot">${img
-          ? `<img class="tpin-img${rev ? ' rev' : ''}" src="${img}" alt="${esc(p.card.name)}">`
+          ? `<img class="tpin-img${rev ? ' rev' : ''}" src="${img}" alt="${esc(p.card.name)}" loading="lazy" decoding="async">`
           : `<div class="tpin-noimg">✦</div>`}<div class="tpin-pos">${esc(p.position || '')}</div></div>`;
       }).join('') + `</div>`;
     }
@@ -3800,7 +3806,7 @@
     if (!st || !box || !st.v || !st.v.length) return;
     if (st.i == null || st.i < 0 || st.i >= st.v.length) { st.i = st.v.length - 1; coinSetDone(i, st); }
     box.setAttribute('contenteditable', 'false');
-    box.innerHTML = `<img src="${esc(st.v[st.i])}" alt="">`;
+    box.innerHTML = `<img src="${esc(st.v[st.i])}" alt="" loading="lazy" decoding="async">`;
     const cell = box.closest('.coin-cell'); if (!cell) return;
     cell.classList.add('drawn');
     let cap = cell.querySelector('.coin-cap');
@@ -5204,8 +5210,8 @@
     try {
       const base = 'https://www.gstatic.com/firebasejs/10.12.0/';
       await loadScript(base + 'firebase-app-compat.js');
-      await loadScript(base + 'firebase-auth-compat.js');
-      await loadScript(base + 'firebase-firestore-compat.js');
+      // auth + firestore only depend on app — load them in parallel.
+      await Promise.all([loadScript(base + 'firebase-auth-compat.js'), loadScript(base + 'firebase-firestore-compat.js')]);
       firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId, storageBucket: cfg.storageBucket, messagingSenderId: cfg.messagingSenderId, appId: cfg.appId });
       fbAuth = firebase.auth(); fbDb = firebase.firestore();
       renderAcctBtn();
@@ -5271,7 +5277,12 @@
   updateSavedCount();
   loadSavedNatal();
   renderStyleGrid().catch(() => toast('Could not load illustration styles'));
-  initAccounts();
+  // Firebase (config fetch + ~500KB of SDK scripts) starts AFTER the window
+  // load event. Scripts injected before load delay it — and the native app's
+  // "Summoning…" splash only lifts at load, so this chain used to hold the
+  // whole app hostage on every open. Auth state simply resolves a beat later.
+  if (document.readyState === 'complete') setTimeout(initAccounts, 0);
+  else window.addEventListener('load', () => setTimeout(initAccounts, 0), { once: true });
   // Resume any background jobs that were mid-flight when the app was left.
   function resumePendingJobs() {
     try { resumeCoinJobs(); } catch (e) {}
