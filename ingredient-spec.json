@@ -1,0 +1,17 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png",
+           "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "ing-rosemary", "prompt": "A single sprig of rosemary — one slender stem with fine needle leaves, tied with a tiny thread bow. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-basil", "prompt": "A small basil stem with three or four soft rounded leaves. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-salt", "prompt": "A tiny open salt dish, a small rounded bowl with a neat little mound of salt, a few grains scattered beside it. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-rose", "prompt": "A single rose bloom on a short stem with one leaf, petals simple and rounded. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-pepper", "prompt": "A small cluster of round black peppercorns beside a tiny pinch bowl. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-chamomile", "prompt": "Three small chamomile flowers, white daisy petals around round golden centers, on thin stems. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-mugwort", "prompt": "A tall slender mugwort stalk with feathery deep-cut leaves, gently curved, a tiny crescent moon floating beside it. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-wormwood", "prompt": "A silvery wormwood sprig with finely divided soft grey-green leaves, a thin wisp of smoke curling from its tip. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-lavender", "prompt": "Three lavender stems with small purple flower spikes, tied together with simple string. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-yarrow", "prompt": "A single yarrow stem topped with a flat cluster of tiny white flowers, ferny leaves along the stem. One clear subject, generous cream space, flat and simple." },
+    { "id": "ing-mullein", "prompt": "A tall mullein stalk, a dense spike of small yellow flowers atop soft velvety leaves, standing straight like a torch with a tiny flame glow at its tip. One clear subject, generous cream space, flat and simple." }
+  ]
+}
