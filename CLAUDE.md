@@ -13,6 +13,33 @@
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
 
+## Dashboard deep links (give Sophie EXACT links, never "go find it")
+Sophie reads on a phone and hunting through a dashboard's menus wastes her
+time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
+you can't guess — none of them is a credential (every link still demands her
+login), so they're safe here even though this repo is public. Pair them with
+the "research the CURRENT UI" design rule: the ids stay valid, the menu labels
+around them change, so verify the labels and use these for the URL.
+- **Render service** (the ImageForge web service): `srv-d660igvgi27c73a5u6eg`
+  - Settings incl. **Custom Domains**: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/settings
+  - Env vars: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/env
+  - Logs: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/logs ·
+    Deploys: https://dashboard.render.com/web/srv-d660igvgi27c73a5u6eg/deploys
+  - Pattern: `dashboard.render.com/web/<srv-id>/<settings|env|logs|deploys|metrics>`
+- **Firebase** — membry (`membry-df528`, the iOS gallery / witch auth):
+  - Auth **Authorized domains**: https://console.firebase.google.com/project/membry-df528/authentication/settings
+  - Firestore: https://console.firebase.google.com/project/membry-df528/firestore
+  - Deck Factory (`deckfactory-43176`, server data/Storage): swap the project id
+    into the same paths.
+- **Shopify admin** (store handle `cod-god-inc`):
+  - Domains: https://admin.shopify.com/store/cod-god-inc/settings/domains
+  - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
+  - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
+- **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Missing an id you need?** Ask Sophie to paste the URL from her address bar
+  while she's on that page, build the exact link from it, and ADD THE ID HERE
+  so no future chat has to ask twice.
+
 ## Live app
 - **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
   - Hub: https://imageforge-q125.onrender.com/
@@ -21,6 +48,15 @@
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
   - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
+  - **secretlyawitch.com → the witch app (July 2026).** The server is
+    host-aware: on `secretlyawitch.com` the witch app serves at `/`, old
+    Shopify-storefront paths 301 to `WITCH_STORE_ORIGIN` (default
+    `cod-god-inc.myshopify.com`), old `/blogs/*` 301 to the on-site blog at
+    `/blog` (+ `/blog/:slug`, rendered from Firestore by `blog-public.js`;
+    preview via `/blog?public=1` on the onrender host), and `robots.txt` /
+    `sitemap.xml` are served for SEO. The onrender host is unaffected. DNS
+    lives at **Hover** (not Shopify); the flip checklist is in
+    `docs/secretly-a-witch-todo.md` (Domain section).
 
 ## Render keep-awake & running hours (READ THIS before blaming cold starts)
 - **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
@@ -683,10 +719,14 @@ lifted into a standalone tool later.
   (Brevo appends the unsubscribe footer there); `/send-test` is only the
   does-the-checkbox-survive check.
 
-## Blog Studio (SEO posts → Shopify blog)
+## Blog Studio (SEO posts → the site blog and/or Shopify)
 - `blog.js` (`/api/blog`, page at `/blog`, hub tile "Blog Studio") turns a topic
-  into an SEO blog post and publishes it to the Shopify store blog — free organic
-  search traffic to the shop. Built around 2026 SEO reality: target **long-tail**
+  into an SEO blog post. **Primary destination (July 2026): the on-site blog at
+  `secretlyawitch.com/blog`** (`POST /api/blog/publish-site` flags the saved
+  Firestore draft `site:true`; `blog-public.js` server-renders `/blog` +
+  `/blog/:slug` in the witch theme, with canonical/OG/JSON-LD + sitemap) —
+  organic traffic now builds the real domain. Publishing to the Shopify store
+  blog still works as a secondary option. Built around 2026 SEO reality: target **long-tail**
   keywords (specific 3-6 word buyer phrases, KD low) that big sites ignore and
   Google's AI Overviews can't fully answer, so the click still comes to you;
   organize as topic clusters (a pillar + specific cluster posts).
@@ -726,8 +766,16 @@ lifted into a standalone tool later.
     `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **The Shop tab sells IN the app (July 2026):** product bottom-sheet →
+  cart → hand off to Shopify checkout only for the pay screen. Storefront
+  API via server proxy — `GET /api/witch/shop/product/:handle`,
+  `GET /api/witch/cart?id=`, `POST /api/witch/cart/{add,update}` (public
+  storefront token, committed by design; `WITCH_STOREFRONT_TOKEN` overrides).
+  Cart id in `localStorage['witch_cart_id']`; expired carts recreate quietly.
 - **External links** live in a `LINKS` const at the top of the client script.
-  Shop = `secretlyawitch.com` (Shopify), Instagram = `@moonsickbaby`. **Watch =
+  Shop = `cod-god-inc.myshopify.com` (the store's permanent home —
+  `secretlyawitch.com` itself now points at the app), Instagram =
+  `@moonsickbaby`. **Watch =
   YouTube is still a placeholder search** — the channel URL isn't stored anywhere
   (the YouTube token is upload-only scope and can't read the channel), so it
   needs Sophie's `@handle` pasted in.
@@ -899,30 +947,62 @@ lifted into a standalone tool later.
   re-dispatch from your branch (`imageforge_ref` input) if a main build
   buries it.
 
-## Story Boards (forge-story) — how ANY chat adds projects/assets
-The video-project asset boards (Evan, Charlie, Spellcasting, …) shown in the
-iOS app (Story Boards tile — a VHS-shelf wall, 3 covers per shelf, tap to open
-a project's beat board) and mirrored at `/story` (gated snapshot page).
+## Story Room (forge-story) — THE story surface (merged July 2026)
+The three old story features — native Story Boards, the Story Room page, and
+the `stories.js`/`forge-stories` saved-text library — are ONE surface now: the
+**Story Room** (`/storyroom`, live web page; iOS tile "Story Room" =
+`StoryRoomView.swift`, a WKWebView on it). The native `StoryBoardView.swift`
+and the static `/story` snapshot are deleted (`/story` 301s to `/storyroom`);
+the `forge-stories` collection is retired (see migration below).
 
-- **Data:** Firestore collection `forge-story`, one doc per project:
-  `{ id, title, order, cover, beats:[{ vo, cards:[{ label, status, url }] }] }`.
-  `status` ∈ `ok` (approved) | `cand` (candidate) | `draft` (storyboard
-  placeholder) | `miss` (no art yet — omit `url`). `vo` is Sophie's actual
-  narration for that beat. `cover` is REQUIRED for the shelf (pick one hero
-  shot; without it the case renders as a "?" box).
-- **To add/update:** build a manifest JSON (array of projects; use
-  `file`/`cover_file` with local paths for any new images — ~700px webp
-  preferred) and run `node scripts/sync-story.js manifest.json` with
-  `FIREBASE_SERVICE_ACCOUNT` (or `FIREBASE_KEY_FILE`) set. Images upload to
-  Storage `story/` (content-addressed by basename — reuse basenames to
-  overwrite) and docs are replaced wholesale, so ALWAYS write the full project,
-  not a partial. The iOS app updates live (snapshot listener) — no build.
-- **Clients are read-only** (Firestore rules in memory-library-react allow
-  authenticated reads only); all writes go through the sync script.
+- **Data:** Firestore `forge-story` (membry-df528, via
+  `STORY_FIREBASE_SERVICE_ACCOUNT`), one doc per story. **Every content field
+  is optional — any one of them starts a project:**
+  `{ id, title, order, cover, text, voiceover:{ url, text, status?, source? },
+  beats:[{ vo, cards:[{ label, status, url }] }], inbox:[], archived }`.
+  `text` = the story prose (what the Movies "saved stories" picker lists);
+  `voiceover` = whole-story narration — audio and/or its words, either half
+  derivable (text → TTS render, audio → Whisper transcript; `status` =
+  `rendering`/`transcribing` while the background job runs). `vo` on a beat
+  stays the per-beat script. `voiceover` mirrors `movie.voiceover` so a
+  story's narration can hand straight to the film pipeline.
+- **Shelf look:** flat tiles in rows of three with a thin `--line` rule under
+  each row (`shelfRows()` in `scripts/gen-storyroom.py`). NO shadows, NO wood,
+  NO 3D tilt — Sophie asked for "just a line." Rows are TOP-aligned and
+  `.t-name` reserves/clamps 2 lines, so covers and the meta line up no matter
+  how long a title is (bottom-aligning offsets the covers — that was a bug).
+- **Voiceover in: paste, don't record.** There is deliberately NO record
+  button — Sophie narrates in iOS Voice Memos. Ways in: **"Paste a
+  recording"** (app only, `pasteVoiceover` WKScriptMessage bridge in
+  `StoryRoomView.swift`, same pattern as `DreamsView`'s — in Voice Memos:
+  Share → Copy, then tap it; the app reads UIPasteboard and POSTs to
+  `/api/story/voiceover` natively so the audio never crosses into JS) or
+  **"Choose a file"** (`<input type=file accept=audio/*>`, works anywhere).
+  Pasted/uploaded audio is auto-transcribed into `voiceover.text`.
+- **Server:** `/api/story/*` inline in server.js — project/beat/art/inbox/
+  assign/status/archive/delete plus (new) `POST /text` `{projectId, text}` and
+  `POST /voiceover` `{projectId, audio?|url?, text?, tts?, voice?, transcribe?}`
+  (TTS chunk+ffmpeg-concat like chatfeed's /polish; Whisper via
+  movies.transcribeAudio; slow parts are background jobs on the doc).
+- **The Movies picker reads the same docs:** `stories.js` (`/api/stories`)
+  now lists/saves/deletes `forge-story` docs with `text` (routes and response
+  shapes unchanged, so `StoryPickerSheet.swift`/`MovieService` work as-is).
+  A story typed in the Movies box appears on the shelf; deleting from the
+  picker archives (not deletes) once a story has grown a board.
+  **Migration:** `node scripts/migrate-stories.js [--dry-run]` (needs both
+  service accounts) moved the old `forge-stories` docs; the old collection is
+  left as a backup, delete it once verified.
+- **Chats add/update boards** the same as before: manifest JSON +
+  `node scripts/sync-story.js manifest.json`. Docs are replaced wholesale BUT
+  the sync now preserves Story-Room-owned fields (`text`, `voiceover`,
+  `inbox`, `archived`) unless the manifest sets them — a board re-sync never
+  wipes Sophie's story or voiceover. Sophie also writes directly from the
+  page (the old "clients are read-only" note is obsolete — her writes go
+  through `/api/story/*`, not Firestore rules).
 - **iOS UI changes** (not content) need a TestFlight build: run the
   `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
-  secrets; `imageforge_ref` input picks the imageforge branch). The
-  imageforge-local `ios-testflight.yml` is a placeholder without secrets.
+  secrets; `imageforge_ref` input picks the imageforge branch). Page/content
+  changes ship via Render deploy — no build.
 - Approvals happen in chat with Sophie; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix

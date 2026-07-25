@@ -92,6 +92,28 @@
   .cslot .upload svg{width:13px;height:13px}
   .cslot .mini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.7)}
+  /* one NAMED person = their own row: candidate card(s) + a describe card */
+  .person{margin-bottom:14px}
+  .pname{font-size:13px;font-weight:600;color:#7d7157;margin:0 0 6px}
+  .candrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
+  .candrow .cslot{flex:none;width:104px}
+  /* the vague-people list ("some guy", "that woman") — names, tap to expand */
+  .vrow{padding:11px 2px;border-bottom:1px solid #e2d6bd;font-size:15px;color:var(--text);
+    cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+  .vrow:last-of-type{border-bottom:0}
+  .vrow .vok{color:var(--mauve);font-size:13px}
+  .vedit{display:flex;gap:8px;align-items:center;padding:2px 2px 12px}
+  .vedit input{flex:1;border:1px solid #d8c9a8;border-radius:var(--radius);background:#fff;
+    padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text)}
+  .vedit input:focus{outline:none;border-color:var(--accent)}
+  .vedit .vcam{flex:none;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d8c9a8;
+    color:#9c8f72;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .vedit .vcam svg{width:16px;height:16px}
+  /* the everyone-else collapse arrow (circular icon buttons are allowed) */
+  .otoggle{display:flex;justify-content:center;margin-top:10px}
+  .otoggle button{width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid #d8c9a8;
+    color:#9c8f72;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .otoggle button svg{width:16px;height:16px}
   /* the inset divider between "picked" and "everyone else" */
   .castdiv{height:1px;background:#d8c9a8;margin:18px 22px 14px;border:0}
   /* search within the saved sheet ("add anyone else") */
@@ -114,9 +136,11 @@
 
   .sunflower{width:100%;max-width:420px;margin:10px auto 0;display:block}
 
-  /* Archive grid */
+  /* Archive grid — tiles hold a fixed 2:3 shape so nothing jumps while
+     images stream in (dream pages are 1024x1536 portrait). */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .grid .page{margin:0}
+  .grid .page{margin:0;aspect-ratio:2/3}
+  .grid .page img{width:100%;height:100%;object-fit:cover}
   .empty{color:var(--textDim);font-size:15px;text-align:center;padding:60px 30px}
 
   /* Zine book */
@@ -208,12 +232,20 @@
     down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
+    clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+    person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>',
   };
+  // In the iOS app the page is a webview with native bridges (paste a recording,
+  // open the Character Creator sheet); in a plain browser those don't exist.
+  const NATIVE = (typeof window.webkit === 'object') && window.webkit && window.webkit.messageHandlers;
+  const canPaste = !!(NATIVE && NATIVE.pasteAudio);
 
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
     review:[], castTop:[], castOthers:[], expanded:{}, othersFilter:'',   // the approval step
+    vexpanded:{}, othersOpen:false,
+    transcribing:false,
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
@@ -303,35 +335,48 @@
   // order step. Top = the people it picked (matched from the saved sheet, or a
   // describe slot when unmatched); below a divider = the rest of the sheet to
   // add. Guests get describe-only (no sheet).
+  // Fallback for docs from before the split tagged named vs generic.
+  const GENERIC_RE = /^(a|an|the|this|that|these|those|some|someone|somebody|another|other|one of|two|three|four|us|them|they|people|everyone|everybody)\b/i;
+
   async function beginReview(dreams){
     if(!dreams.length){ showToast('Could not read that dream — try again.'); return; }
     S.review = dreams;
-    S.expanded = {};
+    S.expanded = {}; S.vexpanded = {}; S.othersOpen = false; S.othersFilter = '';
     // Merge every mention across all dreams, keeping first-seen casing and the
     // union of candidate matches (deduped by id).
     const byKey = new Map();
     for(const d of dreams){
-      const sugg = d.castSuggestions || (d.mentions||[]).map(m=>({name:(m&&m.name)||m, matches:[], desc:(m&&m.desc)||''}));
+      const sugg = d.castSuggestions || (d.mentions||[]).map(m=>({name:(m&&m.name)||m, matches:[], desc:(m&&m.desc)||'', named:(m&&typeof m.named==='boolean')?m.named:null}));
       for(const s of sugg){
         const k = norm(s.name); if(!k) continue;
-        if(!byKey.has(k)) byKey.set(k, { mention:s.name, candidates:[], selected:null, desc:'', photoUrl:null, creating:false });
+        if(!byKey.has(k)){
+          const named = (typeof s.named==='boolean') ? s.named : !GENERIC_RE.test(String(s.name));
+          byKey.set(k, { mention:s.name, named, candidates:[], selected:null, desc:'', photoUrl:null, creating:false });
+        }
         const e = byKey.get(k);
+        if(s.named===true) e.named = true;   // named in ANY dream = named
         // Preload any description the dreamer gave this person (first non-empty).
         if(!e.desc && s.desc) e.desc = String(s.desc);
         for(const m of (s.matches||[])) if(!e.candidates.some(c=>c.id===m.id)) e.candidates.push(m);
       }
     }
+    // A sheet match promotes even a vaguely-worded mention to the named rows.
+    for(const e of byKey.values()) if(e.candidates.length) e.named = true;
     // Default selection: a lone match is pre-picked; an ambiguous name shows
     // both/all and waits for you to choose.
     for(const e of byKey.values()) if(e.candidates.length===1) e.selected = e.candidates[0].id;
     S.castTop = [...byKey.values()];
-    // The rest of the saved sheet (Sophie only) — everyone not already up top.
+    // The rest of the saved sheet (Sophie only) — everyone not already up top,
+    // sorted so the frequent/recent dream people fill the first five slots.
     S.castOthers = [];
     if(!PUBLIC){
       const usedIds = new Set(S.castTop.flatMap(e=>e.candidates.map(c=>c.id)));
       const r = await capi('/');
       const chars = (r.ok && r.body.characters) || [];
       S.castOthers = chars.filter(c=>!usedIds.has(c.id))
+        .sort((a,b)=> String(b.lastUsedAt||'').localeCompare(String(a.lastUsedAt||''))
+          || (b.usedCount||0)-(a.usedCount||0)
+          || (b.createdAt||0)-(a.createdAt||0))
         .map(c=>({ id:c.id, name:c.name, url:c.url, on:false }));
     }
   }
@@ -365,6 +410,14 @@
     const dreams = S.review;
     if(!dreams.length || S.busy) return;
     const cast = buildCast();
+    // Remember which saved characters were used — powers the 5 recent slots.
+    if(!PUBLIC){
+      const usedIds = [
+        ...S.castTop.map(e=>e.selected).filter(Boolean),
+        ...S.castOthers.filter(c=>c.on).map(c=>c.id),
+      ];
+      if(usedIds.length) capi('/used',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:usedIds})}).catch(()=>{});
+    }
     S.review=[]; S.castTop=[]; S.castOthers=[]; S.finished=[]; S.current=null;
     S.busy=true; S.session++; const session=S.session;
     S.statusLabel='Planning pages…'; render();
@@ -441,9 +494,12 @@
     // run inside the iOS app webview; hide it there (the keyboard's own
     // dictation mic still works in the text box).
     const micBtn = SR_OK ? `<button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button>` : '';
+    const pasteBtn = canPaste ? `<button class="iconbtn" id="pasteRec" title="Paste a recording">${IC.clip}</button>` : '';
+    const charBtn = `<button class="iconbtn" id="charBtn" title="Characters">${IC.person}</button>`;
+    const eyebrow = S.transcribing ? 'TRANSCRIBING…' : (S.recording ? 'LISTENING…' : 'WHAT DID YOU DREAM?');
     h += `<div class="section">
-      <div class="eyebrow ${S.recording?'rec':''}"><span>${S.recording?'LISTENING…':'WHAT DID YOU DREAM?'}</span>
-        ${micBtn}</div>
+      <div class="eyebrow ${S.recording||S.transcribing?'rec':''}"><span>${eyebrow}</span>
+        <span style="display:flex;gap:4px;align-items:center">${charBtn}${pasteBtn}${micBtn}</span></div>
       <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
@@ -465,6 +521,11 @@
     const ta = $('ta'); if(ta) ta.oninput = e => S.text = e.target.value;
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
+    const pr=$('pasteRec'); if(pr) pr.onclick=()=>{ try{ NATIVE.pasteAudio.postMessage({}); }catch{} };
+    const cb=$('charBtn'); if(cb) cb.onclick=()=>{
+      if(NATIVE && NATIVE.openCharacters){ try{ NATIVE.openCharacters.postMessage({}); }catch{} }
+      else { location.href='/character'; }
+    };
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const i=el.dataset.page;openPopup(pageRefs[i]);});
     wireReview();
   }
@@ -473,51 +534,70 @@
   const IC_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
   const IC_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 
+  // One describe/photo card (the headless card) for castTop entry ei.
+  function describeCardHtml(e, ei, label){
+    if(e.photoUrl){
+      return `<div class="cslot on" data-pick="${ei}|photo">
+        <div class="frame"><img src="${esc(e.photoUrl)}"></div>
+        <div class="nm">${esc(label||'your photo')}</div></div>`;
+    }
+    return `<div class="cslot describe">
+      <div class="frame">
+        ${!PUBLIC?`<button class="upload" data-upload="${ei}" title="Add a photo">${IC_CAM}</button>`:''}
+        ${e.creating?`<div class="mini"><div class="spinner"></div></div>`:''}
+        <textarea data-desc="${ei}" placeholder="describe them…">${esc(e.desc)}</textarea>
+      </div>
+      <div class="nm">${esc(label||'')}</div></div>`;
+  }
+
   function reviewHtml(){
     const n = S.review.length;
-    // Straight to the character sheet — the dream text / chronology isn't shown
-    // (chronology is handled automatically at render). Just pick who's in it.
+    // Straight to the character sheet — chronology is automatic, never shown.
     let h = `<div class="section">`;
     h += `<div class="castsheet">
-      <p class="lbl">Who's in your ${n>1?'dreams':'dream'}</p>
-      <div class="castgrid">`;
+      <p class="lbl">Who's in your ${n>1?'dreams':'dream'}</p>`;
+    // ── Named people: one row each — candidate card(s) + a describe card, so
+    //    a wrong match always has an escape hatch right next to it. ──
     S.castTop.forEach((e,ei)=>{
-      if(e.candidates.length){
-        e.candidates.forEach(c=>{
-          // Show the character's real name so look-alikes (two Jonathans) are
-          // distinguishable; the mention is only used for the describe slot.
-          h += `<div class="cslot ${e.selected===c.id?'on':''}" data-pick="${ei}|${esc(c.id)}">
-            <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
-            <div class="nm">${esc(c.name)}</div></div>`;
-        });
-      } else if(e.photoUrl){
-        h += `<div class="cslot on" data-pick="${ei}|photo">
-          <div class="frame"><img src="${esc(e.photoUrl)}"></div>
-          <div class="nm">${esc(e.mention)}</div></div>`;
-      } else {
-        h += `<div class="cslot describe">
-          <div class="frame">
-            ${!PUBLIC?`<button class="upload" data-upload="${ei}" title="Upload a photo">${IC_CAM}</button>`:''}
-            ${e.creating?`<div class="mini"><div class="spinner"></div></div>`:''}
-            <textarea data-desc="${ei}" placeholder="describe them…">${esc(e.desc)}</textarea>
-          </div>
-          <div class="nm">${esc(e.mention)}</div></div>`;
-      }
-    });
-    h += `</div>`;
-    if(S.castOthers.length){
-      const q = norm(S.othersFilter);
-      const shown = q ? S.castOthers.filter(c=>norm(c.name).includes(q)) : S.castOthers;
-      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p>
-        <input class="castsearch" id="castSearch" placeholder="Search your characters…" value="${esc(S.othersFilter)}">
-        <div class="castgrid">`;
-      shown.forEach(c=>{
-        h += `<div class="cslot ${c.on?'on':''}" data-add="${esc(c.id)}">
+      if(!e.named) return;
+      h += `<div class="person"><p class="pname">${esc(e.mention)}</p><div class="candrow">`;
+      e.candidates.forEach(c=>{
+        h += `<div class="cslot ${e.selected===c.id?'on':''}" data-pick="${ei}|${esc(c.id)}">
           <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
           <div class="nm">${esc(c.name)}</div></div>`;
       });
-      if(!shown.length) h += `<p class="nm" style="grid-column:1/-1;color:#9c8f72;text-align:center;padding:8px">no matches</p>`;
-      h += `</div>`;
+      h += describeCardHtml(e, ei, e.candidates.length ? 'someone else' : '');
+      h += `</div></div>`;
+    });
+    // ── Vague people ("some guy", "that woman"): a plain clickable list. ──
+    const vague = S.castTop.map((e,ei)=>({e,ei})).filter(x=>!x.e.named);
+    if(vague.length){
+      h += `<hr class="castdiv"><p class="lbl">Also mentioned</p>`;
+      for(const {e,ei} of vague){
+        const done = (e.desc.trim()||e.photoUrl) ? `<span class="vok">✓</span>` : '';
+        h += `<div class="vrow" data-vex="${ei}"><span>${esc(e.mention)}</span>${done}</div>`;
+        if(S.vexpanded[ei]){
+          h += `<div class="vedit">
+            ${e.photoUrl?`<div class="cslot on" data-pick="${ei}|photo" style="width:64px;flex:none"><div class="frame"><img src="${esc(e.photoUrl)}"></div></div>`:''}
+            <input data-desc="${ei}" placeholder="describe them…" value="${esc(e.desc)}">
+            ${!PUBLIC?`<button class="vcam" data-upload="${ei}" title="Add a photo">${e.creating?'…':IC_CAM}</button>`:''}
+          </div>`;
+        }
+      }
+    }
+    // ── The saved sheet: 5 frequent/recent slots, search, the rest behind ∨. ──
+    if(S.castOthers.length){
+      const top5 = S.castOthers.slice(0,5), rest = S.castOthers.slice(5);
+      const tile = c => `<div class="cslot ${c.on?'on':''}" data-add="${esc(c.id)}">
+        <div class="frame">${c.url?`<img src="${esc(c.url)}" loading="lazy">`:`<span class="ph">${IC_PERSON}</span>`}</div>
+        <div class="nm">${esc(c.name)}</div></div>`;
+      h += `<hr class="castdiv"><p class="lbl">Add anyone else who was in it</p>
+        <div class="castgrid">${top5.map(tile).join('')}</div>
+        <input class="castsearch" id="castSearch" placeholder="Search your characters…" value="${esc(S.othersFilter)}" style="margin-top:12px">`;
+      if(rest.length){
+        h += `<div class="castgrid" id="othersRest" style="${S.othersOpen?'':'display:none'};margin-top:12px">${rest.map(tile).join('')}</div>
+          <div class="otoggle"><button id="othersToggle" title="${S.othersOpen?'Show fewer':'Show all'}">${S.othersOpen?IC.up:IC.down}</button></div>`;
+      }
     }
     h += `</div>
       <button class="btn draw" id="drawBtn">${n>1?`Draw all ${n}`:'Draw it'}</button></div>`;
@@ -536,21 +616,41 @@
       render();
     });
     root.querySelectorAll('[data-desc]').forEach(el=>el.oninput=ev=>{
-      const e=S.castTop[Number(el.dataset.desc)]; if(e) e.desc=ev.target.value;
+      const ei=Number(el.dataset.desc); const e=S.castTop[ei]; if(!e) return;
+      e.desc=ev.target.value;
+      // Typing a description means "not the matched card" — unpick it live
+      // (class-only update so the input keeps focus).
+      if(e.desc.trim() && e.selected){
+        e.selected=null;
+        root.querySelectorAll(`[data-pick^="${ei}|"]`).forEach(c=>c.classList.remove('on'));
+      }
+    });
+    // Vague-people rows: tap the name to expand its describe line.
+    root.querySelectorAll('[data-vex]').forEach(el=>el.onclick=()=>{
+      const ei=el.dataset.vex; S.vexpanded[ei]=!S.vexpanded[ei]; render();
+      if(S.vexpanded[ei]){ const inp=root.querySelector(`.vedit [data-desc="${ei}"]`); if(inp) inp.focus(); }
     });
     root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{
-      const c=S.castOthers.find(x=>x.id===el.dataset.add); if(c){ c.on=!c.on; render(); }
+      const c=S.castOthers.find(x=>x.id===el.dataset.add); if(c){ c.on=!c.on; el.classList.toggle('on',c.on); }
     });
-    // Live-filter the saved sheet without re-rendering (keeps input focus).
+    // Show all / fewer saved characters.
+    const ot=$('othersToggle');
+    if(ot) ot.onclick=()=>{ S.othersOpen=!S.othersOpen; render(); };
+    // Live-filter the saved sheet without re-rendering (keeps input focus);
+    // searching looks past the 5 slots, so the hidden grid opens for matches.
     const cs=$('castSearch');
     if(cs) cs.oninput=e=>{
       S.othersFilter=e.target.value; const q=norm(S.othersFilter);
+      const rest=$('othersRest');
+      if(rest) rest.style.display=(q||S.othersOpen)?'':'none';
       root.querySelectorAll('[data-add]').forEach(el=>{
         const c=S.castOthers.find(x=>x.id===el.dataset.add);
         el.style.display=(!q||(c&&norm(c.name).includes(q)))?'':'none';
       });
     };
-    root.querySelectorAll('[data-upload]').forEach(el=>el.onclick=()=>uploadPhotoFor(Number(el.dataset.upload)));
+    root.querySelectorAll('[data-upload]').forEach(el=>{
+      el.onclick=ev=>{ ev.stopPropagation(); uploadPhotoFor(Number(el.dataset.upload)); };
+    });
     const db=$('drawBtn'); if(db) db.onclick=draw;
   }
 
@@ -589,27 +689,52 @@
     return `<div class="page" data-page="${i}"><img src="${url}" loading="lazy"></div>`;
   }
 
-  // ── Archive ──
+  // ── Archive ── (lazy: newest dreams appear first, the rest fill in)
+  // The grid is only ever built ONCE per visit; later batches are APPENDED to
+  // the live DOM without touching the tiles already on screen — rebuilding the
+  // whole grid per batch re-decoded every image (dramatic flashing/reshaping).
   async function renderArchive(){
-    if(S.archiveLoading){ root.innerHTML = `<div class="progress"><div class="spinner"></div><span>Loading…</span></div>`; return; }
+    if(S.archiveLoading && !S.archive.length){ root.innerHTML = `<div class="progress"><div class="spinner"></div><span>Loading…</span></div>`; return; }
     if(!S.archive.length){ root.innerHTML = `<div class="empty">No dreams yet — illustrate one and it'll show up here.</div>`; return; }
     pageRefs = [];
-    let h = `<div class="grid">`;
+    let h = `<div class="grid" id="agrid">`;
     S.archive.forEach(item => { h += pageHtml(item.url, item.dream); });
     h += `</div>`;
+    h += `<div class="progress" id="amore" style="margin-top:12px;${S.archiveLoading?'':'display:none'}"><div class="spinner"></div><span>Loading more…</span></div>`;
     root.innerHTML = h;
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>openPopup(pageRefs[el.dataset.page]));
   }
+  // Append a batch's tiles to the existing grid (no full re-render, no flash).
+  function appendArchive(items){
+    const grid = $('agrid');
+    if(!grid){ render(); return; }          // grid not built yet → first paint
+    const scratch = document.createElement('div');
+    scratch.innerHTML = items.map(it => pageHtml(it.url, it.dream)).join('');
+    [...scratch.children].forEach(el => {
+      el.onclick = () => openPopup(pageRefs[el.dataset.page]);
+      grid.appendChild(el);
+    });
+  }
   async function loadArchive(){
-    S.archiveLoading = true; render();
+    S.archive = []; S.archiveLoading = true; render();
     const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
-    const out = [];
+    // Fetch each dream's pages newest-first; the first batch paints the grid,
+    // every later batch appends, so nothing already visible ever re-renders.
     for(const s of dreams){
+      if(S.view!=='archive'){ S.archiveLoading=false; return; }   // left the tab
       const r = await api('/dream/'+s.id);
-      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => out.push({ url:p.url, dream:d })); }
+      const items = [];
+      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => items.push({ url:p.url, dream:d })); }
+      else if(s.poster){ items.push({ url:s.poster, dream:{ title:s.title, id:s.id } }); }
+      if(!items.length) continue;
+      S.archive.push(...items);
+      if(!$('agrid')) render();             // first tiles → build the grid once
+      else appendArchive(items);
     }
-    S.archive = out; S.archiveLoading = false; render();
+    S.archiveLoading = false;
+    const more = $('amore');
+    if(more) more.style.display = 'none'; else render();
   }
 
   // ── Zine (two-page book) ──
@@ -692,6 +817,14 @@
   // stay under Render's idle window — see the keep-awake timer in server.js.)
   // Prefill your last dream so you can just tap Illustrate to re-run it.
   try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
+
+  // ── Native paste-recording bridge (iOS app only) ──
+  // The native wrapper reads a copied Voice Memo off the clipboard, transcribes
+  // it, and calls these — the audio never crosses into JS, only the text.
+  window.__pasteAudioStart = ()=>{ S.transcribing=true; render(); };
+  window.__pasteAudioEmpty = ()=>{ S.transcribing=false; render(); showToast('Copy a recording first — in Voice Memos: tap it → Share → Copy'); };
+  window.__pasteAudioError = (m)=>{ S.transcribing=false; render(); showToast(m||"Couldn't read that recording"); };
+  window.__fillDream = (t)=>{ S.transcribing=false; S.text = (S.text ? S.text.trim()+' ' : '') + String(t||'').trim(); render(); const ta=$('ta'); if(ta) ta.focus(); };
 
   render();
   // If a reading or render was still going when the page was last closed,

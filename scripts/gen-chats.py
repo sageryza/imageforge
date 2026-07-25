@@ -36,7 +36,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
 .t-blank{display:flex; align-items:center; justify-content:center;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
-.t-new{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
+.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
 .t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
 .t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
@@ -48,6 +48,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
+.renamebtn:active{color:var(--ink);}
+.nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
 .assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
 .assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer;}
 .assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
@@ -78,7 +81,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
-.msg{padding:14px 0; border-bottom:1px solid var(--line);}
+.msg{padding:14px 0; border-bottom:1px solid var(--line); transition:background-color .3s;}
+.msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); font-weight:600;}
 .m-chat.sophie{color:var(--rose);}
@@ -135,6 +139,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .pv-back{width:38px; height:38px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); font-size:20px; cursor:pointer; flex:none;}
 .pv-title{font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
 .pv-frame{flex:1; width:100%; border:none; background:#fff;}
+.pv-title{padding-right:60px;}
+.pps{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
 .m-tools audio{flex:1; height:32px; min-width:0;}
 /* view toggle (List / Tiles) */
 .viewtog{display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; width:max-content; margin:0 0 1.5em;}
@@ -152,11 +158,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
 /* "Answered" check — mark a chat done; it grays until a newer message arrives */
-.ckbtn{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92); color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
-.ckbtn svg{width:14px; height:14px; display:block;}
+.ckbtn,.flagbtn{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92); color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.ckbtn svg,.flagbtn svg{width:14px; height:14px; display:block;}
 .ckbtn.on{background:#5d7a5a; color:#fff;}
+.flagbtn.on{background:#c2703a; color:#fff;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
-.crow .ckbtn{width:31px; height:31px; flex:none; margin-left:2px;}
+.t-cover .flagbtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
+.crow .ckbtn,.crow .flagbtn{width:31px; height:31px; flex:none; margin-left:2px;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
@@ -371,6 +379,37 @@ function editAbout(chat, row, current){
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
 }
 
+// Rename a chat from its thread header (WKWebView blocks window.prompt, so an
+// inline input). Saves a cosmetic displayName; the chat key never changes, so
+// messages keep grouping the same way. Empty clears back to the key.
+function editName(chat, head){
+  var th=head.querySelector('.thread-head'); var h1=th.querySelector('h1');
+  var btn=th.querySelector('.renamebtn'); if(btn) btn.style.display='none';
+  var inp=document.createElement('input'); inp.type='text'; inp.className='nameed';
+  inp.value=dispName(chat); inp.placeholder=chat; inp.maxLength=60;
+  h1.style.display='none'; th.insertBefore(inp,h1); inp.focus(); inp.select();
+  var done=false;
+  function restore(label){
+    h1.textContent=label; h1.style.display=''; if(btn) btn.style.display='';
+    if(inp.parentNode) inp.parentNode.removeChild(inp);
+  }
+  function save(){
+    if(done) return; done=true;
+    var v=inp.value.trim();
+    api('/api/chatfeed/rename',{method:'POST',body:JSON.stringify({chat:chat,name:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        chats[chat]=chats[chat]||{}; chats[chat].displayName=v||null;
+        restore(dispName(chat)); toast('Renamed'); })
+      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn\\u2019t save that'); inp.focus(); });
+  }
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+    else if(e.key==='Escape'){ done=true; restore(dispName(chat)); }
+  });
+}
+
 function setIcon(chat){
   var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
   inp.onchange=function(){
@@ -397,10 +436,14 @@ function groups(){
     .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
   return g;
 }
+// The label Sophie sees for a chat. Defaults to the underlying chat key
+// (branch-derived); a custom displayName set in-app overrides it. Messages
+// still group by the real key, so renaming only changes the label.
+function dispName(name){ return (chats[name]&&chats[name].displayName)||name; }
 function iconHtml(name, cls){
   var icon=chats[name]&&chats[name].icon;
   if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
-  return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((name||'?').slice(0,1).toUpperCase())+'</span></span>';
+  return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((dispName(name)||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
 function sortedChatNames(g){
@@ -440,29 +483,57 @@ function renderHome(){
     if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
   }
 }
-// A chat is "answered" (grayed) while its answeredAt stamp is >= its latest
-// message — so any newer message (from Sophie or the chat) un-grays it.
-function chatDone(name,last){
-  var a=(chats[name]&&chats[name].answeredAt)||'';
-  if(!a) return false;
-  return !last || a>=(last.created||'');
-}
+// A chat is "answered" (green check) while its answeredAt stamp is >= its latest
+// message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
+// (amber !) works the same way but means "come back to this later." The two are
+// exclusive; either one grays the tile.
+function stampActive(a,last){ if(!a) return false; return !last || a>=(last.created||''); }
+function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
+function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
+function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+var FL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M12 19h.01"/></svg>';
+// Repaint the gray state + both mark buttons on a tile/row from current state.
+function paintMarks(name,last,container){
+  container.classList.toggle('done', chatMuted(name,last));
+  var ck=container.querySelector('.ckbtn'); if(ck) ck.classList.toggle('on', chatDone(name,last));
+  var fl=container.querySelector('.flagbtn'); if(fl) fl.classList.toggle('on', chatFlagged(name,last));
+}
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
   ck.innerHTML=CK; ck.setAttribute('aria-label','Mark answered');
-  ck.onclick=function(e){ e.stopPropagation(); toggleDone(name,last,ck,container); };
+  ck.onclick=function(e){ e.stopPropagation(); toggleMark(name,last,container,'done'); };
   return ck;
 }
-function toggleDone(name,last,ck,container){
-  var prev=(chats[name]&&chats[name].answeredAt)||null;
-  var willDone=!chatDone(name,last);
-  chats[name]=chats[name]||{}; chats[name].answeredAt = willDone ? new Date().toISOString() : null;
-  container.classList.toggle('done',willDone); ck.classList.toggle('on',willDone);
-  api('/api/chatfeed/answered',{method:'POST',body:JSON.stringify({chat:name, answered:willDone})})
-    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-    .catch(function(){ chats[name].answeredAt=prev; var d2=chatDone(name,last);
-      container.classList.toggle('done',d2); ck.classList.toggle('on',d2); toast('Couldn’t save that'); });
+function mkFlag(name,last,container){
+  var fl=document.createElement('button'); fl.className='flagbtn'+(chatFlagged(name,last)?' on':'');
+  fl.innerHTML=FL; fl.setAttribute('aria-label','Flag to come back to');
+  fl.onclick=function(e){ e.stopPropagation(); toggleMark(name,last,container,'flag'); };
+  return fl;
+}
+// One toggler for both marks. Setting one clears the other (exclusive); the
+// server enforces the same so a reload matches. Optimistic with rollback.
+function toggleMark(name,last,container,kind){
+  var prevA=(chats[name]&&chats[name].answeredAt)||null, prevF=(chats[name]&&chats[name].flaggedAt)||null;
+  chats[name]=chats[name]||{};
+  var now=new Date().toISOString();
+  if(kind==='done'){
+    var willDone=!chatDone(name,last);
+    chats[name].answeredAt = willDone? now : null;
+    if(willDone) chats[name].flaggedAt=null;
+    paintMarks(name,last,container);
+    api('/api/chatfeed/answered',{method:'POST',body:JSON.stringify({chat:name, answered:willDone})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ chats[name].answeredAt=prevA; chats[name].flaggedAt=prevF; paintMarks(name,last,container); toast('Couldn’t save that'); });
+  } else {
+    var willFlag=!chatFlagged(name,last);
+    chats[name].flaggedAt = willFlag? now : null;
+    if(willFlag) chats[name].answeredAt=null;
+    paintMarks(name,last,container);
+    api('/api/chatfeed/flag',{method:'POST',body:JSON.stringify({chat:name, flagged:willFlag})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ chats[name].answeredAt=prevA; chats[name].flaggedAt=prevF; paintMarks(name,last,container); toast('Couldn’t save that'); });
+  }
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
@@ -472,13 +543,13 @@ function renderTiles(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
-    var b=document.createElement('button'); b.className='tile'+(chatDone(name,last)?' done':'');
+    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'');
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+esc(name)+'</span>'
+      +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
-    b.querySelector('.t-cover').appendChild(mkCheck(name,last,b));
+    var cov=b.querySelector('.t-cover'); cov.appendChild(mkCheck(name,last,b)); cov.appendChild(mkFlag(name,last,b));
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
@@ -490,12 +561,13 @@ function renderList(el,g,names){
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
-    var row=document.createElement('button'); row.className='crow'+(chatDone(name,last)?' done':'');
+    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'');
     row.innerHTML=iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(name)+'</span>'
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
       +'<span class="cr-sub">'+esc(status)+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
+    row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
     row.appendChild(mkCheck(name,last,row));
     row.onclick=function(){ openChat(name); };
     wrap.appendChild(row);
@@ -503,7 +575,7 @@ function renderList(el,g,names){
 }
 
 function renderMsg(m){
-  var row=document.createElement('div'); row.className='msg';
+  var row=document.createElement('div'); row.className='msg'; if(m.id) row.dataset.mid=m.id;
   var firstLine=plain((m.tldr||m.text||'').split('\\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
@@ -580,19 +652,23 @@ function bookmarkBtn(m){
   return b;
 }
 
-function openChat(name, keepScroll){
+// focusId: scroll to & highlight a specific message after opening (used by
+// search, so a hit hundreds of messages back is actually shown, not the newest
+// message). noFetch guards the one-shot full-history load so it can't loop.
+function openChat(name, keepScroll, focusId, noFetch){
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no">chats</div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(name)+'</h1></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
+  head.querySelector('.renamebtn').onclick=function(){ editName(name, head); };
 
   // Chat panel — the messages (newest at top) + archive control
   var chatPanel=document.createElement('div');
@@ -785,16 +861,104 @@ function openChat(name, keepScroll){
   document.getElementById('home').style.display='none';
   sec.style.display='';
   document.body.classList.add('reading');
-  if(!keepScroll) window.scrollTo(0,0);
+  if(!keepScroll && !focusId) window.scrollTo(0,0);
+  if(focusId){ showTab('chat'); focusMessage(name, focusId, noFetch); }
+}
+// Jump to a specific message in the open thread (from a search hit). If it's
+// not in the loaded tail, pull the chat's full history once, rebuild, then
+// scroll to it. Expands the message and flashes it so it's easy to spot.
+function focusMessage(name, id, noFetch){
+  var row=document.querySelector('#thread .msg[data-mid="'+String(id).replace(/"/g,'')+'"]');
+  if(row){
+    row.classList.add('open');
+    row.scrollIntoView({block:'center'});
+    row.classList.add('flash');
+    setTimeout(function(){ row.classList.remove('flash'); }, 2400);
+    return;
+  }
+  if(noFetch){ toast('Couldn\\u2019t find that message'); return; }
+  toast('Loading full history\\u2026');
+  api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(cur!==name) return;
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; } });
+      openChat(name, true, id, true);   // rebuild with full thread; noFetch=true
+    })
+    .catch(function(){ toast('Couldn\\u2019t load history'); });
+}
+// An autoscroll pill that lives in THIS page and drives a same-origin iframe's
+// scroll — because iOS renders position:fixed unreliably INSIDE an iframe, so a
+// pill injected into the Compare page itself won't stay put on a phone. Same
+// look/behavior as the shared pill (default Fast; tap play/pause; -/+ speed).
+function mkPagePill(getWin){
+  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+  var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+  var I={
+    up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+    down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+    pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+    plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+  };
+  var pill=document.createElement('div'); pill.className='float';
+  pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>';
+  var vt=pill.querySelector('.ppt'), vm=pill.querySelector('.ppm'), vb=pill.querySelector('.ppb'), sp=pill.querySelector('.pps');
+  function paint(){
+    if(playing){ vt.innerHTML=I.minus; vb.innerHTML=I.plus; vm.innerHTML=I.pause; vm.classList.add('on');
+      vt.classList.toggle('dim',si===0); vb.classList.toggle('dim',si===SPEEDS.length-1);
+    } else { vt.innerHTML=I.up; vb.innerHTML=I.down; vm.innerHTML=I.play; vm.classList.remove('on'); vt.classList.remove('dim'); vb.classList.remove('dim'); }
+    sp.textContent=SPEEDS[si][0];
+  }
+  function step(ts){
+    if(!playing) return;
+    var w=getWin();
+    if(w && last!=null){
+      acc+=dir*(ts-last)/1000*42*SPEEDS[si][1];
+      var move=acc>0?Math.floor(acc):Math.ceil(acc);
+      if(move){ try{ w.scrollBy(0,move); }catch(_){} acc-=move; }
+      try{ var d=w.document.documentElement, atEnd=dir>0?(w.innerHeight+w.scrollY>=d.scrollHeight-4):(w.scrollY<=2); if(atEnd) stop(); }catch(_){}
+    }
+    last=ts; raf=requestAnimationFrame(step);
+  }
+  function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
+  function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
+  vt.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
+  vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
+  vm.onclick=function(){ playing? stop() : start(1); };
+  paint(); pill._stop=stop;
+  pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
+  return pill;
 }
 // Full-screen viewer for a Compare page: top bar (back + title) over an
-// iframe. Freezes the page behind it, like the lightbox (design rule).
+// iframe, with a pill (above) that scrolls the iframe. Freezes the page
+// behind it, like the lightbox (design rule). embed=1 tells the server not to
+// inject its own in-page pill (this parent pill drives it instead).
 function openPage(p){
   scrollStop();
   var v=document.createElement('div'); v.className='pageview';
-  v.innerHTML='<div class="pv-bar"><button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span></div>'
-    +'<iframe class="pv-frame" src="/api/chatfeed/page/'+encodeURIComponent(p.id)+(TOKEN?'?token='+encodeURIComponent(TOKEN):'')+'"></iframe>';
-  v.querySelector('.pv-back').onclick=function(){ v.remove(); document.body.style.overflow=''; };
+  var bar=document.createElement('div'); bar.className='pv-bar';
+  bar.innerHTML='<button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span>';
+  var frame=document.createElement('iframe'); frame.className='pv-frame';
+  frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+  v.appendChild(bar); v.appendChild(frame);
+  var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
+  v.appendChild(pill);
+  // Tap the page itself to start/stop autoscroll (same-origin iframe, so we can
+  // listen on its document). Taps on links/buttons still do their own thing.
+  frame.addEventListener('load', function(){
+    try{
+      var doc=frame.contentDocument;
+      if(doc) doc.addEventListener('click', function(e){
+        var t=e.target;
+        if(t && t.closest && t.closest('a,button,input,textarea,select,label,summary')) return;
+        pill._tap();
+      });
+    }catch(_){}
+  });
+  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
   document.body.appendChild(v);
   document.body.style.overflow='hidden';
 }
@@ -878,7 +1042,7 @@ document.getElementById('back').onclick=goHome;
           var b=document.createElement('button'); b.className='sres';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(m.chat)+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
-          b.onclick=function(){ openChat(m.chat); };
+          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
           sr.appendChild(b);
         });
       })

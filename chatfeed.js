@@ -57,14 +57,34 @@ router.get('/', async (req, res) => {
     // Cache-Control + ETag = cache it "for a while"), so the Refresh button
     // appeared to do nothing until minutes later. The feed must always be live.
     res.set('Cache-Control', 'no-store');
-    const limit = Math.min(200, parseInt(req.query.limit, 10) || 100);
+    // NOTE: nothing is ever deleted — every message stays in Firestore. This
+    // only controls how many we hand the app at once. The old flat cap (newest
+    // 200 across ALL chats) meant a chat you hadn't touched in a day or two
+    // scrolled entirely out of view. Instead we keep the newest RECENT globally
+    // (so an active chat shows its full recent thread) AND the last KEEP of
+    // EVERY chat within the scan window — so any chat you touched recently
+    // still has its tail loaded and you can pick it back up. Overridable via
+    // ?recent= / ?keep= / ?scan= for a future "load older" control.
+    const RECENT = Math.min(600, Math.max(50, parseInt(req.query.recent, 10) || 250));
+    const KEEP = Math.min(50, Math.max(1, parseInt(req.query.keep, 10) || 6));
+    const SCAN = Math.min(5000, Math.max(RECENT, parseInt(req.query.scan, 10) || 1500));
     const [msnap, rsnap] = await Promise.all([
-      db().collection(MSGS).orderBy('created', 'desc').limit(limit).get(),
+      db().collection(MSGS).orderBy('created', 'desc').limit(SCAN).get(),
       db().collection(REG).get(),
     ]);
     const chats = {};
     rsnap.docs.forEach((d) => { chats[d.id] = d.data(); });
-    res.json({ chats, messages: msnap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+    // msnap is newest-first: the first KEEP docs seen per chat are that chat's
+    // most recent; i < RECENT keeps the global newest regardless of chat.
+    const perChat = {};
+    const messages = [];
+    msnap.docs.forEach((d, i) => {
+      const m = d.data();
+      const c = m.chat || '';
+      const n = (perChat[c] = (perChat[c] || 0) + 1);
+      if (i < RECENT || n <= KEEP) messages.push({ id: d.id, ...m });
+    });
+    res.json({ chats, messages });
   } catch (err) { fail(res, err); }
 });
 
@@ -106,18 +126,26 @@ function refreshSearchIndex(force) {
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const q = String(req.query.q || '').trim().toLowerCase();
+    const q = String(req.query.q || '').trim();
     if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
-    const hits = searchIndex.filter((m) =>
-      (m.chat + '\n' + m.tldr + '\n' + m.text).toLowerCase().indexOf(q) !== -1);
+    // Word-aware match: anchor the query at a word start (\b) so "aries" no
+    // longer matches inside "boundaries", while a prefix like "bound" still
+    // finds "boundaries"/"boundary". Falls back to a plain substring match if
+    // the query is all punctuation (regex would be empty).
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let re = null;
+    try { re = /[a-z0-9]/i.test(q) ? new RegExp('\\b' + esc, 'i') : null; } catch (e) { re = null; }
+    const matches = (s) => (re ? re.test(s) : s.toLowerCase().indexOf(q.toLowerCase()) !== -1);
+    const findIn = (s) => (re ? s.search(re) : s.toLowerCase().indexOf(q.toLowerCase()));
+    const hits = searchIndex.filter((m) => matches(m.chat + '\n' + m.tldr + '\n' + m.text));
     hits.sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
     const results = hits.slice(0, limit).map((m) => {
       // snippet centred on the match — prefer the body, else the tldr/chat name
-      const src = m.text && m.text.toLowerCase().includes(q) ? m.text
-        : (m.tldr && m.tldr.toLowerCase().includes(q) ? m.tldr : (m.text || m.tldr || ''));
-      const i = src.toLowerCase().indexOf(q);
+      const src = m.text && findIn(m.text) > -1 ? m.text
+        : (m.tldr && findIn(m.tldr) > -1 ? m.tldr : (m.text || m.tldr || ''));
+      const i = findIn(src);
       let snip = src;
       if (i > -1) {
         const s = Math.max(0, i - 45);
@@ -127,6 +155,22 @@ router.get('/search', async (req, res) => {
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
     res.json({ results, indexed: searchIndex.length });
+  } catch (err) { fail(res, err); }
+});
+
+// A single chat's FULL history, oldest→newest. The main feed only loads each
+// chat's recent tail, so opening a search hit that's hundreds of messages back
+// needs the whole thread pulled in to actually read it. Equality-only query
+// (no orderBy) needs no composite index; we sort in memory.
+router.get('/thread', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const snap = await db().collection(MSGS).where('chat', '==', chat).get();
+    const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0));
+    res.json({ messages });
   } catch (err) { fail(res, err); }
 });
 
@@ -221,9 +265,30 @@ router.post('/answered', async (req, res) => {
     const { chat, answered } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const stamp = new Date().toISOString();
-    const val = answered ? stamp : admin.firestore.FieldValue.delete();
-    await db().collection(REG).doc(String(chat).slice(0, 60)).set({ answeredAt: val }, { merge: true });
+    const del = admin.firestore.FieldValue.delete();
+    // Answered and flagged are exclusive — marking one clears the other.
+    const patch = answered
+      ? { answeredAt: stamp, flaggedAt: del }
+      : { answeredAt: del };
+    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
     res.json({ ok: true, answeredAt: answered ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// Flag a chat "come back to this later" (or clear it). Like answeredAt it grays
+// the tile and auto-clears once a newer message arrives; it's exclusive with
+// answered, so setting one removes the other.
+router.post('/flag', async (req, res) => {
+  try {
+    const { chat, flagged } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const stamp = new Date().toISOString();
+    const del = admin.firestore.FieldValue.delete();
+    const patch = flagged
+      ? { flaggedAt: stamp, answeredAt: del }
+      : { flaggedAt: del };
+    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
+    res.json({ ok: true, flaggedAt: flagged ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -311,8 +376,10 @@ router.get('/page/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).send('Not found');
     const [buf] = await admin.storage().bucket().file(snap.data().path).download();
     let html = buf.toString('utf8');
-    // skip pages that already carry their own pill (id collision guard)
-    if (!html.includes('id="vtop"')) html += pillInject();
+    // Inject the shared pill for direct/browser viewing. Skip it when embedded
+    // in the app's Compare viewer (?embed=1): iOS renders position:fixed badly
+    // inside an iframe, so the parent page supplies a pill that scrolls this one.
+    if (req.query.embed !== '1' && !html.includes('id="vtop"')) html += pillInject();
     // a page id's content never changes (replacing = delete + re-post under a
     // new id), so short-cache reopens for snappy back-and-forth
     res.set('Cache-Control', 'public, max-age=300');
@@ -341,6 +408,21 @@ router.post('/about', async (req, res) => {
     await db().collection(REG).doc(String(chat).slice(0, 60))
       .set({ about: String(about || '').slice(0, 140) }, { merge: true });
     res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
+// Give a chat a custom display name shown in the app. Purely cosmetic — the
+// underlying `chat` key (branch-derived) is unchanged, so every reply still
+// groups into the same chat; only the label Sophie sees changes. Empty name
+// clears it (falls back to the chat key). Stored on the registry doc.
+router.post('/rename', async (req, res) => {
+  try {
+    const { chat, name } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(name || '').trim().slice(0, 60);
+    await db().collection(REG).doc(String(chat).slice(0, 60))
+      .set({ displayName: val || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, displayName: val || null });
   } catch (err) { fail(res, err); }
 });
 

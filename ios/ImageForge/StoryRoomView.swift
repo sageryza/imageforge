@@ -1,10 +1,18 @@
 import SwiftUI
 import WebKit
+import UniformTypeIdentifiers
 
-/// Story Room — the movie boards webpage (/storyroom), wrapped like the
+/// Story Room — the story surface webpage (/storyroom), wrapped like the
 /// Writing Room: the server page is the UI, this just hosts it and answers
 /// the studio gate's HTTP Basic challenge with the stored token. Content
 /// updates land with a Render deploy — no app build needed.
+///
+/// One thing the web layer CAN'T do on its own, bridged natively here (same
+/// pattern as DreamsView): **paste a voiceover recording**. iOS won't hand a
+/// clipboard audio file to a web page, so the page asks us, we read
+/// UIPasteboard and upload it as the story's voiceover. This is how a Voice
+/// Memo gets in without saving it to Files first: in Voice Memos,
+/// Share → Copy, then tap "Paste a recording".
 struct StoryRoomView: View {
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
@@ -63,11 +71,16 @@ private struct StoryRoomWebView: UIViewRepresentable {
     @Binding var failed: Bool
 
     func makeUIView(context: Context) -> WKWebView {
-        let web = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        config.userContentController.add(context.coordinator, name: "pasteVoiceover")
+        let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
         web.backgroundColor = UIColor(StoryRoomView.paper)
         web.allowsBackForwardNavigationGestures = true
+        context.coordinator.webView = web
         if let url = URL(string: MovieService.serverURL + "/storyroom") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
@@ -79,10 +92,86 @@ private struct StoryRoomWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let parent: StoryRoomWebView
+        weak var webView: WKWebView?
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: StoryRoomWebView) { self.parent = parent }
+
+        // ── Page → native: paste a voiceover recording ──
+        func userContentController(_ ucc: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "pasteVoiceover" else { return }
+            pasteVoiceover(projectId: (message.body as? String) ?? "")
+        }
+
+        /// Read a copied audio recording off the clipboard and attach it as this
+        /// story's voiceover. Mirrors DreamsView's paste bridge.
+        private func pasteVoiceover(projectId: String) {
+            guard !projectId.isEmpty else { return }
+            let pb = UIPasteboard.general
+            let provider = pb.itemProviders.first { p in
+                p.registeredTypeIdentifiers.contains { UTType($0)?.conforms(to: .audio) == true }
+            }
+            guard let provider,
+                  let typeId = provider.registeredTypeIdentifiers.first(where: { UTType($0)?.conforms(to: .audio) == true }) else {
+                run("window.__pasteVoEmpty && window.__pasteVoEmpty()")
+                return
+            }
+            let mime = UTType(typeId)?.preferredMIMEType ?? "audio/mp4"
+            run("window.__pasteVoStart && window.__pasteVoStart()")
+            provider.loadDataRepresentation(forTypeIdentifier: typeId) { [weak self] data, _ in
+                guard let self else { return }
+                guard let data, !data.isEmpty else {
+                    self.run("window.__pasteVoEmpty && window.__pasteVoEmpty()"); return
+                }
+                self.upload(projectId: projectId, data: data, mime: mime)
+            }
+        }
+
+        /// POST the recording to /api/story/voiceover. Done natively (not in the
+        /// page) so the megabytes of audio never have to cross into JavaScript.
+        /// The server transcribes it into the voiceover's words in the
+        /// background, so the page only needs to refetch the story.
+        private func upload(projectId: String, data: Data, mime: String) {
+            guard let url = URL(string: MovieService.serverURL + "/api/story/voiceover") else { return }
+            let dataURL = "data:\(mime);base64," + data.base64EncodedString()
+            var req = URLRequest(url: url, timeoutInterval: 240)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if !parent.token.isEmpty { req.setValue(parent.token, forHTTPHeaderField: "x-studio-token") }
+            req.httpBody = try? JSONSerialization.data(withJSONObject: ["projectId": projectId, "audio": dataURL])
+            URLSession.shared.dataTask(with: req) { [weak self] respData, _, err in
+                guard let self else { return }
+                var ok = false, serverError = ""
+                if let respData, let obj = try? JSONSerialization.jsonObject(with: respData) as? [String: Any] {
+                    ok = (obj["ok"] as? Bool) ?? false
+                    serverError = (obj["error"] as? String) ?? ""
+                }
+                DispatchQueue.main.async {
+                    if ok {
+                        self.run("window.__pasteVoDone && window.__pasteVoDone()")
+                    } else {
+                        let msg = serverError.isEmpty
+                            ? (err?.localizedDescription ?? "Couldn't add that recording") : serverError
+                        self.run("window.__pasteVoError && window.__pasteVoError(\(self.jsString(msg)))")
+                    }
+                }
+            }.resume()
+        }
+
+        /// JSON-encode a string into a safe JS literal (quoted + escaped).
+        private func jsString(_ s: String) -> String {
+            if let d = try? JSONSerialization.data(withJSONObject: [s]),
+               var lit = String(data: d, encoding: .utf8) {
+                lit.removeFirst(); lit.removeLast()   // strip the surrounding [ ]
+                return lit
+            }
+            return "\"\""
+        }
+
+        private func run(_ js: String) {
+            DispatchQueue.main.async { self.webView?.evaluateJavaScript(js, completionHandler: nil) }
+        }
 
         // If Sophie switches tabs while the boards are pushed, the page's
         // in-page autoscroll must not keep drifting in the background.

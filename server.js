@@ -31,7 +31,55 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
+
+// ─── Secretly a Witch front door (secretlyawitch.com) ───────────────
+// The apex domain points at this service (it used to be the Shopify
+// storefront), and on that host the witch app IS the site: `/` serves the
+// app, old Shopify-storefront paths 301 to the store's permanent
+// .myshopify.com home so nothing ever 404s, the old /blogs/* URLs land on
+// the on-site blog (blog-public.js), and robots/sitemap are served for SEO.
+// Inert for imageforge-q125.onrender.com traffic — the studio is unchanged.
+// blog-public reads no env keys at require time, so requiring it here (before
+// the Firestore config loader runs) is safe — unlike blog.js.
+const blogPublic = require('./blog-public');
+const WITCH_HOSTS = new Set(['secretlyawitch.com', 'www.secretlyawitch.com']);
+const isWitchHost = (req) => WITCH_HOSTS.has(String(req.hostname || '').toLowerCase());
+// The store's permanent home once the domain flips (Shopify serves the same
+// storefront + checkout there). Overridable so it can later become e.g.
+// shop.secretlyawitch.com without a code change.
+const witchStoreOrigin = () => (process.env.WITCH_STORE_ORIGIN || 'https://cod-god-inc.myshopify.com').replace(/\/$/, '');
+const WITCH_ROBOTS = [
+  'User-agent: *',
+  'Disallow: /api/',
+  'Disallow: /*.html$',
+  // Studio/hub surfaces that share this server — not part of the public site.
+  ...['/studio', '/photo', '/song', '/dreams', '/films', '/report', '/character', '/story', '/storyroom',
+    '/wall', '/writing', '/chats', '/import', '/test', '/book', '/talking', '/gallery', '/set', '/stickers']
+    .map((p) => `Disallow: ${p}`),
+  'Sitemap: https://secretlyawitch.com/sitemap.xml',
+].join('\n') + '\n';
+app.use((req, res, next) => {
+  if (!isWitchHost(req)) return next();
+  const p = req.path;
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  if (p === '/') return res.sendFile(__dirname + '/public/witch.html');
+  // Canonical home — keeps query params (Stripe returns to /witch?sub=success).
+  if (p === '/witch' || p === '/witch/') return res.redirect(301, '/' + qs);
+  if (p === '/privacy') return res.sendFile(__dirname + '/public/witch-privacy.html');
+  if (p === '/robots.txt') return res.type('text/plain').send(WITCH_ROBOTS);
+  if (p === '/sitemap.xml') return blogPublic.sitemap(req, res);
+  // Old Shopify-storefront URLs (indexed pages, School lesson product links,
+  // saved carts) → the store's real home, path preserved.
+  if (/^\/(products|collections|cart|checkout|pages|account|policies|password|discount)(\/|$)/.test(p)) {
+    return res.redirect(301, witchStoreOrigin() + req.originalUrl);
+  }
+  // Old Shopify blog URLs (/blogs/<blog-handle>/<post-handle>) → on-site blog.
+  const mBlog = p.match(/^\/blogs(?:\/[^/]+)?\/?([^/]*)\/?$/);
+  if (mBlog) return res.redirect(301, mBlog[1] ? `/blog/${mBlog[1]}` : '/blog');
+  next(); // everything else (/, /api/*, /blog, static assets) flows through
+});
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
@@ -189,6 +237,7 @@ loadConfig().then(() => {
   const chatfeed = require('./chatfeed');
   const tarotEmail = require('./tarot-email');
   const nde = require('./nde');
+  const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
@@ -199,6 +248,9 @@ loadConfig().then(() => {
   app.use('/api/photostudio', photostudio.router);
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
+  // Stories live on the boards now: hand the module the story-project
+  // Firestore getter so /api/stories reads/writes forge-story (membry).
+  stories.init({ storyDb });
   app.use('/api/stories', stories.router);
   app.use('/api/mpc', mpc.router);
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
@@ -210,9 +262,21 @@ loadConfig().then(() => {
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
+  app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
+  // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
+  const stripeMod = require('./stripe');
+  app.use('/api/stripe', stripeMod.createRouter({
+    membryDb: storyDb,                                    // membry-df528 Firestore
+    membryAuth: async () => { await storyDb(); return storyApp.auth(); }, // verify witch ID tokens
+    // Checkout should return the buyer to the domain they started on — the
+    // public site when they came from secretlyawitch.com, Render otherwise.
+    appUrl: (req) => (req && isWitchHost(req))
+      ? 'https://secretlyawitch.com'
+      : (process.env.RENDER_EXTERNAL_URL || 'https://imageforge-q125.onrender.com').replace(/\/$/, ''),
+  }));
   console.log('Pipeline routes mounted (Etsy + Printify + Printful + Lulu + orchestration + photostudio + movies + songs + stories + mpc + shopify + blog + writing + gdrive + chatfeed + nde)');
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
@@ -432,11 +496,9 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
-// Story view: the Evan & Charlie video asset board — approved art placed
-// inside the narration with missing beats flagged. A committed snapshot
-// (assets embedded as data URIs); regenerate when the asset set changes.
-// Same gate as the Studio.
-app.get('/story', serveGated('story.html'));
+// The old static /story snapshot page is retired (July 2026) — the Story
+// Room (/storyroom, live) is the one story surface now.
+app.get('/story', (req, res) => res.redirect('/storyroom'));
 
 // Story-board API: the same projects, served live from Firestore (synced by
 // scripts/sync-story.js) so the iOS app updates without an app build. Reads
@@ -581,6 +643,23 @@ async function saveStoryImage(image, namePrefix) {
   await file.makePublic();
   return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
 }
+// Same, for audio (voiceover recordings / TTS renders). Buffer variant is
+// shared by the upload and TTS paths; the data-URL variant tolerates the
+// `;codecs=…` param MediaRecorder puts before base64.
+async function saveStoryAudioBuffer(buffer, mime, namePrefix) {
+  const sub = ((String(mime).split('/')[1] || 'mp3').split(';')[0] || 'mp3').toLowerCase();
+  const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
+  const rand = Math.random().toString(36).slice(2, 8);
+  const bucket = storyApp.storage().bucket();
+  const file = bucket.file(`story/${namePrefix}-${Date.now()}-${rand}.${ext}`);
+  await file.save(buffer, { contentType: String(mime).split(';')[0], resumable: false });
+  await file.makePublic();
+  return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+}
+function parseAudioDataUrl(audio) {
+  const m = String(audio || '').match(/^data:(audio\/[^;,]+(?:;codecs=[^;,]+)?);base64,(.+)$/);
+  return m ? { buffer: Buffer.from(m[2], 'base64'), mime: m[1] } : null;
+}
 function storySlug(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 }
@@ -594,12 +673,14 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { id, title, cover, order } = req.body || {};
-    if (!id && !String(title || '').trim()) return res.status(400).json({ error: 'title required' });
+    const { id, title, cover, order, text } = req.body || {};
     const db = await storyDb();
     if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
     const col = db.collection('forge-story');
-    let docId = id ? String(id) : (storySlug(title) || 'story');
+    // A story may start with NO name — Sophie often doesn't know the title
+    // until she's into it, so a nameless story is created as "Untitled" and
+    // renamed later (POST again with { id, title }).
+    let docId = id ? String(id) : (storySlug(title) || 'untitled');
     if (!id) {
       let base = docId, n = 1;
       while ((await col.doc(docId).get()).exists) { n++; docId = base + '-' + n; }
@@ -609,6 +690,7 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
     const data = snap.exists ? snap.data() : { id: docId, beats: [] };
     data.id = docId;
     if (title != null && String(title).trim()) data.title = String(title).slice(0, 120);
+    else if (!data.title) data.title = 'Untitled';
     if (order != null && order !== '') data.order = Number(order);
     else if (data.order == null) {
       const all = await col.get();
@@ -618,6 +700,7 @@ app.post('/api/story/project', express.json({ limit: '14mb' }), async (req, res)
       const url = await saveStoryImage(cover, `cover-${docId}`);
       if (url) data.cover = url;
     }
+    if (text != null) data.text = String(text).slice(0, 60000);
     if (!Array.isArray(data.beats)) data.beats = [];
     await ref.set(data);
     res.json({ ok: true, id: docId, project: data });
@@ -656,6 +739,169 @@ app.post('/api/story/beat', express.json(), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Set / edit a story's prose — the story itself, one doc field, reusable by
+// Movies / Storybook / the zine (the old forge-stories library, folded in).
+app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, text } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    data.text = String(text || '').slice(0, 60000);
+    await ref.set(data);
+    res.json({ ok: true, chars: data.text.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Whole-story voiceover: `voiceover: { url, text, status?, error?, source? }`
+// — an audio recording and/or its script; either half can be derived (text →
+// TTS render, audio → Whisper transcript). Body: { projectId, audio? (data
+// URL) | url? (https), text?, tts? (render the script to audio), voice?,
+// transcribe? }. Mirrors movie.voiceover so a story's narration can hand
+// straight to the film pipeline later. The slow parts (TTS, Whisper) run as
+// background jobs recorded on the doc (`voiceover.status`) — clients poll
+// GET /api/story; nobody watches a spinner.
+app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, audio, url, text, tts, voice, transcribe } = req.body || {};
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const vo = (data.voiceover && typeof data.voiceover === 'object') ? data.voiceover : {};
+    delete vo.error;
+    const hadText = Boolean(vo.text);
+    if (text != null) vo.text = String(text).slice(0, 20000);
+
+    let newAudio = null;   // { buffer, mime } freshly uploaded this call
+    if (audio) {
+      newAudio = parseAudioDataUrl(audio);
+      if (!newAudio) return res.status(400).json({ error: 'audio must be a data:audio/* URL' });
+      vo.url = await saveStoryAudioBuffer(newAudio.buffer, newAudio.mime, `vo-${projectId}`);
+      vo.source = 'recording';
+    } else if (url && /^https?:\/\//.test(String(url))) {
+      vo.url = String(url);
+      vo.source = 'recording';
+    }
+
+    // What still needs deriving? TTS wants a script and no fresh recording;
+    // transcription defaults ON when audio arrives without its words.
+    const wantTts = Boolean(tts) && !newAudio && !url;
+    if (wantTts && !String(vo.text || '').trim()) {
+      return res.status(400).json({ error: 'tts needs voiceover text' });
+    }
+    const wantTranscribe = Boolean(vo.url) && (newAudio || url)
+      && (transcribe === true || (transcribe !== false && !vo.text && !hadText && text == null));
+
+    if (wantTts) vo.status = 'rendering';
+    else if (wantTranscribe) vo.status = 'transcribing';
+    else delete vo.status;
+    data.voiceover = vo;
+    await ref.set(data);
+    res.json({ ok: true, voiceover: { url: vo.url || null, text: vo.text || '', status: vo.status || null } });
+
+    // ── background: derive the missing half, then update the doc ──
+    const finish = async (patch) => {
+      try {
+        const snap = await ref.get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        d.voiceover = { ...(d.voiceover || {}), ...patch };
+        delete d.voiceover.status;
+        if (!patch.error) delete d.voiceover.error;
+        await ref.set(d);
+      } catch (e) { console.error('story voiceover update failed:', e.message); }
+    };
+    if (wantTts) {
+      (async () => {
+        try {
+          const buf = await storyTts(String(vo.text), String(voice || 'nova'));
+          const pub = await saveStoryAudioBuffer(buf, 'audio/mpeg', `vo-tts-${projectId}`);
+          await finish({ url: pub, source: 'tts' });
+        } catch (e) { await finish({ error: 'TTS failed: ' + e.message }); }
+      })();
+    } else if (wantTranscribe) {
+      (async () => {
+        try {
+          let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
+          if (!buffer) {
+            const r = await fetch(vo.url);
+            if (!r.ok) throw new Error('audio fetch ' + r.status);
+            buffer = await r.buffer();
+            mime = r.headers.get('content-type') || '';
+          }
+          const { transcribeAudio } = require('./movies');
+          const sub = ((String(mime).split('/')[1] || 'm4a').split(';')[0] || 'm4a');
+          const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
+          const t = await transcribeAudio(buffer, 'voiceover.' + ext);
+          await finish({ text: t.text, duration: t.duration });
+        } catch (e) { await finish({ error: 'transcription failed: ' + e.message }); }
+      })();
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TTS for a story voiceover: same chunk-at-sentence + ffmpeg-concat pattern
+// as the Chats app's Play button (chatfeed.js /polish) — one OpenAI call per
+// ≤3200-char chunk so long narrations aren't silently truncated at the
+// API's 4096 cap.
+async function storyTts(text, voice) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  const clean = String(text).trim().slice(0, 16000);
+  const sentences = clean.replace(/\n+/g, ' ').match(/[^.!?…]+[.!?…]+["”']?\s*/g) || [clean];
+  const chunks = []; let cur = '';
+  for (const s of sentences) {
+    if (cur && (cur + s).length > 3200) { chunks.push(cur.trim()); cur = ''; }
+    cur += s;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  const bufs = [];
+  for (const chunk of chunks) {
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini-tts', voice, input: chunk,
+        instructions: 'Narrate warmly and naturally, like reading a storybook aloud — unhurried, gentle.',
+      }),
+    });
+    if (!r.ok) throw new Error('tts ' + r.status + ' ' + (await r.text().catch(() => '')).slice(0, 150));
+    bufs.push(Buffer.from(await r.arrayBuffer()));
+  }
+  if (bufs.length === 1) return bufs[0];
+  const os = require('os');
+  const { spawn } = require('child_process');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'storyvo-'));
+  try {
+    const files = bufs.map((b, i) => { const f = path.join(tmp, `c${i}.mp3`); fs.writeFileSync(f, b); return f; });
+    const listFile = path.join(tmp, 'list.txt');
+    fs.writeFileSync(listFile, files.map((f) => `file '${f}'`).join('\n'));
+    const mp3 = path.join(tmp, 'out.mp3');
+    const ffmpeg = process.env.FFMPEG_PATH || require('ffmpeg-static');
+    await new Promise((resolve, reject) => {
+      const p = spawn(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', mp3]);
+      let err = ''; p.stderr.on('data', (c) => err += c);
+      p.on('close', (code) => (code === 0 ? resolve() : reject(new Error('ffmpeg: ' + err.slice(-200)))));
+    });
+    return fs.readFileSync(mp3);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
 
 // Bulk-dump many images into a project's INBOX (unsorted holding area) in one
 // request — "add lots of art, sort it out later". Accepts data URLs or https
@@ -1210,7 +1456,13 @@ app.get('/chats', serveGated('chats.html'));
 
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
-app.get('/blog', serveGated('blog.html'));
+// On the public witch domain (or with ?public=1 for previewing) /blog is the
+// SITE blog, server-rendered from Firestore; elsewhere it's the gated studio.
+app.get('/blog', (req, res) => {
+  if (isWitchHost(req) || req.query.public === '1') return blogPublic.renderIndex(req, res);
+  return serveGated('blog.html')(req, res);
+});
+app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));
@@ -1538,13 +1790,16 @@ app.post('/api/witch/dream-read', async (req, res) => {
 app.post('/api/witch/dream-illustrate', async (req, res) => {
   try {
     const dream = String((req.body || {}).dream || '').trim();
+    // Who the dreamer (and anyone else) looks like — optional, from the
+    // describe-yourself step; the client sends a generic fallback when skipped.
+    const people = String((req.body || {}).people || '').trim().slice(0, 600);
     if (!dream) return res.status(400).json({ error: 'dream is required' });
     if (dream.length > 20000) return res.status(400).json({ error: 'dream is too long' });
     if (!admin.apps.length) return res.status(503).json({ error: 'image storage not configured' });
     const db = admin.firestore();
     const ref = db.collection('forge-witch-dream-illus').doc();
     await ref.set({
-      status: 'running', label: 'reading your dream', dream,
+      status: 'running', label: 'reading your dream', dream, people: people || null,
       page1: null, totalPages: 0, title: null, error: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -1558,7 +1813,9 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
         const beats = Array.isArray(dr.beats) ? dr.beats : [];
         const totalPages = Math.max(1, Math.ceil(beats.length / 4));
         await ref.update({ label: 'illustrating page one', totalPages, title: dr.title || null });
-        const first = { ...dr, beats: beats.slice(0, 4) };   // page one = first 4 beats
+        // page one = first 4 beats; dreamerLook feeds the page prompt so the
+        // "me" of the dream is drawn to the given description.
+        const first = { ...dr, beats: beats.slice(0, 4), dreamerLook: people || null };
         await movies.makeDreamPages(first, 'medium', async () => {});
         const page1 = first.pages && first.pages[0] && first.pages[0].url;
         if (!page1) throw new Error('no page rendered');
@@ -2206,13 +2463,13 @@ Write the reading now.`;
     // 'astro' = the short teaser (headline/reading/omens) on the Today page;
     // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
     // 'tarot' = the 3-card reading. Astrology parts run on gpt-4o at a HIGH
-    // temperature (1.1) — Sophie's pick, to make the readings get really weird;
+    // temperature (1.3) — Sophie's pick, to make the readings get really weird;
     // tarot stays on Claude Opus.
     if (part) {
       const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
       let out;
       if (part === 'astro') {
-        const teaserSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.${zodiacNote}
+        const teaserSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump. The reading itself observes rather than instructs — save the telling-them-what-to-do for the counsel fields, which exist exactly for that.${zodiacNote}
 You are given REAL, accurately computed positions — interpret them, never recompute. Anchor on the ANCHOR TRANSIT if one is given (otherwise the most interesting thing in today's sky) and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
 This is the SHORT teaser — a separate, longer reading written from the SAME anchor sits behind a "Dive deeper" button — so END WITH PULL, NOT CLOSURE: the last line should leave the thread visibly open, a reason to want more. Never mention the button or the app.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
@@ -2222,11 +2479,13 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
   "focus": "1-3 word theme for the day",
   "invite": "",
   "intention": "one short first-person line for today — specific, not generic",
-  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ],
+  "counsel": { "do": "one concrete thing today FAVORS doing, derived from a named transit — a real everyday act (introduce yourself to someone, ask for the refund, book the trip, post the thing), stated as a light imperative with the placement in parens, e.g. 'Say yes to the odd invitation (Venus trine your Uranus)'", "dont": "one concrete thing today is WRONG for, same format — a specific everyday act to hold off on (don't send the risky text, don't sign anything before noon, skip the big purchase), never vague caution, with the placement in parens" }
 }
 Give EXACTLY 2 omens.
+COUNSEL rules: each is ONE short sentence, a specific physical/social act someone could actually do or skip TODAY — never inner-work ("reflect", "be open", "trust yourself" are all WRONG). The do and the dont must come from DIFFERENT transits when more than one is given.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
@@ -2255,7 +2514,7 @@ They have NOT entered birth details, so nothing here is natal: read TODAY's real
 ${astroContext}
 
 Write the deeper page now.`;
-        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
         if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
         let deep;
@@ -2277,12 +2536,12 @@ Write the deeper page now.`;
     }
 
     // ── Legacy combined reading (stale cached clients only) ───────────────
-    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.1) — Sophie's
+    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.4) — Sophie's
     // pick, to make the daily reading get really weird. Force a JSON object so
     // the weirdness stays parseable. Tarot stays on Claude Opus. The two never
     // see each other's context.
     const [aData, tData] = await Promise.all([
-      openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+      openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
@@ -2351,6 +2610,36 @@ function shopShortName(title, handle) {
   if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
   return s || title;
 }
+// ─── Shop categories ────────────────────────────────────────────────
+// The store has no usable grouping of its own: `product_type` is empty on
+// every product, the 359 tags are SEO keywords, and the 146 Shopify
+// collections are stale duplicates shared with the other brands. So the Shop
+// tab's categories are derived here from the product name.
+// Matched against the SHORT display name, never the full title — the SEO
+// titles are keyword soup ("…witchcraft cards gift…") and drag products into
+// the wrong bucket. First rule that matches wins, so order matters: 'cards'
+// before 'kits' (an "apothecary reference cards" deck is cards, not a kit),
+// 'kits' before 'crystals' (a "crystal mystery kit" is a kit).
+// Array order = the order the filter bar shows them in (Sophie's call).
+const SHOP_CATEGORIES = [
+  { key: 'kits', name: 'Kits & sets', re: /\bkits?\b|mystery box|starter|apothecary|tea set/i },
+  { key: 'cards', name: 'Cards', re: /tarot|rider-?waite|\bdeck\b|\bcards?\b|journal|book of shadows/i },
+  { key: 'altar', name: 'Altar tools', re: /chalice|altar|\bbell\b|cauldron|mortar|pestle|bowl|candle|chest|pendulum|cloth|table|shelf|wand/i },
+  { key: 'crystals', name: 'Crystals', re: /crystal|labradorite|selenite|carnelian|fluorite|mineral|palm stone|advent/i },
+  { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
+  { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
+];
+// Evaluation order — deliberately NOT the display order above. Changing how
+// the bar reads must never change which bucket a product lands in.
+const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
+function shopCategory(shortName) {
+  for (const key of SHOP_CAT_ORDER) {
+    const c = SHOP_CATEGORIES.find(x => x.key === key);
+    if (c && c.re.test(shortName || '')) return c.key;
+  }
+  return 'altar'; // ritual objects are the catch-all
+}
+
 let ETSY_SHOP_LISTINGS = { at: 0, list: null, shopId: null };
 async function etsyActiveListings() {
   const now = Date.now();
@@ -2364,7 +2653,20 @@ async function etsyActiveListings() {
   if (!shopId) return null;
   const r = await etsy.getAllListings(shopId, 'active');
   if (!r || !r.ok) return null;
-  const list = (r.results || []).map((l, i) => ({ idx: i, id: l.listing_id, title: l.title, words: new Set(shopWords(l.title)) }));
+  // Order = Sophie's actual Etsy shop arrangement, which lives in
+  // `featured_rank`, NOT the order the API hands listings back (that's by
+  // creation date and put oils first instead of the witchcraft kit). Rank is
+  // 0-based and 0 IS a real position — the top slot — so only -1/null means
+  // "not featured"; those keep the API's own order and sit after the pinned
+  // ones. Etsy has no endpoint for the full shop sort, so featured_rank is the
+  // closest signal to what a visitor sees.
+  const rank = (l) => (typeof l.featured_rank === 'number' && l.featured_rank >= 0
+    ? l.featured_rank : Number.POSITIVE_INFINITY);
+  const ordered = (r.results || [])
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => (rank(a.l) - rank(b.l)) || (a.i - b.i))
+    .map(x => x.l);
+  const list = ordered.map((l, i) => ({ idx: i, id: l.listing_id, title: l.title, words: new Set(shopWords(l.title)) }));
   ETSY_SHOP_LISTINGS = { at: now, list, shopId };
   return list;
 }
@@ -2374,7 +2676,9 @@ app.get('/api/witch/shop', async (req, res) => {
     const debug = req.query.debug === '1';
     const now = Date.now();
     if (!debug && SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
-    const base = 'https://secretlyawitch.com';
+    // The store's permanent .myshopify.com home — NOT secretlyawitch.com,
+    // which now points at this very app (fetching it would loop back to us).
+    const base = witchStoreOrigin();
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
     if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
     const j = await r.json();
@@ -2383,25 +2687,51 @@ app.get('/api/witch/shop', async (req, res) => {
     let products = (j.products || []).filter(p => !EXCLUDE.test(p.title || '')).map(p => {
       const v = (p.variants || [])[0] || {};
       const img = (p.images || [])[0] || {};
-      const prices = (p.variants || []).map(x => parseFloat(x.price)).filter(n => isFinite(n));
+      // Price the shelf off the variants a shopper can actually buy — a
+      // sold-out cheap option would otherwise advertise a floor that isn't
+      // purchasable. Fall back to all variants when nothing is in stock.
+      const priceable = (p.variants || []).filter(x => x.available);
+      const prices = (priceable.length ? priceable : (p.variants || []))
+        .map(x => parseFloat(x.price)).filter(n => isFinite(n));
       return {
         id: p.id, title: p.title, handle: p.handle,
         url: `${base}/products/${p.handle}`,
         image: img.src || null,
         price: v.price || null,
         priceMin: prices.length ? Math.min(...prices).toFixed(2) : null,
+        // Lets the tile say "from $X" instead of implying the cheapest option
+        // is the product's price (kits start at a just-the-cards variant).
+        priceMax: prices.length ? Math.max(...prices).toFixed(2) : null,
         available: (p.variants || []).some(x => x.available),
         type: p.product_type || '',
       };
     });
 
-    // Cross-reference Etsy: keep only products that match an active Etsy
-    // listing, order them the way Etsy lists them, and use a clean short name.
+    // Cross-reference Etsy for ORDER and clean short names. The whole catalog
+    // is shown (Sophie, 2026-07: the tab used to hide the ~half of the store
+    // with no Etsy twin) — Etsy-matched items lead, in Etsy's featured order,
+    // and everything else follows in the store's own order.
     let dbg = null;
     try {
       const listings = await etsyActiveListings();
       if (listings && listings.length) {
+        // The Shuttle importer stamped each Shopify handle with the last 4-6
+        // digits of the Etsy listing it came from
+        // (huge-witchcraft-kit-witch-alter-sets-86658 -> listing 710086658).
+        // That is an EXACT key and resolves 39/39 of the suffixed catalog, so
+        // it wins outright — word overlap can't separate near-identical titles
+        // and was handing "HUGE WITCHCRAFT KIT" to the wrong kit (the 77-review
+        // product instead of the 980-review one), which also dropped the real
+        // best seller from the shelves entirely.
+        const bySuffix = (handle) => {
+          const m = /-(\d{4,6})$/.exec(handle || '');
+          if (!m) return null;
+          const hits = listings.filter(l => String(l.id).endsWith(m[1]));
+          return hits.length === 1 ? hits[0] : null; // ambiguous suffix -> fall through
+        };
         const scored = products.map(p => {
+          const pinned = bySuffix(p.handle);
+          if (pinned) return { p, best: pinned, bestScore: Infinity, pinned: true };
           const pw = shopWords(p.title);
           let best = null, bestScore = 0;
           for (const l of listings) {
@@ -2410,19 +2740,28 @@ app.get('/api/witch/shop', async (req, res) => {
           }
           return { p, best, bestScore };
         });
-        const byEtsy = new Map(); // one shopify product per etsy listing (best score wins)
+        // One Shopify product per Etsy listing. A handle-pinned match always
+        // beats a guessed one, so a fuzzy hit can never steal a listing that
+        // its real twin claims by id.
+        const byEtsy = new Map();
         for (const s of scored) {
           if (!s.best || s.bestScore < 2) continue;
           const cur = byEtsy.get(s.best.id);
           if (!cur || s.bestScore > cur.bestScore) byEtsy.set(s.best.id, s);
         }
+        // A pinned product must never be dropped just because some other
+        // product also fuzzy-matched its listing first.
+        for (const s of scored) {
+          if (s.pinned && byEtsy.get(s.best.id) !== s) byEtsy.set(s.best.id, s);
+        }
         const kept = [...byEtsy.values()].sort((a, b) => a.best.idx - b.best.idx);
-        products = kept.map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
+        const keptIds = new Set(kept.map(s => s.p.id));
+        const rest = scored.filter(s => !keptIds.has(s.p.id)); // no Etsy twin — still sold here
+        products = [...kept, ...rest].map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
         if (debug) dbg = {
-          etsyCount: listings.length, shopifyCount: scored.length, kept: kept.length,
+          etsyCount: listings.length, shopifyCount: scored.length, etsyMatched: kept.length, unmatchedShown: rest.length,
           matches: kept.map(s => ({ name: shopShortName(s.p.title, s.p.handle), etsy: s.best.title, score: s.bestScore, handle: s.p.handle })),
           unmatchedEtsy: listings.filter(l => !byEtsy.has(l.id)).map(l => l.title),
-          dropped: scored.filter(s => !s.best || s.bestScore < 2).map(s => s.p.title),
         };
       } else {
         // Etsy unavailable — fall back to short names on the Shopify set.
@@ -2434,12 +2773,163 @@ app.get('/api/witch/shop', async (req, res) => {
       if (debug) dbg = { error: e.message };
     }
 
-    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, products };
+    // Tag each product with its category, and report only the categories that
+    // actually have stock so the filter bar never shows an empty tab.
+    products = products.map(p => ({ ...p, category: shopCategory(p.title) }));
+    const used = new Set(products.map(p => p.category));
+    const categories = SHOP_CATEGORIES.filter(c => used.has(c.key))
+      .map(c => ({ key: c.key, name: c.name, count: products.filter(p => p.category === c.key).length }));
+
+    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, categories, products };
     if (debug) return res.json({ ...out, debug: dbg });
     SHOP_CACHE = { at: now, data: out };
     res.json(out);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Secretly a Witch: in-app buying (Storefront API cart) ──────────
+// The Shop tab sells IN the app: product sheet → cart → hand off to Shopify's
+// secure checkout only for the pay screen (the Buy-Button model, but via the
+// modern Storefront API instead of the legacy buy-button-js library).
+// The token is a PUBLIC storefront token — read-only product/cart scope,
+// designed to be embedded in client pages (this one already ships in
+// thepeoplewatchingclub.com's page source for the same store), so committing
+// it here is safe. Env override for a future store change.
+const WITCH_STOREFRONT_DOMAIN = 'cod-god-inc.myshopify.com';
+const witchStorefrontToken = () => process.env.WITCH_STOREFRONT_TOKEN || 'fffce1a7cf0342aedd0609333d90e3de';
+async function witchStorefront(query, variables) {
+  const r = await fetch(`https://${WITCH_STOREFRONT_DOMAIN}/api/2025-01/graphql.json`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': witchStorefrontToken() },
+    body: JSON.stringify({ query, variables: variables || {} }),
+  });
+  const j = await r.json();
+  if (j.errors && j.errors.length) throw new Error(j.errors[0].message || 'storefront error');
+  return j.data || {};
+}
+const WITCH_CART_FIELDS = `id checkoutUrl totalQuantity
+  cost { subtotalAmount { amount currencyCode } }
+  lines(first: 60) { edges { node { id quantity
+    cost { totalAmount { amount } }
+    merchandise { ... on ProductVariant { id title image { url } product { title handle } } } } } }`;
+function witchCartSummary(cart) {
+  if (!cart) return null;
+  return {
+    id: cart.id,
+    checkoutUrl: cart.checkoutUrl,
+    count: cart.totalQuantity || 0,
+    subtotal: cart.cost?.subtotalAmount?.amount || '0',
+    lines: (cart.lines?.edges || []).map(e => ({
+      id: e.node.id,
+      quantity: e.node.quantity,
+      total: e.node.cost?.totalAmount?.amount || null,
+      variantId: e.node.merchandise?.id || null,
+      variant: e.node.merchandise?.title || '',
+      title: e.node.merchandise?.product?.title || '',
+      handle: e.node.merchandise?.product?.handle || '',
+      image: e.node.merchandise?.image?.url || null,
+    })),
+  };
+}
+
+// Product detail for the in-app product sheet (images, variants w/ the GIDs
+// the cart needs, description). Cached: the sheet opens a lot.
+const WITCH_PRODUCT_CACHE = new Map();
+app.get('/api/witch/shop/product/:handle', async (req, res) => {
+  try {
+    const handle = String(req.params.handle || '');
+    const hit = WITCH_PRODUCT_CACHE.get(handle);
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return res.json(hit.data);
+    const data = await witchStorefront(`query($handle: String!) {
+      product(handle: $handle) {
+        title descriptionHtml
+        images(first: 8) { edges { node { url } } }
+        variants(first: 40) { edges { node { id title availableForSale price { amount currencyCode } } } }
+      } }`, { handle });
+    if (!data.product) return res.status(404).json({ error: 'not found' });
+    const p = data.product;
+    const out = {
+      handle,
+      title: p.title,
+      descriptionHtml: p.descriptionHtml || '',
+      images: (p.images?.edges || []).map(e => e.node.url),
+      variants: (p.variants?.edges || []).map(e => ({
+        id: e.node.id,
+        title: e.node.title,
+        available: Boolean(e.node.availableForSale),
+        price: e.node.price?.amount || null,
+      })),
+    };
+    WITCH_PRODUCT_CACHE.set(handle, { at: Date.now(), data: out });
+    res.json(out);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Read a cart. Returns { cart: null } for an expired/unknown id so the client
+// can quietly start fresh (Shopify carts expire after ~10 days).
+app.get('/api/witch/cart', async (req, res) => {
+  try {
+    const id = String(req.query.id || '');
+    if (!id) return res.json({ cart: null });
+    const data = await witchStorefront(`query($id: ID!) { cart(id: $id) { ${WITCH_CART_FIELDS} } }`, { id });
+    res.json({ cart: witchCartSummary(data.cart) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Add a line. Reuses the caller's cart when it still exists, otherwise (or
+// with no cartId) creates one — the client just stores whatever id comes back.
+app.post('/api/witch/cart/add', async (req, res) => {
+  try {
+    const { cartId, variantId } = req.body || {};
+    if (!variantId) return res.status(400).json({ error: 'variantId required' });
+    const quantity = Math.max(1, Math.min(99, parseInt(req.body?.quantity, 10) || 1));
+    const lines = [{ merchandiseId: String(variantId), quantity }];
+    let cart = null;
+    if (cartId) {
+      try {
+        const d = await witchStorefront(`mutation($cartId: ID!, $lines: [CartLineInput!]!) {
+          cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ${WITCH_CART_FIELDS} } userErrors { message } } }`,
+          { cartId: String(cartId), lines });
+        if (d.cartLinesAdd?.userErrors?.length && !d.cartLinesAdd?.cart) throw new Error(d.cartLinesAdd.userErrors[0].message);
+        cart = d.cartLinesAdd?.cart || null;
+      } catch (e) { cart = null; /* expired/bad cart — fall through to a fresh one */ }
+    }
+    if (!cart) {
+      const d = await witchStorefront(`mutation($lines: [CartLineInput!]!) {
+        cartCreate(input: { lines: $lines }) { cart { ${WITCH_CART_FIELDS} } userErrors { message } } }`, { lines });
+      if (d.cartCreate?.userErrors?.length && !d.cartCreate?.cart) return res.status(400).json({ error: d.cartCreate.userErrors[0].message });
+      cart = d.cartCreate?.cart || null;
+    }
+    res.json({ cart: witchCartSummary(cart) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Change a line's quantity (0 removes it).
+app.post('/api/witch/cart/update', async (req, res) => {
+  try {
+    const { cartId, lineId } = req.body || {};
+    if (!cartId || !lineId) return res.status(400).json({ error: 'cartId and lineId required' });
+    const quantity = Math.max(0, Math.min(99, parseInt(req.body?.quantity, 10) || 0));
+    const d = quantity === 0
+      ? await witchStorefront(`mutation($cartId: ID!, $ids: [ID!]!) {
+          cartLinesRemove(cartId: $cartId, lineIds: $ids) { cart { ${WITCH_CART_FIELDS} } userErrors { message } } }`,
+          { cartId: String(cartId), ids: [String(lineId)] })
+      : await witchStorefront(`mutation($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+          cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ${WITCH_CART_FIELDS} } userErrors { message } } }`,
+          { cartId: String(cartId), lines: [{ id: String(lineId), quantity }] });
+    const node = d.cartLinesRemove || d.cartLinesUpdate || {};
+    if (node.userErrors?.length && !node.cart) return res.status(400).json({ error: node.userErrors[0].message });
+    res.json({ cart: witchCartSummary(node.cart) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
   }
 });
 

@@ -971,6 +971,7 @@ async function dreamSplit(recording) {
   {"title": a short 2-5 word title for THIS dream,
    "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), in the order they were said,
    "mentions": [ {"name": a short label for a person/figure in THIS dream, exactly as the dreamer refers to them — "me", "J", "Dad", "Miriam", "the baby", "this guy"; if the dreamer themself is in it, "me" comes FIRST,
+     "named": true if the dreamer refers to them by an actual name or family title ("Miriam", "J", "Dad", "Auntie Florence", "me"); false for generic references they clearly can't identify ("some guy", "that woman", "a videographer", "someone", "the baby"),
      "desc": any description the dreamer actually gave of that person's appearance in the recording — "serious face", "tall with red hair", "wearing a suit" — VERBATIM-ish, or "" if they gave none} ] }
 ]}
 
@@ -992,8 +993,11 @@ HARD RULES:
     // Normalize mentions to { name, desc }; tolerate the model returning plain
     // strings (older shape) too.
     mentions: (Array.isArray(d.mentions) ? d.mentions : []).map((m) => {
-      if (m && typeof m === 'object') return { name: String(m.name || '').trim(), desc: String(m.desc || '').trim() };
-      return { name: String(m || '').trim(), desc: '' };
+      if (m && typeof m === 'object') {
+        return { name: String(m.name || '').trim(), desc: String(m.desc || '').trim(),
+                 named: m.named === false ? false : (m.named === true ? true : null) };
+      }
+      return { name: String(m || '').trim(), desc: '', named: null };
     }).filter(m => m.name).slice(0, 12),
     cast: [], characters: '', beats: [],
   })).filter(d => d.text);
@@ -1007,14 +1011,18 @@ HARD RULES:
 // when there's no match). Each suggestion also carries the `desc` the dreamer
 // gave that person, so the describe card can preload it. Best-effort.
 async function attachCastSuggestions(doc) {
-  const mentions = (doc.mentions || []).map(m => (m && typeof m === 'object') ? m : { name: String(m), desc: '' });
+  const mentions = (doc.mentions || []).map(m => (m && typeof m === 'object') ? m : { name: String(m), desc: '', named: null });
   try {
     const { matchCandidates } = require('./character');
     const matched = await matchCandidates(mentions.map(m => m.name));
-    doc.castSuggestions = matched.map((s, i) => ({ ...s, desc: mentions[i] ? mentions[i].desc : '' }));
+    doc.castSuggestions = matched.map((s, i) => ({
+      ...s,
+      desc: mentions[i] ? (mentions[i].desc || '') : '',
+      named: mentions[i] ? (mentions[i].named ?? null) : null,
+    }));
   } catch (err) {
     console.warn('movies: cast suggestions failed —', err.message);
-    doc.castSuggestions = mentions.map(m => ({ name: m.name, matches: [], desc: m.desc }));
+    doc.castSuggestions = mentions.map(m => ({ name: m.name, matches: [], desc: m.desc || '', named: m.named ?? null }));
   }
 }
 
@@ -1465,7 +1473,13 @@ function dreamZinePagePrompt(dream, group, refPages) {
     refNote = `For character continuity, ${pageLines}. `;
   }
   const stylePrefix = styleRef ? '' : `${(dream.imageStyle || DEFAULT_IMAGE_STYLE).trim()} `;
-  return `${stylePrefix}${refNote}${distinctNote}${layout}${body}`;
+  // The dreamer's self-description (witch app's describe-yourself step): the
+  // "me"/"I" of the captions is a real person — draw them (and anyone else
+  // described) to match, in every panel where they appear.
+  const lookNote = dream.dreamerLook
+    ? `Character appearance — the dreamer is the "me"/"I" of this dream: ${String(dream.dreamerLook).trim()}. Draw the people to match this description in every panel where they appear. `
+    : '';
+  return `${stylePrefix}${refNote}${lookNote}${distinctNote}${layout}${body}`;
 }
 
 // Render one dream page: style ref first, then the earlier pages we're carrying
@@ -1545,10 +1559,10 @@ async function dreamPaginate(dream, castNames) {
   const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
 {"pages": [
   {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
-   "caption": a SHORT hand-lettered caption for this image, at most ~12 words, in the DREAMER'S OWN VOICE and phrasing — but TRIM the filler (drop "like", "you know", "I mean", "I don't know if", "I guess", "kind of", repeated false starts). Present tense, evocative, their words distilled — NOT the full transcript,
+   "captions": [1 to 3 short hand-lettered caption lines for this image, IN ORDER, narrating this part in the DREAMER'S OWN WORDS AND VOICE. Use their actual phrasing — lightly clean the worst filler ("like", "you know", "I mean", "um", stutters/false starts) but KEEP their real words and tone; do NOT rewrite them to sound darker, more poetic, or more "haunting" to match the art. Each line up to ~15 words. Together the lines should let the dreamer narrate what's happening on this page — err toward keeping MORE of their voice, not less. [] only if this image truly needs no words],
    "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might first seem — merge adjacent moments). "caption" keeps the dreamer's voice but is trimmed and short. "who" must use CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1560,11 +1574,17 @@ RULES: 1 to 4 pages, as FEW as the dream needs (roughly half as many as it might
         { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: 'low', retries: 2 });
   const nameSet = new Set(castNames);
   const pages = (Array.isArray(out.pages) ? out.pages : [])
-    .map(p => ({
-      text: String(p.text || '').trim(),
-      caption: String(p.caption || '').trim().slice(0, 160),
-      who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
-    }))
+    .map(p => {
+      // Accept the new `captions` array; tolerate an older single `caption`.
+      let caps = Array.isArray(p.captions) ? p.captions
+        : (p.caption ? [p.caption] : []);
+      caps = caps.map(c => String(c || '').trim()).filter(Boolean).slice(0, 3).map(c => c.slice(0, 120));
+      return {
+        text: String(p.text || '').trim(),
+        captions: caps,
+        who: (Array.isArray(p.who) ? p.who : []).map(n => String(n).trim()).filter(n => nameSet.has(n)),
+      };
+    })
     .filter(p => p.text)
     .slice(0, 4);
   if (!pages.length) throw new Error('page planning produced no pages');
@@ -1607,15 +1627,17 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
   const continuity = clauses.length
     ? `For continuity: ${clauses.join('; ')}. Any character NOT named above is a DIFFERENT person — give them their own distinct new face and look; never reuse a face from the attached images for them. `
     : '';
-  const cap = String(plan.caption || '').trim();
+  const caps = Array.isArray(plan.captions) ? plan.captions.filter(Boolean)
+    : (plan.caption ? [plan.caption] : []);
+  const capInstr = caps.length
+    ? `Hand-letter ${caps.length === 1 ? 'this caption' : 'these ' + caps.length + ' captions, in order,'} onto the page as small caption boxes in the dreamer's handwriting, each spelled EXACTLY as written and nothing added: ${caps.map(c => `"${c}"`).join(', ')}.`
+    : 'Add a short hand-lettered caption in the dreamer\'s own voice.';
   const body =
     `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. ` +
     `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
     `THIS page covers ONLY this part of it: "${plan.text}". Draw only that part. ` +
     'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. ' +
-    (cap
-      ? `Hand-letter ONE short caption box on the page containing EXACTLY this text, spelled exactly, and nothing more: "${cap}".`
-      : 'Add one short hand-lettered caption in the dreamer\'s own voice.');
+    capInstr;
   const prompt = `${styleIntro}${continuity}${body}`;
   const buf = refs.length
     ? await openaiPanelEdit(prompt, refs, quality)
@@ -1639,7 +1661,7 @@ async function makeDreamPagesV2(dream, quality, progress) {
       const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
       dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
       rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
-      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, caption: plans[i].caption || '', who: plans[i].who || [] });
+      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, captions: plans[i].captions || [], who: plans[i].who || [] });
     } catch { failed++; }
     await progress(++done, total, 'drawing pages');
   }
@@ -2462,7 +2484,7 @@ router.post('/dream', async (req, res) => {
           // Match mentions to the saved sheet ONLY for Sophie — a guest must
           // never see (or borrow) her characters, so guests get describe-only.
           for (const p of plans) {
-            if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
+            if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "", named: (m && typeof m.named === "boolean") ? m.named : null }));
             else await attachCastSuggestions(p);
           }
           const docs = await createDreamDocs(plans, text, title, owner);
@@ -2484,7 +2506,7 @@ router.post('/dream', async (req, res) => {
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
     for (const p of plans) {
-      if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
+      if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "", named: (m && typeof m.named === "boolean") ? m.named : null }));
       else await attachCastSuggestions(p);
     }
     const docs = await createDreamDocs(plans, text, title, owner);
