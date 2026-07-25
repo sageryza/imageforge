@@ -1156,6 +1156,19 @@ function canonicalAssetUrl(u) {
   if (!s) return '';
   return s.split('#')[0].split('?')[0];
 }
+// Hash a hosted image's bytes so a later INLINE post of the same picture lands
+// on this asset instead of a second tile (a link post carries no bytes of its
+// own). Best-effort: a slow, huge or unreachable image is left un-hashed rather
+// than blocking the filing.
+async function hashRemoteImage(url) {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > 25e6) return null;
+    return require('crypto').createHash('sha256').update(buf).digest('hex');
+  } catch (e) { return null; }
+}
 // Find this chat's existing asset record by content hash or canonical URL.
 // Equality-only queries merge single-field indexes, so no composite index.
 async function findChatAsset(chat, { hash, url } = {}) {
@@ -1256,6 +1269,15 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       try {
         const acol = admin.firestore().collection('forge-chat-assets');
         if (!assetDoc) assetDoc = await findChatAsset(chatName, { hash: bytesHash, url: finalUrl });
+        if (!assetDoc && !bytesHash) {
+          // A link post the chat hasn't filed before: hash what it points at, so
+          // the same picture arriving inline later converges here.
+          bytesHash = await hashRemoteImage(finalUrl);
+          if (bytesHash) assetDoc = await findChatAsset(chatName, { hash: bytesHash });
+          // Identical bytes are literally the same picture, so keep the copy
+          // already on file rather than adding a second one to the gallery too.
+          if (assetDoc) finalUrl = assetDoc.data().url;
+        }
         if (assetDoc) {
           assetDeduped = true;
           // Converge: a later post may carry the description (or the content
