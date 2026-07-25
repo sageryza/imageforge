@@ -319,6 +319,27 @@ function openProj(p, jumpBeat){
   var head=document.createElement('header');
   head.innerHTML='<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div><h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
+  // The title is tappable — a story can be created with no name at all, so
+  // naming it happens here, whenever she gets that far.
+  var h1=head.querySelector('h1');
+  h1.style.cursor='pointer';
+  h1.title='Tap to name this story';
+  h1.onclick=function(){
+    showModal({ title:'Name this story', okLabel:'Save',
+      fields:[ {key:'title', type:'text', placeholder:'Story title',
+                value:(p.title==='Untitled'? '' : (p.title||''))} ],
+      onOk:function(v, close){
+        var t=(v.title||'').trim();
+        if(!t){ toast('Type a name'); return; }
+        api('/api/story/project',{method:'POST',body:JSON.stringify({id:p.id, title:t})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+            p.title=t; h1.textContent=t; close(); toast('Named');
+          })
+          .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+      }
+    });
+  };
   // Tools: add a beat, dump art, and (when missing) start the prose/voiceover
   var tools=document.createElement('div'); tools.className='newrow';
   var abtn=document.createElement('button'); abtn.className='btn'; abtn.textContent='+ Add beat'; abtn.onclick=function(){ addBeat(p); };
@@ -652,8 +673,10 @@ function moveChooser(p, from){
   var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
   sheet.appendChild(cancel); ov.appendChild(sheet); document.body.appendChild(ov);
 }
-// Any ONE thing starts a story — a title, the prose, a cover, or a voiceover
-// recording. A missing title is derived from the first words of the text.
+// Nothing is required to start a story — every field is optional, so tapping
+// Create with all of them empty opens a fresh "Untitled" story you name later
+// (the title is tappable on the story page). A blank title is derived from the
+// first words of the text when there is any.
 function newStory(){
   showModal({ title:'New story', okLabel:'Create',
     fields:[ {key:'title', type:'text', placeholder:'Story title (optional)'},
@@ -664,11 +687,9 @@ function newStory(){
       var text=(v.text||'').trim();
       var voFile=v.vo&&v.vo[0];
       var title=(v.title||'').trim()
-        || (text? text.split(/\\s+/).slice(0,6).join(' ') : '')
-        || (voFile? 'Story '+new Date().toLocaleDateString() : '');
-      if(!title){ toast('Give it a title, a story, or a recording'); return; }
+        || (text? text.split(/\\s+/).slice(0,6).join(' ') : '');
       function create(cover){
-        api('/api/story/project',{method:'POST',body:JSON.stringify({title:title, cover:cover||undefined, text:text||undefined})})
+        api('/api/story/project',{method:'POST',body:JSON.stringify({title:title||undefined, cover:cover||undefined, text:text||undefined})})
           .then(function(r){return r.json()})
           .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
             close(); toast('Story created');
