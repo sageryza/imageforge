@@ -1294,7 +1294,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     };
     if (style) doc.style = String(style).slice(0, 80);
     const ref = await col.add(doc);
-    res.json({ ok: true, id: ref.id, url: finalUrl });
+    res.json({ ok: true, id: ref.id, url: finalUrl, description, assetDeduped });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
