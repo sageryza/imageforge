@@ -2623,9 +2623,9 @@ function shopShortName(title, handle) {
 // Array order = the order the filter bar shows them in (Sophie's call).
 const SHOP_CATEGORIES = [
   { key: 'kits', name: 'Kits & sets', re: /\bkits?\b|mystery box|starter|apothecary|tea set/i },
-  { key: 'cards', name: 'Cards, decks & journals', re: /tarot|rider-?waite|\bdeck\b|\bcards?\b|journal|book of shadows/i },
+  { key: 'cards', name: 'Cards', re: /tarot|rider-?waite|\bdeck\b|\bcards?\b|journal|book of shadows/i },
   { key: 'altar', name: 'Altar tools', re: /chalice|altar|\bbell\b|cauldron|mortar|pestle|bowl|candle|chest|pendulum|cloth|table|shelf|wand/i },
-  { key: 'crystals', name: 'Crystals & stones', re: /crystal|labradorite|selenite|carnelian|fluorite|mineral|palm stone|advent/i },
+  { key: 'crystals', name: 'Crystals', re: /crystal|labradorite|selenite|carnelian|fluorite|mineral|palm stone|advent/i },
   { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
   { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
 ];
