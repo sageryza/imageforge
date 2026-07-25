@@ -114,9 +114,11 @@
 
   .sunflower{width:100%;max-width:420px;margin:10px auto 0;display:block}
 
-  /* Archive grid */
+  /* Archive grid — tiles hold a fixed 2:3 shape so nothing jumps while
+     images stream in (dream pages are 1024x1536 portrait). */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .grid .page{margin:0}
+  .grid .page{margin:0;aspect-ratio:2/3}
+  .grid .page img{width:100%;height:100%;object-fit:cover}
   .empty{color:var(--textDim);font-size:15px;text-align:center;padding:60px 30px}
 
   /* Zine book */
@@ -605,33 +607,51 @@
   }
 
   // ── Archive ── (lazy: newest dreams appear first, the rest fill in)
+  // The grid is only ever built ONCE per visit; later batches are APPENDED to
+  // the live DOM without touching the tiles already on screen — rebuilding the
+  // whole grid per batch re-decoded every image (dramatic flashing/reshaping).
   async function renderArchive(){
     if(S.archiveLoading && !S.archive.length){ root.innerHTML = `<div class="progress"><div class="spinner"></div><span>Loading…</span></div>`; return; }
     if(!S.archive.length){ root.innerHTML = `<div class="empty">No dreams yet — illustrate one and it'll show up here.</div>`; return; }
     pageRefs = [];
-    let h = `<div class="grid">`;
+    let h = `<div class="grid" id="agrid">`;
     S.archive.forEach(item => { h += pageHtml(item.url, item.dream); });
     h += `</div>`;
-    if(S.archiveLoading) h += `<div class="progress" style="margin-top:12px"><div class="spinner"></div><span>Loading more…</span></div>`;
+    h += `<div class="progress" id="amore" style="margin-top:12px;${S.archiveLoading?'':'display:none'}"><div class="spinner"></div><span>Loading more…</span></div>`;
     root.innerHTML = h;
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>openPopup(pageRefs[el.dataset.page]));
+  }
+  // Append a batch's tiles to the existing grid (no full re-render, no flash).
+  function appendArchive(items){
+    const grid = $('agrid');
+    if(!grid){ render(); return; }          // grid not built yet → first paint
+    const scratch = document.createElement('div');
+    scratch.innerHTML = items.map(it => pageHtml(it.url, it.dream)).join('');
+    [...scratch.children].forEach(el => {
+      el.onclick = () => openPopup(pageRefs[el.dataset.page]);
+      grid.appendChild(el);
+    });
   }
   async function loadArchive(){
     S.archive = []; S.archiveLoading = true; render();
     const list = await api(dreamListPath()); const dreams = (list.ok && list.body.dreams) || [];
     dreams.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
-    // Fetch each dream's pages newest-first and render as they land, so the most
-    // recent dream shows almost immediately instead of waiting for all of them.
-    const built = [];
+    // Fetch each dream's pages newest-first; the first batch paints the grid,
+    // every later batch appends, so nothing already visible ever re-renders.
     for(const s of dreams){
       if(S.view!=='archive'){ S.archiveLoading=false; return; }   // left the tab
       const r = await api('/dream/'+s.id);
-      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => built.push({ url:p.url, dream:d })); }
-      else if(s.poster){ built.push({ url:s.poster, dream:{ title:s.title, id:s.id } }); }
-      S.archive = built.slice();
-      render();
+      const items = [];
+      if(r.ok){ const d=r.body; (d.pages||[]).forEach(p => items.push({ url:p.url, dream:d })); }
+      else if(s.poster){ items.push({ url:s.poster, dream:{ title:s.title, id:s.id } }); }
+      if(!items.length) continue;
+      S.archive.push(...items);
+      if(!$('agrid')) render();             // first tiles → build the grid once
+      else appendArchive(items);
     }
-    S.archiveLoading = false; render();
+    S.archiveLoading = false;
+    const more = $('amore');
+    if(more) more.style.display = 'none'; else render();
   }
 
   // ── Zine (two-page book) ──
