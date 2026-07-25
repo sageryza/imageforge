@@ -136,6 +136,12 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
+- **Label your images (July 2026).** The hook turns the markdown link text of
+  a Firebase image URL in your finished reply into the asset's DESCRIPTION,
+  shown on the Assets tile + lightbox (Sophie reviews with ♥/notes there). So
+  always write meaningful labels — `[Penny — the blue Kleenex](url)`, never
+  `[p01](url)` or a bare URL. Identical images de-dupe server-side by content
+  hash, so posting the picture inline AND the link files ONE asset.
 - **AUTO-FILING (July 2026):** the chats' Stop hook (`post-to-feed.sh` v3) also
   files image deliverables automatically via `POST /api/gallery` — any Firebase
   Storage image URL in the finished reply, plus image files sent with
