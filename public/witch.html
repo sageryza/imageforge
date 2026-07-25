@@ -1443,7 +1443,7 @@
             <span>Cart</span><span class="cbadge" id="cart-badge" style="display:none;">0</span>
           </button>
         </div>
-        <div class="section-sub">Crystals, herbs &amp; ritual goods — buy right here; only the pay screen is Shopify's.</div>
+        <div class="section-sub">Everything a new witch needs to begin — and everything a practiced one comes back for. ✦</div>
         <div id="shop-cats" class="shop-cats"></div>
         <div id="shop-grid" class="shop-grid"></div>
       </section>
@@ -2477,7 +2477,7 @@
       if (!SHOP_ITEMS.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const cats = (d.categories || []).filter(c => SHOP_ITEMS.some(p => p.category === c.key));
       $('shop-cats').innerHTML = cats.length > 1
-        ? [{ key: 'all', name: 'Everything', count: SHOP_ITEMS.length }, ...cats].map(c =>
+        ? [{ key: 'all', name: 'All', count: SHOP_ITEMS.length }, ...cats].map(c =>
             `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}<span class="cc">${c.count}</span></button>`).join('')
         : '';
       renderShopGrid();
