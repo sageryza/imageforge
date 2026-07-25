@@ -3926,11 +3926,36 @@
     e.stopPropagation();
     drawCoinBox(+b.dataset.i);
   }));
-  // The rollover must fire even if the app never reloads (an iPhone web view
-  // can sit open for days): re-check on every return to the app and once a
-  // minute, so the boxes restart on time at midnight.
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { coinDailyRollover(); } catch {} } });
-  setInterval(() => { try { coinDailyRollover(); } catch {} }, 60000);
+  // ── Everything daily DIES at midnight (Sophie's rule) ─────────────────
+  // The reading, the tarot cards + their symbolism, the synchronicity boxes —
+  // all of it is gone at midnight unless it was saved to the Book of Shadows.
+  // Checking the app every day IS the feature; nothing from yesterday may
+  // still be on screen or in the cache. The daily caches are keyed by date so
+  // a fresh load never READS yesterday — this sweep also (1) deletes the
+  // dead date-keyed entries and (2) resets the live page when midnight passes
+  // while the app sits open (an iPhone web view can live for days).
+  let dailySweepDay = todayISO();
+  function dailyMidnightSweep() {
+    const today = todayISO();
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i) || '';
+        if (k.startsWith('witch_daily_') && k.indexOf(today) === -1) localStorage.removeItem(k);
+      }
+    } catch {}
+    if (dailySweepDay === today) return;
+    dailySweepDay = today;
+    // Midnight crossed with the page alive: yesterday's reading and cards
+    // vanish and the Home returns to the fresh "Reveal today's reading" gate.
+    dailyData = null; dailyDeep = null; dailyPicks = null; astroRevealed = false;
+    astroSeq++; astroLoadingKey = null;   // orphan any in-flight yesterday fetch
+    try { renderHome(); } catch {}
+  }
+  dailyMidnightSweep();   // boot: prune yesterday's dead cache entries
+  // The rollovers must fire even if the app never reloads: re-check on every
+  // return to the app and once a minute, so the reset lands ONTIME at midnight.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} } });
+  setInterval(() => { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} }, 60000);
   // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
   { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
