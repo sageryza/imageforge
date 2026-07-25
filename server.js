@@ -2623,7 +2623,20 @@ async function etsyActiveListings() {
   if (!shopId) return null;
   const r = await etsy.getAllListings(shopId, 'active');
   if (!r || !r.ok) return null;
-  const list = (r.results || []).map((l, i) => ({ idx: i, id: l.listing_id, title: l.title, words: new Set(shopWords(l.title)) }));
+  // Order = Sophie's actual Etsy shop arrangement, which lives in
+  // `featured_rank`, NOT the order the API hands listings back (that's by
+  // creation date and put oils first instead of the witchcraft kit). Rank is
+  // 0-based and 0 IS a real position — the top slot — so only -1/null means
+  // "not featured"; those keep the API's own order and sit after the pinned
+  // ones. Etsy has no endpoint for the full shop sort, so featured_rank is the
+  // closest signal to what a visitor sees.
+  const rank = (l) => (typeof l.featured_rank === 'number' && l.featured_rank >= 0
+    ? l.featured_rank : Number.POSITIVE_INFINITY);
+  const ordered = (r.results || [])
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => (rank(a.l) - rank(b.l)) || (a.i - b.i))
+    .map(x => x.l);
+  const list = ordered.map((l, i) => ({ idx: i, id: l.listing_id, title: l.title, words: new Set(shopWords(l.title)) }));
   ETSY_SHOP_LISTINGS = { at: now, list, shopId };
   return list;
 }
