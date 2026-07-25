@@ -2610,6 +2610,34 @@ function shopShortName(title, handle) {
   if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
   return s || title;
 }
+// ─── Shop categories ────────────────────────────────────────────────
+// The store has no usable grouping of its own: `product_type` is empty on
+// every product, the 359 tags are SEO keywords, and the 146 Shopify
+// collections are stale duplicates shared with the other brands. So the Shop
+// tab's categories are derived here from the product name.
+// Matched against the SHORT display name, never the full title — the SEO
+// titles are keyword soup ("…witchcraft cards gift…") and drag products into
+// the wrong bucket. First rule that matches wins, so order matters: 'cards'
+// before 'kits' (an "apothecary reference cards" deck is cards, not a kit),
+// 'kits' before 'crystals' (a "crystal mystery kit" is a kit).
+const SHOP_CATEGORIES = [
+  { key: 'kits', name: 'Kits & sets', re: /\bkits?\b|mystery box|starter|apothecary|tea set/i },
+  { key: 'altar', name: 'Altar tools', re: /chalice|altar|\bbell\b|cauldron|mortar|pestle|bowl|candle|chest|pendulum|cloth|table|shelf|wand/i },
+  { key: 'cards', name: 'Cards, decks & journals', re: /tarot|rider-?waite|\bdeck\b|\bcards?\b|journal|book of shadows/i },
+  { key: 'crystals', name: 'Crystals & stones', re: /crystal|labradorite|selenite|carnelian|fluorite|mineral|palm stone|advent/i },
+  { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
+  { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
+];
+// Evaluation order (differs from display order above).
+const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
+function shopCategory(shortName) {
+  for (const key of SHOP_CAT_ORDER) {
+    const c = SHOP_CATEGORIES.find(x => x.key === key);
+    if (c && c.re.test(shortName || '')) return c.key;
+  }
+  return 'altar'; // ritual objects are the catch-all
+}
+
 let ETSY_SHOP_LISTINGS = { at: 0, list: null, shopId: null };
 async function etsyActiveListings() {
   const now = Date.now();
@@ -2677,8 +2705,10 @@ app.get('/api/witch/shop', async (req, res) => {
       };
     });
 
-    // Cross-reference Etsy: keep only products that match an active Etsy
-    // listing, order them the way Etsy lists them, and use a clean short name.
+    // Cross-reference Etsy for ORDER and clean short names. The whole catalog
+    // is shown (Sophie, 2026-07: the tab used to hide the ~half of the store
+    // with no Etsy twin) — Etsy-matched items lead, in Etsy's featured order,
+    // and everything else follows in the store's own order.
     let dbg = null;
     try {
       const listings = await etsyActiveListings();
@@ -2723,12 +2753,13 @@ app.get('/api/witch/shop', async (req, res) => {
           if (s.pinned && byEtsy.get(s.best.id) !== s) byEtsy.set(s.best.id, s);
         }
         const kept = [...byEtsy.values()].sort((a, b) => a.best.idx - b.best.idx);
-        products = kept.map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
+        const keptIds = new Set(kept.map(s => s.p.id));
+        const rest = scored.filter(s => !keptIds.has(s.p.id)); // no Etsy twin — still sold here
+        products = [...kept, ...rest].map(s => ({ ...s.p, title: shopShortName(s.p.title, s.p.handle), fullTitle: s.p.title }));
         if (debug) dbg = {
-          etsyCount: listings.length, shopifyCount: scored.length, kept: kept.length,
+          etsyCount: listings.length, shopifyCount: scored.length, etsyMatched: kept.length, unmatchedShown: rest.length,
           matches: kept.map(s => ({ name: shopShortName(s.p.title, s.p.handle), etsy: s.best.title, score: s.bestScore, handle: s.p.handle })),
           unmatchedEtsy: listings.filter(l => !byEtsy.has(l.id)).map(l => l.title),
-          dropped: scored.filter(s => !s.best || s.bestScore < 2).map(s => s.p.title),
         };
       } else {
         // Etsy unavailable — fall back to short names on the Shopify set.
@@ -2740,7 +2771,14 @@ app.get('/api/witch/shop', async (req, res) => {
       if (debug) dbg = { error: e.message };
     }
 
-    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, products };
+    // Tag each product with its category, and report only the categories that
+    // actually have stock so the filter bar never shows an empty tab.
+    products = products.map(p => ({ ...p, category: shopCategory(p.title) }));
+    const used = new Set(products.map(p => p.category));
+    const categories = SHOP_CATEGORIES.filter(c => used.has(c.key))
+      .map(c => ({ key: c.key, name: c.name, count: products.filter(p => p.category === c.key).length }));
+
+    const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, categories, products };
     if (debug) return res.json({ ...out, debug: dbg });
     SHOP_CACHE = { at: now, data: out };
     res.json(out);

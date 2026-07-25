@@ -588,6 +588,13 @@
     .shop-item .stitle { font-family: var(--serif); font-size: 15.5px; font-weight: 500; line-height: 1.2; }
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+    /* Category filter bar — horizontally scrollable, no pills (6px corners) */
+    .shop-cats { display: flex; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 12px; scrollbar-width: none; }
+    .shop-cats::-webkit-scrollbar { display: none; }
+    .shop-cat { flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-family: inherit; font-size: 12.5px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+    .shop-cat.on { border-color: var(--gold); color: var(--gold); }
+    .shop-cat .cc { color: var(--text-faint); font-size: 11px; margin-left: 4px; }
+    .shop-cat.on .cc { color: var(--gold-dim); }
     /* In-app buying: cart button, product sheet, cart sheet */
     .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .cart-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
@@ -1437,8 +1444,8 @@
           </button>
         </div>
         <div class="section-sub">Crystals, herbs &amp; ritual goods — buy right here; only the pay screen is Shopify's.</div>
+        <div id="shop-cats" class="shop-cats"></div>
         <div id="shop-grid" class="shop-grid"></div>
-        <a class="btn-ghost" id="shop-all" href="https://cod-god-inc.myshopify.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
       </section>
     </main>
 
@@ -1555,7 +1562,6 @@
     // website (Stripe checkout). Placeholder = the site root for now.
     subscribe: 'https://secretlyawitch.com',
   };
-  document.getElementById('shop-all').href = LINKS.shop;
 
   // ── Membership entitlement (paywall) ──────────────────────────────
   // Paid features call isPaid(). Source of truth = the account's Stripe
@@ -2456,43 +2462,65 @@
   }
 
   /* ══════════ SHOP ══════════ */
+  // The whole catalog lives here now, so it's browsed by category rather than
+  // scrolled as one long shelf. Categories come from the server (only ones
+  // with stock), and filtering is client-side — every product is already
+  // loaded, so switching is instant.
+  let SHOP_ITEMS = [], SHOP_CAT = 'all';
   async function loadShop() {
     const wrap = $('shop-grid');
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Gathering the shelves…</div>`;
     try {
       const d = await apiGet('/api/witch/shop');
-      const items = (d.products || []).filter(p => p.image);
-      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
-      const shortTitle = t => {
-        const cut = t.split(/\s*[~•|]\s*/)[0].trim();
-        return cut.length >= 4 ? cut : t;
-      };
-      wrap.innerHTML = items.map(p => {
-        // Variant prices span a real range on the kits (a just-the-cards
-        // option sits far below the kit itself), so a bare number reads as
-        // the product's price. Say "from" whenever the range isn't flat.
-        const lo = p.priceMin || p.price;
-        const ranged = p.priceMin && p.priceMax && parseFloat(p.priceMax) > parseFloat(p.priceMin);
-        const price = lo ? `${ranged ? 'from ' : ''}$${lo}` : '';
-        const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
-        // In-app buying: tap opens the product sheet. The href stays as a
-        // long-press/no-JS fallback to the store's product page.
-        return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
-          ${img}
-          <div class="sbody">
-            <div class="stitle">${esc(shortTitle(p.title))}</div>
-            ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
-            ${p.available ? '' : '<div class="soos">Sold out</div>'}
-          </div>
-        </a>`;
-      }).join('');
+      SHOP_ITEMS = (d.products || []).filter(p => p.image);
+      if (!SHOP_ITEMS.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
+      const cats = (d.categories || []).filter(c => SHOP_ITEMS.some(p => p.category === c.key));
+      $('shop-cats').innerHTML = cats.length > 1
+        ? [{ key: 'all', name: 'Everything', count: SHOP_ITEMS.length }, ...cats].map(c =>
+            `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}<span class="cc">${c.count}</span></button>`).join('')
+        : '';
+      renderShopGrid();
       wrap.dataset.loaded = '1';
       refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
   }
+  function renderShopGrid() {
+    const wrap = $('shop-grid');
+    const shortTitle = t => {
+      const cut = t.split(/\s*[~•|]\s*/)[0].trim();
+      return cut.length >= 4 ? cut : t;
+    };
+    const items = SHOP_CAT === 'all' ? SHOP_ITEMS : SHOP_ITEMS.filter(p => p.category === SHOP_CAT);
+    wrap.innerHTML = items.map(p => {
+      // Variant prices span a real range on the kits (a just-the-cards
+      // option sits far below the kit itself), so a bare number reads as
+      // the product's price. Say "from" whenever the range isn't flat.
+      const lo = p.priceMin || p.price;
+      const ranged = p.priceMin && p.priceMax && parseFloat(p.priceMax) > parseFloat(p.priceMin);
+      const price = lo ? `${ranged ? 'from ' : ''}$${lo}` : '';
+      const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
+      // In-app buying: tap opens the product sheet. The href stays as a
+      // long-press/no-JS fallback to the store's product page.
+      return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
+        ${img}
+        <div class="sbody">
+          <div class="stitle">${esc(shortTitle(p.title))}</div>
+          ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
+          ${p.available ? '' : '<div class="soos">Sold out</div>'}
+        </div>
+      </a>`;
+    }).join('');
+  }
+  $('shop-cats').addEventListener('click', (e) => {
+    const btn = e.target.closest('.shop-cat'); if (!btn) return;
+    SHOP_CAT = btn.dataset.cat;
+    document.querySelectorAll('.shop-cat').forEach(b => b.classList.toggle('on', b.dataset.cat === SHOP_CAT));
+    renderShopGrid();
+    $('shop-cats').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
 
   /* ── In-app buying: product sheet + cart (Storefront API via the server) ──
      Browsing, variants and the cart all live INSIDE the app; only the final
