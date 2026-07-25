@@ -52,8 +52,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .renamebtn:active{color:var(--ink);}
 .nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
 .assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
-.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer;}
+.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer; display:flex; flex-direction:column;}
 .assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
+.assetgrid .lbl{font-size:11px; line-height:1.3; color:var(--muted,#888); margin-top:3px; text-align:left; word-break:break-word;}
 .assetgrid .acell{position:relative;}
 .vote{width:29px; height:29px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
   background:rgba(250,247,240,.9); color:#8a8377; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0; flex:none;}
@@ -75,8 +76,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
 .lbnote .notesend.saved{background:#5d7a5a; color:#fff;}
-#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px;}
-#clightbox img{max-width:100%; max-height:92vh; border-radius:6px;}
+#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
+#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
+#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
@@ -786,12 +788,15 @@ function openChat(name, keepScroll, focusId, noFetch){
         a.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
+          // What the image IS, when the chat filed one — else the generic "from <chat>"
+          var cap=it.description||it.prompt||'';
+          var lbl=cap?'<div class="lbl">'+esc(cap)+'</div>':'';
           // Prefer the direct storage thumb (CDN, no server hop); if it isn't
           // generated yet it 404s and we fall back to /api/story/thumb, which
           // makes it on demand. IntersectionObserver sets src from data-src.
           var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
           var srcAttr = io ? 'data-src' : 'src';
-          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">';
+          b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl;
           var img=b.querySelector('img'), triedFb=false;
           // Two-stage error: direct thumb → /api/story/thumb → if BOTH fail the
           // underlying image is gone (deleted / not public), so hide the tile
@@ -1003,6 +1008,8 @@ function lightbox(url, asset){
     (frame||lb).appendChild(row);
     lb.appendChild(nw);   // note box below the image, not over it
   }
+  var cap=asset?(asset.description||asset.prompt||''):'';
+  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }

@@ -853,7 +853,9 @@ function openChat(name, keepScroll, focusId, noFetch){
         a.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
-          var lbl=it.prompt?'<div class="lbl">'+esc(it.prompt)+'</div>':'';
+          // What the image IS, when the chat filed one — else the generic "from <chat>"
+          var cap=it.description||it.prompt||'';
+          var lbl=cap?'<div class="lbl">'+esc(cap)+'</div>':'';
           // Prefer the direct storage thumb (CDN, no server hop); if it isn't
           // generated yet it 404s and we fall back to /api/story/thumb, which
           // makes it on demand. IntersectionObserver sets src from data-src.
@@ -868,7 +870,7 @@ function openChat(name, keepScroll, focusId, noFetch){
             if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
             it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
           };
-          b.onclick=function(){ lightbox(it.url, it.prompt, it); };
+          b.onclick=function(){ lightbox(it.url, cap, it); };
           cell.appendChild(b); voteBtns(cell,it);
           if(io) io.observe(img);
           var badge=document.createElement('div'); badge.className='donebadge'; badge.innerHTML=CHECK;
