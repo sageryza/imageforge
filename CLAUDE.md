@@ -790,6 +790,10 @@ lifted into a standalone tool later.
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.
+- **LABEL every image you deliver.** An image link's markdown text becomes its
+  Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
+  label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
+  or a bare URL. Applies to every image in a finished reply.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **Everything slow is a background job — never make anyone watch a spinner.**
