@@ -2463,7 +2463,7 @@ Write the reading now.`;
     // 'astro' = the short teaser (headline/reading/omens) on the Today page;
     // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
     // 'tarot' = the 3-card reading. Astrology parts run on gpt-4o at a HIGH
-    // temperature (1.2) — Sophie's pick, to make the readings get really weird;
+    // temperature (1.3) — Sophie's pick, to make the readings get really weird;
     // tarot stays on Claude Opus.
     if (part) {
       const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
@@ -2514,7 +2514,7 @@ They have NOT entered birth details, so nothing here is natal: read TODAY's real
 ${astroContext}
 
 Write the deeper page now.`;
-        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
         if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
         let deep;
@@ -2541,7 +2541,7 @@ Write the deeper page now.`;
     // the weirdness stays parseable. Tarot stays on Claude Opus. The two never
     // see each other's context.
     const [aData, tData] = await Promise.all([
-      openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+      openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);
