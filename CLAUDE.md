@@ -136,6 +136,12 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
+- **Label your images (July 2026).** The hook turns the markdown link text of
+  a Firebase image URL in your finished reply into the asset's DESCRIPTION,
+  shown on the Assets tile + lightbox (Sophie reviews with ♥/notes there). So
+  always write meaningful labels — `[Penny — the blue Kleenex](url)`, never
+  `[p01](url)` or a bare URL. Identical images de-dupe server-side by content
+  hash, so posting the picture inline AND the link files ONE asset.
 - **AUTO-FILING (July 2026):** the chats' Stop hook (`post-to-feed.sh` v3) also
   files image deliverables automatically via `POST /api/gallery` — any Firebase
   Storage image URL in the finished reply, plus image files sent with
@@ -784,6 +790,10 @@ lifted into a standalone tool later.
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.
+- **LABEL every image you deliver.** An image link's markdown text becomes its
+  Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
+  label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
+  or a bare URL. Applies to every image in a finished reply.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **Everything slow is a background job — never make anyone watch a spinner.**
@@ -928,6 +938,59 @@ lifted into a standalone tool later.
   extraction), `YOUTUBE_API_KEY` (required for channel discovery + metadata —
   transcript scraping needs no key), plus the usual Firebase creds. Without
   Firebase the pipeline still runs but nothing persists (in-memory only).
+
+## Episode Editor (transcript spans → snippet cards → finished audio)
+- `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
+  interview transcript as **snippet cards**, arranges them (with **narration**
+  and **gap** cards) into an episode, taps **Render**, and gets the finished
+  audio. The cloud version of the hand-run supercut
+  (`scripts/nde-supercut-precise.py`), so no computer is in the loop.
+- **The cutting logic is a faithful port of that Python** and the reason the cuts
+  sound edited rather than sliced: `phraseSpan` locates the snippet text in the
+  REAL AUDIO's word timestamps via a contiguous best-match slide (a repeated word
+  later in the window can't stretch the cut); `clampBounds` pads **gap-aware** —
+  never past the midpoint of the silence to the neighbouring word, which used to
+  swallow the next word's first syllable; `detectSilences`+`snapToSilence` move
+  both cut points into REAL silences (forward-only at the end, hard-capped at the
+  next word so snapping can't add words); then micro-fades + `loudnorm I=-16`.
+  difflib's `SequenceMatcher(autojunk=False)` is ported too, so the JS picks the
+  same spans the validated Python cuts did.
+- **Word timestamps: cached alignment first, Whisper as the fallback.** The
+  drift-repaired forced-alignment caches live in Storage at
+  `nde-align-cache/<videoId>_<winStart>.json` as
+  `{videoId, winStart, winDur, words}` — publish/refresh them with
+  `node scripts/upload-align-cache.js ~/align-cache:80 ~/align-cache-150:150`
+  (139 windows uploaded July 2026). A render picks the cached window that covers
+  the snippet's anchor; with no covering window (or if the phrase isn't really in
+  it) it listens to a fresh window with OpenAI `whisper-1` word timestamps. Each
+  render's `notes[]` records which path every clip took.
+- **Data:** Firestore `forge-editor`, one doc per episode —
+  `{ id, title, sources:[{videoId, experiencer, timeSec, audioUrl}],
+  snippets:[{id, name, videoId, text, timeSec}], sequence:[{type:'clip'|
+  'narration'|'gap', snippetId?, text?, dur?}], renders:[{url, at, seconds,
+  cards, notes}] (capped 10), job }`. `snippet.timeSec` is the picked span's
+  absolute position in the interview — that anchor is what selects the alignment
+  window, so it matters. Transcripts are NOT copied into the doc: `GET /:id`
+  reads `forge-nde-videos` server-side and returns a word-tokenized ±150s window
+  per source (~150KB for 12 sources) so the phone stays light.
+- **Routes:** `GET /status`, `GET /` (list), `POST /` `{title, sources}`,
+  `GET /:id` (doc + transcript windows), `PUT /:id` `{title?, sources?,
+  snippets?, sequence?}`, `POST /:id/render`, `GET /:id/job`, `DELETE /:id`.
+  Same `STUDIO_TOKEN` gate as the pipeline (only `GET /status` open).
+- **Render = background job on the doc** (movies.js pattern): the POST returns
+  immediately, the page polls `GET /:id/job`, records the pending render in
+  `localStorage` and RESUMES polling on return — leaving the page never loses it.
+  Each UNIQUE snippet is cut once no matter how many times it appears in the
+  sequence. Narration = ElevenLabs voice `UTkHGl2ImiT6gwtAFCql`, model
+  `eleven_v3`, text prefixed `[quietly] `, then `atempo=1.12` + loudnorm.
+  `ELEVENLABS_API_KEY` is in config-loader `MANAGED_KEYS` (Render env or
+  `config/pipeline`) — **without it narration cards FAIL the render with a clear
+  job error, they are never silently skipped**. Output: one 44.1k mono mp3 at
+  `nde-episodes/editor/<id>-<n>.mp3`.
+- **Seed:** `node scripts/seed-editor-proof.js [--base <url>] [--replace]`
+  rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
+  snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
+  order with its narration fills. 23 cards.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
