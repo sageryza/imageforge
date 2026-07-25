@@ -2620,15 +2620,17 @@ function shopShortName(title, handle) {
 // the wrong bucket. First rule that matches wins, so order matters: 'cards'
 // before 'kits' (an "apothecary reference cards" deck is cards, not a kit),
 // 'kits' before 'crystals' (a "crystal mystery kit" is a kit).
+// Array order = the order the filter bar shows them in (Sophie's call).
 const SHOP_CATEGORIES = [
   { key: 'kits', name: 'Kits & sets', re: /\bkits?\b|mystery box|starter|apothecary|tea set/i },
-  { key: 'altar', name: 'Altar tools', re: /chalice|altar|\bbell\b|cauldron|mortar|pestle|bowl|candle|chest|pendulum|cloth|table|shelf|wand/i },
   { key: 'cards', name: 'Cards, decks & journals', re: /tarot|rider-?waite|\bdeck\b|\bcards?\b|journal|book of shadows/i },
+  { key: 'altar', name: 'Altar tools', re: /chalice|altar|\bbell\b|cauldron|mortar|pestle|bowl|candle|chest|pendulum|cloth|table|shelf|wand/i },
   { key: 'crystals', name: 'Crystals & stones', re: /crystal|labradorite|selenite|carnelian|fluorite|mineral|palm stone|advent/i },
   { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
   { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
 ];
-// Evaluation order (differs from display order above).
+// Evaluation order — deliberately NOT the display order above. Changing how
+// the bar reads must never change which bucket a product lands in.
 const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
 function shopCategory(shortName) {
   for (const key of SHOP_CAT_ORDER) {
