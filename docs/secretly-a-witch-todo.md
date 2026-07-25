@@ -5,6 +5,52 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Weave products into every Witch School lesson (proposed placements — Sophie to approve)
+Sophie (2026-07-25): at least one shop product per lesson, placed where it
+naturally belongs. The mechanism already exists — any lesson card can carry
+`cta: { label, product: '<handle>' }` and the button opens the in-app product
+sheet over the lesson (shipped with the apothecary lesson). Proposed map
+(handle → card placement); Sophie checks this list, then a chat wires the
+approved ones in:
+- **Spell Work** → `spell-candles-set-of-8-witch-candles-57208` ($4.10) on the
+  candle-magic card; alt `book-of-shadows-spellbook-85984`.
+- **The Magic of Plants** → `witchy-tea-sampler-tea-box-magical-99976` ($149)
+  on pm-10 ("brew one cup of tea slowly — that's a potion"); alt
+  `witchy-essential-43160` oils on pm-07 (rose & chamomile).
+- **Plant Magic II** → `apothecary-reference-cards-herbal-index-57375` ($20) on
+  pa-02 (doctrine of signatures — "read plants like letters").
+- **Astrology Basics** → `moon-phase-necklace-witchcraft-necklace-60993` ($15)
+  on the moon card (as-05).
+- **Dream Work** → `lunar-moth-notebook-book-of-shadows-84709` ($32) as the
+  dream journal on the record-your-dreams card. (Swap to the Mugwort Dream Tea
+  product when it exists — earlier roadmap note.)
+- **Protection & Cleansing** → `black-salt-witchcraft-protection-17337` ($17)
+  on the salt/boundary card; alt `token-of-protection-witchcraft-talisman-39649`.
+- **Tarot 101** → `tarot-deck-rider-waite-deck-magician-22821` ($12.50) on the
+  get-your-first-deck card.
+- **Reading Signs** → `magic-of-flower-cards-oracle-deck-33100` ($20) on the
+  everyday-oracles card.
+- **Divination 101** → `pendulum-board-wooden-engraved-witchcraft-15161`
+  ($7.90) on the pendulum card.
+- **Crystals** → `crystals-mystery-box-gemstone-blind-box-84247` ($28) on the
+  start-your-collection card.
+- **Crystal Energy** → `fluorite-wand-point-crystal-mineral-86535` ($17.90) on
+  the points/wands card; alt `selenite-moon-crescent-intuitive-47981`.
+- **The Traveling Witch** → `travel-witchcraft-kit-travel-altar-kit-39959`
+  ($85) on the pack-your-kit card; mention
+  `pocket-witchcraft-kit-mini-wiccan-altar-82599` ($12.99) as the light option.
+- **Building an Altar** → `triple-moon-altar-table-6` ($26) or
+  `triple-moon-pentagram-altar-cloth` ($5.95) on the surface/foundation card.
+- **Shadow Work** → `self-love-witchcraft-33995` ($56) on the
+  kindness-is-the-container card (sh-09) — gentle fit, not salesy.
+- **The Wheel of the Year** → `triple-moon-cast-iron-chime-candle-holder`
+  ($5.95) + the spell candles on the sabbat-candle card.
+- **The Witch's Apothecary** → DONE (wooden mortar & pestle on ap-08, the
+  apothecary box on ap-09).
+Rules when wiring: one button per lesson (max two where noted), always on the
+card whose content earns it, label speaks like the lesson ("The wooden mortar
+& pestle"), never a bare "Buy now".
+
 ### Dream Currents — cross-user symbol matching (dreams × synchronicities) (SPEC — approved to build)
 Sophie's idea (2026-07-24): broadcast that synchronicity is real — "you dreamed
 about a kitten today? So did 5 other people. Small animals are on the rise."
