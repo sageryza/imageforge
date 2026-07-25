@@ -35,6 +35,10 @@ const MANAGED_KEYS = [
   'SHOPIFY_STORE', 'SHOPIFY_ADMIN_TOKEN', 'SHOPIFY_API_VERSION',
   'SHOPIFY_CLIENT_ID', 'SHOPIFY_CLIENT_SECRET',
   'OPENAI_API_KEY', 'REPLICATE_API_TOKEN', 'ANTHROPIC_API_KEY',
+  // ElevenLabs — Sophie's cloned/narration voices (Episode Editor narration
+  // cards, video voiceovers). Without it narration cards fail the render with
+  // a clear job error rather than silently dropping out of the episode.
+  'ELEVENLABS_API_KEY',
   'BREVO_API_KEY', 'BREVO_FROM_EMAIL', 'BREVO_FROM_NAME',
   'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REDIRECT_URI',
   'YOUTUBE_API_KEY',

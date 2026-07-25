@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Episode Editor</title>
+<style>
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --bad:#B4462F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:64px}
+  header{position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:12px 14px; display:flex; align-items:center; gap:10px}
+  header h1{font-size:17px; margin:0; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .wrap{padding:14px; max-width:720px; margin:0 auto}
+  svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; display:block}
+  button{font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line);
+    border-radius:6px; padding:9px 12px; cursor:pointer}
+  button:active{background:#F1ECE2}
+  button.gold{background:var(--gold); border-color:var(--goldline); font-weight:600}
+  button.ghost{background:transparent}
+  button.icon{width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center}
+  button[disabled]{opacity:.45}
+  h2.sec{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--soft);
+    margin:24px 0 8px; font-weight:600}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:8px}
+  .row{display:flex; gap:8px; align-items:center}
+  .grow{flex:1; min-width:0}
+  .muted{color:var(--soft); font-size:13px}
+  .tiny{font-size:12px; color:var(--soft)}
+  .clip{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  input[type=text],textarea{font:inherit; width:100%; background:var(--card); color:var(--ink);
+    border:1px solid var(--line); border-radius:6px; padding:9px 10px}
+  textarea{min-height:74px; resize:vertical}
+  /* transcript picker */
+  .srcbar{display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px}
+  .srcbar button{white-space:nowrap; font-size:13px; padding:6px 10px}
+  .srcbar button.on{background:var(--gold); border-color:var(--goldline); font-weight:600}
+  .script{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px;
+    max-height:46vh; overflow-y:auto; line-height:2}
+  .w{padding:1px 1px; border-radius:3px; cursor:pointer}
+  .w.a{background:var(--gold); font-weight:600}
+  .w.in{background:#F6E3BE}
+  .pickbar{position:sticky; bottom:0; background:var(--paper); border-top:1px solid var(--line);
+    padding:10px 0 4px; margin-top:8px}
+  /* sequence */
+  .seq{border-left:3px solid var(--line); padding-left:8px}
+  .seq .card{margin-bottom:6px}
+  .kind{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--soft); font-weight:600}
+  .kind.clipk{color:var(--goldline)}
+  .chip{display:inline-block; border:1px solid var(--line); border-radius:6px; padding:1px 7px;
+    font-size:12px; color:var(--soft)}
+  .status{border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:var(--card); margin-top:8px}
+  .status.err{border-color:var(--bad); color:var(--bad)}
+  audio{width:100%; margin-top:8px}
+  .modal{position:fixed; inset:0; background:rgba(35,32,27,.42); z-index:50; display:flex;
+    align-items:flex-end; justify-content:center}
+  .sheet{background:var(--paper); border-top:1px solid var(--line); border-radius:6px 6px 0 0;
+    width:100%; max-width:720px; max-height:80vh; overflow-y:auto; padding:14px}
+  .empty{color:var(--soft); font-size:14px; padding:10px 0}
+  .saving{font-size:12px; color:var(--soft)}
+</style>
+</head>
+<body>
+<header>
+  <button class="icon ghost" id="back" hidden aria-label="Back">
+    <svg viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+  </button>
+  <h1 id="pageTitle">Episode Editor</h1>
+  <span class="saving" id="saveFlag"></span>
+</header>
+
+<div class="wrap">
+  <!-- ── episode list ────────────────────────────────────────────── -->
+  <section id="listView">
+    <div id="episodes"></div>
+    <button class="gold" id="newEp" style="margin-top:10px">
+      <span class="row" style="gap:6px"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New episode</span>
+    </button>
+  </section>
+
+  <!-- ── one episode ─────────────────────────────────────────────── -->
+  <section id="epView" hidden>
+    <h2 class="sec">Transcript</h2>
+    <div class="srcbar" id="srcbar"></div>
+    <div class="script" id="script"></div>
+    <div class="pickbar" id="pickbar"></div>
+
+    <h2 class="sec">Snippets</h2>
+    <div id="snips"></div>
+
+    <h2 class="sec">Arrangement</h2>
+    <div class="seq" id="seq"></div>
+    <div class="row" style="flex-wrap:wrap; margin-top:8px">
+      <button id="addClip"><span class="row" style="gap:6px"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg> Snippet</span></button>
+      <button id="addNar"><span class="row" style="gap:6px"><svg viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg> Narration</span></button>
+      <button id="addGap"><span class="row" style="gap:6px"><svg viewBox="0 0 24 24"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg> Gap</span></button>
+    </div>
+
+    <h2 class="sec">Render</h2>
+    <button class="gold" id="renderBtn">
+      <span class="row" style="gap:6px"><svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg> Render episode</span>
+    </button>
+    <div id="jobBox"></div>
+    <div id="renders" style="margin-top:12px"></div>
+  </section>
+</div>
+
+<script>
+const TOKEN = '__STUDIO_TOKEN__';
+const H = { 'content-type': 'application/json' };
+if (TOKEN && TOKEN[0] !== '_') H['x-studio-token'] = TOKEN;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ICON = {
+  up:'<svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>',
+  down:'<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+  x:'<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  pencil:'<svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
+  trash:'<svg viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+};
+
+async function api(path, opts = {}) {
+  const res = await fetch('/api/editor' + path, { headers: H, ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
+let ep = null;          // the open episode
+let transcripts = [];   // one window per source
+let srcIdx = 0;
+let anchor = null, focus = null;  // word selection in the current transcript
+let pollTimer = null;
+
+// ── episode list ───────────────────────────────────────────────────
+async function showList() {
+  ep = null;
+  clearInterval(pollTimer); pollTimer = null;
+  $('#epView').hidden = true; $('#listView').hidden = false;
+  $('#back').hidden = true; $('#pageTitle').textContent = 'Episode Editor';
+  const { episodes } = await api('/');
+  $('#episodes').innerHTML = episodes.length ? episodes.map(e => `
+    <div class="card" data-open="${esc(e.id)}">
+      <div class="row">
+        <div class="grow">
+          <div style="font-weight:600">${esc(e.title)}</div>
+          <div class="tiny">${e.sources} source${e.sources === 1 ? '' : 's'} · ${e.snippets} snippet${e.snippets === 1 ? '' : 's'} · ${e.sequence} card${e.sequence === 1 ? '' : 's'}${e.job && e.job.status === 'running' ? ' · rendering…' : ''}</div>
+        </div>
+        <button class="icon ghost" data-del="${esc(e.id)}" aria-label="Delete">${ICON.trash}</button>
+      </div>
+    </div>`).join('') : '<div class="empty">No episodes yet.</div>';
+}
+
+$('#episodes').addEventListener('click', async e => {
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    if (!confirm('Delete this episode?')) return;
+    await api('/' + del.dataset.del, { method: 'DELETE' });
+    return showList();
+  }
+  const open = e.target.closest('[data-open]');
+  if (open) openEpisode(open.dataset.open);
+});
+
+$('#newEp').onclick = async () => {
+  const title = prompt('Episode title');
+  if (!title) return;
+  const { episode } = await api('/', { method: 'POST', body: JSON.stringify({ title, sources: [] }) });
+  openEpisode(episode.id);
+};
+
+$('#back').onclick = showList;
+
+// ── open one episode ───────────────────────────────────────────────
+async function openEpisode(id) {
+  const data = await api('/' + id);
+  ep = data.episode; transcripts = data.transcripts || []; srcIdx = 0;
+  anchor = focus = null;
+  $('#listView').hidden = true; $('#epView').hidden = false; $('#back').hidden = false;
+  $('#pageTitle').textContent = ep.title;
+  renderAll();
+  const pending = localStorage.getItem('editor_pending_' + ep.id);
+  if (pending || (ep.job && ep.job.status === 'running')) startPolling();
+}
+
+$('#pageTitle').onclick = async () => {
+  if (!ep) return;
+  const t = prompt('Episode title', ep.title);
+  if (!t || t === ep.title) return;
+  ep.title = t; $('#pageTitle').textContent = t; await save({ title: t });
+};
+
+function renderAll() { renderSources(); renderScript(); renderSnips(); renderSeq(); renderRenders(); renderJob(); }
+
+// ── save (PUT the parts that changed) ──────────────────────────────
+async function save(patch) {
+  $('#saveFlag').textContent = 'saving…';
+  try {
+    const body = patch || { snippets: ep.snippets, sequence: ep.sequence };
+    const { episode } = await api('/' + ep.id, { method: 'PUT', body: JSON.stringify(body) });
+    ep = episode;
+    $('#saveFlag').textContent = 'saved';
+    setTimeout(() => { if ($('#saveFlag').textContent === 'saved') $('#saveFlag').textContent = ''; }, 1400);
+  } catch (err) {
+    $('#saveFlag').textContent = 'save failed';
+    alert('Save failed: ' + err.message);
+  }
+}
+
+// ── 1. transcript picker ───────────────────────────────────────────
+function renderSources() {
+  $('#srcbar').innerHTML = transcripts.length
+    ? transcripts.map((t, i) => `<button data-src="${i}" class="${i === srcIdx ? 'on' : ''}">${esc(t.experiencer || t.videoId)}</button>`).join('')
+    : '<span class="empty">This episode has no sources yet.</span>';
+}
+$('#srcbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-src]');
+  if (!b) return;
+  srcIdx = +b.dataset.src; anchor = focus = null;
+  renderSources(); renderScript();
+});
+
+function renderScript() {
+  const t = transcripts[srcIdx];
+  if (!t) { $('#script').innerHTML = '<div class="empty">No transcript.</div>'; $('#pickbar').innerHTML = ''; return; }
+  if (!t.words.length) { $('#script').innerHTML = '<div class="empty">No transcript stored for ' + esc(t.videoId) + '.</div>'; $('#pickbar').innerHTML = ''; return; }
+  const lo = anchor == null ? -1 : Math.min(anchor, focus == null ? anchor : focus);
+  const hi = anchor == null ? -2 : Math.max(anchor, focus == null ? anchor : focus);
+  $('#script').innerHTML = t.words.map((w, i) => {
+    const cls = (i === anchor || i === focus) ? 'w a' : (i > lo && i < hi ? 'w in' : 'w');
+    return `<span class="${cls}" data-i="${i}">${esc(w)}</span>`;
+  }).join(' ');
+  renderPickbar();
+}
+
+function renderPickbar() {
+  if (anchor == null) {
+    $('#pickbar').innerHTML = '<div class="tiny">Tap the first word, then the last word of the bit you want.</div>';
+    return;
+  }
+  if (focus == null) {
+    $('#pickbar').innerHTML = '<div class="row"><div class="tiny grow">Now tap the LAST word.</div><button id="clearSel">Clear</button></div>';
+  } else {
+    const [a, b] = [Math.min(anchor, focus), Math.max(anchor, focus)];
+    const t = transcripts[srcIdx];
+    $('#pickbar').innerHTML = `
+      <div class="tiny clip" style="margin-bottom:6px">${b - a + 1} words · ${esc(t.words.slice(a, b + 1).join(' ').slice(0, 90))}…</div>
+      <div class="row"><input type="text" id="snipName" placeholder="Name this snippet"><button class="gold" id="saveSnip">Save</button><button id="clearSel">Clear</button></div>`;
+  }
+}
+
+$('#script').addEventListener('click', e => {
+  const w = e.target.closest('.w');
+  if (!w) return;
+  const i = +w.dataset.i;
+  if (anchor == null || focus != null) { anchor = i; focus = null; }
+  else { focus = i; }
+  renderScript();
+});
+
+$('#pickbar').addEventListener('click', async e => {
+  if (e.target.closest('#clearSel')) { anchor = focus = null; return renderScript(); }
+  if (!e.target.closest('#saveSnip')) return;
+  const t = transcripts[srcIdx];
+  const [a, b] = [Math.min(anchor, focus), Math.max(anchor, focus)];
+  const name = ($('#snipName').value || '').trim() || (t.experiencer + ' — ' + t.words[a]);
+  ep.snippets.push({
+    id: 'sn' + Math.random().toString(16).slice(2, 10),
+    name, videoId: t.videoId,
+    text: t.words.slice(a, b + 1).join(' '),
+    timeSec: t.times[a],
+  });
+  anchor = focus = null;
+  renderScript(); renderSnips();
+  await save();
+});
+
+// ── 2. snippet library ─────────────────────────────────────────────
+function renderSnips() {
+  $('#snips').innerHTML = ep.snippets.length ? ep.snippets.map(s => `
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <div style="font-weight:600">${esc(s.name)}</div>
+          <div class="tiny clip">${esc(s.text.slice(0, 80))}</div>
+        </div>
+        <button class="icon ghost" data-add="${esc(s.id)}" aria-label="Add to arrangement">${ICON.plus}</button>
+        <button class="icon ghost" data-ren="${esc(s.id)}" aria-label="Rename">${ICON.pencil}</button>
+        <button class="icon ghost" data-dels="${esc(s.id)}" aria-label="Delete">${ICON.trash}</button>
+      </div>
+    </div>`).join('') : '<div class="empty">Pick a span above to make your first snippet.</div>';
+}
+
+$('#snips').addEventListener('click', async e => {
+  const add = e.target.closest('[data-add]');
+  if (add) { ep.sequence.push({ type: 'clip', snippetId: add.dataset.add }); renderSeq(); return save(); }
+  const ren = e.target.closest('[data-ren]');
+  if (ren) {
+    const s = ep.snippets.find(x => x.id === ren.dataset.ren);
+    const n = prompt('Snippet name', s.name);
+    if (!n) return;
+    s.name = n; renderSnips(); renderSeq(); return save();
+  }
+  const del = e.target.closest('[data-dels]');
+  if (del) {
+    if (!confirm('Delete this snippet? Cards using it are removed too.')) return;
+    ep.snippets = ep.snippets.filter(x => x.id !== del.dataset.dels);
+    ep.sequence = ep.sequence.filter(i => i.type !== 'clip' || i.snippetId !== del.dataset.dels);
+    renderSnips(); renderSeq(); return save();
+  }
+});
+
+// ── 3. arrangement board ───────────────────────────────────────────
+function seqLabel(item) {
+  if (item.type === 'clip') {
+    const s = ep.snippets.find(x => x.id === item.snippetId);
+    if (!s) return { kind: 'clip (missing)', main: item.snippetId, sub: '' };
+    return { kind: 'clip', main: s.name, sub: s.text.slice(0, 70) + '…' };
+  }
+  if (item.type === 'narration') return { kind: 'narration', main: item.text, sub: '' };
+  return { kind: 'gap', main: item.dur + 's silence', sub: '' };
+}
+
+function renderSeq() {
+  $('#seq').innerHTML = ep.sequence.length ? ep.sequence.map((item, i) => {
+    const L = seqLabel(item);
+    return `<div class="card">
+      <div class="row">
+        <div class="grow">
+          <div class="kind ${item.type === 'clip' ? 'clipk' : ''}">${esc(L.kind)}</div>
+          <div>${esc(L.main)}</div>
+          ${L.sub ? `<div class="tiny clip">${esc(L.sub)}</div>` : ''}
+        </div>
+        <button class="icon ghost" data-up="${i}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>${ICON.up}</button>
+        <button class="icon ghost" data-down="${i}" aria-label="Move down" ${i === ep.sequence.length - 1 ? 'disabled' : ''}>${ICON.down}</button>
+        <button class="icon ghost" data-rm="${i}" aria-label="Remove">${ICON.x}</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Empty. Add snippets, narration and gaps below.</div>';
+}
+
+$('#seq').addEventListener('click', async e => {
+  const up = e.target.closest('[data-up]'), down = e.target.closest('[data-down]'), rm = e.target.closest('[data-rm]');
+  if (up) { const i = +up.dataset.up; [ep.sequence[i - 1], ep.sequence[i]] = [ep.sequence[i], ep.sequence[i - 1]]; }
+  else if (down) { const i = +down.dataset.down; [ep.sequence[i + 1], ep.sequence[i]] = [ep.sequence[i], ep.sequence[i + 1]]; }
+  else if (rm) { ep.sequence.splice(+rm.dataset.rm, 1); }
+  else return;
+  renderSeq(); save();
+});
+
+function sheet(html) {
+  const el = document.createElement('div');
+  el.className = 'modal';
+  el.innerHTML = `<div class="sheet">${html}</div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow = 'hidden';
+  const close = () => { el.remove(); document.body.style.overflow = ''; };
+  el.addEventListener('click', e => { if (e.target === el) close(); });
+  return { el, close };
+}
+
+$('#addClip').onclick = () => {
+  if (!ep.snippets.length) return alert('No snippets yet — pick a span of transcript first.');
+  const { el, close } = sheet(`<h2 class="sec" style="margin-top:0">Add a snippet</h2>` +
+    ep.snippets.map(s => `<div class="card" data-pick="${esc(s.id)}"><div style="font-weight:600">${esc(s.name)}</div><div class="tiny clip">${esc(s.text.slice(0, 70))}</div></div>`).join('') +
+    `<button style="margin-top:8px" data-cancel>Cancel</button>`);
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-cancel]')) return close();
+    const p = e.target.closest('[data-pick]');
+    if (!p) return;
+    ep.sequence.push({ type: 'clip', snippetId: p.dataset.pick });
+    close(); renderSeq(); save();
+  });
+};
+
+$('#addNar').onclick = () => {
+  const { el, close } = sheet(`<h2 class="sec" style="margin-top:0">Narration</h2>
+    <textarea id="narText" placeholder="What the narrator says here"></textarea>
+    <div class="row" style="margin-top:8px"><button class="gold" data-ok>Add</button><button data-cancel>Cancel</button></div>`);
+  el.querySelector('#narText').focus();
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-cancel]')) return close();
+    if (!e.target.closest('[data-ok]')) return;
+    const text = el.querySelector('#narText').value.trim();
+    if (!text) return close();
+    ep.sequence.push({ type: 'narration', text });
+    close(); renderSeq(); save();
+  });
+};
+
+$('#addGap').onclick = () => {
+  const { el, close } = sheet(`<h2 class="sec" style="margin-top:0">Gap</h2>
+    <div class="row">${[0.3, 0.6, 1.0].map(d => `<button data-gap="${d}">${d.toFixed(1)}s</button>`).join('')}
+    <button data-cancel>Cancel</button></div>`);
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-cancel]')) return close();
+    const g = e.target.closest('[data-gap]');
+    if (!g) return;
+    ep.sequence.push({ type: 'gap', dur: +g.dataset.gap });
+    close(); renderSeq(); save();
+  });
+};
+
+// ── 4. render (background job + resumable polling) ─────────────────
+$('#renderBtn').onclick = async () => {
+  if (!ep.sequence.length) return alert('The arrangement is empty.');
+  $('#renderBtn').disabled = true;
+  try {
+    await api('/' + ep.id + '/render', { method: 'POST', body: JSON.stringify({}) });
+    localStorage.setItem('editor_pending_' + ep.id, String(Date.now()));
+    ep.job = { status: 'running', label: 'starting', done: 0, total: 0 };
+    renderJob(); startPolling();
+  } catch (err) {
+    alert('Could not start the render: ' + err.message);
+    $('#renderBtn').disabled = false;
+  }
+};
+
+function startPolling() {
+  clearInterval(pollTimer);
+  const tick = async () => {
+    if (!ep) return clearInterval(pollTimer);
+    try {
+      const data = await api('/' + ep.id + '/job');
+      ep.job = data.job; ep.renders = data.renders || [];
+      renderJob(); renderRenders();
+      if (!ep.job || ep.job.status !== 'running') {
+        clearInterval(pollTimer); pollTimer = null;
+        localStorage.removeItem('editor_pending_' + ep.id);
+        $('#renderBtn').disabled = false;
+      }
+    } catch (err) { /* transient — keep polling */ }
+  };
+  pollTimer = setInterval(tick, 3000);
+  tick();
+}
+
+function renderJob() {
+  const j = ep && ep.job;
+  if (!j) { $('#jobBox').innerHTML = ''; return; }
+  if (j.status === 'running') {
+    $('#renderBtn').disabled = true;
+    const prog = j.total ? ` (${Math.min(j.done, j.total)}/${j.total})` : '';
+    $('#jobBox').innerHTML = `<div class="status">Rendering — ${esc(j.label || 'working')}${prog}. You can leave this page; it keeps going.</div>`;
+  } else if (j.status === 'error') {
+    $('#renderBtn').disabled = false;
+    $('#jobBox').innerHTML = `<div class="status err">Render failed — ${esc(j.error || 'unknown error')}</div>`;
+  } else {
+    $('#renderBtn').disabled = false;
+    $('#jobBox').innerHTML = '';
+  }
+}
+
+function renderRenders() {
+  const rs = (ep && ep.renders) || [];
+  $('#renders').innerHTML = rs.length ? rs.map((r, i) => `
+    <div class="card">
+      <div class="row"><div class="grow tiny">${esc(new Date(r.at).toLocaleString())}${r.seconds ? ' · ' + Math.round(r.seconds) + 's' : ''}${r.cards ? ' · ' + r.cards + ' cards' : ''}</div>
+      ${i === 0 ? '<span class="chip">newest</span>' : ''}</div>
+      <audio controls preload="none" src="${esc(r.url)}"></audio>
+    </div>`).join('') : '';
+}
+
+showList().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
+</script>
+</body>
+</html>

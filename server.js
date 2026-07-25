@@ -237,6 +237,7 @@ loadConfig().then(() => {
   const chatfeed = require('./chatfeed');
   const tarotEmail = require('./tarot-email');
   const nde = require('./nde');
+  const editor = require('./editor');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -266,6 +267,7 @@ loadConfig().then(() => {
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
+  app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -1556,6 +1558,11 @@ app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));
+
+// Episode Editor: select spans of a real interview transcript as snippet cards,
+// arrange them with narration + gaps, tap Render, get the finished audio.
+// Engine is /api/editor (editor.js). Same gate as the Studio.
+app.get('/editor', serveGated('editor.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
