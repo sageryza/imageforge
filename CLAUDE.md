@@ -968,7 +968,17 @@ the `forge-stories` collection is retired (see migration below).
   story's narration can hand straight to the film pipeline.
 - **Shelf look:** flat tiles in rows of three with a thin `--line` rule under
   each row (`shelfRows()` in `scripts/gen-storyroom.py`). NO shadows, NO wood,
-  NO 3D tilt — Sophie asked for "just a line."
+  NO 3D tilt — Sophie asked for "just a line." Rows are TOP-aligned and
+  `.t-name` reserves/clamps 2 lines, so covers and the meta line up no matter
+  how long a title is (bottom-aligning offsets the covers — that was a bug).
+- **Voiceover in: paste, don't record.** There is deliberately NO record
+  button — Sophie narrates in iOS Voice Memos. Ways in: **"Paste a
+  recording"** (app only, `pasteVoiceover` WKScriptMessage bridge in
+  `StoryRoomView.swift`, same pattern as `DreamsView`'s — in Voice Memos:
+  Share → Copy, then tap it; the app reads UIPasteboard and POSTs to
+  `/api/story/voiceover` natively so the audio never crosses into JS) or
+  **"Choose a file"** (`<input type=file accept=audio/*>`, works anywhere).
+  Pasted/uploaded audio is auto-transcribed into `voiceover.text`.
 - **Server:** `/api/story/*` inline in server.js — project/beat/art/inbox/
   assign/status/archive/delete plus (new) `POST /text` `{projectId, text}` and
   `POST /voiceover` `{projectId, audio?|url?, text?, tts?, voice?, transcribe?}`
