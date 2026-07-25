@@ -1764,20 +1764,29 @@
   })();
 
   // ── Deep link: /witch#tarot (also #cards / #reading) lands straight on the
-  // daily three-card pull — the tap-to-reveal spread the email links to. When
-  // the spread is visible we scroll to it; when it's still behind the birthday
-  // form / account step, we land on the daily card above it. ──
-  function tarotAnchorEl() {
-    const spread = $('tarot-card');
-    if (spread && spread.offsetParent !== null) return spread; // revealed → the cards
-    return $('daily-card') || spread;                          // gated/hidden → the daily card
-  }
+  // daily three-card pull — the tap-to-reveal spread the email links to. The
+  // cards only appear after Firebase auth + the daily load settle, so a fixed
+  // timer would scroll before they exist and miss. Instead we POLL for the
+  // section to become visible (up to ~6s) and scroll the moment it's there,
+  // re-nudging once after layout settles; only if it never shows do we fall
+  // back to the daily card above it. ──
+  function isTarotHash() { return /^#(tarot|cards|reading)$/i.test(location.hash || ''); }
   function scrollToTarot() {
     go('home');
-    setTimeout(() => { const el = tarotAnchorEl(); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+    const started = Date.now();
+    (function tryScroll() {
+      const spread = $('tarot-card');
+      if (spread && spread.offsetParent !== null) {              // cards are up → land on them
+        spread.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => spread.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500); // correct late layout shift
+        return;
+      }
+      if (Date.now() - started < 6000) { setTimeout(tryScroll, 150); return; } // keep waiting
+      const fb = $('daily-card') || spread;                      // never showed → the daily card
+      if (fb) fb.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    })();
   }
-  function isTarotHash() { return /^#(tarot|cards|reading)$/i.test(location.hash || ''); }
-  if (isTarotHash()) setTimeout(scrollToTarot, 500);
+  if (isTarotHash()) scrollToTarot();
   window.addEventListener('hashchange', () => { if (isTarotHash()) scrollToTarot(); });
 
   /* ══════════ TAROT DECK (78) ══════════ */
