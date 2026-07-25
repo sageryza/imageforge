@@ -919,7 +919,9 @@
     .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
     .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
     .wcourse .pr { font-size: 9.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-dim); margin-top: 6px; }
-    .wback { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 10px; }
+    /* Sticky: the course opens scrolled to the trailhead (bottom of the road),
+       so the way back must ride the viewport instead of stranding at the top. */
+    .wback { position: sticky; top: 54px; z-index: 60; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 8px 12px; }
     .wback svg { width: 16px; height: 16px; }
     .wback:hover { color: var(--gold); }
     /* z-index:1 creates a stacking context so the nodes' internal z-order
@@ -4778,7 +4780,7 @@
       <div class="brew">
         <div class="brew-lead"><b>${esc(b.goal)}.</b> ${esc(b.lead)}</div>
         <div class="brew-pot" id="brew-pot">${BREW_POT_SVG}</div>
-        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button"><img src="${SW_IMG}ing-${esc(s.k)}.png" alt="" loading="lazy"><span>${esc(s.t)}</span></button>`).join('')}</div>
+        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button"><img src="${SW_IMG}ing2-${esc(s.k)}.png" alt="" loading="lazy"><span>${esc(s.t)}</span></button>`).join('')}</div>
         <div class="brew-line" id="brew-line">Tap an ingredient to add it to the pot.</div>
       </div>
     </div>`;
