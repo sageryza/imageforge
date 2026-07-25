@@ -2463,13 +2463,13 @@ Write the reading now.`;
     // 'astro' = the short teaser (headline/reading/omens) on the Today page;
     // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
     // 'tarot' = the 3-card reading. Astrology parts run on gpt-4o at a HIGH
-    // temperature (1.1) — Sophie's pick, to make the readings get really weird;
+    // temperature (1.4) — Sophie's pick, to make the readings get really weird;
     // tarot stays on Claude Opus.
     if (part) {
       const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
       let out;
       if (part === 'astro') {
-        const teaserSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.${zodiacNote}
+        const teaserSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump. The reading itself observes rather than instructs — save the telling-them-what-to-do for the counsel fields, which exist exactly for that.${zodiacNote}
 You are given REAL, accurately computed positions — interpret them, never recompute. Anchor on the ANCHOR TRANSIT if one is given (otherwise the most interesting thing in today's sky) and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
 This is the SHORT teaser — a separate, longer reading written from the SAME anchor sits behind a "Dive deeper" button — so END WITH PULL, NOT CLOSURE: the last line should leave the thread visibly open, a reason to want more. Never mention the button or the app.
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
@@ -2479,11 +2479,13 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
   "focus": "1-3 word theme for the day",
   "invite": "",
   "intention": "one short first-person line for today — specific, not generic",
-  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ]
+  "omens": [ { "sign": "a small, everyday sign to watch for today (a few words)", "meaning": "what it means for them (a few words)" } ],
+  "counsel": { "do": "one concrete thing today FAVORS doing, derived from a named transit — a real everyday act (introduce yourself to someone, ask for the refund, book the trip, post the thing), stated as a light imperative with the placement in parens, e.g. 'Say yes to the odd invitation (Venus trine your Uranus)'", "dont": "one concrete thing today is WRONG for, same format — a specific everyday act to hold off on (don't send the risky text, don't sign anything before noon, skip the big purchase), never vague caution, with the placement in parens" }
 }
 Give EXACTLY 2 omens.
+COUNSEL rules: each is ONE short sentence, a specific physical/social act someone could actually do or skip TODAY — never inner-work ("reflect", "be open", "trust yourself" are all WRONG). The do and the dont must come from DIFFERENT transits when more than one is given.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.4, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
@@ -2512,7 +2514,7 @@ They have NOT entered birth details, so nothing here is natal: read TODAY's real
 ${astroContext}
 
 Write the deeper page now.`;
-        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+        const dData = await openaiChat({ model: 'gpt-4o', temperature: 1.4, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: deepSystem }, { role: 'user', content: deepUser }] });
         if (dData.error) return res.status(400).json({ error: (dData.error.message || 'openai error') + ' (deep reading)' });
         let deep;
@@ -2534,12 +2536,12 @@ Write the deeper page now.`;
     }
 
     // ── Legacy combined reading (stale cached clients only) ───────────────
-    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.1) — Sophie's
+    // Astrology runs on OpenAI's gpt-4o at HIGH temperature (1.4) — Sophie's
     // pick, to make the daily reading get really weird. Force a JSON object so
     // the weirdness stays parseable. Tarot stays on Claude Opus. The two never
     // see each other's context.
     const [aData, tData] = await Promise.all([
-      openaiChat({ model: 'gpt-4o', temperature: 1.1, response_format: { type: 'json_object' },
+      openaiChat({ model: 'gpt-4o', temperature: 1.4, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: astroSystem }, { role: 'user', content: astroUser }] }),
       anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 }),
     ]);

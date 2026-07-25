@@ -398,6 +398,12 @@
     .ingredient { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; font-size: 13px; color: var(--text); }
     .omen { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
     .omen:last-child { border-bottom: none; }
+    .counsel { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+    .counsel:last-child { border-bottom: none; }
+    .counsel-mark { flex: 0 0 auto; width: 18px; text-align: center; font-size: 13px; }
+    .counsel-do { color: var(--gold); }
+    .counsel-dont { color: var(--text-dim); }
+    .counsel-text { flex: 1; font-size: 13.5px; color: var(--text); line-height: 1.45; }
     .omen-sign { flex: 1; font-size: 13.5px; color: var(--text); }
     .omen-mean { flex: 1; font-size: 13px; color: var(--text-dim); font-style: italic; }
     .ritual-line { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.5; color: var(--moon); }
@@ -2151,6 +2157,12 @@
     // The glance stays a glance: blurb + omens only. The day's ingredients and
     // the ritual live on the Dive-deeper page now.
     let ex = '';
+    if (a.counsel && (a.counsel.do || a.counsel.dont)) {
+      ex += `<div class="glance-sec"><div class="glance-label">Today favors</div>`;
+      if (a.counsel.do) ex += `<div class="counsel"><span class="counsel-mark counsel-do">✓</span><span class="counsel-text">${esc(a.counsel.do)}</span></div>`;
+      if (a.counsel.dont) ex += `<div class="counsel"><span class="counsel-mark counsel-dont">✕</span><span class="counsel-text">${esc(a.counsel.dont)}</span></div>`;
+      ex += `</div>`;
+    }
     if (Array.isArray(a.omens) && a.omens.length) {
       ex += `<div class="glance-sec"><div class="glance-label">Omens to watch for</div>`
         + a.omens.map(o => `<div class="omen"><span class="omen-sign">${esc(o.sign)}</span><span class="omen-mean">${esc(o.meaning)}</span></div>`).join('') + `</div>`;
