@@ -2485,7 +2485,7 @@ Return VALID JSON ONLY, no markdown fences, exactly this shape:
 Give EXACTLY 2 omens.
 COUNSEL rules: each is ONE short sentence, a specific physical/social act someone could actually do or skip TODAY — never inner-work ("reflect", "be open", "trust yourself" are all WRONG). The do and the dont must come from DIFFERENT transits when more than one is given.
 Set invite to "" unless they have no birth chart, in which case put the invitation there.`;
-        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.2, response_format: { type: 'json_object' },
+        const aData = await openaiChat({ model: 'gpt-4o', temperature: 1.3, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: teaserSystem }, { role: 'user', content: astroUser }] });
         if (aData.error) return res.status(400).json({ error: (aData.error.message || 'openai error') + ' (astrology)' });
         let astrology;
