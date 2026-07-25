@@ -1,0 +1,65 @@
+[
+  {
+    "name": "not-my-body",
+    "clips": 9,
+    "dur": 85.5,
+    "flagged": "1",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/not-my-body.mp3"
+  },
+  {
+    "name": "universal",
+    "clips": 11,
+    "dur": 192.9,
+    "flagged": "1",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/universal-knowledge.mp3"
+  },
+  {
+    "name": "music",
+    "clips": 6,
+    "dur": 124.0,
+    "flagged": "1",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/music-sound.mp3"
+  },
+  {
+    "name": "grass",
+    "clips": 5,
+    "dur": 47.9,
+    "flagged": "3",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/grass.mp3"
+  },
+  {
+    "name": "life-review",
+    "clips": 12,
+    "dur": 220.3,
+    "flagged": "3",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/life-review.mp3"
+  },
+  {
+    "name": "welcomed",
+    "clips": 11,
+    "dur": 170.9,
+    "flagged": "2",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/welcomed-home.mp3"
+  },
+  {
+    "name": "colors-audio",
+    "clips": 13,
+    "dur": 217.0,
+    "flagged": "1",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/colors-audio.mp3"
+  },
+  {
+    "name": "telepathy-full",
+    "clips": 39,
+    "dur": 471.8,
+    "flagged": "9",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/telepathy-audio-full.mp3"
+  },
+  {
+    "name": "telepathy-tight",
+    "clips": 38,
+    "dur": 103.8,
+    "flagged": "-",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-supercuts/telepathy-audio-tight.mp3"
+  }
+]
