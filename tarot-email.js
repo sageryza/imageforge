@@ -150,30 +150,34 @@ function buildTarotEmail({ date } = {}) {
   const dateLine = prettyDate(dateISO);
   const subject = `✦ Past, present, future — your cards for ${dateLine}`;
 
-  const cardW = 118, cardH = 198;
+  const cardW = 104, cardH = 178;
 
   // One face-down card back (flat plum, gold border — flat colors only).
+  // width/height/bgcolor are set as HTML ATTRIBUTES on the <td>, not just CSS:
+  // Gmail drops CSS width on nested tables (collapsing the card to a skinny
+  // bar), but honors these attributes — so the card keeps its shape everywhere.
   const backTable = `
-    <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;height:${cardH}px;background-color:#6b4f86;border:2px solid #9c6f33;border-radius:10px;">
-      <tr><td align="center" valign="middle" style="height:${cardH}px;text-align:center;">
+    <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" border="0" align="center" style="width:${cardW}px;">
+      <tr><td width="${cardW}" height="${cardH}" bgcolor="#6b4f86" align="center" valign="middle" style="width:${cardW}px;height:${cardH}px;background-color:#6b4f86;border:2px solid #9c6f33;border-radius:10px;text-align:center;">
         <div style="font-size:26px;line-height:1.3;color:#f5efe2;">🌙</div>
         <div style="font-size:14px;line-height:1.5;color:#e8c987;">✦ ✦ ✦</div>
         <div style="font-family:Georgia,serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#f5efe2;padding-top:10px;">tap</div>
       </td></tr>
     </table>`;
 
-  // One revealed face: framed art (fixed-height so an images-blocked client
-  // still shows a card shape + alt text) + name, orientation, meaning.
+  // One revealed face: framed art (fixed-size cell so an images-blocked client
+  // still shows a card shape + alt text) + name, orientation, meaning. Same
+  // attribute-based sizing so Gmail (Apple Mail shows this) can't squish it.
   function faceColumn(pick) {
     const { card, orientation } = pick;
     const rev = orientation === 'reversed';
     const img = DECK_IMG[card.name] || '';
     const meaning = rev ? card.rev : card.up;
     return `
-      <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" style="width:${cardW}px;background-color:#fffbf3;border:2px solid #9c6f33;border-radius:10px;">
-        <tr><td align="center" valign="middle" height="${cardH}" style="height:${cardH}px;font-family:Georgia,serif;color:#9c6f33;">
+      <table role="presentation" width="${cardW}" cellpadding="0" cellspacing="0" border="0" align="center" style="width:${cardW}px;">
+        <tr><td width="${cardW}" height="${cardH}" bgcolor="#fffbf3" align="center" valign="middle" style="width:${cardW}px;height:${cardH}px;background-color:#fffbf3;border:2px solid #9c6f33;border-radius:10px;font-family:Georgia,serif;color:#9c6f33;text-align:center;">
           ${img
-            ? `<img src="${esc(img)}" width="${cardW}" alt="${esc(card.name)}" style="display:block;width:${cardW}px;height:auto;border-radius:8px;${rev ? 'transform:rotate(180deg);' : ''}">`
+            ? `<img src="${esc(img)}" width="${cardW - 8}" alt="${esc(card.name)}" style="display:block;width:${cardW - 8}px;height:auto;border-radius:8px;${rev ? 'transform:rotate(180deg);' : ''}">`
             : '<span style="font-size:34px;">✦</span>'}
         </td></tr>
       </table>
@@ -185,15 +189,17 @@ function buildTarotEmail({ date } = {}) {
   // The three-column spread. `kinetic` columns hold a label (tap target) per
   // card + the hidden face; fallback columns link the backs out to the app.
   function spreadRow(kinetic) {
+    const colW = cardW + 10; // card + a little breathing room each side
     const cols = picks.map((pick, i) => `
-      <td align="center" valign="top" width="33%" style="padding:0 5px;">
+      <td align="center" valign="top" width="${colW}" style="width:${colW}px;padding:0 4px;">
         <div style="font-family:Georgia,serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#9c6f33;padding-bottom:10px;">${esc(pick.position)}</div>
         ${kinetic
           ? `<div class="sw-back-${i}"><label for="sw-r${i}" style="cursor:pointer;">${backTable}</label></div>
              <div class="sw-face-${i}" style="display:none;">${faceColumn(pick)}</div>`
           : `<a href="${READ_URL}" style="text-decoration:none;">${backTable}</a>`}
       </td>`).join('');
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cols}</tr></table>`;
+    // Fixed-width centered table so Gmail can't stretch the columns oddly.
+    return `<table role="presentation" width="${colW * 3}" cellpadding="0" cellspacing="0" border="0" align="center" style="width:${colW * 3}px;max-width:100%;"><tr>${cols}</tr></table>`;
   }
 
   const revealRules = picks.map((_, i) => `
