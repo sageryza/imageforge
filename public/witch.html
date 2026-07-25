@@ -843,15 +843,17 @@
     /* "Brew a potion" quiz card: pick the right blend, the cauldron glows */
     .brew { max-width: 340px; margin: 0 auto; text-align: center; }
     .brew-lead { font-size: 15px; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
-    .brew-pot { color: var(--text); margin: 0 auto; width: 96px; transition: filter 0.4s ease; }
-    .brew-pot svg { width: 96px; height: 78px; display: block; margin: 0 auto; }
-    .brew-pot .bstar { opacity: 0; transition: opacity 0.35s ease; fill: var(--gold); stroke: none; }
+    .brew-pot { color: #1f1a24; margin: 0 auto; width: 150px; transition: filter 0.4s ease; }
+    .brew-pot svg { width: 150px; height: auto; display: block; margin: 0 auto; }
+    .brew-pot .brew-liquid { fill: #423a4c; transition: fill 0.4s ease; }
+    .brew-pot .bstar { opacity: 0; transition: opacity 0.35s ease; fill: #d4a85a; stroke: none; }
     .brew-pot.g1 .bs1, .brew-pot.g2 .bs1, .brew-pot.g2 .bs2, .brew-pot.g3 .bs1, .brew-pot.g3 .bs2, .brew-pot.g3 .bs3 { opacity: 1; }
-    .brew-pot.glow { filter: drop-shadow(0 0 12px rgba(156, 111, 51, 0.75)); }
-    .brew-pot.glow .brew-brim { fill: var(--gold); }
-    .brew-shelf { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0 8px; }
-    .brew-ing { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 13.5px; padding: 9px 13px; cursor: pointer; }
-    .brew-ing.in { background: var(--gold); border-color: var(--gold); color: var(--surface); }
+    .brew-pot.glow { filter: drop-shadow(0 0 14px rgba(212, 168, 90, 0.85)); }
+    .brew-pot.glow .brew-liquid { fill: #d4a85a; }
+    .brew-shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 8px; }
+    .brew-ing { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 12.5px; padding: 7px 6px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .brew-ing img { width: 100%; max-width: 72px; border-radius: 4px; display: block; }
+    .brew-ing.in { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold) inset; color: var(--gold); font-weight: 600; }
     .brew-ing.fizz { animation: brewFizz 0.55s ease; }
     @keyframes brewFizz { 0% { transform: translateX(0); opacity: 1; } 25% { transform: translateX(-4px); opacity: 0.55; } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); opacity: 0.7; } 100% { transform: translateX(0); opacity: 1; } }
     .brew-line { min-height: 42px; font-size: 13.5px; line-height: 1.5; color: var(--text-dim); font-style: italic; margin-top: 4px; }
@@ -4750,14 +4752,19 @@
   /* ── Lesson quizzes (from Sophie's quiz-ideas notes). House rules: no
      timers, no lives, no streak-shaming, nothing red — a wrong pick just
      fizzes or warmly tells you, and you always finish. ── */
-  // An inked cauldron; the three stars light as the right picks drop in.
-  const BREW_POT_SVG = `<svg viewBox="0 0 96 78" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M18 26 C17 44 28 60 48 60 C68 60 79 44 78 26" />
-    <ellipse class="brew-brim" cx="48" cy="26" rx="30" ry="7" />
-    <path d="M34 60 L28 70" /><path d="M62 60 L68 70" />
-    <path class="bstar bs1" d="M38 38 Q39.3 42.7 44 44 Q39.3 45.3 38 50 Q36.7 45.3 32 44 Q36.7 42.7 38 38 Z" />
-    <path class="bstar bs2" d="M53 33 Q54 36.2 57.5 37 Q54 37.8 53 41 Q52 37.8 48.5 37 Q52 36.2 53 33 Z" />
-    <path class="bstar bs3" d="M60 43 Q61.1 46.9 65 48 Q61.1 49.1 60 53 Q58.9 49.1 55 48 Q58.9 46.9 60 43 Z" />
+  // A proper black cauldron — pot belly, lipped rim, three legs. The brew's
+  // surface shows at the rim; the gold stars light as the right picks drop
+  // in, and the whole thing glows when the blend is complete.
+  const BREW_POT_SVG = `<svg viewBox="0 0 120 104" fill="none">
+    <path d="M24 27 C12 35 8 52 17 66 C26 79 41 86 60 86 C79 86 94 79 103 66 C112 52 108 35 96 27 Z" fill="currentColor"/>
+    <ellipse cx="60" cy="24" rx="45" ry="10" fill="currentColor"/>
+    <ellipse class="brew-liquid" cx="60" cy="23" rx="36" ry="6.5"/>
+    <path d="M38 85 L31 100" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+    <path d="M82 85 L89 100" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+    <path d="M60 86 L60 100" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+    <path class="bstar bs1" d="M44 44 Q45.8 50.2 52 52 Q45.8 53.8 44 60 Q42.2 53.8 36 52 Q42.2 50.2 44 44 Z"/>
+    <path class="bstar bs2" d="M68 38 Q69.3 42.7 74 44 Q69.3 45.3 68 50 Q66.7 45.3 62 44 Q66.7 42.7 68 38 Z"/>
+    <path class="bstar bs3" d="M74 56 Q75.4 61 80 62.5 Q75.4 64 74 69 Q72.6 64 68 62.5 Q72.6 61 74 56 Z"/>
   </svg>`;
   // "Brew a potion": pick the right blend from the shelf. Wrong picks fizz
   // softly and stay tappable; the full blend makes the cauldron glow.
@@ -4771,7 +4778,7 @@
       <div class="brew">
         <div class="brew-lead"><b>${esc(b.goal)}.</b> ${esc(b.lead)}</div>
         <div class="brew-pot" id="brew-pot">${BREW_POT_SVG}</div>
-        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button">${esc(s.t)}</button>`).join('')}</div>
+        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button"><img src="${SW_IMG}ing-${esc(s.k)}.png" alt="" loading="lazy"><span>${esc(s.t)}</span></button>`).join('')}</div>
         <div class="brew-line" id="brew-line">Tap an ingredient to add it to the pot.</div>
       </div>
     </div>`;
@@ -4804,12 +4811,6 @@
     </div>`;
     const flip = $('know-flip'), nEl = $('know-n');
     function renderQ() {
-      if (qi >= qs.length) {
-        nEl.textContent = '';
-        flip.className = 'know-flip';
-        flip.innerHTML = `<div class="know-face"><div class="know-verdict">You always finish. ✦</div><div class="know-tell">That\'s the whole test — no scores in this school. Tap on when you\'re ready.</div></div>`;
-        return;   // from here, page taps advance the deck as usual
-      }
       const q = qs[qi];
       nEl.textContent = (qi + 1) + ' of ' + qs.length;
       flip.className = 'know-flip';
@@ -4827,10 +4828,14 @@
         flip.classList.add('flipped');
       }));
     }
-    // Tapping the flipped card moves to the next question (and never the deck).
+    // Tapping the flipped card moves to the next question (never the deck);
+    // after the last answer the lesson simply carries on — they got there,
+    // no end-card needed.
     flip.addEventListener('click', (e) => {
       if (!flip.classList.contains('flipped')) return;
-      e.stopPropagation(); qi++; renderQ();
+      e.stopPropagation(); qi++;
+      if (qi >= qs.length) { deckNext(); return; }
+      renderQ();
     });
     renderQ();
   }
