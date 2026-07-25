@@ -165,7 +165,7 @@ def detect_silences(path):
         sil.append((s, ends[ei] if ei < len(ends) else s + 0.5))
     return sil
 
-def snap_to_silence(rs, re_, silences):
+def snap_to_silence(rs, re_, silences, max_end=None):
     """Move both cut points into real silences near the Whisper-derived bounds.
     End: first silence starting within [-0.45,+1.3]s of the target — close enough
     to finish the word/thought, near enough not to drag in the next sentence.
@@ -173,6 +173,8 @@ def snap_to_silence(rs, re_, silences):
     re2 = re_
     for s, e in silences:
         if re_ - 0.05 <= s <= re_ + 1.0:  # forward-only: never eat the last word
+            if max_end is not None and s >= max_end:
+                break  # that silence lies beyond the next word — snapping would add words
             re2 = s + min(0.18, max(0.05, (e - s) * 0.4))
             break
     rs2 = rs
@@ -358,7 +360,8 @@ for i, c in enumerate(cands, 1):
             print(f"  [{i}] {name}: tight match too long ({re_-rs:.1f}s), dropping"); continue
         if FINISH and (re_ - rs) > MAX_FINISH:
             print(f"  [{i}] {name}: sentence too long ({re_-rs:.1f}s), dropping"); continue
-        rs, re_ = snap_to_silence(rs, re_, detect_silences(win))
+        nxt = next((w["start"] for w in (wj.get("words") or []) if w["start"] > re_ + 0.02), None)
+        rs, re_ = snap_to_silence(rs, re_, detect_silences(win), max_end=nxt)
         clip = os.path.join(tmp, f"c{i}.mp3")
         run(["ffmpeg","-y","-ss",str(rs),"-to",str(re_),"-i",win,"-c:a","libmp3lame","-q:a","3",clip])
         if AUDIO_ONLY:
