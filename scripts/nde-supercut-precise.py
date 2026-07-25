@@ -75,13 +75,9 @@ def find_phrase(win_json, phrase):
     if not span:
         return None
     wi_start, wi_end = span
-    t0 = words[wi_start]["start"] - 0.12
-    t1 = words[wi_end]["end"] + 0.28
-    if t1 - t0 < 1.1:  # min length floor so a 3-word phrase isn't a blip
-        pad = (1.1 - (t1 - t0)) / 2
-        t0 -= pad; t1 += pad
+    t0, t1 = clamp_bounds(words, wi_start, wi_end)
     text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
-    return (max(0, t0), t1, text)
+    return (t0, t1, text)
 
 def _phrase_span(win_json, phrase):
     """Word indices (start,end) of the best CONTIGUOUS match of `phrase` in the
@@ -148,9 +144,27 @@ def find_quote_sentence(win_json, phrase, quote):
             if words[wi_end + 1]["start"] - words[wi_end]["end"] >= FINISH_GAP:
                 break
             wi_end += 1; steps += 1
-    t0 = words[wi_start]["start"] - 0.15
-    t1 = words[wi_end]["end"] + 0.30
-    return (max(0, t0), t1, target)
+    t0, t1 = clamp_bounds(words, wi_start, wi_end)
+    return (t0, t1, target)
+
+def clamp_bounds(words, wi_start, wi_end):
+    """Gap-aware clip bounds: pad outward for a natural feel, but NEVER past the
+    midpoint of the silence to the neighboring word — fixed padding used to
+    swallow the first syllable of the speaker's NEXT word, which sounds exactly
+    like the clip stopping mid-word."""
+    t0 = words[wi_start]["start"]
+    if wi_start > 0:
+        gap = t0 - words[wi_start - 1]["end"]
+        t0 -= min(0.15, max(0.02, gap * 0.5))
+    else:
+        t0 -= 0.15
+    t1 = words[wi_end]["end"]
+    if wi_end < len(words) - 1:
+        gap = words[wi_end + 1]["start"] - t1
+        t1 += min(0.30, max(0.03, gap * 0.5))
+    else:
+        t1 += 0.30
+    return max(0, t0), t1
 
 def find_whole_quote(win_json, quote):
     """Cut the ENTIRE quote: locate its opening words and its closing words in
@@ -173,10 +187,9 @@ def find_whole_quote(win_json, quote):
         if words[wi_end + 1]["start"] - words[wi_end]["end"] >= FINISH_GAP:
             break
         wi_end += 1; steps += 1
-    t0 = words[wi_start]["start"] - 0.15
-    t1 = words[wi_end]["end"] + 0.30
+    t0, t1 = clamp_bounds(words, wi_start, wi_end)
     text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
-    return (max(0, t0), t1, text)
+    return (t0, t1, text)
 
 def find_sentence(win_json, quote):
     """Return (rel_start, rel_end, text) of the complete sentence(s) matching quote."""
