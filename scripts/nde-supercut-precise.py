@@ -13,6 +13,7 @@ FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BG, C_LABEL, C_QUOTE, C_NAME = "0x141422", "0x7c7c96", "0xF2EEE2", "0xE0A94A"
 VERT = os.environ.get("VERTICAL") == "1"
+TIGHT = os.environ.get("TIGHT") == "1"  # cut ONLY the punch-phrase, no sentence expansion
 if VERT:
     W, H = 1080, 1920
     LABEL_SZ, QUOTE_SZ, NAME_SZ, TITLE_SZ = 38, 56, 42, 72
@@ -25,6 +26,9 @@ else:
 CAND = sys.argv[1]
 TITLE = sys.argv[2] if len(sys.argv) > 2 else "THE COLORS"
 OUT = sys.argv[3] if len(sys.argv) > 3 else "/tmp/nde-precise.mp4"
+MAX_TIGHT = float(os.environ.get("MAX_TIGHT", "12"))  # drop a tight clip longer than this (bad match)
+CACHE = os.environ.get("WCACHE", "/home/user/whisper-cache")
+os.makedirs(CACHE, exist_ok=True)
 tmp = tempfile.mkdtemp(prefix="precise-")
 
 def run(a): subprocess.run(a, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -53,6 +57,39 @@ def whisper_words(path):
     req = urllib.request.Request("https://api.openai.com/v1/audio/transcriptions", data=body,
         headers={"Authorization": f"Bearer {KEY}", "Content-Type": f"multipart/form-data; boundary={boundary}"})
     return json.load(urllib.request.urlopen(req, timeout=180))
+
+def find_phrase(win_json, phrase):
+    """TIGHT: return (rel_start, rel_end, text) of JUST the punch-phrase's word
+    span. Slides a phrase-length window over the audio words and takes the
+    best-matching CONTIGUOUS run — so a repeated word later in the clip can't
+    stretch the cut across half a minute. Caption = the real audio words."""
+    words = win_json.get("words") or []
+    if not words:
+        return None
+    ww = [norm(w["word"])[0] if norm(w["word"]) else "" for w in words]
+    pw = norm(phrase)
+    if not pw:
+        return None
+    n = len(pw)
+    best = None  # (ratio, start_idx, end_idx)
+    for L in range(n, n + 4):  # allow whisper to insert up to 3 extra words
+        for i in range(0, max(1, len(ww) - L + 1)):
+            win = ww[i:i + L]
+            if not win:
+                continue
+            r = difflib.SequenceMatcher(a=pw, b=win, autojunk=False).ratio()
+            if best is None or r > best[0]:
+                best = (r, i, min(i + L - 1, len(words) - 1))
+    if not best or best[0] < 0.5:  # no trustworthy contiguous match
+        return None
+    _, wi_start, wi_end = best
+    t0 = words[wi_start]["start"] - 0.12
+    t1 = words[wi_end]["end"] + 0.28
+    if t1 - t0 < 1.1:  # min length floor so a 3-word phrase isn't a blip
+        pad = (1.1 - (t1 - t0)) / 2
+        t0 -= pad; t1 += pad
+    text = re.sub(r"\s+", " ", " ".join(words[i]["word"].strip() for i in range(wi_start, wi_end + 1))).strip()
+    return (max(0, t0), t1, text)
 
 def find_sentence(win_json, quote):
     """Return (rel_start, rel_end, text) of the complete sentence(s) matching quote."""
@@ -135,11 +172,26 @@ for i, c in enumerate(cands, 1):
     win = os.path.join(tmp, f"w{i}.mp3")
     try:
         run(["ffmpeg","-y","-ss",str(win_start),"-t","80","-i",url,"-c:a","libmp3lame","-q:a","4",win])
-        wj = whisper_words(win)
-        found = find_sentence(wj, quote)
-        if not found:
-            print(f"  [{i}] {name}: no match in audio, skip"); continue
+        cachef = os.path.join(CACHE, f"{c.get('videoId','x')}_{win_start}.json")
+        if os.path.exists(cachef):
+            wj = json.load(open(cachef))
+        else:
+            wj = whisper_words(win)
+            json.dump(wj, open(cachef, "w"))
+        phrase = (c.get("phrase") or "").strip()
+        if TIGHT and phrase:
+            found = find_phrase(wj, phrase)
+            if not found:
+                # phrase isn't really in this window (bad timestamp) — dropping
+                # beats pasting the caption over unrelated audio
+                print(f"  [{i}] {name}: no tight phrase match in window, dropping"); continue
+        else:
+            found = find_sentence(wj, quote)
+            if not found:
+                print(f"  [{i}] {name}: no match in audio, skip"); continue
         rs, re_, text = found
+        if TIGHT and (re_ - rs) > MAX_TIGHT:
+            print(f"  [{i}] {name}: tight match too long ({re_-rs:.1f}s), dropping"); continue
         clip = os.path.join(tmp, f"c{i}.mp3")
         run(["ffmpeg","-y","-ss",str(rs),"-to",str(re_),"-i",win,"-c:a","libmp3lame","-q:a","3",clip])
         clip_card(f"· {TITLE.lower()} ·", name, f"“{text}”", clip)

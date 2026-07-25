@@ -4,7 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f5efe2">
-  <title>Secretly a Witch</title>
+  <title>Secretly a Witch — moon phases, daily tarot &amp; everyday magic</title>
+  <meta name="description" content="A little pocket of everyday magic: today's moon phase, a daily tarot pull, spellcraft, dream illustration, Witch School lessons, and a shop of handmade witchcraft kits.">
+  <!-- The app is served at both secretlyawitch.com/ and the onrender host's
+       /witch — one canonical keeps search engines on the real domain. -->
+  <link rel="canonical" href="https://secretlyawitch.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Secretly a Witch">
+  <meta property="og:title" content="Secretly a Witch">
+  <meta property="og:description" content="Moon phases, a daily tarot pull, spells, dream illustration and Witch School — everyday magic in your pocket.">
+  <meta property="og:url" content="https://secretlyawitch.com/">
+  <meta property="og:image" content="https://storage.googleapis.com/membry-df528.firebasestorage.app/witch-tarot/the-moon.webp">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -185,6 +196,20 @@
     .btn-white svg { width: 15px; height: 15px; }
 
     /* Suspicious coincidence — describe it, AI draws it */
+    .coin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .coin-saved { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
+    .coin-saved.filled { color: var(--gold); }
+    .coin-saved .coin-bm { line-height: 0; }
+    .coin-saved .coin-bm svg { width: 15px; height: 15px; stroke: currentColor; fill: none; transition: fill 0.25s ease; }
+    .coin-saved.filled .coin-bm svg { fill: var(--gold); }
+    .coin-saved.just .coin-bm svg { animation: bmPop 0.5s ease; }
+    @keyframes bmPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+    /* Book of Shadows — Synchronicities: 4 boxes a page (Little Book of Miracles look) */
+    .bos-sync-date { text-align: right; font-family: var(--serif); font-size: 18px; color: #221c14; margin-bottom: 16px; }
+    .bos-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
+    .bos-sync-box { width: 100%; aspect-ratio: 1; border: 1px solid #d9cbb4; border-radius: 3px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
+    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -199,6 +224,15 @@
     /* Drawn state: the description becomes a small caption under the image. */
     .coin-btn.coin-caption { color: var(--text-dim); font-style: italic; font-weight: 400; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; text-align: center; }
     .coin-cell.drawn .coin-btn { display: none; }
+    /* Drawn state: caption (moment text) + [◀ Redraw ▶] version controls */
+    .coin-cap { font-size: 12px; color: var(--text-dim); font-style: italic; line-height: 1.25; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .coin-ctl { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .coin-redraw { background: none; color: var(--gold); border: none; font-family: var(--serif); font-size: 13.5px; font-weight: 500; cursor: pointer; padding: 4px 2px; transition: opacity 0.15s ease; }
+    .coin-redraw:hover { opacity: 0.7; }
+    .coin-redraw:disabled { opacity: 0.6; cursor: not-allowed; }
+    .coin-arrow { display: none; background: none; border: none; color: var(--gold); cursor: pointer; padding: 2px; align-items: center; }
+    .coin-arrow.show { display: inline-flex; }
+    .coin-arrow svg { width: 15px; height: 15px; }
     .note { font-size: 12px; color: var(--text-faint); font-style: italic; margin-top: 10px; min-height: 16px; }
 
     /* ── Chips (segmented) ── */
@@ -379,7 +413,8 @@
        nav (z 50) in the stack, and their 96px bottom padding already clears it.
        Tapping a nav tab closes the page (see go()). Past readings + the dream
        reading page are here too so you can jump tabs, not just Back out. */
-    #deep-app, #tarot-app, #dreampast-app, #dreamread-app { z-index: 45; }
+    #deep-app, #tarot-app, #dream-app, #dreamread-app { z-index: 45; }
+    #dreampast-app { z-index: 46; }  /* opens over the dream page */
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
     #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
@@ -553,6 +588,44 @@
     .shop-item .stitle { font-family: var(--serif); font-size: 15.5px; font-weight: 500; line-height: 1.2; }
     .shop-item .sprice { font-size: 12.5px; color: var(--gold); margin-top: 4px; }
     .shop-item .soos { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+    /* In-app buying: cart button, product sheet, cart sheet */
+    .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .cart-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+    .cart-btn svg { width: 16px; height: 16px; }
+    .cart-btn .cbadge { background: var(--gold); color: #fff; border-radius: 50%; min-width: 18px; height: 18px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .sheet-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); z-index: 210; display: none; align-items: flex-end; justify-content: center; }
+    .sheet-bg.show { display: flex; }
+    .sheet { background: var(--bg); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(26px + env(safe-area-inset-bottom)); position: relative; }
+    .sheet .sx { position: sticky; top: 0; float: right; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; z-index: 2; }
+    .sheet .sx svg { width: 15px; height: 15px; }
+    .ps-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); background: var(--panel); display: block; }
+    .ps-thumbs { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; }
+    .ps-thumbs img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; cursor: pointer; flex: 0 0 auto; }
+    .ps-thumbs img.on { border-color: var(--gold); }
+    .ps-title { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.2; margin-top: 14px; }
+    .ps-price { color: var(--gold); font-size: 16px; margin-top: 6px; font-weight: 500; }
+    .ps-vars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .ps-var { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+    .ps-var.on { border-color: var(--gold); color: var(--gold); }
+    .ps-var.oos { opacity: .45; text-decoration: line-through; }
+    .ps-row { display: flex; gap: 10px; align-items: stretch; margin-top: 16px; }
+    .qty { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+    .qty button { width: 36px; height: 100%; min-height: 42px; background: none; border: none; color: var(--text); font-size: 17px; cursor: pointer; font-family: inherit; }
+    .qty span { min-width: 22px; text-align: center; font-size: 14px; }
+    .ps-add { flex: 1; background: var(--gold); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; min-height: 42px; }
+    .ps-add:disabled { opacity: .5; }
+    .ps-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-top: 16px; }
+    .ps-desc p { margin: 8px 0; }
+    .cl-line { display: flex; gap: 11px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+    .cl-line img { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); flex: 0 0 auto; }
+    .cl-info { flex: 1; min-width: 0; }
+    .cl-title { font-size: 13.5px; font-weight: 500; line-height: 1.25; }
+    .cl-var { font-size: 11.5px; color: var(--text-faint); margin-top: 1px; }
+    .cl-price { font-size: 12.5px; color: var(--gold); margin-top: 3px; }
+    .cl-sub { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 14px; }
+    .cl-sub b { font-family: var(--serif); font-size: 18px; }
+    .cl-note { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; line-height: 1.5; }
+    .cl-checkout { display: block; width: 100%; margin-top: 14px; background: var(--gold); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; min-height: 44px; }
 
     /* ── Product row (Home — three across, no cream bubble) ── */
     .prow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin: 4px 0 26px; }
@@ -595,6 +668,33 @@
     .dream-btns { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
     #dream-illustrate { width: auto; padding-left: 16px; padding-right: 16px; white-space: nowrap; }
     .dream-out { margin-top: 18px; }
+    /* The dream's own page: the same card, moved into a full-screen overlay.
+       Past-readings stays a Home affordance — hidden while the card is here. */
+    #dream-app #dream-past { display: none; }
+    #dream-app .card { border: none; background: none; padding: 0; box-shadow: none; }
+    /* Describe-yourself step (before Illustrate draws) */
+    .dpeople-label { font-size: 13px; color: var(--text); margin-bottom: 8px; }
+    .dpeople-label .dpeople-opt { color: var(--text-faint); font-size: 11.5px; }
+    #dream-people { min-height: 56px; resize: vertical; }
+    /* The drawing-in-progress frame: a page-shaped placeholder the finished
+       art replaces, with the linocut loader living inside it. */
+    .dframe { width: min(68%, 230px); aspect-ratio: 2 / 3; margin: 4px auto 0; border: 1px solid var(--border); border-radius: var(--radius); background: #fdfbf7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; box-sizing: border-box; }
+    .dframe-cap { font-size: 12.5px; color: var(--text-dim); font-style: italic; text-align: center; }
+    /* Tap-to-enlarge lightbox (page one) */
+    .img-lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(24,19,28,0.93); display: flex; align-items: center; justify-content: center; padding: 18px; }
+    .img-lightbox img { max-width: 94vw; max-height: 86vh; border-radius: 6px; }
+    /* Pinned mini-cards at the top of the tarot reading page */
+    /* The page's own top padding moves INTO the pin row (sticky can't cover a
+       scroll container's padding band — content scrolls visibly through it). */
+    #tarot-app { padding-top: 0; }
+    #tarot-app .tpin { position: sticky; top: 0; z-index: 1; display: flex; justify-content: center; gap: 16px; background: var(--bg); border-bottom: 1px solid var(--border); margin: 0 -18px 14px; padding: calc(env(safe-area-inset-top, 0px) + 40px) 18px 8px; }
+    /* No pin row (cards not drawn yet) → the first element restores the gap. */
+    #tarot-app .quiz-stage > :first-child:not(.tpin) { margin-top: calc(env(safe-area-inset-top, 0px) + 46px); }
+    .tpin-slot { text-align: center; }
+    .tpin-img { height: 62px; border-radius: 3px; display: block; margin: 0 auto; }
+    .tpin-img.rev { transform: rotate(180deg); }
+    .tpin-noimg { width: 38px; height: 62px; border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+    .tpin-pos { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); margin-top: 4px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
     .dread:first-child { border-top: 0; padding-top: 0; }
     .dread-src { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
@@ -782,24 +882,73 @@
     /* ── Book of Shadows: the book ──
        The cover is a flat little hardback (no gradients); opening it takes
        over the screen like a lesson, with cream paper pages you turn. */
-    .bos-cover { width: 210px; height: 280px; margin: 22px auto 0; background: #241d2e; border: 1px solid #4a3f5c; border-radius: 6px 12px 12px 6px; box-shadow: inset 8px 0 0 #1a1424; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    .bos-cover { width: 210px; height: 280px; margin: 22px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
     .bos-cover:active { transform: scale(0.98); }
-    .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; }
-    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 30px; height: 30px; display: inline-block; }
-    .bos-cover-title { font-family: var(--serif); font-size: 26px; line-height: 1.2; color: #e8ddc8; margin-top: 10px; letter-spacing: 1px; }
-    .bos-cover-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #8a7d9c; margin-top: 12px; }
+    .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 26px; height: 26px; display: inline-block; }
+    .bos-cover-title { font-family: var(--serif); font-size: 26px; line-height: 1.2; color: #e8ddc8; letter-spacing: 1px; }
     body.book-open { overflow: hidden; }
     /* The open book floats as a real object — a white 3:4 page block with a
        flat spine crease — on the app's own dark background (flat tones only,
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .bos-crumb { flex: 1; text-align: center; font-family: var(--serif); font-size: 15px; color: var(--text); }
-    .bos-pageno { font-size: 11px; color: var(--text-faint); min-width: 52px; text-align: right; }
-    .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px 14px 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
-    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 62vh); max-height: 100%; background: #fefcf7; border-radius: 6px 14px 14px 6px; box-shadow: 0 10px 34px rgba(0,0,0,0.45); position: relative; display: flex; overflow: hidden; }
-    .bos-spine { flex: none; width: 12px; height: 100%; background: #f1ebdf; border-right: 1px solid #e4dccb; }
-    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #e9e2d2; }
+    .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 16px 20px 14px; }
+    .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
+    .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+    /* The page number lives at the BOTTOM of the page, serif, like a book. */
+    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
+    .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    /* Like a real open book: the page you're NOT reading is still there — a
+       slab of page running clean off the screen edge — and it alternates
+       sides with page parity (odd pages sit on the right of their spread, so
+       their neighbor bleeds off the LEFT; even pages the mirror). */
+    /* center, NOT stretch: align-items:stretch lets the flex row override the
+       book's aspect-ratio-derived height (WebKit distorted the spread taller
+       after paging through). The book keeps its own height; ONLY the neighbor
+       strip stretches to match it. */
+    .bos-row { display: flex; align-items: center; justify-content: center; width: 100%; max-height: 100%; }
+    .bos-row .bos-book { flex: 0 1 auto; margin: 0 14px; align-self: center; }
+    .bos-neighbor { flex: none; width: 18px; align-self: stretch; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: none; }
+    .bos-row.nleft .bos-neighbor, .bos-row.nright .bos-neighbor { display: block; }
+    .bos-row.nleft .bos-neighbor { order: -1; box-shadow: inset -9px 0 10px -8px rgba(48,30,20,0.28); }
+    .bos-row.nright .bos-neighbor { order: 2; box-shadow: inset 9px 0 10px -8px rgba(48,30,20,0.28); }
+    /* The current page joins its neighbor at the gutter: flush edge, square
+       corners on that side, and the spine strip moves to the gutter side. */
+    .bos-row.nleft .bos-book { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .bos-row.nright .bos-book { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .bos-row.nright .bos-book .bos-spine { order: 2; border-right: none; border-left: 1px solid var(--border-soft); }
+    .bos-row.nright .bos-book .bos-spine::before { margin-left: auto; }
+    /* The book pages match the Home cards: light cream on the darker cream
+       background, softly-rounded corners, card border — not a floating slab. */
+    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 62vh); max-height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(48,30,20,0.10); position: relative; display: flex; overflow: hidden; }
+    .bos-spine { flex: none; width: 12px; height: 100%; background: #f4eddd; border-right: 1px solid var(--border-soft); }
+    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #ece3d0; }
+    /* First view: the OPEN book — two facing pages with a center gutter. */
+    .bos-book.spread { aspect-ratio: 10 / 7.2; width: 100%; }
+    .bos-book.spread .bos-spine { display: none; }
+    .bos-leaf { flex: 1; min-width: 0; overflow: hidden; padding: 20px 15px; }
+    .bos-leaf.left { border-right: 1px solid var(--border-soft); box-shadow: inset -10px 0 14px -12px rgba(48,30,20,0.18); }
+    .bos-leaf.right { box-shadow: inset 10px 0 14px -12px rgba(48,30,20,0.18); }
+    .bos-title-page { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+    .bos-title-page .star { color: var(--gold); line-height: 0; }
+    .bos-title-page .star svg { width: 22px; height: 22px; }
+    .bos-title-page .t { font-family: var(--serif); font-size: 21px; color: #221c14; line-height: 1.25; }
+    /* Contents: gold section names, dot leaders, black page numbers. */
+    .bos-toc-h { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; margin-bottom: 10px; }
+    .bos-toc-row { display: flex; align-items: baseline; gap: 6px; padding: 9px 0; cursor: pointer; }
+    .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
+    .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
+    .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
+    /* Reading pages: the pulled cards first, reading text behind an expand. */
+    .bos-cards { display: flex; gap: 10px; justify-content: center; margin: 6px 0 4px; }
+    .bos-cardslot { flex: 1; max-width: 92px; text-align: center; }
+    .bos-cardslot img { width: 100%; border-radius: 4px; display: block; margin: 0 auto 6px; }
+    .bos-cardslot img.rev { transform: rotate(180deg); }
+    .bos-cardslot .cn { font-family: var(--serif); font-size: 12.5px; color: #221c14; line-height: 1.25; }
+    .bos-cardslot .co { font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
+    .bos-cardph { width: 100%; aspect-ratio: 3 / 5; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); margin-bottom: 6px; }
+    .bos-cardph svg { width: 18px; height: 18px; }
     .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; }
     @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
     .bos-page { animation: bosPageIn 0.2s ease; }
@@ -816,6 +965,13 @@
     .bos-actions { margin-top: 18px; display: flex; gap: 14px; }
     .bos-actions .link-btn { background: none; border: none; font-family: inherit; font-size: 12.5px; color: #9c6f33; cursor: pointer; padding: 4px 0; text-decoration: underline; }
     .bos-actions .link-btn.danger { color: #a05252; }
+    /* "Full reading" — a small tidy button, not underlined link text. */
+    .bos-readbtn { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gold); background: none; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 8px 15px; cursor: pointer; }
+    .bos-readbtn:active { transform: scale(0.985); }
+    /* Book nav: gold filled arrows on the sides, action button in the middle. */
+    .bos-arrow { background: none; border: none; color: var(--gold); cursor: pointer; padding: 8px 6px; display: inline-flex; align-items: center; }
+    .bos-arrow svg { width: 22px; height: 22px; }
+    .bos-arrow[disabled] { visibility: hidden; }
     /* Index (contents) page */
     .bos-index-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; border-bottom: 1px dashed #d9cbb4; cursor: pointer; }
     .bos-index-row .n { font-family: var(--serif); font-size: 17px; color: #221c14; }
@@ -939,7 +1095,13 @@
         <div class="section-sub">Which ones have been put in your path today?</div>
         <!-- Suspicious coincidence — describe it, AI draws it -->
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
-          <div class="kicker">Suspicious coincidence…</div>
+          <div class="coin-head">
+            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
+            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
+              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
+              <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+            </button>
+          </div>
           <div class="coin-boxes">
             <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <span class="js-star"></span></button></div>
             <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <span class="js-star"></span></button></div>
@@ -1032,6 +1194,7 @@
         <!-- Dream reading -->
         <div class="section-title">What did you dream last night?</div>
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
+        <div id="dream-home-slot">
         <div class="card" id="dream-card">
           <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
@@ -1043,6 +1206,7 @@
           </div>
           <div class="dream-out" id="dream-out" style="display:none;"></div>
           <div class="dbook" id="dream-book" style="display:none;"></div>
+        </div>
         </div>
 
         <!-- Products (row 2) — rendered from PRODUCT_ROWS[1] -->
@@ -1171,7 +1335,7 @@
         </div>
 
         <!-- Lesson reader: tap-based deck (cards injected by JS) -->
-        <div id="school-lesson" style="display:none;">
+        <div id="school-lesson" data-fullpage style="display:none;">
           <div class="deck-top">
             <button class="les-back" id="lesson-back" aria-label="Back to lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
             <div class="deck-prog" id="deck-prog"></div>
@@ -1187,24 +1351,19 @@
       <!-- ═══════════ BOOK OF SHADOWS ═══════════ -->
       <section class="view" id="view-book">
         <div class="kicker">Your grimoire</div>
-        <div class="section-title">Book of Shadows</div>
-        <div class="section-sub">Your days, spells, signs and dreams — kept like a real book.</div>
+        <div class="section-sub">Your readings, synchronicities, spell work and dreams, all in one place.</div>
 
         <!-- The book itself: a cover you open -->
         <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
           <div class="bos-cover-inner">
-            <span class="bos-cover-star js-star"></span>
             <div class="bos-cover-title">Book of<br>Shadows</div>
-            <div class="bos-cover-sub" id="bos-cover-sub"></div>
+            <span class="bos-cover-star js-star"></span>
           </div>
         </div>
         <p class="hint" style="text-align:center; margin-top:10px;">Tap the book to open it</p>
         <button class="btn" id="bos-quickwrite" style="margin-top:14px;">Write a page <span class="js-star"></span></button>
 
-        <!-- The Miracles studio (write & illustrate) lives below the book -->
-        <button class="btn-ghost" id="miracles-toggle" style="margin-top:26px;">Open the Miracles studio <span class="js-star"></span></button>
-
-        <!-- MIRACLES (legacy studio, toggled) -->
+        <!-- MIRACLES (legacy studio — not exposed; kept dormant) -->
         <div id="bos-miracles" style="display:none;">
           <div class="chips">
             <button class="chip active" data-bookview="write">Write</button>
@@ -1265,30 +1424,21 @@
 
         <!-- READINGS (legacy node — rendered inside the book now) -->
         <div id="bos-readings" style="display:none;"></div>
-
-        <!-- The open book: full-screen reader (Imprint-style takeover, like lessons) -->
-        <div id="bos-reader" style="display:none;">
-          <div class="deck-top">
-            <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-            <div class="bos-crumb" id="bos-crumb">Book of Shadows</div>
-            <div class="bos-pageno" id="bos-pageno"></div>
-          </div>
-          <div class="bos-stage" id="bos-stage"><div class="bos-book"><div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div></div></div>
-          <div class="deck-nav">
-            <button class="deck-prev" id="bos-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Back</button>
-            <button class="btn" id="bos-write">Write <span class="js-star"></span></button>
-            <button class="deck-prev" id="bos-next" style="visibility:visible;">Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
-          </div>
-        </div>
       </section>
 
       <!-- ═══════════ SHOP ═══════════ -->
       <section class="view" id="view-shop">
         <div class="kicker">The apothecary</div>
-        <div class="section-title">Shop</div>
-        <div class="section-sub">Crystals, herbs &amp; ritual goods from secretlyawitch.com.</div>
+        <div class="shop-head">
+          <div class="section-title">Shop</div>
+          <button class="cart-btn" onclick="openCartSheet()" aria-label="Open cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+            <span>Cart</span><span class="cbadge" id="cart-badge" style="display:none;">0</span>
+          </button>
+        </div>
+        <div class="section-sub">Crystals, herbs &amp; ritual goods — buy right here; only the pay screen is Shopify's.</div>
         <div id="shop-grid" class="shop-grid"></div>
-        <a class="btn-ghost" id="shop-all" href="https://secretlyawitch.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
+        <a class="btn-ghost" id="shop-all" href="https://cod-god-inc.myshopify.com" target="_blank" rel="noopener" style="margin-top:6px;">Visit the full shop ✦</a>
       </section>
     </main>
 
@@ -1308,14 +1458,22 @@
     <div class="modal" id="modal"></div>
   </div>
 
+  <!-- In-app buying: product sheet + cart sheet (bottom sheets over the shop) -->
+  <div class="sheet-bg" id="prod-sheet-bg" data-fullpage>
+    <div class="sheet" id="prod-sheet"></div>
+  </div>
+  <div class="sheet-bg" id="cart-sheet-bg" data-fullpage>
+    <div class="sheet" id="cart-sheet"></div>
+  </div>
+
   <!-- "Are you secretly a witch?" — full-screen quiz app -->
-  <div class="quiz-app" id="quiz-app" style="display:none;">
+  <div class="quiz-app" id="quiz-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="quiz-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="quiz-stage"></div>
   </div>
 
   <!-- Dive deeper — the day's full reading as its own full-screen page -->
-  <div class="quiz-app" id="deep-app" style="display:none;">
+  <div class="quiz-app" id="deep-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="deep-stage"></div>
   </div>
@@ -1327,22 +1485,52 @@
   </div>
 
   <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
-  <div class="quiz-app" id="tarot-app" style="display:none;">
+  <div class="quiz-app" id="tarot-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="tarot-deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
   <!-- Past dream readings — its own full-screen page (not the Home feed), so the
        list can't be scrolled past and has room for paid content later. -->
-  <div class="quiz-app" id="dreampast-app" style="display:none;">
+  <div class="quiz-app" id="dreampast-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="dreampast-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="dreampast-stage"></div>
   </div>
 
   <!-- Dream reading dive-deeper — the full interpretation, its own page -->
-  <div class="quiz-app" id="dreamread-app" style="display:none;">
+  <!-- The open book: full-screen reader. Lives as a TOP-LEVEL overlay (a
+       sibling of the .quiz-app pages, OUTSIDE .app) so its position:fixed always
+       maps to the viewport — nested inside the tab, a transformed ancestor (the
+       tab-switch fade) would push it below the app header (double-header bug). -->
+  <div id="bos-reader" data-fullpage style="display:none;">
+    <div class="bos-head">
+      <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <span class="sigil" data-sigil-clone></span>
+      <h1>Secretly a Witch</h1>
+      <span class="sigil" data-sigil-clone></span>
+    </div>
+    <div class="bos-stage" id="bos-stage"><div class="bos-row" id="bos-row"><div class="bos-book"><div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div></div></div></div>
+    <div class="deck-nav">
+      <button class="bos-arrow" id="bos-prev" aria-label="Previous page"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M15 4 7 12l8 8z"/></svg></button>
+      <button class="btn" id="bos-write">Add to your book</button>
+      <button class="bos-arrow" id="bos-next" aria-label="Next page"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9 4l8 8-8 8z"/></svg></button>
+    </div>
+  </div>
+
+  <div class="quiz-app" id="dreamread-app" data-fullpage style="display:none;">
     <button class="quiz-back" id="dreamread-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="dreamread-stage"></div>
+  </div>
+
+  <!-- The dream's own page: the Home dream card MOVES here (same DOM node, so
+       every listener and in-flight job state rides along) the moment Illustrate
+       or Unlock is tapped — it looks identical, just on its own page. -->
+  <div class="quiz-app" id="dream-app" data-fullpage style="display:none;">
+    <button class="quiz-back" id="dream-page-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage">
+      <div class="quiz-kicker">Your dream</div>
+      <div id="dream-page-slot"></div>
+    </div>
   </div>
 
   <script>
@@ -1359,10 +1547,79 @@
     // TODO: replace `youtube` with the real channel URL (e.g. https://youtube.com/@handle).
     // The backend YouTube token is upload-only scope, so it can't reveal the channel — needs the handle.
     youtube: 'https://www.youtube.com/results?search_query=secretly+a+witch',
-    shop: 'https://secretlyawitch.com',
+    // The store's permanent Shopify home. secretlyawitch.com itself now points
+    // at THIS app, so shop links must go to the store directly.
+    shop: 'https://cod-god-inc.myshopify.com',
     instagram: 'https://instagram.com/moonsickbaby',
+    // TODO: point at the real membership/subscribe page once it exists on the
+    // website (Stripe checkout). Placeholder = the site root for now.
+    subscribe: 'https://secretlyawitch.com',
   };
   document.getElementById('shop-all').href = LINKS.shop;
+
+  // ── Membership entitlement (paywall) ──────────────────────────────
+  // Paid features call isPaid(). Source of truth = the account's Stripe
+  // membership, read from GET /api/stripe/entitlement on sign-in and cached in
+  // PAID_KEY. The ?paid=1 / ?paid=0 override stays for QA (wins over the cache).
+  const PAID_KEY = 'witch_is_paid';    // cached entitlement ("1"/"0") from the server
+  const PAID_TEST = 'witch_test_paid'; // dev/QA override
+  const IS_APP = new URLSearchParams(location.search).has('app'); // iOS webview wrapper
+  let pendingSubscribe = false, subJustSucceeded = false;
+  (function () { const m = /[?&]paid=([01])/.exec(location.search); if (m) { try { localStorage.setItem(PAID_TEST, m[1]); } catch (e) {} } })();
+  // Handle the Stripe return + the external-browser subscribe entry point.
+  (function () {
+    const p = new URLSearchParams(location.search);
+    if (p.get('subscribe') === '1') pendingSubscribe = true;
+    const sub = p.get('sub');
+    if (sub === 'success') subJustSucceeded = true;
+    else if (sub === 'cancel') setTimeout(() => { try { toast('Checkout canceled ✦'); } catch (e) {} }, 700);
+    if (sub) { try { history.replaceState(null, '', location.pathname + (IS_APP ? '?app=1' : '')); } catch (e) {} }
+  })();
+  function isPaid() { try { return localStorage.getItem(PAID_TEST) === '1' || localStorage.getItem(PAID_KEY) === '1'; } catch (e) { return false; } }
+  // Ask the server whether this signed-in account is a paying member.
+  async function refreshEntitlement() {
+    try {
+      if (!fbAuth || !fbUser) return;
+      const tok = await fbUser.getIdToken();
+      const r = await fetch('/api/stripe/entitlement', { headers: { Authorization: 'Bearer ' + tok } });
+      const j = await r.json().catch(() => null);
+      if (j && j.signedIn) { try { localStorage.setItem(PAID_KEY, j.active ? '1' : '0'); } catch (e) {} }
+    } catch (e) {}
+  }
+  // Kick off Stripe Checkout for the signed-in user (redirects to Stripe).
+  async function startCheckout() {
+    try {
+      if (!fbAuth) { toast('One moment — still loading ✦'); return; }
+      if (!fbUser) { pendingSubscribe = true; if (typeof showSignIn === 'function') showSignIn(); return; }
+      const tok = await fbUser.getIdToken();
+      const r = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: '{}' });
+      const j = await r.json().catch(() => ({}));
+      if (j && j.url) location.href = j.url;
+      else toast(j.error || 'Could not start checkout ✦');
+    } catch (e) { toast('Checkout error: ' + e.message); }
+  }
+  // In the iOS app, Apple forbids selling digital goods in-app, so hand off to
+  // the external browser to subscribe; on the web, check out inline.
+  function beginSubscribe() {
+    if (IS_APP) { try { window.open(location.origin + '/witch?subscribe=1', '_blank'); } catch (e) {} return; }
+    startCheckout();
+  }
+  function openUpgrade(feature) {
+    const blurb = ({
+      coincidence: 'unlimited redraws',
+      dream: 'your whole illustrated dream',
+      tarot: 'the full major arcana',
+      chart: 'birth charts for your friends',
+    })[feature] || 'every members-only feature';
+    openModal(
+      '<h2 style="margin-bottom:4px;">Secretly a Witch membership</h2>' +
+      '<p class="sub">Unlock ' + blurb + ' — plus everything members get — for $4/month. ✦</p>' +
+      '<button class="gbtn" id="up-go">Become a member</button>' +
+      '<button class="close-x" id="up-x">maybe later</button>'
+    );
+    const g = $('up-go'); if (g) g.addEventListener('click', () => { closeModal(); beginSubscribe(); });
+    const x = $('up-x'); if (x) x.addEventListener('click', closeModal);
+  }
 
   // ── Helpers ──
   const $ = (id) => document.getElementById(id);
@@ -1446,13 +1703,38 @@
 
   // ── Navigation ──
   const views = ['home', 'school', 'book', 'shop'];
+  /* ── Full-page overlay registry (root fix for "the nav stopped working") ──
+     Every full-screen surface (lesson deck, quiz, book reader, dive-deeper
+     pages, dream page…) toggles its own display + scroll lock. go() used to
+     keep a HAND-WRITTEN list of close calls, and every new surface forgot to
+     join it — so a nav tap switched the view UNDERNEATH while the overlay
+     stayed on top, and the nav "did nothing" (school-lesson, quiz-app and
+     dream-app were all missing when this was fixed). Now surfaces register
+     once here, go() closes whatever is open, and a data-fullpage DOM sweep +
+     scroll-lock reset catches anything that forgot — an unregistered overlay
+     can never trap the nav again.
+     ADDING A NEW FULL-PAGE SURFACE: put data-fullpage on its root element and
+     call registerFullPage('element-id', itsCloseFunction) in the registration
+     block near INIT. That's the whole contract. */
+  const FULL_PAGES = [];
+  function registerFullPage(id, close) { FULL_PAGES.push({ id, close }); }
+  function closeFullPages() {
+    // Registered surfaces close via their own close fn (restores their state).
+    FULL_PAGES.forEach(p => {
+      const el = document.getElementById(p.id);
+      if (el && el.style.display !== 'none') { try { p.close(); } catch (e) {} }
+    });
+    // Safety net: force-hide any still-visible [data-fullpage] overlay (one
+    // that never registered), drop lightboxes, clear every scroll lock, and
+    // dismiss any open dialog — the nav must always win.
+    document.querySelectorAll('[data-fullpage]').forEach(el => { if (el.style.display !== 'none') el.style.display = 'none'; });
+    document.querySelectorAll('.img-lightbox').forEach(el => el.remove());
+    document.body.classList.remove('lesson-open', 'book-open');
+    document.body.style.overflow = '';
+    try { closeModal(); } catch (e) {}
+  }
   function go(view) {
-    // These full-screen pages sit below the nav (z 45), so a nav tap must
-    // close them — otherwise the overlay stays covering the view you switched to.
-    if (deepOpen) closeDeep();   // the Dive-deeper page yields to the nav
-    if (typeof tarotDeepOpen !== 'undefined' && tarotDeepOpen) closeTarotDeep();
-    if (typeof dreamReadDeepOpen !== 'undefined' && dreamReadDeepOpen) closeDreamReadDeep();
-    if (typeof dreamPastOpen !== 'undefined' && dreamPastOpen) closeDreamPast();
+    closeFullPages(); // a nav tap always lands on the tab itself, never behind an overlay
     views.forEach(v => $('view-' + v).classList.toggle('active', v === view));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
@@ -2096,7 +2378,7 @@
     saveReadings(all); updateSavedCount(); tarotSaved = true;
   }
   const T_ICON = {
-    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>',
+    save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
     deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
     charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
   };
@@ -2104,7 +2386,19 @@
     const st = $('tarot-deep-stage'); if (!st) return;
     if (!dailyTarot) { st.innerHTML = `<div class="quiz-kicker">Your reading</div><p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The cards are quiet right now.</p>`; return; }
     const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    let h = `<div class="quiz-kicker">Your full reading</div>`;
+    let h = '';
+    // The drawn cards ride pinned at the top of this page — the reading below
+    // scrolls, the cards you pulled don't leave.
+    if (dailyPicks) {
+      h += `<div class="tpin">` + dailyPicks.map(p => {
+        const img = DECK_IMG[p.card.name];
+        const rev = p.orientation === 'reversed';
+        return `<div class="tpin-slot">${img
+          ? `<img class="tpin-img${rev ? ' rev' : ''}" src="${img}" alt="${esc(p.card.name)}">`
+          : `<div class="tpin-noimg">✦</div>`}<div class="tpin-pos">${esc(p.position || '')}</div></div>`;
+      }).join('') + `</div>`;
+    }
+    h += `<div class="quiz-kicker">Your full reading</div>`;
     h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
     h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
     // Each card, its position + meaning
@@ -2169,7 +2463,7 @@
     try {
       const d = await apiGet('/api/witch/shop');
       const items = (d.products || []).filter(p => p.image);
-      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now. Visit secretlyawitch.com.</div>`; wrap.dataset.loaded = '1'; return; }
+      if (!items.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const shortTitle = t => {
         const cut = t.split(/\s*[~•|]\s*/)[0].trim();
         return cut.length >= 4 ? cut : t;
@@ -2177,7 +2471,9 @@
       wrap.innerHTML = items.map(p => {
         const price = p.priceMin ? `$${p.priceMin}` : (p.price ? `$${p.price}` : '');
         const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
-        return `<a class="shop-item" href="${esc(p.url)}" target="_blank" rel="noopener">
+        // In-app buying: tap opens the product sheet. The href stays as a
+        // long-press/no-JS fallback to the store's product page.
+        return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
           ${img}
           <div class="sbody">
             <div class="stitle">${esc(shortTitle(p.title))}</div>
@@ -2187,18 +2483,163 @@
         </a>`;
       }).join('');
       wrap.dataset.loaded = '1';
+      refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
-      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open secretlyawitch.com</a>.</div>`;
+      wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
   }
+
+  /* ── In-app buying: product sheet + cart (Storefront API via the server) ──
+     Browsing, variants and the cart all live INSIDE the app; only the final
+     pay screen is Shopify's secure checkout (required — it also handles
+     shipping and taxes). Cart id persists in localStorage; Shopify expires
+     carts after ~10 days, and an expired id just quietly starts a fresh one. */
+  let CART_ID = localStorage.getItem('witch_cart_id') || '';
+  const PROD_CACHE = {};
+  let psState = null; // { p, variantId, qty, img }
+
+  function money(a) { const n = parseFloat(a); return isFinite(n) ? '$' + n.toFixed(2) : ''; }
+  function cartBadge(n) {
+    const b = $('cart-badge');
+    b.textContent = n > 99 ? '99+' : String(n || 0);
+    b.style.display = n > 0 ? '' : 'none';
+  }
+  async function refreshCartBadge() {
+    if (!CART_ID) return cartBadge(0);
+    try {
+      const d = await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID));
+      if (!d.cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); return cartBadge(0); }
+      cartBadge(d.cart.count);
+    } catch (e) { /* badge only */ }
+  }
+
+  // ── product sheet ──
+  async function openProduct(handle) {
+    const bg = $('prod-sheet-bg'), sh = $('prod-sheet');
+    bg.style.display = ''; bg.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Fetching…</div>`;
+    try {
+      const p = PROD_CACHE[handle] || (PROD_CACHE[handle] = await apiGet('/api/witch/shop/product/' + encodeURIComponent(handle)));
+      const firstAvail = p.variants.find(v => v.available) || p.variants[0] || null;
+      psState = { p, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0 };
+      renderProdSheet();
+    } catch (e) {
+      sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't load this item — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">try the full shop</a>.</div>`;
+    }
+  }
+  function renderProdSheet() {
+    const { p, variantId, qty, img } = psState, sh = $('prod-sheet');
+    const v = p.variants.find(x => x.id === variantId) || p.variants[0] || {};
+    const showVars = p.variants.length > 1;
+    sh.innerHTML = `
+      <button class="sx" onclick="closeProdSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
+      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(u)}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
+      <div class="ps-title">${esc(p.title)}</div>
+      <div class="ps-price">${money(v.price)}</div>
+      ${showVars ? `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>` : ''}
+      <div class="ps-row">
+        <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
+        <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
+      </div>
+      <div class="ps-desc">${p.descriptionHtml || ''}</div>`;
+  }
+  function psImg(i) { psState.img = i; renderProdSheet(); }
+  function psVar(id) { psState.variantId = id; renderProdSheet(); }
+  function psQty(d) { psState.qty = Math.max(1, Math.min(20, psState.qty + d)); $('ps-qty').textContent = psState.qty; }
+  function closeProdSheet() {
+    const bg = $('prod-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
+    if (!$('cart-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
+  }
+  async function addToCart() {
+    if (!psState || !psState.variantId) return;
+    const btn = $('ps-add'); btn.disabled = true; btn.textContent = 'Adding…';
+    try {
+      const d = await api('/api/witch/cart/add', { cartId: CART_ID || undefined, variantId: psState.variantId, quantity: psState.qty });
+      if (d.cart) { CART_ID = d.cart.id; localStorage.setItem('witch_cart_id', CART_ID); cartBadge(d.cart.count); }
+      closeProdSheet();
+      toast('Added to your cart ✦');
+    } catch (e) {
+      toast("Couldn't add that — " + e.message);
+      btn.disabled = false; btn.textContent = 'Add to cart ✦';
+    }
+  }
+
+  // ── cart sheet ──
+  async function openCartSheet() {
+    const bg = $('cart-sheet-bg'), sh = $('cart-sheet');
+    bg.style.display = ''; bg.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Opening the cart…</div>`;
+    await renderCart();
+  }
+  async function renderCart(cartArg) {
+    const sh = $('cart-sheet');
+    let cart = cartArg;
+    if (cart === undefined) {
+      cart = null;
+      if (CART_ID) {
+        try { cart = (await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID))).cart; }
+        catch (e) { sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
+      }
+    }
+    if (!cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); }
+    const x = `<button class="sx" onclick="closeCartSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
+    if (!cart || !cart.lines.length) {
+      cartBadge(0);
+      sh.innerHTML = `${x}<div class="ps-title">Your cart</div><div class="empty" style="padding:22px 0;">Nothing gathered yet — the shelves await. ✦</div>`;
+      return;
+    }
+    cartBadge(cart.count);
+    sh.dataset.checkout = cart.checkoutUrl;
+    sh.innerHTML = `${x}<div class="ps-title">Your cart</div>
+      ${cart.lines.map(l => `<div class="cl-line">
+        ${l.image ? `<img src="${esc(l.image)}" alt="">` : ''}
+        <div class="cl-info">
+          <div class="cl-title">${esc(l.title)}</div>
+          ${l.variant && l.variant !== 'Default Title' ? `<div class="cl-var">${esc(l.variant)}</div>` : ''}
+          <div class="cl-price">${money(l.total)}</div>
+        </div>
+        <div class="qty"><button onclick="cartQty('${esc(l.id)}', ${l.quantity - 1})" aria-label="Less">−</button><span>${l.quantity}</span><button onclick="cartQty('${esc(l.id)}', ${l.quantity + 1})" aria-label="More">+</button></div>
+      </div>`).join('')}
+      <div class="cl-sub"><span>Subtotal</span><b>${money(cart.subtotal)}</b></div>
+      <div class="cl-note">Shipping &amp; taxes are worked out at checkout — Shopify's secure pay page.</div>
+      <button class="cl-checkout" onclick="goCheckout()">Checkout ✦</button>`;
+  }
+  async function cartQty(lineId, q) {
+    try {
+      const d = await api('/api/witch/cart/update', { cartId: CART_ID, lineId, quantity: Math.max(0, q) });
+      await renderCart(d.cart);
+    } catch (e) { toast('Cart hiccup — ' + e.message); }
+  }
+  function goCheckout() {
+    const url = $('cart-sheet').dataset.checkout;
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+  function closeCartSheet() {
+    const bg = $('cart-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
+    if (!$('prod-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
+  }
+  $('prod-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeProdSheet(); });
+  $('cart-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeCartSheet(); });
 
   /* ══════════ BOOK OF SHADOWS: the journal ══════════
      One chronological book. New entries live in localStorage['witch_journal'];
      legacy content (miracles, saved readings) folds into the same page stream
      as its own page types, so nothing is lost. Page 0 is the contents page. */
-  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A sign', dream: 'A dream', miracle: 'Miracle', reading: 'Reading' };
-  const BOS_SECTIONS = { all: 'Book of Shadows', note: 'Day notes', spell: 'Spells & outcomes', sign: 'Signs & synchronicities', dream: 'Dreams', reading: 'Readings', miracle: 'Miracles' };
-  let bosFilter = 'all', bosPageIdx = 0;
+  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A synchronicity', dream: 'A dream', miracle: 'A synchronicity', reading: 'Reading' };
+  // The book reads like a real book: sections in a fixed order, each holding
+  // its pages chronologically. Old 'note' and 'miracle' entries live on inside
+  // Synchronicities so nothing already written is ever lost.
+  const BOS_SECTS = [
+    { key: 'reading', name: 'Readings', kinds: ['reading'] },
+    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
+    { key: 'spell', name: 'Spell work', kinds: ['spell'] },
+    { key: 'dream', name: 'Dreams', kinds: ['dream'] },
+  ];
+  const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
+  let bosPageIdx = 0;   // 0 = the open spread (title + contents), 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function tsOf(id) { const m = String(id || '').match(/(\d{13})/); return m ? +m[1] : 0; }
@@ -2210,13 +2651,48 @@
     pages.sort((a, b) => a.ts - b.ts);
     return pages;
   }
-  function bosPages() { return bosFilter === 'all' ? bosAllPages() : bosAllPages().filter(p => p.kind === bosFilter); }
+  function isoOfTs(ts) { if (!ts) return '0000-00-00'; const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  function syncDateLabel(iso) { const p = iso.split('-').map(Number); const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[p[1] - 1] ? `${M[p[1] - 1]} ${p[2]}` : ''; }
+  // Synchronicities = the drawn coincidences (archived daily) + any legacy
+  // hand-written sign/note/miracle entries — grouped by day, 4 to a page.
+  function syncItems() {
+    const out = [];
+    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '' }); });
+    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: null, desc: e.text || '' }); } });
+    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
+    return out.sort((a, b) => a.ts - b.ts);
+  }
+  function syncPages() {
+    const byDay = {};
+    syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
+    const out = [];
+    Object.keys(byDay).sort().forEach(d => { const items = byDay[d]; for (let k = 0; k < items.length; k += 4) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: items.slice(k, k + 4) }); });
+    return out;
+  }
+  function bosPages() {
+    const all = bosAllPages();
+    const out = [];
+    for (const s of BOS_SECTS) {
+      if (s.key === 'sync') syncPages().forEach(p => out.push(p));
+      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; out.push(p); });
+    }
+    return out;
+  }
+  // 1-based page number where a section starts — the contents' page numbers.
+  function bosSectStart(key) {
+    const pages = bosPages();
+    const idx = pages.findIndex(p => p.sect === key);
+    if (idx >= 0) return idx + 1;
+    let n = 1;   // empty section: point where it WOULD start
+    for (const s of BOS_SECTS) { if (s.key === key) return n; n += pages.filter(p => p.sect === s.key).length; }
+    return n;
+  }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
   function openBook(filter) {
-    bosFilter = filter || 'all';
-    // Open to the contents page for a filtered visit, else to the latest page.
-    bosPageIdx = filter && filter !== 'all' ? 1 : 0;
-    if (!filter || filter === 'all') bosPageIdx = 0;
+    // Always open on the spread; a section request (school lesson CTAs) jumps
+    // straight to that section's first page.
+    bosPageIdx = 0;
+    if (filter && filter !== 'all') bosPageIdx = Math.min(bosSectStart(bosSectOf(filter)), Math.max(1, bosPages().length));
     $('bos-reader').style.display = '';
     document.body.classList.add('book-open');
     renderBosPage();
@@ -2224,17 +2700,37 @@
   function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
   function renderBosPage() {
     const pages = bosPages(), total = pages.length;
-    $('bos-crumb').textContent = BOS_SECTIONS[bosFilter] || 'Book of Shadows';
-    if (bosPageIdx <= 0) { renderBosIndex(); return; }
+    if (bosPageIdx <= 0) { renderBosSpread(); return; }
     if (bosPageIdx > total) bosPageIdx = total;
+    const book = document.querySelector('#bos-stage .bos-book');
+    book.classList.remove('spread');
+    book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
+    // Odd pages read as the right-hand page of their spread (neighbor bleeds
+    // off the LEFT edge); even pages the mirror — turning alternates sides.
+    const row = $('bos-row');
+    if (!row.querySelector('.bos-neighbor')) { const nb = document.createElement('div'); nb.className = 'bos-neighbor'; row.appendChild(nb); }
+    row.className = 'bos-row ' + (bosPageIdx % 2 === 1 ? 'nleft' : 'nright');
     if (!total) {
+      row.className = 'bos-row';
       $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">These pages are still blank.<br>Tap Write to begin your book. ✦</div>`;
-      $('bos-pageno').textContent = '';
       return;
     }
     const p = pages[bosPageIdx - 1];
-    $('bos-pageno').textContent = bosPageIdx + ' of ' + total;
-    let inner = `<div class="bos-date">${esc(bosDate(p.ts))}<span class="bos-type">${esc(BOS_TYPES[p.kind] || p.kind)}</span></div>`;
+    if (p.page === 'sync') {
+      // 2×2 grid: the day's coincidences, image in the box + caption under it.
+      let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
+      for (let k = 0; k < 4; k++) {
+        const it = p.items[k];
+        g += `<div class="bos-sync-cell">
+          <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
+          <div class="bos-sync-cap">${it && it.desc ? esc(it.desc) : ''}</div>
+        </div>`;
+      }
+      g += `</div>`;
+      $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      return;
+    }
+    let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
     if (p.src === 'journal') {
       const e = p.e;
       inner += e.title ? `<h3>${esc(e.title)}</h3>` : '';
@@ -2250,22 +2746,40 @@
       if (e.url) inner += `<img src="${e.url}" alt="">`;
       inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
     } else if (p.src === 'reading') {
+      // The pulled cards ARE the page (the date above already names the pull —
+      // no repetitive "Daily pull" title); the written reading waits behind a tap.
       const r = p.e;
-      const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
-      inner += `<h3>${esc(r.question || 'A reading')}</h3><div class="bos-context">${esc(cards)}</div><div style="margin-top:10px;">${renderReading(r.data, true)}</div>`;
+      inner += `<div class="bos-cards">${(r.cards || []).map(c => {
+        const img = DECK_IMG[c.name];
+        return `<div class="bos-cardslot">${img
+          ? `<img src="${img}" class="${c.orientation === 'reversed' ? 'rev' : ''}" alt="${esc(c.name)}">`
+          : `<div class="bos-cardph">${STAR}</div>`}
+          <div class="cn">${esc(c.name)}</div>
+          <div class="co">${c.orientation === 'reversed' ? 'reversed' : 'upright'}${c.position ? ' · ' + esc(c.position) : ''}</div></div>`;
+      }).join('')}</div>`;
+      inner += `<div class="bos-actions"><button class="bos-readbtn" data-expand="1">Full reading</button></div>
+        <div class="bos-fullreading" style="display:none; margin-top:10px;">${renderReading(r.data, true)}</div>`;
     }
-    $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}</div>`;
+    $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
   }
-  function renderBosIndex() {
-    const all = bosAllPages();
-    const count = k => all.filter(p => p.kind === k).length;
-    const rows = [['all', 'All pages', all.length], ['note', 'Day notes', count('note')], ['spell', 'Spells & outcomes', count('spell')], ['sign', 'Signs & synchronicities', count('sign')], ['dream', 'Dreams', count('dream')], ['reading', 'Readings', count('reading')], ['miracle', 'Miracles', count('miracle')]];
-    $('bos-pageno').textContent = 'contents';
-    $('bos-pagewrap').innerHTML = `<div class="bos-page">
-      <div class="bos-date">Contents</div>
-      ${rows.map(([k, n, c]) => `<div class="bos-index-row" data-sect="${k}"><span class="n">${n}</span><span class="c">${c ? c + (c === 1 ? ' page' : ' pages') : '—'}</span></div>`).join('')}
-      <p class="hint" style="margin-top:16px;">Tap a section, or tap the right side of any page to turn it.</p>
-    </div>`;
+  // The open book: title page on the left leaf, contents on the right —
+  // gold section names, dot leaders, black page numbers, like a real book.
+  function renderBosSpread() {
+    const n = bosAllPages().length;
+    const book = document.querySelector('#bos-stage .bos-book');
+    book.classList.add('spread');
+    const row = $('bos-row'); if (row) row.className = 'bos-row';  // the spread shows both pages itself
+    const rows = BOS_SECTS.map(s =>
+      `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
+    book.innerHTML = `
+      <div class="bos-leaf left"><div class="bos-title-page">
+        <div class="t">Book of<br>Shadows</div>
+        <div class="star">${STAR}</div>
+      </div></div>
+      <div class="bos-leaf right">
+        <div class="bos-toc-h">Contents</div>
+        ${rows}
+      </div>`;
   }
   $('bos-cover').addEventListener('click', () => openBook('all'));
   $('bos-close').addEventListener('click', closeBook);
@@ -2273,23 +2787,31 @@
   $('bos-next').addEventListener('click', () => { if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); } });
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
-    if (sect) { bosFilter = sect.dataset.sect; bosPageIdx = bosFilter === 'all' ? 1 : (bosPages().length ? 1 : 1); renderBosPage(); return; }
+    if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const ex = e.target.closest('[data-expand]');
+    if (ex) {
+      const fr = ex.closest('.bos-page').querySelector('.bos-fullreading');
+      const show = fr.style.display === 'none';
+      fr.style.display = show ? '' : 'none';
+      ex.textContent = show ? 'Hide reading' : 'Full reading';
+      return;
+    }
     const oc = e.target.closest('[data-outcome]');
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
-    if (e.target.closest('a, button, img')) return;
+    if (e.target.closest('a, button')) return;   // images (tarot cards) turn the page too
     // Tap zones: right side turns forward, left edge turns back.
     if (e.clientX < window.innerWidth * 0.28) { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
   /* Composer */
-  let bosComposeType = 'note', bosOutcomeFor = null;
+  let bosComposeType = 'sign', bosOutcomeFor = null;
   function openComposer(mode) {
     const isOutcome = mode === 'outcome';
     openModal(`<h2 style="margin-bottom:4px;">${isOutcome ? 'How did it turn out?' : 'Write a page'}</h2>
       ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
-        ${['note', 'spell', 'sign', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
+        ${['sign', 'spell', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
       </div>`}
       <textarea id="bos-compose-text" rows="6" placeholder="${isOutcome ? 'The candle burned clean, and two days later…' : 'Write it as it happened…'}" style="width:100%;"></textarea>
       <div id="bos-context-wrap" style="display:${!isOutcome && bosComposeType === 'sign' ? '' : 'none'}; margin-top:10px;">
@@ -2323,16 +2845,19 @@
   $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openComposer(); });
   $('bos-quickwrite').addEventListener('click', () => openComposer());
   function updateBosCoverSub() {
+    const el = $('bos-cover-sub'); if (!el) return;   // page count removed from the cover
     const n = bosAllPages().length;
-    $('bos-cover-sub').textContent = n ? n + (n === 1 ? ' page' : ' pages') : 'blank & waiting';
+    el.textContent = n ? n + (n === 1 ? ' page' : ' pages') : 'blank & waiting';
   }
   updateBosCoverSub();
-  $('miracles-toggle').addEventListener('click', () => {
+  // Miracles studio is no longer exposed (button removed) — its toggle is gone;
+  // the dormant block stays hidden. Guard in case the button ever returns.
+  { const mt = $('miracles-toggle'); if (mt) mt.addEventListener('click', () => {
     const el = $('bos-miracles'), open = el.style.display !== 'none';
     el.style.display = open ? 'none' : '';
-    $('miracles-toggle').innerHTML = (open ? 'Open the Miracles studio ' : 'Close the Miracles studio ') + '<span class="js-star"></span>';
+    mt.innerHTML = (open ? 'Open the Miracles studio ' : 'Close the Miracles studio ') + '<span class="js-star"></span>';
     renderStars();
-  });
+  }); }
 
   /* ══════════ MIRACLES ══════════ */
   let mBook = loadBook();
@@ -2662,6 +3187,10 @@
   /* ══════════ HOME STATE (account gate → birthday → reading) ══════════ */
   // accountsConfigured: null=unknown (assume gated), true=Firebase live, false=off.
   let accountsConfigured = null;
+  // witchAuthReady: true once onAuthStateChanged has fired at least once (the
+  // cloud doc has had its chance to load), so a one-time cleanup knows the
+  // signed-in/out state is settled and a local clear won't be undone by a pull.
+  let witchAuthReady = false;
   function homeState() {
     if (!savedBirth()) return 'birthday';                          // birthday FIRST — no account needed
     if (accountsConfigured !== false && !fbUser) return 'gate';    // then create an account to unlock it
@@ -3044,77 +3573,202 @@
   // ~15s render survives leaving the app: the pending id per box is saved and
   // resumed on return.
   const COIN_PEND = 'witch_coin_jobs'; // pending job per box: { "0": {id, desc}, ... }
-  const COIN_DONE = 'witch_coin_done'; // finished draw per box: { "0": {url, desc}, ... }
+  const COIN_DONE = 'witch_coin_done'; // TODAY's finished draws per box: { "0": {desc,v,i}, ... }
+  // ── Synchronicities archive ──────────────────────────────────────────
+  // The Home coincidence boxes are DAILY (they reset at midnight). Every draw is
+  // also filed, permanently, into the archive, keyed per (day, box) so redraws
+  // update the same entry. The Book of Shadows' Synchronicities section reads
+  // this, grouped by day, 4 to a page.
+  const SYNC_ARCH = 'witch_sync_archive';   // [{ id, dateISO, ts, url, desc }]
+  const COIN_DAY = 'witch_coin_day';        // the day the Home boxes belong to
+  function syncArchLoad() { try { return JSON.parse(localStorage.getItem(SYNC_ARCH) || '[]'); } catch { return []; } }
+  function syncArchSave(a) { try { localStorage.setItem(SYNC_ARCH, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
+  function syncArchUpsert(entry) { const a = syncArchLoad(); const i = a.findIndex(x => x.id === entry.id); if (i >= 0) a[i] = { ...a[i], ...entry }; else a.push(entry); syncArchSave(a); }
+  // A new day: the previous day's draws are already archived, so clear the Home
+  // boxes. First run under the daily model: fold any existing draws in first.
+  function coinDailyRollover() {
+    let day = null; try { day = localStorage.getItem(COIN_DAY); } catch {}
+    const today = todayISO();
+    if (day === today) return;
+    if (day) { pendSet(COIN_DONE, null); pendSet(COIN_PEND, null); }
+    else {
+      const done = coinDoneAll();
+      Object.keys(done).forEach(i => { const st = done[i]; const u = st && st.v && st.v[st.i]; if (u) syncArchUpsert({ id: 'coin_' + today + '_' + i, dateISO: today, ts: Date.now(), url: u, desc: st.desc || '' }); });
+    }
+    try { localStorage.setItem(COIN_DAY, today); } catch {}
+  }
+  // One-time cleanup (per device/account): before the daily-reset model shipped,
+  // the Home coincidences were adopted as "today's" and lingered. They're already
+  // filed in the Synchronicities archive, so this clears the three Home boxes ONCE
+  // — nothing is lost. Guarded so the flag only commits once the cleared state
+  // will actually stick (the cloud can't re-restore it on the next pull).
+  const COIN_RESET_V = '2026-07-24';
+  function coinResetDone() { try { return localStorage.getItem('witch_coin_reset') === COIN_RESET_V; } catch { return false; } }
+  function coinOneTimeReset() {
+    if (coinResetDone()) return;
+    pendSet(COIN_DONE, null); pendSet(COIN_PEND, null);
+    // Only commit when nothing will restore the old draws:
+    //  • signed in            → push the cleared doc up first, then commit
+    //  • ungated / signed-out with auth resolved → commit
+    //  • auth still resolving  → leave uncommitted; re-runs after pullCloud
+    let canCommit = false;
+    if (fbUser && fbDb) { try { cloudSyncSoon(); } catch {} canCommit = true; }
+    else if (accountsConfigured === false || witchAuthReady) { canCommit = true; }
+    if (canCommit) { try { localStorage.setItem('witch_coin_reset', COIN_RESET_V); } catch {} }
+  }
+  // "Saved to your Book of Shadows" bookmark — fills once you've drawn one today.
+  function coinSavedToday() { const d = coinDoneAll(); return Object.keys(d).some(i => { const st = d[i]; return st && st.v && st.v.length; }); }
+  function updateCoinBookmark(animate) {
+    const el = $('coin-saved'); if (!el) return;
+    const on = coinSavedToday();
+    el.classList.toggle('filled', on);
+    if (on && animate) { el.classList.remove('just'); void el.offsetWidth; el.classList.add('just'); }
+  }
   const COIN_BTN_HTML = 'Draw it! <span class="js-star"></span>';
   function coinPending() { return pendGet(COIN_PEND) || {}; }
   function coinSetPending(i, v) { const m = coinPending(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_PEND, Object.keys(m).length ? m : null); }
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
-  function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); }
+  function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
   function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
-  // Drawn state: the image stays in the box; the (shortened) description sits
-  // underneath it, in place of the "Draw it" button. Tap the caption to redo.
-  function coinShowDrawn(i, url, desc) {
-    const box = $('coin-' + i); if (!box) return;
-    box.setAttribute('contenteditable', 'false');
-    box.innerHTML = `<img src="${esc(url)}" alt="">`;
-    box.closest('.coin-cell')?.classList.add('drawn');
-    const btn = coinBtn(i);
-    if (btn) { btn.disabled = false; btn.classList.add('coin-caption'); btn.textContent = coinShortText(desc); }
-    coinSetDone(i, { url, desc });
-    coinSetPending(i, null);
+  // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
+  // The drawing PERSISTS; you can't edit the moment, only Redraw it (a re-roll).
+  // Free = 1 redraw/day (device-local soft limit); members = unlimited. The
+  // ◀ ▶ arrows walk the versions (free — navigating never generates).
+  const COIN_REDRAW = 'witch_coin_redraws'; // free daily counter: { date, n }
+  const FREE_REDRAWS_PER_DAY = 1;
+  const ICON_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  const ICON_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  function coinTodayKey() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function coinRedrawsToday() { try { const r = JSON.parse(localStorage.getItem(COIN_REDRAW) || '{}'); return r.date === coinTodayKey() ? (r.n || 0) : 0; } catch (e) { return 0; } }
+  function coinBumpRedraw() { try { localStorage.setItem(COIN_REDRAW, JSON.stringify({ date: coinTodayKey(), n: coinRedrawsToday() + 1 })); } catch (e) {} }
+  // Migrate the old single-draw shape { url, desc } → versioned { desc, v:[url], i:0 }.
+  function coinMigrate() {
+    const all = coinDoneAll(); let changed = false;
+    Object.keys(all).forEach(i => { const e = all[i]; if (e && e.url && !e.v) { all[i] = { desc: e.desc, v: [e.url], i: 0 }; changed = true; } });
+    if (changed) pendSet(COIN_DONE, all);
   }
-  function coinResetToEdit(i) {
+  function coinRenderDrawn(i) {
+    const st = coinDoneAll()[i]; const box = $('coin-' + i);
+    if (!st || !box || !st.v || !st.v.length) return;
+    if (st.i == null || st.i < 0 || st.i >= st.v.length) { st.i = st.v.length - 1; coinSetDone(i, st); }
+    box.setAttribute('contenteditable', 'false');
+    box.innerHTML = `<img src="${esc(st.v[st.i])}" alt="">`;
+    const cell = box.closest('.coin-cell'); if (!cell) return;
+    cell.classList.add('drawn');
+    let cap = cell.querySelector('.coin-cap');
+    if (!cap) { cap = document.createElement('div'); cap.className = 'coin-cap'; cell.appendChild(cap); }
+    cap.textContent = coinShortText(st.desc);
+    let ctl = cell.querySelector('.coin-ctl');
+    if (!ctl) {
+      ctl = document.createElement('div'); ctl.className = 'coin-ctl';
+      const l = document.createElement('button'); l.type = 'button'; l.className = 'coin-arrow coin-prev'; l.setAttribute('aria-label', 'Previous drawing'); l.innerHTML = ICON_L; l.addEventListener('click', (e) => { e.stopPropagation(); coinNav(i, -1); });
+      const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'coin-redraw'; rd.textContent = 'Redraw'; rd.addEventListener('click', (e) => { e.stopPropagation(); coinRedraw(i); });
+      const r = document.createElement('button'); r.type = 'button'; r.className = 'coin-arrow coin-next'; r.setAttribute('aria-label', 'Next drawing'); r.innerHTML = ICON_R; r.addEventListener('click', (e) => { e.stopPropagation(); coinNav(i, 1); });
+      ctl.append(l, rd, r); cell.appendChild(ctl);
+    }
+    ctl.querySelector('.coin-prev').classList.toggle('show', st.i > 0);
+    ctl.querySelector('.coin-next').classList.toggle('show', st.i < st.v.length - 1);
+    const rd = ctl.querySelector('.coin-redraw'); if (rd) { rd.disabled = false; rd.textContent = 'Redraw'; }
+  }
+  function coinNav(i, dir) {
+    const st = coinDoneAll()[i]; if (!st || !st.v) return;
+    const ni = Math.min(st.v.length - 1, Math.max(0, (st.i || 0) + dir));
+    if (ni === st.i) return; st.i = ni; coinSetDone(i, st); coinRenderDrawn(i);
+  }
+  // Back to an editable empty-ish box (used only on error recovery).
+  function coinToEdit(i, desc) {
     const box = $('coin-' + i); if (!box) return;
+    const cell = box.closest('.coin-cell');
+    cell?.querySelector('.coin-cap')?.remove();
+    cell?.querySelector('.coin-ctl')?.remove();
+    cell?.classList.remove('drawn');
     coinSetDone(i, null); coinSetPending(i, null);
     box.setAttribute('contenteditable', 'true');
-    box.textContent = box.dataset.desc || '';
-    box.closest('.coin-cell')?.classList.remove('drawn');
+    box.textContent = desc || box.dataset.desc || '';
     coinRestoreBtn(coinBtn(i));
-    box.focus();
   }
-  function watchCoin(i, id, desc) {
+  function coinWatch(i, id, desc, redraw) {
     const box = $('coin-' + i); if (!box) return;
-    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
     pollJob('/api/witch/job/' + id, {
       key: 'coin' + i,
       onDone: (d) => {
         const url = d.result && d.result.url;
-        if (url) { coinShowDrawn(i, url, desc); }
-        else { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); }
+        if (url) {
+          const st = coinDoneAll()[i];
+          if (redraw && st && st.v) { st.v.push(url); st.i = st.v.length - 1; coinSetDone(i, st); if (!isPaid()) coinBumpRedraw(); }
+          else { coinSetDone(i, { desc, v: [url], i: 0 }); }
+          coinSetPending(i, null); coinRenderDrawn(i);
+          // File it permanently into the Synchronicities archive + light the bookmark.
+          syncArchUpsert({ id: 'coin_' + todayISO() + '_' + i, dateISO: todayISO(), ts: Date.now(), url, desc: (redraw && st ? st.desc : desc) || '' });
+          updateCoinBookmark(true);
+        } else { coinSetPending(i, null); if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); }
       },
-      onError: (e) => { coinSetPending(i, null); coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t draw that one — try rewording it ✦'); },
+      onError: (e) => { coinSetPending(i, null); if (redraw) { coinRenderDrawn(i); toast('Couldn\'t redraw — try again ✦'); } else { coinToEdit(i, desc); toast('Couldn\'t draw that one — try rewording it ✦'); } },
     });
+  }
+  async function coinGenerate(i, desc, redraw) {
+    const box = $('coin-' + i); if (!box) return;
+    box.dataset.desc = desc;
+    if (redraw) { const rd = box.closest('.coin-cell')?.querySelector('.coin-redraw'); if (rd) { rd.disabled = true; rd.textContent = '…'; } }
+    else { const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; } }
+    coinSpinner(box);
+    try {
+      // Raw note → server distills it into ONE simple pastel spot illustration.
+      const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
+      coinSetPending(i, { id, desc, redraw });
+      coinWatch(i, id, desc, redraw);
+    } catch (e) { if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
   }
   async function drawCoinBox(i) {
     const box = $('coin-' + i);
     const desc = (box.dataset.desc || box.textContent || '').trim();
     if (!desc) { box.focus(); return; }
-    box.dataset.desc = desc;
-    const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; }
-    coinSpinner(box);
-    try {
-      // Send the raw note — the server distills it into ONE simple watercolor
-      // illustration (Book-of-Miracles style) so it reads well at this size.
-      const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
-      coinSetPending(i, { id, desc });
-      watchCoin(i, id, desc);
-    } catch (e) { coinRestoreBtn(btn); box.textContent = desc; box.setAttribute('contenteditable', 'true'); toast('Couldn\'t start the drawing — ' + esc(e.message)); }
+    coinGenerate(i, desc, false);
+  }
+  function coinRedraw(i) {
+    const st = coinDoneAll()[i]; if (!st) return;
+    if (isPaid()) { coinGenerate(i, st.desc, true); return; } // members: unlimited, no popup
+    if (coinRedrawsToday() >= FREE_REDRAWS_PER_DAY) {
+      openModal(
+        '<h2 style="margin-bottom:4px;">One redraw a day</h2>' +
+        '<p class="sub">You’ve used today’s free redraw. Members get <b>unlimited</b> redraws — or come back tomorrow for another free one. ✦</p>' +
+        '<button class="gbtn" id="coin-up">Become a member</button>' +
+        '<button class="close-x" id="coin-x">maybe later</button>'
+      );
+      $('coin-up')?.addEventListener('click', () => { closeModal(); openUpgrade('coincidence'); });
+      $('coin-x')?.addEventListener('click', closeModal);
+      return;
+    }
+    openModal(
+      '<h2 style="margin-bottom:4px;">Redraw this one?</h2>' +
+      '<p class="sub">You get <b>one free redraw a day</b>. Use it on this coincidence? Members get unlimited redraws. ✦</p>' +
+      '<button class="gbtn" id="coin-yes">Yes, redraw it</button>' +
+      '<button class="gbtn" id="coin-up">Unlimited with membership</button>' +
+      '<button class="close-x" id="coin-x">never mind</button>'
+    );
+    $('coin-yes')?.addEventListener('click', () => { closeModal(); coinGenerate(i, st.desc, true); });
+    $('coin-up')?.addEventListener('click', () => { closeModal(); openUpgrade('coincidence'); });
+    $('coin-x')?.addEventListener('click', closeModal);
   }
   function resumeCoinJobs() {
+    coinMigrate();
+    coinDailyRollover();   // clear Home boxes if it's a new day (archive keeps them)
+    coinOneTimeReset();    // one-time: clear pre-daily-reset draws that lingered
     const done = coinDoneAll();
-    Object.keys(done).forEach(i => { const { url, desc } = done[i] || {}; const box = $('coin-' + i); if (box && url) { box.dataset.desc = desc; coinShowDrawn(+i, url, desc); } });
+    Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
-    Object.keys(pend).forEach(i => { const { id, desc } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { box.dataset.desc = desc; coinSpinner(box); watchCoin(+i, id, desc); } });
+    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
+    updateCoinBookmark(false);
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
-    const i = +b.dataset.i;
-    if (b.classList.contains('coin-caption')) coinResetToEdit(i); // tap the caption → start over
-    else drawCoinBox(i);
+    drawCoinBox(+b.dataset.i);
   }));
+  // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
@@ -3291,9 +3945,31 @@
       onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
     });
   }
+  /* The dream's own page: tapping Illustrate or Unlock re-homes the Home
+     card's DOM node into a full-screen page — identical look, and every
+     listener + in-flight job state rides along because it's the same node. */
+  let dreamPageOpen = false;
+  function openDreamPage() {
+    if (dreamPageOpen) return;
+    dreamPageOpen = true;
+    $('dream-page-slot').appendChild($('dream-card'));
+    document.body.style.overflow = 'hidden';
+    const app = $('dream-app'); app.style.display = ''; app.scrollTop = 0;
+  }
+  function closeDreamPage() {
+    if (!dreamPageOpen) return;
+    dreamPageOpen = false;
+    $('dream-home-slot').appendChild($('dream-card'));
+    $('dream-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  $('dream-page-back').addEventListener('click', closeDreamPage);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dreamPageOpen) closeDreamPage(); });
+
   $('dream-unlock').addEventListener('click', async () => {
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
+    openDreamPage();
     dreamReadSpinner();
     try {
       const id = await withRetry(() => startWitchJob('dream-read', { dream }));
@@ -3322,7 +3998,7 @@
     const img = esc(url);
     $('dream-book').innerHTML = `
       <div class="dbook-pages">
-        <div class="dpage"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
+        <div class="dpage" id="dream-page1" style="cursor:zoom-in;"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
@@ -3334,14 +4010,31 @@
       </div>`;
     const sub = document.getElementById('dream-subscribe');
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
+    const p1 = document.getElementById('dream-page1');
+    if (p1) p1.addEventListener('click', () => openImgLightbox(url));
+  }
+  // Tap page one → see it big. Scroll behind is locked while it's open.
+  function openImgLightbox(url) {
+    const lb = document.createElement('div');
+    lb.className = 'img-lightbox';
+    const im = document.createElement('img'); im.src = url; im.alt = '';
+    lb.appendChild(im);
+    lb.addEventListener('click', () => {
+      lb.remove();
+      document.body.style.overflow = (dreamPageOpen || deepOpen || tarotDeepOpen) ? 'hidden' : '';
+    });
+    document.body.appendChild(lb);
+    document.body.style.overflow = 'hidden';
   }
   // Illustrate is already a server-side background job; persist the pending id
   // and resume the poll on return so the ~1-2 min render survives leaving.
   const DREAMILLUS_PEND = 'witch_dreamillus_job'; // {id, dream}
   function dreamIllusSpinner() {
     // Doesn't touch #dream-out — see the note in dreamReadSpinner().
+    // A page-shaped frame where the finished art will land, with the linocut
+    // loader living inside it — the drawing visibly "happening".
     const book = $('dream-book'); book.style.display = '';
-    book.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-dim);"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; <span id="dream-illus-label">Reading your dream…</span></div>`;
+    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading.gif" alt=""><div class="dframe-cap" id="dream-illus-label">Reading your dream…</div></div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
   function watchDreamIllus(id) {
@@ -3358,18 +4051,46 @@
       else if (d.status === 'error') { clearInterval(dreamIllusTimer); pendSet(DREAMILLUS_PEND, null); if (btn) btn.disabled = false; book.innerHTML = `<div class="dread-fail">Couldn't illustrate that just now — ${esc(d.error || 'try again')}. Tap Illustrate to retry.</div>`; }
     }, 3000);
   }
-  $('dream-illustrate').addEventListener('click', async () => {
+  // One quick optional step before drawing: describe the dreamer (and anyone
+  // else in the dream) so the main character actually resembles them. Saved on
+  // the device and pre-filled next time; skipping draws a generic young woman.
+  const DREAM_PEOPLE_KEY = 'witch_dream_people';
+  function renderDescribeStep() {
+    const book = $('dream-book'); book.style.display = '';
+    let saved = ''; try { saved = localStorage.getItem(DREAM_PEOPLE_KEY) || ''; } catch {}
+    book.innerHTML = `<div class="dpeople">
+        <div class="dpeople-label">Describe yourself — and anyone else in the dream <span class="dpeople-opt">(optional)</span></div>
+        <textarea id="dream-people" rows="2" placeholder="young woman, bangs, pierced nose">${esc(saved)}</textarea>
+        <div class="dream-btns">
+          <button class="btn-ghost" id="dream-people-skip">Just make my dream</button>
+          <button class="btn" id="dream-people-go">Draw my dream <span class="js-star"></span></button>
+        </div>
+      </div>`;
+    renderStars();
+    $('dream-people-go').addEventListener('click', () => {
+      const people = ($('dream-people').value || '').trim();
+      if (people) try { localStorage.setItem(DREAM_PEOPLE_KEY, people); } catch {}
+      startDreamIllustrate(people || 'a young woman');
+    });
+    $('dream-people-skip').addEventListener('click', () => startDreamIllustrate('a young woman'));
+  }
+  async function startDreamIllustrate(people) {
     const dream = dreamText();
-    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
     dreamIllusSpinner();
     try {
-      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream }));
+      const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream, people }));
       pendSet(DREAMILLUS_PEND, { id, dream });
       watchDreamIllus(id);
     } catch (e) {
       const btn = $('dream-illustrate'); if (btn) btn.disabled = false;
       $('dream-book').innerHTML = `<div class="dread-fail">Couldn't start — ${esc(e.message)}. Try again in a moment.</div>`;
     }
+  }
+  $('dream-illustrate').addEventListener('click', () => {
+    const dream = dreamText();
+    if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
+    openDreamPage();
+    renderDescribeStep();
   });
   function resumeDreamIllus() {
     const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;
@@ -4024,7 +4745,7 @@
   /* ══════════ ACCOUNTS (Firebase Auth + Firestore) ══════════ */
   // Dormant until /api/witch/firebase-config returns configured:true. Same
   // Firebase project will back a future native iOS app (shared users + data).
-  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress'];
+  const WITCH_KEYS = ['imageforge_miracles_book', 'witch_saved_readings', 'witch_grimoire', 'witch_natal', 'witch_journal', 'witch_school_progress', 'witch_coin_done', 'witch_sync_archive', 'witch_coin_day'];
   let fbAuth = null, fbDb = null, fbUser = null, cloudTimer = null;
 
   function refreshAllFromStorage() {
@@ -4034,6 +4755,7 @@
     try { updateBosCoverSub(); } catch {}
     try { loadSavedNatal(); } catch {}
     try { renderHome(); } catch {}
+    try { resumeCoinJobs(); } catch {}
   }
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); }); }
 
@@ -4165,7 +4887,7 @@
   }
   async function initAccounts() {
     let cfg; try { cfg = await (await fetch('/api/witch/firebase-config')).json(); } catch { cfg = null; }
-    if (!cfg || !cfg.configured) { accountsConfigured = false; renderHome(); return; } // ungated fallback
+    if (!cfg || !cfg.configured) { accountsConfigured = false; try { coinOneTimeReset(); } catch {} renderHome(); return; } // ungated fallback
     accountsConfigured = true; renderHome();
     try {
       const base = 'https://www.gstatic.com/firebasejs/10.12.0/';
@@ -4181,25 +4903,56 @@
         if (!email) email = window.prompt('Confirm your email to finish signing in:');
         if (email) { try { await fbAuth.signInWithEmailLink(email, location.href); history.replaceState(null, '', location.pathname); } catch (e) { toast('Sign-in link error: ' + e.message); } }
       }
-      let authReady = false;
       fbAuth.onAuthStateChanged(async (user) => {
         // A fresh sign-in (a deliberate action after load), not the restored
         // session on first load — used to take them straight to the reading.
-        const freshSignIn = authReady && !fbUser && !!user;
+        const freshSignIn = witchAuthReady && !fbUser && !!user;
         fbUser = user || null; renderAcctBtn();
-        if (fbUser) { await pullCloud(); loadSavedNatal(); } // pull may bring their saved birthday
+        if (fbUser) { await pullCloud(); loadSavedNatal(); await refreshEntitlement(); } // pull may bring their saved birthday + membership
         // Made the account to unlock a reading they'd already set up → reveal it
         // now (that's the promise of the account step). Returning users still
         // land on the reveal gate, so we never auto-generate on a cold load.
         if (freshSignIn && savedBirth()) astroRevealed = true;
-        authReady = true;
+        witchAuthReady = true;
+        // Auth is settled now — give the one-time Home cleanup a guaranteed
+        // commit point (for signed-in it pushes the cleared doc; for signed-out
+        // it commits so it can't re-run and wipe a future draw).
+        try { coinOneTimeReset(); } catch {}
         renderHome();
+        // Stripe flow: a pending subscribe (external-browser entry) or a return
+        // from a successful checkout.
+        if (pendingSubscribe) {
+          if (fbUser) { pendingSubscribe = false; startCheckout(); }
+          else showSignIn(); // sign in first — this handler re-fires once signed in
+        }
+        if (fbUser && subJustSucceeded) { subJustSucceeded = false; try { toast('You’re a member — everything’s unlocked ✦'); } catch (e) {} }
       });
     } catch (e) { console.warn('accounts init failed', e.message); }
   }
 
+  /* ── Full-page surface registrations (see closeFullPages, the nav fix) ──
+     One line per full-screen surface. If you add a surface and skip this, the
+     data-fullpage sweep still frees the nav — but register it anyway so its
+     own close logic (state flags, URL cleanup, re-renders) runs. */
+  registerFullPage('deep-app', closeDeep);          // astrology dive-deeper
+  registerFullPage('tarot-app', closeTarotDeep);    // daily tarot deep page
+  registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
+  registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
+  registerFullPage('dream-app', closeDreamPage);    // the dream card full page
+  registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
+  registerFullPage('school-lesson', closeLesson);   // School lesson deck
+  registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  registerFullPage('prod-sheet-bg', closeProdSheet); // shop product sheet
+  registerFullPage('cart-sheet-bg', closeCartSheet); // shop cart sheet
+
   /* ══════════ INIT ══════════ */
   const _now = new Date(); calY = _now.getFullYear(); calM = _now.getMonth();
+  // The Book of Shadows header is a copy of the real one — fill its sigil
+  // slots from the actual header so there's exactly one source of the glyph.
+  (function () {
+    const src = document.querySelector('header .sigil');
+    if (src) document.querySelectorAll('[data-sigil-clone]').forEach(el => { el.innerHTML = src.innerHTML; });
+  })();
   renderMoon();
   renderMoonCalendar();
   renderEntries();

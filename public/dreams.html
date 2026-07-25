@@ -208,12 +208,19 @@
     down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
+    clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+    person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>',
   };
+  // In the iOS app the page is a webview with native bridges (paste a recording,
+  // open the Character Creator sheet); in a plain browser those don't exist.
+  const NATIVE = (typeof window.webkit === 'object') && window.webkit && window.webkit.messageHandlers;
+  const canPaste = !!(NATIVE && NATIVE.pasteAudio);
 
   // ── State (mirrors DreamsView) ──
   const S = {
     view:'main', text:'', busy:false, statusLabel:'',
     review:[], castTop:[], castOthers:[], expanded:{}, othersFilter:'',   // the approval step
+    transcribing:false,
     current:null, finished:[],
     recording:false, session:0,
     archive:[], archiveLoading:false,
@@ -441,9 +448,12 @@
     // run inside the iOS app webview; hide it there (the keyboard's own
     // dictation mic still works in the text box).
     const micBtn = SR_OK ? `<button class="iconbtn micbtn ${S.recording?'rec':''}" id="mic">${S.recording?IC.stop:IC.mic}</button>` : '';
+    const pasteBtn = canPaste ? `<button class="iconbtn" id="pasteRec" title="Paste a recording">${IC.clip}</button>` : '';
+    const charBtn = `<button class="iconbtn" id="charBtn" title="Characters">${IC.person}</button>`;
+    const eyebrow = S.transcribing ? 'TRANSCRIBING…' : (S.recording ? 'LISTENING…' : 'WHAT DID YOU DREAM?');
     h += `<div class="section">
-      <div class="eyebrow ${S.recording?'rec':''}"><span>${S.recording?'LISTENING…':'WHAT DID YOU DREAM?'}</span>
-        ${micBtn}</div>
+      <div class="eyebrow ${S.recording||S.transcribing?'rec':''}"><span>${eyebrow}</span>
+        <span style="display:flex;gap:4px;align-items:center">${charBtn}${pasteBtn}${micBtn}</span></div>
       <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
@@ -465,6 +475,11 @@
     const ta = $('ta'); if(ta) ta.oninput = e => S.text = e.target.value;
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
+    const pr=$('pasteRec'); if(pr) pr.onclick=()=>{ try{ NATIVE.pasteAudio.postMessage({}); }catch{} };
+    const cb=$('charBtn'); if(cb) cb.onclick=()=>{
+      if(NATIVE && NATIVE.openCharacters){ try{ NATIVE.openCharacters.postMessage({}); }catch{} }
+      else { location.href='/character'; }
+    };
     root.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const i=el.dataset.page;openPopup(pageRefs[i]);});
     wireReview();
   }
@@ -692,6 +707,14 @@
   // stay under Render's idle window — see the keep-awake timer in server.js.)
   // Prefill your last dream so you can just tap Illustrate to re-run it.
   try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
+
+  // ── Native paste-recording bridge (iOS app only) ──
+  // The native wrapper reads a copied Voice Memo off the clipboard, transcribes
+  // it, and calls these — the audio never crosses into JS, only the text.
+  window.__pasteAudioStart = ()=>{ S.transcribing=true; render(); };
+  window.__pasteAudioEmpty = ()=>{ S.transcribing=false; render(); showToast('Copy a recording first — in Voice Memos: tap it → Share → Copy'); };
+  window.__pasteAudioError = (m)=>{ S.transcribing=false; render(); showToast(m||"Couldn't read that recording"); };
+  window.__fillDream = (t)=>{ S.transcribing=false; S.text = (S.text ? S.text.trim()+' ' : '') + String(t||'').trim(); render(); const ta=$('ta'); if(ta) ta.focus(); };
 
   render();
   // If a reading or render was still going when the page was last closed,

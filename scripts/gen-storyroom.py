@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-# Story Room — the movie asset boards in the Writing Room's frame.
-# Generates public/storyroom.html (served gated at /storyroom). Unlike the
-# Writing Room, content is fetched LIVE from /api/story on every open, so
-# board changes need no deploy at all. Notes reuse /api/writing/notes with
-# keys "story-<project>:b<beat>" so any chat can read and apply them.
+# Story Room — THE story surface (July 2026: Story Boards + the Stories
+# library merged in here). One shelf of every story; a story doc can hold any
+# mix of title / cover / prose (`text`) / whole-story voiceover
+# (`voiceover:{url,text}`) / beats+art — any one field starts a project.
+# Generates public/storyroom.html (served gated at /storyroom). Content is
+# fetched LIVE from /api/story on every open, so board changes need no deploy
+# at all. Notes reuse /api/writing/notes with keys "story-<project>:b<beat>"
+# so any chat can read and apply them.
 import base64, os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
@@ -29,6 +32,16 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .rule{height:1px; background:var(--line); margin:1.1em 0;}
 .sub{font-style:italic; color:var(--ink2); margin-bottom:2em;}
 .shelfgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
+/* Covers align across a row no matter how many lines a title wraps to: tiles
+   are TOP-aligned (equal-width + 5/7 covers, so every cover bottom lands on
+   the same line) and the name block reserves two lines so the meta under it
+   lines up too. */
+.shelfrow{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px; align-items:start;}
+.shelfline{height:1px; background:var(--line); margin:12px 0 22px;}
+.prose{font-size:19px; line-height:1.7; margin:0 0 1em; white-space:pre-wrap;}
+.vosec audio{width:100%; display:block; margin:.4em 0 .8em;}
+.voscript{font-style:italic; color:var(--ink2); font-size:16.5px; line-height:1.6; margin:.2em 0 .8em; white-space:pre-wrap;}
+.voerr{color:var(--chg); font-family:-apple-system,sans-serif; font-size:12px; margin:.4em 0;}
 .tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
   color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}
 .tile:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
@@ -36,7 +49,8 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
 .t-blank{display:flex; align-items:center; justify-content:center;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
-.t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px;}
+.t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; min-height:2.3em;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
 .t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:2px;}
 .r-notes{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; color:var(--rose); display:block; margin-top:1px;}
 .pagemark{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.3em; color:var(--ink2); margin:3em 0 1.2em; text-transform:uppercase;}
@@ -134,6 +148,38 @@ function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.st
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 var projects=[], notes={}, cur=null, homeY=0;
+var voTimer=null, drawVoCur=null;
+// A voiceover render/transcription is a server-side background job recorded
+// on the doc — poll the boards until voiceover.status clears (survives
+// leaving the page: reopening the project re-arms this from the doc).
+// ── Native paste-a-recording callbacks (app only) ──
+// The app reads the clipboard audio and POSTs it to /api/story/voiceover
+// itself, so megabytes of audio never cross into JavaScript; it just tells us
+// how it went. window.__voPasteTarget holds the project it was started for.
+window.__pasteVoStart=function(){ toast('Reading the recording\\u2026'); };
+window.__pasteVoEmpty=function(){ toast('No recording on the clipboard — in Voice Memos: Share \\u2192 Copy'); };
+window.__pasteVoError=function(msg){ toast(String(msg||'Could not read that recording').slice(0,70)); };
+window.__pasteVoDone=function(){
+  toast('Voiceover added');
+  var pid=window.__voPasteTarget;
+  if(cur&&pid&&cur.id===pid) reloadProject(pid); else if(cur) reloadProject(cur.id);
+};
+function pollVo(pid){
+  clearInterval(voTimer);
+  voTimer=setInterval(function(){
+    api('/api/story').then(function(r){return r.json()}).then(function(res){
+      if(!cur||cur.id!==pid){ clearInterval(voTimer); return; }
+      var p2=((res&&res.projects)||[]).filter(function(x){return x.id===pid})[0];
+      if(!p2){ clearInterval(voTimer); return; }
+      cur.voiceover=p2.voiceover||null;
+      if(drawVoCur) drawVoCur();
+      if(!(p2.voiceover&&p2.voiceover.status)){
+        clearInterval(voTimer);
+        toast(p2.voiceover&&p2.voiceover.error? 'Voiceover failed':'Voiceover ready');
+      }
+    }).catch(function(){});
+  },6000);
+}
 var STATUS={ok:'approved', cand:'candidate', draft:'storyboard', miss:'no art yet'};
 // some boards store the full words — fold them back to the short codes
 var NORM={approved:'ok', candidate:'cand', storyboard:'draft', 'no art yet':'miss'};
@@ -174,25 +220,39 @@ function setArchived(p,val){
 }
 function archiveStory(p){ setArchived(p,true); }
 function restoreStory(p){ setArchived(p,false); }
+// Rows of three with a thin line under each — the shelf, minus the wood.
+function shelfRows(container, items, makeTile){
+  for(var i=0;i<items.length;i+=3){
+    var row=document.createElement('div'); row.className='shelfrow';
+    items.slice(i,i+3).forEach(function(it){ row.appendChild(makeTile(it)); });
+    container.appendChild(row);
+    var line=document.createElement('div'); line.className='shelfline';
+    container.appendChild(line);
+  }
+}
 function renderShelf(){
   var el=document.getElementById('shelf');
-  if(!projects.length){ el.innerHTML='<div class="state">No boards synced yet — they\\u2019ll appear here as soon as a project lands in the studio.</div>'; return; }
+  if(!projects.length){ el.innerHTML='<div class="state">No stories yet — tap + New story, or they\\u2019ll appear as projects land in the studio.</div>'; return; }
   el.innerHTML='';
   var active=projects.filter(function(p){return !p.archived;});
   var archived=projects.filter(function(p){return p.archived;});
-  var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
-  active.forEach(function(p){
+  shelfRows(el, active, function(p){
     var beats=(p.beats||[]).length;
     var n=Object.keys(notes).filter(function(id){return id.split(':')[0]==='story-'+p.id}).length;
     var cov=projCover(p);
+    var bits=[];
+    if(beats) bits.push(beats+(beats===1?' beat':' beats'));
+    if(String(p.text||'').trim()) bits.push('story');
+    if(p.voiceover&&(p.voiceover.url||p.voiceover.status)) bits.push('voice');
+    if(!bits.length) bits.push('new');
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML=(cov? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(cov))+'"></span>'
                         : '<span class="t-cover t-blank"><span>'+esc((p.title||p.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(p.title||p.id)+'</span>'
-      +'<span class="t-meta">'+beats+(beats===1?' beat':' beats')
+      +'<span class="t-meta">'+esc(bits.join(' · '))
       +(n? '<span class="r-notes">'+n+(n===1?' note':' notes')+'</span>':'')+'</span>';
     b.onclick=function(){ openProj(p); };
-    grid.appendChild(b);
+    return b;
   });
   if(archived.length){
     var am=document.createElement('div'); am.className='pagemark'; am.textContent='ARCHIVED'; el.appendChild(am);
@@ -270,16 +330,155 @@ function renderShelfCountsOnly(){ if(!cur) return; /* refreshed on back */ }
 function openProj(p, jumpBeat){
   if(!cur) homeY=window.scrollY;   // remember the shelf spot for back
   window.__scrollStop();
+  clearInterval(voTimer);
   cur=p;
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var head=document.createElement('header');
   head.innerHTML='<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div><h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
-  // New-story tools: add a beat, or dump a pile of art into the inbox
+  // The title is tappable — a story can be created with no name at all, so
+  // naming it happens here, whenever she gets that far.
+  var h1=head.querySelector('h1');
+  h1.style.cursor='pointer';
+  h1.title='Tap to name this story';
+  h1.onclick=function(){
+    showModal({ title:'Name this story', okLabel:'Save',
+      fields:[ {key:'title', type:'text', placeholder:'Story title',
+                value:(p.title==='Untitled'? '' : (p.title||''))} ],
+      onOk:function(v, close){
+        var t=(v.title||'').trim();
+        if(!t){ toast('Type a name'); return; }
+        api('/api/story/project',{method:'POST',body:JSON.stringify({id:p.id, title:t})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+            p.title=t; h1.textContent=t; close(); toast('Named');
+          })
+          .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+      }
+    });
+  };
+  // Tools: add a beat, dump art, and (when missing) start the prose/voiceover
   var tools=document.createElement('div'); tools.className='newrow';
   var abtn=document.createElement('button'); abtn.className='btn'; abtn.textContent='+ Add beat'; abtn.onclick=function(){ addBeat(p); };
   var dbtn=document.createElement('button'); dbtn.className='btn'; dbtn.textContent='+ Dump art'; dbtn.onclick=function(){ dumpArt(p); };
-  tools.appendChild(abtn); tools.appendChild(dbtn); sec.appendChild(tools);
+  var sbtn=document.createElement('button'); sbtn.className='btn'; sbtn.textContent='+ Story'; sbtn.onclick=function(){ editProse(); };
+  var vbtn=document.createElement('button'); vbtn.className='btn'; vbtn.textContent='+ Voiceover'; vbtn.onclick=function(){ voForced=true; drawVo(); voWrap.scrollIntoView({block:'center'}); };
+  tools.appendChild(abtn); tools.appendChild(dbtn); tools.appendChild(sbtn); tools.appendChild(vbtn); sec.appendChild(tools);
+
+  // ── The story itself (prose) — read + edit in place ──
+  var proseWrap=document.createElement('div'); sec.appendChild(proseWrap);
+  function drawProse(){
+    proseWrap.innerHTML='';
+    sbtn.style.display=String(p.text||'').trim()? 'none':'';
+    if(!String(p.text||'').trim()) return;
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE STORY';
+    var ed=document.createElement('button'); ed.className='st'; ed.textContent='\\u00b7 edit';
+    ed.onclick=function(){ editProse(); };
+    pm.appendChild(ed); proseWrap.appendChild(pm);
+    var body=document.createElement('div'); body.className='prose'; body.textContent=p.text; proseWrap.appendChild(body);
+  }
+  function editProse(){
+    showModal({ title: p.text? 'Edit the story':'The story', okLabel:'Save',
+      fields:[ {key:'text', type:'textarea', placeholder:'Once upon a time\\u2026', value:p.text||''} ],
+      onOk:function(v, close){
+        api('/api/story/text',{method:'POST',body:JSON.stringify({projectId:p.id, text:v.text||''})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+            p.text=String(v.text||''); close(); toast('Story saved'); drawProse();
+          })
+          .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+      }
+    });
+  }
+
+  // ── Whole-story voiceover: audio and/or its words, either half derivable ──
+  var voWrap=document.createElement('div'); voWrap.className='vosec'; sec.appendChild(voWrap);
+  var voForced=false;
+  function postVo(body, busyMsg){
+    toast(busyMsg||'Saving\\u2026');
+    body.projectId=p.id;
+    api('/api/story/voiceover',{method:'POST',body:JSON.stringify(body)})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+        p.voiceover={ url:d.voiceover.url||null, text:d.voiceover.text||'', status:d.voiceover.status||null,
+                      source:(p.voiceover&&p.voiceover.source)||null };
+        if(body.audio||body.url) p.voiceover.source='recording';
+        drawVo();
+        if(d.voiceover.status) pollVo(p.id);
+        else toast('Voiceover saved');
+      })
+      .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,60)); });
+  }
+  function drawVo(){
+    voWrap.innerHTML='';
+    var vo=p.voiceover||{};
+    var has=vo.url||String(vo.text||'').trim()||vo.status||vo.error;
+    vbtn.style.display=(has||voForced)? 'none':'';
+    if(!has&&!voForced) return;
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE VOICEOVER'; voWrap.appendChild(pm);
+    if(vo.status){
+      var st=document.createElement('p'); st.className='vo none';
+      st.textContent= vo.status==='rendering'? 'Making the voice\\u2026 it keeps working if you leave.'
+                    : 'Writing down the words\\u2026 it keeps working if you leave.';
+      voWrap.appendChild(st);
+    }
+    if(vo.error){
+      var er=document.createElement('div'); er.className='voerr'; er.textContent=vo.error; voWrap.appendChild(er);
+    }
+    if(vo.url){
+      var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=vo.url; voWrap.appendChild(au);
+    }
+    if(String(vo.text||'').trim()){
+      var tx=document.createElement('div'); tx.className='voscript'; tx.textContent=vo.text; voWrap.appendChild(tx);
+    }
+    var row=document.createElement('div'); row.className='newrow';
+    // Paste a recording — the native bridge (app only): in Voice Memos,
+    // Share -> Copy, then tap this. iOS won't hand clipboard audio to a web
+    // page, so the app reads UIPasteboard and uploads it for us.
+    if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pasteVoiceover){
+      var pb=document.createElement('button'); pb.className='btn'; pb.textContent='Paste a recording';
+      pb.onclick=function(){
+        window.__voPasteTarget=p.id;
+        try{ window.webkit.messageHandlers.pasteVoiceover.postMessage(p.id); }
+        catch(e){ toast('Paste not available here'); }
+      };
+      row.appendChild(pb);
+    }
+    var up=document.createElement('button'); up.className='btn'; up.textContent='Choose a file';
+    up.onclick=function(){
+      var inp=document.createElement('input'); inp.type='file'; inp.accept='audio/*';
+      inp.onchange=function(){
+        var f=inp.files&&inp.files[0]; if(!f) return;
+        if(f.size>30000000){ toast('That file is too big'); return; }
+        var r=new FileReader();
+        r.onload=function(){ postVo({audio:r.result}, 'Uploading the voiceover\\u2026'); };
+        r.readAsDataURL(f);
+      };
+      inp.click();
+    };
+    var sc=document.createElement('button'); sc.className='btn'; sc.textContent= String(vo.text||'').trim()? 'Edit the words':'Write the words';
+    sc.onclick=function(){
+      showModal({ title:'The voiceover words', okLabel:'Save',
+        fields:[ {key:'text', type:'textarea', placeholder:'What the voice says\\u2026', value:vo.text||''} ],
+        onOk:function(v, close){ close(); postVo({text:v.text||''}); }
+      });
+    };
+    row.appendChild(up); row.appendChild(sc);
+    if(String(vo.text||'').trim() && !vo.status){
+      var mk=document.createElement('button'); mk.className='btn primary'; mk.textContent='Make the voice';
+      mk.onclick=function(){
+        if(vo.url && vo.source!=='tts'){
+          showModal({ title:'Replace the recording?', okLabel:'Make the voice', fields:[],
+            onOk:function(v, close){ close(); postVo({tts:true}, 'Starting the voice\\u2026'); } });
+        } else postVo({tts:true}, 'Starting the voice\\u2026');
+      };
+      row.appendChild(mk);
+    }
+    voWrap.appendChild(row);
+  }
+  drawVoCur=drawVo;
+  drawProse(); drawVo();
+  if(p.voiceover&&p.voiceover.status) pollVo(p.id);
   // Beats / Grid pill
   var tabs=document.createElement('div'); tabs.className='tabs';
   var seg=document.createElement('div'); seg.className='seg';
@@ -394,6 +593,7 @@ function openProj(p, jumpBeat){
 }
 function goHome(){
   window.__scrollStop(); cur=null;
+  clearInterval(voTimer); drawVoCur=null;
   document.getElementById('proj').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
@@ -425,12 +625,12 @@ function showModal(opts){
   (opts.fields||[]).forEach(function(f){
     if(f.type==='file'){
       var lbl=document.createElement('label'); lbl.className='filelbl'; lbl.textContent=f.label||'';
-      var i=document.createElement('input'); i.type='file'; i.accept='image/*'; if(f.multiple) i.multiple=true;
+      var i=document.createElement('input'); i.type='file'; i.accept=f.accept||'image/*'; if(f.multiple) i.multiple=true;
       lbl.appendChild(i); sheet.appendChild(lbl); inputs[f.key]=i;
     } else if(f.type==='textarea'){
-      var t=document.createElement('textarea'); t.className='field'; t.placeholder=f.placeholder||''; sheet.appendChild(t); inputs[f.key]=t;
+      var t=document.createElement('textarea'); t.className='field'; t.placeholder=f.placeholder||''; t.value=f.value||''; sheet.appendChild(t); inputs[f.key]=t;
     } else {
-      var x=document.createElement('input'); x.className='field'; x.type='text'; x.placeholder=f.placeholder||''; sheet.appendChild(x); inputs[f.key]=x;
+      var x=document.createElement('input'); x.className='field'; x.type='text'; x.placeholder=f.placeholder||''; x.value=f.value||''; sheet.appendChild(x); inputs[f.key]=x;
     }
   });
   var act=document.createElement('div'); act.className='sheetact';
@@ -481,19 +681,41 @@ function moveChooser(p, from){
   var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
   sheet.appendChild(cancel); ov.appendChild(sheet); document.body.appendChild(ov);
 }
+// Nothing is required to start a story — every field is optional, so tapping
+// Create with all of them empty opens a fresh "Untitled" story you name later
+// (the title is tappable on the story page). A blank title is derived from the
+// first words of the text when there is any.
 function newStory(){
   showModal({ title:'New story', okLabel:'Create',
-    fields:[ {key:'title', type:'text', placeholder:'Story title'},
-             {key:'cover', type:'file', label:'Cover photo (optional)'} ],
+    fields:[ {key:'title', type:'text', placeholder:'Story title (optional)'},
+             {key:'text', type:'textarea', placeholder:'The story itself (optional)'},
+             {key:'cover', type:'file', label:'Cover photo (optional)'},
+             {key:'vo', type:'file', label:'Voiceover recording (optional)', accept:'audio/*'} ],
     onOk:function(v, close){
-      var title=(v.title||'').trim();
-      if(!title){ toast('Give it a title'); return; }
+      var text=(v.text||'').trim();
+      var voFile=v.vo&&v.vo[0];
+      var title=(v.title||'').trim()
+        || (text? text.split(/\\s+/).slice(0,6).join(' ') : '');
       function create(cover){
-        api('/api/story/project',{method:'POST',body:JSON.stringify({title:title, cover:cover||undefined})})
+        api('/api/story/project',{method:'POST',body:JSON.stringify({title:title||undefined, cover:cover||undefined, text:text||undefined})})
           .then(function(r){return r.json()})
           .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
             close(); toast('Story created');
             d.project.beats=d.project.beats||[]; projects.push(d.project); openProj(d.project);
+            if(voFile){
+              if(voFile.size>30000000){ toast('Voiceover file too big — add it from the story page'); return; }
+              toast('Uploading the voiceover\\u2026');
+              var r=new FileReader();
+              r.onload=function(){
+                api('/api/story/voiceover',{method:'POST',body:JSON.stringify({projectId:d.project.id, audio:r.result})})
+                  .then(function(x){return x.json()})
+                  .then(function(x){ if(!x.ok) throw new Error(x.error||'failed');
+                    reloadProject(d.project.id);
+                  })
+                  .catch(function(e){ toast('Voiceover failed: '+String(e.message||e).slice(0,50)); });
+              };
+              r.readAsDataURL(voFile);
+            }
           })
           .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
       }
@@ -576,15 +798,14 @@ function renderFilms(films){
   el.innerHTML='';
   if(!films.length){ mark.style.display='none'; return; }
   mark.style.display='';
-  var grid=document.createElement('div'); grid.className='shelfgrid'; el.appendChild(grid);
-  films.forEach(function(m){
+  shelfRows(el, films, function(m){
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML=(m.poster? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(m.poster))+'"></span>'
                          : '<span class="t-cover t-blank"><span>'+esc((m.title||m.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(m.title||m.id)+'</span>'
       +'<span class="t-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' \u00b7 no film yet')+'</span>';
     b.onclick=function(){ openFilm(m); };
-    grid.appendChild(b);
+    return b;
   });
 }
 function openFilm(m){

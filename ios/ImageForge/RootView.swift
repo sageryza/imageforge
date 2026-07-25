@@ -17,7 +17,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Dreams"
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
-        case .story:     return "Story Boards"
+        case .story:     return "Story Room"
         case .writing:   return "Writing Room"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
@@ -34,7 +34,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Illustrate last night's dream — and keep a journal."
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
-        case .story:     return "The video asset boards — live from the studio."
+        case .story:     return "Every story in one room — words, voice, art, films."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
@@ -78,7 +78,12 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
-        case .story:     StoryBoardView()
+        case .story:     StoryRoomView()
+                             // Same dress as the movies-pushed Story Room: the
+                             // heading in the native bar, matched to the page's paper.
+                             .forgeTitle("Story Room")
+                             .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
+                             .toolbarBackground(.visible, for: .navigationBar)
         case .writing:   WritingRoomView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
@@ -263,7 +268,8 @@ struct RootView: View {
         case .home: return false
         case .gallery: return true
         case .tool(let t):
-            if t == .writing || t == .chats { return false }
+            // Story Room is a web page with its own in-page pill.
+            if t == .writing || t == .chats || t == .story { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.
@@ -329,7 +335,7 @@ private struct HomeGrid: View {
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
 
-    // Sophie's home order: Story Boards pinned first; greeting cards, stickers,
+    // Sophie's home order: Story Room pinned first; greeting cards, stickers,
     // storybooks, and coloring pages pinned last; everything in between rotates
     // by most-recent use.
     private var tools: [Tool] {
