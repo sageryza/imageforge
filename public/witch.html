@@ -1098,24 +1098,6 @@
     <main>
       <!-- ═══════════ HOME ═══════════ -->
       <section class="view active" id="view-home">
-        <div class="section-title">Synchronicities abound…</div>
-        <div class="section-sub">Which ones have been put in your path today?</div>
-        <!-- Suspicious coincidence — describe it, AI draws it -->
-        <div class="card" id="coincidence-card" style="margin-bottom:24px;">
-          <div class="coin-head">
-            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
-            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
-              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
-              <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
-            </button>
-          </div>
-          <div class="coin-boxes">
-            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <span class="js-star"></span></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <span class="js-star"></span></button></div>
-            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">Draw it! <span class="js-star"></span></button></div>
-          </div>
-        </div>
-
         <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
@@ -1359,6 +1341,26 @@
       <section class="view" id="view-book">
         <div class="kicker">Your grimoire</div>
         <div class="section-sub">Your readings, synchronicities, spell work and dreams, all in one place.</div>
+
+        <!-- Today's synchronicities — describe them, AI draws them. Fresh boxes
+             each day (they roll over at midnight); every draw files permanently
+             into the book's Synchronicities pages. -->
+        <div class="section-title" style="margin-top:18px;">Synchronicities abound…</div>
+        <div class="section-sub">Which ones have been put in your path today?</div>
+        <div class="card" id="coincidence-card" style="margin-bottom:24px;">
+          <div class="coin-head">
+            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
+            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
+              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
+              <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+            </button>
+          </div>
+          <div class="coin-boxes">
+            <div class="coin-cell"><div class="coin-box" id="coin-0" contenteditable="true"></div><button class="coin-btn" data-i="0">Draw it! <span class="js-star"></span></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-1" contenteditable="true"></div><button class="coin-btn" data-i="1">Draw it! <span class="js-star"></span></button></div>
+            <div class="coin-cell"><div class="coin-box" id="coin-2" contenteditable="true"></div><button class="coin-btn" data-i="2">Draw it! <span class="js-star"></span></button></div>
+          </div>
+        </div>
 
         <!-- The book itself: a cover you open -->
         <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
@@ -3635,18 +3637,42 @@
   function syncArchLoad() { try { return JSON.parse(localStorage.getItem(SYNC_ARCH) || '[]'); } catch { return []; } }
   function syncArchSave(a) { try { localStorage.setItem(SYNC_ARCH, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
   function syncArchUpsert(entry) { const a = syncArchLoad(); const i = a.findIndex(x => x.id === entry.id); if (i >= 0) a[i] = { ...a[i], ...entry }; else a.push(entry); syncArchSave(a); }
-  // A new day: the previous day's draws are already archived, so clear the Home
-  // boxes. First run under the daily model: fold any existing draws in first.
+  // The day key is stored via pendGet/pendSet (JSON) so it survives the cloud
+  // round-trip — the old plain-string value made pushCloud's JSON.parse throw,
+  // so the cloud never knew which day the draws belonged to and a pull could
+  // resurrect yesterday's boxes after the local rollover had cleared them.
+  function coinDayGet() {
+    const v = pendGet(COIN_DAY);
+    if (typeof v === 'string') return v;
+    try { return localStorage.getItem(COIN_DAY) || null; } catch { return null; } // legacy plain string
+  }
+  // Empty the three draw boxes on screen (rollover can fire long after render —
+  // e.g. midnight passes while the app sits open).
+  function coinClearBoxes() {
+    for (let i = 0; i < 3; i++) {
+      const box = $('coin-' + i);
+      if (box) { box.innerHTML = ''; box.setAttribute('contenteditable', 'true'); delete box.dataset.desc; }
+      coinRestoreBtn(coinBtn(i));
+    }
+    try { updateCoinBookmark(false); } catch {}
+  }
+  // A new day (they restart at midnight): the previous day's draws are already
+  // archived in the book, so clear the boxes — on disk, on screen, AND in the
+  // cloud (pushing the cleared state is what stops a later pull from restoring
+  // yesterday). First run under the daily model: fold any existing draws in.
   function coinDailyRollover() {
-    let day = null; try { day = localStorage.getItem(COIN_DAY); } catch {}
+    const day = coinDayGet();
     const today = todayISO();
     if (day === today) return;
-    if (day) { pendSet(COIN_DONE, null); pendSet(COIN_PEND, null); }
-    else {
+    if (day) {
+      pendSet(COIN_DONE, null); pendSet(COIN_PEND, null);
+      coinClearBoxes();
+      try { cloudSyncSoon(); } catch {}
+    } else {
       const done = coinDoneAll();
       Object.keys(done).forEach(i => { const st = done[i]; const u = st && st.v && st.v[st.i]; if (u) syncArchUpsert({ id: 'coin_' + today + '_' + i, dateISO: today, ts: Date.now(), url: u, desc: st.desc || '' }); });
     }
-    try { localStorage.setItem(COIN_DAY, today); } catch {}
+    pendSet(COIN_DAY, today);
   }
   // One-time cleanup (per device/account): before the daily-reset model shipped,
   // the Home coincidences were adopted as "today's" and lingered. They're already
@@ -3818,6 +3844,11 @@
     e.stopPropagation();
     drawCoinBox(+b.dataset.i);
   }));
+  // The rollover must fire even if the app never reloads (an iPhone web view
+  // can sit open for days): re-check on every return to the app and once a
+  // minute, so the boxes restart on time at midnight.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { coinDailyRollover(); } catch {} } });
+  setInterval(() => { try { coinDailyRollover(); } catch {} }, 60000);
   // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
   { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
