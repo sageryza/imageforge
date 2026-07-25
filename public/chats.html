@@ -1019,13 +1019,15 @@ function openPage(p){
   var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
   v.appendChild(pill);
   // Tap the page itself to start/stop autoscroll (same-origin iframe, so we can
-  // listen on its document). Taps on links/buttons still do their own thing.
+  // listen on its document). A tap on anything INTERACTIVE — a <details>/
+  // <summary> toggle, link, button, form field, media control — is the page's
+  // own, so we ignore it entirely (same skip list as the injected pill).
   frame.addEventListener('load', function(){
     try{
       var doc=frame.contentDocument;
       if(doc) doc.addEventListener('click', function(e){
         var t=e.target;
-        if(t && t.closest && t.closest('a,button,input,textarea,select,label,summary')) return;
+        if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
         pill._tap();
       });
     }catch(_){}
