@@ -27,7 +27,8 @@ Current system prompt:
 
 **History**
 - v1: split + true-chronology ordering + `driftCues` (out-of-order phrases) + plain-string mentions.
-- v2 (current): dropped all chronology from this call (moved to render); mentions became `{name, desc}` to preload descriptions.
+- v2: dropped all chronology from this call (moved to render); mentions became `{name, desc}` to preload descriptions.
+- v3 (current): mentions gained `named` — true for actual names/family titles ("Miriam", "Dad", "me"), false for generic references ("some guy", "that woman"). Named people get card rows in the UI; generic ones go to the tap-to-describe list.
 
 ---
 
