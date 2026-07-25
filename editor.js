@@ -52,6 +52,7 @@ const NDE_COLLECTION = process.env.NDE_COLLECTION || 'forge-nde-videos';
 const ALIGN_PREFIX = process.env.EDITOR_ALIGN_PREFIX || 'nde-align-cache/';
 const AUDIO_PREFIX = process.env.EDITOR_AUDIO_PREFIX || 'nde-audio/';
 const RENDER_FOLDER = 'nde-episodes/editor';
+const PREVIEW_FOLDER = `${RENDER_FOLDER}/previews`;
 const MAX_RENDERS = 10;
 const WINDOW_RADIUS = 150; // ±seconds of transcript handed to the picker
 
@@ -292,11 +293,13 @@ async function deleteEpisode(id) {
   else memStore.delete(id);
 }
 
-async function uploadPublic(localFile, storagePath, contentType) {
+async function uploadPublic(localFile, storagePath, contentType, cacheControl) {
   const b = bucket();
   if (!b) throw new Error('Firebase Storage unavailable — cannot publish the render');
   const file = b.file(storagePath);
-  await b.upload(localFile, { destination: storagePath, metadata: { contentType } });
+  const metadata = { contentType };
+  if (cacheControl) metadata.cacheControl = cacheControl;
+  await b.upload(localFile, { destination: storagePath, metadata });
   await file.makePublic();
   return `https://storage.googleapis.com/${b.name}/${storagePath}`;
 }
@@ -575,6 +578,17 @@ async function concatAll(files, outFile, ctx) {
   return outFile;
 }
 
+// Which of the episode's sources a snippet belongs to. Usually one per video;
+// when a video appears twice, the one whose window sits nearest the snippet.
+function sourceFor(ep, videoId, snippet) {
+  const all = (ep.sources || []).filter(s => s.videoId === videoId);
+  if (!all.length) return null;
+  if (all.length === 1) return all[0];
+  const anchor = Number(snippet && snippet.timeSec);
+  if (!Number.isFinite(anchor)) return all[0];
+  return all.slice().sort((a, b) => Math.abs(anchor - (a.timeSec || 0)) - Math.abs(anchor - (b.timeSec || 0)))[0];
+}
+
 // ─── The render job ─────────────────────────────────────────────────
 async function renderEpisode(ep, progress) {
   const seq = (ep.sequence || []).filter(Boolean);
@@ -584,14 +598,6 @@ async function renderEpisode(ep, progress) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-'));
   const ctx = { dir, downloads: new Map(), log: [] };
   const snippetById = new Map((ep.snippets || []).map(s => [s.id, s]));
-  const sourceFor = (videoId, snippet) => {
-    const all = (ep.sources || []).filter(s => s.videoId === videoId);
-    if (!all.length) return null;
-    if (all.length === 1) return all[0];
-    const anchor = Number(snippet && snippet.timeSec);
-    if (!Number.isFinite(anchor)) return all[0];
-    return all.slice().sort((a, b) => Math.abs(anchor - (a.timeSec || 0)) - Math.abs(anchor - (b.timeSec || 0)))[0];
-  };
 
   try {
     // One cut per UNIQUE snippet — the same card can appear many times in the
@@ -613,7 +619,7 @@ async function renderEpisode(ep, progress) {
       byVideo.get(key).push(snippet);
     }
     for (const [videoId, snippets] of byVideo) {
-      const source = sourceFor(videoId, snippets[0]);
+      const source = sourceFor(ep, videoId, snippets[0]);
       if (!source) throw new Error(`no source in this episode for video ${videoId}`);
       for (const snippet of snippets) {
         await progress(done, total, `cutting "${snippet.name || snippet.id}"`);
@@ -689,6 +695,103 @@ async function startJob(ep, kind, fn) {
   })();
 }
 
+// ─── Per-snippet preview ────────────────────────────────────────────
+// The SAME cut the render makes, for ONE snippet on its own, so a beat can be
+// judged by ear before the whole episode is rendered. It goes through
+// `buildClip` — identical align-cache/whisper lookup, phraseSpan, clampBounds,
+// snapToSilence, fades and loudnorm — so what you hear is what you'll get.
+//
+// The result is cached on the snippet, keyed by a hash of the span's WORDS, so
+// a repeat play is instant and free and editing the span drops the stale cut.
+const PREVIEW_FIELDS = ['previewUrl', 'previewAt', 'previewHash', 'previewNotes',
+  'previewStatus', 'previewJobHash', 'previewStartedAt', 'previewError'];
+
+function textHash(text) {
+  return crypto.createHash('sha1').update(normWords(text).join(' ')).digest('hex').slice(0, 12);
+}
+
+// What the page asks for: is there a usable cut for this snippet's text right
+// now, is one being made, or did the last attempt fail?
+function previewState(snippet) {
+  const want = textHash(snippet.text || '');
+  if (snippet.previewUrl && snippet.previewHash === want) {
+    return { status: 'ready', url: snippet.previewUrl, at: snippet.previewAt || null, notes: snippet.previewNotes || null };
+  }
+  if (snippet.previewJobHash === want) {
+    if (snippet.previewStatus === 'running') {
+      const age = Date.now() - new Date(snippet.previewStartedAt || 0).getTime();
+      if (age < 15 * 60 * 1000) return { status: 'running' };
+    } else if (snippet.previewStatus === 'error') {
+      return { status: 'error', error: snippet.previewError || 'the cut could not be made' };
+    }
+  }
+  return { status: 'none' };
+}
+
+// Re-read the doc before writing so a preview finishing mid-edit patches only
+// its own snippet instead of stamping a whole stale episode over Sophie's work.
+async function patchSnippet(episodeId, snippetId, fields) {
+  const ep = await loadEpisode(episodeId);
+  if (!ep) return null;
+  const s = (ep.snippets || []).find(x => x.id === snippetId);
+  if (!s) return null;
+  Object.assign(s, fields);
+  await saveEpisode(ep);
+  return s;
+}
+
+async function makePreview(episodeId, snippetId) {
+  if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-prev-'));
+  const ctx = { dir, downloads: new Map(), log: [] };
+  try {
+    const ep = await loadEpisode(episodeId);
+    if (!ep) throw new Error('episode not found');
+    const snippet = (ep.snippets || []).find(s => s.id === snippetId);
+    if (!snippet) throw new Error('snippet is gone');
+    const source = sourceFor(ep, snippet.videoId, snippet);
+    if (!source) throw new Error(`no source in this episode for video ${snippet.videoId}`);
+    const clip = await buildClip(snippet, source, ctx);
+    // The path is stable per snippet, so a re-cut of edited words replaces the
+    // old object — no-cache keeps a browser from serving the previous take.
+    const url = await uploadPublic(clip, `${PREVIEW_FOLDER}/${episodeId}-${snippetId}.mp3`, 'audio/mpeg', 'no-cache');
+    return { url, notes: ctx.log.join(' · ') };
+  } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
+  }
+}
+
+const previewJobs = new Set(); // in-flight `${episodeId}:${snippetId}` — guards a double-tap
+
+// Fire-and-forget, recorded on the snippet (never on ep.job — a preview must
+// not look like, or block, an episode render). The page polls GET /preview/:id.
+async function startPreview(episodeId, snippet) {
+  const key = `${episodeId}:${snippet.id}`;
+  if (previewJobs.has(key)) return;
+  previewJobs.add(key);
+  const want = textHash(snippet.text || '');
+  await patchSnippet(episodeId, snippet.id, {
+    previewStatus: 'running', previewJobHash: want,
+    previewStartedAt: new Date().toISOString(), previewError: null,
+  });
+
+  (async () => {
+    try {
+      const { url, notes } = await makePreview(episodeId, snippet.id);
+      await patchSnippet(episodeId, snippet.id, {
+        previewUrl: url, previewHash: want, previewAt: new Date().toISOString(),
+        previewNotes: notes || null, previewStatus: null, previewError: null,
+      });
+    } catch (err) {
+      console.warn('editor: preview failed —', err.message);
+      await patchSnippet(episodeId, snippet.id, { previewStatus: 'error', previewError: err.message })
+        .catch(e => console.warn('editor: preview save failed —', e.message));
+    } finally {
+      previewJobs.delete(key);
+    }
+  })();
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 router.use(express.json({ limit: '4mb' }));
@@ -742,6 +845,16 @@ function cleanSnippet(s) {
   };
   if (Number.isFinite(Number(s.timeSec))) out.timeSec = Math.round(Number(s.timeSec) * 10) / 10;
   return out;
+}
+
+// A snippet's preview cut is server-owned: the page never sends it back, and a
+// client copy that predates the cut must not wipe it. Carry it across a save
+// while the span's WORDS are unchanged — editing them changes the hash, which
+// drops the stale cut on its own.
+function carryPreview(incoming, existing) {
+  if (!existing || textHash(incoming.text) !== textHash(existing.text || '')) return incoming;
+  for (const k of PREVIEW_FIELDS) if (existing[k] != null) incoming[k] = existing[k];
+  return incoming;
 }
 
 function cleanSequence(items) {
@@ -805,7 +918,11 @@ router.put('/:id', async (req, res) => {
     if (!ep) return res.status(404).json({ error: 'not found' });
     if (req.body.title != null) ep.title = String(req.body.title).trim() || ep.title;
     if (req.body.sources) ep.sources = req.body.sources.map(cleanSource).filter(Boolean);
-    if (req.body.snippets) ep.snippets = req.body.snippets.map(cleanSnippet).filter(Boolean);
+    if (req.body.snippets) {
+      const before = new Map((ep.snippets || []).map(s => [s.id, s]));
+      ep.snippets = req.body.snippets.map(cleanSnippet).filter(Boolean)
+        .map(s => carryPreview(s, before.get(s.id)));
+    }
     if (req.body.sequence) ep.sequence = cleanSequence(req.body.sequence);
     await saveEpisode(ep);
     res.json({ episode: ep });
@@ -827,6 +944,33 @@ router.post('/:id/render', async (req, res) => {
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
+// Cut ONE snippet so it can be heard on its own. Returns the cached cut
+// immediately when the span's words haven't changed since it was made;
+// otherwise starts the background job and answers `running`.
+router.post('/:id/preview', async (req, res) => {
+  try {
+    const ep = await loadEpisode(req.params.id);
+    if (!ep) return res.status(404).json({ error: 'not found' });
+    const snippet = (ep.snippets || []).find(s => s.id === String((req.body && req.body.snippetId) || ''));
+    if (!snippet) return res.status(404).json({ error: 'snippet not found' });
+    const state = previewState(snippet);
+    if (state.status === 'ready') return res.json({ ...state, cached: true });
+    if (state.status === 'running') return res.json(state);
+    await startPreview(ep.id, snippet);
+    res.json({ status: 'running' });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.get('/:id/preview/:snippetId', async (req, res) => {
+  try {
+    const ep = await loadEpisode(req.params.id);
+    if (!ep) return res.status(404).json({ error: 'not found' });
+    const snippet = (ep.snippets || []).find(s => s.id === req.params.snippetId);
+    if (!snippet) return res.status(404).json({ error: 'snippet not found' });
+    res.json(previewState(snippet));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:id/job', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
@@ -839,4 +983,5 @@ module.exports = {
   router,
   // exported for tests / other tools
   phraseSpan, clampBounds, snapToSilence, ratio, normWords, windowTokens,
+  textHash, previewState,
 };
