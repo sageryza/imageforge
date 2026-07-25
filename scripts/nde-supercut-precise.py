@@ -312,7 +312,7 @@ for i, c in enumerate(cands, 1):
     win_start = max(0, t - 25)
     win = os.path.join(tmp, f"w{i}.mp3")
     try:
-        run(["ffmpeg","-y","-ss",str(win_start),"-t","80","-i",url,"-c:a","libmp3lame","-q:a","4",win])
+        run(["ffmpeg","-y","-ss",str(win_start),"-t",os.environ.get("WIN_DUR","80"),"-i",url,"-c:a","libmp3lame","-q:a","4",win])
         cachef = os.path.join(CACHE, f"{c.get('videoId','x')}_{win_start}.json")
         if os.path.exists(cachef):
             wj = json.load(open(cachef))
