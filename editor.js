@@ -359,7 +359,9 @@ async function listAlignCache(videoId) {
       console.warn('editor: align-cache listing failed —', err.message);
     }
   }
-  alignCacheIndex.set(videoId, entries);
+  // Only memoize a hit — a video with no cache today may get one uploaded
+  // later, and re-listing an empty prefix is cheap.
+  if (entries.length) alignCacheIndex.set(videoId, entries);
   return entries;
 }
 
@@ -453,6 +455,16 @@ async function downloadOnce(url, ctx) {
   return file;
 }
 
+// Drop a downloaded source once every clip that needed it has been cut, so a
+// 12-source episode never holds twelve whole interviews on disk at once
+// (Render's free instance has little of it).
+function releaseDownload(url, ctx) {
+  const file = ctx.downloads.get(url);
+  if (!file) return;
+  ctx.downloads.delete(url);
+  try { fs.unlinkSync(file); } catch { /* already gone */ }
+}
+
 // Cut `winDur` seconds starting at `winStart` out of the source audio. Tries the
 // URL directly first (ffmpeg range-seeks, so it pulls only what it needs).
 async function extractWindow(url, winStart, winDur, outFile, ctx) {
@@ -500,7 +512,6 @@ async function buildClip(snippet, source, ctx) {
     words = await whisperWords(winFile);
     usedCache = false;
     span = phraseSpan(words, snippet.text);
-    ctx.fallbacks.push(snippet.name || snippet.id);
   }
   if (!span) throw new Error(`couldn't find "${snippet.name || snippet.id}" in the audio around ${Math.round(anchor)}s`);
 
@@ -571,7 +582,7 @@ async function renderEpisode(ep, progress) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-'));
-  const ctx = { dir, downloads: new Map(), log: [], fallbacks: [] };
+  const ctx = { dir, downloads: new Map(), log: [] };
   const snippetById = new Map((ep.snippets || []).map(s => [s.id, s]));
   const sourceFor = (videoId, snippet) => {
     const all = (ep.sources || []).filter(s => s.videoId === videoId);
@@ -589,14 +600,27 @@ async function renderEpisode(ep, progress) {
     const total = uniqueClips.length + seq.filter(i => i.type === 'narration').length + 1;
     let done = 0;
     const clipFiles = new Map();
+
+    // Cut video by video, not sequence order: ffmpeg on Render can't seek the
+    // https source, so each interview gets downloaded whole — grouping means
+    // one download per source, released the moment its last clip is cut.
+    const byVideo = new Map();
     for (const snippetId of uniqueClips) {
       const snippet = snippetById.get(snippetId);
       if (!snippet) throw new Error(`sequence references a missing snippet (${snippetId})`);
-      const source = sourceFor(snippet.videoId, snippet);
-      if (!source) throw new Error(`no source in this episode for video ${snippet.videoId}`);
-      await progress(done, total, `cutting "${snippet.name || snippetId}"`);
-      clipFiles.set(snippetId, await buildClip(snippet, source, ctx));
-      done++;
+      const key = snippet.videoId || '';
+      if (!byVideo.has(key)) byVideo.set(key, []);
+      byVideo.get(key).push(snippet);
+    }
+    for (const [videoId, snippets] of byVideo) {
+      const source = sourceFor(videoId, snippets[0]);
+      if (!source) throw new Error(`no source in this episode for video ${videoId}`);
+      for (const snippet of snippets) {
+        await progress(done, total, `cutting "${snippet.name || snippet.id}"`);
+        clipFiles.set(snippet.id, await buildClip(snippet, source, ctx));
+        done++;
+      }
+      releaseDownload(source.audioUrl || defaultAudioUrl(videoId), ctx);
     }
 
     const parts = [];
