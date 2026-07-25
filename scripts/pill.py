@@ -75,10 +75,22 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// Content-tap gesture (a page calls __scrollTap from its own tap handler):
-// a plain toggle — tap stops, tap starts again (at the current speed; default
-// Fast). Speed changes stay on the pill's −/+ buttons.
-window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
