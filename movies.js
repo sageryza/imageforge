@@ -971,6 +971,7 @@ async function dreamSplit(recording) {
   {"title": a short 2-5 word title for THIS dream,
    "text": the exact words from the recording that belong to THIS dream, verbatim (you may drop filler like "um"), in the order they were said,
    "mentions": [ {"name": a short label for a person/figure in THIS dream, exactly as the dreamer refers to them — "me", "J", "Dad", "Miriam", "the baby", "this guy"; if the dreamer themself is in it, "me" comes FIRST,
+     "named": true if the dreamer refers to them by an actual name or family title ("Miriam", "J", "Dad", "Auntie Florence", "me"); false for generic references they clearly can't identify ("some guy", "that woman", "a videographer", "someone", "the baby"),
      "desc": any description the dreamer actually gave of that person's appearance in the recording — "serious face", "tall with red hair", "wearing a suit" — VERBATIM-ish, or "" if they gave none} ] }
 ]}
 
@@ -992,8 +993,11 @@ HARD RULES:
     // Normalize mentions to { name, desc }; tolerate the model returning plain
     // strings (older shape) too.
     mentions: (Array.isArray(d.mentions) ? d.mentions : []).map((m) => {
-      if (m && typeof m === 'object') return { name: String(m.name || '').trim(), desc: String(m.desc || '').trim() };
-      return { name: String(m || '').trim(), desc: '' };
+      if (m && typeof m === 'object') {
+        return { name: String(m.name || '').trim(), desc: String(m.desc || '').trim(),
+                 named: m.named === false ? false : (m.named === true ? true : null) };
+      }
+      return { name: String(m || '').trim(), desc: '', named: null };
     }).filter(m => m.name).slice(0, 12),
     cast: [], characters: '', beats: [],
   })).filter(d => d.text);
@@ -1007,14 +1011,18 @@ HARD RULES:
 // when there's no match). Each suggestion also carries the `desc` the dreamer
 // gave that person, so the describe card can preload it. Best-effort.
 async function attachCastSuggestions(doc) {
-  const mentions = (doc.mentions || []).map(m => (m && typeof m === 'object') ? m : { name: String(m), desc: '' });
+  const mentions = (doc.mentions || []).map(m => (m && typeof m === 'object') ? m : { name: String(m), desc: '', named: null });
   try {
     const { matchCandidates } = require('./character');
     const matched = await matchCandidates(mentions.map(m => m.name));
-    doc.castSuggestions = matched.map((s, i) => ({ ...s, desc: mentions[i] ? mentions[i].desc : '' }));
+    doc.castSuggestions = matched.map((s, i) => ({
+      ...s,
+      desc: mentions[i] ? (mentions[i].desc || '') : '',
+      named: mentions[i] ? (mentions[i].named ?? null) : null,
+    }));
   } catch (err) {
     console.warn('movies: cast suggestions failed —', err.message);
-    doc.castSuggestions = mentions.map(m => ({ name: m.name, matches: [], desc: m.desc }));
+    doc.castSuggestions = mentions.map(m => ({ name: m.name, matches: [], desc: m.desc || '', named: m.named ?? null }));
   }
 }
 
@@ -2476,7 +2484,7 @@ router.post('/dream', async (req, res) => {
           // Match mentions to the saved sheet ONLY for Sophie — a guest must
           // never see (or borrow) her characters, so guests get describe-only.
           for (const p of plans) {
-            if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
+            if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "", named: (m && typeof m.named === "boolean") ? m.named : null }));
             else await attachCastSuggestions(p);
           }
           const docs = await createDreamDocs(plans, text, title, owner);
@@ -2498,7 +2506,7 @@ router.post('/dream', async (req, res) => {
     // return the split dreams in one call. One recording can hold several dreams.
     const { dreams: plans } = await dreamSplit(text);
     for (const p of plans) {
-      if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "" }));
+      if (owner) p.castSuggestions = (p.mentions || []).map(m => ({ name: (m && m.name) || String(m), matches: [], desc: (m && m.desc) || "", named: (m && typeof m.named === "boolean") ? m.named : null }));
       else await attachCastSuggestions(p);
     }
     const docs = await createDreamDocs(plans, text, title, owner);

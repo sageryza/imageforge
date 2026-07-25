@@ -383,9 +383,29 @@ router.get('/', gated, async (req, res) => {
       return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.url, tier: v.tier,
         aliases: Array.isArray(v.aliases) ? v.aliases : [],
         quality: v.quality || null, model: v.model || null,
+        usedCount: v.usedCount || 0, lastUsedAt: v.lastUsedAt || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
     });
     res.json({ characters });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Record that these characters were just used in a dream render — powers the
+// cast sheet's "5 frequent/recent" slots. Fire-and-forget from the client.
+router.post('/used', gated, async (req, res) => {
+  try {
+    const d = db();
+    if (!d) return res.status(503).json({ error: 'firestore unavailable' });
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map(String).filter(Boolean).slice(0, 20);
+    const now = new Date().toISOString();
+    for (const id of ids) {
+      await d.collection(COLLECTION).doc(id)
+        .update({ usedCount: admin.firestore.FieldValue.increment(1), lastUsedAt: now })
+        .catch(() => {});   // a deleted character is fine to skip
+    }
+    res.json({ ok: true, updated: ids.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
