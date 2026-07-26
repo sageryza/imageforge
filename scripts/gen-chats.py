@@ -92,6 +92,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-preview{font-size:16.5px; line-height:1.5; cursor:pointer;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
 .m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
+.codebox{position:relative; margin:8px 0;}
+.codebox pre{margin:0; padding-right:44px;}
+.codecopy{position:absolute; top:6px; right:6px; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; background:var(--barbg); border:1px solid var(--line); border-radius:6px; color:var(--ink2); cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;}
+.codecopy svg{width:15px; height:15px;}
+.codecopy.done{color:var(--ink);}
 .m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
 /* The folded technical middle of a message — collapsed to a tap. */
 .fold{margin:8px 0;}
@@ -231,21 +236,44 @@ __PILL_HTML__
 var TOKEN='__STUDIO_TOKEN__';
 function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+// Copy button on every fenced code block (works in Safari AND the iOS app's
+// WKWebView — clipboard API first, hidden-textarea execCommand fallback).
+var COPY_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+var CHECK_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+document.addEventListener('click', function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.codecopy'):null;
+  if(!b) return;
+  e.stopPropagation();
+  var pre=b.parentNode.querySelector('pre');
+  var text=pre?pre.textContent:'';
+  function ok(){ b.innerHTML=CHECK_ICON; b.classList.add('done'); toast('Copied');
+    setTimeout(function(){ b.innerHTML=COPY_ICON; b.classList.remove('done'); },1600); }
+  function fallback(){
+    var ta=document.createElement('textarea'); ta.value=text;
+    ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var done=false; try{ done=document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta);
+    if(done) ok(); else toast('Copy failed');
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok,fallback); }
+  else fallback();
+});
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Light markdown for the full message view: escape FIRST (safe), then style.
 // Bold/italics/inline code render for real; fenced code becomes a quiet <pre>;
 // heading marks become bold lines. Everything else stays plain text.
 function md(t){
   var s=esc(t);
-  s=s.replace(/```[a-z]*\\n?([\\s\\S]*?)```/g, function(_,c){ return '<pre>'+c.replace(/\\s+$/,'')+'</pre>'; });
+  s=s.replace(/```[a-z]*\\n?([\\s\\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
   s=s.replace(/\\*\\*([^*\\n][^*]*?)\\*\\*/g,'<b>$1</b>');
   s=s.replace(/(^|[\\s(“"'>])\\*([^*\\n]+)\\*/g,'$1<i>$2</i>');
   s=s.replace(/`([^`\\n]+)`/g,'<code>$1</code>');
   s=s.replace(/^#{1,4}\\s+(.+)$/gm,'<b>$1</b>');
   // Clickable links, added last so pre/code blocks stay untouched:
   // markdown [text](url) first, then bare https:// URLs.
-  s=s.split(/(<pre>[\\s\\S]*?<\\/pre>|<code>[^<]*?<\\/code>)/g).map(function(part){
-    if(part.lastIndexOf('<pre>',0)===0||part.lastIndexOf('<code>',0)===0) return part;
+  s=s.split(/(<div class="codebox">[\\s\\S]*?<\\/div>|<code>[^<]*?<\\/code>)/g).map(function(part){
+    if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
     part=part.replace(/\\[([^\\]\\n]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
     part=part.replace(/(^|[^"'>])(https?:\\/\\/[^\\s<)\\]]+[^\\s<)\\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     return part;
