@@ -2011,9 +2011,15 @@ Return ONLY JSON: {"visual": "...", "caption": "..."}`;
       try {
         const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DISTILL_SYS }, { role: 'user', content: `Memory:\n${desc.slice(0, 1200)}` }] });
         const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
-        const j = t && parseJsonReply(t);
-        if (j && j.visual) { visualBrief = j.visual; caption = String(j.caption || '').trim().slice(0, 48) || null; }
-        else if (t) visualBrief = t; // model ignored the JSON shape — still use its brief
+        if (t) {
+          visualBrief = t; // fallback: the raw reply still works as a brief
+          // parseJsonReply takes the whole chat RESPONSE (it digs out the
+          // content itself) and throws on non-JSON — hence its own try.
+          try {
+            const j = parseJsonReply(chat);
+            if (j && j.visual) { visualBrief = j.visual; caption = String(j.caption || '').trim().slice(0, 48) || null; }
+          } catch {}
+        }
       } catch {}
       const imgPrompt = `Create a simple editorial spot illustration based on this visual brief:
 
