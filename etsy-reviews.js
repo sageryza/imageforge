@@ -44,18 +44,20 @@ function reviewDoc(r) {
 }
 
 // Upsert one page of reviews. Returns how many were NEW (already-seen
-// transaction ids are how the incremental sync knows when to stop).
+// transaction ids are how the incremental sync knows when to stop). The
+// existence check is one batched getAll, not a get per review — the serial
+// version made a 7.8k-review backfill take >10 minutes.
 async function upsertPage(results) {
+  const rows = results.filter(r => r.transaction_id).map(r => ({
+    r,
+    ref: db().collection(COL).doc(String(r.listing_id))
+      .collection('items').doc(String(r.transaction_id)),
+  }));
+  if (!rows.length) return 0;
+  const snaps = await db().getAll(...rows.map(x => x.ref));
+  const fresh = snaps.filter(s => !s.exists).length;
   const batch = db().batch();
-  let fresh = 0;
-  for (const r of results) {
-    if (!r.transaction_id) continue;
-    const ref = db().collection(COL).doc(String(r.listing_id))
-      .collection('items').doc(String(r.transaction_id));
-    const snap = await ref.get();
-    if (!snap.exists) fresh++;
-    batch.set(ref, reviewDoc(r));
-  }
+  rows.forEach(x => batch.set(x.ref, reviewDoc(x.r)));
   await batch.commit();
   return fresh;
 }
