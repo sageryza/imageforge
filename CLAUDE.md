@@ -584,24 +584,42 @@ lifted into a standalone tool later.
   crystal-listing project (Sophie's mom's crystals, already in hand). Sophie
   dumps photos from her phone; a chat pulls them back out to price them, sort
   them into listings, and build the numbered pick-your-own grids.
-- **One Firestore doc per PHOTO** (`forge-crystals`, deckfactory), bytes in
-  Storage `crystals/<batch>/`. `kind:'single'` = one crystal per photo (the
-  pick-your-own case — `seq` is its number in the grid); `kind:'group'` = a tray
-  of several in one shot (`count` = how many). Every stone field is optional —
-  dumping a photo is never blocked on knowing anything about it.
-- **`seq` is the crystal's number** and continues across separate uploads into
-  the same batch (`nextSeq` scans the batch's max), so a second dump doesn't
-  restart numbering and break a grid overlay already built on it. ZIP entries
-  are sorted by filename numerically first, so `IMG_2` comes before `IMG_10`.
+- **ON HER PHONE EACH CRYSTAL IS ITS OWN PHOTOS ALBUM** (several shots of the
+  one stone) — and that album is exactly one Etsy listing. The data model
+  mirrors that: one Firestore doc per PHOTO (`forge-crystals`, deckfactory,
+  bytes in Storage `crystals/<batch>/<crystal>/`), each carrying `crystal` (the
+  album slug) + `crystalName`, and **every photo of a stone shares one `seq`** —
+  the crystal's number in a pick-your-own grid. `photoIndex` orders the shots
+  (0 = cover). A photo with no `crystal` is loose and gets its own `seq`.
+- `kind` is about what's in the FRAME, not the grouping: `single` = one crystal
+  in the shot, `group` = a tray of several (`count` = how many). Every stone
+  field is optional — dumping a photo is never blocked on knowing anything.
+- **`seq` continues across separate uploads** into the same batch (`batchState`
+  scans it), so a second dump doesn't restart numbering and break a grid overlay
+  already built on the first; re-uploading into an existing album name lands in
+  that same crystal and continues its `photoIndex`.
+- **ZIP folders become crystals** — `crystalNamer()` strips the prefix every
+  entry shares (the Files-app wrapper) and takes the first folder that remains,
+  so `Crystals/Pink quartz/*` → "Pink quartz", a lone `Pink quartz/*` → "Pink
+  quartz" (the wrapper IS the album), and a flat zip → loose photos.
+  `?crystal=` forces the whole zip into one album. Entries sort by filename
+  numerically, so `IMG_2` precedes `IMG_10`; `__MACOSX`/non-images are skipped.
+  This is the bulk path — the phone flow (Photos → album → Select All → Share →
+  Save to Files → one folder per crystal → Compress) is in the page's own
+  collapsible how-to, verified against current iOS.
 - **Uploads are one photo per request, at FULL RESOLUTION** — the page never
   downscales (these are the listing photos; Etsy wants 2000px+ on the short
-  side), it just loops so no single body is 40MB. ZIP path (`POST /upload-zip`,
-  raw body) is the bulk option and skips `__MACOSX`/non-images.
-- **Routes:** `GET /status` (open), `GET /batches`, `POST /upload`
-  `{batch, images:[dataURL|url], kind?, defaults?, filenames?}`,
-  `POST /upload-zip?batch=&kind=`, `GET /items?batch=&status=&kind=&limit=`,
-  `GET /items/:id`, `PATCH /items/:id`, `DELETE /items/:id` (removes the
-  Storage object too). Same `STUDIO_TOKEN` gate as the rest of the pipeline.
+  side), it just loops so no single body is 40MB. **HEIC is re-encoded to JPEG**
+  via sharp at the ORIGINAL pixel dimensions (Etsy rejects HEIC and most
+  browsers can't show it); if libheif can't decode, the original bytes are kept.
+- **Routes:** `GET /status` (open), `GET /batches`, **`GET /crystals?batch=`**
+  (the listing view — photos rolled up per stone; what a chat should read),
+  `POST /upload` `{batch, crystal?, images:[dataURL|url], kind?, defaults?,
+  filenames?}`, `POST /upload-zip?batch=&crystal=&kind=`,
+  `GET /items?batch=&crystal=&status=&kind=&limit=`, `GET /items/:id`,
+  `PATCH /items/:id`, **`PATCH /group` `{batch, crystal, …}`** (a crystal is ONE
+  listing, so stone/price/tags/status write to all its photos at once),
+  `DELETE /items/:id`, `DELETE /group?batch=&crystal=`. Same `STUDIO_TOKEN` gate.
 - PATCH writes are whitelisted to `EDITABLE` — everything else on the doc
   (url, storagePath, createdAt) is server-owned. Queries use a single equality
   filter and sort in memory, so no composite Firestore index is needed.
