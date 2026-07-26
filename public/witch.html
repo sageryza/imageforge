@@ -2489,7 +2489,7 @@
     // Fun options
     h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
       <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
-      <button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>
+      ${IS_APP ? '' : `<button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>`}
       <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
     </div></div>`;
     st.innerHTML = h;
@@ -3356,7 +3356,8 @@
       const st = JSON.parse(localStorage.getItem('witch_natal') || 'null');
       if (st && st.data && st.data.chart) {
         const name = (typeof fbUser !== 'undefined' && fbUser && fbUser.displayName) ? fbUser.displayName.split(' ')[0].toUpperCase() : '';
-        poster = `<div class="cp-svg">${posterSVG(st.data.chart, { name, dateLabel: cpFmtDate(st.input.date), timeLabel: cpFmtTime(st.input.time), placeLabel: (st.input.place || '').toUpperCase() })}</div>
+        poster = `<div class="cp-svg">${posterSVG(st.data.chart, { name, dateLabel: cpFmtDate(st.input.date), timeLabel: cpFmtTime(st.input.time), placeLabel: (st.input.place || '').toUpperCase() })}</div>`;
+        if (!IS_APP) poster += `
           <div class="dpaywall" style="margin-top:16px;">
             <div class="dpw-title">Ready to frame ✦</div>
             <div class="dpw-sub">Order your chart as a museum-quality art print, shipped to your door.</div>
@@ -3893,8 +3894,10 @@
     if (coinRedrawsToday() >= FREE_REDRAWS_PER_DAY) {
       openModal(
         '<h2 style="margin-bottom:4px;">One redraw a day</h2>' +
-        '<p class="sub">You’ve used today’s free redraw. Members get <b>unlimited</b> redraws — or come back tomorrow for another free one. ✦</p>' +
-        '<button class="gbtn" id="coin-up">Become a member</button>' +
+        (IS_APP
+          ? '<p class="sub">You’ve used today’s redraw — come back tomorrow for another one. ✦</p>'
+          : '<p class="sub">You’ve used today’s free redraw. Members get <b>unlimited</b> redraws — or come back tomorrow for another free one. ✦</p>' +
+            '<button class="gbtn" id="coin-up">Become a member</button>') +
         '<button class="close-x" id="coin-x">maybe later</button>'
       );
       $('coin-up')?.addEventListener('click', () => { closeModal(); openUpgrade('coincidence'); });
@@ -3903,9 +3906,11 @@
     }
     openModal(
       '<h2 style="margin-bottom:4px;">Redraw this one?</h2>' +
-      '<p class="sub">You get <b>one free redraw a day</b>. Use it on this coincidence? Members get unlimited redraws. ✦</p>' +
+      (IS_APP
+        ? '<p class="sub">You get <b>one redraw a day</b>. Use it on this coincidence? ✦</p>'
+        : '<p class="sub">You get <b>one free redraw a day</b>. Use it on this coincidence? Members get unlimited redraws. ✦</p>') +
       '<button class="gbtn" id="coin-yes">Yes, redraw it</button>' +
-      '<button class="gbtn" id="coin-up">Unlimited with membership</button>' +
+      (IS_APP ? '' : '<button class="gbtn" id="coin-up">Unlimited with membership</button>') +
       '<button class="close-x" id="coin-x">never mind</button>'
     );
     $('coin-yes')?.addEventListener('click', () => { closeModal(); coinGenerate(i, st.desc, true); });
@@ -4185,7 +4190,14 @@
   let dreamIllusTimer = null;
   function renderDreamBook(url) {
     const img = esc(url);
-    $('dream-book').innerHTML = `
+    // In the iOS app: just the illustrated page, no locked pages / unlock
+    // button (no purchasable dream book exists yet — App Review rejects
+    // placeholder "coming soon" purchase UI, and digital unlocks are an
+    // IAP conversation we're not having in v1).
+    $('dream-book').innerHTML = IS_APP ? `
+      <div class="dbook-pages">
+        <div class="dpage" id="dream-page1" style="cursor:zoom-in;"><img src="${img}" alt="Your dream, illustrated"></div>
+      </div>` : `
       <div class="dbook-pages">
         <div class="dpage" id="dream-page1" style="cursor:zoom-in;"><span class="dfree">Page 1 · free</span><img src="${img}" alt="Your dream, page one"></div>
         <div class="dpage locked"><img src="${img}" alt=""><div class="dlock">${LOCK}</div></div>
