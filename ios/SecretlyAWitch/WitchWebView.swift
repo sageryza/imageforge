@@ -46,13 +46,13 @@ struct WitchWebView: UIViewRepresentable {
         // Tab changed natively → drive the page's go().
         if context.coordinator.lastTab != tab {
             context.coordinator.lastTab = tab
-            web.evaluateJavaScript("window.__setTab && window.__setTab('\(tab.rawValue)')", completionHandler: nil)
+            context.coordinator.pushTab(web, tab)
         } else if context.coordinator.lastPop != popSignal {
             // Re-tap of the current tab: go() closes every open full-page
             // overlay before activating the view, so re-sending the same tab
             // pops a lesson/quiz back to the tab's root.
             context.coordinator.lastPop = popSignal
-            web.evaluateJavaScript("window.__setTab && window.__setTab('\(tab.rawValue)')", completionHandler: nil)
+            context.coordinator.pushTab(web, tab)
         }
     }
 
@@ -66,6 +66,24 @@ struct WitchWebView: UIViewRepresentable {
             self.parent = parent
             self.lastTab = parent.tab
             self.lastPop = parent.popSignal
+        }
+
+        /// Drive the page's tab with confirmation. The old fire-and-forget
+        /// `window.__setTab && …` silently dropped the tap whenever the page
+        /// wasn't ready (deploy reload, cold start, process restart) — the
+        /// native bar then showed one tab while the page stayed on another.
+        /// Now the call reports whether it landed, and a miss retries until
+        /// the page is back.
+        func pushTab(_ web: WKWebView, _ tab: WitchTab, attempt: Int = 0) {
+            let js = "window.__setTab ? (window.__setTab('\(tab.rawValue)'), true) : false"
+            web.evaluateJavaScript(js) { [weak self, weak web] result, error in
+                let landed = (result as? Bool) == true && error == nil
+                guard !landed, attempt < 8, let self, let web else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // Only retry if this is still the tab the user wants.
+                    if self.lastTab == tab { self.pushTab(web, tab, attempt: attempt + 1) }
+                }
+            }
         }
 
         // "Continue with Google" tapped in the page → run the native OAuth
@@ -135,10 +153,15 @@ struct WitchWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             parent.loading = false
-            // Honor a non-default starting tab (CI screenshots / restored state).
-            if parent.tab != .home {
-                webView.evaluateJavaScript("window.__setTab && window.__setTab('\(parent.tab.rawValue)')", completionHandler: nil)
-            }
+            // Every fresh load starts the page on Home — re-assert whichever
+            // tab the native bar is actually on so they can never desync.
+            pushTab(webView, parent.tab)
+        }
+
+        // iOS kills the web content process under memory pressure; without
+        // this the view just goes blank (and every tab tap vanishes into it).
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
         }
         // iOS reclaims backgrounded webview processes under memory pressure;
         // without this the app comes back as a frozen snapshot (nothing taps).

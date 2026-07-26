@@ -980,7 +980,7 @@
     /* The closed cover is the same object as the open pages: near full-bleed
        with a generous border of background, only without the spread sliver.
        Height mirrors the reader's stage (viewport minus header/nav chrome). */
-    .bos-cover { width: 100%; height: max(340px, calc(100dvh - 322px)); margin: 14px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    .bos-cover { width: 100%; height: 60vh; margin: 14px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
     .bos-cover:active { transform: scale(0.98); }
     .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     /* Small accent, not a co-equal glyph next to the title — Book of Shadows
@@ -1843,7 +1843,7 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
-    if (view === 'book') { try { updateBosCoverSub(); } catch {} }
+    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} }
     if (view === 'school') { try { renderSchoolPath(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
@@ -3069,6 +3069,21 @@
     el.textContent = n ? n + (n === 1 ? ' page' : ' pages') : 'blank & waiting';
   }
   updateBosCoverSub();
+  // The closed cover is sized to match the open pages EXACTLY: measured from
+  // its own top to the bottom of the screen, minus the button and (web only)
+  // the nav — viewport-unit math inside the iOS WKWebView lied and cropped
+  // the cover square, so we measure instead of calculate.
+  function sizeBosCover() {
+    const c = $('bos-cover'); if (!c) return;
+    const r = c.getBoundingClientRect(); if (!r.width) return;   // book tab not visible
+    const btn = $('bos-quickwrite');
+    const navEl = document.querySelector('nav');
+    const navH = (!IS_APP && navEl) ? navEl.offsetHeight : 0;
+    const reserve = (btn ? btn.offsetHeight + 16 : 60) + 14 + navH;
+    c.style.height = Math.max(320, window.innerHeight - r.top - reserve) + 'px';
+  }
+  window.addEventListener('resize', sizeBosCover);
+  requestAnimationFrame(sizeBosCover);
   // Miracles studio is no longer exposed (button removed) — its toggle is gone;
   // the dormant block stays hidden. Guard in case the button ever returns.
   { const mt = $('miracles-toggle'); if (mt) mt.addEventListener('click', () => {
