@@ -644,8 +644,14 @@
     .ps-add:disabled { opacity: .5; }
     .ps-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-top: 16px; }
     .ps-desc p { margin: 8px 0; }
+    /* ── description / reviews toggle ── */
+    .ps-tabs { display: flex; gap: 8px; margin-top: 18px; }
+    .ps-tab { flex: 1; padding: 9px 10px; border-radius: 6px; border: 1px solid var(--line); background: none;
+              color: var(--text-dim); font-size: 13.5px; font-family: inherit; }
+    .ps-tab.on { color: var(--gold); border-color: var(--gold); }
     /* ── product reviews (mirrored from Etsy) ── */
     .ps-rating { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+    .ps-rating[role="button"] { cursor: pointer; }
     .rv-star { width: 14px; height: 14px; fill: none; stroke: var(--gold); stroke-width: 1.6; flex: none; }
     .rv-star.on { fill: var(--gold); }
     .ps-rating .rv-count, .rv-head .rv-count { color: var(--text-dim); font-size: 12.5px; }
@@ -2730,6 +2736,8 @@
     const { p, variantId, qty, img } = psState, sh = $('prod-sheet');
     const v = p.variants.find(x => x.id === variantId) || p.variants[0] || {};
     const showVars = p.variants.length > 1;
+    const tab = psState.tab || 'desc';
+    const revCount = (REV_CACHE[psState.handle] || {}).count || 0;
     sh.innerHTML = `
       <button class="sx" onclick="closeProdSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
@@ -2742,10 +2750,17 @@
         <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
         <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
       </div>
-      <div class="ps-desc">${p.descriptionHtml || ''}</div>
-      <div class="ps-reviews" id="ps-reviews"></div>`;
+      <div class="ps-tabs">
+        <button class="ps-tab ${tab === 'desc' ? 'on' : ''}" onclick="psTab('desc')">Description</button>
+        <button class="ps-tab ${tab === 'reviews' ? 'on' : ''}" onclick="psTab('reviews')">Reviews${revCount ? ` (${revCount.toLocaleString()})` : ''}</button>
+      </div>
+      <div class="ps-desc"${tab === 'desc' ? '' : ' hidden'}>${p.descriptionHtml || ''}</div>
+      <div class="ps-reviews" id="ps-reviews"${tab === 'reviews' ? '' : ' hidden'}></div>`;
     loadSheetReviews(psState.handle);
   }
+  // Tab choice lives on psState so picking a variant or photo doesn't bounce
+  // you back to the description.
+  function psTab(t) { psState.tab = t; renderProdSheet(); }
   function psImg(i) { psState.img = i; renderProdSheet(); }
   function psVar(id) { psState.variantId = id; renderProdSheet(); }
 
@@ -2765,18 +2780,25 @@
     if (REV_CACHE[handle]) return renderSheetReviews(handle);
     try {
       REV_CACHE[handle] = await apiGet('/api/witch/shop/reviews?handle=' + encodeURIComponent(handle));
-      renderSheetReviews(handle);
+      // Full redraw so the tab label picks up the count. It re-enters here,
+      // but the cache is warm now so it stops at renderSheetReviews.
+      if (psState && psState.handle === handle) renderProdSheet();
+      else renderSheetReviews(handle);
     } catch (e) { /* leave the section empty */ }
   }
   function renderSheetReviews(handle) {
     const box = $('ps-reviews'), rate = $('ps-rating');
     const d = REV_CACHE[handle];
     if (!box || !d || (psState && psState.handle !== handle)) return;
-    if (rate && d.count > 0) rate.innerHTML = `${starRow(d.average)}<span class="rv-count">${d.average.toFixed(1)} (${d.count.toLocaleString()})</span>`;
-    const head = d.count > 0
-      ? `<div class="rv-head">${starRow(d.average)}<span class="rv-avg">${d.average.toFixed(1)}</span><span class="rv-count">· ${d.count.toLocaleString()} review${d.count === 1 ? '' : 's'}</span></div>`
-      : (d.global && d.global.count
-        ? `<div class="rv-head"><span class="rv-count">No reviews for this item yet — the shop holds ${Number(d.global.average).toFixed(1)}★ across ${d.global.count.toLocaleString()} Etsy reviews</span></div>` : '');
+    // The rating under the title doubles as a shortcut into the Reviews tab.
+    if (rate && d.count > 0) {
+      rate.innerHTML = `${starRow(d.average)}<span class="rv-count">${d.average.toFixed(1)} (${d.count.toLocaleString()})</span>`;
+      rate.setAttribute('role', 'button');
+      rate.onclick = () => psTab('reviews');
+    }
+    // The tab label already carries the count, so only the empty state needs a header.
+    const head = d.count > 0 ? '' : (d.global && d.global.count
+      ? `<div class="rv-head"><span class="rv-count">No reviews for this item yet — the shop holds ${Number(d.global.average).toFixed(1)}★ across ${d.global.count.toLocaleString()} Etsy reviews</span></div>` : '');
     const items = (d.reviews || []).map(r => `
       <div class="rv">
         <div class="rv-top">${starRow(r.rating)}<span class="rv-date">${new Date(r.created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span></div>
@@ -4178,7 +4200,10 @@
     // Size the columns to however many products are in the row, so a 2-item
     // row fills the full width instead of leaving a 3rd empty slot.
     el.style.gridTemplateColumns = `repeat(${row.length}, 1fr)`;
-    el.innerHTML = row.map(p => `<a class="pcard" href="https://secretlyawitch.com/products/${p.handle}" target="_blank" rel="noopener">
+    // Tap opens the in-app product sheet. The href is only a no-JS fallback and
+    // must point at the STORE — secretlyawitch.com is this app now, so
+    // /products/* there just 301s back out to Shopify and dumps you off the app.
+    el.innerHTML = row.map(p => `<a class="pcard" href="${LINKS.shop}/products/${p.handle}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
       <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">${esc(p.price)}</div>
@@ -4722,14 +4747,14 @@
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'The craft was never in the cabinet — it\'s in your attention, your intention, and your two hands. This lesson is witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
     { img: 'tw-02', bg: '#fcf6ef', kicker: 'The anchor', h: 'The moon comes with you', body: 'Wherever you land, the moon that rises is <b>your</b> moon — same phase, same face, as the one over your house. One glance up (or at this app\'s moon page) and you\'re oriented: the sky is a home that travels.' },
-    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter. <i>(Rather have it packed by a witch? The shop\'s <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> is exactly this, done beautifully.)</i>' },
+    { img: 'tw-03', bg: '#fef8f2', kicker: 'The kit', h: 'The tin altar', body: 'The traveling witch\'s classic: a mint tin. Inside — a birthday candle (cut to fit), a folded napkin for an altar cloth, a pinch of salt, one small stone, a bay leaf, matches. A whole working altar that passes for pocket clutter. <i>(Rather have it packed by a witch? The shop\'s <a href="#" onclick="openProduct(\'travel-witchcraft-kit-travel-altar-kit-39959\');return false">Travel Witchcraft Kit</a> is exactly this, done beautifully.)</i>' },
     { img: 'tw-04', bg: '#fcf7f1', kicker: 'The improvisation', h: 'Salt is everywhere', body: 'Forgot supplies? The world provides: every diner and airplane meal comes with a <b>salt packet</b> — a threshold line for your hotel door. Sugar for sweetening work, pepper for banishing, a coffee stirrer for a wand. Look around; you\'re stocked.' },
     { img: 'tw-05', bg: '#fdf9f2', kicker: 'The arrival', h: 'Claim the room', body: 'A borrowed room holds everyone who slept there before you. Claim it: curtains and window open first, let light and air move through, salt at the door, and say — quietly, out loud — <i>“this room is mine tonight.”</i> Ninety seconds, and it\'s yours.' },
     { img: 'tw-06', bg: '#fef7f0', kicker: 'The locals', h: 'Meet the plants', body: 'Every place has its own green residents — the weed in the sidewalk crack is somebody\'s sacred herb. Introduce yourself: notice one plant, learn its name, touch one leaf gently. It\'s how a witch says hello to a new land.' },
     { img: 'tw-07', bg: '#fdfaf5', kicker: 'The between', h: 'Crossroads magic', body: 'Folk magic loves the places between places — crossroads, bridges, shorelines — where things can be left behind. Airports and train stations are the great modern crossroads: on your way through, name one worry and leave it at the gate.' },
     { img: 'tw-08', bg: '#fefaf6', kicker: 'The disguise', h: 'Invisible spellwork', body: 'Travel craft is quiet craft: intention stirred clockwise into a takeaway coffee, a protection word breathed onto the bus window, a charm that reads as jewelry. Nobody around you knows. That\'s not hiding — that\'s finesse.' },
     { img: 'tw-09', bg: '#fefcf8', kicker: 'The tether', h: 'A pinch of home', body: 'The old emigrant\'s charm: carry a little of your own ground — a pebble from your street, a pinch of garden earth in a tiny vial. Homesickness magic, literally: wherever you stand, you\'re standing on a bit of home.' },
-    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i> — or start with the ready-made <a href="https://secretlyawitch.com/products/travel-witchcraft-kit-travel-altar-kit-39959" target="_blank" rel="noopener">Travel Witchcraft Kit</a> and make it yours.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
+    { img: 'tw-10', bg: '#fdf7f1', kicker: 'After', h: 'Pack the tin', body: 'Ten minutes tonight: find a tin, fill it, tuck it in your travel bag so it\'s just <i>always there</i> — or start with the ready-made <a href="#" onclick="openProduct(\'travel-witchcraft-kit-travel-altar-kit-39959\');return false">Travel Witchcraft Kit</a> and make it yours.<br><br>And remember this app rides along too — moon, tarot, dreams, all of it, anywhere. The witch is portable. ✦' },
   ];
   const DIVIN_CARDS = [
     { img: 'dv-01', bg: '#fcf7f1', kicker: 'Divination', h: 'Ways of asking', body: 'Tarot is one door in a very long hallway. Humans have read answers in water, smoke, books, birds, and tea for thousands of years. This lesson is a tour of the hallway — and how to actually try each door.' },
