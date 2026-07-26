@@ -938,6 +938,18 @@ lifted into a standalone tool later.
   extraction), `YOUTUBE_API_KEY` (required for channel discovery + metadata —
   transcript scraping needs no key), plus the usual Firebase creds. Without
   Firebase the pipeline still runs but nothing persists (in-memory only).
+- **Adding videos runs on SOPHIE'S Mac** — YouTube bot-blocks datacenter IPs
+  (yt-dlp: "Sign in to confirm you're not a bot"), so a cloud session can never
+  download a new interview. `scripts/nde-grab-local.py` is the local grabber:
+  URLs in → audio + captions down → banked in the exact layout the cutter reads
+  (Storage `nde-audio/<videoId>.<ext>` public, raw bestaudio/webm, no re-encode;
+  Firestore `forge-nde-videos/<videoId>` merged so existing moments survive).
+  Deps: `brew install yt-dlp ffmpeg` + `pip3 install google-cloud-storage
+  google-cloud-firestore`; creds via `GOOGLE_APPLICATION_CREDENTIALS` (path to
+  the **Deck Factory** service-account JSON) or `FIREBASE_SERVICE_ACCOUNT`
+  (inline JSON). Idempotent — re-running skips what's banked. Example:
+  `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
+  (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
 - `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
