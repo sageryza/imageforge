@@ -52,38 +52,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .assetgrid .vote.heart{left:5px;}
 .assetgrid .vote.nope{right:5px;}
 .assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
-/* ✓ badge on a tile whose note a chat has already acted on (done) */
-.donebadge{position:absolute; bottom:5px; right:5px; width:24px; height:24px; border-radius:50%;
-  background:#5d7a5a; color:#fff; display:none; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.35);}
-.donebadge svg{width:14px; height:14px; display:block;}
-.acell.done .donebadge{display:flex;}
-.lbnote.done .notesend{background:#5d7a5a; color:#fff;}
 /* lightbox: ♥ / ✕ overlaid on the image corners; note box sits under the image */
-#clightbox .clframe{position:relative;}
-.lbtop{position:absolute; top:22px; left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
+.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
 .lbtop .vote{width:38px; height:38px;}
 .lbtop .vote svg{width:18px; height:18px;}
-/* Note box: a textarea that starts at 3 lines and grows with what she says,
-   scrolling once it passes 8. Send button stays aligned to the first line. */
-.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px; align-items:flex-start;}
-.lbnotefield{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
-.lbnote textarea{width:100%; box-sizing:border-box; display:block; border:none; border-radius:6px;
-  background:rgba(250,247,240,.92); color:#26221c; font-family:'EBGaramond',Georgia,serif;
-  font-size:15px; line-height:1.35; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);
-  resize:none; overflow-y:hidden;}
-/* Inline warning — no popup. Turns rose and outlines the box when she's over. */
-.lbnote textarea.over{box-shadow:0 0 0 2px #c96a5e, 0 1px 4px rgba(0,0,0,.2);}
-.notecount{display:none; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.02em;
-  color:#b9b2a4; text-align:right; line-height:1.3;}
-.notecount.show{display:block;}
-.notecount.over{color:#c96a5e; font-weight:600;}
+.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px;}
+.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
 .lbnote .notesend.saved{background:#5d7a5a; color:#fff;}
 #clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
-#clightbox .clframe{background:#f7f1e3; padding:14px; border-radius:8px; box-shadow:0 6px 30px rgba(0,0,0,.5); max-width:100%; max-height:88vh;}
-#clightbox .clframe img{max-width:100%; max-height:78vh; border-radius:3px; display:block;}
+#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
@@ -98,6 +79,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-preview{font-size:16.5px; line-height:1.5; cursor:pointer;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
 .m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
+.codebox{position:relative; margin:8px 0;}
+.codebox pre{margin:0; padding-right:44px;}
+.codecopy{position:absolute; top:6px; right:6px; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; background:var(--barbg); border:1px solid var(--line); border-radius:6px; color:var(--ink2); cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;}
+.codecopy svg{width:15px; height:15px;}
+.codecopy.done{color:var(--ink);}
 .m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
 /* The folded technical middle of a message — collapsed to a tap. */
 .fold{margin:8px 0;}
@@ -253,34 +239,53 @@ body.reading .backwrap{display:block;}
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
-// Per-image review note length. MUST match ASSET_NOTE_MAX in server.js — the
-// server refuses anything longer (it never truncates), and this is what the
-// counter/warning below the note box count against. The counter only appears
-// once she passes NOTE_WARN so it stays out of the way the rest of the time.
-var NOTE_MAX=2000, NOTE_WARN=Math.round(NOTE_MAX*0.8);
 function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+// Copy button on every fenced code block (works in Safari AND the iOS app's
+// WKWebView — clipboard API first, hidden-textarea execCommand fallback).
+var COPY_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+var CHECK_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+document.addEventListener('click', function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.codecopy'):null;
+  if(!b) return;
+  e.stopPropagation();
+  var pre=b.parentNode.querySelector('pre');
+  var text=pre?pre.textContent:'';
+  function ok(){ b.innerHTML=CHECK_ICON; b.classList.add('done'); toast('Copied');
+    setTimeout(function(){ b.innerHTML=COPY_ICON; b.classList.remove('done'); },1600); }
+  function fallback(){
+    var ta=document.createElement('textarea'); ta.value=text;
+    ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var done=false; try{ done=document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta);
+    if(done) ok(); else toast('Copy failed');
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok,fallback); }
+  else fallback();
+});
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Light markdown for the full message view: escape FIRST (safe), then style.
 // Bold/italics/inline code render for real; fenced code becomes a quiet <pre>;
 // heading marks become bold lines. Everything else stays plain text.
 function md(t){
   var s=esc(t);
-  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<pre>'+c.replace(/\s+$/,'')+'</pre>'; });
+  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
   s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
   s=s.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
   s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
   s=s.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
   // Clickable links, added last so pre/code blocks stay untouched:
   // markdown [text](url) first, then bare https:// URLs.
-  s=s.split(/(<pre>[\s\S]*?<\/pre>|<code>[^<]*?<\/code>)/g).map(function(part){
-    if(part.lastIndexOf('<pre>',0)===0||part.lastIndexOf('<code>',0)===0) return part;
+  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>|<code>[^<]*?<\/code>)/g).map(function(part){
+    if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
     part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
     part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     return part;
   }).join('');
   return s;
 }
+// small cached thumbnails for the Assets grid (server resizes + caches)
 // The messages follow a pattern: a bit for Sophie, a chunk of technical work in
 // the MIDDLE, then a closing bit for Sophie. foldBody keeps everything spoken
 // TO Sophie visible and tucks the working narration behind a tap — nothing
@@ -289,19 +294,23 @@ function md(t){
 // chats.html; "Now I'm structuring the PDF" is work even though it's prose.
 // Ties break toward showing. First and last blocks never fold.
 function splitBlocks(text){
-  var out=[], lines=String(text||'').split('\n'), buf=[], inCode=false;
-  function flush(){ var s=buf.join('\n'); if(s.trim()!=='') out.push(s); buf=[]; }
+  var out=[], lines=String(text||'').split('
+'), buf=[], inCode=false;
+  function flush(){ var s=buf.join('
+'); if(s.trim()!=='') out.push(s); buf=[]; }
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
     if(/^\s*```/.test(l)){
-      if(inCode){ buf.push(l); out.push(buf.join('\n')); buf=[]; inCode=false; }
+      if(inCode){ buf.push(l); out.push(buf.join('
+')); buf=[]; inCode=false; }
       else { flush(); buf.push(l); inCode=true; }
       continue;
     }
     if(inCode){ buf.push(l); continue; }
     if(l.trim()===''){ flush(); } else { buf.push(l); }
   }
-  if(inCode){ out.push(buf.join('\n')); } else { flush(); }
+  if(inCode){ out.push(buf.join('
+')); } else { flush(); }
   return out;
 }
 // true = working narration (fold), false = message for Sophie (show).
@@ -312,24 +321,26 @@ function isWork(b){
   // Narration voice wins even when the block mentions "you" ("the way you
   // asked"): forward-looking / in-progress first person = doing the work.
   if(/^(now|next|then|first|second|also|finally|meanwhile)[,: ]*\s*(i|let|the|to|on|checking|running|building|reading|writing|adding|updating|fixing|creating|testing|mirroring|committing|wiring|regenerating)/i.test(t)
-    || /^(let me|let's|i'll|i will|time to|on to|onto)\b/i.test(t)
-    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\b/i.test(t)
-    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\b/i.test(t)) return true;
-  if(/\byou\b|\byour\b|\byours\b/i.test(t)) return false;   // second person = talking to her
-  if(/\bhere('s| is| are)\b|\bthis is what\b/i.test(t)) return false;  // presenting something
-  if(/\?\s*($|\n)/.test(t)) return false;            // asking her something
+    || /^(let me|let's|i'll|i will|time to|on to|onto)/i.test(t)
+    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)/i.test(t)
+    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)/i.test(t)) return true;
+  if(/you|your|yours/i.test(t)) return false;   // second person = talking to her
+  if(/here('s| is| are)|this is what/i.test(t)) return false;  // presenting something
+  if(/\?\s*($|
+)/.test(t)) return false;            // asking her something
   // Past-tense first-person = reporting what got done — that's for her.
-  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\b/i.test(t)
-    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\b/i.test(t)) return false;
+  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)/i.test(t)
+    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)/i.test(t)) return false;
   // Otherwise fall back to line texture: mostly commands/diffs/hashes/paths.
-  var lines=t.split('\n').filter(function(l){ return l.trim()!==''; });
+  var lines=t.split('
+').filter(function(l){ return l.trim()!==''; });
   if(!lines.length) return false;
   var hits=0;
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
-    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\b/.test(l)
+    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)/.test(l)
       || /^[+\-]\s/.test(l)                          // diff line
-      || /\b[0-9a-f]{10,40}\b/.test(l)               // commit hash / long id
+      || /[0-9a-f]{10,40}/.test(l)               // commit hash / long id
       || /\s\/[\w.-]+\/[\w./-]+/.test(l)             // absolute-ish path
     ) hits++;
   }
@@ -345,16 +356,18 @@ function foldBody(text){
   while(i<blocks.length-1){
     if(!work[i]){ parts.push(md(blocks[i])); i++; continue; }
     var j=i; while(j<blocks.length-1 && work[j]) j++;
-    var run=blocks.slice(i,j).join('\n\n');
+    var run=blocks.slice(i,j).join('
+
+');
     parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
       + '<div class="foldbody" hidden>'+md(run)+'</div></div>');
     i=j;
   }
   parts.push(md(blocks[blocks.length-1]));
-  out=parts.join('\n');
+  out=parts.join('
+');
   return out.indexOf('foldtog')<0 ? md(text) : out;
 }
-// small cached thumbnails for the Assets grid (server resizes + caches)
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
 // previews/status lines: strip the marks instead of showing asterisks
 function plain(t){ return String(t==null?'':t).replace(/[*_`#]/g,''); }
@@ -404,8 +417,22 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// Content-tap: a plain toggle — tap stops, tap starts again (default Fast).
-window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
@@ -481,7 +508,7 @@ function editName(chat, head){
       .then(function(d){ if(!d.ok) throw 0;
         chats[chat]=chats[chat]||{}; chats[chat].displayName=v||null;
         restore(dispName(chat)); toast('Renamed'); })
-      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn’t save that'); inp.focus(); });
+      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn\u2019t save that'); inp.focus(); });
   }
   inp.addEventListener('blur',save);
   inp.addEventListener('keydown',function(e){
@@ -705,8 +732,7 @@ function renderMsg(m){
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
   };
-  // Bottom row: bookmark (left) + Open-in-Claude (right). The bookmark flags a
-  // message with content to come back to; Open is a free link to the session.
+  // Bottom row: bookmark (left) + Open-in-Claude (right).
   var ob=document.createElement('div'); ob.className='openrow';
   ob.appendChild(bookmarkBtn(m));
   var murl=m.url||openUrl;
@@ -716,7 +742,7 @@ function renderMsg(m){
 }
 
 // Bookmark toggle for a message — saves server-side (a field on the message
-// doc) so a hearted message stays flagged across reloads and any chat can find
+// doc) so a flagged message stays marked across reloads and any chat can find
 // what Sophie marked to keep.
 function bookmarkBtn(m){
   var BM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
@@ -778,18 +804,17 @@ function openChat(name, keepScroll, focusId, noFetch){
   assetsPanel.innerHTML='<div class="state">Loading images&hellip;</div>';
   sec.appendChild(assetsPanel);
   var assetsLoaded=false;
-  function loadAssets(force){
-    if(assetsLoaded && !force) return; assetsLoaded=true;
-    // cache-bust so the app's webview never serves a stale asset list
-    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300&_='+Date.now())
+  function loadAssets(){
+    if(assetsLoaded) return; assetsLoaded=true;
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];
         assetsPanel.innerHTML='';
         if(!a.length){ assetsPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images from this chat yet.'})); return; }
         // Grid tiles load small thumbnails (served straight from storage's CDN
-        // when they exist, else generated by /api/story/thumb) instead of the
-        // multi-MB originals; the lightbox still opens the full image.
+        // when they exist, else generated by /api/story/thumb); the lightbox
+        // still opens the full image.
         // Thin three-way filter pill: New (unvoted) · ♥ (hearted) · Hide ✕
         // (everything but rejected). Tapping the active one turns the filter
         // off again, so the ✕'d tiles stay reachable to un-reject.
@@ -805,7 +830,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           });
         }
         var seg=document.createElement('div'); seg.className='afilter';
-        [['new','New'],['like','\u2665'],['nox','Hide \u2715']].forEach(function(m){
+        [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
           var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
           sb.onclick=function(){
             filter = filter===m[0] ? null : m[0];
@@ -850,35 +875,21 @@ function openChat(name, keepScroll, focusId, noFetch){
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,vote:next})})
               .then(function(r){return r.json()})
               .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
-              .catch(function(){ toast('Couldn\u2019t save that'); });
+              .catch(function(){ toast('Couldn’t save that'); });
           }
           it._cast=cast;
-          // Notes are never truncated. Over the limit the save is refused with
-          // a message the caller shows inline, never quietly cut down.
           it._noteSave=function(text,cb){
             var t=String(text||'').trim();
-            if(t.length>NOTE_MAX){
-              if(cb)cb(false, t.length+' / '+NOTE_MAX+' \u2014 too long to save, trim '+(t.length-NOTE_MAX));
-              return;
-            }
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,note:t||null})})
-              .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,body:d||{}}; },
-                                                      function(){ return {ok:false,body:{}}; }); })
-              .then(function(x){
-                if(!x.ok || !x.body.ok) throw new Error(x.body.error||'Couldn\u2019t save the note');
-                it.note=t||null; if(cb)cb(true);
-              })
-              .catch(function(e){
-                var m=(e&&e.message)||'Couldn\u2019t save the note';
-                toast(m); if(cb)cb(false,m);
-              });
+              .then(function(r){return r.json()})
+              .then(function(d){ if(!d.ok) throw 0; it.note=t||null; if(cb)cb(true); })
+              .catch(function(){ toast('Couldn’t save the note'); if(cb)cb(false); });
           };
           hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
           xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
           paint();
           cell.appendChild(hb); cell.appendChild(xb);
         }
-        var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
         a.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
@@ -899,13 +910,9 @@ function openChat(name, keepScroll, focusId, noFetch){
             if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
             it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
           };
-          b.onclick=function(){ lightbox(it.url, cap, it); };
+          b.onclick=function(){ lightbox(it.url, it); };
           cell.appendChild(b); voteBtns(cell,it);
           if(io) io.observe(img);
-          var badge=document.createElement('div'); badge.className='donebadge'; badge.innerHTML=CHECK;
-          cell.appendChild(badge);
-          cell.classList.toggle('done', !!it.done);
-          it._paintDone=function(){ cell.classList.toggle('done', !!it.done); if(it._lbPaintDone) it._lbPaintDone(); };
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
         });
@@ -934,7 +941,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           comparePanel.appendChild(row);
         });
       })
-      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn’t load pages.</div>'; });
+      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\u2019t load pages.</div>'; });
   }
   var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets'), tgCompare=head.querySelector('.tg-compare');
   var panels={chat:chatPanel, assets:assetsPanel, compare:comparePanel};
@@ -979,8 +986,8 @@ function focusMessage(name, id, noFetch){
     setTimeout(function(){ row.classList.remove('flash'); }, 2400);
     return;
   }
-  if(noFetch){ toast('Couldn’t find that message'); return; }
-  toast('Loading full history…');
+  if(noFetch){ toast('Couldn\u2019t find that message'); return; }
+  toast('Loading full history\u2026');
   api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){
@@ -989,7 +996,7 @@ function focusMessage(name, id, noFetch){
       (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; } });
       openChat(name, true, id, true);   // rebuild with full thread; noFetch=true
     })
-    .catch(function(){ toast('Couldn’t load history'); });
+    .catch(function(){ toast('Couldn\u2019t load history'); });
 }
 // An autoscroll pill that lives in THIS page and drives a same-origin iframe's
 // scroll — because iOS renders position:fixed unreliably INSIDE an iframe, so a
@@ -1068,11 +1075,10 @@ function openPage(p){
   document.body.style.overflow='hidden';
 }
 // Image lightbox — freezes the page behind it (design rule)
-function lightbox(url, caption, asset){
+function lightbox(url, asset){
   scrollStop();
-  var growNote=null;   // sized once the lightbox is actually visible
   var lb=document.getElementById('clightbox');
-  lb.innerHTML='<div class="clframe"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
+  lb.innerHTML='<img alt="" src="'+url.replace(/"/g,'&quot;')+'">';
   // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
   if(asset && asset._cast){
     var row=document.createElement('div'); row.className='lbtop';
@@ -1081,61 +1087,25 @@ function lightbox(url, caption, asset){
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
     var nw=document.createElement('div'); nw.className='lbnote';
     nw.onclick=function(e){ e.stopPropagation(); };
-    // Textarea, not a one-line input: she dictates these and they run long.
-    var fld=document.createElement('div'); fld.className='lbnotefield';
-    var ni=document.createElement('textarea'); ni.rows=3;
-    ni.placeholder='Add a note…'; ni.value=asset.note||'';
-    var nc=document.createElement('div'); nc.className='notecount';
+    var ni=document.createElement('input'); ni.placeholder='Add a note…'; ni.value=asset.note||'';
     var ns=document.createElement('button'); ns.className='notesend';
     ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-    // Grow with the content: 3 lines minimum, scroll past 8. Measured from the
-    // real computed style so it stays right if the type scale ever changes.
-    growNote=function(){
-      var cs=getComputedStyle(ni);
-      var lh=parseFloat(cs.lineHeight)||20;
-      var pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
-      var bd=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
-      var min=Math.round(lh*3+pad+bd), max=Math.round(lh*8+pad+bd);
-      ni.style.height='auto';
-      var want=ni.scrollHeight+bd;
-      ni.style.height=Math.max(min, Math.min(max, want))+'px';
-      ni.style.overflowY = want>max ? 'auto' : 'hidden';
-    };
-    // Counter stays out of the way until she's near the limit; past it the
-    // box outlines rose and says exactly how much to trim. Nothing is cut.
-    function paintCount(msg){
-      var n=ni.value.trim().length, over=n>NOTE_MAX;
-      ni.classList.toggle('over', over);
-      nc.classList.toggle('over', over);
-      if(msg){ nc.textContent=msg; nc.classList.add('show'); return; }
-      if(over){ nc.textContent=n+' / '+NOTE_MAX+' — too long to save, trim '+(n-NOTE_MAX); nc.classList.add('show'); }
-      else if(n>=NOTE_WARN){ nc.textContent=n+' / '+NOTE_MAX; nc.classList.add('show'); }
-      else { nc.textContent=''; nc.classList.remove('show'); }
-    }
     function sendNote(){
-      asset._noteSave(ni.value, function(ok,msg){
-        if(!ok){ paintCount(msg||null); return; }
+      asset._noteSave(ni.value, function(ok){
+        if(!ok) return;
         ns.classList.add('saved'); toast('Note saved');
-        ni.blur(); paintCount();
+        ni.blur();
         setTimeout(function(){ ns.classList.remove('saved'); }, 1500);
       });
     }
-    ni.oninput=function(){ growNote(); paintCount(); };
     ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
-    // Enter makes a new line now that this is a textarea (dictated notes have
-    // paragraphs); ⌘/Ctrl+Enter sends, as does the ✓ button.
-    ni.onkeydown=function(e){
-      if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); sendNote(); }
-    };
-    fld.appendChild(ni); fld.appendChild(nc);
-    nw.appendChild(fld); nw.appendChild(ns);
-    paintCount();
+    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
+    nw.appendChild(ni); nw.appendChild(ns);
     asset._lbPaint=function(){
       hb.classList.toggle('on', asset.vote==='like');
       xb.classList.toggle('on', asset.vote==='dislike');
     };
-    asset._lbPaintDone=function(){ nw.classList.toggle('done', !!asset.done); };
-    asset._lbPaint(); asset._lbPaintDone();
+    asset._lbPaint();
     hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
     xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
     row.appendChild(hb); row.appendChild(xb);
@@ -1143,11 +1113,9 @@ function lightbox(url, caption, asset){
     (frame||lb).appendChild(row);
     lb.appendChild(nw);   // note box below the image, not over it
   }
-  if(caption){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=caption; lb.appendChild(cc); }
+  var cap=asset?(asset.description||asset.prompt||''):'';
+  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
-  // scrollHeight only reads true once the lightbox is displayed, so size the
-  // note box here rather than when it was built.
-  if(growNote) growNote();
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
@@ -1171,7 +1139,7 @@ document.getElementById('back').onclick=goHome;
   window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
   function hl(snip,q){
     var e=esc(snip||'');
-    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
+    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\]/g,'\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
     catch(_){ return e; }
   }
   function run(q){
@@ -1240,7 +1208,7 @@ document.getElementById('back').onclick=goHome;
 })();
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); if(window._reloadAssets) window._reloadAssets(); };
+document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 
 function load(){
   // cache-bust: the webview heuristically cached the bare URL, which made the
