@@ -8,16 +8,77 @@
 # and installs the two Google packages into it — so the Mac's own pip/python
 # mismatches can never break this. All arguments pass straight through to
 # scripts/nde-grab-local.py.
+#
+# Mac-proofing: a Mac usually has SEVERAL pythons and some of them are broken
+# (a Homebrew python whose pyexpat is linked against the wrong libexpat can't
+# run ensurepip, so `python3 -m venv` leaves a venv with NO pip). So we don't
+# trust `python3` — we try every python we can find, newest-but-stable first,
+# and keep the first one that actually produces a venv with a working pip.
+# Force a specific one with:  GRAB_PYTHON=/usr/local/bin/python3.13 ./scripts/grab
 set -e
 cd "$(dirname "$0")/.."
 VENV=".grab-venv"
-if [ ! -x "$VENV/bin/python" ]; then
+LOG="${TMPDIR:-/tmp}/grab-venv-setup.log"
+
+venv_works() { [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -m pip --version >/dev/null 2>&1; }
+
+# Every python on this Mac worth trying, in preference order. Preferred
+# versions first (best wheel coverage for the Google packages), then whatever
+# else exists. Duplicates and missing paths are filtered out below.
+candidates() {
+  [ -n "$GRAB_PYTHON" ] && echo "$GRAB_PYTHON"
+  for name in python3.13 python3.12 python3.11 python3.14 python3.10 python3; do
+    ver="${name#python}"
+    for dir in /usr/local/bin /opt/homebrew/bin "/Library/Frameworks/Python.framework/Versions/$ver/bin" /usr/bin; do
+      echo "$dir/$name"
+    done
+    command -v "$name" 2>/dev/null || true
+  done
+}
+
+build_venv() {
+  py="$1"
+  # Fast pre-flight: the broken-Homebrew failure mode is an unimportable
+  # pyexpat, which takes ensurepip (and therefore pip) down with it.
+  "$py" -c "import ensurepip, pyexpat, ssl, zlib" >/dev/null 2>&1 || return 1
+  rm -rf "$VENV"
+  "$py" -m venv "$VENV" >>"$LOG" 2>&1 || return 1
+  venv_works
+}
+
+if ! venv_works; then
+  [ -e "$VENV" ] && echo "The private Python environment is incomplete — rebuilding it."
   echo "First run — setting up a private Python environment (about a minute)…"
-  python3 -m venv "$VENV"
+  : >"$LOG"
+  tried=""
+  chosen=""
+  for py in $(candidates); do
+    case " $tried " in *" $py "*) continue ;; esac
+    [ -x "$py" ] || continue
+    tried="$tried $py"
+    echo "  trying $py ($("$py" -V 2>&1))…"
+    if build_venv "$py"; then chosen="$py"; break; fi
+    echo "    …no good (that python can't build a working environment)."
+  done
+  if [ -z "$chosen" ]; then
+    rm -rf "$VENV"
+    echo
+    echo "Couldn't find a usable Python on this Mac. Details: $LOG"
+    echo "Fix either way:"
+    echo "  brew reinstall python@3.13   (then run ./scripts/grab again)"
+    echo "  — or install Python from python.org, then:"
+    echo "  GRAB_PYTHON=/usr/local/bin/python3.13 ./scripts/grab"
+    exit 1
+  fi
+  echo "Using $chosen"
 fi
+
 "$VENV/bin/python" -c "import google.cloud.storage, google.cloud.firestore" 2>/dev/null || {
   echo "Installing the two Google packages into the private environment…"
-  "$VENV/bin/python" -m pip install --quiet --upgrade pip
-  "$VENV/bin/python" -m pip install --quiet google-cloud-storage google-cloud-firestore
+  "$VENV/bin/python" -m pip install --quiet --upgrade pip >>"$LOG" 2>&1 || true
+  "$VENV/bin/python" -m pip install --quiet google-cloud-storage google-cloud-firestore || {
+    echo "That install failed — details above and in $LOG"
+    exit 1
+  }
 }
 exec "$VENV/bin/python" scripts/nde-grab-local.py "$@"
