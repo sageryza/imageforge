@@ -231,6 +231,7 @@ loadConfig().then(() => {
   const apiframe = require('./apiframe');
   const ingest = require('./ingest');
   const crystals = require('./crystals');
+  const dropbox = require('./dropbox');
   const etsyReport = require('./etsy-report');
   const shopify = require('./shopify');
   const blog = require('./blog');
@@ -265,6 +266,7 @@ loadConfig().then(() => {
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
+  app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   app.use('/api/sync', sync.router);
