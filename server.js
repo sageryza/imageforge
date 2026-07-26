@@ -242,6 +242,10 @@ loadConfig().then(() => {
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
   app.use('/api/etsy/report', etsyReport.router);
+  // Etsy reviews mirrored to Firestore, served to the witch app's product
+  // sheets (public — reviews are marketing content). Backfill:
+  // scripts/backfill-etsy-reviews.js; steady-state top-up is self-throttled.
+  app.use('/api/witch/shop/reviews', require('./etsy-reviews').router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
