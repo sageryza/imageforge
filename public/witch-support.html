@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5efe2">
+  <title>Secretly a Witch — Support</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #f5efe2; --surface: #fffbf3; --border: #e3d8c2;
+      --gold: #9c6f33; --moon: #6b4f86; --text: #302b34; --text-dim: #6d6472;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+    }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: 'DM Sans', sans-serif; line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      padding: calc(env(safe-area-inset-top, 0px) + 34px) 22px calc(env(safe-area-inset-bottom, 0px) + 60px);
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .kicker {
+      font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 8px;
+    }
+    h1 {
+      font-family: var(--serif); font-weight: 500; font-style: italic;
+      font-size: 38px; color: var(--gold); line-height: 1.1; margin-bottom: 6px;
+    }
+    .updated { color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+    h2 {
+      font-family: var(--serif); font-weight: 500; font-size: 25px;
+      color: var(--text); margin: 30px 0 10px;
+    }
+    p { margin-bottom: 14px; }
+    ul { margin: 0 0 16px 20px; }
+    li { margin-bottom: 8px; }
+    a { color: var(--moon); }
+    strong { font-weight: 600; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 22px; margin: 22px 0;
+    }
+    .fine { color: var(--text-dim); font-size: 13.5px; margin-top: 34px; }
+    /* Contact form */
+    label { display: block; font-size: 12px; letter-spacing: 1.4px;
+      text-transform: uppercase; color: var(--gold); margin: 14px 0 5px; }
+    input, textarea {
+      width: 100%; font-family: inherit; font-size: 15px; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 12px; line-height: 1.5;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--gold); }
+    textarea { resize: vertical; min-height: 130px; }
+    button {
+      display: block; margin: 18px auto 0; font-family: inherit; font-size: 15px;
+      background: var(--gold); color: #fffbf3; border: none; border-radius: 6px;
+      padding: 11px 26px; cursor: pointer;
+    }
+    button[disabled] { opacity: 0.6; cursor: default; }
+    .msg { text-align: center; font-size: 14.5px; margin-top: 14px; min-height: 20px; }
+    .msg.ok { color: var(--gold); }
+    .msg.err { color: #8d3b3b; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="kicker">Secretly a Witch</div>
+    <h1>Support</h1>
+    <div class="updated">We read everything that comes in.</div>
+
+    <p>Something not working, a question about your account, or an idea for the
+    app? Send it below and we'll get back to you.</p>
+
+    <div class="card">
+      <form id="form">
+        <label for="email">Your email</label>
+        <input type="email" id="email" name="email" required autocomplete="email"
+               placeholder="so we can write back">
+        <label for="message">What's going on?</label>
+        <textarea id="message" name="message" required
+                  placeholder="Tell us what happened, or what you're wondering about."></textarea>
+        <button type="submit" id="send">Send</button>
+        <div class="msg" id="msg"></div>
+      </form>
+    </div>
+
+    <h2>Common questions</h2>
+
+    <p><strong>Do I need an account?</strong> No. The whole app works signed
+    out — your readings, spells, Book of Shadows pages and School progress are
+    saved right on your device. An account is only for syncing that content
+    across your devices.</p>
+
+    <p><strong>I signed in on a new phone and my things aren't there.</strong>
+    Make sure you're signed in with the same method you used originally, then
+    close and reopen the app — your saved content pulls down on sign-in.</p>
+
+    <p><strong>Please delete my synced data.</strong> Write to us with the form
+    above from the email address on the account and we'll remove it.</p>
+
+    <p><strong>Are the readings real?</strong> They're written fresh for you,
+    but they're for reflection, inspiration and entertainment — not advice
+    about your health, money, or legal life.</p>
+
+    <h2>Elsewhere</h2>
+    <ul>
+      <li>Instagram: <a href="https://instagram.com/moonsickbaby">@moonsickbaby</a></li>
+      <li><a href="/privacy">Privacy policy</a></li>
+    </ul>
+
+    <p class="fine">Secretly a Witch is an independent app. "App Store" and
+    "iOS" are trademarks of Apple Inc.</p>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const btn = document.getElementById('send');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const message = document.getElementById('message').value.trim();
+      if (!email || !message) return;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      msg.className = 'msg'; msg.textContent = '';
+      try {
+        const r = await fetch('/api/witch/support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, message }),
+        });
+        if (!r.ok) throw new Error('That didn’t send');
+        form.reset();
+        msg.className = 'msg ok';
+        msg.textContent = 'Sent ✦ We’ll be in touch.';
+      } catch (err) {
+        msg.className = 'msg err';
+        msg.textContent = 'Couldn’t send just now — please try again in a moment.';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Send';
+      }
+    });
+  </script>
+</body>
+</html>

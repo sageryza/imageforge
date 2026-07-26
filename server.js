@@ -67,6 +67,8 @@ app.use((req, res, next) => {
   // Canonical home — keeps query params (Stripe returns to /witch?sub=success).
   if (p === '/witch' || p === '/witch/') return res.redirect(301, '/' + qs);
   if (p === '/privacy') return res.sendFile(__dirname + '/public/witch-privacy.html');
+  // Both spellings — App Store Connect calls it Support, people type /contact.
+  if (p === '/support' || p === '/contact') return res.sendFile(__dirname + '/public/witch-support.html');
   if (p === '/robots.txt') return res.type('text/plain').send(WITCH_ROBOTS);
   if (p === '/sitemap.xml') return blogPublic.sitemap(req, res);
   // Old Shopify-storefront URLs (indexed pages, School lesson product links,
@@ -375,6 +377,25 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
 // Public privacy policy (App Store requires a reachable privacy URL).
 app.get('/witch/privacy', (req, res) => { res.sendFile(__dirname + '/public/witch-privacy.html'); });
+// Public support page (App Store requires a reachable SUPPORT url too).
+app.get('/witch/support', (req, res) => { res.sendFile(__dirname + '/public/witch-support.html'); });
+// Support form → Firestore. Open + unauthenticated by design: it's the contact
+// route a reviewer or a user has to be able to reach without an account.
+app.post('/api/witch/support', express.json(), async (req, res) => {
+  try {
+    const email = String((req.body || {}).email || '').trim().slice(0, 200);
+    const message = String((req.body || {}).message || '').trim().slice(0, 5000);
+    if (!email || !message) return res.status(400).json({ error: 'email and message are required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'not configured' });
+    await admin.firestore().collection('forge-witch-support').add({
+      email, message, handled: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── Talking to Myself: standalone dream/memory zine app ────────────
 app.get('/talking', (req, res) => { res.sendFile(__dirname + '/public/talking.html'); });
