@@ -1968,9 +1968,9 @@ async function runWitchJob(ref, kind, p) {
       const desc = String(p.desc || p.prompt || '').trim();
       const DISTILL_SYS = `You are an art director for an illustrated journal.
 
-Read the user's memory and reduce it to a single simple visual that captures its emotional essence.
+Read the user's memory and reduce it to a single simple visual that captures its emotional essence — plus a tiny caption.
 
-Rules:
+Rules for the visual:
 * Return only one visual idea.
 * Choose the simplest image that still communicates the memory.
 * Prefer symbolic or cropped compositions over full scenes.
@@ -1980,12 +1980,21 @@ Rules:
 * The illustration should be immediately understandable at a small size.
 * Preserve the feeling, not the literal sequence of events.
 * Do not describe artistic style, colors, lighting, or rendering.
-* Output 1-3 concise sentences describing only what should appear in the illustration.`;
-      let visualBrief = desc;
+* 1-3 concise sentences describing only what should appear in the illustration.
+
+Rules for the caption:
+* At most 6 words — it must fit on two short lines under a small picture.
+* It names WHAT HAPPENED, not the picture (e.g. "Saw the same person twice", "The song answered my question").
+* Plain, warm, no punctuation at the end, no quotes.
+
+Return ONLY JSON: {"visual": "...", "caption": "..."}`;
+      let visualBrief = desc, caption = null;
       try {
         const chat = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.8, messages: [{ role: 'system', content: DISTILL_SYS }, { role: 'user', content: `Memory:\n${desc.slice(0, 1200)}` }] });
         const t = !chat.error && chat.choices?.[0]?.message?.content?.trim();
-        if (t) visualBrief = t;
+        const j = t && parseJsonReply(t);
+        if (j && j.visual) { visualBrief = j.visual; caption = String(j.caption || '').trim().slice(0, 48) || null; }
+        else if (t) visualBrief = t; // model ignored the JSON shape — still use its brief
       } catch {}
       const imgPrompt = `Create a simple editorial spot illustration based on this visual brief:
 
@@ -2009,7 +2018,7 @@ Keep the composition isolated and instantly readable at a small size. Use only t
       if (data.error) throw new Error(data.error.message || 'image error');
       const b64 = data.data?.[0]?.b64_json;
       if (!b64) throw new Error('no image returned');
-      result = { url: await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai') };
+      result = { url: await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai'), label: caption };
     } else if (kind === 'dream-read') {
       result = await runDreamRead(p.dream);
     } else {
