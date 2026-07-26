@@ -27,7 +27,7 @@
   button:disabled { opacity:.45; }
   button.ghost { background:var(--card); color:var(--ink); border:1px solid var(--line); }
   button.danger { background:var(--card); color:#a8322a; border:1px solid #e3c4c0; }
-  .seg { display:flex; gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
   .seg button { flex:1; background:var(--card); color:var(--soft); border-radius:0; font-weight:600;
     padding:10px 6px; font-size:.92rem; }
   .seg button[aria-pressed=true] { background:var(--accent); color:#fff; }
@@ -35,16 +35,19 @@
   .status { margin-top:12px; font-size:.9rem; color:var(--soft); white-space:pre-wrap; min-height:1.2em; }
   .bar { height:4px; background:var(--line); border-radius:6px; overflow:hidden; margin-top:8px; display:none; }
   .bar > i { display:block; height:100%; background:var(--accent); width:0; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; margin-top:12px; }
   .tile { position:relative; border:1px solid var(--line); border-radius:6px; overflow:hidden;
-    background:var(--card); cursor:pointer; padding:0; display:block; width:100%; }
+    background:var(--card); cursor:pointer; padding:0; display:block; width:100%; text-align:left; }
   .tile img { width:100%; aspect-ratio:1; object-fit:cover; display:block; }
   .tile .n { position:absolute; top:4px; left:4px; background:rgba(43,43,43,.82); color:#fff;
     font-size:.72rem; font-weight:700; padding:1px 6px; border-radius:6px; }
-  .tile .s { position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,.92);
-    font-size:.68rem; padding:2px 4px; text-align:center; color:var(--soft);
+  .tile .c { position:absolute; top:4px; right:4px; background:rgba(201,139,58,.94); color:#fff;
+    font-size:.7rem; font-weight:700; padding:1px 6px; border-radius:6px; }
+  .tile .s { position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,.93);
+    font-size:.7rem; padding:3px 5px; color:var(--ink); font-weight:600;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .tile.g { outline:2px solid var(--accent); outline-offset:-2px; }
+  .tile .s em { font-style:normal; font-weight:400; color:var(--soft); }
+  .tile.ready { outline:2px solid #6f8f5e; outline-offset:-2px; }
   .batches { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .batches button { background:var(--card); color:var(--ink); border:1px solid var(--line);
     font-size:.88rem; font-weight:500; padding:7px 10px; }
@@ -54,19 +57,28 @@
   .sheet.open { display:flex; }
   .sheet .panel { background:var(--bg); width:100%; max-width:680px; max-height:92vh; overflow-y:auto;
     border-radius:12px 12px 0 0; padding:16px 14px calc(20px + env(safe-area-inset-bottom)); }
-  .sheet img.hero { width:100%; max-height:44vh; object-fit:contain; background:var(--card);
-    border:1px solid var(--line); border-radius:6px; }
+  .hero { width:100%; max-height:40vh; object-fit:contain; background:var(--card);
+    border:1px solid var(--line); border-radius:6px; display:block; }
+  .strip { display:flex; gap:6px; overflow-x:auto; margin-top:8px; padding-bottom:4px; }
+  .strip button { flex:0 0 auto; padding:0; border:1px solid var(--line); border-radius:6px;
+    overflow:hidden; background:var(--card); }
+  .strip img { width:56px; height:56px; object-fit:cover; display:block; }
+  .strip button[aria-pressed=true] { border-color:var(--accent); border-width:2px; }
   .sheetbar { display:flex; gap:8px; margin-top:16px; }
   .sheetbar button { flex:1; }
   .hint { font-size:.82rem; color:#8a8378; margin-top:6px; }
+  ol.how { font-size:.88rem; color:var(--soft); padding-left:20px; margin:8px 0 0; }
+  ol.how li { margin-bottom:3px; }
+  details { margin-top:10px; }
+  summary { font-size:.9rem; font-weight:600; color:var(--accent); cursor:pointer; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Crystal drop</h1>
-  <p class="sub">Dump crystal photos here. They go straight to Firebase with whatever you know about
-  them (or nothing at all), and a chat can pull them back out to price, sort into listings, and build
-  the pick-your-own grids.</p>
+  <p class="sub">One album per crystal, several shots of each — that's one Etsy listing per album.
+  Drop them here and they keep that grouping, so a chat can pull them back out to price, write, and
+  build the pick-your-own grids.</p>
 
   <h2>Add photos</h2>
   <div class="row">
@@ -74,21 +86,38 @@
       <label for="batch">Batch</label>
       <input type="text" id="batch" placeholder="moms-crystals" value="moms-crystals">
     </div>
+    <div>
+      <label for="crystal">Crystal (album name)</label>
+      <input type="text" id="crystal" placeholder="Pink quartz">
+    </div>
   </div>
+  <div class="hint">Every photo in one upload is treated as the SAME stone and shares its number.
+  Leave the name blank and each photo becomes its own crystal.</div>
 
-  <label>What's in these photos?</label>
+  <label>What's in the frame?</label>
   <div class="seg" id="kind">
-    <button type="button" data-kind="single" aria-pressed="true">One crystal per photo</button>
-    <button type="button" data-kind="group" aria-pressed="false">Several in one photo</button>
+    <button type="button" data-kind="single" aria-pressed="true">One crystal</button>
+    <button type="button" data-kind="group" aria-pressed="false">A tray of several</button>
   </div>
-  <div class="hint">"One crystal per photo" is the pick-your-own case — each photo gets a number.</div>
 
   <label for="pick">Choose photos</label>
   <input type="file" id="pick" accept="image/*" multiple>
   <div style="margin-top:12px"><button id="go" disabled>Upload</button></div>
 
-  <label for="zip" style="margin-top:20px">Or a ZIP of photos</label>
+  <label for="zip" style="margin-top:22px">Or a ZIP — the whole pile at once</label>
   <input type="file" id="zip" accept=".zip,application/zip">
+  <div class="hint">Each folder inside the ZIP becomes one crystal, named after the folder. This is
+  the fast path: do it once and every album lands grouped and named.</div>
+  <details>
+    <summary>How to get albums off the phone into a ZIP</summary>
+    <ol class="how">
+      <li>Files app → make one folder, e.g. <b>Crystals</b>.</li>
+      <li>Photos → open an album → <b>Select</b> → <b>Select All</b> → Share → <b>Save to Files</b>.</li>
+      <li>Pick <b>Crystals</b> → <b>New Folder</b> → name it the crystal → Save.</li>
+      <li>Repeat for each album (this is the only repetitive bit).</li>
+      <li>Files → long-press the <b>Crystals</b> folder → <b>Compress</b> → upload that .zip here.</li>
+    </ol>
+  </details>
   <div style="margin-top:12px"><button id="zipgo" class="ghost" disabled>Upload ZIP</button></div>
 
   <div class="bar" id="bar"><i></i></div>
@@ -103,10 +132,23 @@
 <div class="sheet" id="sheet">
   <div class="panel">
     <img class="hero" id="s-img" alt="">
+    <div class="strip" id="s-strip"></div>
+
     <div class="row" style="margin-top:12px">
+      <div>
+        <label for="s-cname">Crystal</label>
+        <input type="text" id="s-cname" placeholder="Pink quartz">
+      </div>
       <div>
         <label for="s-seq">Number</label>
         <input type="number" id="s-seq" step="1">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="s-stone">Stone</label>
+        <input type="text" id="s-stone" placeholder="rose quartz">
       </div>
       <div>
         <label for="s-status">Status</label>
@@ -120,23 +162,6 @@
       </div>
     </div>
 
-    <label>Kind</label>
-    <div class="seg" id="s-kind">
-      <button type="button" data-kind="single" aria-pressed="true">One crystal</button>
-      <button type="button" data-kind="group" aria-pressed="false">Several</button>
-    </div>
-
-    <div class="row">
-      <div>
-        <label for="s-stone">Stone</label>
-        <input type="text" id="s-stone" placeholder="amethyst">
-      </div>
-      <div>
-        <label for="s-name">Name / nickname</label>
-        <input type="text" id="s-name" placeholder="big purple point">
-      </div>
-    </div>
-
     <div class="row">
       <div>
         <label for="s-size">Size</label>
@@ -146,20 +171,9 @@
         <label for="s-weight">Weight (g)</label>
         <input type="number" id="s-weight" step="0.1">
       </div>
-    </div>
-
-    <div class="row">
       <div>
         <label for="s-price">Price ($)</label>
         <input type="number" id="s-price" step="0.01">
-      </div>
-      <div>
-        <label for="s-qty">Qty</label>
-        <input type="number" id="s-qty" step="1">
-      </div>
-      <div>
-        <label for="s-count">In photo</label>
-        <input type="number" id="s-count" step="1">
       </div>
     </div>
 
@@ -174,9 +188,9 @@
       <button id="s-close" class="ghost">Close</button>
     </div>
     <div class="sheetbar">
-      <button id="s-del" class="danger">Delete this photo</button>
+      <button id="s-del" class="danger">Delete this crystal</button>
     </div>
-    <div class="status" id="s-status-msg"></div>
+    <div class="status" id="s-msg"></div>
   </div>
 </div>
 
@@ -184,15 +198,13 @@
 const API = '/api/crystals';
 const TOKEN = new URLSearchParams(location.search).get('token') || '';
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[<>&"]/g, (c) =>
+  ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
 
-function headers(extra) {
-  const h = Object.assign({}, extra || {});
-  if (TOKEN) h['x-studio-token'] = TOKEN;
-  return h;
-}
 async function api(path, opts) {
   const o = Object.assign({}, opts || {});
-  o.headers = headers(o.headers);
+  o.headers = Object.assign({}, o.headers || {});
+  if (TOKEN) o.headers['x-studio-token'] = TOKEN;
   const r = await fetch(API + path, o);
   const j = await r.json().catch(() => ({ error: 'bad response' }));
   if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
@@ -206,7 +218,6 @@ $('kind').addEventListener('click', (e) => {
   uploadKind = b.dataset.kind;
   [...$('kind').children].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
 });
-
 $('pick').addEventListener('change', () => { $('go').disabled = !$('pick').files.length; });
 $('zip').addEventListener('change', () => { $('zipgo').disabled = !$('zip').files.length; });
 
@@ -229,26 +240,31 @@ $('go').addEventListener('click', async () => {
   if (!files.length) return;
   $('go').disabled = true; $('zipgo').disabled = true;
   const batch = $('batch').value.trim() || 'default';
+  const crystal = $('crystal').value.trim();
   let done = 0, failed = 0;
   // One photo per request: keeps every upload at FULL RESOLUTION (these are the
-  // listing photos — never downscale them) without a 40MB request body.
+  // listing photos — never downscale them) without a 40MB request body. They
+  // all carry the same crystal name, so the server keeps them as one stone.
   for (const f of files) {
     $('status').textContent = 'Uploading ' + (done + 1) + ' of ' + files.length + '…';
     progress(done, files.length);
     try {
-      const dataUrl = await readAsDataURL(f);
       await api('/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch, kind: uploadKind, images: [dataUrl], filenames: [f.name] }),
+        body: JSON.stringify({
+          batch, crystal, kind: uploadKind,
+          images: [await readAsDataURL(f)], filenames: [f.name],
+        }),
       });
     } catch (e) { failed++; console.error(f.name, e); }
     done++;
   }
   progress(0, 0);
   $('status').textContent = 'Uploaded ' + (done - failed) + ' of ' + files.length
+    + (crystal ? ' as "' + crystal + '"' : '')
     + (failed ? ' — ' + failed + ' failed (see console)' : ' ✓');
-  $('pick').value = ''; $('go').disabled = true;
+  $('pick').value = ''; $('crystal').value = ''; $('go').disabled = true;
   await refresh(batch);
 });
 
@@ -256,21 +272,26 @@ $('zipgo').addEventListener('click', async () => {
   const f = $('zip').files[0]; if (!f) return;
   $('zipgo').disabled = true; $('go').disabled = true;
   const batch = $('batch').value.trim() || 'default';
-  $('status').textContent = 'Uploading ZIP (' + Math.round(f.size / 1e6) + ' MB)… this one takes a minute.';
+  const crystal = $('crystal').value.trim();
+  $('status').textContent = 'Uploading ZIP (' + Math.round(f.size / 1e6) + ' MB)… '
+    + 'this one takes a few minutes for a big pile. Leave it open.';
   try {
-    const q = '?batch=' + encodeURIComponent(batch) + '&kind=' + uploadKind;
+    const q = '?batch=' + encodeURIComponent(batch) + '&kind=' + uploadKind
+      + (crystal ? '&crystal=' + encodeURIComponent(crystal) : '');
     const r = await api('/upload-zip' + q, {
       method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: f,
     });
-    $('status').textContent = 'Unzipped and stored ' + r.count + ' photos ✓';
+    $('status').textContent = 'Stored ' + r.count + ' photos across '
+      + (r.crystals.length || r.count) + ' crystals ✓'
+      + (r.crystals.length ? '\n' + r.crystals.join(', ') : '');
   } catch (e) { $('status').textContent = 'ZIP failed: ' + e.message; }
   $('zip').value = '';
   await refresh(batch);
 });
 
-/* ---- browse ---------------------------------------------------------- */
-let current = null;   // selected batch
-let items = [];
+/* ---- browse (one tile per crystal, not per photo) --------------------- */
+let current = null;
+let crystals = [];
 
 async function loadBatches() {
   const r = await api('/batches');
@@ -286,64 +307,71 @@ async function loadBatches() {
   }
 }
 
-async function loadItems(batch) {
-  if (!batch) { items = []; $('grid').innerHTML = ''; $('count').textContent = ''; return; }
-  const r = await api('/items?batch=' + encodeURIComponent(batch));
-  items = r.items;
+async function loadCrystals(batch) {
+  if (!batch) { crystals = []; $('grid').innerHTML = ''; $('count').textContent = ''; return; }
+  const r = await api('/crystals?batch=' + encodeURIComponent(batch));
+  crystals = r.crystals;
   const grid = $('grid');
   grid.innerHTML = '';
-  for (const it of items) {
+  for (const c of crystals) {
     const t = document.createElement('button');
-    t.className = 'tile' + (it.kind === 'group' ? ' g' : '');
-    t.innerHTML = '<img loading="lazy" alt="" src="' + it.url + '">'
-      + '<span class="n">' + (it.seq || '?') + '</span>'
-      + '<span class="s">' + ((it.stone || it.name || it.status || '')
-          .replace(/[<>&]/g, '')) + '</span>';
-    t.addEventListener('click', () => openSheet(it));
+    t.className = 'tile' + (c.status === 'ready' || c.status === 'listed' ? ' ready' : '');
+    const label = c.crystalName || c.stone || c.name || '(unnamed)';
+    const sub = c.priceUsd != null ? '$' + c.priceUsd : c.status;
+    t.innerHTML = '<img loading="lazy" alt="" src="' + esc(c.cover) + '">'
+      + '<span class="n">' + (c.seq || '?') + '</span>'
+      + (c.photos.length > 1 ? '<span class="c">' + c.photos.length + '</span>' : '')
+      + '<span class="s">' + esc(label) + ' <em>' + esc(sub) + '</em></span>';
+    t.addEventListener('click', () => openSheet(c));
     grid.appendChild(t);
   }
-  const ready = items.filter((i) => i.status === 'ready').length;
-  const listed = items.filter((i) => i.status === 'listed').length;
-  $('count').textContent = items.length + ' photos · ' + ready + ' ready · ' + listed + ' listed';
+  const ready = crystals.filter((c) => c.status === 'ready').length;
+  const listed = crystals.filter((c) => c.status === 'listed').length;
+  $('count').textContent = crystals.length + ' crystals · ' + r.photos + ' photos · '
+    + ready + ' ready · ' + listed + ' listed';
 }
 
 async function refresh(batch) {
   if (batch) current = batch;
   await loadBatches();
-  await loadItems(current);
+  await loadCrystals(current);
 }
 
-/* ---- edit sheet ------------------------------------------------------- */
+/* ---- edit sheet (edits the whole stone, since it's one listing) ------- */
 let editing = null;
-let sheetKind = 'single';
 
-$('s-kind').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-kind]'); if (!b) return;
-  sheetKind = b.dataset.kind;
-  [...$('s-kind').children].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-});
-
-function openSheet(it) {
-  editing = it;
-  $('s-img').src = it.url;
-  $('s-seq').value = it.seq ?? '';
-  $('s-status').value = it.status || 'new';
-  sheetKind = it.kind || 'single';
-  [...$('s-kind').children].forEach((x) =>
-    x.setAttribute('aria-pressed', String(x.dataset.kind === sheetKind)));
-  $('s-stone').value = it.stone || '';
-  $('s-name').value = it.name || '';
-  $('s-size').value = it.size || '';
-  $('s-weight').value = it.weightG ?? '';
-  $('s-price').value = it.priceUsd ?? '';
-  $('s-qty').value = it.qty ?? '';
-  $('s-count').value = it.count ?? '';
-  $('s-tags').value = (it.tags || []).join(', ');
-  $('s-notes').value = it.notes || '';
-  $('s-status-msg').textContent = '';
+function openSheet(c) {
+  editing = c;
+  showPhoto(0);
+  const strip = $('s-strip');
+  strip.innerHTML = '';
+  if (c.photos.length > 1) {
+    c.photos.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.innerHTML = '<img alt="" src="' + esc(p.url) + '">';
+      b.setAttribute('aria-pressed', String(i === 0));
+      b.addEventListener('click', () => showPhoto(i));
+      strip.appendChild(b);
+    });
+  }
+  $('s-cname').value = c.crystalName || '';
+  $('s-seq').value = c.seq ?? '';
+  $('s-stone').value = c.stone || '';
+  $('s-status').value = c.status || 'new';
+  $('s-size').value = c.size || '';
+  $('s-weight').value = c.weightG ?? '';
+  $('s-price').value = c.priceUsd ?? '';
+  $('s-tags').value = (c.tags || []).join(', ');
+  $('s-notes').value = c.notes || '';
+  $('s-msg').textContent = c.photos.length + ' photo' + (c.photos.length === 1 ? '' : 's')
+    + ' — edits apply to the whole crystal.';
   $('sheet').classList.add('open');
   // House rule: an open image freezes the page behind it.
   document.body.style.overflow = 'hidden';
+}
+function showPhoto(i) {
+  $('s-img').src = editing.photos[i].url;
+  [...$('s-strip').children].forEach((b, n) => b.setAttribute('aria-pressed', String(n === i)));
 }
 function closeSheet() {
   $('sheet').classList.remove('open');
@@ -358,42 +386,51 @@ const numOrNull = (v) => (v === '' || v === null ? null : Number(v));
 $('s-save').addEventListener('click', async () => {
   if (!editing) return;
   $('s-save').disabled = true;
-  $('s-status-msg').textContent = 'Saving…';
+  $('s-msg').textContent = 'Saving…';
+  const fields = {
+    crystalName: $('s-cname').value.trim() || null,
+    seq: numOrNull($('s-seq').value),
+    stone: $('s-stone').value.trim() || null,
+    status: $('s-status').value,
+    size: $('s-size').value.trim() || null,
+    weightG: numOrNull($('s-weight').value),
+    priceUsd: numOrNull($('s-price').value),
+    tags: $('s-tags').value,
+    notes: $('s-notes').value.trim() || null,
+  };
   try {
-    await api('/items/' + editing.id, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        seq: numOrNull($('s-seq').value),
-        status: $('s-status').value,
-        kind: sheetKind,
-        stone: $('s-stone').value.trim() || null,
-        name: $('s-name').value.trim() || null,
-        size: $('s-size').value.trim() || null,
-        weightG: numOrNull($('s-weight').value),
-        priceUsd: numOrNull($('s-price').value),
-        qty: numOrNull($('s-qty').value),
-        count: numOrNull($('s-count').value),
-        tags: $('s-tags').value,
-        notes: $('s-notes').value.trim() || null,
-      }),
-    });
+    if (editing.crystal) {
+      // One call updates every photo of the stone.
+      await api('/group', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ batch: editing.batch, crystal: editing.crystal }, fields)),
+      });
+    } else {
+      await api('/items/' + editing.photos[0].id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+    }
     closeSheet();
-    await loadItems(current);
-  } catch (e) {
-    $('s-status-msg').textContent = 'Save failed: ' + e.message;
-  }
+    await loadCrystals(current);
+  } catch (e) { $('s-msg').textContent = 'Save failed: ' + e.message; }
   $('s-save').disabled = false;
 });
 
 $('s-del').addEventListener('click', async () => {
   if (!editing) return;
-  if (!confirm('Delete this photo from the drop box?')) return;
+  const n = editing.photos.length;
+  if (!confirm('Delete this crystal and all ' + n + ' of its photos?')) return;
   try {
-    await api('/items/' + editing.id, { method: 'DELETE' });
+    if (editing.crystal) {
+      await api('/group?batch=' + encodeURIComponent(editing.batch)
+        + '&crystal=' + encodeURIComponent(editing.crystal), { method: 'DELETE' });
+    } else {
+      await api('/items/' + editing.photos[0].id, { method: 'DELETE' });
+    }
     closeSheet();
     await refresh();
-  } catch (e) { $('s-status-msg').textContent = 'Delete failed: ' + e.message; }
+  } catch (e) { $('s-msg').textContent = 'Delete failed: ' + e.message; }
 });
 
 /* ---- boot ------------------------------------------------------------- */
