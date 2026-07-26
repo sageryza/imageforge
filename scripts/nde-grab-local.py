@@ -24,12 +24,17 @@ WHAT IT WRITES (matches the 69 videos already banked — verified against live d
 SETUP (one time)
   brew install yt-dlp ffmpeg
   pip3 install google-cloud-storage google-cloud-firestore
-  # Deck Factory (deckfactory-43176) service-account JSON, either:
-  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/keys/deckfactory-service-account.json"
-  # ...or paste the JSON itself:
-  export FIREBASE_SERVICE_ACCOUNT='{"type":"service_account", ...}'
+  # Credentials: AirDrop the Deck Factory (deckfactory-43176) service-account
+  # JSON to this Mac — it lands in ~/Downloads and the script FINDS IT THERE
+  # AUTOMATICALLY (also checks ~/Desktop, ~/Documents, ~/keys). Power users can
+  # still set GOOGLE_APPLICATION_CREDENTIALS / FIREBASE_SERVICE_ACCOUNT instead.
 
-RUN
+RUN (easiest — paste mode)
+  python3 scripts/nde-grab-local.py
+  # ...then paste ALL your links at once (any format, commas or lines) and
+  # press Return on an empty line.
+
+RUN (other ways)
   python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" \
                                     "https://www.youtube.com/watch?v=YYYYYYYYYYY"
   python3 scripts/nde-grab-local.py --file urls.txt
@@ -288,8 +293,42 @@ def download_audio(binary, video_id, workdir, audio_format):
 
 # ── Firebase ───────────────────────────────────────────────────────────
 
+def find_key_file():
+    """No env vars set? Look for the Deck Factory key file in the obvious Mac
+    spots — an AirDropped file lands in ~/Downloads. Filename just has to look
+    like a Firebase service-account key; the newest valid one wins."""
+    home = os.path.expanduser("~")
+    hints = ("deckfactory", "firebase-adminsdk", "firebaseadminsdk", "service-account", "service_account")
+    cands = []
+    for d in ("Downloads", "Desktop", "Documents", "keys"):
+        folder = os.path.join(home, d)
+        try:
+            names = os.listdir(folder)
+        except OSError:
+            continue
+        for n in names:
+            if n.lower().endswith(".json") and any(h in n.lower() for h in hints):
+                cands.append(os.path.join(folder, n))
+
+    def valid(p):
+        try:
+            with open(p, "r", encoding="utf-8") as fh:
+                info = json.load(fh)
+            return (info.get("type") == "service_account" and info.get("private_key")
+                    and str(info.get("project_id", "")).startswith("deckfactory"))
+        except Exception:
+            return False
+
+    for p in sorted(cands, key=os.path.getmtime, reverse=True):
+        if valid(p):
+            return p
+    return None
+
+
 def load_credentials():
-    """GOOGLE_APPLICATION_CREDENTIALS (path) or FIREBASE_SERVICE_ACCOUNT (inline JSON).
+    """GOOGLE_APPLICATION_CREDENTIALS (path) or FIREBASE_SERVICE_ACCOUNT (inline
+    JSON) — and when neither is set, the key file is auto-found in ~/Downloads /
+    ~/Desktop / ~/Documents / ~/keys (AirDrop drops it in Downloads).
 
     Returns (credentials, project_id). The key material is never printed or
     written anywhere.
@@ -310,9 +349,17 @@ def load_credentials():
         except json.JSONDecodeError:
             raise SystemExit("FIREBASE_SERVICE_ACCOUNT is set but is not valid JSON")
     if not info:
+        found = find_key_file()
+        if found:
+            log(f"Using key file: {found}")
+            with open(found, "r", encoding="utf-8") as fh:
+                info = json.load(fh)
+    if not info:
         raise SystemExit(
-            "No credentials. Set GOOGLE_APPLICATION_CREDENTIALS=<path to the Deck Factory "
-            "service-account JSON> or FIREBASE_SERVICE_ACCOUNT='<the JSON itself>'."
+            "No key file found. AirDrop the Deck Factory service-account JSON to this "
+            "Mac (it lands in ~/Downloads) and run this again — it's found there "
+            "automatically. Power-user alternative: set GOOGLE_APPLICATION_CREDENTIALS "
+            "or FIREBASE_SERVICE_ACCOUNT."
         )
     project = info.get("project_id")
     if not project:
@@ -429,8 +476,31 @@ def grab_one(video_id, ctx):
 
 # ── main ───────────────────────────────────────────────────────────────
 
+def extract_ids_from_text(text):
+    """Every video id found anywhere in a pasted blob — share links in any
+    shape, separated by newlines, commas, spaces, or surrounding chatter. Bare
+    11-char tokens count only when they look like an id (contain a digit,
+    uppercase letter, '-' or '_') so ordinary words never match."""
+    ids, seen = [], set()
+    for m in URL_ID_RE.finditer(text or ""):
+        vid = m.group(1)
+        if vid not in seen:
+            seen.add(vid)
+            ids.append(vid)
+    for tok in re.split(r"[\s,]+", text or ""):
+        if ID_RE.match(tok) and re.search(r"[0-9A-Z_-]", tok) and tok not in seen:
+            seen.add(tok)
+            ids.append(tok)
+    return ids
+
+
 def collect_inputs(args):
-    raw = list(args.urls)
+    raw = []
+    for item in args.urls:
+        # a single CLI arg may carry several links joined by commas/whitespace
+        for piece in re.split(r"[\s,]+", item):
+            if piece:
+                raw.append(piece)
     if args.file:
         with open(args.file, "r", encoding="utf-8") as fh:
             for line in fh:
@@ -487,7 +557,27 @@ def main():
 
     raw = collect_inputs(args)
     if not raw:
-        ap.error("give me at least one YouTube URL/id, or --file urls.txt")
+        # Paste mode — run with nothing after the script name, then paste links.
+        if sys.stdin.isatty():
+            print("Paste your YouTube links below — any number, any format")
+            print("(share links, commas, several lines: all fine).")
+            print("Press Return on an empty line when you're done:")
+            lines = []
+            while True:
+                try:
+                    line = input()
+                except EOFError:
+                    break
+                if not line.strip():
+                    break
+                lines.append(line)
+            blob = "\n".join(lines)
+        else:
+            blob = sys.stdin.read()
+        raw = extract_ids_from_text(blob)
+        if not raw:
+            raise SystemExit("No YouTube links found in what you pasted — nothing to do.")
+        log(f"Found {len(raw)} video id(s).")
 
     ytdlp = ytdlp_bin()
     if not ytdlp and not args.dry_run:
