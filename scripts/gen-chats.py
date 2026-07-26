@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
+# build marker: 2026-07-26 — rebuilt on top of main; #570 squash-merged into a broken chats.html (un-rebased branch vs #569 squash)
 # Home is a grid of chat tiles (picture icon, name, last activity); tapping a
 # tile opens that chat's thread — its replies oldest-to-newest, each with a
 # one-tap "polish" render in the neural onyx-British voice (cached; the free
