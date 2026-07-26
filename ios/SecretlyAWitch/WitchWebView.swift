@@ -160,9 +160,6 @@ struct WitchWebView: UIViewRepresentable {
 
         // iOS kills the web content process under memory pressure; without
         // this the view just goes blank (and every tab tap vanishes into it).
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            webView.reload()
-        }
         // iOS reclaims backgrounded webview processes under memory pressure;
         // without this the app comes back as a frozen snapshot (nothing taps).
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
