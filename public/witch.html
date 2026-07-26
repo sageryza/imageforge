@@ -977,12 +977,15 @@
        over the screen like a lesson, with cream paper pages you turn. */
     /* Responsive but capped (width, not a hard px) so the closed book reads as
        the centerpiece while still fitting a 390px iPhone comfortably. */
-    .bos-cover { width: clamp(210px, 66vw, 290px); aspect-ratio: 3 / 4; margin: 22px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    /* The closed cover is the same object as the open pages: near full-bleed
+       with a generous border of background, only without the spread sliver.
+       Height mirrors the reader's stage (viewport minus header/nav chrome). */
+    .bos-cover { width: 100%; height: max(340px, calc(100dvh - 322px)); margin: 14px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
     .bos-cover:active { transform: scale(0.98); }
     .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     /* Small accent, not a co-equal glyph next to the title — Book of Shadows
        surfaces only, the app-wide .js-star size is untouched. */
-    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 16px; height: 16px; display: inline-block; }
+    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 34px; height: 34px; display: inline-block; }
     .bos-cover-title { font-family: var(--serif); font-size: 34px; line-height: 1.2; color: #e8ddc8; letter-spacing: 1px; }
     body.book-open { overflow: hidden; }
     /* The open book floats as a real object — a white 3:4 page block with a
@@ -1000,30 +1003,25 @@
        slab of page running clean off the screen edge — and it alternates
        sides with page parity (odd pages sit on the right of their spread, so
        their neighbor bleeds off the LEFT; even pages the mirror). */
-    /* center, NOT stretch: align-items:stretch lets the flex row override the
-       book's aspect-ratio-derived height (WebKit distorted the spread taller
-       after paging through). The book keeps its own height; ONLY the neighbor
-       strip stretches to match it. */
-    .bos-row { display: flex; align-items: center; justify-content: center; width: 100%; max-height: 100%; }
-    .bos-row .bos-book { flex: 0 1 auto; margin: 0 14px; align-self: center; }
-    .bos-neighbor { flex: none; width: 18px; align-self: stretch; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: none; }
+    /* The book fills the whole stage — taller than a real book's proportions
+       on purpose (Sophie: better weirdly tall than wasting reading space). */
+    .bos-row { display: flex; align-items: stretch; justify-content: center; width: 100%; height: 100%; }
+    .bos-row .bos-book { flex: 1 1 auto; margin: 0 14px; }
+    .bos-neighbor { flex: none; width: 22px; align-self: stretch; background: var(--surface); display: none; }
     .bos-row.nleft .bos-neighbor, .bos-row.nright .bos-neighbor { display: block; }
-    .bos-row.nleft .bos-neighbor { order: -1; box-shadow: inset -9px 0 10px -8px rgba(48,30,20,0.28); }
-    .bos-row.nright .bos-neighbor { order: 2; box-shadow: inset 9px 0 10px -8px rgba(48,30,20,0.28); }
+    .bos-row.nleft .bos-neighbor { order: -1; box-shadow: inset -12px 0 12px -8px rgba(48,30,20,0.34); }
+    .bos-row.nright .bos-neighbor { order: 2; box-shadow: inset 12px 0 12px -8px rgba(48,30,20,0.34); }
     /* The current page joins its neighbor at the gutter: flush edge, square
        corners on that side, and the spine strip moves to the gutter side. */
     .bos-row.nleft .bos-book { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
     .bos-row.nright .bos-book { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
-    .bos-row.nright .bos-book .bos-spine { order: 2; border-right: none; border-left: 1px solid var(--border-soft); }
-    .bos-row.nright .bos-book .bos-spine::before { margin-left: auto; }
+    .bos-row.nright .bos-book .bos-spine { order: 2; box-shadow: inset -10px 0 10px -6px rgba(48,30,20,0.14); }
     /* The book pages match the Home cards: light cream on the darker cream
        background, softly-rounded corners, card border — not a floating slab. */
-    /* Width bounded by vh (not just 100%) so the page fills the available
-       reader height edge-to-edge instead of stopping short and forcing a
-       scroll for content that would otherwise fit. */
-    .bos-book { aspect-ratio: 3 / 4; width: min(100%, 74vh); max-height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(48,30,20,0.10); position: relative; display: flex; overflow: hidden; }
-    .bos-spine { flex: none; width: 12px; height: 100%; background: #f4eddd; border-right: 1px solid var(--border-soft); }
-    .bos-spine::before { content: ''; display: block; width: 4px; height: 100%; background: #ece3d0; }
+    .bos-book { height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(48,30,20,0.10); position: relative; display: flex; overflow: hidden; }
+    /* The gutter is a soft shadowed crease, not hard printed lines — same
+       cream as the page, darkening gently toward the fold. */
+    .bos-spine { flex: none; width: 14px; height: 100%; background: var(--surface); box-shadow: inset 10px 0 10px -6px rgba(48,30,20,0.14); }
     /* Contents page header: small centered title + star above the toc rows
        (contents is a single page like every other page, not a two-leaf spread). */
     .bos-title-page { text-align: center; margin-bottom: 16px; }
@@ -2993,7 +2991,13 @@
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
     book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
-    const row = $('bos-row'); if (row) row.className = 'bos-row';  // the book's first page — nothing comes before it
+    // The contents opens the book like any right-hand page: the rest of the
+    // book peeks in from the left edge (Sophie: not stacked papers).
+    const row = $('bos-row');
+    if (row) {
+      if (!row.querySelector('.bos-neighbor')) { const nb = document.createElement('div'); nb.className = 'bos-neighbor'; row.appendChild(nb); }
+      row.className = 'bos-row nleft';
+    }
     const rows = BOS_SECTS.filter(s => s.key !== 'lesson' || lessonMarkPages().length).map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     $('bos-pagewrap').innerHTML = `<div class="bos-page">
