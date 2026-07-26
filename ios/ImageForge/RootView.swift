@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test, dump
     var id: String { rawValue }
 
     var title: String {
@@ -21,6 +21,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "Writing Room"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
+        case .dump:      return "Dump"
         }
     }
 
@@ -38,6 +39,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
+        case .dump:      return "Send whole albums here — sort them out later."
         }
     }
 
@@ -55,6 +57,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "text.book.closed"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
+        // Arrow down into a tray — the inbox glyph.
+        case .dump:      return "tray.and.arrow.down"
         }
     }
 
@@ -87,6 +91,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   WritingRoomView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
+        case .dump:      DumpView().forgeTitle("Dump")
         }
     }
 }
