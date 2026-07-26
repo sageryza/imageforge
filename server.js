@@ -1443,9 +1443,18 @@ app.post('/api/gallery/asset-cleanup', express.json(), async (req, res) => {
   }
 });
 
+// How long one per-image review note may be. Sophie writes these by
+// voice-to-text, so long run-on notes are normal — the old 300-char cap cut
+// real notes off mid-sentence with no warning. Keep this in sync with
+// NOTE_MAX in public/chats.html (the counter/warning there use the same
+// number). An over-length note is REFUSED, never silently trimmed.
+const ASSET_NOTE_MAX = 2000;
+
 // Sophie's curation vote on one Assets-tab image: ♥ ('like'), ✕ ('dislike'),
 // or null to clear. One doc per chat+url (deterministic id) in deckfactory.
 // Chats read the verdicts off GET /api/gallery/assets and act on them.
+// Body parsing: the global express.json above is 25mb, so a 2000-char note is
+// never anywhere near the request-size limit.
 app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1468,7 +1477,17 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     }
     if (note !== undefined) {
       const t = String(note == null ? '' : note).trim();
-      patch.note = t ? t.slice(0, 300) : admin.firestore.FieldValue.delete();
+      // Never truncate her words. Too long = refused with a message the client
+      // shows, so nothing is saved half-written and she knows to trim it.
+      if (t.length > ASSET_NOTE_MAX) {
+        return res.status(413).json({
+          error: `That note is ${t.length} characters — the limit is ${ASSET_NOTE_MAX}. `
+            + `Nothing was saved; trim it by ${t.length - ASSET_NOTE_MAX} and send again.`,
+          limit: ASSET_NOTE_MAX,
+          length: t.length,
+        });
+      }
+      patch.note = t ? t : admin.firestore.FieldValue.delete();
     }
     if (done !== undefined) {
       patch.done = done ? true : admin.firestore.FieldValue.delete();

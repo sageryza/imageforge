@@ -63,9 +63,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .lbtop{position:absolute; top:22px; left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
 .lbtop .vote{width:38px; height:38px;}
 .lbtop .vote svg{width:18px; height:18px;}
-.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px;}
-.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
-  font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
+/* Note box: a textarea that starts at 3 lines and grows with what she says,
+   scrolling once it passes 8. Send button stays aligned to the first line. */
+.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px; align-items:flex-start;}
+.lbnotefield{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
+.lbnote textarea{width:100%; box-sizing:border-box; display:block; border:none; border-radius:6px;
+  background:rgba(250,247,240,.92); color:#26221c; font-family:'EBGaramond',Georgia,serif;
+  font-size:15px; line-height:1.35; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);
+  resize:none; overflow-y:hidden;}
+/* Inline warning — no popup. Turns rose and outlines the box when she's over. */
+.lbnote textarea.over{box-shadow:0 0 0 2px #c96a5e, 0 1px 4px rgba(0,0,0,.2);}
+.notecount{display:none; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.02em;
+  color:#b9b2a4; text-align:right; line-height:1.3;}
+.notecount.show{display:block;}
+.notecount.over{color:#c96a5e; font-weight:600;}
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
@@ -242,6 +253,11 @@ body.reading .backwrap{display:block;}
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
+// Per-image review note length. MUST match ASSET_NOTE_MAX in server.js — the
+// server refuses anything longer (it never truncates), and this is what the
+// counter/warning below the note box count against. The counter only appears
+// once she passes NOTE_WARN so it stays out of the way the rest of the time.
+var NOTE_MAX=2000, NOTE_WARN=Math.round(NOTE_MAX*0.8);
 function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -837,12 +853,25 @@ function openChat(name, keepScroll, focusId, noFetch){
               .catch(function(){ toast('Couldn\u2019t save that'); });
           }
           it._cast=cast;
+          // Notes are never truncated. Over the limit the save is refused with
+          // a message the caller shows inline, never quietly cut down.
           it._noteSave=function(text,cb){
             var t=String(text||'').trim();
+            if(t.length>NOTE_MAX){
+              if(cb)cb(false, t.length+' / '+NOTE_MAX+' \u2014 too long to save, trim '+(t.length-NOTE_MAX));
+              return;
+            }
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,note:t||null})})
-              .then(function(r){return r.json()})
-              .then(function(d){ if(!d.ok) throw 0; it.note=t||null; if(cb)cb(true); })
-              .catch(function(){ toast('Couldn\u2019t save the note'); if(cb)cb(false); });
+              .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,body:d||{}}; },
+                                                      function(){ return {ok:false,body:{}}; }); })
+              .then(function(x){
+                if(!x.ok || !x.body.ok) throw new Error(x.body.error||'Couldn\u2019t save the note');
+                it.note=t||null; if(cb)cb(true);
+              })
+              .catch(function(e){
+                var m=(e&&e.message)||'Couldn\u2019t save the note';
+                toast(m); if(cb)cb(false,m);
+              });
           };
           hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
           xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
@@ -1041,6 +1070,7 @@ function openPage(p){
 // Image lightbox — freezes the page behind it (design rule)
 function lightbox(url, caption, asset){
   scrollStop();
+  var growNote=null;   // sized once the lightbox is actually visible
   var lb=document.getElementById('clightbox');
   lb.innerHTML='<div class="clframe"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
   // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
@@ -1051,20 +1081,55 @@ function lightbox(url, caption, asset){
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
     var nw=document.createElement('div'); nw.className='lbnote';
     nw.onclick=function(e){ e.stopPropagation(); };
-    var ni=document.createElement('input'); ni.placeholder='Add a note…'; ni.value=asset.note||'';
+    // Textarea, not a one-line input: she dictates these and they run long.
+    var fld=document.createElement('div'); fld.className='lbnotefield';
+    var ni=document.createElement('textarea'); ni.rows=3;
+    ni.placeholder='Add a note…'; ni.value=asset.note||'';
+    var nc=document.createElement('div'); nc.className='notecount';
     var ns=document.createElement('button'); ns.className='notesend';
     ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    // Grow with the content: 3 lines minimum, scroll past 8. Measured from the
+    // real computed style so it stays right if the type scale ever changes.
+    growNote=function(){
+      var cs=getComputedStyle(ni);
+      var lh=parseFloat(cs.lineHeight)||20;
+      var pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+      var bd=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+      var min=Math.round(lh*3+pad+bd), max=Math.round(lh*8+pad+bd);
+      ni.style.height='auto';
+      var want=ni.scrollHeight+bd;
+      ni.style.height=Math.max(min, Math.min(max, want))+'px';
+      ni.style.overflowY = want>max ? 'auto' : 'hidden';
+    };
+    // Counter stays out of the way until she's near the limit; past it the
+    // box outlines rose and says exactly how much to trim. Nothing is cut.
+    function paintCount(msg){
+      var n=ni.value.trim().length, over=n>NOTE_MAX;
+      ni.classList.toggle('over', over);
+      nc.classList.toggle('over', over);
+      if(msg){ nc.textContent=msg; nc.classList.add('show'); return; }
+      if(over){ nc.textContent=n+' / '+NOTE_MAX+' — too long to save, trim '+(n-NOTE_MAX); nc.classList.add('show'); }
+      else if(n>=NOTE_WARN){ nc.textContent=n+' / '+NOTE_MAX; nc.classList.add('show'); }
+      else { nc.textContent=''; nc.classList.remove('show'); }
+    }
     function sendNote(){
-      asset._noteSave(ni.value, function(ok){
-        if(!ok) return;
+      asset._noteSave(ni.value, function(ok,msg){
+        if(!ok){ paintCount(msg||null); return; }
         ns.classList.add('saved'); toast('Note saved');
-        ni.blur();
+        ni.blur(); paintCount();
         setTimeout(function(){ ns.classList.remove('saved'); }, 1500);
       });
     }
+    ni.oninput=function(){ growNote(); paintCount(); };
     ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
-    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
-    nw.appendChild(ni); nw.appendChild(ns);
+    // Enter makes a new line now that this is a textarea (dictated notes have
+    // paragraphs); ⌘/Ctrl+Enter sends, as does the ✓ button.
+    ni.onkeydown=function(e){
+      if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); sendNote(); }
+    };
+    fld.appendChild(ni); fld.appendChild(nc);
+    nw.appendChild(fld); nw.appendChild(ns);
+    paintCount();
     asset._lbPaint=function(){
       hb.classList.toggle('on', asset.vote==='like');
       xb.classList.toggle('on', asset.vote==='dislike');
@@ -1080,6 +1145,9 @@ function lightbox(url, caption, asset){
   }
   if(caption){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=caption; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
+  // scrollHeight only reads true once the lightbox is displayed, so size the
+  // note box here rather than when it was built.
+  if(growNote) growNote();
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
 }
 function goHome(){
