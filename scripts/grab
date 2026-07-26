@@ -1,0 +1,23 @@
+#!/bin/bash
+# One-command NDE grabber for the Mac.
+#
+#   cd ~/imageforge && ./scripts/grab                       # paste links when asked
+#   cd ~/imageforge && ./scripts/grab --file scripts/nde-urls.txt
+#
+# First run builds a private Python environment inside the repo (.grab-venv)
+# and installs the two Google packages into it — so the Mac's own pip/python
+# mismatches can never break this. All arguments pass straight through to
+# scripts/nde-grab-local.py.
+set -e
+cd "$(dirname "$0")/.."
+VENV=".grab-venv"
+if [ ! -x "$VENV/bin/python" ]; then
+  echo "First run — setting up a private Python environment (about a minute)…"
+  python3 -m venv "$VENV"
+fi
+"$VENV/bin/python" -c "import google.cloud.storage, google.cloud.firestore" 2>/dev/null || {
+  echo "Installing the two Google packages into the private environment…"
+  "$VENV/bin/python" -m pip install --quiet --upgrade pip
+  "$VENV/bin/python" -m pip install --quiet google-cloud-storage google-cloud-firestore
+}
+exec "$VENV/bin/python" scripts/nde-grab-local.py "$@"
