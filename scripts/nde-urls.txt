@@ -1,0 +1,10 @@
+# NDE grab queue — run on the Mac:  python3 scripts/nde-grab-local.py --file scripts/nde-urls.txt
+# Paste new links to any chat (or add lines here); already-banked videos are
+# skipped automatically, so the whole file is safe to re-run every time.
+https://www.youtube.com/watch?v=mMLQaQ7jsts
+https://www.youtube.com/watch?v=L0TSZDqQlnU
+https://www.youtube.com/watch?v=VXO-C9w3TDw
+https://www.youtube.com/watch?v=rvfOUg4zVc0
+https://www.youtube.com/watch?v=qzQ1P5fRPKA
+https://www.youtube.com/watch?v=IJZVNv5O6rA
+https://www.youtube.com/watch?v=wwQcSKbqfoQ
