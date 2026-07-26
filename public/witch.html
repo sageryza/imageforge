@@ -210,6 +210,15 @@
     .coin-saved.filled .coin-bm svg { fill: var(--gold); }
     .coin-saved.just .coin-bm svg { animation: bmPop 0.5s ease; }
     @keyframes bmPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+    /* Save-to-Book-of-Shadows bookmark — the house pattern: anything you can
+       keep carries one of these in its card's top-right corner. */
+    .bm-save { position: absolute; top: 12px; right: 12px; background: none; border: none; padding: 4px; cursor: pointer; color: var(--gold-dim); line-height: 0; z-index: 2; }
+    .bm-save svg { width: 19px; height: 19px; stroke: currentColor; fill: none; transition: fill 0.25s ease; }
+    .bm-save.filled { color: var(--gold); }
+    .bm-save.filled svg { fill: var(--gold); }
+    .bm-save.just svg { animation: bmPop 0.5s ease; }
+    .card.has-bm { position: relative; }
+    .card.has-bm .cards-title, .card.has-bm .kicker { padding-right: 30px; }
     /* Book of Shadows — Synchronicities: 4 boxes a page (Little Book of Miracles look) */
     .bos-sync-date { text-align: right; font-family: var(--serif); font-size: 18px; color: #221c14; margin-bottom: 16px; }
     .bos-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
@@ -420,8 +429,9 @@
        nav (z 50) in the stack, and their 96px bottom padding already clears it.
        Tapping a nav tab closes the page (see go()). Past readings + the dream
        reading page are here too so you can jump tabs, not just Back out. */
-    #deep-app, #tarot-app, #dream-app, #dreamread-app { z-index: 45; }
+    #deep-app, #tarot-app, #dream-app { z-index: 45; }
     #dreampast-app { z-index: 46; }  /* opens over the dream page */
+    #dreamread-app { z-index: 47; }  /* over the dream page AND the past-readings list */
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
     #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
@@ -432,6 +442,10 @@
     .tdeep-cardname { font-family: var(--serif); font-size: 17px; color: var(--text); }
     .tdeep-cardname .tdeep-orient { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; }
     .tdeep-cardmean { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-top: 3px; }
+    /* The written reading is set exactly like the per-card meanings above it —
+       one voice down the page, not two. */
+    #tarot-app .glance-p { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+    .tdeep-home { margin: 18px auto 0; }
     .tfun { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
     .tfun-tile { display: flex; align-items: center; gap: 12px; text-align: left; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; color: var(--text); cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.15s ease, transform 0.15s ease; }
     .tfun-tile:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
@@ -701,13 +715,15 @@
     /* The page's own top padding moves INTO the pin row (sticky can't cover a
        scroll container's padding band — content scrolls visibly through it). */
     #tarot-app { padding-top: 0; }
-    #tarot-app .tpin { position: sticky; top: 0; z-index: 1; display: flex; justify-content: center; gap: 16px; background: var(--bg); border-bottom: 1px solid var(--border); margin: 0 -18px 14px; padding: calc(env(safe-area-inset-top, 0px) + 40px) 18px 8px; }
+    /* The pulled cards ride pinned at the top at the SAME size they were on
+       Home — same 3-column grid, so they don't shrink when they stick. */
+    #tarot-app .tpin { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; background: var(--bg); border-bottom: 1px solid var(--border); margin: 0 -18px 14px; padding: calc(env(safe-area-inset-top, 0px) + 40px) 18px 8px; }
     /* No pin row (cards not drawn yet) → the first element restores the gap. */
     #tarot-app .quiz-stage > :first-child:not(.tpin) { margin-top: calc(env(safe-area-inset-top, 0px) + 46px); }
-    .tpin-slot { text-align: center; }
-    .tpin-img { height: 62px; border-radius: 3px; display: block; margin: 0 auto; }
+    .tpin-slot { text-align: center; min-width: 0; }
+    .tpin-img { width: 100%; aspect-ratio: 100 / 172; object-fit: cover; border-radius: 4px; display: block; }
     .tpin-img.rev { transform: rotate(180deg); }
-    .tpin-noimg { width: 38px; height: 62px; border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+    .tpin-noimg { width: 100%; aspect-ratio: 100 / 172; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
     .tpin-pos { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); margin-top: 4px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
     .dread:first-child { border-top: 0; padding-top: 0; }
@@ -845,15 +861,28 @@
     .brew { max-width: 340px; margin: 0 auto; text-align: center; }
     .brew-lead { font-size: 15px; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
     .brew-pot { color: #1f1a24; margin: 0 auto; width: 150px; transition: filter 0.4s ease; }
-    .brew-pot svg { width: 150px; height: auto; display: block; margin: 0 auto; }
+    .brew-pot svg { width: 150px; height: auto; display: block; margin: 0 auto; overflow: visible; }
     .brew-pot .brew-liquid { fill: #423a4c; transition: fill 0.4s ease; }
     .brew-pot .bstar { opacity: 0; transition: opacity 0.35s ease; fill: #d4a85a; stroke: none; }
     .brew-pot.g1 .bs1, .brew-pot.g2 .bs1, .brew-pot.g2 .bs2, .brew-pot.g3 .bs1, .brew-pot.g3 .bs2, .brew-pot.g3 .bs3 { opacity: 1; }
     .brew-pot.glow { filter: drop-shadow(0 0 14px rgba(212, 168, 90, 0.85)); }
     .brew-pot.glow .brew-liquid { fill: #d4a85a; }
+    /* Smoke wisps: hidden until the blend is solved (.glow), then loop for as
+       long as the solved state is on screen — same opacity-toggle idea as
+       .bstar, just animated instead of a flat 0/1. */
+    .brew-pot .bsmoke { opacity: 0; fill: #d4a85a; }
+    .brew-pot.glow .bsm1 { animation: brewSmoke 3.6s ease-in-out infinite; }
+    .brew-pot.glow .bsm2 { animation: brewSmoke 3.6s ease-in-out infinite; animation-delay: 1.2s; }
+    .brew-pot.glow .bsm3 { animation: brewSmoke 3.6s ease-in-out infinite; animation-delay: 2.4s; }
+    @keyframes brewSmoke {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+      18% { opacity: 0.4; }
+      55% { transform: translate(2px, -12px) scale(0.95); }
+      100% { opacity: 0; transform: translate(-2px, -24px) scale(1.3); }
+    }
     .brew-shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 8px; }
     .brew-ing { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 12.5px; padding: 7px 6px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-    .brew-ing img { width: 100%; max-width: 72px; border-radius: 4px; display: block; }
+    .brew-ing img { width: 100%; max-width: none; height: 64px; object-fit: contain; border-radius: 4px; display: block; }
     .brew-ing.in { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold) inset; color: var(--gold); font-weight: 600; }
     .brew-ing.fizz { animation: brewFizz 0.55s ease; }
     @keyframes brewFizz { 0% { transform: translateX(0); opacity: 1; } 25% { transform: translateX(-4px); opacity: 0.55; } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); opacity: 0.7; } 100% { transform: translateX(0); opacity: 1; } }
@@ -1031,6 +1060,12 @@
     .bos-arrow { background: none; border: none; color: var(--gold); cursor: pointer; padding: 8px 6px; display: inline-flex; align-items: center; }
     .bos-arrow svg { width: 22px; height: 22px; }
     .bos-arrow[disabled] { visibility: hidden; }
+    /* The book's bottom bar: arrows hug the edges and the action sits dead
+       centre — .btn's default margin-left:auto would otherwise shove it right. */
+    .deck-nav .bos-arrow { flex: 1 0 auto; }
+    .deck-nav .bos-arrow:first-child { justify-content: flex-start; }
+    .deck-nav .bos-arrow:last-child { justify-content: flex-end; }
+    .deck-nav #bos-write { margin-left: 0; margin-right: 0; flex: 0 0 auto; }
     /* Index (contents) page */
     .bos-index-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; border-bottom: 1px dashed #d9cbb4; cursor: pointer; }
     .bos-index-row .n { font-family: var(--serif); font-size: 17px; color: #221c14; }
@@ -1176,7 +1211,8 @@
         <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
         <!-- Daily reading (FIRST): account gate → birthday → reading -->
-        <div class="card" id="daily-card">
+        <div class="card has-bm" id="daily-card">
+          <button class="bm-save" id="sky-bm" type="button" style="display:none;" aria-label="Save today's reading to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <!-- not signed in -->
           <div id="daily-gate" style="display:none; text-align:center; padding:6px 4px;">
             <div style="color:var(--gold); line-height:0;"><svg width="34" height="34" viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></div>
@@ -1245,7 +1281,8 @@
         </div>
 
         <!-- Today's cards (tarot) -->
-        <div class="card" id="tarot-card" style="display:none;">
+        <div class="card has-bm" id="tarot-card" style="display:none;">
+          <button class="bm-save" id="tarot-bm" type="button" style="display:none;" aria-label="Save this reading to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <div class="cards-title">Today's Cards</div>
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
@@ -1257,7 +1294,8 @@
         <div class="section-title">What did you dream last night?</div>
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div id="dream-home-slot">
-        <div class="card" id="dream-card">
+        <div class="card has-bm" id="dream-card">
+          <button class="bm-save" id="dream-bm" type="button" style="display:none;" aria-label="Save this dream to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
           <div class="dream-ta-wrap">
             <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
@@ -1301,7 +1339,7 @@
       <!-- ═══════════ SCHOOL ═══════════ -->
       <section class="view" id="view-school">
         <div class="kicker">Learn the craft</div>
-        <div class="section-title">Witch School</div>
+        <div class="section-title">Everything you ever wanted to know about witchcraft</div>
         <div class="section-sub">Discover the power within ✦</div>
         <!-- The path: a winding trail of lesson nodes (rendered by JS) -->
         <div id="school-path"></div>
@@ -1393,7 +1431,6 @@
             <div><div class="lt">The Wheel of the Year</div><div class="ld">Eight sabbats, one turning circle</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
-          <p class="hint" style="text-align:center; margin-top:14px;">More lessons are being written.</p>
         </div>
 
         <!-- Lesson reader: tap-based deck (cards injected by JS) -->
@@ -2242,6 +2279,7 @@
     $('astro-extra').innerHTML = ex;
     renderStars();
     const dv = $('astro-dive'); if (dv) dv.addEventListener('click', openDeep);
+    bmShow('sky-bm', skySaved(), false);
     $('astro-note').textContent = '';
     $('astro-note').style.display = '';
     const ab = $('astro-add-birth');
@@ -2425,12 +2463,14 @@
     });
     box.innerHTML = html;
     box.style.display = '';
+    bmShow('tarot-bm', tarotSaved, false);
     if (dailyTarot.reading || dailyTarot.advice) { dive.style.display = ''; renderStars(); }
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
     $('daily-dive').style.display = 'none';
+    bmHide('tarot-bm');
     renderDailyTarot();
   }
 
@@ -2448,6 +2488,37 @@
     });
     saveReadings(all); updateSavedCount(); tarotSaved = true;
   }
+  /* ── Save-to-Book-of-Shadows bookmarks ────────────────────────────
+     The house pattern: anything keepable carries a bookmark in its card's
+     top-right corner. Tap to save, tap again to jump to it in the book. */
+  function bmShow(id, saved, animate) {
+    const el = $(id); if (!el) return;
+    el.style.display = '';
+    el.classList.toggle('filled', !!saved);
+    if (saved && animate) { el.classList.add('just'); setTimeout(() => el.classList.remove('just'), 600); }
+  }
+  function bmHide(id) { const el = $(id); if (el) el.style.display = 'none'; }
+  $('tarot-bm').addEventListener('click', () => {
+    if (tarotSaved) { go('book'); openBook('reading'); return; }
+    saveDailyReading();
+    bmShow('tarot-bm', true, true);
+    if (tarotDeepOpen) renderTarotDeep();
+    toast('Saved to your Book of Shadows ✦');
+  });
+  // The day's sky reading — one entry per day, so the id is the day.
+  const skyEntryId = () => 'sky_' + todayISO();
+  const skySaved = () => journalLoad().some(e => e.id === skyEntryId());
+  $('sky-bm').addEventListener('click', () => {
+    if (skySaved()) { go('book'); openBook('reading'); return; }
+    const a = (dailyData && dailyData.astrology) || {};
+    const text = [a.headline, a.reading].filter(Boolean).join('\n\n');
+    if (!text) return;
+    journalSave([{ id: skyEntryId(), ts: Date.now(), type: 'sky',
+      title: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
+      text }].concat(journalLoad()));
+    bmShow('sky-bm', true, true);
+    toast('Saved to your Book of Shadows ✦');
+  });
   const T_ICON = {
     save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
     deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
@@ -2488,15 +2559,19 @@
     }
     if (dailyTarot.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(dailyTarot.advice)}</p></div>`;
     // Fun options
-    h += `<div class="glance-sec"><div class="glance-label">What now?</div><div class="tfun">
+    h += `<div class="glance-sec"><div class="glance-label">Next steps:</div><div class="tfun">
       <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
       ${IS_APP ? '' : `<button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>`}
       <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
     </div></div>`;
+    // Closing the page drops you back exactly where you were on Home — the
+    // Home scroll position is never touched, so this is just a close.
+    h += `<button class="btn-ghost tdeep-home" id="tdeep-home" type="button">Back to home screen</button>`;
     st.innerHTML = h;
     const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
     const db = $('tfun-deck'); if (db) db.addEventListener('click', () => toast('Design-your-own decks are coming soon ✦'));
     const lb = $('tfun-learn'); if (lb) lb.addEventListener('click', () => { closeTarotDeep(); go('school'); });
+    const hb = $('tdeep-home'); if (hb) hb.addEventListener('click', closeTarotDeep);
   }
   function openTarotDeep() {
     tarotDeepOpen = true;
@@ -2726,12 +2801,12 @@
      One chronological book. New entries live in localStorage['witch_journal'];
      legacy content (miracles, saved readings) folds into the same page stream
      as its own page types, so nothing is lost. Page 0 is the contents page. */
-  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A synchronicity', dream: 'A dream', miracle: 'A synchronicity', reading: 'Reading' };
+  const BOS_TYPES = { note: 'A day note', spell: 'A spell', sign: 'A synchronicity', dream: 'A dream', miracle: 'A synchronicity', reading: 'Reading', sky: 'Your sky' };
   // The book reads like a real book: sections in a fixed order, each holding
   // its pages chronologically. Old 'note' and 'miracle' entries live on inside
   // Synchronicities so nothing already written is ever lost.
   const BOS_SECTS = [
-    { key: 'reading', name: 'Readings', kinds: ['reading'] },
+    { key: 'reading', name: 'Readings', kinds: ['reading', 'sky'] },
     { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
     { key: 'spell', name: 'Spell work', kinds: ['spell'] },
     { key: 'dream', name: 'Dreams', kinds: ['dream'] },
@@ -2866,6 +2941,7 @@
     if (p.src === 'journal') {
       const e = p.e;
       inner += e.title ? `<h3>${esc(e.title)}</h3>` : '';
+      if (e.url) inner += `<img src="${esc(e.url)}" alt="">`;   // saved dreams carry their illustration
       inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
       if (e.context) inner += `<div class="bos-context">What was happening: ${esc(e.context)}</div>`;
       if (p.kind === 'spell') inner += e.outcome
@@ -2879,7 +2955,9 @@
       inner += `<div class="bos-body">${esc(e.text || '')}</div>`;
     } else if (p.src === 'reading') {
       // The pulled cards ARE the page (the date above already names the pull —
-      // no repetitive "Daily pull" title); the written reading waits behind a tap.
+      // no repetitive "Daily pull" title), with the written reading right under
+      // them — the page is long enough now that hiding it behind a tap only
+      // added a step.
       const r = p.e;
       inner += `<div class="bos-cards">${(r.cards || []).map(c => {
         const img = DECK_IMG[c.name];
@@ -2889,8 +2967,7 @@
           <div class="cn">${esc(c.name)}</div>
           <div class="co">${c.orientation === 'reversed' ? 'reversed' : 'upright'}${c.position ? ' · ' + esc(c.position) : ''}</div></div>`;
       }).join('')}</div>`;
-      inner += `<div class="bos-actions"><button class="bos-readbtn" data-expand="1">Full reading</button></div>
-        <div class="bos-fullreading" style="display:none; margin-top:10px;">${renderReading(r.data, true)}</div>`;
+      inner += `<div class="bos-fullreading" style="margin-top:10px;">${renderReading(r.data, true)}</div>`;
     }
     $('bos-pagewrap').innerHTML = `<div class="bos-page">${inner}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
   }
@@ -2922,14 +2999,6 @@
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
     const gl = e.target.closest('[data-golesson]');
     if (gl) { closeBook(); go('school'); openLesson(gl.dataset.golesson, gl.dataset.gocard); return; }
-    const ex = e.target.closest('[data-expand]');
-    if (ex) {
-      const fr = ex.closest('.bos-page').querySelector('.bos-fullreading');
-      const show = fr.style.display === 'none';
-      fr.style.display = show ? '' : 'none';
-      ex.textContent = show ? 'Hide reading' : 'Full reading';
-      return;
-    }
     const oc = e.target.closest('[data-outcome]');
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
@@ -4021,6 +4090,13 @@
   /* ══════════ Home dream reading ══════════ */
   function dreamText() { return ($('dream-input').value || '').trim(); }
   let lastDreamRead = null;   // the live reading's data, for the teaser's Dive-deeper button
+  // The dream's bookmark keeps whatever you actually made — the illustration,
+  // the symbolism, or both. Reset whenever a fresh result lands.
+  let lastDreamPage = null, lastDreamText = '', dreamSaved = false;
+  function dreamBmRefresh() {
+    if (!lastDreamPage && !lastDreamRead) { bmHide('dream-bm'); return; }
+    bmShow('dream-bm', dreamSaved, false);
+  }
   // Saved dream readings (localStorage), viewable via "Past readings".
   const DREAM_STORE = 'witch_dream_readings';
   function loadDreams() { try { return JSON.parse(localStorage.getItem(DREAM_STORE) || '[]'); } catch { return []; } }
@@ -4145,6 +4221,7 @@
         pendSet(DREAMREAD_PEND, null); finish();
         const data = d.result || {};
         lastDreamRead = data;
+        lastDreamText = dream; dreamSaved = false; dreamBmRefresh();
         out.style.display = '';
         out.innerHTML = renderDreamTeaser(data);
         if (data.claude || data.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: data.claude, gpt: data.gpt } }); saveDreams(all); }
@@ -4226,7 +4303,23 @@
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
     const p1 = document.getElementById('dream-page1');
     if (p1) p1.addEventListener('click', () => openImgLightbox(url));
+    lastDreamPage = url; dreamSaved = false; dreamBmRefresh();
   }
+  // Keeps whichever halves exist: the illustration, the symbolism, or both.
+  $('dream-bm').addEventListener('click', () => {
+    if (dreamSaved) { go('book'); openBook('dream'); return; }
+    if (!lastDreamPage && !lastDreamRead) return;
+    const r = lastDreamRead && (lastDreamRead.claude || lastDreamRead.gpt);
+    let text = lastDreamText || '';
+    if (r) {
+      const syms = (r.symbols || []).map(s => `${s.symbol} — ${s.meaning}`).join('\n');
+      text = [text, syms, r.message].filter(Boolean).join('\n\n');
+    }
+    journalSave([{ id: 'dream_' + Date.now(), ts: Date.now(), type: 'dream',
+      title: (r && r.title) || 'A dream', text, url: lastDreamPage || null }].concat(journalLoad()));
+    dreamSaved = true; bmShow('dream-bm', true, true);
+    toast('Saved to your Book of Shadows ✦');
+  });
   // Tap page one → see it big. Scroll behind is locked while it's open.
   function openImgLightbox(url) {
     const lb = document.createElement('div');
@@ -4290,6 +4383,7 @@
   }
   async function startDreamIllustrate(people) {
     const dream = dreamText();
+    lastDreamText = dream;
     dreamIllusSpinner();
     try {
       const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream, people }));
@@ -4821,6 +4915,9 @@
     <path class="bstar bs1" d="M44 44 Q45.8 50.2 52 52 Q45.8 53.8 44 60 Q42.2 53.8 36 52 Q42.2 50.2 44 44 Z"/>
     <path class="bstar bs2" d="M68 38 Q69.3 42.7 74 44 Q69.3 45.3 68 50 Q66.7 45.3 62 44 Q66.7 42.7 68 38 Z"/>
     <path class="bstar bs3" d="M74 56 Q75.4 61 80 62.5 Q75.4 64 74 69 Q72.6 64 68 62.5 Q72.6 61 74 56 Z"/>
+    <ellipse class="bsmoke bsm1" cx="51" cy="18" rx="3.4" ry="2.2"/>
+    <ellipse class="bsmoke bsm2" cx="62" cy="15" rx="3" ry="2"/>
+    <ellipse class="bsmoke bsm3" cx="70" cy="18.5" rx="2.6" ry="1.8"/>
   </svg>`;
   // "Brew a potion": pick the right blend from the shelf. Wrong picks fizz
   // softly and stay tappable; the full blend makes the cauldron glow.

@@ -10,6 +10,10 @@ struct WitchWebView: UIViewRepresentable {
     @Binding var tab: WitchTab
     @Binding var loading: Bool
     @Binding var failed: Bool
+    /// Bumped when the already-selected tab is tapped again. SwiftUI never
+    /// re-runs updateUIView for `tab = sameValue`, so a counter is the only way
+    /// the page hears about a re-tap — which is what pops a lesson to root.
+    @Binding var popSignal: Int
 
     static let serverURL = "https://imageforge-q125.onrender.com"
 
@@ -43,6 +47,12 @@ struct WitchWebView: UIViewRepresentable {
         if context.coordinator.lastTab != tab {
             context.coordinator.lastTab = tab
             web.evaluateJavaScript("window.__setTab && window.__setTab('\(tab.rawValue)')", completionHandler: nil)
+        } else if context.coordinator.lastPop != popSignal {
+            // Re-tap of the current tab: go() closes every open full-page
+            // overlay before activating the view, so re-sending the same tab
+            // pops a lesson/quiz back to the tab's root.
+            context.coordinator.lastPop = popSignal
+            web.evaluateJavaScript("window.__setTab && window.__setTab('\(tab.rawValue)')", completionHandler: nil)
         }
     }
 
@@ -51,9 +61,11 @@ struct WitchWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WitchWebView
         var lastTab: WitchTab
+        var lastPop: Int
         init(_ parent: WitchWebView) {
             self.parent = parent
             self.lastTab = parent.tab
+            self.lastPop = parent.popSignal
         }
 
         // "Continue with Google" tapped in the page → run the native OAuth
