@@ -2761,7 +2761,7 @@
   // hand-written sign/note/miracle entries — grouped by day, 4 to a page.
   function syncItems() {
     const out = [];
-    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '' }); });
+    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '', label: e.label || null }); });
     journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: null, desc: e.text || '' }); } });
     (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
     return out.sort((a, b) => a.ts - b.ts);
@@ -2828,7 +2828,7 @@
         const it = p.items[k];
         g += `<div class="bos-sync-cell">
           <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
-          <div class="bos-sync-cap">${it && it.desc ? esc(it.desc) : ''}</div>
+          <div class="bos-sync-cap">${it ? esc(it.label || it.desc || '') : ''}</div>
         </div>`;
       }
       g += `</div>`;
@@ -3749,7 +3749,7 @@
       try { cloudSyncSoon(); } catch {}
     } else {
       const done = coinDoneAll();
-      Object.keys(done).forEach(i => { const st = done[i]; const u = st && st.v && st.v[st.i]; if (u) syncArchUpsert({ id: 'coin_' + today + '_' + i, dateISO: today, ts: Date.now(), url: u, desc: st.desc || '' }); });
+      Object.keys(done).forEach(i => { const st = done[i]; const u = st && st.v && st.v[st.i]; if (u) syncArchUpsert({ id: 'coin_' + today + '_' + i, dateISO: today, ts: Date.now(), url: u, desc: st.desc || '', label: st.label || null }); });
     }
     pendSet(COIN_DAY, today);
   }
@@ -3820,7 +3820,7 @@
     cell.classList.add('drawn');
     let cap = cell.querySelector('.coin-cap');
     if (!cap) { cap = document.createElement('div'); cap.className = 'coin-cap'; cell.appendChild(cap); }
-    cap.textContent = coinShortText(st.desc);
+    cap.textContent = st.label || coinShortText(st.desc);
     let ctl = cell.querySelector('.coin-ctl');
     if (!ctl) {
       ctl = document.createElement('div'); ctl.className = 'coin-ctl';
@@ -3856,13 +3856,14 @@
       key: 'coin' + i,
       onDone: (d) => {
         const url = d.result && d.result.url;
+        const label = (d.result && d.result.label) || null; // AI-written ≤6-word caption
         if (url) {
           const st = coinDoneAll()[i];
-          if (redraw && st && st.v) { st.v.push(url); st.i = st.v.length - 1; coinSetDone(i, st); if (!isPaid()) coinBumpRedraw(); }
-          else { coinSetDone(i, { desc, v: [url], i: 0 }); }
+          if (redraw && st && st.v) { st.v.push(url); st.i = st.v.length - 1; if (label) st.label = label; coinSetDone(i, st); if (!isPaid()) coinBumpRedraw(); }
+          else { coinSetDone(i, { desc, label, v: [url], i: 0 }); }
           coinSetPending(i, null); coinRenderDrawn(i);
           // File it permanently into the Synchronicities archive + light the bookmark.
-          syncArchUpsert({ id: 'coin_' + todayISO() + '_' + i, dateISO: todayISO(), ts: Date.now(), url, desc: (redraw && st ? st.desc : desc) || '' });
+          syncArchUpsert({ id: 'coin_' + todayISO() + '_' + i, dateISO: todayISO(), ts: Date.now(), url, desc: (redraw && st ? st.desc : desc) || '', label: label || (redraw && st ? st.label : null) || null });
           updateCoinBookmark(true);
         } else { coinSetPending(i, null); if (redraw) coinRenderDrawn(i); else coinToEdit(i, desc); }
       },

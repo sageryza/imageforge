@@ -153,6 +153,22 @@ When building: reuse `openUpgrade('coincidence')` / the membership flow, gate
 the draw, then write the result into the sync archive (`witch_sync_archive`)
 under that day so it fills the 4th slot. Ties into the paywall section below.
 
+### ⚠️ Purchase/coming-soon UI is HIDDEN in the iOS app — restore at Stripe launch
+For the July 2026 App Store submission, every purchase-flavored or "coming
+soon" control is hidden when the page runs inside the iOS wrapper (`IS_APP`,
+i.e. `?app=1`). **Nothing was deleted** — each spot is an `IS_APP ?` gate in
+`public/witch.html`; the web keeps it all. When the Stripe membership goes
+live (and the Apple-compliant purchase path is decided), search `witch.html`
+for `IS_APP` and un-gate these four spots:
+1. `renderDreamBook()` — locked pages + "Unlock the full dream book" (app
+   shows just the illustrated page)
+2. `coinRedraw()` — the two redraw popups' "Become a member" / "Unlimited
+   with membership" buttons
+3. `renderTarotDeep()` — the "Design your own tarot deck — coming soon" tile
+4. `openBirthChart()` — the "Order a framed print" block (coming-soon toast)
+Remember: digital unlocks inside the app = Apple IAP territory — decide the
+approach (IAP vs external-link entitlement) BEFORE un-hiding, see below.
+
 ### Paywall / subscription across the app ("get a taste, then pay")
 The membership model: free users get a *taste* of each generative feature, the
 rest is paywalled. Examples: Dream = 1 illustrated page free, rest blurred;
