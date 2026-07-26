@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crystal Drop — ImageForge</title>
+<style>
+  :root { --ink:#2b2b2b; --soft:#6b6459; --line:#e2ded5; --accent:#c98b3a; --bg:#faf8f3; --card:#fff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; -webkit-text-size-adjust:100%; }
+  .wrap { max-width:680px; margin:0 auto; padding:18px 14px 80px; }
+  h1 { font-size:1.35rem; margin:.1em 0 .2em; }
+  p.sub { color:var(--soft); margin-top:0; font-size:.95rem; }
+  h2 { font-size:1rem; margin:26px 0 8px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--soft); border-top:1px solid var(--line); padding-top:16px; }
+  label { display:block; font-weight:600; margin:12px 0 4px; font-size:.9rem; }
+  input[type=text], input[type=number], select, textarea {
+    width:100%; padding:10px; border:1px solid var(--line); border-radius:6px;
+    font-size:1rem; background:var(--card); color:var(--ink); font-family:inherit; }
+  textarea { min-height:80px; resize:vertical; }
+  .row { display:flex; gap:10px; }
+  .row > div { flex:1; min-width:0; }
+  button { border:none; border-radius:6px; background:var(--accent); color:#fff; font-size:1rem;
+    font-weight:600; padding:12px 18px; cursor:pointer; }
+  button:disabled { opacity:.45; }
+  button.ghost { background:var(--card); color:var(--ink); border:1px solid var(--line); }
+  button.danger { background:var(--card); color:#a8322a; border:1px solid #e3c4c0; }
+  .seg { display:flex; gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { flex:1; background:var(--card); color:var(--soft); border-radius:0; font-weight:600;
+    padding:10px 6px; font-size:.92rem; }
+  .seg button[aria-pressed=true] { background:var(--accent); color:#fff; }
+  #pick, #zip { display:block; margin-top:6px; font-size:.92rem; }
+  .status { margin-top:12px; font-size:.9rem; color:var(--soft); white-space:pre-wrap; min-height:1.2em; }
+  .bar { height:4px; background:var(--line); border-radius:6px; overflow:hidden; margin-top:8px; display:none; }
+  .bar > i { display:block; height:100%; background:var(--accent); width:0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:12px; }
+  .tile { position:relative; border:1px solid var(--line); border-radius:6px; overflow:hidden;
+    background:var(--card); cursor:pointer; padding:0; display:block; width:100%; }
+  .tile img { width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+  .tile .n { position:absolute; top:4px; left:4px; background:rgba(43,43,43,.82); color:#fff;
+    font-size:.72rem; font-weight:700; padding:1px 6px; border-radius:6px; }
+  .tile .s { position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,.92);
+    font-size:.68rem; padding:2px 4px; text-align:center; color:var(--soft);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tile.g { outline:2px solid var(--accent); outline-offset:-2px; }
+  .batches { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .batches button { background:var(--card); color:var(--ink); border:1px solid var(--line);
+    font-size:.88rem; font-weight:500; padding:7px 10px; }
+  .batches button[aria-pressed=true] { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .sheet { position:fixed; inset:0; background:rgba(30,28,25,.55); display:none; z-index:50;
+    align-items:flex-end; justify-content:center; }
+  .sheet.open { display:flex; }
+  .sheet .panel { background:var(--bg); width:100%; max-width:680px; max-height:92vh; overflow-y:auto;
+    border-radius:12px 12px 0 0; padding:16px 14px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet img.hero { width:100%; max-height:44vh; object-fit:contain; background:var(--card);
+    border:1px solid var(--line); border-radius:6px; }
+  .sheetbar { display:flex; gap:8px; margin-top:16px; }
+  .sheetbar button { flex:1; }
+  .hint { font-size:.82rem; color:#8a8378; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Crystal drop</h1>
+  <p class="sub">Dump crystal photos here. They go straight to Firebase with whatever you know about
+  them (or nothing at all), and a chat can pull them back out to price, sort into listings, and build
+  the pick-your-own grids.</p>
+
+  <h2>Add photos</h2>
+  <div class="row">
+    <div>
+      <label for="batch">Batch</label>
+      <input type="text" id="batch" placeholder="moms-crystals" value="moms-crystals">
+    </div>
+  </div>
+
+  <label>What's in these photos?</label>
+  <div class="seg" id="kind">
+    <button type="button" data-kind="single" aria-pressed="true">One crystal per photo</button>
+    <button type="button" data-kind="group" aria-pressed="false">Several in one photo</button>
+  </div>
+  <div class="hint">"One crystal per photo" is the pick-your-own case — each photo gets a number.</div>
+
+  <label for="pick">Choose photos</label>
+  <input type="file" id="pick" accept="image/*" multiple>
+  <div style="margin-top:12px"><button id="go" disabled>Upload</button></div>
+
+  <label for="zip" style="margin-top:20px">Or a ZIP of photos</label>
+  <input type="file" id="zip" accept=".zip,application/zip">
+  <div style="margin-top:12px"><button id="zipgo" class="ghost" disabled>Upload ZIP</button></div>
+
+  <div class="bar" id="bar"><i></i></div>
+  <div class="status" id="status"></div>
+
+  <h2>What's in there</h2>
+  <div class="batches" id="batches"></div>
+  <div class="status" id="count"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <img class="hero" id="s-img" alt="">
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label for="s-seq">Number</label>
+        <input type="number" id="s-seq" step="1">
+      </div>
+      <div>
+        <label for="s-status">Status</label>
+        <select id="s-status">
+          <option value="new">new</option>
+          <option value="ready">ready to list</option>
+          <option value="listed">listed</option>
+          <option value="sold">sold</option>
+          <option value="skip">skip</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Kind</label>
+    <div class="seg" id="s-kind">
+      <button type="button" data-kind="single" aria-pressed="true">One crystal</button>
+      <button type="button" data-kind="group" aria-pressed="false">Several</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="s-stone">Stone</label>
+        <input type="text" id="s-stone" placeholder="amethyst">
+      </div>
+      <div>
+        <label for="s-name">Name / nickname</label>
+        <input type="text" id="s-name" placeholder="big purple point">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="s-size">Size</label>
+        <input type="text" id="s-size" placeholder="2 in">
+      </div>
+      <div>
+        <label for="s-weight">Weight (g)</label>
+        <input type="number" id="s-weight" step="0.1">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="s-price">Price ($)</label>
+        <input type="number" id="s-price" step="0.01">
+      </div>
+      <div>
+        <label for="s-qty">Qty</label>
+        <input type="number" id="s-qty" step="1">
+      </div>
+      <div>
+        <label for="s-count">In photo</label>
+        <input type="number" id="s-count" step="1">
+      </div>
+    </div>
+
+    <label for="s-tags">Tags (comma separated)</label>
+    <input type="text" id="s-tags" placeholder="raw, tumbled, gift">
+
+    <label for="s-notes">Notes — anything</label>
+    <textarea id="s-notes" placeholder="where it came from, what mom said about it, whether it's chipped…"></textarea>
+
+    <div class="sheetbar">
+      <button id="s-save">Save</button>
+      <button id="s-close" class="ghost">Close</button>
+    </div>
+    <div class="sheetbar">
+      <button id="s-del" class="danger">Delete this photo</button>
+    </div>
+    <div class="status" id="s-status-msg"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api/crystals';
+const TOKEN = new URLSearchParams(location.search).get('token') || '';
+const $ = (id) => document.getElementById(id);
+
+function headers(extra) {
+  const h = Object.assign({}, extra || {});
+  if (TOKEN) h['x-studio-token'] = TOKEN;
+  return h;
+}
+async function api(path, opts) {
+  const o = Object.assign({}, opts || {});
+  o.headers = headers(o.headers);
+  const r = await fetch(API + path, o);
+  const j = await r.json().catch(() => ({ error: 'bad response' }));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+/* ---- upload ---------------------------------------------------------- */
+let uploadKind = 'single';
+$('kind').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-kind]'); if (!b) return;
+  uploadKind = b.dataset.kind;
+  [...$('kind').children].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+});
+
+$('pick').addEventListener('change', () => { $('go').disabled = !$('pick').files.length; });
+$('zip').addEventListener('change', () => { $('zipgo').disabled = !$('zip').files.length; });
+
+function readAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('could not read ' + file.name));
+    fr.readAsDataURL(file);
+  });
+}
+function progress(done, total) {
+  const bar = $('bar');
+  bar.style.display = total ? 'block' : 'none';
+  bar.firstElementChild.style.width = total ? Math.round((done / total) * 100) + '%' : '0';
+}
+
+$('go').addEventListener('click', async () => {
+  const files = [...$('pick').files];
+  if (!files.length) return;
+  $('go').disabled = true; $('zipgo').disabled = true;
+  const batch = $('batch').value.trim() || 'default';
+  let done = 0, failed = 0;
+  // One photo per request: keeps every upload at FULL RESOLUTION (these are the
+  // listing photos — never downscale them) without a 40MB request body.
+  for (const f of files) {
+    $('status').textContent = 'Uploading ' + (done + 1) + ' of ' + files.length + '…';
+    progress(done, files.length);
+    try {
+      const dataUrl = await readAsDataURL(f);
+      await api('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch, kind: uploadKind, images: [dataUrl], filenames: [f.name] }),
+      });
+    } catch (e) { failed++; console.error(f.name, e); }
+    done++;
+  }
+  progress(0, 0);
+  $('status').textContent = 'Uploaded ' + (done - failed) + ' of ' + files.length
+    + (failed ? ' — ' + failed + ' failed (see console)' : ' ✓');
+  $('pick').value = ''; $('go').disabled = true;
+  await refresh(batch);
+});
+
+$('zipgo').addEventListener('click', async () => {
+  const f = $('zip').files[0]; if (!f) return;
+  $('zipgo').disabled = true; $('go').disabled = true;
+  const batch = $('batch').value.trim() || 'default';
+  $('status').textContent = 'Uploading ZIP (' + Math.round(f.size / 1e6) + ' MB)… this one takes a minute.';
+  try {
+    const q = '?batch=' + encodeURIComponent(batch) + '&kind=' + uploadKind;
+    const r = await api('/upload-zip' + q, {
+      method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: f,
+    });
+    $('status').textContent = 'Unzipped and stored ' + r.count + ' photos ✓';
+  } catch (e) { $('status').textContent = 'ZIP failed: ' + e.message; }
+  $('zip').value = '';
+  await refresh(batch);
+});
+
+/* ---- browse ---------------------------------------------------------- */
+let current = null;   // selected batch
+let items = [];
+
+async function loadBatches() {
+  const r = await api('/batches');
+  const box = $('batches');
+  box.innerHTML = '';
+  if (!r.batches.length) { box.innerHTML = '<span class="hint">Nothing dumped yet.</span>'; return; }
+  for (const b of r.batches) {
+    const btn = document.createElement('button');
+    btn.textContent = b.batch + ' (' + b.count + ')';
+    btn.setAttribute('aria-pressed', String(b.batch === current));
+    btn.addEventListener('click', () => refresh(b.batch));
+    box.appendChild(btn);
+  }
+}
+
+async function loadItems(batch) {
+  if (!batch) { items = []; $('grid').innerHTML = ''; $('count').textContent = ''; return; }
+  const r = await api('/items?batch=' + encodeURIComponent(batch));
+  items = r.items;
+  const grid = $('grid');
+  grid.innerHTML = '';
+  for (const it of items) {
+    const t = document.createElement('button');
+    t.className = 'tile' + (it.kind === 'group' ? ' g' : '');
+    t.innerHTML = '<img loading="lazy" alt="" src="' + it.url + '">'
+      + '<span class="n">' + (it.seq || '?') + '</span>'
+      + '<span class="s">' + ((it.stone || it.name || it.status || '')
+          .replace(/[<>&]/g, '')) + '</span>';
+    t.addEventListener('click', () => openSheet(it));
+    grid.appendChild(t);
+  }
+  const ready = items.filter((i) => i.status === 'ready').length;
+  const listed = items.filter((i) => i.status === 'listed').length;
+  $('count').textContent = items.length + ' photos · ' + ready + ' ready · ' + listed + ' listed';
+}
+
+async function refresh(batch) {
+  if (batch) current = batch;
+  await loadBatches();
+  await loadItems(current);
+}
+
+/* ---- edit sheet ------------------------------------------------------- */
+let editing = null;
+let sheetKind = 'single';
+
+$('s-kind').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-kind]'); if (!b) return;
+  sheetKind = b.dataset.kind;
+  [...$('s-kind').children].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+});
+
+function openSheet(it) {
+  editing = it;
+  $('s-img').src = it.url;
+  $('s-seq').value = it.seq ?? '';
+  $('s-status').value = it.status || 'new';
+  sheetKind = it.kind || 'single';
+  [...$('s-kind').children].forEach((x) =>
+    x.setAttribute('aria-pressed', String(x.dataset.kind === sheetKind)));
+  $('s-stone').value = it.stone || '';
+  $('s-name').value = it.name || '';
+  $('s-size').value = it.size || '';
+  $('s-weight').value = it.weightG ?? '';
+  $('s-price').value = it.priceUsd ?? '';
+  $('s-qty').value = it.qty ?? '';
+  $('s-count').value = it.count ?? '';
+  $('s-tags').value = (it.tags || []).join(', ');
+  $('s-notes').value = it.notes || '';
+  $('s-status-msg').textContent = '';
+  $('sheet').classList.add('open');
+  // House rule: an open image freezes the page behind it.
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  $('sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  editing = null;
+}
+$('s-close').addEventListener('click', closeSheet);
+$('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) closeSheet(); });
+
+const numOrNull = (v) => (v === '' || v === null ? null : Number(v));
+
+$('s-save').addEventListener('click', async () => {
+  if (!editing) return;
+  $('s-save').disabled = true;
+  $('s-status-msg').textContent = 'Saving…';
+  try {
+    await api('/items/' + editing.id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        seq: numOrNull($('s-seq').value),
+        status: $('s-status').value,
+        kind: sheetKind,
+        stone: $('s-stone').value.trim() || null,
+        name: $('s-name').value.trim() || null,
+        size: $('s-size').value.trim() || null,
+        weightG: numOrNull($('s-weight').value),
+        priceUsd: numOrNull($('s-price').value),
+        qty: numOrNull($('s-qty').value),
+        count: numOrNull($('s-count').value),
+        tags: $('s-tags').value,
+        notes: $('s-notes').value.trim() || null,
+      }),
+    });
+    closeSheet();
+    await loadItems(current);
+  } catch (e) {
+    $('s-status-msg').textContent = 'Save failed: ' + e.message;
+  }
+  $('s-save').disabled = false;
+});
+
+$('s-del').addEventListener('click', async () => {
+  if (!editing) return;
+  if (!confirm('Delete this photo from the drop box?')) return;
+  try {
+    await api('/items/' + editing.id, { method: 'DELETE' });
+    closeSheet();
+    await refresh();
+  } catch (e) { $('s-status-msg').textContent = 'Delete failed: ' + e.message; }
+});
+
+/* ---- boot ------------------------------------------------------------- */
+(async () => {
+  try {
+    const r = await api('/batches');
+    current = r.batches.length ? r.batches[0].batch : ($('batch').value.trim() || null);
+    if (current) $('batch').value = current;
+    await refresh(current);
+  } catch (e) { $('status').textContent = 'Could not load: ' + e.message; }
+})();
+</script>
+</body>
+</html>

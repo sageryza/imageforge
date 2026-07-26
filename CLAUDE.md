@@ -579,6 +579,39 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate (only `GET /status` open); `/song` served via
   `serveGated` like `/photo`.
 
+## Crystal drop (crystal photos → Etsy listings)
+- `crystals.js` (`/api/crystals`, page at `/crystals`) — the drop box for the
+  crystal-listing project (Sophie's mom's crystals, already in hand). Sophie
+  dumps photos from her phone; a chat pulls them back out to price them, sort
+  them into listings, and build the numbered pick-your-own grids.
+- **One Firestore doc per PHOTO** (`forge-crystals`, deckfactory), bytes in
+  Storage `crystals/<batch>/`. `kind:'single'` = one crystal per photo (the
+  pick-your-own case — `seq` is its number in the grid); `kind:'group'` = a tray
+  of several in one shot (`count` = how many). Every stone field is optional —
+  dumping a photo is never blocked on knowing anything about it.
+- **`seq` is the crystal's number** and continues across separate uploads into
+  the same batch (`nextSeq` scans the batch's max), so a second dump doesn't
+  restart numbering and break a grid overlay already built on it. ZIP entries
+  are sorted by filename numerically first, so `IMG_2` comes before `IMG_10`.
+- **Uploads are one photo per request, at FULL RESOLUTION** — the page never
+  downscales (these are the listing photos; Etsy wants 2000px+ on the short
+  side), it just loops so no single body is 40MB. ZIP path (`POST /upload-zip`,
+  raw body) is the bulk option and skips `__MACOSX`/non-images.
+- **Routes:** `GET /status` (open), `GET /batches`, `POST /upload`
+  `{batch, images:[dataURL|url], kind?, defaults?, filenames?}`,
+  `POST /upload-zip?batch=&kind=`, `GET /items?batch=&status=&kind=&limit=`,
+  `GET /items/:id`, `PATCH /items/:id`, `DELETE /items/:id` (removes the
+  Storage object too). Same `STUDIO_TOKEN` gate as the rest of the pipeline.
+- PATCH writes are whitelisted to `EDITABLE` — everything else on the doc
+  (url, storagePath, createdAt) is server-owned. Queries use a single equality
+  filter and sort in memory, so no composite Firestore index is needed.
+- **A/B testing note (July 2026 research):** Etsy has NO native split test, and
+  changing tags/title on a live listing resets its ranking clock (7–14 days to
+  restabilize, 30–90 to fully re-rank). The safe method is a **duplicate
+  listing** — copy A into B, change ONE thing, keep enough else different that
+  it isn't a policy-violating duplicate, and run both 2+ weeks. Baseline the
+  original for a week first.
+
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a

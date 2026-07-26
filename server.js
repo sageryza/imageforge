@@ -230,6 +230,7 @@ loadConfig().then(() => {
   const mpcUpload = require('./mpc-upload');
   const apiframe = require('./apiframe');
   const ingest = require('./ingest');
+  const crystals = require('./crystals');
   const etsyReport = require('./etsy-report');
   const shopify = require('./shopify');
   const blog = require('./blog');
@@ -263,6 +264,7 @@ loadConfig().then(() => {
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
+  app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   app.use('/api/sync', sync.router);
@@ -1602,6 +1604,11 @@ app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));
+
+// Crystal drop: dump crystal photos (+ whatever's known about each stone) into
+// Firebase so a chat can pull them back out to price, sort into listings, and
+// build the numbered pick-your-own grids. Engine is /api/crystals (crystals.js).
+app.get('/crystals', serveGated('crystals.html'));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.
