@@ -42,6 +42,9 @@ struct WitchRootView: View {
     @State private var failed = false
     @State private var reloadKey = 0
     @State private var pulse = false
+    // Counts re-taps of the already-selected tab (native tab semantics: tapping
+    // the tab you're on pops that tab back to its root).
+    @State private var popSignal = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,7 +53,7 @@ struct WitchRootView: View {
                 if failed {
                     failedView
                 } else {
-                    WitchWebView(tab: $tab, loading: $loading, failed: $failed)
+                    WitchWebView(tab: $tab, loading: $loading, failed: $failed, popSignal: $popSignal)
                         .id(reloadKey)
                     if loading { loadingView }
                 }
@@ -114,7 +117,7 @@ struct WitchRootView: View {
         HStack(spacing: 0) {
             ForEach(WitchTab.allCases, id: \.self) { t in
                 Button {
-                    tab = t
+                    if tab == t { popSignal += 1 } else { tab = t }
                 } label: {
                     VStack(spacing: 3) {
                         Image(systemName: t.symbol)

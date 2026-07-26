@@ -1928,7 +1928,7 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
         const dr = dreams[0];
         const beats = Array.isArray(dr.beats) ? dr.beats : [];
         const totalPages = Math.max(1, Math.ceil(beats.length / 4));
-        await ref.update({ label: 'illustrating page one', totalPages, title: dr.title || null });
+        await ref.update({ label: 'illustrating your dream', totalPages, title: dr.title || null });
         // page one = first 4 beats; dreamerLook feeds the page prompt so the
         // "me" of the dream is drawn to the given description.
         const first = { ...dr, beats: beats.slice(0, 4), dreamerLook: people || null };
