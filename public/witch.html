@@ -216,6 +216,7 @@
     .bos-sync-box { width: 100%; aspect-ratio: 1; border: 1px solid #d9cbb4; border-radius: 3px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
     .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
     .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
+    .bos-sync-more { background: none; border: none; padding: 0; margin-left: 4px; font: inherit; font-size: 11px; color: #8a7a5e; text-decoration: underline; cursor: pointer; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -2823,16 +2824,27 @@
     const p = pages[bosPageIdx - 1];
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
+      // When the caption is the short AI label, the FULL original moment text
+      // stays reachable behind a tiny "more…" link (never deleted, just tucked
+      // away — Sophie's call; Home shows only the caption).
       let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
       for (let k = 0; k < 4; k++) {
         const it = p.items[k];
+        const hasMore = it && it.label && it.desc && it.desc !== it.label;
         g += `<div class="bos-sync-cell">
           <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
-          <div class="bos-sync-cap">${it ? esc(it.label || it.desc || '') : ''}</div>
+          <div class="bos-sync-cap">${it ? esc(it.label || it.desc || '') : ''}${hasMore ? `<button type="button" class="bos-sync-more" data-more="${k}">more…</button>` : ''}</div>
         </div>`;
       }
       g += `</div>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      const items = p.items;
+      document.querySelectorAll('.bos-sync-more').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const it = items[+b.dataset.more]; if (!it) return;
+        openModal(`<h2 style="margin-bottom:10px;">${esc(it.label || 'The moment')}</h2><p class="sub" style="text-align:left; white-space:pre-wrap;">${esc(it.desc)}</p><button class="close-x" id="sync-more-x">close</button>`);
+        $('sync-more-x').addEventListener('click', closeModal);
+      }));
       return;
     }
     if (p.page === 'lesson') {
