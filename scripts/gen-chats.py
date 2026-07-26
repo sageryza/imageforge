@@ -289,19 +289,19 @@ function md(t){
 // chats.html; "Now I'm structuring the PDF" is work even though it's prose.
 // Ties break toward showing. First and last blocks never fold.
 function splitBlocks(text){
-  var out=[], lines=String(text||'').split('\n'), buf=[], inCode=false;
-  function flush(){ var s=buf.join('\n'); if(s.trim()!=='') out.push(s); buf=[]; }
+  var out=[], lines=String(text||'').split('\\n'), buf=[], inCode=false;
+  function flush(){ var s=buf.join('\\n'); if(s.trim()!=='') out.push(s); buf=[]; }
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
     if(/^\s*```/.test(l)){
-      if(inCode){ buf.push(l); out.push(buf.join('\n')); buf=[]; inCode=false; }
+      if(inCode){ buf.push(l); out.push(buf.join('\\n')); buf=[]; inCode=false; }
       else { flush(); buf.push(l); inCode=true; }
       continue;
     }
     if(inCode){ buf.push(l); continue; }
     if(l.trim()===''){ flush(); } else { buf.push(l); }
   }
-  if(inCode){ out.push(buf.join('\n')); } else { flush(); }
+  if(inCode){ out.push(buf.join('\\n')); } else { flush(); }
   return out;
 }
 // true = working narration (fold), false = message for Sophie (show).
@@ -312,24 +312,24 @@ function isWork(b){
   // Narration voice wins even when the block mentions "you" ("the way you
   // asked"): forward-looking / in-progress first person = doing the work.
   if(/^(now|next|then|first|second|also|finally|meanwhile)[,: ]*\s*(i|let|the|to|on|checking|running|building|reading|writing|adding|updating|fixing|creating|testing|mirroring|committing|wiring|regenerating)/i.test(t)
-    || /^(let me|let's|i'll|i will|time to|on to|onto)\b/i.test(t)
-    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\b/i.test(t)
-    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\b/i.test(t)) return true;
-  if(/\byou\b|\byour\b|\byours\b/i.test(t)) return false;   // second person = talking to her
-  if(/\bhere('s| is| are)\b|\bthis is what\b/i.test(t)) return false;  // presenting something
-  if(/\?\s*($|\n)/.test(t)) return false;            // asking her something
+    || /^(let me|let's|i'll|i will|time to|on to|onto)\\b/i.test(t)
+    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\\b/i.test(t)
+    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\\b/i.test(t)) return true;
+  if(/\\byou\\b|\\byour\\b|\\byours\\b/i.test(t)) return false;   // second person = talking to her
+  if(/\\bhere('s| is| are)\\b|\\bthis is what\\b/i.test(t)) return false;  // presenting something
+  if(/\?\s*($|\\n)/.test(t)) return false;            // asking her something
   // Past-tense first-person = reporting what got done — that's for her.
-  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\b/i.test(t)
-    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\b/i.test(t)) return false;
+  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\\b/i.test(t)
+    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\\b/i.test(t)) return false;
   // Otherwise fall back to line texture: mostly commands/diffs/hashes/paths.
-  var lines=t.split('\n').filter(function(l){ return l.trim()!==''; });
+  var lines=t.split('\\n').filter(function(l){ return l.trim()!==''; });
   if(!lines.length) return false;
   var hits=0;
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
-    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\b/.test(l)
+    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\\b/.test(l)
       || /^[+\-]\s/.test(l)                          // diff line
-      || /\b[0-9a-f]{10,40}\b/.test(l)               // commit hash / long id
+      || /\\b[0-9a-f]{10,40}\\b/.test(l)               // commit hash / long id
       || /\s\/[\w.-]+\/[\w./-]+/.test(l)             // absolute-ish path
     ) hits++;
   }
@@ -345,13 +345,13 @@ function foldBody(text){
   while(i<blocks.length-1){
     if(!work[i]){ parts.push(md(blocks[i])); i++; continue; }
     var j=i; while(j<blocks.length-1 && work[j]) j++;
-    var run=blocks.slice(i,j).join('\n\n');
+    var run=blocks.slice(i,j).join('\\n\\n');
     parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
       + '<div class="foldbody" hidden>'+md(run)+'</div></div>');
     i=j;
   }
   parts.push(md(blocks[blocks.length-1]));
-  out=parts.join('\n');
+  out=parts.join('\\n');
   return out.indexOf('foldtog')<0 ? md(text) : out;
 }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
@@ -1062,7 +1062,7 @@ document.getElementById('back').onclick=goHome;
   window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
   function hl(snip,q){
     var e=esc(snip||'');
-    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
+    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
     catch(_){ return e; }
   }
   function run(q){
