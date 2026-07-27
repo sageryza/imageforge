@@ -154,22 +154,7 @@ struct DumpView: View {
             }
             ProgressView(value: Double(uploader.done), total: Double(max(uploader.total, 1)))
                 .tint(Theme.accent)
-            if uploader.failed > 0 {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(uploader.failed) didn't make it\(uploader.lastError.map { " — \($0)" } ?? "")")
-                        .font(.caption).foregroundColor(Theme.danger)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 8)
-                    // Nothing is lost when a file fails — the job is kept, so
-                    // it can just be sent again.
-                    if !uploader.isRunning {
-                        Button("Send again") { uploader.retryFailed() }
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(Theme.accent)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            if uploader.failed > 0 { failures }
             if uploader.isRunning {
                 Text("Keeps going if you leave the app.")
                     .font(.caption).foregroundColor(Theme.textDim)
@@ -179,6 +164,39 @@ struct DumpView: View {
         .padding(12)
         .background(Theme.surface)
         .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.border), alignment: .bottom)
+    }
+
+    /// Which albums lost files, not just how many. A count alone means a photo
+    /// can go missing out of 300 and never be found again — naming the album
+    /// is what makes it recoverable even if she re-sends by hand.
+    private var failures: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(uploader.failed) didn't make it\(uploader.lastError.map { " — \($0)" } ?? "")")
+                    .font(.caption).foregroundColor(Theme.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                // Nothing is lost when a file fails — the job is kept, so it
+                // can just be sent again.
+                if !uploader.isRunning {
+                    Button("Send again") { uploader.retryFailed() }
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(Theme.accent)
+                }
+            }
+            ForEach(failedByAlbum, id: \.name) { row in
+                Text("· \(row.count) in \(row.name)")
+                    .font(.caption2).foregroundColor(Theme.textDim)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var failedByAlbum: [(name: String, count: Int)] {
+        Dictionary(grouping: uploader.failedJobs, by: \.bundleName)
+            .map { (name: $0.key, count: $0.value.count) }
+            .sorted { $0.count > $1.count }
     }
 
     // MARK: - Body states
