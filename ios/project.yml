@@ -27,6 +27,10 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Record your dream out loud so it can be transcribed and illustrated."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Turn your spoken dream into text as you talk."
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Save your creations to your photo library."
+        # Read access is what the Dump tab needs: it lists your albums so you can
+        # send whole ones at once. Album listing requires FULL access — the
+        # "Select Photos…" limited mode hides albums entirely.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Pick whole albums to dump into Deck Factory."
         INFOPLIST_KEY_NSCameraUsageDescription: "Take a photo of someone in your dream to turn them into a character card."
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
@@ -39,6 +43,32 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseFirestore
+      - target: DumpShare
+        embed: true
+
+  # "Send to Deck Factory" — the share-sheet way into the Dump, so dumping
+  # works from Photos, Files, Safari, anywhere. Deliberately has NO App Group:
+  # a background URLSession in an extension would need one, and adding that
+  # entitlement to the host app risks its automatic signing in CI. It uploads
+  # in the foreground while its sheet is open instead.
+  DumpShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - DumpShare
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge.dumpshare
+        PRODUCT_NAME: DumpShare
+        # Same pattern as the app target: the generated keys are produced, and
+        # this plist (the NSExtension dict) is merged on top of them.
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: DumpShare/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: "Send to Deck Factory"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
   # Secretly a Witch — the public witchy app as its own tiny native shell
   # (WKWebView on the deployed /witch page + native SF-Symbols tab bar).
   # No Firebase, no CI patching: display name / compliance / icon / launch
