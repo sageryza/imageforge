@@ -58,33 +58,45 @@ router.get('/', async (req, res) => {
     // appeared to do nothing until minutes later. The feed must always be live.
     res.set('Cache-Control', 'no-store');
     // NOTE: nothing is ever deleted — every message stays in Firestore. This
-    // only controls how many we hand the app at once. The old flat cap (newest
-    // 200 across ALL chats) meant a chat you hadn't touched in a day or two
-    // scrolled entirely out of view. Instead we keep the newest RECENT globally
-    // (so an active chat shows its full recent thread) AND the last KEEP of
-    // EVERY chat within the scan window — so any chat you touched recently
-    // still has its tail loaded and you can pick it back up. Overridable via
-    // ?recent= / ?keep= / ?scan= for a future "load older" control.
-    const RECENT = Math.min(600, Math.max(50, parseInt(req.query.recent, 10) || 250));
-    const KEEP = Math.min(50, Math.max(1, parseInt(req.query.keep, 10) || 6));
-    const SCAN = Math.min(5000, Math.max(RECENT, parseInt(req.query.scan, 10) || 1500));
+    // only controls how many we hand the app at once, and that matters: the
+    // feed is append-only across ~38 chats, so an unbounded payload grows
+    // forever and every app launch pays for it (it had reached ~490KB / 364
+    // messages, several seconds on a phone).
+    //
+    // The shape Sophie asked for: the chats she's actually been in get a real
+    // scroll-back tail, everything older gets just its latest message (which is
+    // all the home screen shows anyway). Opening a chat pulls its FULL history
+    // from /thread, so nothing is unreachable — this only trims the first load.
+    // Overridable via ?deep= / ?deepchats= / ?tail= / ?scan=.
+    const DEEP = Math.min(50, Math.max(1, parseInt(req.query.deep, 10) || 10));
+    const DEEPCHATS = Math.min(100, Math.max(1, parseInt(req.query.deepchats, 10) || 15));
+    const TAIL = Math.min(50, Math.max(1, parseInt(req.query.tail, 10) || 1));
+    const SCAN = Math.min(5000, Math.max(200, parseInt(req.query.scan, 10) || 1500));
     const [msnap, rsnap] = await Promise.all([
       db().collection(MSGS).orderBy('created', 'desc').limit(SCAN).get(),
       db().collection(REG).get(),
     ]);
     const chats = {};
     rsnap.docs.forEach((d) => { chats[d.id] = d.data(); });
-    // msnap is newest-first: the first KEEP docs seen per chat are that chat's
-    // most recent; i < RECENT keeps the global newest regardless of chat.
+    // msnap is newest-first, so the order in which a chat is FIRST seen is its
+    // recency rank: the first DEEPCHATS distinct chats are the ones Sophie
+    // touched most recently and get DEEP messages; the rest get TAIL.
     const perChat = {};
+    const rank = {};
     const messages = [];
-    msnap.docs.forEach((d, i) => {
+    msnap.docs.forEach((d) => {
       const m = d.data();
       const c = m.chat || '';
+      if (!(c in rank)) rank[c] = Object.keys(rank).length;
       const n = (perChat[c] = (perChat[c] || 0) + 1);
-      if (i < RECENT || n <= KEEP) messages.push({ id: d.id, ...m });
+      const cap = rank[c] < DEEPCHATS ? DEEP : TAIL;
+      if (n <= cap) messages.push({ id: d.id, ...m });
     });
-    res.json({ chats, messages });
+    // `truncated` lists chats whose history was cut, so the client knows to
+    // pull the full thread when one is opened instead of guessing.
+    const truncated = Object.keys(perChat)
+      .filter((c) => perChat[c] > (rank[c] < DEEPCHATS ? DEEP : TAIL));
+    res.json({ chats, messages, truncated });
   } catch (err) { fail(res, err); }
 });
 
