@@ -161,8 +161,10 @@ each opens a focused workflow that shares the same house styles.
 - **The target uid is Sophie's device anonymous-auth id** — a personal
   identifier, so it's kept OUT of the repo (pass `--uid` or set `GALLERY_UID`;
   store it in Render env / a local `.env`, or Sophie shares it in-session).
-  Anonymous uids change on reinstall — re-find by scanning every user's
-  creations (collectionGroup) for the device with recent real activity.
+  Anonymous uids change on reinstall — re-find with
+  `node scripts/find-gallery-uid.js` (scans every user's creations via
+  collectionGroup and ranks them; the device is the uid with hundreds of
+  creations and a recent date).
 - **Timestamps = when the image was actually made.** The app sorts by
   `createdAt`, and multiple chats post concurrently, so pass the true generation
   time (`--created <ms>`) — that's what keeps everyone's deliverables in correct
