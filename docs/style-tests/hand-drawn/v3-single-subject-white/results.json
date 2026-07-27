@@ -1,0 +1,90 @@
+[
+  {
+    "slug": "purple-flower",
+    "label": "Two little girls holding hands, and the flower was purple",
+    "moment": "I saw two little girls holding hands, and then one of them picked a flower, but it was purple.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out6/purple-flower--low.png",
+    "seconds": 18,
+    "usage": {
+      "input_tokens": 216,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 216
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 412
+    },
+    "createdAt": 1785157222412
+  },
+  {
+    "slug": "same-yellow-coat",
+    "label": "Two strangers in the same yellow coat",
+    "moment": "Two strangers passed each other on the sidewalk wearing the exact same yellow coat, and neither of them noticed.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out6/same-yellow-coat--low.png",
+    "seconds": 23,
+    "usage": {
+      "input_tokens": 215,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 215
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 411
+    },
+    "createdAt": 1785157222482
+  },
+  {
+    "slug": "three-birds",
+    "label": "Three birds, one to each wire",
+    "moment": "There were three telephone wires and exactly one small bird sitting on each of them, evenly spaced.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out6/three-birds--low.png",
+    "seconds": 18,
+    "usage": {
+      "input_tokens": 213,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 213
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 409
+    },
+    "createdAt": 1785157222482
+  },
+  {
+    "slug": "purple-flower",
+    "label": "Two little girls holding hands, and the flower was purple",
+    "moment": "I saw two little girls holding hands, and then one of them picked a flower, but it was purple.",
+    "quality": "medium",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out6/purple-flower--medium.png",
+    "seconds": 55,
+    "usage": {
+      "input_tokens": 216,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 216
+      },
+      "output_tokens": 1756,
+      "output_tokens_details": {
+        "image_tokens": 1756,
+        "text_tokens": 0
+      },
+      "total_tokens": 1972
+    },
+    "createdAt": 1785157222483
+  }
+]

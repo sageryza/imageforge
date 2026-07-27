@@ -1,0 +1,94 @@
+[
+  {
+    "slug": "purple-flower",
+    "label": "Two little girls holding hands, and the flower was purple",
+    "moment": "I saw two little girls holding hands, and then one of them picked a flower, but it was purple.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out4/purple-flower--low.png",
+    "seconds": 22,
+    "usage": {
+      "input_tokens": 173,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 173
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 369
+    },
+    "createdAt": 1785157140155,
+    "promptUsed": "ILLUSTRATION STYLE:\nDelicate hand-drawn ink illustration with thin, slightly irregular black outlines and flat opaque pastel color fills. Whimsical modern folk art. Simplified shapes, charming imperfections, restrained detail, minimal or no shading, and generous negative space. Use dusty blush, muted coral, pale aqua, mustard gold, lavender-gray, cream, and soft taupe. The result should resemble a thoughtfully designed independent sticker sheet or boutique stationery print—not polished vector clip art, not watercolor, not realistic, and not cartoonish.\n\nTurn the described moment into one clear, simple visual scene. Focus only on the most emotionally meaningful action or object. Keep the composition uncluttered and easy to understand at a glance.\n\nI saw two little girls holding hands, and then one of them picked a flower, but it was purple."
+  },
+  {
+    "slug": "same-yellow-coat",
+    "label": "Two strangers in the same yellow coat",
+    "moment": "Two strangers passed each other on the sidewalk wearing the exact same yellow coat, and neither of them noticed.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out4/same-yellow-coat--low.png",
+    "seconds": 47,
+    "usage": {
+      "input_tokens": 172,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 172
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 368
+    },
+    "createdAt": 1785157140223,
+    "promptUsed": "ILLUSTRATION STYLE:\nDelicate hand-drawn ink illustration with thin, slightly irregular black outlines and flat opaque pastel color fills. Whimsical modern folk art. Simplified shapes, charming imperfections, restrained detail, minimal or no shading, and generous negative space. Use dusty blush, muted coral, pale aqua, mustard gold, lavender-gray, cream, and soft taupe. The result should resemble a thoughtfully designed independent sticker sheet or boutique stationery print—not polished vector clip art, not watercolor, not realistic, and not cartoonish.\n\nTurn the described moment into one clear, simple visual scene. Focus only on the most emotionally meaningful action or object. Keep the composition uncluttered and easy to understand at a glance.\n\nTwo strangers passed each other on the sidewalk wearing the exact same yellow coat, and neither of them noticed."
+  },
+  {
+    "slug": "three-birds",
+    "label": "Three birds, one to each wire",
+    "moment": "There were three telephone wires and exactly one small bird sitting on each of them, evenly spaced.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out4/three-birds--low.png",
+    "seconds": 18,
+    "usage": {
+      "input_tokens": 170,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 170
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 366
+    },
+    "createdAt": 1785157140223,
+    "promptUsed": "ILLUSTRATION STYLE:\nDelicate hand-drawn ink illustration with thin, slightly irregular black outlines and flat opaque pastel color fills. Whimsical modern folk art. Simplified shapes, charming imperfections, restrained detail, minimal or no shading, and generous negative space. Use dusty blush, muted coral, pale aqua, mustard gold, lavender-gray, cream, and soft taupe. The result should resemble a thoughtfully designed independent sticker sheet or boutique stationery print—not polished vector clip art, not watercolor, not realistic, and not cartoonish.\n\nTurn the described moment into one clear, simple visual scene. Focus only on the most emotionally meaningful action or object. Keep the composition uncluttered and easy to understand at a glance.\n\nThere were three telephone wires and exactly one small bird sitting on each of them, evenly spaced."
+  },
+  {
+    "slug": "purple-flower",
+    "label": "Two little girls holding hands, and the flower was purple",
+    "moment": "I saw two little girls holding hands, and then one of them picked a flower, but it was purple.",
+    "quality": "medium",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out4/purple-flower--medium.png",
+    "seconds": 60,
+    "usage": {
+      "input_tokens": 173,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 173
+      },
+      "output_tokens": 1756,
+      "output_tokens_details": {
+        "image_tokens": 1756,
+        "text_tokens": 0
+      },
+      "total_tokens": 1929
+    },
+    "createdAt": 1785157140224,
+    "promptUsed": "ILLUSTRATION STYLE:\nDelicate hand-drawn ink illustration with thin, slightly irregular black outlines and flat opaque pastel color fills. Whimsical modern folk art. Simplified shapes, charming imperfections, restrained detail, minimal or no shading, and generous negative space. Use dusty blush, muted coral, pale aqua, mustard gold, lavender-gray, cream, and soft taupe. The result should resemble a thoughtfully designed independent sticker sheet or boutique stationery print—not polished vector clip art, not watercolor, not realistic, and not cartoonish.\n\nTurn the described moment into one clear, simple visual scene. Focus only on the most emotionally meaningful action or object. Keep the composition uncluttered and easy to understand at a glance.\n\nI saw two little girls holding hands, and then one of them picked a flower, but it was purple."
+  }
+]

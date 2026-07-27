@@ -80,10 +80,41 @@ tree, a lamppost, a beanie, a handbag). Neither is wrong; they're different
 products. If the app wants the airy look, **add v1's background line back to
 v2** — that single sentence is the lever.
 
-**6. Best single render in the set: `v2-synchronicities/purple-flower--medium.png`.**
-v2's line quality plus medium's competence, and at medium it kept the cream
-ground and open space that v2-low loses. That combination — v2 style, simple
-synchronicity moment, medium quality — is the recommended default.
+**6. "One single subject" over-reduces and can delete the moment.** Asking for
+*one* subject on white made the model drop the second girl from "two little
+girls holding hands, and then one of them picked a flower" — leaving a single
+girl holding a flower, which is not the moment. It obeyed on the yellow-coat
+pair (kept both figures) but not here, so the failure is unpredictable. Many
+synchronicities are *about* a pair, a repetition, or a rhyme between two
+things; a subject-count instruction attacks exactly the thing that makes them
+synchronicities.
+
+**The fix is to constrain the background, not the subject count.** Say what to
+remove (setting, ground, props) and let the moment decide how many elements it
+needs:
+
+> Draw only the figures or objects the moment is actually about, cut out and
+> floating in generous empty white space, the way a sticker sits alone on a
+> page. Plain white background. No setting, no environment, no scenery, no
+> ground, no background elements or props. Include every element the moment
+> needs to make sense and nothing more. Keep it simple, uncluttered, and
+> readable at a glance.
+
+That version (`v3-fixed/`) keeps clean white space *and* both girls holding
+hands with the purple flower, and renders the three-birds moment as three
+birds on three bare wires with nothing else.
+
+**7. "White space" must be said explicitly.** "Plain cream background" gives
+cream; the palette's own "cream" entry and the stationery reference both pull
+that way. Only naming *white* — background and surrounding space — produces
+true white.
+
+## Recommended prompt
+
+Style v2 content-stripped + the background-constrained direction above
+(`v3-fixed/style.txt`). Quality: **medium** for anything final — on these
+simple isolated subjects it buys cleaner linework and better hands for ~4x
+cost and ~2-3x wall time; **low** is fine for drafts and idea-checking.
 
 ## Style v2 — the content-stripped version
 
