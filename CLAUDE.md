@@ -378,6 +378,19 @@ lifted into a standalone tool later.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
+- **Two Claude accounts (July 2026) — Open buttons route app vs browser.**
+  Sophie runs two Claude accounts: one signed into the Claude iOS app, one used
+  on claude.ai in her phone browser (the app can't hold both). Each cloud
+  environment sets **`FORGE_ACCOUNT`** (`1` or `2`); the hook tags every feed
+  post with it (stored as `account` on the chat's registry doc). The `/chats`
+  home screen has an **App/Web toggle** ("App 1 · Web 2") Sophie taps when she
+  swaps sign-ins — it writes `appAccount` to the reserved registry doc
+  `__settings` via `POST /api/chatfeed/app-account`. Open buttons compare the
+  chat's `account` to `appAccount`: match (or untagged) → direct claude.ai link
+  (iOS universal link opens the Claude app); mismatch → the link goes through
+  `GET /api/chatfeed/go?u=<claude.ai url>` (302), which opens in the BROWSER
+  instead (universal links don't fire on server redirects), where that account
+  is signed in. Nothing to re-paste when she swaps accounts — only the toggle.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**

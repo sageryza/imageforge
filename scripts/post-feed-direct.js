@@ -21,7 +21,10 @@
  *
  * USAGE:
  *   node scripts/post-feed-direct.js --chat <name> --text "<reply>" \
- *        [--tldr "<one-line>"] [--url <claude.ai/code session link>] [--created <ms>]
+ *        [--tldr "<one-line>"] [--url <claude.ai/code session link>] [--created <ms>] \
+ *        [--account <1|2>]   (defaults to the FORGE_ACCOUNT env var — which
+ *                             Claude account this session runs under; the Chats
+ *                             app routes the Open button app-vs-browser off it)
  * The reply text can also come from stdin (so it needn't be shell-escaped):
  *   printf '%s' "$reply" | node scripts/post-feed-direct.js --chat blog --tldr "…"
  */
@@ -80,6 +83,8 @@ async function main() {
   const ref = await db.collection(MSGS).add(doc);
   const reg = { lastSeen: doc.created };
   if (doc.url) reg.url = doc.url;   // keep the chat's deep link on its tile
+  const account = arg('account', (process.env.FORGE_ACCOUNT || '').trim()).slice(0, 20);
+  if (account) reg.account = account;
   await db.collection(REG).doc(chat).set(reg, { merge: true });
   console.log('posted to Chats feed:', ref.id, '(' + chat + ')');
 }

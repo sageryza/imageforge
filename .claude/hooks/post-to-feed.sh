@@ -220,6 +220,11 @@ for tn in turns:
     out = {"chat": os.environ['NAME'], "text": tn['text'][:20000], "tldr": tldr_of(tn['text'])}
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
+    # Which Claude account this session runs under (FORGE_ACCOUNT env var set
+    # on the cloud environment: "1" or "2"). The Chats app routes each chat's
+    # Open button — Claude app vs browser — off this tag.
+    if os.environ.get('FORGE_ACCOUNT', '').strip():
+        out["account"] = os.environ['FORGE_ACCOUNT'].strip()[:20]
     feeds.append(out)
     new_posted.add(tn['mid'])
 os.makedirs(os.path.dirname(sf), exist_ok=True)
