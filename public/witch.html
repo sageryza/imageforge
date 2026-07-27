@@ -429,23 +429,13 @@
        nav (z 50) in the stack, and their 96px bottom padding already clears it.
        Tapping a nav tab closes the page (see go()). Past readings + the dream
        reading page are here too so you can jump tabs, not just Back out. */
-    #deep-app, #tarot-app, #dream-app { z-index: 45; }
+    #deep-app, #dream-app { z-index: 45; }
     #dreampast-app { z-index: 46; }  /* opens over the dream page */
     #dreamread-app { z-index: 47; }  /* over the dream page AND the past-readings list */
     /* the deep page always scrolls, so the fixed Back button gets a solid
        chip (rounded rectangle, not a pill) instead of floating over text */
-    #deep-app .quiz-back, #tarot-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
-    /* Tarot dive-deeper — per-card meanings + fun-option tiles */
-    .tdeep-card { padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
-    .tdeep-card:last-of-type { border-bottom: none; }
-    .tdeep-cardpos { font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 2px; }
-    .tdeep-cardname { font-family: var(--serif); font-size: 17px; color: var(--text); }
-    .tdeep-cardname .tdeep-orient { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; }
-    .tdeep-cardmean { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-top: 3px; }
-    /* The written reading is set exactly like the per-card meanings above it —
-       one voice down the page, not two. */
-    #tarot-app .glance-p { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
-    .tdeep-home { margin: 18px auto 0; }
+    #deep-app .quiz-back { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 6px 6px; }
+    /* Option tiles (the Ask-the-cards next-steps list) */
     .tfun { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
     .tfun-tile { display: flex; align-items: center; gap: 12px; text-align: left; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; color: var(--text); cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.15s ease, transform 0.15s ease; }
     .tfun-tile:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
@@ -761,20 +751,6 @@
     /* Tap-to-enlarge lightbox (page one) */
     .img-lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(24,19,28,0.93); display: flex; align-items: center; justify-content: center; padding: 18px; }
     .img-lightbox img { max-width: 94vw; max-height: 86vh; border-radius: 6px; }
-    /* Pinned mini-cards at the top of the tarot reading page */
-    /* The page's own top padding moves INTO the pin row (sticky can't cover a
-       scroll container's padding band — content scrolls visibly through it). */
-    #tarot-app { padding-top: 0; }
-    /* The pulled cards ride pinned at the top at the SAME size they were on
-       Home — same 3-column grid, so they don't shrink when they stick. */
-    #tarot-app .tpin { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; background: var(--bg); border-bottom: 1px solid var(--border); margin: 0 -18px 14px; padding: calc(env(safe-area-inset-top, 0px) + 40px) 18px 8px; }
-    /* No pin row (cards not drawn yet) → the first element restores the gap. */
-    #tarot-app .quiz-stage > :first-child:not(.tpin) { margin-top: calc(env(safe-area-inset-top, 0px) + 46px); }
-    .tpin-slot { text-align: center; min-width: 0; }
-    .tpin-img { width: 100%; aspect-ratio: 100 / 172; object-fit: cover; border-radius: 4px; display: block; }
-    .tpin-img.rev { transform: rotate(180deg); }
-    .tpin-noimg { width: 100%; aspect-ratio: 100 / 172; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
-    .tpin-pos { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); margin-top: 4px; }
     .dread { border-top: 1px solid var(--border-soft); padding-top: 16px; margin-top: 4px; }
     .dread:first-child { border-top: 0; padding-top: 0; }
     .dread-src { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
@@ -1349,9 +1325,10 @@
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
-          <button class="btn-ghost" id="daily-dive" style="display:none; margin-top:16px;">Dive deeper <span class="js-star"></span></button>
-          <!-- The paid tarot: their own question + the full spreads -->
-          <button class="btn-ghost" id="daily-ask" style="margin-top:10px;">Ask the cards a question</button>
+          <!-- The paid tarot: their own question + the full spreads. This is the
+               ONLY thing below the daily pull — free is the inline per-card
+               meanings above it, and nothing deeper. -->
+          <button class="btn-ghost" id="daily-ask" style="margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Ask the cards a question</button>
         </div>
 
         <!-- Dream reading -->
@@ -1645,12 +1622,6 @@
   <div class="quiz-app" id="sky-app" style="display:none;">
     <button class="quiz-back" id="sky-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
     <div class="quiz-stage" id="sky-stage"></div>
-  </div>
-
-  <!-- Tarot dive-deeper — the full reading + fun options, its own page -->
-  <div class="quiz-app" id="tarot-app" data-fullpage style="display:none;">
-    <button class="quiz-back" id="tarot-deep-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
-    <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
   <!-- Ask the cards — question + spread picker + the reading, its own page -->
@@ -2036,10 +2007,6 @@
     const t = cardText(card.name, orientation);
     return (t && pickVariant(t.meanings, seed + '|' + card.name + '|v'))
       || (orientation === 'reversed' ? card.rev : card.up);
-  }
-  function cardDepth(card, orientation, seed) {
-    const t = cardText(card.name, orientation);
-    return (t && pickVariant(t.depth, seed + '|' + card.name + '|d')) || cardMeaning(card, orientation, seed);
   }
   function dailyAdvice(seed) { return pickVariant(TAROT_TEXT.advice, seed + '|adv') || ''; }
 
@@ -2523,8 +2490,7 @@
     if (tarotRevealed.size === 3) showTarotReading();
   }
   // Today's read, composed from the corpus — no call, no wait. Each card gets
-  // a short meaning (shown inline) and a longer depth paragraph (the
-  // Dive-deeper page), both picked by the day's seed.
+  // a short meaning (shown inline), picked by the day's seed.
   function composeDailyTarot() {
     if (!dailyPicks) return null;
     const seed = dailySeed();
@@ -2532,17 +2498,15 @@
       cards: dailyPicks.map(p => ({
         name: p.card.name, position: p.position, orientation: p.orientation,
         meaning: cardMeaning(p.card, p.orientation, seed),
-        depth: cardDepth(p.card, p.orientation, seed),
       })),
       advice: dailyAdvice(seed),
     };
   }
-  // Inline = the QUICK read: a short line per card. The longer per-card
-  // reading lives on the Dive-deeper page (openTarotDeep), same pattern as the
-  // astrology glance → deep page.
+  // The free daily reading, whole: a short line per card, inline, the moment
+  // the third card flips. There is no free deep page — going further is the
+  // paid "Ask the cards" flow.
   function showTarotReading() {
     const box = $('daily-tarot-reading');
-    const dive = $('daily-dive');
     if (!dailyTarot) dailyTarot = composeDailyTarot();
     if (!dailyTarot) return;
     let html = '';
@@ -2553,18 +2517,16 @@
     box.innerHTML = html;
     box.style.display = '';
     bmShow('tarot-bm', tarotSaved, false);
-    dive.style.display = ''; renderStars();
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
-    $('daily-dive').style.display = 'none';
     bmHide('tarot-bm');
     renderDailyTarot();
   }
 
-  /* ══════════ TAROT DIVE DEEPER — the full reading + fun options ══════════ */
-  let tarotDeepOpen = false, tarotSaved = false;
+  /* ══════════ SAVING THE DAILY READING ══════════ */
+  let tarotSaved = false;
   function saveDailyReading() {
     if (!dailyTarot || !dailyPicks || tarotSaved) return;
     const all = loadReadings();
@@ -2591,7 +2553,6 @@
     if (tarotSaved) { go('book'); openBook('reading'); return; }
     saveDailyReading();
     bmShow('tarot-bm', true, true);
-    if (tarotDeepOpen) renderTarotDeep();
     toast('Saved to your Book of Shadows ✦');
   });
   // The day's sky reading — one entry per day, so the id is the day.
@@ -2610,71 +2571,9 @@
   });
   const T_ICON = {
     save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
-    deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
-    charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
     // lucide message-circle-question-mark
     ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
   };
-  function renderTarotDeep() {
-    const st = $('tarot-deep-stage'); if (!st) return;
-    if (!dailyTarot) { st.innerHTML = `<div class="quiz-kicker">Your reading</div><p style="font-size:14px;color:var(--text-dim);line-height:1.6;text-align:center;">The cards are quiet right now.</p>`; return; }
-    const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    let h = '';
-    // The drawn cards ride pinned at the top of this page — the reading below
-    // scrolls, the cards you pulled don't leave.
-    if (dailyPicks) {
-      h += `<div class="tpin">` + dailyPicks.map(p => {
-        const img = DECK_IMG[p.card.name];
-        const rev = p.orientation === 'reversed';
-        return `<div class="tpin-slot">${img
-          ? `<img class="tpin-img${rev ? ' rev' : ''}" src="${img}" alt="${esc(p.card.name)}" loading="lazy" decoding="async">`
-          : `<div class="tpin-noimg">✦</div>`}<div class="tpin-pos">${esc(p.position || '')}</div></div>`;
-      }).join('') + `</div>`;
-    }
-    h += `<div class="quiz-kicker">Your full reading</div>`;
-    h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
-    h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
-    // Each card, its position + the longer written read for it
-    if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
-      h += `<div class="tdeep-card">
-        ${c.position ? `<div class="tdeep-cardpos">${esc(c.position)}</div>` : ''}
-        <div class="tdeep-cardname">${esc(c.name)}${c.orientation ? `<span class="tdeep-orient">${esc(c.orientation)}</span>` : ''}</div>
-        <div class="tdeep-cardmean">${esc(c.depth || c.meaning || '')}</div>
-      </div>`;
-    });
-    if (dailyTarot.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(dailyTarot.advice)}</p></div>`;
-    // Fun options
-    h += `<div class="glance-sec"><div class="glance-label">Next steps:</div><div class="tfun">
-      <button class="tfun-tile" id="tfun-ask" type="button"><span class="tfun-ti">${T_ICON.ask}</span><span><span class="tfun-tt">Ask the cards a question</span><span class="tfun-td">Your own question, read across a full spread.</span></span></button>
-      <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
-      ${IS_APP ? '' : `<button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>`}
-      <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
-    </div></div>`;
-    // Closing the page drops you back exactly where you were on Home — the
-    // Home scroll position is never touched, so this is just a close.
-    h += `<button class="btn-ghost tdeep-home" id="tdeep-home" type="button">Back to home screen</button>`;
-    st.innerHTML = h;
-    const ab = $('tfun-ask'); if (ab) ab.addEventListener('click', () => { closeTarotDeep(); openAsk(); });
-    const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
-    const db = $('tfun-deck'); if (db) db.addEventListener('click', () => toast('Design-your-own decks are coming soon ✦'));
-    const lb = $('tfun-learn'); if (lb) lb.addEventListener('click', () => { closeTarotDeep(); go('school'); });
-    const hb = $('tdeep-home'); if (hb) hb.addEventListener('click', closeTarotDeep);
-  }
-  function openTarotDeep() {
-    tarotDeepOpen = true;
-    document.body.style.overflow = 'hidden';
-    const app = $('tarot-app'); app.style.display = ''; app.scrollTop = 0;
-    renderTarotDeep();
-  }
-  function closeTarotDeep() {
-    tarotDeepOpen = false;
-    $('tarot-app').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-  $('daily-dive').addEventListener('click', openTarotDeep);
-  $('tarot-deep-back').addEventListener('click', closeTarotDeep);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tarotDeepOpen) closeTarotDeep(); });
-
   /* ══════════ ASK THE CARDS — the paid tarot ══════════
      Their own question + a real spread. The draw happens here (crypto random,
      no repeats, the same ~28% reversed as the daily pull); the reading is a
@@ -4726,7 +4625,7 @@
     lb.appendChild(im);
     lb.addEventListener('click', () => {
       lb.remove();
-      document.body.style.overflow = (dreamPageOpen || deepOpen || tarotDeepOpen) ? 'hidden' : '';
+      document.body.style.overflow = (dreamPageOpen || deepOpen) ? 'hidden' : '';
     });
     document.body.appendChild(lb);
     document.body.style.overflow = 'hidden';
@@ -5809,7 +5708,6 @@
      data-fullpage sweep still frees the nav — but register it anyway so its
      own close logic (state flags, URL cleanup, re-renders) runs. */
   registerFullPage('deep-app', closeDeep);          // astrology dive-deeper
-  registerFullPage('tarot-app', closeTarotDeep);    // daily tarot deep page
   registerFullPage('ask-app', closeAsk);            // ask the cards (paid)
   registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
   registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
