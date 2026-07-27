@@ -799,6 +799,10 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
 ## Secretly a Witch (public witchy app)
+- **Sophie's birth data (for astrology/chart work, committed at her request
+  2026-07-27):** June 24, 1992, 12:50 pm, Los Angeles — Sun Cancer 3.5° ·
+  Moon Aries 20.6° · Rising Libra 2.1°. Compute charts with `astro.js`
+  (`computeChart`), never from memory.
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
