@@ -1036,6 +1036,28 @@ lifted into a standalone tool later.
   (inline JSON). Idempotent — re-running skips what's banked. Example:
   `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
   (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
+- **Ingesting one of Sophie's OWN videos (not YouTube), July 2026.** For a video
+  she made herself — no captions, no YouTube id — `POST /videos/from-video`
+  `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
+  any public link), `POST /videos/from-video/upload?ext=&title=` takes the raw
+  video bytes directly in the request body instead (prefer the URL route for
+  anything big — it streams to disk; the upload route buffers the whole file
+  in memory, capped at 200MB). Either way `ingestLocalVideo()` does the new
+  part — **strip the video track with ffmpeg** (mono 44.1kHz AAC,
+  `nde-audio/<videoId>.m4a`, `videoId` a stable hash of the source so
+  re-ingesting the same URL updates the same doc) — then reuses
+  `movies.transcribeAudio` (whisper-1) for a browsable transcript, chunking at
+  10 minutes per call when the video runs long (each chunk's word/segment
+  times get its offset added back in). Saved as an ordinary
+  `forge-nde-videos` doc (`source:'local-video'`, no `moments` — that
+  extraction step is Anthony-Chene-specific and is simply skipped). **No new
+  cutting code was needed:** add the result as an Episode Editor source
+  (`{videoId, audioUrl, timeSec}` from the response) and `editor.js`'s
+  existing render/preview path already re-listens to a fresh whisper window
+  around each snippet's anchor whenever no align-cache exists for a videoId —
+  true for every local video — so the same word-precise cut the NDE
+  interviews get comes for free. Needs `ffmpeg`/`ffprobe` (already vendored,
+  same resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
 - `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real

@@ -32,6 +32,11 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const { execFile } = require('child_process');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
@@ -296,6 +301,155 @@ async function fetchTranscript(videoId) {
   };
 }
 
+// ─── Local video ingestion (Sophie's own videos, not YouTube) ───────
+//
+// Same destination as the YouTube path — a `forge-nde-videos` doc with a
+// transcript — but the audio comes from a video FILE instead of captions:
+// ffmpeg strips the audio track, the extracted audio is banked in Storage
+// (so it can be added as an Episode Editor source), and OpenAI whisper-1
+// transcribes it for the picker's browsable transcript. The word-precise CUT
+// itself needs no new code: editor.js's buildClip already re-listens to a
+// fresh whisper window around the snippet's anchor whenever no align-cache
+// exists for a videoId, which is exactly always true for a local video — so
+// this transcript only has to be good enough to browse and pick spans from.
+
+function tryRequireFfmpeg(name) {
+  try { return require(name); } catch (err) { return null; }
+}
+function firstOnPath(bin) {
+  for (const dir of (process.env.PATH || '').split(path.delimiter)) {
+    const p = path.join(dir, bin);
+    try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { /* keep looking */ }
+  }
+  return null;
+}
+function usableBin(p) {
+  if (!p) return null;
+  try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { return null; }
+}
+const FFMPEG = process.env.FFMPEG_PATH || usableBin(tryRequireFfmpeg('ffmpeg-static')) || firstOnPath('ffmpeg');
+const FFPROBE = process.env.FFPROBE_PATH || usableBin((tryRequireFfmpeg('ffprobe-static') || {}).path) || firstOnPath('ffprobe');
+
+function runBin(bin, args, timeoutMs = 300000) {
+  return new Promise((resolve, reject) => {
+    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) {
+        const e = new Error(`${path.basename(bin)} failed: ${(stderr || err.message).slice(-400)}`);
+        e.stderr = stderr;
+        reject(e);
+      } else resolve({ stdout, stderr });
+    });
+  });
+}
+
+async function probeDurationSec(file) {
+  if (!FFPROBE) return 0;
+  try {
+    const { stdout } = await runBin(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], 60000);
+    return parseFloat(stdout.trim()) || 0;
+  } catch { return 0; }
+}
+
+// Strip the video track entirely — mono 44.1kHz AAC, plenty for speech and
+// small enough to store and re-slice cheaply (matches editor.js's own output rate).
+async function extractAudioTrack(videoFile, outFile) {
+  if (!FFMPEG) throw new Error('ffmpeg unavailable on this host — cannot extract audio from the video');
+  await runBin(FFMPEG, ['-y', '-i', videoFile, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '128k', outFile], 900000);
+  if (!fs.existsSync(outFile) || fs.statSync(outFile).size < 1000) {
+    throw new Error('ffmpeg produced no audio — does this video have an audio track?');
+  }
+  return outFile;
+}
+
+// Whisper-1 caps uploads well under a typical video's full length, so anything
+// longer than one safe chunk is split with ffmpeg and stitched back together —
+// each chunk's segment/word times get the chunk's start offset added back in.
+const CHUNK_SECS = 600; // 10 min per whisper call — small, fast, well under the 25MB cap
+
+async function transcribeWholeAudio(audioFile, durationSec, dir) {
+  const { transcribeAudio } = require('./movies');
+  if (durationSec <= CHUNK_SECS + 30) {
+    const buf = fs.readFileSync(audioFile);
+    const t = await transcribeAudio(buf, path.basename(audioFile));
+    return {
+      full: t.text,
+      segments: t.segments.map(s => ({ start: s.start, dur: Math.max(0, s.end - s.start), text: s.text })),
+    };
+  }
+  const chunks = Math.ceil(durationSec / CHUNK_SECS);
+  const segments = [];
+  const fullParts = [];
+  for (let i = 0; i < chunks; i++) {
+    const start = i * CHUNK_SECS;
+    const dur = Math.min(CHUNK_SECS, durationSec - start);
+    const chunkFile = path.join(dir, `chunk-${i}.mp3`);
+    await runBin(FFMPEG, ['-y', '-ss', String(start), '-t', String(dur), '-i', audioFile,
+      '-ac', '1', '-ar', '16000', '-c:a', 'libmp3lame', '-b:a', '96k', chunkFile], 300000);
+    const buf = fs.readFileSync(chunkFile);
+    const t = await transcribeAudio(buf, `chunk-${i}.mp3`);
+    for (const s of t.segments) segments.push({ start: s.start + start, dur: Math.max(0, s.end - s.start), text: s.text });
+    fullParts.push(t.text);
+    try { fs.unlinkSync(chunkFile); } catch { /* temp file */ }
+  }
+  return { full: fullParts.join(' ').replace(/\s+/g, ' ').trim(), segments };
+}
+
+// A stable id derived from the source (URL, or a random one for a raw upload
+// with no URL) so re-ingesting the same video updates the same doc instead of
+// creating a duplicate every time.
+function localVideoId(seed) {
+  return 'local_' + crypto.createHash('sha1').update(String(seed)).digest('hex').slice(0, 16);
+}
+
+async function uploadAudioPublic(localFile, dest, contentType) {
+  if (!admin.apps.length) throw new Error('firebase not configured — cannot store the extracted audio');
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(dest);
+  await file.save(fs.readFileSync(localFile), { metadata: { contentType } });
+  await file.makePublic();
+  return `https://storage.googleapis.com/${bucket.name}/${dest}`;
+}
+
+// The whole local-video pipeline: video file on disk → audio-only file →
+// banked in Storage → transcribed → saved as a forge-nde-videos doc, ready to
+// be added as an Episode Editor source.
+async function ingestLocalVideo({ videoFile, sourceUrl, title }) {
+  const videoId = localVideoId(sourceUrl || crypto.randomBytes(8).toString('hex'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-video-'));
+  try {
+    const audioFile = path.join(dir, 'audio.m4a');
+    await extractAudioTrack(videoFile, audioFile);
+    const durationSec = await probeDurationSec(audioFile);
+    if (!durationSec) throw new Error('could not read the extracted audio duration');
+
+    const audioUrl = await uploadAudioPublic(audioFile, `nde-audio/${videoId}.m4a`, 'audio/mp4');
+    const transcript = await transcribeWholeAudio(audioFile, durationSec, dir);
+
+    const record = {
+      videoId,
+      url: sourceUrl || null,
+      title: title || videoId,
+      source: 'local-video',
+      createdAt: new Date().toISOString(),
+      status: 'transcribed',
+      durationSec: Math.round(durationSec),
+      audioUrl,
+      transcript: {
+        source: 'whisper-1',
+        language: 'en',
+        autoGenerated: true,
+        segments: transcript.segments,
+        full: transcript.full,
+        fetchedAt: new Date().toISOString(),
+      },
+    };
+    await saveVideo(record);
+    return record;
+  } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
+  }
+}
+
 // ─── Moment extraction (LLM) ────────────────────────────────────────
 
 async function openaiChatJSON(messages, { model = 'gpt-4o-mini', temperature = 0.4, retries = 2 } = {}) {
@@ -520,6 +674,8 @@ router.get('/status', (req, res) => {
     firebase: Boolean(firestore()),
     collection: COLLECTION,
     channelHandle: DEFAULT_CHANNEL_HANDLE,
+    ffmpeg: Boolean(FFMPEG),
+    ffprobe: Boolean(FFPROBE),
   });
 });
 
@@ -705,6 +861,58 @@ router.post('/videos/:videoId/audio-done', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Ingest one of Sophie's OWN videos (not a YouTube interview): given a URL to
+// an already-hosted video file, extract its audio track, bank it in Storage,
+// and transcribe it — same destination shape as a YouTube video, so the
+// result can be added straight into an Episode Editor `sources[]` entry.
+router.post('/videos/from-video', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const url = String(req.body?.url || '').trim();
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'url required — a link to the video file' });
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-dl-'));
+    try {
+      let ext = '.mp4';
+      try { const p = new URL(url).pathname; const m = p.match(/\.[a-z0-9]{2,4}$/i); if (m) ext = m[0]; } catch { /* keep default */ }
+      const videoFile = path.join(dir, `src${ext}`);
+      const dl = await fetch(url, { redirect: 'follow', timeout: 900000 });
+      if (!dl.ok) throw new Error(`video fetch HTTP ${dl.status}`);
+      await new Promise((resolve, reject) => {
+        const out = fs.createWriteStream(videoFile);
+        dl.body.pipe(out);
+        dl.body.on('error', reject);
+        out.on('finish', resolve);
+        out.on('error', reject);
+      });
+      const record = await ingestLocalVideo({ videoFile, sourceUrl: url, title: req.body?.title || null });
+      res.json(record);
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
+    }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Same, but the video's bytes ride the request body directly (e.g. a script
+// with the file on disk and no URL yet). Prefer the URL route above when the
+// video is already hosted somewhere — this buffers the whole file in memory.
+router.post('/videos/from-video/upload', express.raw({ type: '*/*', limit: '200mb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
+    const buf = req.body;
+    if (!buf || !buf.length) return res.status(400).json({ error: 'empty body' });
+    const ext = String(req.query.ext || 'mp4').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4';
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-up-'));
+    try {
+      const videoFile = path.join(dir, `src.${ext}`);
+      fs.writeFileSync(videoFile, buf);
+      const record = await ingestLocalVideo({ videoFile, sourceUrl: null, title: req.query.title ? String(req.query.title) : null });
+      res.json(record);
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
+    }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.post('/discover', async (req, res) => {
   try {
     if (!YOUTUBE_API_KEY) return res.status(400).json({ error: 'YOUTUBE_API_KEY not set — cannot discover' });
@@ -739,4 +947,5 @@ module.exports = {
   listVideos,
   DEFAULT_CHANNEL_HANDLE,
   COLLECTION,
+  ingestLocalVideo,
 };
