@@ -378,22 +378,6 @@ lifted into a standalone tool later.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
-- **Polling is a DELTA, and that's a cost rule, not a nicety (July 2026).** The
-  full `GET /api/chatfeed` reads the newest **1500 Firestore docs every call** —
-  a page left open polling that once a minute burned the 50k/day free read quota
-  in ~30 min (~$40/mo). The page now polls `GET /api/chatfeed?since=<newest ISO
-  it holds>`, which returns only newer messages (normally **zero**), so it can
-  poll every 20s — including while a chat is open — for nothing. The page also
-  remembers the feed in localStorage between launches (`chats-cache-v1`), so
-  app-open paints from the saved copy and fetches only the delta — the full
-  1500-doc load runs only on a first-ever visit or a Refresh tap (the repair
-  path). The chat
-  registry is cached in server memory (`regRef()` invalidates on every write).
-  Same rule for `/api/wall`: it lists EVERY object in both Storage buckets, so
-  the listing is memory-cached (`wallInvalidate()` on upload, `?fresh=1` to
-  force). **Before adding any new poller, make the polled endpoint answer
-  "what's new since X" — never re-read the whole collection on a timer.** Both
-  pages also skip polling when `document.hidden`.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
@@ -871,9 +855,12 @@ lifted into a standalone tool later.
   practice." / "That's it."), the negation-pivot reframe ("X isn't Y — it's
   Z"), therapy-speak verbs on feelings ("name it", "sit with it", "notice what
   comes up", "hold space"), permission-granting ("you're allowed to", "give
-  yourself permission"), "here's the thing", "that's not nothing". Full list +
-  guidance in `docs/witch-school-lessons.md` (Voice rules). Swept the 16 live
-  Witch School lessons July 2026; keep new copy clean.
+  yourself permission"), "here's the thing", "that's not nothing", the
+  profound-simplicity pronouncement ("X IS the answer", "the real secret is…",
+  "that's a spell by any name"), and false-easy reassurance ("just name three
+  shapes", "it's right there", "it's that simple" — reads condescending). Full
+  list + guidance in `docs/witch-school-lessons.md` (Voice rules). Swept the 16
+  live Witch School lessons twice July 2026; keep new copy clean.
 - **Everything slow is a background job — never make anyone watch a spinner.**
   Any generation that isn't near-instant (image gen, an LLM reading, audio,
   video, a long fetch) MUST be a fire-and-forget background job that survives

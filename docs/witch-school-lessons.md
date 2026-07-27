@@ -31,9 +31,25 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
     "notice what comes up", "hold space", "let it land".
   - Permission-granting: "you're allowed to", "give yourself permission to".
   - "Here's the thing", "that's not nothing", "quietly does a lot of work".
+  - **The profound-simplicity pronouncement (the deep pattern under all of the
+    above — Sophie's diagnosis, July 2026):** "the first line your eye lands on
+    IS the answer", "this lesson IS a tour of the hallway", "the real secret
+    is…", "its real gift is…", "X is the practice; everything else is
+    furniture". Delivering a grand little truth with total confidence, so
+    simple the reader won't believe it. Also its fragment form: "Unsettlingly
+    good." / "That's a spell by any name." / "The witch is portable."
+  - **False-easy reassurance (reads as condescending):** "just tap", "just
+    name three shapes", "the Tarot tab is right there", "it's that simple",
+    "X is plenty", "everything else is elaboration". Don't keep telling the
+    reader things are easy — show the small concrete step and let it be easy.
   Instead: say the content plainly — a concrete instruction, a real fact, or a
   specific image always beats an aphorism. When a card needs a closer, end on
-  the action or the detail, not a pronouncement about it.
+  the action or the detail, not a pronouncement about it. Two escape hatches
+  that keep warmth without the sermon: ATTRIBUTE the insight to the tradition
+  ("dream lore treats a returning dream as…", "the old folk say…") instead of
+  pronouncing it, and let IMAGES do the charm (the mint-tin altar, the magpie
+  rhyme) rather than verdicts about the images. Em dashes and playful specifics
+  are fine — the ban is on sermonizing, not on personality.
 - **Researched, not generic** — Sophie asked for real research passes. Do 1–2
   web searches per lesson and put actual material in the cards (Culpeper 1652,
   the horoskopos, Epidaurus temple sleep, witch bottles dug up under
