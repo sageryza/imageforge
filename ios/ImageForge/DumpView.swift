@@ -390,11 +390,6 @@ private struct SquareThumb<Content: View>: View {
             .fill(Theme.surface2)
             .aspectRatio(1, contentMode: .fit)
             .overlay { content }
-            // Selection can't rely on a tan ring being visible against whatever
-            // photo is underneath — on a light or beige cover it disappears, so
-            // some tiles read as unselected when they aren't. A scrim darkens
-            // the art itself, which no photo can hide.
-            .overlay { picked ? Color.black.opacity(0.28) : Color.clear }
             .clipped()
             .cornerRadius(Theme.radius)
             .overlay(
@@ -404,17 +399,12 @@ private struct SquareThumb<Content: View>: View {
     }
 }
 
-/// The selected badge: a white-ringed check, so it reads on a dark photo and a
-/// white one alike.
 private struct PickedBadge: View {
     var body: some View {
-        Image(systemName: "checkmark")
-            .font(.system(size: 12, weight: .heavy))
+        Image(systemName: "checkmark.circle.fill")
+            .font(.system(size: 20))
             .foregroundColor(.white)
-            .frame(width: 24, height: 24)
             .background(Circle().fill(Theme.accent))
-            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
             .padding(6)
     }
 }
