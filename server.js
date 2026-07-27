@@ -313,6 +313,7 @@ async function saveToFirebase(imageUrl, folder = 'images') {
       metadata: { contentType: contentType || (ext === 'webp' ? 'image/webp' : 'image/png') },
     });
     await file.makePublic();
+    wallInvalidate();   // a new image must show up on the wall immediately
     const permanentUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
     console.log('Firebase: saved as', filename);
     return permanentUrl;
@@ -1532,12 +1533,33 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
 // Merges this project's Storage (generated images, movie panels, zine
 // pages, dream comics) with the story boards' art (membry bucket) into
 // one newest-first list for the /wall page. Same gate as the pipeline.
+// The wall lists EVERY object in both buckets — there's no cheaper way to ask
+// Storage "what images exist", and it's billed per 1000 objects listed, so a
+// page polling it once a minute paid for a full double bucket walk each time
+// and got slower with every image ever generated. The listing is held in
+// memory instead: `wallInvalidate()` drops it the moment anything uploads
+// (saveToFirebase is the shared write path), and the TTL is only a backstop
+// for uploads that bypass it. `?fresh=1` forces a walk for the Refresh button.
+let wallCache = null;
+let wallCacheAt = 0;
+const WALL_TTL_MS = 5 * 60 * 1000;
+function wallInvalidate() { wallCache = null; }
+
 app.get('/api/wall', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
     const limit = Math.min(500, parseInt(req.query.limit, 10) || 200);
+    const fresh = req.query.fresh === '1';
+    if (!fresh && wallCache && Date.now() - wallCacheAt < WALL_TTL_MS) {
+      return res.json({
+        images: wallCache.slice(0, limit),
+        total: wallCache.length,
+        newest: wallCache[0] ? wallCache[0].created : null,
+        cached: true,
+      });
+    }
     const out = [];
     // derived/plumbing folders, not art
     const SKIP = /^(thumbs|writing-audio|writing-notes|chat-feed|songs|ingest)\//;
@@ -1568,6 +1590,8 @@ app.get('/api/wall', async (req, res) => {
       }
     } catch (err) { console.warn('wall: story bucket unavailable:', err.message); }
     out.sort((a, b) => (a.created < b.created ? 1 : -1));
+    wallCache = out;
+    wallCacheAt = Date.now();
     res.json({ images: out.slice(0, limit), total: out.length, newest: out[0] ? out[0].created : null });
   } catch (err) {
     res.status(500).json({ error: err.message });

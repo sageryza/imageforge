@@ -109,7 +109,11 @@ function load(){
   }).catch(function(){ document.getElementById('feed').innerHTML='<div class="state">Couldn\\u2019t reach the studio.</div>'; });
 }
 load();
-setInterval(load, 60000);
+// Don't keep walking the buckets for a page nobody is looking at (a
+// backgrounded webview would otherwise poll all day), and refresh on return so
+// coming back to the app shows what landed while you were away.
+setInterval(function(){ if(document.hidden) return; load(); }, 60000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) load(); });
 })();
 </script>
 """

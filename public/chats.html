@@ -1225,6 +1225,44 @@ document.getElementById('v-list').onclick=function(){ view='list'; try{localStor
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 
+// ---- Launch cache ---------------------------------------------------------
+// Every app-open used to start from nothing and pull the full feed — a
+// 1500-document read server-side just to re-fetch messages the phone had
+// already seen. Instead the feed is remembered in localStorage between
+// launches: render instantly from the saved copy, then ask only "what's new
+// since my newest?" (normally zero reads). The Refresh button still does a
+// true full load, which repairs the cache if it ever drifts.
+var CACHE_KEY='chats-cache-v1';
+function saveCache(){
+  try{
+    // Keep only a per-chat tail (same shape a fresh full load returns), so the
+    // cache stays small no matter how many full threads were pulled this
+    // visit. Chats whose extra messages we drop are re-marked truncated so
+    // opening them pulls the thread again next launch.
+    var byChat={}, dropped={};
+    msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+      .forEach(function(m){
+        var c=m.chat||''; var arr=(byChat[c]=byChat[c]||[]);
+        if(arr.length<10) arr.push(m); else dropped[c]=1;
+      });
+    var keep=[]; Object.keys(byChat).forEach(function(c){ keep=keep.concat(byChat[c]); });
+    var trunc={}; Object.keys(truncated).forEach(function(c){ trunc[c]=1; });
+    Object.keys(dropped).forEach(function(c){ trunc[c]=1; });
+    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, msgs:keep, truncated:Object.keys(trunc)}));
+  }catch(e){}   // full storage / private mode: the cache is only an optimization
+}
+function loadCache(){
+  try{
+    var d=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+    if(!d || !d.msgs || !d.msgs.length) return false;
+    chats=d.chats||{}; msgs=d.msgs;
+    truncated={}; fullLoaded={};
+    (d.truncated||[]).forEach(function(c){ truncated[c]=1; });
+    renderHome();
+    return true;
+  }catch(e){ return false; }
+}
+
 function load(){
   // cache-bust: the webview heuristically cached the bare URL, which made the
   // Refresh button look dead (new messages only appeared minutes later)
@@ -1234,15 +1272,70 @@ function load(){
     // is gone — clear fullLoaded and let openChat pull the thread again.
     truncated={}; fullLoaded={};
     (data.truncated||[]).forEach(function(c){ truncated[c]=1; });
+    saveCache();
     if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){
-    if(!cur) document.getElementById('grid').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>';
+    if(!cur && !msgs.length) document.getElementById('grid').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>';
   });
 }
-load();
+
+// ---- Delta polling --------------------------------------------------------
+// A full load() re-reads the newest 1500 messages server-side EVERY time. Doing
+// that once a minute with the page open burned through the free Firestore read
+// quota in about half an hour and cost real money for, usually, nothing new.
+// So the timer asks a much cheaper question instead — "anything after the
+// newest message I already have?" — which normally reads ZERO documents.
+// Because it's nearly free we can poll often, AND poll while a chat is open,
+// which is exactly when she's waiting for a reply to land.
+function newestCreated(){
+  var max='';
+  for(var i=0;i<msgs.length;i++){ var c=msgs[i].created||''; if(c>max) max=c; }
+  return max;
+}
+function poll(){
+  var since=newestCreated();
+  if(!since) return load();   // nothing yet (empty/failed first paint)
+  api('/api/chatfeed?since='+encodeURIComponent(since)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data.chats) chats=data.chats;
+      var incoming=data.messages||[];
+      if(!incoming.length) return;              // the common case: nothing to do
+      // The delta is capped at 200 server-side. Hitting the cap means the
+      // cache is so far behind (a long-untouched install) that messages fell
+      // off the far end — a merge would leave holes, so start over clean.
+      if(incoming.length>=200) return load();
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      var added=0, mine=false;
+      incoming.forEach(function(m){
+        if(have[m.id]) return;
+        msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
+        if(cur && m.chat===cur) mine=true;
+      });
+      if(!added) return;                        // never re-render for nothing
+      saveCache();
+      // While she's reading a thread, only rebuild it if the new message is
+      // actually IN it — a reply landing in some other chat must not move the
+      // page under her. The home screen picks the rest up when she goes back.
+      if(cur){
+        if(!mine) return;
+        // Hold her place, and don't refetch: any full history she pulled is
+        // already in msgs.
+        var y=window.scrollY; openChat(cur,true,null,true); window.scrollTo(0,y);
+      } else renderHome();
+    })
+    .catch(function(){});   // a failed poll is not worth surfacing; next one retries
+}
+// Launch: paint from the saved copy and fetch only the delta — the full
+// 1500-doc load now happens only on a first-ever visit or a Refresh tap.
+if(loadCache()) poll(); else load();
 setInterval(function(){
-  if(cur) return;   // never rebuild a thread under her — refresh button covers it
-  load();
-}, 60000);
+  // Don't poll a page nobody is looking at — a backgrounded webview would
+  // otherwise keep paying for reads all day.
+  if(document.hidden) return;
+  poll();
+}, 20000);
+// Coming back to the app should feel instant rather than waiting out the timer.
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) poll(); });
 })();
 </script>

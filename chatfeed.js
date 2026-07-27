@@ -5,6 +5,8 @@
 //
 // Routes (x-studio-token gated like the rest):
 //   GET  /api/chatfeed           → { chats:{name:{icon}}, messages:[...] } (newest first)
+//   GET  /api/chatfeed?since=ISO → delta: only messages newer than ISO, for
+//                                  polling (0-2 reads instead of 1500)
 //   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr? }
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
@@ -51,6 +53,32 @@ function fail(res, err) {
   res.status(err.message.includes('not configured') ? 503 : 500).json({ error: err.message });
 }
 
+// ---- Registry cache -------------------------------------------------------
+// The registry (one small doc per chat: icon, display name, lastSeen) is read
+// on EVERY feed poll but changes only when a chat is renamed / given an icon /
+// marked answered. Re-reading ~40 docs every few seconds is most of what a
+// cheap delta poll would otherwise cost, so it's held in memory and dropped
+// the moment anything writes to it (regRef below is the only write path).
+// Render free runs a single instance, so there's no second process to stale.
+let regCache = null;
+let regCacheAt = 0;
+const REG_TTL_MS = 5 * 60 * 1000;   // backstop only; writes invalidate directly
+
+async function registry() {
+  if (regCache && Date.now() - regCacheAt < REG_TTL_MS) return regCache;
+  const snap = await db().collection(REG).get();
+  const chats = {};
+  snap.docs.forEach((d) => { chats[d.id] = d.data(); });
+  regCache = chats;
+  regCacheAt = Date.now();
+  return chats;
+}
+// Every registry WRITE goes through this, so the cache can never go stale.
+function regRef(chat) {
+  regCache = null;
+  return db().collection(REG).doc(String(chat).slice(0, 60));
+}
+
 router.get('/', async (req, res) => {
   try {
     // Without this the app's webview heuristically caches the feed (no
@@ -72,12 +100,37 @@ router.get('/', async (req, res) => {
     const DEEPCHATS = Math.min(100, Math.max(1, parseInt(req.query.deepchats, 10) || 15));
     const TAIL = Math.min(50, Math.max(1, parseInt(req.query.tail, 10) || 1));
     const SCAN = Math.min(5000, Math.max(200, parseInt(req.query.scan, 10) || 1500));
-    const [msnap, rsnap] = await Promise.all([
+
+    // ---- Delta poll (?since=<ISO of the newest message the client holds) ----
+    // The full load above reads SCAN (1500) documents EVERY time, which is what
+    // a page left open was paying once a minute — ~90k reads/hour, blowing the
+    // 50k/day free tier in half an hour, for a handful of new messages. A poll
+    // asks only "what arrived after X", which is normally ZERO documents and
+    // never more than a few. That's what makes polling frequently free.
+    //
+    // `created` is an ISO-8601 string set server-side on write, so string
+    // ordering IS chronological ordering and a range filter on the same field
+    // we sort by needs no composite index.
+    const since = String(req.query.since || '').slice(0, 40);
+    if (since) {
+      const [dsnap, chats] = await Promise.all([
+        db().collection(MSGS)
+          .where('created', '>', since)
+          .orderBy('created', 'desc')
+          .limit(200)              // a burst backstop; a normal poll returns 0-2
+          .get(),
+        registry(),
+      ]);
+      const messages = dsnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // `delta:true` tells the client to MERGE rather than replace — it still
+      // holds the trimmed tail and any full threads it has already pulled.
+      return res.json({ chats, messages, truncated: [], delta: true });
+    }
+
+    const [msnap, chats] = await Promise.all([
       db().collection(MSGS).orderBy('created', 'desc').limit(SCAN).get(),
-      db().collection(REG).get(),
+      registry(),
     ]);
-    const chats = {};
-    rsnap.docs.forEach((d) => { chats[d.id] = d.data(); });
     // msnap is newest-first, so the order in which a chat is FIRST seen is its
     // recency rank: the first DEEPCHATS distinct chats are the ones Sophie
     // touched most recently and get DEEP messages; the rest get TAIL.
@@ -215,7 +268,7 @@ router.post('/', async (req, res) => {
     const ref = await db().collection(MSGS).add(doc);
     const reg = { lastSeen: doc.created };
     if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
-    await db().collection(REG).doc(doc.chat).set(reg, { merge: true });
+    await regRef(doc.chat).set(reg, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });
@@ -231,7 +284,7 @@ router.post('/icon', async (req, res) => {
     await file.save(Buffer.from(m[2], 'base64'), { contentType: m[1], resumable: false });
     await file.makePublic();
     const icon = `https://storage.googleapis.com/${bucket.name}/${file.name}?v=${Date.now()}`;
-    await db().collection(REG).doc(String(chat).slice(0, 60)).set({ icon }, { merge: true });
+    await regRef(chat).set({ icon }, { merge: true });
     res.json({ ok: true, icon });
   } catch (err) { fail(res, err); }
 });
@@ -282,7 +335,7 @@ router.post('/answered', async (req, res) => {
     const patch = answered
       ? { answeredAt: stamp, flaggedAt: del }
       : { answeredAt: del };
-    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
+    await regRef(chat).set(patch, { merge: true });
     res.json({ ok: true, answeredAt: answered ? stamp : null });
   } catch (err) { fail(res, err); }
 });
@@ -299,7 +352,7 @@ router.post('/flag', async (req, res) => {
     const patch = flagged
       ? { flaggedAt: stamp, answeredAt: del }
       : { flaggedAt: del };
-    await db().collection(REG).doc(String(chat).slice(0, 60)).set(patch, { merge: true });
+    await regRef(chat).set(patch, { merge: true });
     res.json({ ok: true, flaggedAt: flagged ? stamp : null });
   } catch (err) { fail(res, err); }
 });
@@ -310,7 +363,7 @@ router.post('/archive', async (req, res) => {
   try {
     const { chat, archived } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    await db().collection(REG).doc(String(chat).slice(0, 60))
+    await regRef(chat)
       .set({ archived: archived !== false }, { merge: true });
     res.json({ ok: true, archived: archived !== false });
   } catch (err) { fail(res, err); }
@@ -417,7 +470,7 @@ router.post('/about', async (req, res) => {
   try {
     const { chat, about } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    await db().collection(REG).doc(String(chat).slice(0, 60))
+    await regRef(chat)
       .set({ about: String(about || '').slice(0, 140) }, { merge: true });
     res.json({ ok: true });
   } catch (err) { fail(res, err); }
@@ -432,7 +485,7 @@ router.post('/rename', async (req, res) => {
     const { chat, name } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const val = String(name || '').trim().slice(0, 60);
-    await db().collection(REG).doc(String(chat).slice(0, 60))
+    await regRef(chat)
       .set({ displayName: val || admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, displayName: val || null });
   } catch (err) { fail(res, err); }
