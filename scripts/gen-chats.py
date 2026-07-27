@@ -367,6 +367,11 @@ function ago(iso){
 }
 __PILL_JS__
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// The feed hands us only a tail per chat (chatfeed.js trims it so the app
+// doesn't download the entire history on every launch). `truncated` marks the
+// chats that have more behind them; `fullLoaded` remembers which ones we've
+// already pulled in full, so opening a chat twice doesn't refetch.
+var truncated={}, fullLoaded={};
 var view=(function(){ try{ return localStorage.getItem('chats-view')||'list'; }catch(e){ return 'list'; } })();
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
@@ -686,9 +691,28 @@ function bookmarkBtn(m){
 // focusId: scroll to & highlight a specific message after opening (used by
 // search, so a hit hundreds of messages back is actually shown, not the newest
 // message). noFetch guards the one-shot full-history load so it can't loop.
+// Pull a chat's FULL history the first time it's opened. Background job, never
+// a spinner: the tail we already have renders instantly and the older messages
+// fold in underneath when they land, so scrolling back always reaches
+// everything even though the first load only carried the last few.
+function ensureFullThread(name){
+  if(!truncated[name] || fullLoaded[name]) return;
+  fullLoaded[name]=1;
+  api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      var added=0;
+      (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; added++; } });
+      // Only rebuild if she's still on this chat, and hold her scroll spot.
+      if(added && cur===name){ var y=window.scrollY; openChat(name,true,null,true); window.scrollTo(0,y); }
+    })
+    .catch(function(){ fullLoaded[name]=0; });   // let a later open retry
+}
 function openChat(name, keepScroll, focusId, noFetch){
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
+  if(!noFetch) ensureFullThread(name);
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
@@ -1139,6 +1163,10 @@ function load(){
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
+    // A reload replaces msgs with the trimmed tail, so anything we'd expanded
+    // is gone — clear fullLoaded and let openChat pull the thread again.
+    truncated={}; fullLoaded={};
+    (data.truncated||[]).forEach(function(c){ truncated[c]=1; });
     if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){
     if(!cur) document.getElementById('grid').innerHTML='<div class="state">Couldn\\u2019t reach the feed.</div>';
