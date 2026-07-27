@@ -1,0 +1,94 @@
+[
+  {
+    "slug": "latte-heart",
+    "label": "The heart in the latte foam",
+    "moment": "The barista drew a heart in the foam of my latte without me asking, on a morning I really needed it. A single cup of coffee seen from above, the heart shape resting in the foam.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out/latte-heart--low.png",
+    "bytes": 1231513,
+    "seconds": 16,
+    "usage": {
+      "input_tokens": 218,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 218
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 414
+    },
+    "createdAt": 1785156723471
+  },
+  {
+    "slug": "grandmother-handwriting",
+    "label": "My grandmother's handwriting on the back of a photograph",
+    "moment": "I turned over an old photograph in a box in the attic and found my grandmother's handwriting on the back. Two hands holding the photograph, back side facing us, faint handwriting suggested as soft ink marks.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out/grandmother-handwriting--low.png",
+    "bytes": 1057141,
+    "seconds": 25,
+    "usage": {
+      "input_tokens": 218,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 218
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 414
+    },
+    "createdAt": 1785156723574
+  },
+  {
+    "slug": "hummingbird-hold",
+    "label": "The hummingbird that stayed for the whole phone call",
+    "moment": "A hummingbird hovered at the window feeder while I was stuck on hold, and stayed for the entire call. A person seated by a window with a phone to their ear, the small bird suspended in the air just outside the glass.",
+    "quality": "low",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out/hummingbird-hold--low.png",
+    "bytes": 1362446,
+    "seconds": 22,
+    "usage": {
+      "input_tokens": 224,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 224
+      },
+      "output_tokens": 196,
+      "output_tokens_details": {
+        "image_tokens": 196,
+        "text_tokens": 0
+      },
+      "total_tokens": 420
+    },
+    "createdAt": 1785156723575
+  },
+  {
+    "slug": "hummingbird-hold",
+    "label": "The hummingbird that stayed for the whole phone call",
+    "moment": "A hummingbird hovered at the window feeder while I was stuck on hold, and stayed for the entire call. A person seated by a window with a phone to their ear, the small bird suspended in the air just outside the glass.",
+    "quality": "medium",
+    "file": "/tmp/claude-0/-home-user/e46dec4b-a341-5db6-9ba1-fb9e83d5dafd/scratchpad/out/hummingbird-hold--medium.png",
+    "bytes": 1687204,
+    "seconds": 58,
+    "usage": {
+      "input_tokens": 224,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 224
+      },
+      "output_tokens": 1756,
+      "output_tokens_details": {
+        "image_tokens": 1756,
+        "text_tokens": 0
+      },
+      "total_tokens": 1980
+    },
+    "createdAt": 1785156723576
+  }
+]
