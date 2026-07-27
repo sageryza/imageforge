@@ -93,6 +93,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-head{cursor:pointer;}
 .m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
 .msg.open .m-close{display:inline;}
+/* Per-chat Claude-account picker — sits above the archive row */
+.acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
+.acctrow .tbtn{min-width:34px; text-align:center;}
 .archrow{margin-top:2.2em; text-align:center;}
 .archrow button{background:none; border:none; color:var(--ink2); opacity:.7; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:6px;}
 .archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
@@ -814,6 +818,32 @@ function openChat(name, keepScroll, focusId, noFetch){
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
   if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(openHref(name, curl))); }
+  // Which Claude account this chat belongs to — normally stamped by the hook,
+  // but existing chats haven't posted since the env vars were added, so this
+  // sets it with one tap. Tapping the active number clears back to untagged.
+  var acr=document.createElement('div'); acr.className='acctrow';
+  var alab=document.createElement('span'); alab.textContent='Claude account'; acr.appendChild(alab);
+  ['1','2'].forEach(function(v){
+    var b=document.createElement('button'); b.className='tbtn'; b.textContent=v;
+    function paintA(){ b.classList.toggle('on', ((chats[name]&&chats[name].account)||'')===v); }
+    paintA(); acr._paints=(acr._paints||[]).concat(paintA);
+    b.onclick=function(){
+      var prev=(chats[name]&&chats[name].account)||'';
+      var next=prev===v? '' : v;
+      chats[name]=chats[name]||{}; chats[name].account=next;
+      acr._paints.forEach(function(f){f();}); saveCache();
+      api('/api/chatfeed/account',{method:'POST',body:JSON.stringify({chat:name, account:next})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          toast(next? 'Opens with account '+next : 'Account cleared');
+          // re-render so every Open button in the thread re-routes now
+          var y=window.scrollY; openChat(name,true,null,true); window.scrollTo(0,y);
+        })
+        .catch(function(){ chats[name].account=prev; acr._paints.forEach(function(f){f();}); saveCache(); toast('Couldn’t save that'); });
+    };
+    acr.appendChild(b);
+  });
+  chatPanel.appendChild(acr);
   var isArch=!!(chats[name]&&chats[name].archived);
   var ar=document.createElement('div'); ar.className='archrow';
   var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';

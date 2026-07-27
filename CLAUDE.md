@@ -391,6 +391,10 @@ lifted into a standalone tool later.
   `GET /api/chatfeed/go?u=<claude.ai url>` (302), which opens in the BROWSER
   instead (universal links don't fire on server redirects), where that account
   is signed in. Nothing to re-paste when she swaps accounts — only the toggle.
+  Existing chats that haven't posted since the env vars were added are
+  untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
+  `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook
+  re-stamps the tag on every post, so a manual tag and the env var must agree.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
@@ -812,10 +816,6 @@ lifted into a standalone tool later.
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
 ## Secretly a Witch (public witchy app)
-- **Sophie's birth data (for astrology/chart work, committed at her request
-  2026-07-27):** June 24, 1992, 12:50 pm, Los Angeles — Sun Cancer 3.5° ·
-  Moon Aries 20.6° · Rising Libra 2.1°. Compute charts with `astro.js`
-  (`computeChart`), never from memory.
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
