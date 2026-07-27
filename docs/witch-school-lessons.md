@@ -20,6 +20,19 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 ## Voice rules (this is what makes them feel the same)
 
 - Warm, plain, a little literary. Second person. No fluff, no "mystical" filler.
+- **Aspirational, not consoling (July 2026 — Sophie's philosophy for the
+  school; the rule beneath the phrasing rules).** This is a SCHOOL: students
+  are here to learn and should aspire to get genuinely good, not be reassured
+  that the easy version already counts. The banned MEANING — regardless of
+  wording — is bar-lowering consolation: "X is plenty", "no shop required",
+  "can come later, or never", "a tea towel counts", "that counts as a potion",
+  "skip the collection". It reads as "we don't expect much from you." Instead,
+  frame the small act as the FIRST RUNG and name the higher rungs: tea told
+  what you need is "your first potion — the Apothecary lesson teaches the real
+  blends from there"; three-card spreads are learned "until fluent, then the
+  great spreads open." Rewording a consolation is not fixing it — change the
+  stance so the card points upward. (Safety guidance — poison path, shadow-work
+  therapist note — is exempt: that's craft safety, never coddling.)
 - **No AI-tells (July 2026 — Sophie spotted the pattern).** Readers must not be
   able to tell the text is Claude-written. Banned phrasings, all of them:
   - Mic-drop closers: "That's the whole practice." / "That's the craft." /
