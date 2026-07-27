@@ -383,7 +383,11 @@ lifted into a standalone tool later.
   a page left open polling that once a minute burned the 50k/day free read quota
   in ~30 min (~$40/mo). The page now polls `GET /api/chatfeed?since=<newest ISO
   it holds>`, which returns only newer messages (normally **zero**), so it can
-  poll every 20s — including while a chat is open — for nothing. The chat
+  poll every 20s — including while a chat is open — for nothing. The page also
+  remembers the feed in localStorage between launches (`chats-cache-v1`), so
+  app-open paints from the saved copy and fetches only the delta — the full
+  1500-doc load runs only on a first-ever visit or a Refresh tap (the repair
+  path). The chat
   registry is cached in server memory (`regRef()` invalidates on every write).
   Same rule for `/api/wall`: it lists EVERY object in both Storage buckets, so
   the listing is memory-cached (`wallInvalidate()` on upload, `?fresh=1` to
