@@ -1172,11 +1172,58 @@ function load(){
     if(!cur) document.getElementById('grid').innerHTML='<div class="state">Couldn\\u2019t reach the feed.</div>';
   });
 }
+
+// ---- Delta polling --------------------------------------------------------
+// A full load() re-reads the newest 1500 messages server-side EVERY time. Doing
+// that once a minute with the page open burned through the free Firestore read
+// quota in about half an hour and cost real money for, usually, nothing new.
+// So the timer asks a much cheaper question instead — "anything after the
+// newest message I already have?" — which normally reads ZERO documents.
+// Because it's nearly free we can poll often, AND poll while a chat is open,
+// which is exactly when she's waiting for a reply to land.
+function newestCreated(){
+  var max='';
+  for(var i=0;i<msgs.length;i++){ var c=msgs[i].created||''; if(c>max) max=c; }
+  return max;
+}
+function poll(){
+  var since=newestCreated();
+  if(!since) return load();   // nothing yet (empty/failed first paint)
+  api('/api/chatfeed?since='+encodeURIComponent(since)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data.chats) chats=data.chats;
+      var incoming=data.messages||[];
+      if(!incoming.length) return;              // the common case: nothing to do
+      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
+      var added=0, mine=false;
+      incoming.forEach(function(m){
+        if(have[m.id]) return;
+        msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
+        if(cur && m.chat===cur) mine=true;
+      });
+      if(!added) return;                        // never re-render for nothing
+      // While she's reading a thread, only rebuild it if the new message is
+      // actually IN it — a reply landing in some other chat must not move the
+      // page under her. The home screen picks the rest up when she goes back.
+      if(cur){
+        if(!mine) return;
+        // Hold her place, and don't refetch: any full history she pulled is
+        // already in msgs.
+        var y=window.scrollY; openChat(cur,true,null,true); window.scrollTo(0,y);
+      } else renderHome();
+    })
+    .catch(function(){});   // a failed poll is not worth surfacing; next one retries
+}
 load();
 setInterval(function(){
-  if(cur) return;   // never rebuild a thread under her — refresh button covers it
-  load();
-}, 60000);
+  // Don't poll a page nobody is looking at — a backgrounded webview would
+  // otherwise keep paying for reads all day.
+  if(document.hidden) return;
+  poll();
+}, 20000);
+// Coming back to the app should feel instant rather than waiting out the timer.
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) poll(); });
 })();
 </script>
 """
