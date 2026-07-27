@@ -107,6 +107,7 @@ struct DumpView: View {
     @State private var selected: Set<String> = []
     @State private var path: [DumpFolder] = []      // folders drilled into
     @State private var search = ""
+    @FocusState private var searchFocused: Bool
 
     private let grid = [GridItem(.adaptive(minimum: 104), spacing: 10)]
 
@@ -249,7 +250,7 @@ struct DumpView: View {
                         ForEach(results) { album in albumButton(album) }
                     } else {
                         ForEach(current.folders) { folder in
-                            Button { path.append(folder) } label: {
+                            Button { searchFocused = false; path.append(folder) } label: {
                                 FolderTile(folder: folder,
                                            picked: pickedCount(in: folder))
                             }
@@ -260,6 +261,9 @@ struct DumpView: View {
                 }
                 .padding(12)
             }
+            // Scrolling the grid puts the keyboard away — otherwise it sits
+            // over half the albums with no obvious way to dismiss it.
+            .scrollDismissesKeyboard(.immediately)
             if searching && results.isEmpty {
                 Text("Nothing matching “\(search)”.")
                     .font(.callout).foregroundColor(Theme.textDim)
@@ -276,11 +280,18 @@ struct DumpView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .foregroundColor(Theme.text)
+                .focused($searchFocused)
+                .submitLabel(.done)
+                .onSubmit { searchFocused = false }
             if !search.isEmpty {
-                Button { search = "" } label: {
+                Button { search = ""; searchFocused = false } label: {
                     Image(systemName: "xmark.circle.fill").foregroundColor(Theme.textDim)
                 }
                 .buttonStyle(.plain)
+            } else if searchFocused {
+                Button("Done") { searchFocused = false }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Theme.accent)
             }
         }
         .padding(10)
@@ -316,6 +327,7 @@ struct DumpView: View {
 
     private func albumButton(_ album: DumpAlbum) -> some View {
         Button {
+            searchFocused = false
             if selected.contains(album.id) { selected.remove(album.id) }
             else { selected.insert(album.id) }
         } label: {
@@ -378,12 +390,32 @@ private struct SquareThumb<Content: View>: View {
             .fill(Theme.surface2)
             .aspectRatio(1, contentMode: .fit)
             .overlay { content }
+            // Selection can't rely on a tan ring being visible against whatever
+            // photo is underneath — on a light or beige cover it disappears, so
+            // some tiles read as unselected when they aren't. A scrim darkens
+            // the art itself, which no photo can hide.
+            .overlay { picked ? Color.black.opacity(0.28) : Color.clear }
             .clipped()
             .cornerRadius(Theme.radius)
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radius)
                     .stroke(picked ? Theme.accent : Theme.border, lineWidth: picked ? 3 : 1)
             )
+    }
+}
+
+/// The selected badge: a white-ringed check, so it reads on a dark photo and a
+/// white one alike.
+private struct PickedBadge: View {
+    var body: some View {
+        Image(systemName: "checkmark")
+            .font(.system(size: 12, weight: .heavy))
+            .foregroundColor(.white)
+            .frame(width: 24, height: 24)
+            .background(Circle().fill(Theme.accent))
+            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+            .padding(6)
     }
 }
 
@@ -422,13 +454,7 @@ private struct AlbumTile: View {
                         Image(uiImage: cover).resizable().scaledToFill()
                     }
                 }
-                if picked {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                        .background(Circle().fill(Theme.accent))
-                        .padding(6)
-                }
+                if picked { PickedBadge() }
             }
             TileCaption(title: album.title, detail: "\(album.count)")
         }
