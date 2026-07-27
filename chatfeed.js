@@ -374,6 +374,21 @@ router.post('/flag', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Manually tag which Claude account a chat belongs to ("1"/"2") — the same
+// registry field the hook stamps automatically on each post. This covers
+// existing chats that haven't posted since FORGE_ACCOUNT was added to the
+// environments (Sophie taps it in the thread). Empty account clears the tag.
+router.post('/account', async (req, res) => {
+  try {
+    const { chat, account } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(account || '').slice(0, 20);
+    await regRef(chat)
+      .set({ account: val || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, account: val || null });
+  } catch (err) { fail(res, err); }
+});
+
 // Which Claude account is signed into the Claude iOS app right now ("1" or
 // "2"). Sophie flips this from the home-screen App/Web toggle whenever she
 // swaps sign-ins; every chat's Open button routes off it (app vs browser).

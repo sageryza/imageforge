@@ -391,6 +391,10 @@ lifted into a standalone tool later.
   `GET /api/chatfeed/go?u=<claude.ai url>` (302), which opens in the BROWSER
   instead (universal links don't fire on server redirects), where that account
   is signed in. Nothing to re-paste when she swaps accounts — only the toggle.
+  Existing chats that haven't posted since the env vars were added are
+  untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
+  `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook
+  re-stamps the tag on every post, so a manual tag and the env var must agree.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
