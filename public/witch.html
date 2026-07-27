@@ -455,6 +455,36 @@
     .tfun-tt { display: block; font-family: var(--serif); font-size: 16px; }
     .tfun-td { display: block; font-size: 12px; color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
 
+    /* ── Ask the cards (members-only question readings) ── */
+    .ask-label { font-family: 'DM Sans', sans-serif; font-size: 10.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); margin: 20px 0 8px; }
+    .ask-q { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      padding: 11px 13px; font-family: inherit; font-size: 15px; line-height: 1.5; color: var(--text); resize: vertical; }
+    .ask-q:focus { outline: none; border-color: var(--gold-dim); }
+    .ask-q::placeholder { color: var(--text-faint); }
+    /* Four spreads in one row; each tile is a mini diagram of the real layout. */
+    .ask-spreads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .ask-spread { display: flex; flex-direction: column; align-items: center; gap: 7px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      padding: 9px 4px 8px; cursor: pointer; font-family: inherit; color: var(--text-dim); }
+    .ask-spread.on { border-color: var(--gold); color: var(--text); }
+    .ask-spread svg { width: 100%; height: 40px; display: block; }
+    .ask-spread .sr { fill: none; stroke: currentColor; stroke-width: 2.2; opacity: 0.5; }
+    .ask-spread.on .sr { stroke: var(--gold); opacity: 1; }
+    .ask-spread-name { font-size: 9px; letter-spacing: 0.3px; line-height: 1.25; text-align: center; }
+    .ask-grid { display: grid; gap: 12px; margin: 14px 0 4px; align-items: start; }
+    .ask-grid.c1 { grid-template-columns: minmax(0, 190px); justify-content: center; }
+    .ask-grid.c3 { grid-template-columns: repeat(3, 1fr); }
+    /* Position names run to two lines ("What Crosses You"), so reserve both —
+       otherwise the cards in a row start at different heights. */
+    .ask-grid .tcard-pos { min-height: 26px; display: flex; align-items: flex-end; justify-content: center; }
+    /* Dealt face-down, then flipped — no spinner while the reading is written. */
+    .ask-deal { animation: askDeal 0.42s ease both; }
+    @keyframes askDeal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    .ask-flip { animation: askFlip 0.34s ease both; }
+    @keyframes askFlip { from { transform: scaleX(0.06); opacity: 0.35; } to { transform: none; opacity: 1; } }
+    .ask-status { text-align: center; font-size: 13px; color: var(--text-dim); font-style: italic; line-height: 1.6; margin: 16px 0 4px; }
+    .ask-err { text-align: center; font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 14px 0 0; }
+
     /* Dive deeper — the day's chart wheel + placements */
     .dsk-wheel { max-width: 340px; margin: 14px auto 6px; }
     .dsk-wheel svg { width: 100%; height: auto; display: block; }
@@ -1320,6 +1350,8 @@
           <div id="daily-backs" class="backs"></div>
           <div id="daily-tarot-reading" class="reading-block" style="display:none;"></div>
           <button class="btn-ghost" id="daily-dive" style="display:none; margin-top:16px;">Dive deeper <span class="js-star"></span></button>
+          <!-- The paid tarot: their own question + the full spreads -->
+          <button class="btn-ghost" id="daily-ask" style="margin-top:10px;">Ask the cards a question</button>
         </div>
 
         <!-- Dream reading -->
@@ -1621,6 +1653,12 @@
     <div class="quiz-stage" id="tarot-deep-stage"></div>
   </div>
 
+  <!-- Ask the cards — question + spread picker + the reading, its own page -->
+  <div class="quiz-app" id="ask-app" data-fullpage style="display:none;">
+    <button class="quiz-back" id="ask-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <div class="quiz-stage" id="ask-stage"></div>
+  </div>
+
   <!-- Past dream readings — its own full-screen page (not the Home feed), so the
        list can't be scrolled past and has room for paid content later. -->
   <div class="quiz-app" id="dreampast-app" data-fullpage style="display:none;">
@@ -1738,7 +1776,7 @@
     const blurb = ({
       coincidence: 'unlimited redraws',
       dream: 'your whole illustrated dream',
-      tarot: 'the full major arcana',
+      tarot: 'ask-the-cards question readings and the full spreads',
       chart: 'birth charts for your friends',
     })[feature] || 'every members-only feature';
     openModal(
@@ -1972,6 +2010,39 @@
     try { const j = await apiGet('/api/witch/tarot-deck'); if (j && j.cards) DECK_IMG = j.cards; } catch {}
   }
 
+  /* ── The written card meanings (committed corpus, no API call) ──
+     Every card's short meanings + longer "depth" paragraphs are written once
+     and served from /api/witch/tarot-readings, so the free daily read composes
+     INSTANTLY and costs nothing. Which variant a card gets is a hash of the
+     same per-day seed the pull uses, so today's read is stable all day and
+     tomorrow's is different. If the corpus is missing (or a card isn't in it),
+     the deck's own up/rev strings stand in. */
+  let TAROT_TEXT = { cards: {}, advice: [] };
+  async function loadTarotReadings() {
+    try {
+      const j = await apiGet('/api/witch/tarot-readings');
+      if (j && j.cards) TAROT_TEXT = { cards: j.cards || {}, advice: Array.isArray(j.advice) ? j.advice : [] };
+    } catch {}
+  }
+  // The daily seed — the SAME string dailyPull() draws from, so the words and
+  // the cards always belong to each other.
+  function dailySeed() { return todayISO() + '|' + (fbUser ? fbUser.uid : 'anon'); }
+  function pickVariant(arr, seed) { return (Array.isArray(arr) && arr.length) ? arr[hashStr(seed) % arr.length] : null; }
+  function cardText(name, orientation) {
+    const c = TAROT_TEXT.cards && TAROT_TEXT.cards[name];
+    return c ? (orientation === 'reversed' ? c.reversed : c.upright) : null;
+  }
+  function cardMeaning(card, orientation, seed) {
+    const t = cardText(card.name, orientation);
+    return (t && pickVariant(t.meanings, seed + '|' + card.name + '|v'))
+      || (orientation === 'reversed' ? card.rev : card.up);
+  }
+  function cardDepth(card, orientation, seed) {
+    const t = cardText(card.name, orientation);
+    return (t && pickVariant(t.depth, seed + '|' + card.name + '|d')) || cardMeaning(card, orientation, seed);
+  }
+  function dailyAdvice(seed) { return pickVariant(TAROT_TEXT.advice, seed + '|adv') || ''; }
+
   function tarotCardHtml(card, orientation, position) {
     const rev = orientation === 'reversed';
     const img = DECK_IMG[card.name];
@@ -2069,7 +2140,7 @@
   // Deterministic 3-card past/present/future pull for today (stable per day,
   // per account). No repeats within the pull.
   function dailyPull() {
-    const seed = todayISO() + '|' + (fbUser ? fbUser.uid : 'anon');
+    const seed = dailySeed();   // '<YYYY-MM-DD>|<uid or anon>' — mirrored by tarot-email.js, don't change
     const positions = ['Past', 'Present', 'Future'];
     const picks = [], used = new Set();
     for (let i = 0; i < 3; i++) {
@@ -2084,10 +2155,10 @@
 
   // Nothing generates on page open: astrology waits behind the "Reveal
   // today's reading" tap (which fires the teaser + the Dive-deeper reading in
-  // PARALLEL), tarot fires on the first card tap. Three separate API calls.
+  // PARALLEL). The tarot costs no call at all — it composes from the corpus.
   let dailyData = null, dailyPicks = null, astroRevealed = false;
   let dailyDeep = null, deepLoading = false, deepError = '', deepOpen = false;
-  let dailyTarot = null, tarotLoading = false, tarotError = '';
+  let dailyTarot = null;
   let astroSeq = 0, astroLoadingKey = null;
 
   function savedBirth() {
@@ -2214,7 +2285,6 @@
   (function(){ const zi = $('zodiac-info'); if (zi) zi.addEventListener('click', showZodiacInfo); })();
 
   function dailyKey() { return 'witch_daily_v5_' + todayISO() + '_' + currentZodiac() + '_' + (fbUser ? fbUser.uid : 'anon'); }
-  function tarotDayKey() { return 'witch_daily_tarot_v1_' + todayISO() + '_' + (fbUser ? fbUser.uid : 'anon'); }
   function cachePatch(key, patch) {
     try { const c = JSON.parse(localStorage.getItem(key) || '{}'); localStorage.setItem(key, JSON.stringify(Object.assign(c, patch))); } catch {}
   }
@@ -2448,45 +2518,33 @@
   function revealTarot(i) {
     if (tarotRevealed.has(i)) return;
     tarotRevealed.add(i);
-    // The card reading starts generating on the FIRST tap, so by the time all
-    // three are turned it's usually already here. After a failure, later taps
-    // don't re-fire — the "try again" button owns retries.
-    if (!dailyTarot && !tarotError) loadTarot(false);
     const el = document.querySelector('#daily-backs .tslot-body[data-ti="' + i + '"]');
     if (el) { el.innerHTML = tarotSlotBody(i); el.style.cursor = 'default'; }
     if (tarotRevealed.size === 3) showTarotReading();
   }
-  async function loadTarot(force) {
-    if (tarotLoading || (dailyTarot && !force) || !dailyPicks) return;
-    tarotLoading = true; tarotError = '';
-    try {
-      const data = await api('/api/witch/daily', {
-        part: 'tarot', date: todayISO(), uid: fbUser ? fbUser.uid : null,
-        cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
-        force: !!force,
-      });
-      dailyTarot = data.tarot || null;
-      try { localStorage.setItem(tarotDayKey(), JSON.stringify({ tarot: dailyTarot })); } catch {}
-    } catch (e) { tarotError = e.message; }
-    tarotLoading = false;
-    if (tarotRevealed.size === 3) showTarotReading();
+  // Today's read, composed from the corpus — no call, no wait. Each card gets
+  // a short meaning (shown inline) and a longer depth paragraph (the
+  // Dive-deeper page), both picked by the day's seed.
+  function composeDailyTarot() {
+    if (!dailyPicks) return null;
+    const seed = dailySeed();
+    return {
+      cards: dailyPicks.map(p => ({
+        name: p.card.name, position: p.position, orientation: p.orientation,
+        meaning: cardMeaning(p.card, p.orientation, seed),
+        depth: cardDepth(p.card, p.orientation, seed),
+      })),
+      advice: dailyAdvice(seed),
+    };
   }
-  // Inline = the QUICK read: a short line per card. The full reading + fun
-  // options live on the Dive-deeper page (openTarotDeep), same pattern as the
+  // Inline = the QUICK read: a short line per card. The longer per-card
+  // reading lives on the Dive-deeper page (openTarotDeep), same pattern as the
   // astrology glance → deep page.
   function showTarotReading() {
     const box = $('daily-tarot-reading');
     const dive = $('daily-dive');
-    if (!dailyTarot) {
-      if (!tarotLoading && !tarotError) loadTarot(false);
-      box.innerHTML = (tarotError && !tarotLoading)
-        ? `<p style="font-size:14px;color:var(--text-dim);line-height:1.6;">The cards are quiet right now — <button class="link-btn" id="tarot-retry">try again</button>.</p>`
-        : `<div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0;"><img class="hl-inline" src="/hoonie-loading.gif" alt=""><span style="font-size:13px;color:var(--text-dim);font-style:italic;">Reading your cards…</span></div>`;
-      box.style.display = '';
-      dive.style.display = 'none';
-      const rb = $('tarot-retry'); if (rb) rb.addEventListener('click', () => { tarotError = ''; loadTarot(true); showTarotReading(); });
-      return;
-    }
+    if (!dailyTarot) dailyTarot = composeDailyTarot();
+    if (!dailyTarot) return;
     let html = '';
     if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
       const pos = c.position ? `${c.position} — ` : '';
@@ -2495,7 +2553,7 @@
     box.innerHTML = html;
     box.style.display = '';
     bmShow('tarot-bm', tarotSaved, false);
-    if (dailyTarot.reading || dailyTarot.advice) { dive.style.display = ''; renderStars(); }
+    dive.style.display = ''; renderStars();
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
@@ -2554,6 +2612,8 @@
     save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
     deck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="18" x="7" y="3" rx="2"/><path d="M3.5 6.5 2 8v11a2 2 0 0 0 2 2h11l1.5-1.5"/></svg>',
     charm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>',
+    // lucide message-circle-question-mark
+    ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
   };
   function renderTarotDeep() {
     const st = $('tarot-deep-stage'); if (!st) return;
@@ -2574,23 +2634,18 @@
     h += `<div class="quiz-kicker">Your full reading</div>`;
     h += `<div class="glance-headline" style="text-align:center;">Today's Cards</div>`;
     h += `<div class="dsk-caption">${esc(dateLabel)}</div>`;
-    // Each card, its position + meaning
+    // Each card, its position + the longer written read for it
     if (Array.isArray(dailyTarot.cards)) dailyTarot.cards.forEach(c => {
       h += `<div class="tdeep-card">
         ${c.position ? `<div class="tdeep-cardpos">${esc(c.position)}</div>` : ''}
         <div class="tdeep-cardname">${esc(c.name)}${c.orientation ? `<span class="tdeep-orient">${esc(c.orientation)}</span>` : ''}</div>
-        <div class="tdeep-cardmean">${esc(c.meaning || '')}</div>
+        <div class="tdeep-cardmean">${esc(c.depth || c.meaning || '')}</div>
       </div>`;
     });
-    // The synthesised reading
-    if (dailyTarot.reading) {
-      h += `<div class="glance-sec"><div class="glance-label">The reading</div>`;
-      String(dailyTarot.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
-      h += `</div>`;
-    }
     if (dailyTarot.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(dailyTarot.advice)}</p></div>`;
     // Fun options
     h += `<div class="glance-sec"><div class="glance-label">Next steps:</div><div class="tfun">
+      <button class="tfun-tile" id="tfun-ask" type="button"><span class="tfun-ti">${T_ICON.ask}</span><span><span class="tfun-tt">Ask the cards a question</span><span class="tfun-td">Your own question, read across a full spread.</span></span></button>
       <button class="tfun-tile" id="tfun-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${tarotSaved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
       ${IS_APP ? '' : `<button class="tfun-tile" id="tfun-deck" type="button"><span class="tfun-ti">${T_ICON.deck}</span><span><span class="tfun-tt">Design your own tarot deck</span><span class="tfun-td">Coming soon — your own illustrated deck, in your art.</span></span></button>`}
       <button class="tfun-tile" id="tfun-learn" type="button"><span class="tfun-ti">${T_ICON.charm}</span><span><span class="tfun-tt">Learn to read the cards</span><span class="tfun-td">The deeper art awaits in Witch School.</span></span></button>
@@ -2599,6 +2654,7 @@
     // Home scroll position is never touched, so this is just a close.
     h += `<button class="btn-ghost tdeep-home" id="tdeep-home" type="button">Back to home screen</button>`;
     st.innerHTML = h;
+    const ab = $('tfun-ask'); if (ab) ab.addEventListener('click', () => { closeTarotDeep(); openAsk(); });
     const sb = $('tfun-save'); if (sb) sb.addEventListener('click', () => { saveDailyReading(); renderTarotDeep(); });
     const db = $('tfun-deck'); if (db) db.addEventListener('click', () => toast('Design-your-own decks are coming soon ✦'));
     const lb = $('tfun-learn'); if (lb) lb.addEventListener('click', () => { closeTarotDeep(); go('school'); });
@@ -2618,6 +2674,220 @@
   $('daily-dive').addEventListener('click', openTarotDeep);
   $('tarot-deep-back').addEventListener('click', closeTarotDeep);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tarotDeepOpen) closeTarotDeep(); });
+
+  /* ══════════ ASK THE CARDS — the paid tarot ══════════
+     Their own question + a real spread. The draw happens here (crypto random,
+     no repeats, the same ~28% reversed as the daily pull); the reading is a
+     server BACKGROUND JOB, so the pending id is kept in localStorage and the
+     poll RESUMES on return — leaving the app never loses a reading. */
+  const ASK_SPREADS = {
+    one: { name: 'One Card', positions: ['Your Card'] },
+    three: { name: 'Past · Present · Future', positions: ['Past', 'Present', 'Future'] },
+    horseshoe: { name: 'Horseshoe', positions: ['The Past', 'The Present', 'Hidden Influences', 'Advice', 'Likely Outcome'] },
+    celtic: { name: 'Celtic Cross', positions: ['The Heart of It', 'What Crosses You', 'The Root', 'The Recent Past', 'What Crowns You', 'The Near Future', 'You as You Are', 'Your Surroundings', 'Hopes & Fears', 'The Outcome'] },
+  };
+  // Mini diagrams: little card-shaped rects in each spread's real layout.
+  const _sr = (x, y, w, h, rot) => `<rect class="sr" x="${x}" y="${y}" width="${w}" height="${h}" rx="1.6"${rot ? ` transform="rotate(${rot} ${x + w / 2} ${y + h / 2})"` : ''}/>`;
+  const SPREAD_ART = {
+    one: `<svg viewBox="0 0 60 46">${_sr(22, 8, 16, 30)}</svg>`,
+    three: `<svg viewBox="0 0 60 46">${_sr(6, 10, 14, 26)}${_sr(23, 10, 14, 26)}${_sr(40, 10, 14, 26)}</svg>`,
+    horseshoe: `<svg viewBox="0 0 60 46">${_sr(2, 22, 9, 17, -40)}${_sr(14, 13, 9, 17, -20)}${_sr(25, 9, 9, 17, 0)}${_sr(36, 13, 9, 17, 20)}${_sr(48, 22, 9, 17, 40)}</svg>`,
+    celtic: `<svg viewBox="0 0 60 46">${_sr(18, 17, 10, 14)}${_sr(18, 17, 10, 14, 90)}${_sr(18, 1, 10, 13)}${_sr(18, 33, 10, 13)}${_sr(3, 17, 10, 14)}${_sr(33, 17, 10, 14)}${_sr(48, 1, 9, 9)}${_sr(48, 12, 9, 9)}${_sr(48, 23, 9, 9)}${_sr(48, 34, 9, 9)}</svg>`,
+  };
+  const ASK_PEND = 'witch_ask_job';   // {id, question, spread, cards} while a reading is being written
+  const ASK_LAST = 'witch_ask_last';  // the last finished reading, so reopening the page shows it
+  let askOpen = false, askTimer = null;
+  let askState = { id: null, question: '', spread: 'three', cards: null, status: 'idle', result: null, error: '', saved: false };
+
+  function askDraw(key) {
+    const spec = ASK_SPREADS[key] || ASK_SPREADS.three;
+    const n = spec.positions.length;
+    const rnd = new Uint32Array(n * 2);
+    (window.crypto || window.msCrypto).getRandomValues(rnd);
+    const used = new Set(), out = [];
+    for (let i = 0; i < n; i++) {
+      let idx = rnd[i * 2] % DECK.length;
+      while (used.has(idx)) idx = (idx + 1) % DECK.length;   // no card twice in one spread
+      used.add(idx);
+      out.push({ name: DECK[idx].name, orientation: (rnd[i * 2 + 1] % 100) < 28 ? 'reversed' : 'upright', position: spec.positions[i] });
+    }
+    return out;
+  }
+  // Celtic Cross is ten cards — on a phone it reads far better as a labelled
+  // grid than as the literal cross, so every spread lays out in the same grid.
+  function askCardsHtml(faceDown) {
+    const cards = askState.cards || [];
+    return `<div class="ask-grid ${cards.length === 1 ? 'c1' : 'c3'}">` + cards.map((c, i) => {
+      const img = DECK_IMG[c.name];
+      const rev = c.orientation === 'reversed';
+      const body = faceDown
+        ? `<div class="tcard cardback ask-deal" style="animation-delay:${i * 90}ms"><div class="tcard-face cardback-face">✦</div></div>`
+        : `<div class="tcard ${img ? '' : 'noimg'} ${rev ? 'rev' : ''} ask-flip" style="animation-delay:${i * 90}ms">${img
+            ? `<img class="tcard-face" src="${img}" alt="${esc(c.name)}" loading="lazy">`
+            : `<div class="tcard-face"><span class="glyph">✦</span></div>`}<div class="tcard-name">${esc(c.name)}</div><div class="tcard-orient">${rev ? 'reversed' : 'upright'}</div></div>`;
+      return `<div class="tslot">${c.position ? `<div class="tcard-pos">${esc(c.position)}</div>` : ''}${body}</div>`;
+    }).join('') + `</div>`;
+  }
+  function renderAsk() {
+    const st = $('ask-stage'); if (!st) return;
+    const spec = ASK_SPREADS[askState.spread] || ASK_SPREADS.three;
+    let h = `<div class="quiz-kicker">Ask the cards</div>`;
+    if (askState.status === 'working' || askState.status === 'done') {
+      if (askState.question) h += `<div class="glance-headline" style="text-align:center;">${esc(askState.question)}</div>`;
+      h += `<div class="dsk-caption">${esc(spec.name)}</div>`;
+      h += askCardsHtml(askState.status === 'working');
+      if (askState.status === 'working') {
+        h += `<p class="ask-status">Your cards are down. The reading is being written — you can close this and come back to it.</p>`;
+      } else {
+        const r = askState.result || {};
+        if (Array.isArray(r.cards)) r.cards.forEach(c => {
+          const pos = c.position ? `${esc(c.position)} — ` : '';
+          h += `<div class="reading-card-meaning">${pos}<strong>${esc(c.name)}</strong> — ${esc(c.meaning || '')}</div>`;
+        });
+        if (r.reading) {
+          h += `<div class="glance-sec"><div class="glance-label">The reading</div>`;
+          String(r.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
+          h += `</div>`;
+        }
+        if (r.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(r.advice)}</p></div>`;
+        h += `<div class="glance-sec"><div class="tfun">
+          <button class="tfun-tile" id="ask-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${askState.saved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
+          <button class="tfun-tile" id="ask-again" type="button"><span class="tfun-ti">${T_ICON.ask}</span><span><span class="tfun-tt">Ask something else</span><span class="tfun-td">A new question, a new spread, a fresh draw.</span></span></button>
+        </div></div>`;
+      }
+    } else {
+      h += `<div class="ask-label">What do you want to ask the cards?</div>
+        <textarea class="ask-q" id="ask-q" rows="3" placeholder="Ask anything — or leave this empty for a general reading">${esc(askState.question)}</textarea>
+        <div class="ask-label">Choose your spread</div>
+        <div class="ask-spreads">` + Object.keys(ASK_SPREADS).map(k =>
+          `<button class="ask-spread${k === askState.spread ? ' on' : ''}" type="button" data-spread="${k}" aria-pressed="${k === askState.spread}">${SPREAD_ART[k]}<span class="ask-spread-name">${esc(ASK_SPREADS[k].name)}</span></button>`).join('')
+        + `</div>`;
+      if (askState.error) h += `<p class="ask-err">${esc(askState.error)}</p>`;
+      h += `<button class="btn" id="ask-go" type="button" style="margin-top:20px;">Get my reading <span class="js-star"></span></button>`;
+    }
+    st.innerHTML = h;
+    renderStars();
+    const ta = $('ask-q'); if (ta) ta.addEventListener('input', () => { askState.question = ta.value || ''; });
+    st.querySelectorAll('.ask-spread').forEach(b => b.addEventListener('click', () => {
+      const t = $('ask-q'); if (t) askState.question = t.value || '';
+      askState.spread = b.dataset.spread; askState.error = ''; renderAsk();
+    }));
+    const go = $('ask-go'); if (go) go.addEventListener('click', startAskReading);
+    const sv = $('ask-save'); if (sv) sv.addEventListener('click', () => { saveAskReading(); renderAsk(); });
+    const ag = $('ask-again'); if (ag) ag.addEventListener('click', () => {
+      askState = { id: null, question: '', spread: askState.spread, cards: null, status: 'idle', result: null, error: '', saved: false };
+      pendSet(ASK_LAST, null); renderAsk();
+    });
+  }
+  async function askGet(id) {
+    const tok = fbUser ? await fbUser.getIdToken() : '';
+    const r = await fetch('/api/witch/tarot-ask/' + id, { headers: tok ? { Authorization: 'Bearer ' + tok } : {} });
+    if (!r.ok) throw new Error('Server ' + r.status);
+    return r.json();
+  }
+  function watchAsk(id) {
+    clearInterval(askTimer);
+    let tries = 0;
+    askTimer = setInterval(async () => {
+      if (++tries > 96) { clearInterval(askTimer); pendSet(ASK_PEND, null); askState.status = 'idle'; askState.error = 'That took longer than usual — draw again to retry.'; if (askOpen) renderAsk(); return; }
+      let d;
+      try { d = await askGet(id); }
+      catch (e) {
+        // A dropped poll is transient (cold start / phone lock) — only a real
+        // 404/401 is terminal.
+        if (/\b(404|401)\b/.test(String(e.message))) {
+          clearInterval(askTimer); pendSet(ASK_PEND, null);
+          askState.status = 'idle'; askState.error = 'That reading is no longer available — draw again.';
+          if (askOpen) renderAsk();
+        }
+        return;
+      }
+      if (d.status === 'done') {
+        clearInterval(askTimer); pendSet(ASK_PEND, null);
+        askState.status = 'done'; askState.result = d.result || null; askState.saved = false;
+        if (Array.isArray(d.cards) && d.cards.length) askState.cards = d.cards;
+        if (d.question) askState.question = d.question;
+        if (d.spread) askState.spread = d.spread;
+        pendSet(ASK_LAST, { question: askState.question, spread: askState.spread, cards: askState.cards, result: askState.result });
+        if (askOpen) renderAsk(); else toast('Your reading is ready ✦');
+      } else if (d.status === 'error') {
+        clearInterval(askTimer); pendSet(ASK_PEND, null);
+        askState.status = 'idle'; askState.error = d.error || "The cards couldn't be read just now — try again.";
+        if (askOpen) renderAsk();
+      }
+    }, 2500);
+  }
+  async function startAskReading() {
+    const ta = $('ask-q'); if (ta) askState.question = (ta.value || '').trim().slice(0, 500);
+    // Paid feature — the client gate is the courtesy one; the server checks the
+    // membership again before it writes anything.
+    if (!isPaid()) { openUpgrade('tarot'); return; }
+    if (!fbUser) { toast('Sign in first so your readings are saved to you ✦'); if (typeof showSignIn === 'function') showSignIn(); return; }
+    askState.cards = askDraw(askState.spread);
+    askState.status = 'working'; askState.result = null; askState.error = ''; askState.saved = false; askState.id = null;
+    renderAsk();
+    try {
+      const tok = await fbUser.getIdToken();
+      const r = await fetch('/api/witch/tarot-ask', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+        body: JSON.stringify({ question: askState.question, spread: askState.spread, cards: askState.cards }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 402) {   // membership lapsed since the cached entitlement
+        try { localStorage.setItem(PAID_KEY, '0'); } catch {}
+        askState.status = 'idle'; askState.cards = null; renderAsk(); openUpgrade('tarot'); return;
+      }
+      if (!r.ok || !j.id) throw new Error(j.error || ('Server ' + r.status));
+      askState.id = j.id;
+      pendSet(ASK_PEND, { id: j.id, question: askState.question, spread: askState.spread, cards: askState.cards });
+      watchAsk(j.id);
+    } catch (e) {
+      askState.status = 'idle'; askState.error = "Couldn't start that reading — " + e.message;
+      renderAsk();
+    }
+  }
+  function saveAskReading() {
+    if (!askState.result || askState.saved) return;
+    const spec = ASK_SPREADS[askState.spread] || ASK_SPREADS.three;
+    const all = loadReadings();
+    all.unshift({
+      id: 'r_' + Date.now(), date: nowStamp(),
+      question: askState.question || `${spec.name} reading`,
+      spread: askState.spread, spreadName: spec.name,
+      cards: (askState.cards || []).map(c => ({ name: c.name, orientation: c.orientation, position: c.position })),
+      data: askState.result,
+    });
+    saveReadings(all); updateSavedCount(); askState.saved = true;
+    toast('Saved to your Book of Shadows ✦');
+  }
+  function openAsk() {
+    askOpen = true;
+    document.body.style.overflow = 'hidden';
+    // Nothing in flight and nothing on screen → show the last finished reading.
+    if (askState.status === 'idle' && !askState.result) {
+      const last = pendGet(ASK_LAST);
+      if (last && last.result) {
+        askState = { id: null, question: last.question || '', spread: last.spread || 'three', cards: last.cards || null, status: 'done', result: last.result, error: '', saved: false };
+      }
+    }
+    const app = $('ask-app'); app.style.display = ''; app.scrollTop = 0;
+    renderAsk();
+  }
+  function closeAsk() {
+    askOpen = false;
+    $('ask-app').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function resumeAskReading() {
+    const p = pendGet(ASK_PEND); if (!p || !p.id) return;
+    askState = { id: p.id, question: p.question || '', spread: p.spread || 'three', cards: p.cards || null, status: 'working', result: null, error: '', saved: false };
+    if (askOpen) renderAsk();
+    watchAsk(p.id);
+  }
+  $('daily-ask').addEventListener('click', openAsk);
+  $('ask-back').addEventListener('click', closeAsk);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && askOpen) closeAsk(); });
+
   // Deal today's cards the moment the Today page is in 'ready' state — the
   // pull is a free deterministic local draw, so the backs are tappable
   // immediately, independent of the astrology reveal.
@@ -2627,8 +2897,8 @@
     if (dailyCardsStamp === stamp && dailyPicks) return;
     dailyCardsStamp = stamp;
     dailyPicks = dailyPull();
-    dailyTarot = null; tarotError = ''; tarotSaved = false;
-    try { const c = JSON.parse(localStorage.getItem(tarotDayKey()) || 'null'); if (c && c.tarot) dailyTarot = c.tarot; } catch {}
+    // Composed lazily at reveal time so the corpus fetch has landed by then.
+    dailyTarot = null; tarotSaved = false;
     resetDailyTarot();
   }
 
@@ -3390,7 +3660,7 @@
       const cards = (r.cards || []).map(c => `${c.name}${c.orientation === 'reversed' ? ' (rev)' : ''}`).join(' · ');
       return `<div class="card saved-item" data-id="${r.id}">
         <div class="si-top"><div class="si-title">${esc(r.question || 'A reading')}</div><div class="si-date">${esc(r.date)}</div></div>
-        <div class="si-meta">${esc(r.spread === 'three' ? 'Past · Present · Future' : r.spread === 'yesno' ? 'Yes / No' : 'One card')} — ${esc(cards)}</div>
+        <div class="si-meta">${esc(r.spreadName || (r.spread === 'three' ? 'Past · Present · Future' : r.spread === 'yesno' ? 'Yes / No' : 'One card'))} — ${esc(cards)}</div>
         <div class="si-body">${renderReading(r.data, true)}</div>
         <div class="si-actions"><button class="link-btn danger" data-del="${r.id}">Remove</button></div>
       </div>`;
@@ -5540,6 +5810,7 @@
      own close logic (state flags, URL cleanup, re-renders) runs. */
   registerFullPage('deep-app', closeDeep);          // astrology dive-deeper
   registerFullPage('tarot-app', closeTarotDeep);    // daily tarot deep page
+  registerFullPage('ask-app', closeAsk);            // ask the cards (paid)
   registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
   registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
   registerFullPage('dream-app', closeDreamPage);    // the dream card full page
@@ -5574,6 +5845,7 @@
     try { resumeCoinJobs(); } catch (e) {}
     try { resumeDreamRead(); } catch (e) {}
     try { resumeDreamIllus(); } catch (e) {}
+    try { resumeAskReading(); } catch (e) {}
   }
   resumePendingJobs();
   // Foreground watchdog: the iOS shell keeps this page alive for the whole
@@ -5585,9 +5857,10 @@
     if (document.visibilityState === 'visible') resumePendingJobs();
   });
   window.addEventListener('pageshow', (e) => { if (e.persisted) resumePendingJobs(); });
-  // Load the real Rider-Waite art first, then render the home state (which
-  // calls the daily reading once signed in + birthday is set).
-  loadDeckImages().finally(() => renderHome());
+  // Load the real Rider-Waite art + the written card meanings first, then
+  // render the home state (which calls the daily reading once signed in +
+  // birthday is set).
+  Promise.all([loadDeckImages(), loadTarotReadings()]).finally(() => renderHome());
   </script>
 </body>
 </html>

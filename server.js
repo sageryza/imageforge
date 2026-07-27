@@ -1863,11 +1863,17 @@ Return valid JSON only, no markdown fences: an array of objects with "title", "t
 
 // ═══════════════════════════════════════════════════════════════════
 // Secretly a Witch — public witchy app (/witch)
-// A small set of stateless AI endpoints powering the public app: tarot
-// readings, spells/rituals, familiar names, and daily horoscopes. All reuse
-// openaiChat (gpt-4o-mini). The tarot DECK itself lives client-side; the
-// client sends the drawn cards and the server writes the interpretation.
+// A small set of AI endpoints powering the public app: dream readings,
+// spells/rituals, familiar names, the daily reading, and the members-only
+// "Ask the cards" question readings. The tarot DECK lives client-side (and
+// the FREE daily card meanings now come from a committed corpus, no model
+// call at all); the client sends the drawn cards and the server writes the
+// interpretation only for the paid ask-a-question flow.
 // ═══════════════════════════════════════════════════════════════════
+
+// The house reading voice — shared by the daily tarot prompt and the paid
+// "Ask the cards" reading so both sound like the same reader.
+const WITCH_VOICE = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
 
 // Strip markdown fences and parse JSON from a chat completion.
 function parseJsonReply(data) {
@@ -1875,40 +1881,6 @@ function parseJsonReply(data) {
   const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
   return JSON.parse(cleaned);
 }
-
-// ─── Tarot reading ──────────────────────────────────────────────────
-// Body: { question?, spread ("single"|"three"|"yesno"), cards:[{name, orientation, position?}] }
-app.post('/api/witch/tarot', async (req, res) => {
-  try {
-    const { question = '', spread = 'single', cards = [] } = req.body || {};
-    if (!Array.isArray(cards) || !cards.length) return res.status(400).json({ error: 'cards is required' });
-
-    const cardList = cards.map((c, i) =>
-      `${c.position ? c.position + ': ' : `Card ${i + 1}: `}${c.name} (${c.orientation || 'upright'})`
-    ).join('\n');
-
-    const system = `You are a warm, insightful tarot reader for an app called "Secretly a Witch". You give grounded, encouraging, non-fatalistic readings — tarot as a mirror for reflection, never doom or medical/financial/legal certainty. Speak directly to the querent as "you". Keep it intimate and a little luminous, never generic or preachy.
-
-Return valid JSON only, no markdown fences, shaped:
-{
-  "cards": [{ "name": "...", "meaning": "1-2 sentences on what this card in this position/orientation says" }],
-  "reading": "2-3 short paragraphs weaving the cards together into one message",
-  "advice": "one short, actionable, gentle suggestion"
-}`;
-
-    const userMsg = `Spread: ${spread}${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}\nCards drawn:\n${cardList}`;
-
-    const data = await openaiChat({
-      model: 'gpt-4o-mini',
-      temperature: 0.85,
-      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
-    });
-    if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json(parseJsonReply(data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ─── Dream reading (TWO frontier models side by side) ───────────────
 // Body: { dream }
@@ -2207,38 +2179,6 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
-// ─── Daily witchy horoscope ─────────────────────────────────────────
-// Body: { sign, date? }  — date is a display string for flavor/variety.
-app.post('/api/witch/horoscope', async (req, res) => {
-  try {
-    const { sign, date = '' } = req.body || {};
-    if (!sign) return res.status(400).json({ error: 'sign is required' });
-
-    const system = `You write short daily horoscopes with a cozy-witch twist for an app called "Secretly a Witch". Warm, specific, encouraging — astrology as gentle reflection, never fatalistic or medical/financial certainty.
-
-Return valid JSON only, no markdown fences, shaped:
-{
-  "horoscope": "2-3 sentences for the day",
-  "focus": "one word or short phrase — the day's theme",
-  "charm": "a tiny suggested small act of magic for the day (one sentence)",
-  "element_note": "one sentence tying it to the sign's element"
-}`;
-
-    const data = await openaiChat({
-      model: 'gpt-4o-mini',
-      temperature: 0.9,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: `Sign: ${sign}.${date ? ` Date: ${date}.` : ''} Write today's reading.` },
-      ],
-    });
-    if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json(parseJsonReply(data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ─── End-of-lesson notes: ask a question (AI) / leave a comment (to Sophie) ──
 // Public, so lightly rate-limited per IP. Questions go to Claude Haiku with
 // the lesson's own card text as context; comments land in Firestore
@@ -2459,13 +2399,16 @@ function transitAspects(transit, natal) {
 app.post('/api/witch/daily', async (req, res) => {
   try {
     const { uid, date, cards = [], moonPhase = '', birth = null, force = false, zodiac = 'tropical' } = req.body || {};
-    // Which piece of the day to generate. The client requests three separate
+    // Which piece of the day to generate. The client requests two separate
     // parts so each lands as fast as possible: 'astro' (the short teaser +
-    // omens shown right after "Reveal today's reading"), 'deep' (the long
+    // omens shown right after "Reveal today's reading") and 'deep' (the long
     // Dive-deeper page, requested in PARALLEL with the teaser so it's ready
-    // by the time the button is tapped), and 'tarot' (fired on the first
-    // card tap). No part = the legacy combined reading (stale cached clients).
-    const part = ['astro', 'deep', 'tarot'].includes(req.body && req.body.part) ? req.body.part : null;
+    // by the time the button is tapped). The daily TAROT is no longer
+    // generated — the cards read from the committed corpus client-side
+    // (witch-tarot-readings.json / GET /api/witch/tarot-readings), instantly
+    // and for free. No part = the legacy combined reading (stale cached
+    // clients), which still writes a tarot reading so old pages don't break.
+    const part = ['astro', 'deep'].includes(req.body && req.body.part) ? req.body.part : null;
     // 13-sign ASTRONOMICAL zodiac (real, unequal constellation boundaries the Sun
     // actually crosses, Ophiuchus included) — boundaries in tropical ecliptic
     // longitude. When zodiac==='astronomical' the reading is built from these
@@ -2475,7 +2418,7 @@ app.post('/api/witch/daily', async (req, res) => {
     const con13 = (lon) => { let L = ((lon % 360) + 360) % 360; for (const [n,a,b] of ASTRO_SEG) { if (b > 360) { if (L >= a || L < b - 360) return n; } else if (L >= a && L < b) return n; } return null; };
     const signOf = (body) => (astronomical && body && isFinite(body.lon)) ? (con13(body.lon) || body.sign) : (body && body.sign);
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date (YYYY-MM-DD) is required' });
-    if ((!part || part === 'tarot') && (!Array.isArray(cards) || cards.length !== 3)) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
+    if (!part && (!Array.isArray(cards) || cards.length !== 3)) return res.status(400).json({ error: 'cards must be the 3-card daily pull' });
 
     const db = admin.apps.length ? admin.firestore() : null;
 
@@ -2483,7 +2426,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // astrology). lat/lon/tz can be passed by the client (cached from /natal) to
     // skip geocoding; otherwise geocode once here.
     let natal = null, bigThree = null, transitList = null, tAspects = null, birthErr = null;
-    if (part !== 'tarot' && birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
+    if (birth && birth.date && /^\d{4}-\d{2}-\d{2}$/.test(birth.date) && astro && tzlookup) {
       try {
         const [by, bm, bd] = birth.date.split('-').map(Number);
         let lat = Number(birth.lat), lon = Number(birth.lon), zone = birth.tz;
@@ -2513,7 +2456,7 @@ app.post('/api/witch/daily', async (req, res) => {
     // on the astrology parts: it feeds the transits in both readings and the
     // deep page's day-chart wheel, chart or no chart.
     let todaySky = null;
-    if (part !== 'tarot' && astro) {
+    if (astro) {
       try {
         const now = new Date();
         todaySky = astro.computeChart({ y: now.getUTCFullYear(), m: now.getUTCMonth() + 1, d: now.getUTCDate(), utHours: now.getUTCHours() + now.getUTCMinutes() / 60, lat: 0, lon: 0, withAngles: false });
@@ -2537,13 +2480,8 @@ app.post('/api/witch/daily', async (req, res) => {
       v: 4, z: zodiac, b: bigThree, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`), moonPhase,
     });
     const docRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}${astronomical ? '_astro' : ''}`) : null;
-    // Tarot ignores the zodiac system (cards are cards) — always the plain doc,
-    // so switching Tropical/Astronomical never regenerates the card reading.
-    const tarotRef = (db && uid) ? db.collection('forge-witch-daily').doc(`${uid}_${date}`) : null;
-    const partRef = part === 'tarot' ? tarotRef : docRef;
-    const partHash = part && hashOf(part === 'tarot'
-      ? { v: 5, part, cards: cards.map(c => `${c.position}:${c.name}:${c.orientation || 'upright'}`) }
-      : { v: 5, part, z: zodiac, b: bigThree, moonPhase });
+    const partRef = docRef;
+    const partHash = part && hashOf({ v: 5, part, z: zodiac, b: bigThree, moonPhase });
     // The day's chart rides along on every 'deep' response (recomputed fresh —
     // it's pure math, never stored) so the client can draw the wheel.
     const skyPayload = () => todaySky ? { bodies: todaySky.bodies, aspects: (todaySky.aspects || []).slice(0, 14) } : null;
@@ -2608,7 +2546,7 @@ ANCHOR TRANSIT (the one to build on): transiting ${anchor.t} ${anchor.aspect} na
 TODAY's sky (real computed positions): ${transitLine}.` : ''}`;
     }
 
-    const voice = `warm, plain, and grounded — like a perceptive friend, not a guru or a mystic. Speak directly to them as "you". Never preachy, condescending, bossy, or fatalistic; no woo, no lecturing, no telling them what they "must" or "should" do; no medical/legal/financial certainty.`;
+    const voice = WITCH_VOICE;
 
     const astroSystem = `You are the daily astrologer for "Secretly a Witch" — sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, no astrology-jargon dump, and never tell them what they "should" or "need to" do.${astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : ''}
 You are given their REAL, accurately computed chart and today's REAL transits — interpret them, never recompute. Pick the ONE tightest or most interesting transit today and talk about what it actually feels like in a real life (a text, money, sleep, a conversation, the body, a specific mood), not in the abstract. Do NOT mention tarot.
@@ -2650,10 +2588,9 @@ Write the reading now.`;
 
     // ── Split-part generation (the current client) ────────────────────────
     // 'astro' = the short teaser (headline/reading/omens) on the Today page;
-    // 'deep' = the long Dive-deeper page (reading + ingredients + ritual);
-    // 'tarot' = the 3-card reading. Astrology parts run on gpt-4o at a HIGH
-    // temperature (1.2) — Sophie's pick, to make the readings get really weird;
-    // tarot stays on Claude Opus.
+    // 'deep' = the long Dive-deeper page (reading + ingredients + ritual).
+    // Both run on gpt-4o at a HIGH temperature (1.2) — Sophie's pick, to make
+    // the readings get really weird.
     if (part) {
       const zodiacNote = astronomical ? `\nZODIAC: This reading uses the 13-SIGN ASTRONOMICAL zodiac — the REAL constellation boundaries the Sun actually crosses, INCLUDING Ophiuchus, not the usual tropical signs. The sign names you are given already reflect this; interpret them exactly as given (a "Gemini" here means the Gemini constellation), and do NOT convert them back to tropical or second-guess them.` : '';
       let out;
@@ -2684,7 +2621,7 @@ Set invite to "" unless they have no birth chart, in which case put the invitati
         delete astrology.intention;
         out = { astrology, intention, hasChart: Boolean(natal && bigThree) };
         if (bigThree) out.bigThree = bigThree;
-      } else if (part === 'deep') {
+      } else {
         const deepSystem = `You are the daily astrologer for "Secretly a Witch", writing the DEEPER page of today's reading — the page behind the "Dive deeper" button. The reader already saw a 2-4 sentence teaser written from the SAME sky and the SAME anchor transit; this page picks up that thread and goes further. Do not re-introduce the day, do not summarize — deepen.
 Same voice as the teaser: sharp, specific, and a little witchy, like a clever friend who actually reads charts. NEVER condescending, NEVER generic, NEVER soft or reassuring for its own sake. No life-coaching, no "the universe", no "energy", no woo, and never tell them what they "should" or "need to" do.${zodiacNote}
 You are given REAL, accurately computed positions — interpret them, never recompute. Do NOT mention tarot.
@@ -2710,13 +2647,6 @@ Write the deeper page now.`;
         try { deep = parseJsonReply(dData); }
         catch (e) { return res.status(502).json({ error: 'Could not parse the deeper reading — try again.', detail: e.message }); }
         out = { deep, hasChart: Boolean(natal && bigThree) };
-      } else {
-        const tData = await anthropicChat({ system: tarotSystem, messages: [{ role: 'user', content: tarotUser }], max_tokens: 1400, temperature: 1 });
-        if (tData.error) return res.status(400).json({ error: (tData.error.message || 'anthropic error') + ' (tarot)' });
-        let tarot;
-        try { tarot = parseAnthropicJson(tData); }
-        catch (e) { return res.status(502).json({ error: 'Could not parse the tarot reading — try again.', detail: e.message }); }
-        out = { tarot };
       }
       if (partRef) partRef.set({ date, uid, parts: { [part]: { hash: partHash, data: out } } }, { merge: true }).catch(() => {});
       const resp = { ...out, cached: false, date };
@@ -2768,6 +2698,150 @@ try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* mani
 app.get('/api/witch/tarot-deck', (req, res) => {
   if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
   res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
+});
+
+// ─── Written card meanings (the committed corpus) ───────────────────────
+// The FREE daily pull no longer costs a model call: every card's meanings and
+// longer "depth" paragraphs are written once, committed as
+// witch-tarot-readings.json, and served here. The client picks a variant with
+// the same per-day seed the pull uses, so today's read is stable and instant.
+// Shape: { version, advice:[...], cards: { "<card name>": { upright:{meanings,depth}, reversed:{...} } } }
+let TAROT_READINGS = null;
+try { TAROT_READINGS = require('./witch-tarot-readings.json'); } catch (e) { /* corpus optional — client falls back to the deck's own strings */ }
+app.get('/api/witch/tarot-readings', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=600');
+  if (!TAROT_READINGS) return res.json({ configured: false, version: 0, advice: [], cards: {} });
+  res.json({
+    configured: true,
+    version: TAROT_READINGS.version || 1,
+    advice: Array.isArray(TAROT_READINGS.advice) ? TAROT_READINGS.advice : [],
+    cards: TAROT_READINGS.cards || {},
+  });
+});
+
+// ─── "Ask the cards" — members-only question readings (background job) ──
+// The paid tarot: their own question + a real spread (one / three / horseshoe
+// / Celtic Cross), drawn client-side and interpreted here. Fire-and-forget job
+// on a Firestore doc so a reading survives leaving the app (CLAUDE.md
+// background-job rule); the client polls GET /api/witch/tarot-ask/:id.
+const TAROT_ASK_COLL = 'forge-witch-readings';
+const TAROT_ASK_SPREADS = {
+  one: 'One Card',
+  three: 'Past · Present · Future',
+  horseshoe: 'Horseshoe',
+  celtic: 'Celtic Cross',
+};
+const TAROT_ASK_STALE_MS = 5 * 60 * 1000; // a 'working' doc older than this is a dead job
+// Verify the caller's Firebase ID token against membry-df528 (where the witch
+// app's accounts live). Mirrors stripe.js's identify().
+async function witchIdentify(req) {
+  const hdr = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const tok = hdr || (req.body && req.body.idToken) || req.query.idToken || '';
+  if (!tok) return null;
+  try {
+    await storyDb();
+    if (!storyApp) return null;
+    const dec = await storyApp.auth().verifyIdToken(String(tok));
+    return { uid: dec.uid };
+  } catch { return null; }
+}
+// A paid feature is never unlocked on the client's word — the membership is
+// re-read server-side from the same doc the Stripe webhook writes.
+async function witchIsMember(uid) {
+  try {
+    await storyDb();
+    if (!storyApp) return false;
+    const snap = await storyApp.firestore().collection('users').doc(uid).get();
+    const m = snap.exists ? (snap.data().membership || null) : null;
+    return !!(m && m.active);
+  } catch { return false; }
+}
+app.post('/api/witch/tarot-ask', async (req, res) => {
+  try {
+    const who = await witchIdentify(req);
+    if (!who) return res.status(401).json({ error: 'sign in first' });
+    if (!(await witchIsMember(who.uid))) return res.status(402).json({ error: 'membership required' });
+    const body = req.body || {};
+    const question = String(body.question || '').trim().slice(0, 500);
+    const spread = TAROT_ASK_SPREADS[body.spread] ? body.spread : 'three';
+    const spreadName = TAROT_ASK_SPREADS[spread];
+    const cards = (Array.isArray(body.cards) ? body.cards : []).slice(0, 12).map((c) => ({
+      name: String((c && c.name) || '').trim().slice(0, 60),
+      orientation: c && c.orientation === 'reversed' ? 'reversed' : 'upright',
+      position: String((c && c.position) || '').trim().slice(0, 60),
+    })).filter((c) => c.name);
+    if (!cards.length) return res.status(400).json({ error: 'cards is required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'readings storage not configured' });
+
+    const db = admin.firestore();
+    const ref = db.collection(TAROT_ASK_COLL).doc();
+    await ref.set({
+      uid: who.uid, question, spread, spreadName, cards,
+      status: 'working', result: null, error: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.json({ id: ref.id });
+
+    // Fire-and-forget: the reading is written onto the doc, never awaited here.
+    (async () => {
+      try {
+        const cardList = cards.map((c, i) => `${c.position ? c.position : `Card ${i + 1}`}: ${c.name} (${c.orientation})`).join('\n');
+        const system = `You are the tarot reader for "Secretly a Witch". Your voice is ${WITCH_VOICE}
+You are reading a ${spreadName} spread (Rider-Waite). Read the cards they actually drew — each one in ITS OWN position, then together as one throughline. Do not mention astrology, transits, or the moon.${question ? `
+THEY ASKED A QUESTION. Answer it. Say what the cards say about that exact question, plainly and specifically — never dodge it, never redirect to "what really matters", never give a general reading that could answer anything. If the cards point somewhere uncomfortable, say so kindly and concretely.` : `
+They did not ask anything specific, so read the spread as a general reading of where they are right now.`}
+Return VALID JSON ONLY, no markdown fences, exactly this shape:
+{
+  "cards": [ { "name": "...", "position": "...", "meaning": "1-2 sentences for this card in this position and orientation" } ],
+  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}",
+  "advice": "one gentle, actionable suggestion"
+}
+Give one "cards" entry per card drawn, in the order given, with the position copied exactly.`;
+        const userMsg = `Spread: ${spreadName}.${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}
+Cards drawn:
+${cardList}
+
+Write the reading now.`;
+        const data = await anthropicChat({ system, messages: [{ role: 'user', content: userMsg }], max_tokens: 1800, temperature: 1 });
+        if (data.error) throw new Error(data.error.message || 'anthropic error');
+        const result = parseAnthropicJson(data);
+        if (!result || !result.reading) throw new Error('the reader came back empty');
+        await ref.update({ status: 'done', result, error: null });
+      } catch (err) {
+        console.warn('witch tarot-ask failed —', err.message);
+        await ref.update({ status: 'error', error: String(err.message || err) }).catch(() => {});
+      }
+    })();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Poll one reading. Token-authed and scoped to its owner — a reading already
+// started stays readable even if the membership lapses mid-poll.
+app.get('/api/witch/tarot-ask/:id', async (req, res) => {
+  try {
+    const who = await witchIdentify(req);
+    if (!who) return res.status(401).json({ error: 'sign in first' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'readings storage not configured' });
+    const ref = admin.firestore().collection(TAROT_ASK_COLL).doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    let d = snap.data();
+    if (d.uid !== who.uid) return res.status(404).json({ error: 'not found' });
+    // The job is an in-memory closure, so a restart mid-reading orphans the doc
+    // at 'working' forever — past this margin, call it what it is.
+    if (d.status === 'working' && d.createdAt && Date.now() - d.createdAt.toMillis() > TAROT_ASK_STALE_MS) {
+      const error = 'This took much longer than usual — the server may have restarted. Draw again to retry.';
+      await ref.update({ status: 'error', error }).catch(() => {});
+      d = { ...d, status: 'error', error };
+    }
+    res.json({
+      status: d.status, question: d.question || '', spread: d.spread, spreadName: d.spreadName,
+      cards: d.cards || [], result: d.result || null, error: d.error || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Shop proxy (secretlyawitch.com Shopify storefront) ─────────────────

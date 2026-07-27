@@ -1,0 +1,1919 @@
+{
+ "version": 1,
+ "advice": [
+  "Drink a full glass of water before your first cup of coffee today.",
+  "Message the person you've thought about twice this week and never texted.",
+  "Open a window for ten minutes, even if the air is cold.",
+  "Put back the one thing you keep stepping over.",
+  "Eat something green today, and eat it slowly enough to taste it.",
+  "Take the long way to somewhere you usually rush toward.",
+  "Ask one more question in a conversation before you offer an answer.",
+  "Set a timer for fifteen minutes and start the task you've been dreading.",
+  "Wash the dish in the sink before it becomes four dishes.",
+  "Leave your phone in another room for the length of one meal.",
+  "Tell someone exactly what you liked about something they did.",
+  "Stretch your hands and wrists; they've been holding your whole day.",
+  "Look at your actual bank balance instead of guessing at it.",
+  "Go to bed twenty minutes before the version of you at eleven wants to.",
+  "Say no to one small request so there's room for a bigger yes later.",
+  "Write down the thing you keep meaning to remember.",
+  "Step outside and look at the sky before you look at a screen.",
+  "Finish the half-done thing that's been sitting in the corner of your eye.",
+  "Ask for the help you've been quietly hoping someone would offer.",
+  "Make the bed, even badly, before you leave the room.",
+  "Play the song that makes you move and let it run all the way through.",
+  "Eat lunch somewhere other than in front of your work.",
+  "Answer the email you've reread four times.",
+  "Call someone who knew you before this job or this city.",
+  "Buy the good bread instead of the cheapest loaf.",
+  "Walk somewhere you have only ever driven.",
+  "Clear one surface completely and leave it clear until tomorrow.",
+  "Turn the lights down an hour before you plan to sleep.",
+  "Give one person the true version of how you are today.",
+  "Move your body until your breathing changes, however briefly.",
+  "Cancel the plan you've been dreading, kindly and early.",
+  "Put fresh sheets on the bed while it's still light out.",
+  "Look up one small fact about something you've been curious about.",
+  "Leave earlier than you need to and arrive unhurried.",
+  "Pass along the thing you've been keeping out of guilt.",
+  "Sit in the sun for as long as it stays on your part of the floor.",
+  "Practice asking for something by asking for the smallest version first.",
+  "Write two sentences of the thing you say you'll write someday.",
+  "Cook something that fills the kitchen with a smell you like.",
+  "Put your feet flat on the floor and drop your shoulders before the next hard conversation."
+ ],
+ "cards": {
+  "The Fool": {
+   "upright": {
+    "meanings": [
+     "Something in you is ready to start before you feel qualified, and that readiness is worth trusting.",
+     "You may be meeting someone new, or meeting a familiar person freshly, without the usual script running underneath.",
+     "A plan you haven't fully mapped is still a real plan; the first step is available whether or not step nine is."
+    ],
+    "depth": [
+     "This tends to show up as the message you draft and almost delete, the class you look up at midnight, the route home you take differently for no reason. Your stomach may feel light and slightly unsettled at once. Money moves loosely here, sometimes carelessly. If you've been waiting to feel certain before you move, the certainty usually arrives a few steps in instead of beforehand, which is an awkward but workable order of operations.",
+     "This reads like the first week of something: half-written plans in your notes app, a new name in your calendar, groceries for a recipe you've never cooked. There's a particular tiredness that comes from paying attention to everything at once. Keep a little ballast while you go: some money set aside, one person who knows where you'll be. Openness travels much better with a small amount of weight in the bag."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You may be standing at the edge with your coat on, talking yourself out of it in careful, reasonable sentences.",
+     "Speed can look like courage from the outside; it's worth checking whether you're moving toward something or away from it.",
+     "Fear of the unfamiliar is quietly making your decisions, and it's been doing it long enough to sound like good judgment."
+    ],
+    "depth": [
+     "Reversed, this looks like a drafts folder, a browser tab open for three weeks, a phone call you keep almost making. The body holds it in the shoulders and the jaw. Money tends toward hoarding or toward sudden impulsive spending, sometimes both in one week. A smaller version of the leap usually exists: one conversation, one afternoon, one deposit. Trying the small version teaches you more than another week of imagining the big one.",
+     "This can also be a jump taken without looking: money spent fast, a job quit in an afternoon, a message sent at two in the morning. The tell is how the next day feels in your chest. Nothing here needs undoing in a panic. Slow the next decision down by one day, tell someone what you're considering, and let the plan survive being said out loud before it survives being acted on."
+    ]
+   }
+  },
+  "The Magician": {
+   "upright": {
+    "meanings": [
+     "You have more of what you need than you've counted: skills, contacts, half-finished drafts sitting in a folder.",
+     "Say the thing plainly today; your words are landing with more weight than usual.",
+     "Between the people you know and the tools already on your desk, the gap you're staring at is smaller than it looks."
+    ],
+    "depth": [
+     "This shows up as the email answered within the hour, the favor someone says yes to, the afternoon where four scattered pieces suddenly connect. You may feel wired more than calm, with busy hands, short sleep, and meals forgotten. Take stock before you build: what's in the account, who owes you a reply, which skill you already paid for in an old job. Focus concentrates the effect. Three aims scatter what one aim would carry.",
+     "In work and money terms this is the week to ask. Pitches, applications and negotiations go better than the odds suggest, partly because you sound like someone who expects an answer. In relationships you're persuasive, which is worth handling gently around people who find it hard to disagree with you. Write down the exact result you want before the conversation. Vague asks get vague answers, and you're too well equipped for that today."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A skill you haven't used in a year has gone quiet, and quiet things wake up with practice.",
+     "You may be starting five things at once so that none of them can properly fail.",
+     "If you've been talking about the plan more than working on it, the talking has started to stand in for it."
+    ],
+    "depth": [
+     "Reversed, this looks like eleven browser tabs, three unopened project folders, and a growing suspicion that you're getting away with something. That doubt is usually loudest right before competence. Money often goes to tools rather than to time. Pick the one task you could finish today and leave the others closed. Momentum comes back through one small completed thing more reliably than through one large intended one.",
+     "This can also be persuasion pointed the wrong way: a pitch that oversells, a promise made to end a conversation, a story you've told so often it's smoothed over. Check what you've committed to this month and whether the calendar can actually hold it. Walking one thing back early costs far less than delivering it late. Your credit here is real, and it lasts longer when it's spent accurately."
+    ]
+   }
+  },
+  "The High Priestess": {
+   "upright": {
+    "meanings": [
+     "You already know something you haven't said out loud yet.",
+     "Not everything needs answering today; some questions get clearer if they stay questions a while longer.",
+     "In a room where everyone is talking, the useful information may be whatever nobody is saying."
+    ],
+    "depth": [
+     "This arrives as the pause before you reply to a text, the dream you remember at three in the afternoon, the small physical no in your chest while someone describes a great opportunity. Sleep may get vivid. You might want fewer people around than usual, and that want is information. Before you research a decision further, write down what you'd choose if no more facts arrived. That answer usually survives the research anyway.",
+     "In relationships this looks like knowing what someone will say before they say it and choosing not to finish their sentence. Somebody may be holding back a piece of a story; waiting a day tends to get you more than pressing does. Watch your own privacy too. Keeping something to yourself a little longer can be a way of protecting it while it's forming. Money decisions do better slowly this week than fast."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The signal has gotten faint under the noise: podcasts, opinions, other people's certainty.",
+     "Something is being kept back, by you or near you, and the keeping costs more than the telling would.",
+     "You may be asking everyone what to do because you dislike the answer you already have."
+    ],
+    "depth": [
+     "Reversed, this reads as scrolling for a verdict, sending four friends the same screenshot, reading reviews of a decision that has no reviews. The body often knows first: clenched jaw, shallow sleep, appetite off its usual rhythm. An hour with no input tends to restore the signal faster than another hour of research. If there's a secret in the room, it's worth asking who benefits from it staying one.",
+     "This can also be a stretch where your own instincts have been overruled so often they've stopped speaking up. It shows up at work as agreeing in the meeting and disagreeing in the car. Start small and low-stakes: pick the restaurant, choose the route, say which film you actually want. Instinct is a muscle with a memory, and it recovers through ordinary use more than through one dramatic moment of truth."
+    ]
+   }
+  },
+  "The Empress": {
+   "upright": {
+    "meanings": [
+     "There's more available to you than you're currently letting in: food, help, comfort, an afternoon that belongs to you.",
+     "Something you're tending is growing at its own pace, and it's further along than it looks from the inside.",
+     "You're good for people right now, so make sure some of that care loops back around to you."
+    ],
+    "depth": [
+     "This card often lives in the kitchen: real meals, groceries you actually wanted, a house that smells like something. Creative work moves in a slow physical way, with hands and mess and no clear plan. Bodies want touch, softness, long sleep. Money leans generous here, sometimes past what the account can carry, so a quick look at the number keeps the generosity honest. Whatever you're growing, feed it and stop pulling it up to check.",
+     "In people terms this is the friend everyone comes to, and the version of you that says yes before checking your own week. Somebody will lean on you today. Being leaned on feels good until it's the third night running. Ask for something small back: a ride, a coffee, twenty minutes of being listened to. Creative projects respond to comfort more than discipline here, so start with a good chair, decent light, and an hour without your phone."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You've been pouring out on a schedule and refilling on a maybe.",
+     "The work is stuck in a way that rest addresses better than effort does.",
+     "Think about the last time somebody asked how you were and you answered honestly."
+    ],
+    "depth": [
+     "Reversed, this reads as a fridge full of condiments and nothing to eat, a project you can't look at, and a phone full of people who need something. Skin, stomach and sleep usually complain first. Cancel one obligation today and spend the hour on your own body: a shower, a walk, an actual lunch. Creative blocks here rarely respond to pushing, and they loosen once the person making the thing has been fed.",
+     "This can also be over-giving that looks like love and works like avoidance, since fixing someone's day is easier than facing your own unfinished thing. Watch for money spent on other people while your own bills wait their turn. Someone in your life can handle more than you're giving them credit for. Handing one task back is a kindness to both of you, though it tends to feel rude for about an hour."
+    ]
+   }
+  },
+  "The Emperor": {
+   "upright": {
+    "meanings": [
+     "A frame would help more than more effort: a start time, a budget, a decision that stops being reopened.",
+     "You're the steady one in something right now, whether or not you volunteered for the job.",
+     "Say what the boundary actually is, plainly, once."
+    ],
+    "depth": [
+     "This shows up as calendars, spreadsheets, and the contract you finally read all the way through. There's real relief in a clear rule. Money likes attention today: automate the transfer, cancel the subscription, look at the true number. Sleep and meals improve on a schedule that's slightly boring. If someone is asking you for a decision, give them a real one instead of a maybe, since ambiguity costs the people around you more than a plain no does.",
+     "In relationships this is the person who shows up when they said they would, and reliability reads as love to some people more clearly than words do. It can tip into command, so listen to your tone in the small instructions. At work you may be handed authority or asked to hold a line. Write the plan somewhere others can see it, because structure that lives only in your head reads as mood to everyone else."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The system you built to keep yourself safe has started making decisions you'd rather make yourself.",
+     "Somebody near you needs room more than they need your correction.",
+     "If the plan can't survive a change in the weather, it's a schedule wearing a plan's clothes."
+    ],
+    "depth": [
+     "Reversed, this looks like an aching jaw, a shoulder that won't drop, and a list that regenerates faster than you can clear it. Control tends to concentrate wherever life feels least stable: money, food, someone else's choices. Let one thing be done imperfectly by someone else and watch what actually happens, which is usually nothing at all. Loosening a grip and dropping the thing are different actions, and today is asking for the first.",
+     "This can also be a hard authority in your life: a boss, a parent, a rule with no author left to argue with. Arguing rarely moves that kind of structure. Documentation, allies and patience do. Look at where you have genuine leverage, however small, and use that instead of the frontal approach. If the rigidity is yours, one flexible hour a day is enough to start changing how you're experienced in a room."
+    ]
+   }
+  },
+  "The Hierophant": {
+   "upright": {
+    "meanings": [
+     "Someone has done this before you and would tell you how, if you asked them.",
+     "An old practice, whether a class, a service or a Sunday routine, has more to offer you than its dustiness suggests.",
+     "You may be holding the thread for a group right now, teaching by repetition more than by speech."
+    ],
+    "depth": [
+     "This shows up as institutions and their paperwork: schools, doctors, banks, a marriage, a lease. There is usually a proper channel, and today it works. Mentors are findable, and the message asking for twenty minutes of somebody's time gets a yes far more often than people expect. Old rituals steady the body: same walk, same tea, same chair. If you're learning something, learn it the standard way first and improvise from there.",
+     "In family terms this is the inherited recipe, the phrase your mother used, the holiday that happens whether or not anyone plans it. Tradition carries weight today, and leaning on it saves invention. At work, the established method will hold. If you're the one who knows how something is done, write it down for the next person while it's fresh. Passing on a working method is a quieter contribution than invention and it outlives more of them."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The rule you're following was written for a situation that doesn't resemble yours.",
+     "You may be outgrowing a group whose approval you still want.",
+     "Doing it your own way will cost you some explaining, and the explaining is simply part of the price."
+    ],
+    "depth": [
+     "Reversed, this reads as leaving the church, the company, the family script, or simply cooking the recipe wrong on purpose. Expect a phone call from someone who wants you to reconsider. Money often reorganizes here: a different job shape, a freelance month, a bill you stop paying for something you never used. It helps to know exactly which parts you're keeping. People who leave everything at once tend to come back for whatever they miss.",
+     "This can also mean the official channel fails you and the workaround is the honest route. The permit takes six months, so you borrow the tool. The class is full, so you learn from a video and a patient friend. Improvised paths ask more of you and teach faster. Keep one person nearby who knows the traditional way, because there's usually one step where their answer saves you a month."
+    ]
+   }
+  },
+  "The Lovers": {
+   "upright": {
+    "meanings": [
+     "Two parts of your life have started pointing the same direction, and it's making everything easier.",
+     "There's a choice in front of you that only your own values can settle, and no amount of advice will do it for you.",
+     "Somebody wants to be closer to you than the current arrangement allows."
+    ],
+    "depth": [
+     "This can be romance, and as often it's the friendship where you finally say the real thing. Physically it lands as ease: better sleep, an appetite, a body that stops bracing. When it's a decision, it usually involves giving something up, and the giving up is what makes it a real choice. Write both options down as though you'd already picked. One of them will read like relief.",
+     "At work this looks like a partnership, a collaboration, or a job that finally fits what you say you care about. Alignment is the tell. When your calendar and your values agree, ordinary tasks stop feeling like negotiation. If you're choosing between two good options, look at which one you'd still want on a bad Tuesday. Attraction picks the exciting one, and the bad-Tuesday test picks the one you can live inside."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A conversation has been running underground for a while and it's starting to show in the small things.",
+     "You may be trying hard to want what you're supposed to want.",
+     "Two of your commitments are pulling against each other, and the strain is showing up in your body before it shows up in your calendar."
+    ],
+    "depth": [
+     "Reversed, this is the text that reads flat, the plan that keeps getting rescheduled, the joke that lands wrong twice in a week. Money is often the surface argument for a deeper mismatch about how life should go. Sleep gets thin. One honest sentence, said early and without the whole case attached, tends to do more than the long overdue conversation you've been saving up for the right moment.",
+     "This can also be a values split inside one person. You took the job for the money and you talk about it like a sentence. You keep a friendship going out of history more than warmth. The clue is how you feel on the drive home. Nothing has to be resolved today. Naming which value got traded away, on paper, in one line, makes the next decision considerably less foggy."
+    ]
+   }
+  },
+  "The Chariot": {
+   "upright": {
+    "meanings": [
+     "You've got traction today, so point it at one thing.",
+     "Wanting it badly is doing real work for you right now, so use the week instead of pacing through it.",
+     "Something you've been pushing at is close to moving, and it will move fast once it goes."
+    ],
+    "depth": [
+     "This shows up as an early alarm you actually beat, an inbox cleared, a hard conversation you have on purpose. The body is willing: workouts feel good, hunger is straightforward, sleep runs short without much cost. The risk is steering, since momentum makes every direction look correct. Before the day starts, write down the single outcome that would make it a good day and let the rest of the list lose gracefully.",
+     "Travel, deadlines and competition all favor you here. If you're driving somewhere or shipping something, the logistics tend to cooperate. In relationships, this is the person who takes the lead, which lands well if you check occasionally that everyone else still wants to go where you're headed. Keep the pace sustainable through the middle stretch. Most things on this card are lost at week three rather than at the start line."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're working hard on four things and moving on none of them.",
+     "The push has stopped being aimed, and a day off would put more distance behind you than another sprint.",
+     "What you're chasing may have stopped being what you want, while the chase carried on as a habit."
+    ],
+    "depth": [
+     "Reversed, this reads as opening the laptop and closing it, driving somewhere and forgetting why, a week that was busy every hour with nothing you can point to. Sleep is usually the first thing sacrificed and the first thing worth restoring. Write the list, then cross off everything except the one item that matters. Direction tends to come back from stopping for an afternoon rather than from steering harder for a week.",
+     "This can also be a stall you didn't cause: a delayed contract, a car in the shop, a project waiting on someone else's signature. Frustration lands in the body as restlessness and short temper with people who did nothing. Put the drive somewhere it can land today, even if it's the garage or a long walk. Force with nowhere to go turns inward, and it's much cheaper to spend it on something physical."
+    ]
+   }
+  },
+  "Strength": {
+   "upright": {
+    "meanings": [
+     "The situation wants steadiness from you more than force, and you have the steadiness available.",
+     "You're braver than the version of this you rehearsed in your head last night.",
+     "Someone difficult responds to patience here in a way they'd never respond to a fight."
+    ],
+    "depth": [
+     "This looks like a slow answer to a rude email, a toddler handled kindly at hour eleven, an urge that passes without being acted on. The body registers it: the heat rises and then goes somewhere useful. Fear may still be present, since this card is about acting while it is. In money and work it favors the long steady position over the dramatic move. Softness carries more weight here than it appears to from outside.",
+     "In relationships this is the person who stays calm while someone else comes apart, and that calm is a learned skill, built by practice. It costs something, so watch how much you're absorbing across a week. Physically, gentleness works better than force with a body that's been strained: lighter workouts, warmer food, earlier nights. If there's an appetite or an impulse you're managing, treating it with patience tends to outlast trying to overpower it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You may be pushing at something that responds better to a lighter hand.",
+     "The harsh voice narrating your day has gotten louder than the facts support.",
+     "Impatience with yourself is doing more damage right now than whatever you're impatient about."
+    ],
+    "depth": [
+     "Reversed, this shows up as snapping at someone who didn't earn it and then over-apologizing, or the reverse: everything held in until the shoulders ache and sleep goes shallow. Listen to how you speak to yourself during an ordinary task, because that tone leaks into every room you walk into. Slowing one interaction down on purpose today tends to change the temperature of the whole afternoon more than a resolution would.",
+     "This can also be courage that's temporarily out of stock. The call goes unmade, the gym gets skipped, the difficult person gets avoided in the hallway. Depletion is usually what's underneath it. Food, sleep and one completed small thing rebuild it faster than a pep talk. Pick the smallest version of the brave act, do that one today, and let tomorrow's version be slightly larger."
+    ]
+   }
+  },
+  "The Hermit": {
+   "upright": {
+    "meanings": [
+     "You need an evening with nobody in it, and the need is a practical one.",
+     "A question you've been carrying is close to answering itself once you stop consulting people about it.",
+     "You may hold the useful perspective in a room right now, precisely because you've been standing further back."
+    ],
+    "depth": [
+     "This looks like a phone on do not disturb, a long walk at an odd hour, a notebook that finally gets used. Sleep often deepens. Expect a drop in social appetite, and declining two invitations is usually enough to feel human again. Money quiets here too, with fewer impulse buys and a clearer look at where it's actually going. If someone newer asks you something today, answer more carefully than the question seems to warrant.",
+     "This is a good stretch for the kind of work nobody sees: reading, planning, learning a thing badly in private before doing it in public. Progress is real and invisible, which can feel like nothing is happening. Keep one thread out to another person so the quiet stays chosen. A single standing coffee or phone call is enough of a tether to keep a solitary month restorative."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Alone has slid into unreachable, and the difference matters.",
+     "You may be studying a problem as a way of postponing a decision about it.",
+     "Someone would be glad to hear from you and is waiting for a sign that it's welcome."
+    ],
+    "depth": [
+     "Reversed, this is a week of cancelled plans that each made sense on their own. Days without speaking out loud change how you sound inside your own head. The remedy is small and slightly annoying: one message sent, one errand that involves a cashier, one meal eaten across from another person. If there's a decision you keep researching instead of making, put a decide-by date in the calendar where you'll see it.",
+     "This can also be the opposite complaint: too many people, too much noise, no hour that belongs to you. The tell is irritability at small requests. Look at the week and find one real gap, then defend it like an appointment. Solitude taken deliberately restores something that solitude imposed by exhaustion never quite does, and an hour arranged in advance beats three hours grabbed at midnight."
+    ]
+   }
+  },
+  "Wheel of Fortune": {
+   "upright": {
+    "meanings": [
+     "Something is turning that you didn't set in motion, and the turn is going your way.",
+     "A pattern you've watched repeat is on the upswing this time, so use the good stretch while it's here.",
+     "Timing is doing some of your work for you right now."
+    ],
+    "depth": [
+     "This shows up as an unexpected email, a cancellation that frees your week, a job that arrives through someone you barely know. Money can turn up sideways. Say yes to the odd invitation. Luck on this card tends to run through people rather than plans, so the conversation you almost skipped is worth having. Nothing here stays fixed, which is worth remembering both while it's good and when it turns.",
+     "Cycles are the theme, so look at where you were a year ago on the same date. Whatever is rising now has probably risen before and will again. That makes it useful to act on instead of admire: send the application while doors are open, ask while the answer is likely yes. Good stretches reward preparation you did during a dull one, and they fund the next dull one if you let them."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The wait is real, and it's shorter than it feels from inside it.",
+     "You're holding on to how a thing used to go, and the holding is what's tiring you.",
+     "A door closed recently, and the closing may be doing you a favor whose shape you can't see yet."
+    ],
+    "depth": [
+     "Reversed, this is the delayed package, the postponed decision, the third week of a process that should have taken one. Frustration lands in the body as restlessness. There's often nothing to push against here, so put the effort somewhere it can land: the cupboard, the walk, the friend you owe a call. Delays on this card tend to end abruptly rather than gradually, so keep the paperwork ready and to hand.",
+     "This can also be resistance to a change that's already underway. The team reorganized, the city changed, the friendship shifted shape, and part of you is still operating on the old map. Update one practical thing today instead of the whole worldview: the standing plan, the budget line, the assumption about who calls whom. Adjusting the small logistics tends to bring the rest of the feeling along behind it."
+    ]
+   }
+  },
+  "Justice": {
+   "upright": {
+    "meanings": [
+     "The facts are on your side today, provided you're willing to look at all of them.",
+     "A decision you made a while back is arriving, and it will be recognizable as yours.",
+     "Say the honest version, including the part that doesn't flatter you."
+    ],
+    "depth": [
+     "This shows up in paperwork and plain talk: contracts, taxes, the conversation where you set out what actually happened. Documents matter today, so read them and keep them. In relationships it favors the fair split over the generous one, which sometimes feels cooler and lands better. If you're waiting on a verdict from someone, the wait is usually short. Write down your own account of events before it softens in the retelling.",
+     "Cause and effect are unusually visible here. The habit you kept for six months shows up in your body, your bank balance, or someone's opinion of you, and none of it is mysterious. That works in both directions, so a small correction started today will also be visible later. Pick the one input with the clearest downstream effect, change that, and let the ledger do its slow honest arithmetic."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Something is out of balance and you know which side of it you're standing on.",
+     "There's a consequence you've been treating as a coincidence.",
+     "An apology, owed or owing, is sitting in the room taking up space."
+    ],
+    "depth": [
+     "Reversed, this reads as an unopened envelope, a bill in a drawer, a conversation rescheduled twice. Unfairness may genuinely be coming at you from outside, in which case documentation beats argument. If the imbalance is yours to repair, the repair is usually smaller and less humiliating than the version you've been dreading at three in the morning. Look at the actual numbers or dates before deciding how bad the situation is.",
+     "This can also be a stretch where the honest account has gone missing: a story told in a shape that leaves you blameless, or a shape that gives you all the blame. Both are inaccurate and both are exhausting to maintain. Write the plain version once, for nobody, and see which parts you flinch at. Those are usually the parts that need saying out loud to one specific person."
+    ]
+   }
+  },
+  "The Hanged Man": {
+   "upright": {
+    "meanings": [
+     "The way through is a wait right now, and the wait is doing something.",
+     "Turn the problem over: whose version of the story have you not tried on yet?",
+     "Letting go of a small control here buys you a view that pushing can't reach."
+    ],
+    "depth": [
+     "This looks like an afternoon where nothing on the list gets done and something clarifies anyway. Time goes strange: odd sleep, an hour lost at a window. Work often stalls through no fault of yours. It's a good stretch for tasks that produce nothing measurable, like sorting photos, walking, or listening properly. If a decision has you stuck, argue the side you dislike for ten minutes and see which parts of your position survive.",
+     "Surrender here is a practical move. You stop refreshing the inbox, stop rehearsing the argument, stop trying to make a slow process go fast. The body usually thanks you within a day. Somebody else's timeline is running this, and matching your effort to what's actually available saves you the exhaustion of pushing a door that opens next month regardless of how hard your shoulder works today."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The pause stopped being restful a while ago and has become a hiding place.",
+     "You're waiting for a condition that has no arrival date.",
+     "Something in you knows the answer and is negotiating for more time."
+    ],
+    "depth": [
+     "Reversed, this is the fourth week of thinking about it. Days blur, sleep runs long without restoring much, and the project sits open in a tab you no longer see. What moves it is a very small physical action taken today rather than a better plan made tonight: one email, one call, one box packed. If you genuinely need more time, put a date on it, because open-ended waiting drains more than a deadline ever does.",
+     "This can also be resistance to a pause you actually need. Everything in you wants to act, and the situation has nothing to act on, so you generate motion: extra errands, a reorganized inbox, a new project started at eleven at night. The restlessness is real. Give it something physical and finite, then let the stuck thing stay stuck for another few days without treating that as a personal failure."
+    ]
+   }
+  },
+  "Death": {
+   "upright": {
+    "meanings": [
+     "Something is over, and the part of you that already knew it is quietly relieved.",
+     "Clearing out makes room in a way that adding never does.",
+     "A version of your life is closing, and the next one gets to be different on purpose."
+    ],
+    "depth": [
+     "This shows up as the last day at a job, the bag of clothes by the door, the friendship that fades without a single argument. The body usually wants sleep and simple food. Expect grief even for things you chose, since choosing and mourning happen in different departments. Mark the ending somehow: a meal, a drive, a photograph taken on the last day. What comes next tends to arrive only once the space is genuinely empty.",
+     "Practically, this is a good stretch for endings you control. Cancel the thing, sell the item, close the account, have the conversation you've been drafting for months. Money often simplifies here. Relationships get honest, sometimes abruptly. Whatever survives this stretch tends to survive with more room around it, and the discomfort of the first empty week is usually the worst part of the whole transition."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're maintaining something past its end, and the maintenance costs more than the thing returns.",
+     "There's a box, a chat thread, or a routine you keep going back to check.",
+     "The ending has already happened, and what remains is agreeing with it."
+    ],
+    "depth": [
+     "Reversed, this looks like rereading old messages at midnight, paying for a subscription to a life you don't live, keeping a room arranged for someone who moved out. Sleep is often the tell. Nothing here demands a dramatic purge. Move one object, mute one thread, skip one ritual and see how the week feels afterward. Grief given a little room tends to stop presenting itself as insomnia and low-grade irritation.",
+     "This can also be a change stalled halfway. You left the job but kept the hours. You ended the relationship and kept the routines built around it. Half-transitions are the most tiring position to hold. Pick one habit that belongs to the old arrangement and replace it with something that belongs to the new one, on a specific day, and let the rest follow at its own pace."
+    ]
+   }
+  },
+  "Temperance": {
+   "upright": {
+    "meanings": [
+     "The middle setting is the right one today: half as much, twice as long.",
+     "Two things you thought were opposites are combining better than expected.",
+     "You're mixing something slowly, and slow is exactly what's making it work."
+    ],
+    "depth": [
+     "This looks like moderation without misery: one drink, an early night, a workout that leaves something in the tank. Money likes the steady deposit here more than the clever move. In relationships it's the person who translates between two others without taking a side. Recipes, blends and adjustments all favor small increments. If you're recovering from an illness, a breakup, or an overloaded month, this pace is the one that actually gets you back.",
+     "Patience is doing structural work today. The thing you're waiting on improves by sitting: the dough, the paint, the apology, the plan. Check it less often. In practical terms, this is a good day to combine rather than choose, since the two jobs, the two cities, or the two ideas may not need to fight. Look for the version that takes something real from each side and lets the rest go quiet."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Something has tipped into too much, and you probably know which thing it is.",
+     "You're trying to make up a month of progress in one afternoon.",
+     "The extremes have started trading off: too little, then too much, then too little again."
+    ],
+    "depth": [
+     "Reversed, this reads as a body that's had too much of one thing and not enough of another: caffeine and no water, screens and no sleep, work and no meals. The correction is boring and it works. Rather than an overhaul, change one input for three days and see what shifts. Impatience is the loudest voice here, and it always argues for a big dramatic fix that never survives an ordinary Tuesday.",
+     "This can also be imbalance between people. One person carries the logistics, the other carries the mood. One gives money, the other gives time, and neither is counting out loud yet. Say the ratio plainly before it becomes resentment, because resentment does the saying much less kindly. Small rebalancing now, in one specific chore or one specific bill, prevents the version of this conversation that happens at full volume."
+    ]
+   }
+  },
+  "The Devil": {
+   "upright": {
+    "meanings": [
+     "Something has more hold on you than you'd say out loud, and the saying is the hard part.",
+     "A pleasure has quietly started setting your schedule.",
+     "You may be inside an arrangement that pays well enough to keep you from leaving it."
+    ],
+    "depth": [
+     "This shows up as the second drink, the open tab at one in the morning, the card statement full of purchases you don't remember. It can also be a person you keep returning to who is bad at loving you and very good at knowing you. The body keeps the record: sleep, stomach, the low hum in the chest. Knowing what the habit does for you makes it far easier to find that same thing somewhere less expensive.",
+     "Money and work carry this card often. A salary that's slightly too good to walk away from, a client who pays late and calls at midnight, a lease you can't afford and can't leave. The trap is usually a real one, which is why willpower alone tends to bounce off it. Look for the one practical constraint that could change in ninety days, and start working on that one instead of the whole cage."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The hold is loosening, and you've caught yourself mid-pattern more than once lately.",
+     "Something you thought you couldn't do without has started to feel optional.",
+     "You're getting your own opinion back from someone who has been holding on to it."
+    ],
+    "depth": [
+     "Reversed, this is day four without the thing and the strange flat feeling that comes with it. Sleep often gets worse before it improves. Expect a test: an invitation, a message, a bad night that argues persuasively for going back. Planning the next hour helps more than planning the next month. Tell one person what you're doing, because being known about makes the old pattern much harder to slip back into quietly.",
+     "This can also be the moment a story loses its grip. The thing you believed about yourself since you were nineteen turns out to be a sentence somebody once said in a kitchen. Freedom here often shows up as an ordinary flat afternoon, which is easy to mistake for nothing happening. Fill the space deliberately with something you actually like, since an empty slot rarely stays empty for long."
+    ]
+   }
+  },
+  "The Tower": {
+   "upright": {
+    "meanings": [
+     "Something came apart quickly, and the quiet afterward has an unfamiliar shape to it.",
+     "A truth arrived that you can't un-know, and it rearranges a few things.",
+     "What's falling was already leaning, so the speed is what shocks you more than the fact does."
+    ],
+    "depth": [
+     "This looks like the text you didn't expect, the layoff, the diagnosis, the sentence someone says at dinner that ends a conversation. Bodies go practical: you may feel very little for a day or two. Do the small logistics first, which means eat, sleep, and tell one person. Big decisions made in the first forty-eight hours usually get remade later. What this clears out tends to be something you had stopped questioning years ago.",
+     "Money and housing often carry this card. The car dies, the rent goes up, the arrangement that held everything together stops holding. Emergency mode is genuinely useful for about a week and corrosive after a month. Ask for practical help early, in specific terms, since people are far better at answering a clear request than a general one. Rebuilding on this card usually produces something sturdier than what came down."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The thing you braced for didn't arrive, or arrived much smaller than the version in your head.",
+     "You may be holding a structure upright that would be fine coming down.",
+     "Dread has been running in the background long enough to feel like information."
+    ],
+    "depth": [
+     "Reversed, this is the near miss: the test that came back clear, the argument that stopped one sentence short, the crash you saw in the mirror. Relief takes a while to reach the body, and shaking hands afterward are normal. Sleep may be strange for a few nights. If the scare pointed at something real, this is the week to do the boring maintenance you postponed, while the memory is still sharp enough to motivate it.",
+     "This can also be a demolition you keep delaying. The job, the lease, the arrangement everyone tiptoes around: you can already see how it ends. Ending it yourself is far less expensive than waiting for it to end on its own schedule, and it lets you choose the timing and the sentence. Pick a date, tell one person the date, and let that person hold you to it."
+    ]
+   }
+  },
+  "The Star": {
+   "upright": {
+    "meanings": [
+     "Something in you is refilling quietly, without needing to be dramatic about it.",
+     "You can be honest about how bad it got and still be hopeful, and both are true this week.",
+     "Someone sees promise in you that you'd argue with if they said it out loud."
+    ],
+    "depth": [
+     "This shows up after the hard part: an appetite returning, a night of real sleep, the first time a song sounds good again. Water helps here in a literal way, whether that's showers, swimming, or simply drinking enough of it. It's a good stretch to apply for the thing, send the work out, say the hope to one specific person. Recovery is happening at a pace that's genuinely easy to miss from the inside.",
+     "Hope on this card has a practical shape. It looks like making a plan for six months out, buying seeds, booking a flight, updating a portfolio you hadn't touched since the bad year. Other people find you easy to be around while this is running. Use some of it outward: encourage somebody specifically, in detail. Saying the good thing out loud tends to make it more solid in you, too."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Faith in the thing has thinned, and it happened slowly enough that you didn't clock it.",
+     "You may have stopped asking for what you want because asking got tiring.",
+     "Something small you used to love has been off the calendar for months."
+    ],
+    "depth": [
+     "Reversed, this looks like going through the motions competently while feeling nothing much about them. Sleep might be fine and the days still gray. The route back tends to run through the body and small pleasures rather than through a plan: the walk, the bath, the hour of the thing you liked at nineteen. Put one of them in this week with an actual time attached, since hope returns through repetition more than through insight.",
+     "This can also be a stretch where encouragement has dried up around you. Nobody has said anything kind about your work in months, and you've started supplying the harsh commentary yourself. Go find the evidence: old messages, past results, someone who remembers what you did. Then ask one person for a real opinion. Being seen accurately by somebody outside your own head does something a private pep talk can't."
+    ]
+   }
+  },
+  "The Moon": {
+   "upright": {
+    "meanings": [
+     "You're working with incomplete information, so you'll be feeling your way for a while.",
+     "Dreams and half-thoughts are unusually loud right now, and they're worth writing down before breakfast.",
+     "Something looks different at night than it does at ten in the morning, and both readings hold part of the truth."
+    ],
+    "depth": [
+     "This shows up as vivid dreams, odd sleep, and a mood that shifts with the hour. Fears grow after dark and shrink in daylight, which is worth knowing before you send anything at midnight. Somebody's story may have a piece missing, and it may not be solvable today. Keep the walk, the water, and a regular bedtime, because imagination works better when the body is running on a predictable schedule.",
+     "Illusion is part of this card, so check the sources. The photo is old, the number is from last year, the impression came from one bad meeting. Money decisions made on partial information tend to need redoing here. Where you can't get clarity, act in small reversible steps instead of large committed ones. Intuition is genuinely useful in this fog, and it works best when you also know which facts are missing."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The fog is lifting, and something that looked enormous last week has gone back to its actual size.",
+     "A fear you've carried a long time is losing its grip, and you may notice its absence before you notice the change.",
+     "Something you suspected turns out to be true, and knowing is easier than wondering was."
+    ],
+    "depth": [
+     "Reversed, this reads as sleeping through the night after a bad stretch, or rereading an old message and finding it far less loaded than you remembered. Confusion clears in ordinary ways: somebody answers plainly, a result comes back, you finally ask the question you'd been circling. Write down what you were afraid of while you can still remember it clearly, because it makes the next round of fog much easier to recognize as fog.",
+     "This can also be the week a secret stops being one. Something comes to light, and the atmosphere in a room changes. Relief and awkwardness usually arrive together. Give the facts a day before you decide what they mean. Your body will often settle first, with sleep and appetite returning ahead of your opinion, and that steadiness is a reasonable place to make the next decision from."
+    ]
+   }
+  },
+  "The Sun": {
+   "upright": {
+    "meanings": [
+     "Things are going well, and it's worth saying that plainly instead of waiting for the catch.",
+     "You're easy to be around right now, and people are responding to it.",
+     "Something you worked on is being seen, and the seeing is accurate."
+    ],
+    "depth": [
+     "This shows up as good light, a body that wants to move, and a day where the logistics simply work. Children, animals and uncomplicated people are especially good company. Say yes to being outside. Money and work tend to arrive without much drama here. Take a photograph, or tell somebody the good part out loud, because a specific memory of a good day holds much better once it's been recorded somewhere.",
+     "Warmth is the practical instruction. Be generous with attention, praise the work in front of you, host the small thing. Visibility is favorable, so this is a decent week to post the work, ask for the introduction, or walk into the room you've been avoiding. Health often improves in ordinary ways: more daylight, more movement, better sleep. Enjoy the stretch without auditing it for how long it will last."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The good thing is real and running late.",
+     "You may be talking yourself out of enjoying something that's actually fine.",
+     "Some of the light is getting blocked by one specific worry, which is easier to move than the whole situation."
+    ],
+    "depth": [
+     "Reversed, this looks like a good week under a gray filter: the win that lands while you're too tired to feel it, the holiday spent checking email. Sleep and daylight both matter more than usual. A postponement here rarely turns into a cancellation. If you're waiting on news, the tone of the waiting is usually worse than the news will be. Go outside in real sunlight for twenty minutes before making any judgment about the day.",
+     "This can also be brightness dimmed on purpose, where you play something down so nobody feels overshadowed, or so you won't look foolish if it falls through. That habit costs more than it saves. Tell one person the good news in full, without hedging it, and see how it sounds coming out of your mouth. Delayed pleasure is still pleasure, and it improves considerably once it's been said aloud."
+    ]
+   }
+  },
+  "Judgement": {
+   "upright": {
+    "meanings": [
+     "Something is asking you to answer it, and you've heard it more than once now.",
+     "You can see a past stretch of your life clearly enough to say what it was, and the clarity changes what you do next.",
+     "An old thread, whether a person, a place, or unfinished work, is coming back around for a decision."
+    ],
+    "depth": [
+     "This shows up as the email from someone you haven't spoken to in years, the medical result, the moment you hear yourself say a thing out loud and know it's true. Old boxes get opened. Forgiveness may be on the table, including your own. Take stock honestly rather than harshly, since a clear-eyed list of what happened is more useful than a verdict on who you were while it was happening.",
+     "Calls on this card tend to be small and specific: a field you keep reading about, a person you keep meaning to help, a skill you abandoned at twenty-four. The practical move is to test it cheaply. One class, one volunteer shift, one afternoon spent doing the actual work rather than researching it. Most callings survive contact with an ordinary Tuesday, and the ones that don't are useful to find out about early."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You keep hearing the call and treating it as a mood.",
+     "Self-judgment has gotten loud enough to drown out the actual question.",
+     "There's a message you haven't answered because answering makes it real."
+    ],
+    "depth": [
+     "Reversed, this reads as an inbox with one unread thing in it for a week, or a course you look up repeatedly and never sign up for. The harshness usually lands on old versions of yourself who were doing their best with much less. A small first move works better than a decision about your whole life: reply, ask one question, book the appointment. The call rarely goes away, though it does get easier to talk over.",
+     "This can also be a reckoning you're postponing with someone else: the conversation about what happened, the amends you drafted and never sent. Time only adds weight to it. Keep the first move short and specific, without the full history attached. People generally respond better to one honest paragraph than to a long account that arrives three years after the fact and asks them to relive it."
+    ]
+   }
+  },
+  "The World": {
+   "upright": {
+    "meanings": [
+     "Something is genuinely finished, and finishing it changed you a little.",
+     "You've arrived somewhere you were aiming at a long time ago, so look up and notice you're standing in it.",
+     "A circle is closing, and the next one starts from higher ground."
+    ],
+    "depth": [
+     "This shows up as the last box unpacked, the final payment, the trip you actually take. There's often a strange flatness right after an achievement, which is normal and passes within a week or two. Mark the ending properly: tell people, take the photograph, spend the money on the meal. Travel and long-distance things go well here. Whatever comes next usually arrives within weeks, so the rest between them is worth using well.",
+     "Wholeness on this card is practical. The parts of your life stop arguing with each other for a stretch, and the calendar, the bank balance and the people in it broadly agree. Use the clear view: write down what worked, since you'll want it during the next hard year. Somebody behind you is doing the version of this you finished, and an hour of your time right now is worth a great deal to them."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're nearly there, and the last five percent is the boring five percent.",
+     "Something is finished in practice and unfinished on paper.",
+     "One conversation, one form, or one payment stands between you and being done with this."
+    ],
+    "depth": [
+     "Reversed, this is the project stuck at ninety percent for a month, the box still in the hallway, the thank-you note never written. The last step is usually small and slightly tedious, and it carries more weight than its size suggests. Put twenty minutes on the calendar for it this week. Open things stay heavy, and people generally sleep better on the night after they finally send the thing off.",
+     "This can also be an ending that happened without being marked, so part of you still thinks the chapter is running. The job ended, the course finished, the friendship completed its shape, and nobody said so out loud. Do something small and deliberate to close it: a meal, a letter you may not send, one afternoon spent putting the material away properly. Completion tends to need a gesture, not only a date."
+    ]
+   }
+  },
+  "Ace of Wands": {
+   "upright": {
+    "meanings": [
+     "A spark caught somewhere in you — an idea, an urge to make something — and you can feel it before you've named what it is.",
+     "Something new is starting to stir between you and another person — a flirtation, a shared project, a conversation that lit you both up.",
+     "A fresh opportunity or the first draft of a plan is showing up in front of you, ready for you to pick it up."
+    ],
+    "depth": [
+     "Think of the moment right before you open a blank document and your fingers are just hovering over the keys — that charge, that itch to start. This card is that itch, before doubt or planning gets involved. You might feel it as a text you want to send, a class you suddenly want to sign up for, a room you want to paint a color nobody asked for. Nothing needs justifying yet. It's early enough that the whole thing is still just a feeling in your chest and a faster pulse.",
+     "This is the version of you that wakes up at 2am with an idea and actually writes it on your phone instead of trusting you'll remember it. The pull is physical — restless legs, a warmer face, the urge to call someone and say \"okay, listen.\" Maybe it's a business idea, maybe it's wanting to ask someone out, maybe it's just wanting to rearrange your whole apartment tonight. The spark doesn't come with instructions. It shows up and asks whether you'll follow it somewhere."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The spark is there, but you keep talking yourself out of it before it gets any air.",
+     "You've got something to say to someone — an invitation, a confession — and it keeps stalling in your throat.",
+     "The idea that excited you is stuck in the planning stage, circling instead of starting."
+    ],
+    "depth": [
+     "You've opened the notes app four times to write down the idea and closed it four times without typing anything. You might tell yourself you're waiting for a better time, a clearer plan, proof it won't fail — but what's actually standing between you and starting is smaller than all that: one sentence, one email, ten minutes you keep not spending. Your body still has the restlessness of the idea even while your calendar stays empty of it. The spark is still there, sitting unlit in a drawer.",
+     "There's a version of this where the excitement shows up in bursts — a burning weekend of research, three days of silence, then another burst — and none of it turns into the phone call or the first page. You might notice it as scattered browser tabs, a dozen half-written texts, a project folder with one file in it named \"draft_final_v1\" you haven't opened in weeks. The want is loud. The follow-through keeps getting rescheduled to a day that hasn't arrived yet."
+    ]
+   }
+  },
+  "Two of Wands": {
+   "upright": {
+    "meanings": [
+     "You're standing at a genuine fork — one path keeps you where it's comfortable, the other asks you to reach further than you have before.",
+     "You and someone close to you are quietly weighing whether to build something bigger together or keep things as they are.",
+     "A decision about scaling up — a move, a bigger contract, a new city — is sitting in front of you, waiting for a yes or a no."
+    ],
+    "depth": [
+     "Picture holding two plane tickets and only being able to book one. You've done the research, you've got the map spread out, and now it's just you and the actual decision — the part research can't do for you. Your stomach probably flips between both options depending on the hour. Maybe it's a job offer somewhere else, a partnership you could say yes to, or a bigger version of something you already do. The comfortable choice is right there. So is the one that scares you a little.",
+     "You might notice this as staring at your phone with two open tabs — one is safe, one is a stretch — and neither closing. It could be as concrete as choosing between renewing your lease or moving to the city you've been circling on a map for a year, or deciding whether to expand the small thing you started into something bigger with real risk attached. There's no test to pass here, just the two roads and the fact that only you can walk one of them."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You keep circling the decision without ever landing on one path, so both options are aging while you wait.",
+     "A plan you and someone else were building together has stalled because neither of you wants to commit to the next step.",
+     "Fear of the wrong move has you holding onto a smaller version of the plan than the one you actually want."
+    ],
+    "depth": [
+     "You've made the pro/con list six times and it comes out different every time, which tells you the list was never really the problem. Maybe you keep almost booking the ticket, almost sending the proposal, almost telling your partner about the bigger plan, and then closing the tab instead. The two options aren't equally weighted anymore — one of them is just safer, and safety has been winning by default instead of by choice. Both roads are technically still open. Neither one is moving forward.",
+     "This can look like staying in the job you've outgrown because leaving means admitting you actually wanted more, or turning down the bigger apartment because the smaller one is easier to explain. You might catch yourself downplaying the ambitious option out loud — \"it's probably not realistic anyway\" — before anyone's even challenged it. The globe is still in your hands. You've just stopped looking past the part of it you already know."
+    ]
+   }
+  },
+  "Three of Wands": {
+   "upright": {
+    "meanings": [
+     "Something you started a while back is finally leaving the planning stage and moving into the world.",
+     "A partnership or collaboration is starting to pay off in ways you can actually see now.",
+     "Good news is en route — a response, a shipment, a result — and the waiting is almost over."
+    ],
+    "depth": [
+     "This is the feeling of finally hitting send after weeks of drafts, then catching yourself checking for a reply every twenty minutes. You did the setup — the pitch, the first calls, the groundwork — and now it's out of your hands and moving on its own. You might feel it as a shipment tracker you keep refreshing, a job application you sent last month, or a project that finally has other people involved instead of just you. The horizon looks close enough to make out details.",
+     "Think of standing at a window watching for a car that's due any minute — that mix of confidence and impatience. Maybe it's a book proposal out with agents, a small business finally getting its first outside orders, or a long-distance plan with someone that's about to become real logistics — flights booked, dates set. The early, lonely part of the work is over. What's left is watching it come in and figuring out what to do with the size of it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The thing you launched has stalled somewhere out of view and you're not getting updates.",
+     "A collaboration is drifting because the other side went quiet on their part of it.",
+     "You're bracing for a delay or a setback right when you expected things to arrive."
+    ],
+    "depth": [
+     "You sent the email three weeks ago and the read receipt's been sitting there unanswered since. Maybe the funding fell through, the shipment's stuck at customs, the collaborator went quiet mid-project — the specifics change, but the shape is the same: momentum you built has gone strangely still, and you're left refreshing an inbox instead of moving forward. The plan is likely still alive somewhere just out of view, parked in a way you can't currently push on.",
+     "This can show up as a project you announced with real excitement that's now three months behind schedule and nobody's mentioning it anymore, including you. Or a partner overseas who used to text every day going quiet for a week with no explanation. You might catch yourself rehearsing the \"so what happened to that thing\" conversation in the shower. The ships are still out there. You just can't see the horizon from here right now."
+    ]
+   }
+  },
+  "Four of Wands": {
+   "upright": {
+    "meanings": [
+     "Something you've worked toward has reached a real, solid milestone, and it's worth actually pausing for.",
+     "There's a warmth building in your closest relationships — a homecoming, a reunion, people gathering around you.",
+     "A celebration, ceremony, or milestone event is coming, and it marks something genuinely earned."
+    ],
+    "depth": [
+     "This is the feeling of walking into a room strung with lights that people put up just for you — a graduation, a housewarming, a wedding, the day the renovation is finally done. Your shoulders drop for the first time in months. You might notice it as your family group chat suddenly buzzing with plans, or a table getting set for more people than usual. Whatever got you here took real work. This part is just enjoying that it's actually here.",
+     "Picture moving into a place that's finally, completely yours — boxes unpacked, keys that feel different in your hand than a rental's did. Or a wedding invitation with your name on it as the one getting married. Or just a Sunday where the people you love are all in one kitchen at the same time and nobody has anywhere else to be. The relief here has a body to it — you sleep better, you laugh easier. This is a card about a threshold you're finally standing inside instead of outside of."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A celebration or milestone got postponed, downsized, or is happening without the people you wanted there.",
+     "Home doesn't feel as steady right now — a move, a family rift, or tension is unsettling what used to be solid ground.",
+     "You reached the milestone, but the pause you needed hasn't actually happened yet."
+    ],
+    "depth": [
+     "The wedding got moved, the housewarming got canceled, or the promotion came through over email instead of the toast you pictured — the achievement is real, the moment around it isn't matching what you'd built up in your head. Maybe you're technically home but the apartment still has boxes in it from six months ago, or someone who was supposed to be at the table isn't speaking to the rest of the family right now. The floor's a little uneven under something that used to feel fixed.",
+     "You might finish the big project and go straight into the next deadline without so much as ordering takeout to mark it, and a month later realize you never actually celebrated. Or you moved into the new place and it still doesn't feel like home yet — the furniture's there but the feeling hasn't caught up. This can also look like a family event where the old tension flares right when everyone's supposed to be relaxing, so the gathering happens but the ease doesn't."
+    ]
+   }
+  },
+  "Five of Wands": {
+   "upright": {
+    "meanings": [
+     "You're in the middle of a scrappy, noisy competition — for a job, attention, resources — and it's more exhausting than dangerous.",
+     "Tension is building between people who all want slightly different things and aren't backing down yet.",
+     "A project is hitting friction — everyone's got a different idea of how it needs to go and nobody's deferring."
+    ],
+    "depth": [
+     "This is five people talking over each other in a group project meeting, all convinced their version is the right one. Maybe it's a bidding war on an apartment, three vendors underbidding each other for your business, or a family group chat where every single person has opinions about the holiday plans and none of them are wrong exactly. Nobody's really the enemy here. It's just loud, a little chaotic, and everyone's holding their ground at once.",
+     "You might feel this as a meeting that should've taken twenty minutes stretching to ninety because four people keep restating their point louder instead of listening to the other three. Or a competitive field — auditions, a crowded job market, a pitch competition — where you're up against people who are genuinely good, not just posturing. Your jaw might be tighter than usual, or you're rehearsing your argument in the shower before you've even had the meeting. Everyone's still mid-scramble."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The conflict is easing, or you're finally stepping back from a fight that wasn't worth the trouble it was costing you.",
+     "Old rivalry or tension between people close to you is settling into something more workable.",
+     "You're avoiding a disagreement that actually needs to happen for a project to move forward."
+    ],
+    "depth": [
+     "The group chat argument finally dies down, or you decide the apartment bidding war isn't worth going another five grand over and you let it go — and the relief is almost physical, like your shoulders unclench for the first time in a week. Sometimes this shows up as a sibling rivalry finally cooling into something more like friendship, or a work rivalry easing once one of you gets promoted and the competition stops feeling like a zero-sum game between you.",
+     "This can also be the flip side — a disagreement everyone's pretending isn't happening, smiling through a meeting where two people clearly disagree on the direction and nobody says so out loud. Maybe you're the one biting your tongue in a planning call because raising the real objection feels like more trouble than it's worth. The five voices haven't gone quiet by accident. They've gone quiet in a room that could use one of them speaking up."
+    ]
+   }
+  },
+  "Six of Wands": {
+   "upright": {
+    "meanings": [
+     "You're getting real recognition for something you worked hard on, and it's landing the way you hoped it would.",
+     "People around you are noticing your win and are genuinely happy for you, not competing with it.",
+     "A public result — an announcement, an award, a promotion — is going your way."
+    ],
+    "depth": [
+     "This is opening an email and seeing the offer letter, or scrolling to a comment section full of people actually excited for you instead of the usual noise. You might feel it as your phone buzzing all day with congratulations texts, or walking into a room and having people clap, even just a little. The relief of being seen for something you worked hard on in private is its own particular high — equal parts pride and a little embarrassment at how good it feels.",
+     "Picture the parade-through-town feeling of this card as smaller and more real: you get the callback, you get the acceptance email, your name gets said out loud in a meeting in a good way. Maybe it's a launch that actually lands, reviews coming in warm, or a friend forwarding your work to someone else unprompted, saying \"you have to see this.\" The validation here is specific, about something you actually did, and for once you don't have to talk yourself into believing it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Recognition you expected is slow to arrive, or it's landing on someone else instead of you.",
+     "Old insecurity is creeping in even though the win is real — you can't quite let yourself enjoy it.",
+     "A public success is more complicated behind the scenes than it looks from outside."
+    ],
+    "depth": [
+     "You hit the milestone and posted about it, and the likes trickled in slower than you hoped, or a colleague got the credit for something you did most of the work on. Maybe you got the promotion but the announcement email felt oddly quiet, or you won and immediately started listing reasons it doesn't really count. The win happened. Something about how it's landing feels smaller or messier than the moment deserved.",
+     "This can look like getting genuinely good news and immediately telling three people \"it's not a big deal,\" deflecting compliments before they even finish. Or it's the private side of public success — the award-show smile next to the anxiety about whether you can do it again, or a promotion that came with more scrutiny than support. Sometimes it's simpler: you did the work, someone else got the applause, and you're left figuring out how to feel about that."
+    ]
+   }
+  },
+  "Seven of Wands": {
+   "upright": {
+    "meanings": [
+     "You're holding your position against pressure from multiple directions, and so far, you're holding.",
+     "You're having to defend a decision or a boundary to people who keep pushing back on it.",
+     "Competitors or critics are coming at something you built, and you've got the higher ground if you keep your footing."
+    ],
+    "depth": [
+     "This is the meeting where three people gang up on your proposal and you have to keep restating your point without your voice shaking. Maybe it's a boundary with a family member who keeps testing it, a business idea that keeps getting picked apart by people who didn't build it, or a promotion you have to keep justifying even after you got it. You're holding, but staying upright this long has worn you out.",
+     "Picture standing on a hill with people below trying to pull you down a rung at a time, and the actual work is planting your feet again each time it happens. This shows up as re-explaining the same boundary to the same relative every holiday, defending a price you quoted against a client trying to talk you down, or holding a stance in a group chat where everyone else has an opinion and yours is the one under fire. Your jaw's probably tight. You haven't backed down yet."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're worn down from defending the same ground over and over, and you're close to giving it up.",
+     "You're picking fights that don't need fighting, digging in on things that don't matter as much as they feel like they do.",
+     "Pressure from other people is starting to actually change your mind, not just your patience."
+    ],
+    "depth": [
+     "You've had the same argument with the same person about the same thing four times this year and you're starting to wonder if it's worth having a fifth. Maybe you're one more pushy comment away from just doing it their way to end the conversation, or you've caught yourself arguing about something small — a scheduling detail, a wording choice — with the same intensity you'd bring to something that actually matters. The fight's gotten bigger than the stakes.",
+     "This can look like caving on a price you know is fair because the client won't stop pushing, or agreeing to a plan you don't believe in because holding your ground felt like more than you had left that day. Or the opposite — refusing to budge on something genuinely small, like the order of a shared document, with the same stubbornness you'd want to save for something real. Either way, you're spending your resolve on the wrong scale right now."
+    ]
+   }
+  },
+  "Eight of Wands": {
+   "upright": {
+    "meanings": [
+     "Things are picking up speed fast — replies, plans, decisions — after a stretch where nothing was moving.",
+     "A conversation or relationship is accelerating quickly, with things falling into place faster than expected.",
+     "Multiple things are converging at once — travel, news, a deadline — and it's all landing in a short window."
+    ],
+    "depth": [
+     "This is your phone buzzing four times in ten minutes after a week of silence — the interview, the reply, the shipping notification, all showing up at once. Maybe it's a trip that comes together in days instead of months, texts with someone new that go from a few words to paragraphs overnight, or a project that suddenly has a real deadline attached to it. Your calendar fills in fast. The stillness is over, whether you were ready or not.",
+     "Picture watching several trains you've been waiting for all arrive at the platform at the same time. You might feel it as three separate opportunities landing in the same week after months of nothing, or a new relationship where the texts go from once a day to constant within a few days. It can also be more literal — actual travel, actual flights, an unplanned trip coming together fast. The pace is exciting and a little dizzying, and you don't have to catch every single thing at once to keep the momentum going."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Things that were moving fast have suddenly stalled, and the pace change is its own kind of disorienting.",
+     "Miscommunication is piling up because everything's moving too fast for anyone to actually check in.",
+     "You're rushing something that would go better with a little more patience."
+    ],
+    "depth": [
+     "The texts that were constant for two weeks suddenly stop, or the flight gets delayed three times in a row and you're stuck at the gate refreshing the board. Maybe a deal that was moving fast hits a wall of paperwork nobody accounted for, or a fast-forming plan with friends falls apart because three different group chats had three different understandings of the details. The speed didn't just slow down. It stopped somewhere you weren't watching.",
+     "This can look like firing off a reply the second you get a notification instead of reading the whole message first, then having to walk back half of what you said. Or it's a project moving so fast that nobody actually confirms the final details until it's too late to change them cheaply. Sometimes it's simpler — you're so used to the frantic pace of the last few weeks that the sudden quiet feels wrong, even when it's only quiet."
+    ]
+   }
+  },
+  "Nine of Wands": {
+   "upright": {
+    "meanings": [
+     "You're tired, but you've made it further than you think, and you've got enough left for one more push.",
+     "You've been guarded with people after getting hurt before, and that caution is doing its job right now.",
+     "You're close to finishing something that's cost you more than anyone else around you realizes."
+    ],
+    "depth": [
+     "This is being the last one still awake finishing the deck at 1am because you know the meeting's at nine, running on the kind of tired that coffee doesn't really fix anymore. Maybe you've been burned by a partner or business deal before and now you check twice before trusting the same kind of offer again. You've got bruises from the earlier rounds of this — literal or otherwise — and you're still standing at the end of it, a little wary, mostly intact.",
+     "Picture someone bandaged up who's still holding their post because the shift isn't over yet — that's the physical read of this one. It might show up as being one deadline away from finally finishing a project that's taken more out of you than you let on, or being slower to open up to a new person because the last relationship taught you to check the exits first. You've survived a few things by now, and that's exactly why you're a little more careful than you used to be."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're running on empty, and the caution that used to protect you has hardened into keeping everyone out.",
+     "You're close to giving up on something right before it would have come together.",
+     "Old defenses are firing at people who never actually threatened you."
+    ],
+    "depth": [
+     "You've hit the point of tired where you're snapping at people who didn't do anything, and the wall you built after getting hurt once is now keeping out someone who's actually been kind to you. Maybe you're one email away from finishing the application and you close the laptop instead, telling yourself you'll do it tomorrow for the third day running. The guard that used to be useful has started working against you instead of for you.",
+     "This can look like assuming the new person will eventually let you down the way the last one did, before they've done anything to earn that suspicion — pulling back from a good thing because your body's still braced for a bad one. Or it's simpler exhaustion: you're so close to done on something that quitting now would waste most of the effort, but you're seriously considering it anyway because you're just that worn out. The fight is still there, running on fumes instead of reserves."
+    ]
+   }
+  },
+  "Ten of Wands": {
+   "upright": {
+    "meanings": [
+     "You're carrying more than your fair share right now, and you can feel the weight of it in your body.",
+     "You've taken on responsibility for other people's problems on top of your own, and it's a lot.",
+     "You're in the final, heaviest stretch of finishing something — almost there, but it costs everything you've got left."
+    ],
+    "depth": [
+     "This is the box you're carrying up three flights of stairs because you didn't want to make two trips, except the box is your job, your family's needs, and a favor you said yes to last month, all stacked at once. Your shoulders are up around your ears by 3pm most days, carrying more than one person could reasonably hold at once — the finish line is close enough to see but still far enough to feel.",
+     "Picture the actual physical sensation of a backpack that's too heavy digging into your shoulders on a long walk — that's what this feels like in daily life. It might be a job where you've absorbed two people's workload since the layoffs, or being the one everyone calls when something goes wrong, in every part of your life at once. You're capable, which is exactly the problem — everyone can see you can handle it, so nobody's stepped in to take a piece of it off your hands."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're finally setting down something you've been carrying long past the point it stopped being necessary.",
+     "You're starting to hand off responsibilities you've been carrying alone for too long.",
+     "The weight caught up with you, and you're dealing with the burnout it left behind."
+    ],
+    "depth": [
+     "This is the moment you actually say \"I can't take this on too\" out loud to someone, after months of saying yes by default. Maybe you delegated a project you'd been white-knuckling solo, or you finally told your family you can't be the one who fixes every holiday logistics problem this year. The relief of putting the box down is real, even if your shoulders still ache from carrying it as long as you did.",
+     "This can look like calling in sick for the first time in a year because your body basically forced the day off you kept refusing to take yourself. Or it's the aftermath — you finished the huge project, and now you're flattened for a week in ways that surprise you, sleeping ten hours and still tired. Sometimes it's a slow unloading: a hard conversation, actually asking your partner to take over the bills for a few months while you catch your breath."
+    ]
+   }
+  },
+  "Page of Wands": {
+   "upright": {
+    "meanings": [
+     "A new curiosity is pulling at you — something you want to learn or try just because it lit up in your head.",
+     "News or an invitation is coming that opens a door you weren't expecting.",
+     "You're at the very beginning of exploring something, still finding out what it even is."
+    ],
+    "depth": [
+     "This is signing up for the pottery class or the coding bootcamp on a whim, at 11pm, because the idea wouldn't leave you alone. Maybe it's a text from someone inviting you into a project you know nothing about yet but already want in on. You're not an expert in this yet, and this is the beginner's version of excitement, where the not-knowing is part of the fun instead of something to fix first.",
+     "Picture a kid picking up a stick and immediately deciding it's a sword, a wand, a fishing pole — pure improvisation with no plan attached. You might feel it as reading one article about something and suddenly having eleven browser tabs open on the subject by midnight, or getting a message that says \"have you ever thought about—\" and immediately wanting to say yes before you've even heard the rest. The details aren't worked out yet, and that's fine for where this is."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The excitement fizzled before it turned into anything you actually followed up on.",
+     "News or a message you were waiting on hasn't come, or came out garbled.",
+     "You're scattered across too many new interests to get real momentum on any one of them."
+    ],
+    "depth": [
+     "You bought the supplies for the hobby and they're still in the shrink wrap three months later, or the interesting message from that new contact never got a reply because you kept meaning to write back and never did. Maybe the curiosity is still there but it's competing with six other half-started things, so none of them are getting the attention that would actually move them forward. The spark was real. It simply never got fed enough to grow into anything.",
+     "This can look like signing up for four different classes in one impulsive week and going to none of them, or starting a group chat about a big idea that trails off into silence after two days. Sometimes the reversed message shows up literally — a text you sent got misread, an email landed wrong, a piece of news arrived garbled through someone else instead of straight from the source. You're still curious. The follow-through and the clarity haven't caught up yet."
+    ]
+   }
+  },
+  "Knight of Wands": {
+   "upright": {
+    "meanings": [
+     "You're ready to move fast on something — pack a bag, make the call, take the leap — and the momentum feels good.",
+     "You're pursuing someone or something with real, visible enthusiasm, not holding back to seem casual about it.",
+     "A bold, fast decision is in front of you, and waiting any longer probably won't make it any clearer."
+    ],
+    "depth": [
+     "This is booking the flight before you've fully thought it through, or telling someone straight out that you like them instead of playing it cooler than you feel. Maybe it's quitting the job before the next one's fully lined up because staying felt worse than the risk of leaving. You're moving on instinct more than a spreadsheet right now, and it's working because you're finally doing something instead of circling it.",
+     "Picture someone throwing a bag in the car at 6am because the trip suddenly felt urgent instead of theoretical. You might feel this as texting someone \"I'm coming to visit\" before you've checked flight prices, or pitching your idea to your boss the same day you thought of it instead of waiting for a better moment. The risk is real and you're taking it anyway, because waiting, planning, hedging has started to feel like its own kind of loss."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The impulsiveness has tipped into recklessness, and you're moving faster than the situation can actually support.",
+     "Pursuit that started exciting has started to feel like chasing someone who isn't chasing back.",
+     "You're all momentum and no follow-through, starting things you don't finish."
+    ],
+    "depth": [
+     "You booked the trip and then realized you can't actually afford the time off, or you fired off the big declaration of feelings and now the silence on the other end is louder than you expected. Maybe you quit the job impulsively and are now three weeks into a job search that's taking longer than the leap felt like it should. The speed that used to feel exciting is starting to feel like it skipped a few steps you needed.",
+     "This can look like double-texting someone who hasn't replied to the first one, then a third message an hour later, the enthusiasm outpacing what they're actually offering back. Or it's a string of half-finished projects — the boat you bought and never rewired, the trip you booked and canceled, the business idea you pitched to five people and then dropped. The momentum is real. It's burning through things faster than they can hold together."
+    ]
+   }
+  },
+  "Queen of Wands": {
+   "upright": {
+    "meanings": [
+     "You're carrying a warm, grounded confidence right now — people are drawn to it without you having to perform for them.",
+     "You're showing up for the people around you with real warmth, and it's making them braver too.",
+     "You're leading something — a project, a room, a family — with a mix of authority and genuine care."
+    ],
+    "depth": [
+     "This is walking into a party where you don't know anyone and somehow being the one people gravitate toward by the end of the night, without trying to be. Maybe you're the friend who makes everyone feel like the most interesting person in the room, or the one who runs the team meeting with enough warmth that people actually say what they think instead of what they think you want to hear. Your confidence is quiet and settled instead of loud.",
+     "Picture a woman at a dinner table who doesn't raise her voice once and somehow still runs the whole conversation — that's the tone here. You might feel it as being the one your friends call when something's wrong, not because you have all the answers but because you make the problem feel survivable. Or it's showing up to a work presentation you half-prepared and nailing it anyway because you've stopped needing everyone's approval to know you're good at this."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Confidence has curdled into needing to be the one in control, and it's costing you some warmth.",
+     "You're doubting a version of yourself that used to feel steady, second-guessing your own judgment.",
+     "Jealousy or comparison is creeping into how you show up for people you care about."
+    ],
+    "depth": [
+     "You catch yourself needing the last word in every conversation lately, even the small ones, or getting prickly when someone else gets the credit you used to shrug off easily. Maybe you're the one who used to walk into any room unbothered and now you're checking your reflection twice before a meeting that shouldn't matter this much. Something has just knocked your steadiness slightly off its footing.",
+     "This can look like comparing your house, your career, your body to someone else's highlight reel until the comparison starts leaking into how warmly you treat them — a friend's good news landing as a small sting instead of pure happiness for them. Or it's overcorrecting into control: micromanaging a project you used to delegate easily, or needing your partner to check in more than used to feel necessary. The confidence is still there, though it's turned defensive instead of open."
+    ]
+   }
+  },
+  "King of Wands": {
+   "upright": {
+    "meanings": [
+     "You're leading with a clear, confident vision right now, and people are willing to follow it.",
+     "You're the one setting the direction in a relationship or family situation, and doing it without needing to dominate.",
+     "A bold plan you've been building is ready for you to actually take charge of it."
+    ],
+    "depth": [
+     "This is standing up in the meeting and being the person who says \"here's what we're doing\" while everyone else was still hedging, and having it land because you've actually thought it through. Maybe it's being the parent who makes the hard call on a family decision because someone has to, or the founder who finally stops asking for permission on the thing you built. Your authority is built from having actually done the work yourself.",
+     "Picture a founder pitching investors without a single note card, because the vision is just that clear in their own head. You might feel this as finally negotiating your own salary instead of accepting what's offered, or making the unpopular scheduling call for a group trip because somebody needed to and you were the one willing. There's a steadiness in how you're carrying this — calm, unhurried, a person who knows what they're building and isn't waiting for a committee to approve it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Authority is tipping into something harsher — impatient, controlling, quick to react when things don't move your way.",
+     "You're overreaching on a vision that's outrun what's actually realistic right now.",
+     "Your confidence is being read as arrogance by people who used to trust your judgment."
+    ],
+    "depth": [
+     "You snap at your team over a delay that wasn't really anyone's fault, or you push a plan through without listening to the two people who raised real concerns about it. Maybe you promised your investors — or your family — a version of the outcome that the actual numbers can't support yet, and you're doubling down instead of adjusting. The vision is still good. The way you're pushing it is starting to cost you the people you need on board.",
+     "This can look like a boss who used to inspire loyalty now running meetings through sheer force, cutting people off, deciding the debate is over before it's actually resolved. Or it's more personal — a partner who's used to being the one with the plan getting defensive the one time someone questions it, raising their voice over something that didn't call for it. The leadership instinct is still intact — running hot instead of steady right now."
+    ]
+   }
+  },
+  "Ace of Cups": {
+   "upright": {
+    "meanings": [
+     "Something in you is opening up right now, a feeling arriving before you have words for it yet.",
+     "A new connection or a fresh start with someone is offering itself, full and unclaimed.",
+     "An emotional yes is forming under a decision you're facing, worth listening to even if it's quiet."
+    ],
+    "depth": [
+     "Picture the moment right before you hit send on a message you've rewritten four times, heart going a little fast. That's this card. A feeling has shown up whole and unguarded, whether it's for a person, a project, or a version of your life you haven't tried yet. Nothing about it is proven or tested — it's just there, real and full, like water filling a cup faster than you expected. It doesn't need to be figured out yet, only felt, the way water keeps rising before you know how much you'll need.",
+     "This can look as small as waking up and feeling lighter for no clear reason, or crying at something kind for once instead of something sad. Your chest feels less guarded than usual. If there's a person on your mind, notice how your body reacts to their name showing up on your phone — that's the actual read, more than anything you'd say out loud about it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Something in you wants to feel more than you're letting yourself feel right now — you keep catching it and putting it away.",
+     "A connection that could be mutual is running one direction only, or the timing between you two keeps missing.",
+     "You're weighing a fresh start against caution, and caution keeps winning even when your gut disagrees."
+    ],
+    "depth": [
+     "This is the version where you write the long text and then delete it, three nights running. The feeling is real, but somewhere between your chest and your thumbs it keeps losing the fight. Maybe you got burned before, maybe the timing is wrong, maybe good things have been hard to trust lately. Whatever the reason, the cup is tipping before it's full, and something that wanted to reach someone is spilling before it lands.",
+     "Sometimes this shows up as crying in the car and then fixing your face before you walk inside, so nobody at dinner sees what's underneath. Or it's the opposite: everything hits at once, a movie or a song or an offhand comment from a stranger cracks something open and you're overwhelmed in a grocery store parking lot. Either direction, the feeling and the outlet aren't lined up with each other yet."
+    ]
+   }
+  },
+  "Two of Cups": {
+   "upright": {
+    "meanings": [
+     "You're finding your footing with someone else, matching pace instead of pulling or being pulled.",
+     "A real back-and-forth is happening — attraction, friendship, or a partnership where both people are actually showing up.",
+     "A decision in front of you comes down to two people, or two paths, meeting each other halfway rather than one side bending."
+    ],
+    "depth": [
+     "Think of the text exchange where you both reply within minutes without either of you trying to seem cool about it. Someone is meeting you at your own pace — you say something a little vulnerable and they say something a little vulnerable back, no one keeping score. It could be romantic, it could be a friend you're suddenly closer to, it could be a coworker you trust more than you meant to. The thing to notice is the trade: you're both putting something down on the table.",
+     "This can be as plain as splitting a check without either of you doing the math out loud, or the two of you landing on the same joke at the same second. There's a specific relief in a connection where you don't have to translate yourself. If you've been guessing at where you stand with someone, this card is the read that the guessing might finally be settling — you're meeting in the middle."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You keep giving more of yourself to this than you're getting handed back, and you've started keeping track.",
+     "A connection that used to feel even has tipped — more texts from you, more effort, more bending.",
+     "A partnership or negotiation is stalling because the two sides want different things from it."
+    ],
+    "depth": [
+     "You notice it in small math: who texted first the last five times, who suggested plans, who apologized after the argument that wasn't really your fault. None of it is dramatic on its own, which is exactly why it's easy to keep ignoring. But the running total in your head is getting long, and some part of you already suspects the answer before you ask the question out loud.",
+     "This can look like a friendship where you've become the one who remembers birthdays and they've become the one who forgets, or a partner who used to ask about your day and now just tells you about theirs. The mismatch stays quiet and cumulative, the kind of thing you'd feel silly bringing up because no single instance sounds like enough on its own."
+    ]
+   }
+  },
+  "Three of Cups": {
+   "upright": {
+    "meanings": [
+     "Something in you is lighter these days, the kind of good mood that comes from being around people who get you.",
+     "A circle of friends, a reunion, or a shared celebration is bringing people together in a way that actually feeds you.",
+     "A project or plan is picking up because more than one person is pulling for it now, not just you alone."
+    ],
+    "depth": [
+     "This is the group chat that's suddenly alive again, the dinner where everyone stays two hours past when the check comes because nobody wants to leave. You laugh at something and catch someone else already laughing at the same thing. There's a specific kind of relief in being witnessed by people who've known you a while — you don't have to explain the joke, the history, the reference. Whatever you've been building or going through, more hands are on it now.",
+     "Picture a wedding toast, a baby shower, a friend's promotion party — the kind of gathering where the good news belongs to everyone in the room a little bit. If you've been isolated or heads-down for a while, this is the pull back toward people, maybe through an invitation you'd almost turned down."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're craving connection but what you're finding feels thin, more noise than nourishment.",
+     "A friend group has gotten complicated — gossip, a falling-out, or a night where you clearly weren't invited.",
+     "A celebration or gathering keeps getting rescheduled, or shows up smaller and flatter than you hoped."
+    ],
+    "depth": [
+     "This can be three parties in one month that all leave you more tired than filled, or a group chat that's technically active but says nothing real anymore. You keep showing up to things hoping one of them will feel like it used to, and it hasn't yet. There's a particular loneliness in being surrounded by people and still feeling like you're watching the circle from just outside it.",
+     "Sometimes it's specific: you find out about a hangout after the fact from someone's photos, or you catch a friend saying something about you that wasn't kind. It stings more than a bigger betrayal would, because it's small and hard to confront directly — bringing it up is a hard sentence to get out, even when the question is a fair one to ask."
+    ]
+   }
+  },
+  "Four of Cups": {
+   "upright": {
+    "meanings": [
+     "You've gone quiet and inward lately, sitting with feelings instead of chasing new ones for a while.",
+     "Someone may be offering you something — attention, an opening — that you haven't looked up long enough to see.",
+     "You have something good already, but a flat, restless mood is making it hard to feel that."
+    ],
+    "depth": [
+     "This looks like scrolling your phone for an hour without absorbing anything on it, or turning down plans three times in a row because none of them sound like relief. You're not sad exactly — more like unimpressed, arms crossed at your own life for reasons you can't fully name. Meanwhile there might be an actual good thing sitting right next to you: a message you haven't opened, a person who keeps showing up, an offer you keep meaning to consider and haven't.",
+     "Sometimes this is the relationship or job that's fine, genuinely fine, and still leaves you staring at the ceiling at 1am wondering if fine is the whole story. Nothing is wrong. That's almost the strange part — there's no crisis to react to, just a low hum of wanting something to shift, hard to explain out loud when you can't point to a single reason for it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're starting to look up again after a stretch of feeling checked out — or you've gone further inward than is doing you any good.",
+     "You're finally noticing an opening you'd been missing, or you've pulled away from people so long it's turned into real distance.",
+     "A decision you kept putting off is finally moving, or the putting-off has cost you the chance itself."
+    ],
+    "depth": [
+     "This can be the week you finally text back the friend you've been avoiding, surprised by how much you missed the conversation once you're in it again. The fog that had you turning everything down starts to lift a little, and an offer you brushed off before starts to look different in daylight. The shift is small: a window opening that you'd forgotten was ever painted shut.",
+     "Or it's the other direction: you've been alone with your phone so long that people have stopped asking if you want to hang out, and the quiet you used to need now just feels like distance you didn't mean to build. An opportunity — a job, a person, an invitation — passed while you were still deciding whether you wanted it, and now you're noticing the empty space where it used to be."
+    ]
+   }
+  },
+  "Five of Cups": {
+   "upright": {
+    "meanings": [
+     "You're mourning something, and it's taking up more room than you expected it to.",
+     "A loss or disappointment with someone is sitting heavy, even if two other things are still going fine.",
+     "A plan or hope didn't pan out, and right now that's the only thing you can see."
+    ],
+    "depth": [
+     "This is standing in the kitchen crying over something that happened weeks ago, out of nowhere, because your body finally had a free minute to feel it. Three cups have spilled and you're staring at them; two are still standing right behind you, upright and full, and somehow you haven't turned around yet. The loss is real and deserves the weight you're giving it — a breakup, a friendship that faded, a version of a plan that isn't happening now.",
+     "It can look like reading old messages you shouldn't reopen, or replaying a conversation and rewriting what you wish you'd said. Grief like this doesn't move in a straight line — you'll be fine for two days and then a song in a grocery store will take you right back. What's still standing behind you, the people and things that didn't spill, is easy to miss from inside this."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're starting to turn around and notice what's still standing, even while part of you misses what fell.",
+     "You're finding a way to make peace with an ending, or you're circling the same hurt without letting it move.",
+     "Something is finally shifting after a setback — or the setback keeps getting re-litigated instead of left behind."
+    ],
+    "depth": [
+     "This is the day you finally delete the thread, or laugh — actually laugh, not the fake kind — about something that used to make you flinch. It doesn't mean the loss stopped mattering. It means you turned around long enough to see the two cups still standing, the people still texting you back, the version of your life that kept going while you were looking the other way.",
+     "Or you're still telling the story the same way, months later, to anyone who'll listen — the version where you're the only one who got hurt. That's worth a second look. Sometimes revisiting it once more is what finally closes it; sometimes it's become a groove the record stays stuck in, and the friends listening have started to notice the loop before you have."
+    ]
+   }
+  },
+  "Six of Cups": {
+   "upright": {
+    "meanings": [
+     "An old, uncomplicated feeling is finding its way back to you — the kind from before things got complicated.",
+     "Someone from your past is resurfacing, or an old friendship is finding easy footing again.",
+     "A simple, familiar way of doing something is serving you better right now than anything new would."
+    ],
+    "depth": [
+     "This is the childhood best friend who texts you out of nowhere and somehow you're both fourteen again within two sentences. Or a smell — sunscreen, a specific laundry detergent — that puts you back in a summer you'd forgotten you missed. There's an ease here that newer relationships haven't earned yet, a shorthand built over years that doesn't need explaining. If someone from your past has been on your mind, this is a nudge to actually reach out instead of just thinking about it.",
+     "Sometimes it's smaller: cooking your mom's recipe from memory, rewatching the show you loved at nine years old, or a comfort food you haven't let yourself have in a while. None of it is complicated or new, and that's the appeal — nothing to perform, a minute of being genuinely home in it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You keep reaching for how things used to feel instead of noticing how they actually feel now.",
+     "An old relationship or dynamic is pulling you backward — comfortable, familiar, and maybe not right for who you are now.",
+     "A familiar habit or old plan is holding you in place when the situation in front of you has already changed."
+    ],
+    "depth": [
+     "This can be texting an ex \"just to catch up\" for the fourth time this year, or measuring every new friend against the one who moved away in college. The nostalgia feels warm, which is exactly why it's easy to mistake for a good idea. But the person or place you're missing existed at a specific time, with a specific version of you in it — reaching for it now doesn't always bring back what made it good.",
+     "Or you're still cooking for one the way you did when you were single, still keeping the guest room set up for a friend who moved across the country three years ago. There's nothing wrong with holding onto what mattered. But if the past is the only place that feels safe to visit, it's worth asking what about right now feels too unfamiliar to face instead."
+    ]
+   }
+  },
+  "Seven of Cups": {
+   "upright": {
+    "meanings": [
+     "You've got a lot of daydreams going at once, and it's getting hard to tell which one you actually want.",
+     "Several possibilities with someone, or several someones, are floating in front of you, none of them fully real yet.",
+     "You're facing more options than you can properly weigh, and some of them look better than they'd actually hold up."
+    ],
+    "depth": [
+     "This is the group chat with three different people you could see something with, and none of them have asked you out yet — you're just running the movie in your head for all three. Or it's a stack of open tabs: job listings, apartment listings, a course you might take, all equally shiny and equally undecided. The excitement is real. So is the risk that you're falling for the idea of something more than the something itself.",
+     "It can look like scrolling wedding photos or vacation posts and building a whole future out of a single picture, or saying yes to plans with five different people for the same weekend because turning any of them down felt impossible. Somewhere in the pile is a real, workable option — the trick right now is that they all look equally good from a distance, and distance is flattering to everything."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The fog of daydreaming is clearing, and you're starting to see one option more clearly than the rest.",
+     "You're realizing one of the people or possibilities you'd been imagining isn't what you built it up to be.",
+     "You're finally choosing between the options instead of holding all of them open at once."
+    ],
+    "depth": [
+     "This is the morning you wake up and just know which apartment, which job offer, which person actually fits — the noise quiets and one thing is left standing. It's a relief, even if the choice means closing some doors that looked appealing. Clarity like this usually costs you a few of the daydreams, and that's a fair trade for finally being able to move.",
+     "Or it's the less comfortable version: someone you'd built into something in your head turns out to say something careless, or cancel one too many times, and the picture you'd painted doesn't survive contact with them actually showing up. Disappointing, but useful — the real information mattered more than the nice daydream did."
+    ]
+   }
+  },
+  "Eight of Cups": {
+   "upright": {
+    "meanings": [
+     "You're outgrowing something, even if it looks fine from the outside, and a quiet decision to leave is forming.",
+     "You're pulling away from a person or situation that used to satisfy you and no longer does.",
+     "You're walking away from something with real value in it because staying would cost you more than the value is worth."
+    ],
+    "depth": [
+     "This is the relationship, job, or friend group that looks completely fine on paper — nice enough, no one did anything wrong — and you still feel yourself packing up inside. Nobody around you would fully understand if you tried to explain it, because there's no dramatic reason, just a growing certainty that you've gotten what you were going to get from this one. Walking at night, alone, toward mountains you can't fully see yet — that's closer to what this decision actually feels like than any tidy explanation would be.",
+     "It can look like quietly canceling standing plans, letting a group chat go unanswered, or booking one plane ticket without telling anyone why. You're not being dramatic and you're not chasing a fantasy — you've done the math on what this costs you to keep, and the number's gotten too high, even though nothing catastrophic happened to make it so."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You know you want to go, and you keep finding reasons to stay another week, another month.",
+     "You've gone back to something you already left once, telling yourself this time is different.",
+     "You're avoiding an ending that's overdue, even though staying is costing you more than leaving would."
+    ],
+    "depth": [
+     "This is unpacking the same bags you packed in your head three separate times, because leaving means admitting how much time you already put into staying. Or it's the ex you blocked and unblocked, the job you say you're \"about to quit\" for the third year running. None of it is stupid — endings are genuinely hard, and the sunk cost is real. But the gap between wanting to go and actually going keeps widening, and you're the only one who can close it.",
+     "Sometimes it shows up physically: you're tired in a way sleep doesn't fix, dragging through days that used to feel fine. Your body's already left even if your calendar hasn't caught up. The hardest part isn't deciding you want something different — some part of you already knows that — it's tolerating the discomfort of the actual leaving."
+    ]
+   }
+  },
+  "Nine of Cups": {
+   "upright": {
+    "meanings": [
+     "You're genuinely satisfied right now, the specific kind of full that comes from getting something you actually wanted.",
+     "A relationship or friendship is giving you exactly the comfort and closeness you were hoping for.",
+     "Something you worked toward is paying off, and it's landing close to how you pictured it."
+    ],
+    "depth": [
+     "This is the feeling after a good meal with people you love, leaning back in your chair a little too full and not caring. Or checking your bank account after a raise finally clears, or getting the \"I'm home safe\" text from someone you were worried about. It's a small, private satisfaction more than a big public win — the kind you might not even post about, because it's enough just to feel it.",
+     "Sometimes it's as simple as sleeping through the night for the first time in weeks, or laughing so hard at dinner that your face hurts. This card is rarely about a huge achievement — it's the quieter moment right after, when you let yourself actually enjoy what you got instead of already worrying about the next thing."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You've got a lot of the things you wanted and still feel oddly hollow about it.",
+     "A connection looks good from the outside but isn't giving you the closeness it seems to promise.",
+     "You got the win, and now you're already restless for the next one instead of enjoying this one."
+    ],
+    "depth": [
+     "This can be the vacation photos that look perfect and a body that felt anxious the whole trip, or a relationship your friends keep saying is \"so cute\" while you're privately unsure. You did the things that were supposed to make you happy — got the apartment, the job, the person — and the satisfaction didn't arrive the way you were told it would. That gap is worth paying attention to instead of arguing yourself out of it.",
+     "Or it's the opposite problem: a second helping, a third drink, a fourth new purchase this month, chasing the good feeling past the point where it's actually good anymore. The first bite or the first high was real. Everything after it is diminishing, and some part of you already knows which bite you're on."
+    ]
+   }
+  },
+  "Ten of Cups": {
+   "upright": {
+    "meanings": [
+     "A deep, steady kind of happiness is settling in — the kind that doesn't need proving to anyone.",
+     "The people closest to you feel like home right now, easy and safe in a way you don't take for granted.",
+     "Things are coming together into a life that actually looks like the one you hoped for."
+    ],
+    "depth": [
+     "This is Sunday dinner with the people who know all your worst stories and love you anyway, dishes piling up while nobody moves to do them yet. It's the specific relief of a home that feels like yours — not perfect, not Pinterest-clean, just yours, full of the people and small rituals that make it feel that way. If you've been waiting for proof that the hard years were worth it, moments like this are usually where it shows up.",
+     "Sometimes it's quieter: a phone background that's a photo from last weekend, a group chat that's just people checking in because they want to, not because they have to. The kind of happiness this card points to rarely announces itself — it's the ordinary Tuesday where everything is fine and you actually notice that it's fine, instead of waiting for the next thing to worry about."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A picture of happiness you were counting on isn't landing the way you thought it would.",
+     "Tension at home or in your closest circle is sitting under the surface of things that look fine.",
+     "You're chasing an image of the good life instead of building the actual feeling of one."
+    ],
+    "depth": [
+     "This is the holiday photo where everyone's smiling and the car ride home is silent, or a family group chat that's all logistics and no warmth. Something that's supposed to be the reward — the house, the partner, the \"we made it\" milestone — isn't giving you the feeling you assumed would come standard with it. That gap between the picture and the feeling is the actual thing to look at here.",
+     "Or it's specific: a recurring argument that never gets resolved, just paused until the next holiday, a sibling relationship running on old scripts nobody's rewritten. The people are still around the table. What's missing is the ease, and covering for it usually costs more than admitting the gap out loud."
+    ]
+   }
+  },
+  "Page of Cups": {
+   "upright": {
+    "meanings": [
+     "A soft curiosity about your own feelings is opening up, like you're getting to know yourself again.",
+     "A message, an invitation, or someone new is arriving with real, if untested, sincerity.",
+     "A creative or emotional idea is knocking, small and a little shy, worth answering before it wanders off."
+    ],
+    "depth": [
+     "This is the text that makes you smile at your phone in public, from someone whose interest feels genuine even though you don't know yet where it's going. Or it's a creative urge showing up sideways — you find yourself doodling in a meeting, humming a melody you've never heard before, wanting to write something down. Nothing about it is fully formed yet — more an opening than an answer, asking mostly to be noticed rather than acted on right away.",
+     "Sometimes it looks like a kid or a pet doing something so unexpectedly tender it catches you off guard, or a stranger's small kindness that stays with you far longer than the moment itself lasted. This card often shows up through someone younger or newer to something — less guarded, less cynical — reminding you what it felt like before you learned to protect yourself from disappointment."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A feeling you're having seems bigger or more certain than the situation actually supports yet.",
+     "Someone's sweetness doesn't quite line up with their follow-through, or a new interest is moving faster than it's earned.",
+     "A creative idea has stalled, or you're reading too much into a message that wasn't as loaded as it felt."
+    ],
+    "depth": [
+     "This is the person who says all the right things in a first message and then goes quiet for four days, leaving you rereading the good part like it still means what it did at 11pm when you got it. Or it's you, projecting a whole relationship onto someone based on one good conversation. The sincerity might be real; it just hasn't been tested by anything yet, and testing is the part that's missing.",
+     "Or the block is creative and internal: you keep opening the document and closing it, the idea that felt exciting last week now feels thin under real light. Early ideas often look fragile the moment you actually sit down with them, which says more about how new the idea still is than about whether it's any good. The gap between how good it felt in your head and how hard it looks on the page usually just means it needs more time, nothing more final than that."
+    ]
+   }
+  },
+  "Knight of Cups": {
+   "upright": {
+    "meanings": [
+     "You're moved to act on a feeling instead of just having it — following your heart somewhere specific.",
+     "Someone is pursuing you, or you're pursuing them, with real romantic follow-through, not just talk.",
+     "An offer or invitation is arriving that's driven by genuine feeling rather than practical calculation."
+    ],
+    "depth": [
+     "This is the person who actually shows up with the flowers instead of just texting that they were thinking of you, who plans the specific date instead of leaving it vague, who says the romantic thing and then does the thing that backs it up. It's a good sign when someone's charm comes with follow-through attached. If you're the one moved to act — writing the letter, booking the trip, finally saying it out loud — that same pull is the invitation here, so long as the feeling gets matched with an actual next step.",
+     "It can also be less romantic and still count: quitting the job to try the thing you actually love, moving for a person or a feeling instead of a spreadsheet of reasons. This is the card of leading with your heart on purpose, publicly, in a way that could embarrass you if it doesn't work out — and doing it anyway because staying safely uncommitted felt worse."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Your mood is swinging with how a situation is going, up when it looks good and low fast when it doesn't.",
+     "Someone's romantic gestures aren't lining up with what they actually deliver day to day.",
+     "A tempting offer looks better in the pitch than it will in the follow-through."
+    ],
+    "depth": [
+     "This is the person who sends the perfect three-in-the-morning text and then takes three days to confirm plans, all charm and very little logistics. Their intentions might even be sincere in the moment — the follow-through is the real tell here, more than anything said at 11pm. If you keep re-reading old messages looking for reassurance that this is real, that's worth noticing on its own; the case for it shouldn't need building this hard.",
+     "Or the moodiness is yours: you're deciding how your whole week goes based on whether one person texted back, riding highs and lows that don't match how small the actual event was. It's a familiar loop — good news feels enormous, silence feels like proof of the worst thing, and neither reaction has much room in it for what's actually, boringly, true."
+    ]
+   }
+  },
+  "Queen of Cups": {
+   "upright": {
+    "meanings": [
+     "Your intuition about feelings — yours and other people's — is running clear and trustworthy right now.",
+     "You're the person others come to when something's actually wrong, and you know how to hold that without drowning in it.",
+     "A decision is better made by checking your gut on it than by running the numbers one more time."
+    ],
+    "depth": [
+     "This is knowing your friend is upset from one word in a text before they've explained anything, and knowing exactly how much space versus company they need in that moment. You've gotten good at feeling things fully without being knocked over by them — crying at the sad movie and still remembering to bring snacks for everyone else. That balance, care without losing yourself in it, is rare and it's yours right now.",
+     "It can look like a full house — kids, friends, a partner, a pet — and you moving through all of it as the calm center, still affected by plenty of it underneath, just practiced at feeling things without needing everyone else to stay calm on your behalf too. People trust you with the real version of what's going on with them, and that trust is earned, not accidental."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You've been holding everyone else's feelings so long you've lost track of your own.",
+     "You're giving more emotional care than you're getting back, and it's starting to feel less like generosity and more like habit.",
+     "A decision is getting made from guilt or exhaustion instead of the clear intuition you usually trust."
+    ],
+    "depth": [
+     "This is being the friend everyone calls at midnight and never getting a midnight call back, answering anyway because saying no feels worse than being tired the next day. You've gotten so used to reading everyone else's moods that you've stopped checking your own, and when someone finally asks how you're doing, the honest answer takes you by surprise. Care that only flows one way for long enough stops feeling like love and starts feeling like a job nobody's paying you for.",
+     "Or the intuition itself has gone murky — moods swinging in ways that don't track to anything specific, tears arriving at odd times, a general waterlogged feeling like you're carrying more than your share of what's in the room. Emotional intelligence this sharp is a real gift; it's also exhausting to run without ever refilling it."
+    ]
+   }
+  },
+  "King of Cups": {
+   "upright": {
+    "meanings": [
+     "You're feeling things fully without letting them run the show — steady, not shut down.",
+     "You're the calm, reliable presence someone can bring their mess to without it becoming your mess too.",
+     "A hard situation calls for a level head, and you've got access to one right now."
+    ],
+    "depth": [
+     "This is staying kind on the phone with someone who's yelling, feeling the sting of it fully and still not needing to fire back immediately. Diplomacy that isn't cold — warmth with a spine in it. If a decision in your life needs someone to stay calm while everyone else is spiraling, that person can be you right now, and it won't cost you your own feelings to do it.",
+     "It can look like giving good advice to a friend mid-crisis and meaning every word of it, wisdom that's actually yours rather than borrowed for the occasion. Or it's simpler: an argument that could have gone badly stays civil because you didn't match the other person's temperature. Keeping your hands steady with something fragile takes its own kind of care, even when it reads as distance from the outside."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Feelings you've been keeping composed are starting to leak out sideways, in a tone or a silence instead of directly.",
+     "Someone, maybe you, is using calm as a weapon — technically reasonable, quietly cutting.",
+     "A decision that looks level-headed is actually being driven by feelings nobody's said out loud yet."
+    ],
+    "depth": [
+     "This is the \"I'm fine\" that comes out a little too flat, followed by slamming a cabinet door forty minutes later over something unrelated. You've gotten so practiced at composure that the feelings didn't go away, they just moved underground, and now they're coming out in your tone instead of your words. The people closest to you can usually tell something's off before you're ready to say what.",
+     "Or it's someone else's calm that's the problem — the partner who never raises their voice and somehow still makes you feel small every time, control dressed up as reasonableness. Calm can look like health from the outside, but sometimes it's just the more comfortable way to keep circling a conversation nobody's opened yet."
+    ]
+   }
+  },
+  "Ace of Swords": {
+   "upright": {
+    "meanings": [
+     "A thought lands so clean and sharp you can't unthink it, a truth you've been circling finally cuts straight through.",
+     "A conversation is about to get direct in a way that clears the air, even if it stings for a minute first.",
+     "A plan, contract, or decision comes into unusual focus, you can suddenly see exactly what the next move is."
+    ],
+    "depth": [
+     "Something you've half-known for weeks says itself out loud, mid-argument, or alone in the shower, and once it's said you can't unhear the plain version. Your sleep might actually improve, because your mind stops running the same loop at 2am. A text you've drafted for days gets sent in four honest sentences instead of four hedged paragraphs, because you finally know exactly what you mean.",
+     "This shows up as the moment a messy situation gets one clean sentence. On a call, or reading a lease, or scrolling a thread, one line makes the whole picture click, not louder, just sharper. People might notice you sound more certain than usual, even blunt. That edge is useful right now, it's what cuts the knot instead of picking at it for another month."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Your thoughts keep circling the same point without landing, clarity you can feel coming but can't quite grab yet.",
+     "A truth keeps getting softened into something vaguer than it needs to be, and the fog stays a while longer.",
+     "A decision keeps getting talked around instead of made, the draft stays a draft, the form stays unsigned."
+    ],
+    "depth": [
+     "You keep composing the honest text and deleting it, rehearsing the conversation in the shower and never having it out loud. The thought is right there, you can practically see its shape, but every time you reach for the words they come out hedged, three qualifiers deep. Meetings end with 'let's circle back' instead of a decision. The waiting has its own low static hum.",
+     "Your mind keeps drafting the same three sentences without ever finishing them, in the car, in bed, mid-shower. A decision that would normally take five minutes, which offer, what to actually say to him, keeps getting one more round of research, one more 'let me think on it.' The clarity is close enough to smell, but the sentence that would end the loop hasn't arrived."
+    ]
+   }
+  },
+  "Two of Swords": {
+   "upright": {
+    "meanings": [
+     "You're holding two things in your head at once, refusing to look straight at either one, and part of you is fine with that for now.",
+     "You're keeping a fragile peace by not asking the question you actually want answered.",
+     "Two options sit on the table and you're stalling on purpose, because choosing either one closes a door you're not ready to close."
+    ],
+    "depth": [
+     "You're the one saying 'it's fine!' too fast, arms crossed over a decision so nobody, including you, has to look at it yet. Maybe it's two job offers, maybe it's whether to bring something up with your sister, maybe it's just whether to text him back tonight. The tightness between your shoulder blades is the two swords, crossed, holding a shape you haven't chosen yet.",
+     "This is the specific quiet of not opening the email, not checking the balance, not asking the question that would end the guessing. You've built a careful truce between two things that can't both be true. Keeping it running takes real, quiet effort, more than it looks like from outside, a kind of work aimed at protecting something a clear answer might break."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The standoff in your head finally breaks, and you look directly at the thing you've been avoiding.",
+     "The question you've been dodging gets asked, out loud, by you or by them, and the long pause ends.",
+     "A decision you'd parked indefinitely gets forced, a deadline, an expiring offer, someone else moving first."
+    ],
+    "depth": [
+     "Something makes the choice for you, finally, the lease deadline hits, he asks the question first, the offer expires Friday and Friday is today. There's relief in it even if the answer isn't the one you wanted, because the arms-crossed stance you'd held for weeks can finally drop. Your shoulders unclench in a way you didn't fully realize they'd been clenched.",
+     "You open the message you'd left unread, or say the sentence you've practiced in the mirror, and the strange stillness of the last while breaks. It might come out clumsy, tears, or a laugh that's too loud, but the standoff between the two things you were holding is finally over, and you get to find out what's actually on the other side."
+    ]
+   }
+  },
+  "Three of Swords": {
+   "upright": {
+    "meanings": [
+     "Something true and painful finally has words, and saying it hurts about as much as it needed to.",
+     "A hurt gets spoken instead of swallowed, a hard conversation that's overdue more than it is cruel.",
+     "A plan or hope you'd quietly attached yourself to falls through, and the disappointment is real, not dramatic."
+    ],
+    "depth": [
+     "This is the specific ache of a text that finally says the true thing, 'I don't think this is working,' or 'that really hurt me,' and the twenty minutes after you hit send where your chest feels hollow and your hands won't settle. That hollow feeling is just what a real cut feels like in the first few minutes, before the body starts doing what bodies do, which is heal.",
+     "You might feel this physically, a tightness behind the sternum, the tired that comes from crying in a parking lot before you have to walk back inside and act normal. Something you hoped for didn't happen, the callback, the reconciliation, the version of the relationship you'd pictured. The grief is proportionate to how much you wanted it, its own kind of proof you were fully in it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The sharpest part of an old hurt has already moved through you, and what's left is tender rather than raw.",
+     "You're finding your way back to someone, or to yourself, after a rupture that felt final at the time.",
+     "A loss that knocked you sideways stops being the first thing you think of every morning."
+    ],
+    "depth": [
+     "You notice a whole afternoon went by without the old ache surfacing, and it startles you a little, like forgetting your phone at home. The thing that broke you months ago still has weight, but it's stopped being the weather your whole day happens under. You can mention it now in a normal voice, over dinner, without your throat doing the thing it used to do.",
+     "You reach out, a text, a coffee, an actual apology, to someone a rupture had put distance between, and it lands better than you braced for. Or you simply stop checking his stories, stop reading the old messages, and the space that opens up surprises you with how much room was in there. The wound is still part of the story, but it's stopped running the show."
+    ]
+   }
+  },
+  "Four of Swords": {
+   "upright": {
+    "meanings": [
+     "Your mind needs an actual pause, not a productive one, the kind where you're not solving anything.",
+     "You're stepping back from a dynamic for a while, not to punish anyone, just to breathe.",
+     "The best move right now might be no move at all, letting the situation sit while you recover."
+    ],
+    "depth": [
+     "This looks like canceling plans you'd half-regretted making, turning your phone face-down for an evening, lying on the floor doing genuinely nothing for twenty minutes instead of scrolling. Your body's been running on a full mental inbox, and this card is the closed laptop, the unread badge you don't check. This quiet is doing its own kind of work, clearing space the next round of thinking will need.",
+     "You might feel this as the first full night of sleep in a while, or the relief of a day with nothing on the calendar. Maybe you take yourself to a matinee alone, or sit in the driveway a few extra minutes before going in. The urge to fix, answer, or decide anything goes quiet for a bit, and that quiet is doing real work."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The rest you needed either got cut short or stretched on past the point where it was helping.",
+     "You're back in the room, answering messages again, after time spent somewhere quieter.",
+     "Stepping back from a project or decision drifts into avoidance instead of real recovery."
+    ],
+    "depth": [
+     "You forced yourself back to your desk, or back into the group chat, a day or two before you were ready, and you can feel the difference, answers come slower, patience is thinner. Or the opposite happened, one quiet weekend turned into three, and the inbox now feels harder to face than it would have Monday. Either way, the timing is what's tripping this up right now.",
+     "You're typing again, showing up to the thing, back in motion after time spent somewhere quieter, a trip, a slow week, a stretch of just not being reachable. Re-entry might feel a little loud at first, messages piling up, a full week ahead, but the rest did what it needed to and you're not dragging the same fog you were before."
+    ]
+   }
+  },
+  "Five of Swords": {
+   "upright": {
+    "meanings": [
+     "You might be right in an argument you're having with yourself, and it's costing you more than it's worth.",
+     "Someone gets the last word, or the win, and it doesn't feel as good as either of you expected.",
+     "A conflict at work or in a negotiation gets settled, but the settling leaves a residue behind."
+    ],
+    "depth": [
+     "This is the argument you technically won, you had the receipts, the better point, the last text, and afterward you feel worse, not better, sitting with your phone in your lap wondering why victory tastes like this. Maybe it's a group chat where you made your point and everyone went quiet in a way that isn't agreement. Being right and feeling okay about it can pull in two very different directions.",
+     "You might notice this as a coworker taking credit smoothly enough that fighting it would cost more than it's worth, or a friend who wins a disagreement by simply outlasting you until you say 'fine, whatever.' The tension in your jaw afterward is real information. Something got settled, but the actual disagreement is probably still sitting there underneath it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You let go of needing to be right about something you've been chewing on for days.",
+     "A conflict actually gets talked through instead of won, and something between you loosens.",
+     "You walk away from a fight that isn't worth the cost of winning it."
+    ],
+    "depth": [
+     "You catch yourself mid-comeback, the perfect, cutting reply typed out and ready, and you delete it instead, because winning this particular round would cost you more tomorrow than it's worth tonight. There's a specific relief in that, a loosening in your chest, different from swallowing your feelings. It's choosing the relationship, or your own peace, over the point.",
+     "A fight that had been simmering, with a sibling, a roommate, a business partner, finally gets an actual conversation instead of another round of jabs, and you're both surprised how much easier it is once neither of you is trying to win. Or you simply stop responding to a thread that was never going anywhere, and the silence after feels like room to breathe."
+    ]
+   }
+  },
+  "Six of Swords": {
+   "upright": {
+    "meanings": [
+     "You're not over it yet, but you can feel yourself moving away from the worst of it, a little further every day.",
+     "You and someone else are leaving a hard patch behind together, quieter than before but moving in the same direction.",
+     "A transition that felt impossible a month ago, a move, a job change, an ending, is actually underway now."
+    ],
+    "depth": [
+     "Picture the actual boxes taped shut, the new address that hasn't started to feel like home yet, the drive out of a town where things went badly. There's still a heaviness in the car with you, real and present, but the direction is right, and every mile puts a little more distance between you and what hurt. Even a rough night's sleep in a new bed is still a new bed.",
+     "This can look like the slow, awkward stretch after a breakup where you and the other person are civil, a little formal, both clearly trying, texting logistics instead of feelings, nodding at each other at the same gym. It isn't warm yet. But the sharp edges from a few months ago have dulled, and you're both, separately, quietly getting somewhere better."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Part of you is still standing on the dock, not quite ready to leave the hard chapter behind.",
+     "You keep circling back to how things used to be instead of letting the new shape settle.",
+     "A move, transfer, or transition gets delayed or reversed, and you're back somewhere you'd hoped to leave."
+    ],
+    "depth": [
+     "You'd started to feel like you were getting somewhere, new apartment, new routine, distance from the old situation, and then something pulls you back: an ex texts, the job offer falls through, you're back at your parents' longer than planned. The progress was real. The timeline just got longer than you'd budgeted for, and that's its own particular flavor of frustrating.",
+     "You keep opening the old photos, re-reading the old thread, driving past the old apartment on purpose. Part of you hasn't boarded the boat yet, even though you told everyone you had. There's nothing wrong with looking back once in a while, but when every day includes a detour through what you left, the leaving hasn't fully happened yet."
+    ]
+   }
+  },
+  "Seven of Swords": {
+   "upright": {
+    "meanings": [
+     "You're quietly figuring out your own way through something without announcing the plan to anyone yet.",
+     "There's something you're not saying, maybe to protect yourself, maybe because you haven't decided if it's your secret to tell.",
+     "You're handling a situation with more strategy and less transparency than usual, and for now, it's working."
+    ],
+    "depth": [
+     "You've got a plan you haven't told anyone about, leaving a job before the announcement, saving money on the side, an exit from a living situation you haven't mentioned wanting to leave. This runs more like self-protection than deception, moving pieces into place quietly before anyone can talk you out of it. There's a specific alertness to it, like checking who's around before you make a call.",
+     "This can be as small as not correcting someone's assumption because it's easier than the real explanation, or as big as interviewing quietly while still clocking in every day. You're carrying information other people don't have, and it changes how you move through a room, a little more watchful, a little more careful about what you say out loud."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "A private plan or a piece of self-protection gets exposed before you meant it to.",
+     "Something you'd kept to yourself comes out, and the reaction isn't as bad as you'd braced for.",
+     "A shortcut or workaround catches up with you, the thing you were quietly managing needs daylight now."
+    ],
+    "depth": [
+     "The thing you were managing quietly gets found out, someone notices the job listing open in your browser, or asks directly and you don't have it in you to keep dodging. Your stomach drops for a second, and then, more often than you'd expect, the conversation goes better once it's actually happening than it did in your head at 3am rehearsing it.",
+     "You finally tell someone the thing you'd been navigating around, that you've been unhappy, that you applied somewhere else, that you knew and didn't say. It costs something to say out loud after keeping it tucked away, and there's a beat of real risk while you wait for their face to change. But the private strategizing stops, and you don't have to keep track of who knows what anymore."
+    ]
+   }
+  },
+  "Eight of Swords": {
+   "upright": {
+    "meanings": [
+     "You feel stuck, but the fewer options you can see, the more it's your own thinking doing the binding.",
+     "You've talked yourself into believing you have no options in a situation that actually has more than one exit.",
+     "A stuck-feeling problem, money, work, a lease, has more room to move than it looks like from inside it."
+    ],
+    "depth": [
+     "This is the specific loop of 'I can't leave this job' or 'there's no way out of this lease' running on repeat while you scroll instead of actually pricing out the alternatives. Your shoulders round forward, your world narrows to the one thing you're stuck on, and you never quite get to checking whether it's true. The ropes here are loose enough to slip if you look down at your own hands.",
+     "You might feel this as dread every Sunday night about a job you've stopped imagining leaving, or staying somewhere because 'what would I even do instead' feels like a bigger question than you can hold. That blindfold is self-tied, a specific repeated thought that there's no other move, one that gets less true every time you actually look for the door."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You finally see the blindfold you'd tied yourself, and the room around you turns out to be bigger than you thought.",
+     "You take one real step out of a situation you'd convinced yourself you couldn't leave.",
+     "A restriction that felt permanent, a job, a debt, a routine, turns out to have an actual exit."
+    ],
+    "depth": [
+     "You do the thing you'd told yourself was impossible, send the resume, ask about subletting, say out loud 'I think I need to leave,' and the world doesn't end. It's rarely dramatic, usually one email, one phone call, one afternoon of paperwork that had been living in your head as a wall. The relief afterward is almost funny, given how long the wall felt real.",
+     "Something shows you the room was always bigger than it felt, a friend mentions an option you hadn't considered, a number in your budget turns out wrong in your favor, someone points out that no is actually an option, and you realize you'd never really tried it. The binds loosen the moment you stop assuming they're permanent."
+    ]
+   }
+  },
+  "Nine of Swords": {
+   "upright": {
+    "meanings": [
+     "It's 3am in your head even if it's the middle of the afternoon, the same worry looping louder than the facts.",
+     "You're awake worrying about a conversation that hasn't happened yet, rehearsing the worst version of it.",
+     "A worry about money, health, or work has gotten louder in your head than the actual situation on paper."
+    ],
+    "depth": [
+     "You know this one by the ceiling, staring at it at 2am, doing math on a bill that isn't due for two weeks, replaying a comment someone probably forgot they made. Your body's in bed but your nervous system thinks it's under attack. The specific cruelty here is that the thoughts feel like information, urgent and true, when mostly they're just loud.",
+     "This might be checking your phone forty times for a reply that hasn't come, or lying still next to someone asleep while your mind runs through every way tomorrow's conversation could go badly. Your chest is tight, your jaw is tight, you've been holding your breath without noticing. Whatever's actually wrong is almost never as total as it sounds at that hour."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The worst of the spiral has passed, even if the tiredness it left behind hasn't caught up with you yet.",
+     "You said the worried thing out loud to someone instead of carrying it alone at 2am.",
+     "The situation you were catastrophizing about turns out to be more manageable than the version in your head."
+    ],
+    "depth": [
+     "You wake up and the dread that had you gripped for days has quietly loosened, even though you can't point to what changed. Maybe you finally slept a full night, or the bill got paid, or the friend texted back and it was fine. The exhaustion is still there, worry like that costs real ground, but the 3am terror isn't running the show anymore, and you notice the quiet where it used to be.",
+     "You text 'hey, can I vent for a second' instead of doing the whole spiral solo at midnight, and saying the worry out loud drains some of its charge. Often the friend says something plain and practical, 'send it tomorrow morning,' 'that's a normal amount to owe,' and the thing needed hearing more than it needed solving."
+    ]
+   }
+  },
+  "Ten of Swords": {
+   "upright": {
+    "meanings": [
+     "Something is fully, undeniably over, and there's a strange relief hiding inside how bad it feels.",
+     "A situation runs completely out of road, the version of it you were hoping for isn't coming back.",
+     "A plan, job, or chapter ends more abruptly and completely than you wanted it to."
+    ],
+    "depth": [
+     "This is the call or the message that ends the guessing for good, the layoff that's final, the relationship you both finally admit is done, the decision that closes a door you'd been propping open. It hurts in a full-body way, might knock the wind out of you for a minute. And underneath the pain there's a strange, quiet fact: nothing is left to brace for. The worst version already happened.",
+     "You might feel this as the exhaustion of a bad thing finally landing after weeks of almost-landing, the eviction notice, the breakup text, the 'we're going a different direction' email. This is a real loss, and pretending otherwise doesn't help. But an ending this complete also closes the door on the in-between, the checking your phone, the hoping. What's left is just the actual grieving, which is at least a known shape."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're upright again after the worst of it, even if you're still finding out what that cost you.",
+     "Something that ended badly stops being the thing that defines you.",
+     "You're rebuilding, slowly and imperfectly, after a loss that genuinely knocked you flat."
+    ],
+    "depth": [
+     "You're a few weeks or months out from the thing that flattened you, and you notice you're upright, making coffee, laughing at something dumb, texting someone back, in a way that would've seemed impossible in the middle of it. The scar is real, and you're not exactly who you were before it happened, but you're here, doing ordinary Tuesday things, and that's real evidence the worst night doesn't last forever.",
+     "You catch yourself telling the story of the bad ending without your voice shaking, or noticing a whole week went by where it wasn't the first thing you thought about. The day after the ten of swords still carries the memory of the fall, but it's daylight now, actual daylight, on a day that keeps going anyway. You're rebuilding something, slower than you'd like, but it's really happening."
+    ]
+   }
+  },
+  "Page of Swords": {
+   "upright": {
+    "meanings": [
+     "Your mind is wide awake and asking questions faster than you can answer them.",
+     "A piece of information or a message is about to change what you know about a situation.",
+     "You're picking up a new skill, topic, or piece of research with real appetite, mid-scroll or mid-course."
+    ],
+    "depth": [
+     "This is the Wikipedia-rabbit-hole version of curiosity, the new podcast you're suddenly obsessed with, the DM that makes you sit up and go 'wait, what?' You might notice yourself asking a lot of questions in a conversation, more interested in understanding the situation than being right about it. There's a restlessness in it, legs bouncing, phone unlocked, a genuine hunger to know more, whatever more turns out to be.",
+     "A text or email arrives that reframes something, a job posting from a friend, a comment that gives you new information about a person, a headline that sends you into a research spiral at 11pm. You're not settled yet, you're gathering, cross-referencing, half-forming a theory. It's an alert, forward-leaning state, closer to a dog with its ears up than to anxiety."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Your mind is racing on gossip or half-information instead of anything you can actually verify.",
+     "A message or rumor causes more stir than the facts underneath it deserve.",
+     "You're studying or researching everything except the one thing that would actually move you forward."
+    ],
+    "depth": [
+     "You've read every comment on the post, screenshotted the story, texted three friends 'did you SEE this,' and you still don't actually know what happened, you know what everyone's guessing happened. The mental effort that could go toward something useful is spent piecing together a rumor instead. That appetite for more information just needs a better target right now, like a dog chasing a car instead of catching one.",
+     "You're deep in research for a decision, job, apartment, a diagnosis, reading forums at 1am, opening seventeen tabs, comparing reviews that contradict each other, and somehow no closer to actually deciding anything. The information-gathering has started standing in for the decision itself, and it's easier to keep reading one more article, one more thread, than to close the laptop and choose."
+    ]
+   }
+  },
+  "Knight of Swords": {
+   "upright": {
+    "meanings": [
+     "You know exactly what you think and you're ready to act on it right now, no more deliberating.",
+     "You're going after someone or something directly, a call instead of a text, a plan instead of a maybe.",
+     "You're moving fast on a decision or project, more decisive than usual, maybe faster than the situation strictly needs."
+    ],
+    "depth": [
+     "This is calling instead of texting, booking the flight before you can talk yourself out of it, sending the 'let's just talk' message the same hour you decided to send it. There's an adrenaline to it, a small rush in your chest, the specific momentum of finally moving after a long stretch of thinking about moving. It works because you commit before the doubt has time to catch up.",
+     "You might notice yourself talking faster, walking faster, cutting to the point in a meeting instead of building up to it. A decision that's been sitting half-finished, quitting, applying, confronting, suddenly gets its actual first step taken today, not eventually. The speed itself is doing some of the work, slower, you might have talked yourself out of it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You said the thing before you'd thought it all the way through, and now you're managing the aftermath.",
+     "A message went out too fast, too sharp, and you're doing some damage control.",
+     "A project charges ahead without enough planning and hits a wall it could have avoided."
+    ],
+    "depth": [
+     "You sent the reply at 11pm, sharper than you meant it, and by morning you're rereading it with your stomach dropping a little. Or you booked something, quit something, said something on impulse, and the details you skipped over are now very much your problem. The instinct underneath was probably right, you just outran the part of the plan that would've made it land softer.",
+     "A project moved fast and skipped a step, the launch went out before the bugs were caught, the trip got booked before the dates were checked, the confrontation happened before you'd figured out what you actually wanted to say. Moving wasn't the wrong call. The pace just left some things behind that you're circling back to collect now."
+    ]
+   }
+  },
+  "Queen of Swords": {
+   "upright": {
+    "meanings": [
+     "You're seeing a situation with unusual clarity, including the parts about yourself you'd normally soften.",
+     "You give someone the honest answer instead of the comfortable one, because you respect them enough to.",
+     "You cut through a confusing situation with a clear, well-reasoned read that other people are relying on right now."
+    ],
+    "depth": [
+     "This is the friend everyone calls for a straight answer, not a nice one, you're the one who says 'I think you already know he's not going to change' instead of 'he'll come around.' It comes from having been through your own version of that exact disappointment and coming out the other side clear-eyed instead of bitter. Your compassion looks less soft and more like refusing to let someone waste another year on a false hope.",
+     "You might catch yourself giving feedback at work that's more useful than flattering, the specific line in the email, the real reason the pitch didn't land, and people trust it precisely because you don't sugarcoat. There's an efficiency to how you talk right now, fewer words, more precision, a coolness that's less coldness than clarity doing what it's supposed to do."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The honesty you're usually good at turns sharp-edged, aimed more at cutting than at clarifying.",
+     "You hold people, including yourself, to a standard with no room to be a mess sometimes.",
+     "Your read on a situation is technically accurate and still lands cold."
+    ],
+    "depth": [
+     "You said the true thing, but you said it built more to win the point than to help the person hear it, the accurate but devastating comment, the correct but cutting review. Afterward you might feel a flicker of 'that landed harder than I meant,' even while every fact in it checks out. Right now, being right and being kind have come uncoupled, running on separate tracks instead of together.",
+     "You're holding yourself, or someone close to you, to a standard with no slack in it, no excuse counts, no bad day gets factored in, the expectation is full competence at all times. It's exhausting to be that person and exhausting to be around them, and the clarity that's usually your best quality is running right now without its usual warmth attached."
+    ]
+   }
+  },
+  "King of Swords": {
+   "upright": {
+    "meanings": [
+     "You think something through fully before deciding, and the decision holds because of that.",
+     "You lay out a hard truth calmly, without softening it into something it isn't, and it actually lands well.",
+     "You're the one making the call, a policy, a verdict, a final answer, because you've thought further than everyone else in the room."
+    ],
+    "depth": [
+     "This is writing the difficult email three times until it says exactly what needs saying, no more and no less, the layoff conversation, the boundary with a parent, the 'here's why I'm declining.' You're not cold about it, you've done the thinking in advance so the moment itself can be steady. People trust your read on a hard situation because you don't flinch away from the facts, even the ones inconvenient for you.",
+     "You might be the one everyone looks to when a decision has real consequences, splitting an inheritance, choosing who gets let go, settling a dispute between two people who both think they're right. You weigh it properly, say the thing plainly, and stand behind it once it's said. The authority here is quiet rather than loud, the calm of someone who actually did the homework."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You've reasoned your way past your own feelings so thoroughly you've lost track of what you actually want.",
+     "A calm, factual tone starts to feel more like distance than honesty.",
+     "A decision gets made by the rulebook when the actual situation needed more judgment than that."
+    ],
+    "depth": [
+     "You've explained to yourself, very reasonably, exactly why this doesn't need to bother you, and now you're not sure if you actually feel fine or if you've just reasoned your own feelings into silence. The logic is airtight and something underneath it still aches, quietly, unaddressed. Explaining a feeling away isn't the same as it actually being gone.",
+     "A policy or a rule gets applied exactly as written to a situation that needed an actual human look, the late fee charged to someone who was in the hospital, the strict answer to a question that deserved a real conversation. It's technically correct and it costs something real, and somewhere in there the letter of the thing wins over the point of it."
+    ]
+   }
+  },
+  "Ace of Pentacles": {
+   "upright": {
+    "meanings": [
+     "A quiet readiness is settling into you, like your hands know what to reach for before your mind has caught up.",
+     "Someone is offering you an opening — a job, a room, a way in — and it's real, solid enough to hold.",
+     "Money, work, or a living situation is about to take a first concrete step forward, small and plain as a seed going into soil."
+    ],
+    "depth": [
+     "Picture an actual envelope on the counter, or a text that says the position's yours if you want it. That's this card — not a vague good feeling but a specific, physical chance landing in your hands. Your body notices before your calendar does: you sleep a little easier, you start doing math about rent again, hopeful math instead of anxious math. The offer is plain and unglamorous, which is exactly why it's worth trusting.",
+     "This shows up as the boring good stuff: a raise that actually appears in your account, a lease you sign, a garden bed you finally build. It's one solid brick, laid flat and level, that everything after can rest on. You'll feel it in your shoulders, that specific loosening that comes from having one less thing to worry about tonight."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You keep waiting for the go-ahead that hasn't come, and the waiting itself is starting to wear a groove in you.",
+     "An offer someone made you turns out thinner than it looked — the room, the job, the deal shrinks when you get up close.",
+     "A bill, a delay, or a missed payment is putting a plain material plan on pause right when you needed it to move."
+    ],
+    "depth": [
+     "This is the job you keep expecting to hear back from any day now, three weeks straight, or the deposit you put down on something that quietly fell through. Your bank app becomes a place you check and immediately close. That's the specific frustration here — a door that looked open turning out to be painted on. Whatever ground you thought you were standing on is worth checking again before you build on it.",
+     "You might find yourself doing the math over and over on the same number, hoping it changes. This is a small, real setback — a raise that got frozen, a start date pushed back, a we'll circle back that never circles. Your patience gets tested in the most unglamorous way: not by disaster, just by a stall, day after day, on something you'd already started counting on."
+    ]
+   }
+  },
+  "Two of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're keeping two balls in the air at once, and there's a strange enjoyment in the juggling itself, even mid-scramble.",
+     "You're weighing time between two people or two commitments, moving between them with more grace than you're giving yourself credit for.",
+     "Money's coming in from one place and going out to another, and you're the one doing the math in real time, on your feet."
+    ],
+    "depth": [
+     "This looks like checking your work calendar and your kid's school pickup time in the same glance, or texting one friend back while finishing a work email. You're not dropping anything, but you can feel the effort it takes to keep it that way — a kind of light-footed dance where the rhythm matters more than any single step. Some days it's fun. Other days it's just Tuesday, done twice over.",
+     "Picture two tabs open on your phone: the rent due date and the freelance invoice you're still waiting on. You're shuffling numbers, timing, and attention between two real things, and so far you're catching both. A lot of the skill here is rhythm — how you breathe between the tosses, how you build a little slack into the schedule so one bad day doesn't knock the whole thing down."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The juggling act has tipped over into something closer to scramble, and you can feel yourself gripping instead of flowing.",
+     "You've said yes to more people and plans than one week can actually hold, and something's about to have to give.",
+     "Money's moving unevenly — a little too much out, a little too late in — and the timing keeps slipping past you."
+    ],
+    "depth": [
+     "This is the week where you forget the appointment because you were busy remembering the other appointment, or the overdraft notification that catches you off guard even though you knew, somewhere, it was coming. The juggling that used to feel skillful starts to feel like just barely not dropping things. Your shoulders carry it — that specific tension of holding too many things too tightly for too long.",
+     "Picture three group chats all needing a decision from you by Friday, plus a bill due Thursday you half-forgot about. Nothing here is unfixable, but the balance that used to come naturally now takes visible effort, and you're one surprise away from something actually slipping. It might be worth a look at which of the balls in the air can just bounce for a second."
+    ]
+   }
+  },
+  "Three of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're getting better at something real, and for once you can see the proof of it instead of just hoping it's true.",
+     "Other people's skills are folding into yours right now — a project is genuinely better because more than one set of hands is on it.",
+     "Work you've put in is starting to get noticed by the people who can actually do something with that recognition."
+    ],
+    "depth": [
+     "This is the meeting where someone says that's exactly the piece we needed about the thing you made, or the group project where everyone's part actually clicks together instead of fighting for space. You can feel your specific skill mattering here, because what you bring fits into what someone else brings, and that fit is a skill in itself. It's a good kind of tired at the end of the day, the kind that comes from making something with your hands or your head.",
+     "Picture a contractor, a designer, and a client all looking at the same blueprint and nodding — that's the temperature of this card. You're one of the people at that table, and your specific contribution is legible to the others, not lost in the noise. Whatever you're building — a business, a home renovation, a shared project — is stronger for having more than one person's fingerprints on it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're putting in real effort but feeling strangely invisible in the room where it matters most.",
+     "A shared project is pulling in different directions because nobody quite agrees on what done looks like.",
+     "Credit or pay for the work isn't lining up with who actually did it, and you're the one who notices first."
+    ],
+    "depth": [
+     "This shows up as the group project where you did the slide deck and someone else presented it without a mention of your name, or a renovation where the contractor and the client keep describing two different rooms. The collaboration exists on paper, but the coordination in the room hasn't caught up to it yet — people talking past each other in a shared document, edits overwriting edits. The skill is real; the timing just hasn't matched it yet.",
+     "Picture a team chat with everyone typing at once and no one actually deciding anything, or a paycheck that came in lighter than the hours you logged. The pieces of this project are all real and mostly good, but they're not fitting together the way you'd expect yet, and that gap between individual effort and shared result is exactly what you're feeling right now."
+    ]
+   }
+  },
+  "Four of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You've built something solid enough to stand on, and part of you is guarding it like it's the only one you'll get.",
+     "You're holding your ground — your space, your time, your terms — in a way that's more about safety than stubbornness.",
+     "Money or property you've worked for is staying put, saved and accounted for, right where you can reach it."
+    ],
+    "depth": [
+     "This is the savings account you check just to feel it's still there, or the apartment you've finally made yours — same couch angle, same mug on the same shelf, and you like it that way. There's real comfort in a thing that isn't moving, in knowing where your resources are and that they're yours. The only edge to watch is the grip getting a little tighter than the situation actually calls for.",
+     "Picture a closed fist around a set of keys, or a budget spreadsheet you keep updated to the penny. You've built a wall around what's yours — house, savings, a hard-won routine — and it's doing its job. The stability is real and earned; it just costs something to keep holding this tight, and you'll know if that cost starts to outweigh the safety it buys you."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The grip you've kept on money or control is either white-knuckled past the point of comfort, or it's slipped and things feel unmoored.",
+     "You're either holding people at arm's length to protect what's yours, or you've let go of a boundary you actually needed.",
+     "Savings, property, or a budget you thought was locked down is either costing you more worry than it's worth, or has started slipping out of your hands."
+    ],
+    "depth": [
+     "This can look like a spreadsheet updated at 2am because you can't stop checking the number, or a savings goal that's technically met but never feels like enough to relax around. The security this card usually offers has tipped into something tighter — a fist clenched around a thing that was never going anywhere. Loosening even one finger might change how the whole hand feels.",
+     "Or it's the opposite: a lease that lapsed without you noticing, a budget you stopped tracking, a safe account that's thinner than you thought. The stability that used to feel automatic has gone a little loose at the seams, and the first sign is usually a bill or a bank text that catches you off guard on an ordinary afternoon."
+    ]
+   }
+  },
+  "Five of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're in a stretch that feels colder than the season accounts for, and part of the cold is believing you have to weather it alone.",
+     "You're walking past warm windows right now — other people's ease is visible and it stings a little.",
+     "Money, work, or health has taken a real hit, and the ground under you feels thinner than usual."
+    ],
+    "depth": [
+     "This is the specific chill of checking your account before a grocery run and doing math you didn't used to have to do, or sitting in a waiting room with a body that isn't cooperating. The instinct to keep walking past the door with the light on instead of knocking can be the hardest part of a stretch like this. Somewhere near you, help exists; the distance between you and it is smaller than it feels on the coldest days.",
+     "Picture two people trudging through snow past a lit-up window — that's the old image, and it still lands. You're out in weather you didn't choose, maybe a job loss, a medical bill, a cold spell in a relationship. Remembering there's a door somewhere that opens, rather than toughing it out solo, is what makes a stretch like this survivable."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The coldest part might be starting to ease, or you're realizing just how long you've been out in it.",
+     "Someone's actually reaching a hand out to you, or you keep turning away from the ones who already have.",
+     "A financial or health setback is starting to lift, or it's dragging on longer than the first version of this story suggested."
+    ],
+    "depth": [
+     "This can be the moment you finally answer your mom's call about the money you owe, or the first paycheck after a rough gap that makes your shoulders drop an inch. The worst of the cold season is thawing, slowly, in the unglamorous way recovery usually happens — one bill paid, one appointment kept, nothing dramatic about it.",
+     "Or it's the version where the same hard stretch is still going, maybe longer than it needed to, because a hand's been offered more than once and hasn't quite been taken. A friend keeps asking if you need anything and you keep saying you're fine. If this is where you are, the next right move might be smaller and closer than it looks from out in the cold."
+    ]
+   }
+  },
+  "Six of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're in a season where things move — help flows out of you or into you, and either way it feels right-sized.",
+     "Someone is looking out for you, or you're the one with your hand out to steady another person, and the balance feels fair.",
+     "Money, time, or resources are changing hands in a way that actually helps rather than just shuffling debt around."
+    ],
+    "depth": [
+     "This is the friend who Venmos you back exactly when you needed it, or the moment you're able to cover someone else's coffee without thinking twice. There's a real give and take here: receiving doesn't cost you dignity, and giving doesn't have to cost you everything. The scale tips gently, then rights itself, without anyone keeping score.",
+     "Picture handing someone cash, groceries, or an hour of your time, and watching them actually get some relief from it. This card is about resources moving to where they're needed — a paycheck that covers the bill this month, a landlord who works with you, a boss who notices and adjusts your hours. Something was short, and now it isn't."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're keeping score, or someone's keeping score with you, over help that was supposed to be freely given.",
+     "A favor's come with conditions attached, or you're the one who keeps giving without ever quite getting it back.",
+     "Money owed, a loan, or a debt is sitting between you and someone else with more weight than either of you has said out loud."
+    ],
+    "depth": [
+     "This shows up as the friend who lent you money and now brings it up at every dinner, or the boss whose flexible schedule always seems to favor the schedule over the flexible part. Generosity here has a hook in it, whether it's obvious or quiet, and you can feel the imbalance even before you can name exactly where it is. The math isn't even, and pretending otherwise won't make it even.",
+     "Or you're the one over-giving — covering the bill again, picking up the extra shift again, and noticing the tally only lives in your head. This is a card about the exchange getting lopsided: someone's paying and someone's collecting, and it's worth a plain look at which one you've been lately."
+    ]
+   }
+  },
+  "Seven of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're standing back to look at something you've been growing, checking if the work so far is worth what it's costing you.",
+     "You and someone else are quietly taking stock of where things stand, without rushing to a verdict either way.",
+     "A project, job, or investment is at the point where the payoff isn't obvious yet, and you're deciding whether to keep watering it."
+    ],
+    "depth": [
+     "This is the farmer leaning on a hoe, looking at a field that isn't ready yet — for you it might be a business that's two years in and still not profitable, or a degree you're halfway through wondering if it'll pay off. In this moment, you're just standing still, doing the quiet math of effort versus progress. That pause is its own kind of work.",
+     "Picture a savings goal you check every few months instead of every day, or a garden you've stopped fussing over daily because fussing won't make it grow faster. You're in a genuine in-between: too far in to walk away without cost, not far enough along to see the shape of the result yet. The patience this asks for is active — watching closely, adjusting, staying present while things take their time."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're either done waiting and want to walk away now, or you've kept going long past the point it made sense to.",
+     "A partnership or deal you've invested in isn't paying you back the way it once promised to.",
+     "Time or money you put into something is starting to look like it went to the wrong place."
+    ],
+    "depth": [
+     "This can be the side hustle you've poured eight months and a real chunk of savings into with nothing to show but a folder of receipts, or the impatience that makes you want to sell, quit, or walk out mid-project just to stop the not-knowing. Both directions are live here: cutting losses too soon out of frustration, or staying too long out of sunk-cost stubbornness. Either way, the field isn't growing the way the plan said it would.",
+     "Picture checking an investment app and closing it faster than you opened it, or realizing the temporary arrangement at work has quietly become permanent with none of the upside you were promised. The long view this card usually rewards has gotten cloudy, and it might be worth an honest look at what you're actually getting for what you're putting in."
+    ]
+   }
+  },
+  "Eight of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're deep in the unglamorous middle of getting good at something, one repetition at a time.",
+     "People are starting to trust you with more because they can see the care you put into the small stuff.",
+     "Work is steady right now — not flashy, but the kind that adds up coin by coin, skill by skill."
+    ],
+    "depth": [
+     "This is the hundredth version of the same drawing, the fiftieth batch of the same recipe, the daily hour at the workbench that nobody's watching. Your hands know things now that your brain learned the hard way, through repeat. This stretch might look boring from outside, and something real is compounding underneath it anyway, quietly, the way muscle or skill actually builds.",
+     "Picture a coin being minted, over and over, same shape each time but a little cleaner with practice. This shows up as the beginner's steadiness in a new job you're finally starting to feel settled in, or a craft — woodworking, code, cooking, whatever it is — where the hundredth try genuinely looks different from the first ten. Doing it well is starting to feel like its own kind of proof."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You're either grinding past the point of good sense or losing the thread of why the grind mattered in the first place.",
+     "Someone's noticing corners cut in work you used to take real care with.",
+     "The job or craft that used to absorb you now feels like just going through motions, coin by coin, without the payoff landing."
+    ],
+    "depth": [
+     "This is the version where you've been at the desk twelve hours and the work is somehow worse than it was at hour three, or where perfectionism has you redoing the same page for the fifth time instead of calling it finished. The diligence that usually pays off has curdled into something closer to diminishing returns — more hours, less to show, and a body that's starting to protest the pace.",
+     "Or it's the opposite: skipping steps you know matter because the task's gone stale, turning in work that's technically done but doesn't feel like yours anymore. Picture the difference between a handmade coin and one stamped out fast and a little crooked — that's the gap between what you know you can do and what's actually landing on the table right now."
+    ]
+   }
+  },
+  "Nine of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You've built a life that can hold itself up, and there's a real, earned pleasure in standing in it alone.",
+     "You don't need rescuing right now — whatever company you keep is by choice, not necessity.",
+     "Money and comfort you've made for yourself are letting you enjoy something nice without guilt attached."
+    ],
+    "depth": [
+     "This is the garden you built with your own hands now finally in bloom, the apartment that's exactly yours down to the specific plant on the windowsill, the good coffee you buy without checking the price first. Nobody handed you this — you worked toward it, and now you get to actually sit in it. There's a particular quiet to enjoying something you made yourself, no audience required.",
+     "Picture a woman alone in a vineyard she tends, comfortable, unhurried, not waiting on anyone to complete the picture. This shows up as an evening you spend entirely on your own terms — good food, a closed door, nowhere you have to be — after a long stretch of being needed by everyone else. This independence carries a specific relief — having enough, on your own, that you're not scanning the room for rescue."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The self-sufficiency you're proud of might be tipping into isolation you didn't quite choose.",
+     "You're leaning on someone else's money or effort more than you'd like to admit.",
+     "A comfort you'd gotten used to is thinner than it looks, or slipping."
+    ],
+    "depth": [
+     "This can look like a nice apartment that's actually funded by a partner's income while yours has quietly stalled, or a lifestyle that photographs well but doesn't feel as solid up close as it used to. The self-made pride this card usually carries has a gap in it somewhere — something's propped up by someone else, or something you built is starting to show cracks.",
+     "Or it's the quieter version: you've gotten so used to doing everything alone that you've stopped letting anyone in, even when you could use the company. The garden's still yours, but you're the only one who ever sees it bloom, and lately that quiet has started to feel like distance you didn't quite choose."
+    ]
+   }
+  },
+  "Ten of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're looking at something built over a long stretch of time, and it's finally big enough to matter beyond just you.",
+     "Family — chosen or given — is woven into whatever's stabilizing right now, for better and for tangled.",
+     "Money, property, or a home is reaching a scale that outlasts a single paycheck or a single year."
+    ],
+    "depth": [
+     "This is the family dinner table with three generations around it, the house that's been in the family long enough to have its own dents and stories, the inheritance conversation that's finally, plainly, on the table. What you're looking at took longer than any one decision to build, and it's carrying more people than just you — which is part of what makes it solid, and part of what makes it complicated.",
+     "Picture the deed to a house, a pension finally vested, a business that's outlived its founder's original five-year plan. This card shows up as the unglamorous, structural kind of success: decades of choices stacked into something that can actually hold a family's weight. This is plain, steady success — the kind that doesn't announce itself, and lasts because of that quiet."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "Something you counted on lasting — a home, a family arrangement, a plan for the long haul — feels shakier than it used to.",
+     "Money and family are tangled up in a way that's causing more friction than comfort right now.",
+     "A long-term financial or property arrangement is under real strain, maybe from a dispute, maybe from just running thin."
+    ],
+    "depth": [
+     "This is the inheritance that split a family instead of steadying it, the house that's technically everyone's and therefore nobody's, the family business argument that goes quiet at Thanksgiving because nobody wants to say the number out loud. The stability this card usually promises has a crack running through it, usually right where money and relatives overlap.",
+     "Or it's simpler and lonelier than a fight: the long-term plan — the retirement fund, the family home, the multi-generation setup — is just thinner than it was supposed to be by now, and you're the one doing the quiet recalculating. Either way, something built to last a long time is asking for real attention before it can keep holding what it's supposed to."
+    ]
+   }
+  },
+  "Page of Pentacles": {
+   "upright": {
+    "meanings": [
+     "Something new has caught your full attention, and you're studying it the way you study something you actually want to understand.",
+     "Someone's bringing you an opportunity, an idea, or a genuine have-you-thought-about-this worth hearing out.",
+     "Real news about money, work, or a course of study is on its way to you, and it's worth reading closely."
+    ],
+    "depth": [
+     "This is the acceptance email you keep re-reading, the internship offer you didn't expect, the tutorial that turns into three hours because the thing actually clicked. You're in beginner mode in the best sense — curious rather than intimidated, willing to be bad at something new for a while because getting good at it feels worth it. There's a coin in your hand you're still turning over, examining, not spending yet.",
+     "Picture a kid on a green hillside holding up a coin, studying it like it's the most interesting object in the world — that's the feel of an opportunity you haven't fully unpacked yet. This shows up as a job posting you bookmark and actually apply to, a class you sign up for on a whim, a text from a friend about a gig that might be worth your time. Nothing's decided yet. You're just paying real attention."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The curiosity's still there, but the follow-through keeps slipping to tomorrow.",
+     "A tip or an opportunity someone handed you is going stale in your inbox.",
+     "News about money or work has landed, and it's not the version you were hoping to read."
+    ],
+    "depth": [
+     "This is the application you bookmarked six weeks ago and never opened again, the course you paid for and haven't logged into since week two. The student mindset hasn't disappeared, though it's gone a little scattered — daydreaming about the outcome instead of logging the unglamorous first steps that get you there. Something new is still worth pursuing; it might just need you to actually open the tab.",
+     "Or the message that arrives is the disappointing one: the rejection instead of the offer, the invoice instead of the payment, the we went with someone else. It stings in a small, specific way — not devastating, just a plain letdown on something you'd let yourself get a little hopeful about. The next opportunity is still out there; this one just isn't it."
+    ]
+   }
+  },
+  "Knight of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're moving toward something slowly and deliberately, and there's real strength in refusing to rush it.",
+     "People know they can count on you to actually show up and do the unglamorous parts.",
+     "Work is getting done through steady, repeated effort rather than any single big push."
+    ],
+    "depth": [
+     "This is the daily gym session that isn't exciting anymore but is working, the same route to the same job you take without complaint because the routine is what's paying the rent. You're steady rather than flashy, and that's what's still standing at the end of the project — you paced yourself instead of sprinting. Reliability, done long enough, starts to look a lot like character.",
+     "Picture a knight on a still, sturdy horse, in no hurry, plowing a field one row at a time. That's the pace here — deliberate, sometimes plodding, occasionally boring to watch from outside. This shows up as a savings plan you stick to even when it's tedious, a job you do well without needing applause for it, a slow project that's further along than it looks because you never stopped adding to it."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The steadiness that used to feel solid now feels closer to stuck.",
+     "You're leaning so hard on routine with someone that the relationship's stopped moving at all.",
+     "Work has settled into a rut where the effort's still there but the progress has quietly stalled."
+    ],
+    "depth": [
+     "This is the job you've done well for four years without a single new thing added to it, the workout you keep doing exactly the same way even though your body stopped responding to it a year ago. The care and reliability are real — you haven't dropped anything — but the horse has stopped in the field, and staying careful has started to look a lot like staying put.",
+     "Or it's the opposite tilt: so much caution about doing things the right way that nothing actually gets finished, a stubbornness about method that gets in the way of the goal it was supposed to serve. Picture insisting on the long way even when a shorter one's opened up. Steadiness is only useful while it's still moving you somewhere."
+    ]
+   }
+  },
+  "Queen of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You're the kind of steady right now that other people can actually lean on, and it doesn't cost you as much as it used to.",
+     "You're taking care of people in real, tangible ways — food, money, a warm place to land — not just good intentions.",
+     "You're managing money, home, or work with a competence that looks effortless but isn't."
+    ],
+    "depth": [
+     "This is the fridge that's always stocked when someone needs it, the budget spreadsheet that somehow also leaves room for the thing you actually wanted, the specific comfort of a home that runs well because someone — you — keeps it running. You've gotten good at holding both the practical and the warm at once: paying the bill and making the soup, closing the deal and remembering someone's allergy.",
+     "Picture a queen with a rabbit at her feet in a garden she clearly tends herself, not for show. This shows up as texting a friend groceries when they're low, or negotiating your own rate without apologizing for the number. The nurturing here is specific and competent, grounded in actually having your hands on the resources that make care possible."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "You've been giving so much practical care to everyone else that your own cup's gone quietly empty.",
+     "Your care for someone has tipped into managing them more than supporting them.",
+     "Money or work is out of balance — either you're overextended providing for others, or leaning too hard on someone else's provision."
+    ],
+    "depth": [
+     "This is the fridge you keep stocked for everyone but yourself, the schedule that has room for every kid's practice and every friend's crisis but nothing marked for you. The competence that usually makes this card feel warm has started running on fumes — you're still handling everything, but it's costing more than it's giving back lately.",
+     "Or the care's gone a little controlling: showing up with groceries someone didn't ask for, weighing in on a budget that wasn't yours to manage, mothering a relationship that needed a partner instead. The instinct to provide is a good one; it just needs a beat to check whether it's actually landing as help or as one more thing to push back against."
+    ]
+   }
+  },
+  "King of Pentacles": {
+   "upright": {
+    "meanings": [
+     "You've earned a kind of calm that comes from actually having your practical life in order.",
+     "People trust your judgment on money and stability because you've shown, repeatedly, that you're solid.",
+     "Work, money, or a business you've built is running on steady, well-tested ground."
+    ],
+    "depth": [
+     "This is the retirement account you actually check without dread, the business you built slow enough that it can survive a bad quarter, the specific ease of a person who's not performing success — they just have it, quietly, in the details. You've made enough decisions well enough times that the decisions have started making themselves easier. There's grapes on the vine here because you planted years ago, long before you could see this far ahead.",
+     "Picture a king at a desk that's actually organized, not for appearance but because organization is how he thinks. This shows up as negotiating a contract without flinching, or being the person a family or a team turns to when a real financial call needs making. The authority here carries a quiet weight — the specific calm of someone who's handled money and responsibility long enough to be genuinely unbothered by both."
+    ]
+   },
+   "reversed": {
+    "meanings": [
+     "The steadiness you're known for is starting to feel more like rigidity than strength.",
+     "People are noticing your judgment on money or leadership hasn't quite matched your usual track record lately.",
+     "Work or money that used to run smoothly is showing real cracks, maybe from stretching too far or holding on too tight."
+    ],
+    "depth": [
+     "This is the business owner who won't delegate a single task and is drowning quietly in it, or the investment that looked solid on paper and isn't performing the way the spreadsheet promised. The competence that usually anchors this card has gotten brittle — decisions made from stubbornness instead of judgment, success measured only in numbers instead of anything that actually feels good to live inside.",
+     "Or it's overwork wearing a success costume: the king at his desk past midnight again, providing well materially while everything else — sleep, family dinner, an actual day off — quietly erodes. The authority's still there; it's just spending more of itself than it's replenishing, and the ledger will eventually ask to be balanced."
+    ]
+   }
+  }
+ }
+}
