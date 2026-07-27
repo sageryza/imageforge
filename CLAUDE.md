@@ -378,6 +378,18 @@ lifted into a standalone tool later.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
+- **Polling is a DELTA, and that's a cost rule, not a nicety (July 2026).** The
+  full `GET /api/chatfeed` reads the newest **1500 Firestore docs every call** —
+  a page left open polling that once a minute burned the 50k/day free read quota
+  in ~30 min (~$40/mo). The page now polls `GET /api/chatfeed?since=<newest ISO
+  it holds>`, which returns only newer messages (normally **zero**), so it can
+  poll every 20s — including while a chat is open — for nothing. The chat
+  registry is cached in server memory (`regRef()` invalidates on every write).
+  Same rule for `/api/wall`: it lists EVERY object in both Storage buckets, so
+  the listing is memory-cached (`wallInvalidate()` on upload, `?fresh=1` to
+  force). **Before adding any new poller, make the polled endpoint answer
+  "what's new since X" — never re-read the whole collection on a timer.** Both
+  pages also skip polling when `document.hidden`.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
