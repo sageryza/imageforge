@@ -404,14 +404,24 @@ router.post('/app-account', async (req, res) => {
 // Open a claude.ai session in the BROWSER instead of the Claude app. iOS
 // hands a tapped claude.ai link straight to the app (universal link), which
 // is wrong for a chat on the account that's signed in on the web — so those
-// Open buttons point here instead: the tap opens this imageforge URL (no app
-// association), and the server redirect lands on claude.ai in the browser,
-// where that account's login lives (universal links don't fire on redirects).
+// Open buttons point here instead. NOT a 302: verified live (2026-07-27) that
+// Safari treats a server redirect to claude.ai as a link activation and
+// bounces into the Claude app anyway. Instead this serves a tiny page that
+// navigates ITSELF (script location.replace + meta-refresh fallback) —
+// self-initiated navigation doesn't trigger the universal-link handoff, so
+// the session opens in Safari, where that account's login lives.
 router.get('/go', (req, res) => {
   const u = String(req.query.u || '').slice(0, 400);
   if (!/^https:\/\/claude\.ai\//.test(u)) return res.status(400).send('bad url');
+  const safe = u.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E');
   res.set('Cache-Control', 'no-store');
-  res.redirect(302, u);
+  res.set('Content-Type', 'text/html; charset=utf-8').send(
+    '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<meta http-equiv="refresh" content="0;url=' + safe + '"><title>Opening…</title>'
+    + '<body style="font-family:-apple-system,sans-serif;padding:40px 24px;color:#444">'
+    + 'Opening the chat in your browser…'
+    + '<script>location.replace(' + JSON.stringify(safe) + ');</script>'
+  );
 });
 
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
