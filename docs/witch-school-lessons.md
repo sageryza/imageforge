@@ -20,6 +20,20 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 ## Voice rules (this is what makes them feel the same)
 
 - Warm, plain, a little literary. Second person. No fluff, no "mystical" filler.
+- **No AI-tells (July 2026 — Sophie spotted the pattern).** Readers must not be
+  able to tell the text is Claude-written. Banned phrasings, all of them:
+  - Mic-drop closers: "That's the whole practice." / "That's the craft." /
+    "Done. That's the ritual." / "That's it."
+  - The negation-pivot reframe: "X isn't Y — it's Z" / "It's not X. It's Y." /
+    "You're not X-ing; you're Y-ing." (Factual contrasts are fine; the banned
+    version is the rhetorical *reframe* of a feeling or practice.)
+  - Therapy-speak verbs on feelings: "name it/what you feel", "sit with it",
+    "notice what comes up", "hold space", "let it land".
+  - Permission-granting: "you're allowed to", "give yourself permission to".
+  - "Here's the thing", "that's not nothing", "quietly does a lot of work".
+  Instead: say the content plainly — a concrete instruction, a real fact, or a
+  specific image always beats an aphorism. When a card needs a closer, end on
+  the action or the detail, not a pronouncement about it.
 - **Researched, not generic** — Sophie asked for real research passes. Do 1–2
   web searches per lesson and put actual material in the cards (Culpeper 1652,
   the horoskopos, Epidaurus temple sleep, witch bottles dug up under

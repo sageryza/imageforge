@@ -849,6 +849,15 @@ lifted into a standalone tool later.
   or a bare URL. Applies to every image in a finished reply.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
+- **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
+  product listings — anything Sophie's readers see). People shouldn't be able
+  to tell it's AI-written. Banned: mic-drop closers ("That's the whole
+  practice." / "That's it."), the negation-pivot reframe ("X isn't Y — it's
+  Z"), therapy-speak verbs on feelings ("name it", "sit with it", "notice what
+  comes up", "hold space"), permission-granting ("you're allowed to", "give
+  yourself permission"), "here's the thing", "that's not nothing". Full list +
+  guidance in `docs/witch-school-lessons.md` (Voice rules). Swept the 16 live
+  Witch School lessons July 2026; keep new copy clean.
 - **Everything slow is a background job — never make anyone watch a spinner.**
   Any generation that isn't near-instant (image gen, an LLM reading, audio,
   video, a long fetch) MUST be a fire-and-forget background job that survives
