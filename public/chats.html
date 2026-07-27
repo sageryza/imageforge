@@ -221,9 +221,10 @@ body.reading .backwrap{display:block;}
       <h1>Chats</h1>
       <div class="rule"></div>
     </header>
-    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em;">
+    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
+      <button id="acctog" class="tbtn refreshbtn" aria-label="Swap which account is signed into the app"></button>
     </div>
     <div class="searchrow">
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
@@ -434,6 +435,9 @@ window.addEventListener('pagehide',scrollStop);
 paintPill();
 
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// Feed-wide settings from the server (registry __settings doc). appAccount =
+// which Claude account is signed into the iOS app right now ("1"/"2").
+var settings={};
 // The feed hands us only a tail per chat (chatfeed.js trims it so the app
 // doesn't download the entire history on every launch). `truncated` marks the
 // chats that have more behind them; `fullLoaded` remembers which ones we've
@@ -446,6 +450,17 @@ function claudeUrlFor(name, list){
   var u=(chats[name]&&chats[name].url)||'';
   if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
   return u;
+}
+function appAccount(){ return (settings&&settings.appAccount)||'1'; }
+// The href an Open button should use for this chat. A chat on the account
+// that's signed into the app gets the direct claude.ai link (iOS hands it to
+// the Claude app); a chat on the OTHER account routes through /go so the tap
+// opens the BROWSER, where that account is signed in. Chats with no account
+// tag keep the old direct behavior.
+function openHref(name,url){
+  var acct=(chats[name]&&chats[name].account)||'';
+  if(!url||!acct||acct===appAccount()) return url;
+  return '/api/chatfeed/go?u='+encodeURIComponent(url)+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
 }
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
@@ -732,7 +747,7 @@ function renderMsg(m){
   var ob=document.createElement('div'); ob.className='openrow';
   ob.appendChild(bookmarkBtn(m));
   var murl=m.url||openUrl;
-  if(murl){ ob.appendChild(openClaudeBtn(murl)); }
+  if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
   row.appendChild(ob);
   return row;
 }
@@ -798,7 +813,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   list.slice().reverse().forEach(function(m){ chatPanel.appendChild(renderMsg(m)); });
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
-  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(curl)); }
+  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(openHref(name, curl))); }
   var isArch=!!(chats[name]&&chats[name].archived);
   var ar=document.createElement('div'); ar.className='archrow';
   var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
@@ -1225,6 +1240,25 @@ document.getElementById('v-list').onclick=function(){ view='list'; try{localStor
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 
+// App/Web account toggle: shows which Claude account is signed into the iOS
+// app right now (the other one is on the web). Tap to swap after switching
+// sign-ins \u2014 every Open button re-routes off it immediately.
+var SWAP='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>';
+var acctog=document.getElementById('acctog');
+function paintAcct(){
+  var a=appAccount(), w=a==='1'?'2':'1';
+  acctog.innerHTML=SWAP+'<span>App '+esc(a)+' \u00b7 Web '+esc(w)+'</span>';
+}
+acctog.onclick=function(){
+  var prev=appAccount(), next=prev==='1'?'2':'1';
+  settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
+  api('/api/chatfeed/app-account',{method:'POST',body:JSON.stringify({account:next})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
+    .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); toast('Couldn\u2019t save that'); });
+};
+paintAcct();
+
 // ---- Launch cache ---------------------------------------------------------
 // Every app-open used to start from nothing and pull the full feed — a
 // 1500-document read server-side just to re-fetch messages the phone had
@@ -1248,14 +1282,14 @@ function saveCache(){
     var keep=[]; Object.keys(byChat).forEach(function(c){ keep=keep.concat(byChat[c]); });
     var trunc={}; Object.keys(truncated).forEach(function(c){ trunc[c]=1; });
     Object.keys(dropped).forEach(function(c){ trunc[c]=1; });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, msgs:keep, truncated:Object.keys(trunc)}));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, settings:settings, msgs:keep, truncated:Object.keys(trunc)}));
   }catch(e){}   // full storage / private mode: the cache is only an optimization
 }
 function loadCache(){
   try{
     var d=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
     if(!d || !d.msgs || !d.msgs.length) return false;
-    chats=d.chats||{}; msgs=d.msgs;
+    chats=d.chats||{}; msgs=d.msgs; settings=d.settings||{}; paintAcct();
     truncated={}; fullLoaded={};
     (d.truncated||[]).forEach(function(c){ truncated[c]=1; });
     renderHome();
@@ -1268,6 +1302,7 @@ function load(){
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
+    settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
     // is gone — clear fullLoaded and let openChat pull the thread again.
     truncated={}; fullLoaded={};
@@ -1299,6 +1334,7 @@ function poll(){
     .then(function(r){return r.json()})
     .then(function(data){
       if(data.chats) chats=data.chats;
+      if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
       if(!incoming.length) return;              // the common case: nothing to do
       // The delta is capped at 200 server-side. Hitting the cap means the

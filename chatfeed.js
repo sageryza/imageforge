@@ -14,6 +14,11 @@
 //                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
 //   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
 //                                  (grayed until a newer message arrives)
+//   POST /api/chatfeed/app-account → { account } — which Claude account is
+//                                  signed into the iOS app right now (the
+//                                  home-screen App/Web toggle)
+//   GET  /api/chatfeed/go?u=     → 302 to a claude.ai URL — Open-in-browser
+//                                  hop for chats on the web-signed-in account
 //   POST /api/chatfeed/polish    → { id } — render the message in the polished
 //                                  onyx-British neural voice (~1¢), cached forever
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
@@ -63,15 +68,24 @@ function fail(res, err) {
 let regCache = null;
 let regCacheAt = 0;
 const REG_TTL_MS = 5 * 60 * 1000;   // backstop only; writes invalidate directly
+// Feed-wide settings (not a chat) live in ONE reserved registry doc so they
+// ride the same cached read as the icons. Currently: { appAccount } — which
+// Claude account ("1"/"2") is signed into the iOS app right now. The
+// home-screen App/Web toggle writes it; the Open buttons route off it.
+const SETTINGS_DOC = '__settings';
 
 async function registry() {
   if (regCache && Date.now() - regCacheAt < REG_TTL_MS) return regCache;
   const snap = await db().collection(REG).get();
   const chats = {};
-  snap.docs.forEach((d) => { chats[d.id] = d.data(); });
-  regCache = chats;
+  let settings = {};
+  snap.docs.forEach((d) => {
+    if (d.id === SETTINGS_DOC) { settings = d.data(); return; }
+    chats[d.id] = d.data();
+  });
+  regCache = { chats, settings };
   regCacheAt = Date.now();
-  return chats;
+  return regCache;
 }
 // Every registry WRITE goes through this, so the cache can never go stale.
 function regRef(chat) {
@@ -113,7 +127,7 @@ router.get('/', async (req, res) => {
     // we sort by needs no composite index.
     const since = String(req.query.since || '').slice(0, 40);
     if (since) {
-      const [dsnap, chats] = await Promise.all([
+      const [dsnap, reg] = await Promise.all([
         db().collection(MSGS)
           .where('created', '>', since)
           .orderBy('created', 'desc')
@@ -124,10 +138,10 @@ router.get('/', async (req, res) => {
       const messages = dsnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       // `delta:true` tells the client to MERGE rather than replace — it still
       // holds the trimmed tail and any full threads it has already pulled.
-      return res.json({ chats, messages, truncated: [], delta: true });
+      return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true });
     }
 
-    const [msnap, chats] = await Promise.all([
+    const [msnap, reg] = await Promise.all([
       db().collection(MSGS).orderBy('created', 'desc').limit(SCAN).get(),
       registry(),
     ]);
@@ -149,7 +163,7 @@ router.get('/', async (req, res) => {
     // pull the full thread when one is opened instead of guessing.
     const truncated = Object.keys(perChat)
       .filter((c) => perChat[c] > (rank[c] < DEEPCHATS ? DEEP : TAIL));
-    res.json({ chats, messages, truncated });
+    res.json({ chats: reg.chats, settings: reg.settings, messages, truncated });
   } catch (err) { fail(res, err); }
 });
 
@@ -241,7 +255,7 @@ router.get('/thread', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr, url } = req.body || {};
+    const { chat, title, text, audio, tldr, url, account } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -268,6 +282,9 @@ router.post('/', async (req, res) => {
     const ref = await db().collection(MSGS).add(doc);
     const reg = { lastSeen: doc.created };
     if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
+    // Which Claude account this chat's sessions run under (the hook posts the
+    // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
+    if (account) reg.account = String(account).slice(0, 20);
     await regRef(doc.chat).set(reg, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
@@ -355,6 +372,31 @@ router.post('/flag', async (req, res) => {
     await regRef(chat).set(patch, { merge: true });
     res.json({ ok: true, flaggedAt: flagged ? stamp : null });
   } catch (err) { fail(res, err); }
+});
+
+// Which Claude account is signed into the Claude iOS app right now ("1" or
+// "2"). Sophie flips this from the home-screen App/Web toggle whenever she
+// swaps sign-ins; every chat's Open button routes off it (app vs browser).
+router.post('/app-account', async (req, res) => {
+  try {
+    const account = String((req.body || {}).account || '').slice(0, 20);
+    if (!account) return res.status(400).json({ error: 'account required' });
+    await regRef(SETTINGS_DOC).set({ appAccount: account }, { merge: true });
+    res.json({ ok: true, appAccount: account });
+  } catch (err) { fail(res, err); }
+});
+
+// Open a claude.ai session in the BROWSER instead of the Claude app. iOS
+// hands a tapped claude.ai link straight to the app (universal link), which
+// is wrong for a chat on the account that's signed in on the web — so those
+// Open buttons point here instead: the tap opens this imageforge URL (no app
+// association), and the server redirect lands on claude.ai in the browser,
+// where that account's login lives (universal links don't fire on redirects).
+router.get('/go', (req, res) => {
+  const u = String(req.query.u || '').slice(0, 400);
+  if (!/^https:\/\/claude\.ai\//.test(u)) return res.status(400).send('bad url');
+  res.set('Cache-Control', 'no-store');
+  res.redirect(302, u);
 });
 
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
