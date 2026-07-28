@@ -649,6 +649,44 @@ lifted into a standalone tool later.
   it isn't a policy-violating duplicate, and run both 2+ weeks. Baseline the
   original for a week first.
 
+## The Dump (`dropbox.js`) — one inbox for anything off the phone
+- `dropbox.js` (`/api/drop`) is the generalized drop box the crystal box grew
+  into: **dump first, label afterwards**. Dropping asks no questions — no type,
+  no name, no fields. Only two pieces of structure are captured at dump time,
+  because they're free then and expensive to reconstruct later: the **bundle**
+  (what arrived together — on the phone a Photos ALBUM, in a zip a folder, from
+  the share sheet one share action) and the **session** (the dump, date-stamped).
+  `track` (`crystals` / `story-art` / …) is deliberately null on arrival.
+- **One Firestore doc per FILE** (`forge-drops`, deckfactory), plus one doc per
+  album in `forge-drop-bundles` holding its number, name and file counter.
+  Images and videos both (videos get a poster frame).
+- **A bundle is keyed by its slug ACROSS dumps** — an album is one thing however
+  many times it's sent to. **Re-dumping an album fills its gaps** instead of
+  forking a second copy: files are keyed by the **md5 of their bytes** and an
+  arrival already in that album is skipped (`duplicate:true`, counted as
+  `skipped` in the response). Filenames can't be used for this — the iOS
+  uploader names every export `UUID() + originalFilename`, so the same photo
+  sent twice arrives under two different names.
+- **Bytes are stored once**, content-addressed at `drops/_/<hash>.<ext>` — the
+  same photo in two albums is ONE object with two entries pointing at it, like
+  Photos. `dropDoc` only deletes bytes when no other doc references the hash.
+- **`photoIndex` comes from a transaction** on the bundle doc. It used to be
+  derived by counting the album on each request, and the app uploads several
+  files at once, so concurrent uploads got the SAME index — album order came out
+  scrambled and the holes looked like missing files. Never diagnose "missing
+  photos" from index gaps in data dumped before 2026-07-28.
+- **`scripts/drop-dedupe.js`** repairs existing data (hashes from Storage
+  metadata — no downloads — then removes in-album duplicates, renumbers, seeds
+  the registry). `--dry-run` prints the plan. Ran once on 2026-07-28: 2,717
+  files → 2,594, 123 exact duplicates removed (~327 MB), 58 albums renumbered.
+- **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
+  picker — the share sheet can't see album names, so it's the right tool for a
+  pile of named albums) with a background `URLSession` that survives leaving the
+  app, plus the `DumpShare` share extension. Routes: `GET /sessions`,
+  `GET /bundles?session=`, `GET /items`, `POST /upload` (data URLs),
+  `POST /upload-file` (raw body — the iOS path), `POST /upload-zip`,
+  `PATCH /bundle` (label a whole album at once), `DELETE /items/:id`.
+
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a
