@@ -811,6 +811,34 @@ app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => 
   }
 });
 
+// The Summary — the shape of the story at a glance: the few key beats that
+// carry it, shown at the top of the story page with arrows between them.
+// Stored as `summary: [{ beat: <index>, label }]`, kept in beat order.
+app.post('/api/story/summary', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, summary } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const beats = Array.isArray(data.beats) ? data.beats : [];
+    data.summary = (Array.isArray(summary) ? summary : [])
+      .map((m) => ({ beat: Number(m && m.beat), label: String((m && m.label) || '').slice(0, 120) }))
+      .filter((m) => Number.isInteger(m.beat) && m.beat >= 0 && m.beat < beats.length)
+      .sort((a, b) => a.beat - b.beat)
+      .slice(0, 8);
+    await ref.set(data);
+    res.json({ ok: true, summary: data.summary });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Whole-story voiceover: `voiceover: { url, text, status?, error?, source? }`
 // — an audio recording and/or its script; either half can be derived (text →
 // TTS render, audio → Whisper transcript). Body: { projectId, audio? (data

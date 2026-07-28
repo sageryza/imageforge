@@ -1196,7 +1196,13 @@ the `forge-stories` collection is retired (see migration below).
   `STORY_FIREBASE_SERVICE_ACCOUNT`), one doc per story. **Every content field
   is optional — any one of them starts a project:**
   `{ id, title, order, cover, text, voiceover:{ url, text, status?, source? },
-  beats:[{ vo, cards:[{ label, status, url }] }], inbox:[], archived }`.
+  beats:[{ vo, cards:[{ label, status, url }] }],
+  summary:[{ beat:<index>, label }], inbox:[], archived }`.
+  `summary` = the story's SHAPE at a glance: the few key beats that carry it,
+  rendered at the top of the story page as art cards with → arrows between
+  (Sophie picks them via the "+ Summary" / "· edit" sheet; tap a moment to
+  jump to its beat; `POST /api/story/summary {projectId, summary}`, kept in
+  beat order, label optional — defaults to the beat's first narration words).
   `text` = the story prose (what the Movies "saved stories" picker lists);
   `voiceover` = whole-story narration — audio and/or its words, either half
   derivable (text → TTS render, audio → Whisper transcript; `status` =
