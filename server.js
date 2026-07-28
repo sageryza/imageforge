@@ -2760,7 +2760,11 @@ app.post('/api/witch/tarot-ask', async (req, res) => {
   try {
     const who = await witchIdentify(req);
     if (!who) return res.status(401).json({ error: 'sign in first' });
-    if (!(await witchIsMember(who.uid))) return res.status(402).json({ error: 'membership required' });
+    // FREE FOR NOW (App Store first review, 2026-07-28): membership gate off
+    // until the app passes review and Stripe is live — a reading costs cents
+    // and nobody has the feature yet. PUT IT BACK then (the client-side gate
+    // in witch.html startAskReading() is commented out the same way):
+    // if (!(await witchIsMember(who.uid))) return res.status(402).json({ error: 'membership required' });
     const body = req.body || {};
     const question = String(body.question || '').trim().slice(0, 500);
     const spread = TAROT_ASK_SPREADS[body.spread] ? body.spread : 'three';
