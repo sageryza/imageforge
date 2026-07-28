@@ -352,10 +352,27 @@ async function probeDurationSec(file) {
   } catch { return 0; }
 }
 
+// Does this file actually carry an audio stream? A silent video is the single
+// likeliest thing to hand this pipeline by mistake (every generated Wan clip is
+// silent), and without this check ffmpeg fails deep inside the muxer with
+// "Output file does not contain any stream" — 400 characters of internals where
+// the real answer is one sentence.
+async function hasAudioStream(file) {
+  if (!FFPROBE) return true; // can't tell — let ffmpeg be the judge
+  try {
+    const { stdout } = await runBin(FFPROBE, ['-v', 'error', '-select_streams', 'a',
+      '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', file], 60000);
+    return stdout.trim().length > 0;
+  } catch { return true; }
+}
+
 // Strip the video track entirely — mono 44.1kHz AAC, plenty for speech and
 // small enough to store and re-slice cheaply (matches editor.js's own output rate).
 async function extractAudioTrack(videoFile, outFile) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host — cannot extract audio from the video');
+  if (!await hasAudioStream(videoFile)) {
+    throw new Error('this video has no audio track — there is nothing to extract or transcribe');
+  }
   await runBin(FFMPEG, ['-y', '-i', videoFile, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '128k', outFile], 900000);
   if (!fs.existsSync(outFile) || fs.statSync(outFile).size < 1000) {
     throw new Error('ffmpeg produced no audio — does this video have an audio track?');
