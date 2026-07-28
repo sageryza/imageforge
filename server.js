@@ -179,7 +179,24 @@ function anthropicText(data) {
 }
 function parseAnthropicJson(data) {
   const t = anthropicText(data).replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-  return JSON.parse(t);
+  try { return JSON.parse(t); } catch { return JSON.parse(escapeCtrlInStrings(t)); }
+}
+// Model JSON sometimes carries literal newlines/tabs INSIDE string values
+// (e.g. a two-paragraph "reading" field, seen live on /api/witch/tarot-ask
+// 2026-07-28) — JSON.parse rejects those control characters. Escape them,
+// but only inside string literals so structural whitespace stays untouched.
+function escapeCtrlInStrings(t) {
+  let out = '', inStr = false, esc = false;
+  for (const ch of t) {
+    if (!inStr) { if (ch === '"') inStr = true; out += ch; continue; }
+    if (esc) { out += ch; esc = false; continue; }
+    if (ch === '\\') { out += ch; esc = true; continue; }
+    if (ch === '"') { inStr = false; out += ch; continue; }
+    const code = ch.charCodeAt(0);
+    if (code < 0x20) { out += ({ 10: '\\n', 13: '\\r', 9: '\\t' })[code] || ' '; continue; }
+    out += ch;
+  }
+  return out;
 }
 
 // ─── Firebase Setup ─────────────────────────────────────────────────
@@ -1879,7 +1896,7 @@ const WITCH_VOICE = `warm, plain, and grounded — like a perceptive friend, not
 function parseJsonReply(data) {
   const text = (data.choices?.[0]?.message?.content || '').trim();
   const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-  return JSON.parse(cleaned);
+  try { return JSON.parse(cleaned); } catch { return JSON.parse(escapeCtrlInStrings(cleaned)); }
 }
 
 // ─── Dream reading (TWO frontier models side by side) ───────────────
@@ -2760,7 +2777,11 @@ app.post('/api/witch/tarot-ask', async (req, res) => {
   try {
     const who = await witchIdentify(req);
     if (!who) return res.status(401).json({ error: 'sign in first' });
-    if (!(await witchIsMember(who.uid))) return res.status(402).json({ error: 'membership required' });
+    // FREE FOR NOW (App Store first review, 2026-07-28): membership gate off
+    // until the app passes review and Stripe is live — a reading costs cents
+    // and nobody has the feature yet. PUT IT BACK then (the client-side gate
+    // in witch.html startAskReading() is commented out the same way):
+    // if (!(await witchIsMember(who.uid))) return res.status(402).json({ error: 'membership required' });
     const body = req.body || {};
     const question = String(body.question || '').trim().slice(0, 500);
     const spread = TAROT_ASK_SPREADS[body.spread] ? body.spread : 'three';

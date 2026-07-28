@@ -2734,7 +2734,12 @@
     const ta = $('ask-q'); if (ta) askState.question = (ta.value || '').trim().slice(0, 500);
     // Paid feature — the client gate is the courtesy one; the server checks the
     // membership again before it writes anything.
-    if (!isPaid()) { openUpgrade('tarot'); return; }
+    // FREE FOR NOW (App Store first review, 2026-07-28): Stripe isn't set up
+    // yet and all paid references were swept until the app passes review, so
+    // question readings are temporarily free. PUT THE GATE BACK once review
+    // passes and Stripe is live (also restore the server-side check in
+    // server.js /api/witch/tarot-ask):
+    // if (!isPaid()) { openUpgrade('tarot'); return; }
     if (!fbUser) { toast('Sign in first so your readings are saved to you ✦'); if (typeof showSignIn === 'function') showSignIn(); return; }
     askState.cards = askDraw(askState.spread);
     askState.status = 'working'; askState.result = null; askState.error = ''; askState.saved = false; askState.id = null;
