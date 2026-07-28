@@ -391,6 +391,21 @@ def grab_one(video_id, ctx):
         if not blob.exists():
             blob = None
 
+    # The doc is written LAST, so an interrupted run can leave the audio banked
+    # with no doc at all (it happened to 4 of the 7 Dolores Cannon audiobooks —
+    # ~1.6GB already uploaded, invisible because there was nothing pointing at
+    # it). Never trust the doc as the only record of what's in Storage: when it
+    # can't tell us, ASK Storage directly before re-downloading hours of audio.
+    if blob is None:
+        for ext in CONTENT_TYPES:
+            probe = ctx["bucket"].blob(f"{AUDIO_PREFIX}{video_id}.{ext}")
+            if probe.exists():
+                blob = probe
+                blob_ext = ext
+                log(f"    found audio already in Storage (.{ext}) with no doc — "
+                    "re-using it instead of downloading again")
+                break
+
     if has_transcript and blob is not None and not ctx["force"]:
         log(f"    already banked (transcript + audio) — skipping")
         return "skipped"
@@ -459,6 +474,18 @@ def grab_one(video_id, ctx):
                 pass
     else:
         log("    audio already banked")
+        # Heal a doc that never recorded the audio it actually has (the
+        # interrupted-run case above), so the cutter can find it from now on.
+        if not audio_url and blob_ext:
+            dest = f"{AUDIO_PREFIX}{video_id}.{blob_ext}"
+            update["audioUrl"] = f"https://storage.googleapis.com/{ctx['bucket'].name}/{dest}"
+            try:
+                blob.reload()
+                if blob.size:
+                    update["audioBytes"] = int(blob.size)
+            except Exception:
+                pass
+            log(f"    recorded the existing audio on the doc → {dest}")
 
     # 3) status — never downgrade a doc that already has extracted moments.
     if existing.get("moments"):
