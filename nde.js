@@ -58,7 +58,9 @@ async function saveVideo(video) {
   video.updatedAt = new Date().toISOString();
   const db = firestore();
   if (db) await db.collection(COLLECTION).doc(video.videoId).set(plain(video), { merge: true });
-  else memStore.set(video.videoId, plain(video));
+  // Mirror the Firestore path's merge semantics — callers now write partial
+  // docs (a running job's progress label), which a bare set would clobber.
+  else memStore.set(video.videoId, { ...(memStore.get(video.videoId) || {}), ...plain(video) });
   return video;
 }
 
@@ -366,27 +368,28 @@ async function extractAudioTrack(videoFile, outFile) {
 // each chunk's segment/word times get the chunk's start offset added back in.
 const CHUNK_SECS = 600; // 10 min per whisper call — small, fast, well under the 25MB cap
 
-async function transcribeWholeAudio(audioFile, durationSec, dir) {
+// A word straddling a chunk boundary can come out clipped or doubled. That's
+// tolerable HERE and nowhere else: this transcript is only what Sophie reads
+// to pick a span — the span's actual CUT is made by editor.js, which re-listens
+// to the real audio with its own whisper window. So a slightly ragged seam
+// every 10 minutes never reaches the finished audio.
+async function transcribeWholeAudio(audioFile, durationSec, dir, progress = async () => {}) {
   const { transcribeAudio } = require('./movies');
-  if (durationSec <= CHUNK_SECS + 30) {
-    const buf = fs.readFileSync(audioFile);
-    const t = await transcribeAudio(buf, path.basename(audioFile));
-    return {
-      full: t.text,
-      segments: t.segments.map(s => ({ start: s.start, dur: Math.max(0, s.end - s.start), text: s.text })),
-    };
-  }
-  const chunks = Math.ceil(durationSec / CHUNK_SECS);
+  // Always transcode to 16k mono mp3 first — whisper's hard cap is 25MB, and
+  // the 128k m4a we store for cutting would blow past it around the 25-minute
+  // mark. 16k/96k is ~12KB/s, so a whole chunk is ~7MB.
+  const oneShot = durationSec <= CHUNK_SECS + 30;
+  const chunks = oneShot ? 1 : Math.ceil(durationSec / CHUNK_SECS);
   const segments = [];
   const fullParts = [];
   for (let i = 0; i < chunks; i++) {
     const start = i * CHUNK_SECS;
-    const dur = Math.min(CHUNK_SECS, durationSec - start);
+    const dur = oneShot ? durationSec : Math.min(CHUNK_SECS, durationSec - start);
+    if (chunks > 1) await progress(`transcribing part ${i + 1} of ${chunks}`);
     const chunkFile = path.join(dir, `chunk-${i}.mp3`);
     await runBin(FFMPEG, ['-y', '-ss', String(start), '-t', String(dur), '-i', audioFile,
       '-ac', '1', '-ar', '16000', '-c:a', 'libmp3lame', '-b:a', '96k', chunkFile], 300000);
-    const buf = fs.readFileSync(chunkFile);
-    const t = await transcribeAudio(buf, `chunk-${i}.mp3`);
+    const t = await transcribeAudio(fs.readFileSync(chunkFile), `chunk-${i}.mp3`);
     for (const s of t.segments) segments.push({ start: s.start + start, dur: Math.max(0, s.end - s.start), text: s.text });
     fullParts.push(t.text);
     try { fs.unlinkSync(chunkFile); } catch { /* temp file */ }
@@ -394,46 +397,57 @@ async function transcribeWholeAudio(audioFile, durationSec, dir) {
   return { full: fullParts.join(' ').replace(/\s+/g, ' ').trim(), segments };
 }
 
-// A stable id derived from the source (URL, or a random one for a raw upload
-// with no URL) so re-ingesting the same video updates the same doc instead of
-// creating a duplicate every time.
+// A stable id derived from the source — the URL for a hosted video, the
+// CONTENT HASH for a raw upload (which has no URL) — so re-ingesting the same
+// video updates the same doc instead of piling up a duplicate every time.
 function localVideoId(seed) {
-  return 'local_' + crypto.createHash('sha1').update(String(seed)).digest('hex').slice(0, 16);
+  return 'local_' + crypto.createHash('sha1').update(seed).digest('hex').slice(0, 16);
 }
+function localVideoIdForUrl(url) { return localVideoId('url:' + String(url)); }
+function localVideoIdForBytes(buf) { return localVideoId(Buffer.concat([Buffer.from('bytes:'), buf])); }
 
+// Stream the file up from disk rather than reading it into a Buffer first —
+// an hour of 128k mono audio is ~57MB and Render's free instance only has
+// 512MB for the whole app, so `file.save(fs.readFileSync(...))` is an OOM
+// waiting to happen. Same call editor.js's uploadPublic uses.
 async function uploadAudioPublic(localFile, dest, contentType) {
   if (!admin.apps.length) throw new Error('firebase not configured — cannot store the extracted audio');
   const bucket = admin.storage().bucket();
-  const file = bucket.file(dest);
-  await file.save(fs.readFileSync(localFile), { metadata: { contentType } });
-  await file.makePublic();
+  await bucket.upload(localFile, { destination: dest, metadata: { contentType } });
+  await bucket.file(dest).makePublic();
   return `https://storage.googleapis.com/${bucket.name}/${dest}`;
 }
 
 // The whole local-video pipeline: video file on disk → audio-only file →
 // banked in Storage → transcribed → saved as a forge-nde-videos doc, ready to
-// be added as an Episode Editor source.
-async function ingestLocalVideo({ videoFile, sourceUrl, title }) {
-  const videoId = localVideoId(sourceUrl || crypto.randomBytes(8).toString('hex'));
+// be added as an Episode Editor source. `progress` is called with a short
+// label at each step so the polled doc can say what's happening.
+async function ingestLocalVideo({ videoFile, videoId, sourceUrl, title, progress = async () => {} }) {
+  const id = videoId || localVideoId(sourceUrl ? 'url:' + sourceUrl : 'rand:' + crypto.randomBytes(8).toString('hex'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-video-'));
   try {
+    await progress('extracting the audio track');
     const audioFile = path.join(dir, 'audio.m4a');
     await extractAudioTrack(videoFile, audioFile);
     const durationSec = await probeDurationSec(audioFile);
     if (!durationSec) throw new Error('could not read the extracted audio duration');
 
-    const audioUrl = await uploadAudioPublic(audioFile, `nde-audio/${videoId}.m4a`, 'audio/mp4');
-    const transcript = await transcribeWholeAudio(audioFile, durationSec, dir);
+    await progress('storing the audio');
+    const audioUrl = await uploadAudioPublic(audioFile, `nde-audio/${id}.m4a`, 'audio/mp4');
+
+    await progress(`transcribing ${Math.round(durationSec / 60)} min of audio`);
+    const transcript = await transcribeWholeAudio(audioFile, durationSec, dir, progress);
 
     const record = {
-      videoId,
+      videoId: id,
       url: sourceUrl || null,
-      title: title || videoId,
+      title: title || id,
       source: 'local-video',
-      createdAt: new Date().toISOString(),
       status: 'transcribed',
       durationSec: Math.round(durationSec),
       audioUrl,
+      job: { status: 'done', label: 'done', finishedAt: new Date().toISOString() },
+      error: null,
       transcript: {
         source: 'whisper-1',
         language: 'en',
@@ -448,6 +462,52 @@ async function ingestLocalVideo({ videoFile, sourceUrl, title }) {
   } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
   }
+}
+
+// House rule: nothing slow blocks a request. Extracting + transcribing an
+// hour-long video is minutes of work, so the route writes a `processing` doc,
+// hands back the videoId immediately, and does the work in the background —
+// the client polls GET /videos/:videoId, exactly like movies.js/editor.js jobs.
+// `prepare()` produces the local video file (a download, or bytes already on
+// disk) and runs INSIDE the job, so a slow fetch doesn't block either.
+async function startLocalVideoIngest({ videoId, sourceUrl, title, prepare, cleanup }) {
+  const existing = await getVideo(videoId);
+  if (existing?.job?.status === 'running') {
+    const age = Date.now() - new Date(existing.job.startedAt || 0).getTime();
+    if (age < 60 * 60 * 1000) return existing; // already being ingested — don't start a second one
+  }
+  const doc = {
+    videoId,
+    url: sourceUrl || null,
+    title: title || videoId,
+    source: 'local-video',
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    status: 'processing',
+    error: null,
+    job: { status: 'running', label: 'starting', startedAt: new Date().toISOString() },
+  };
+  await saveVideo(doc);
+
+  (async () => {
+    const progress = async label => {
+      await saveVideo({ videoId, job: { status: 'running', label, startedAt: doc.job.startedAt } }).catch(() => {});
+    };
+    try {
+      await progress('fetching the video');
+      const videoFile = await prepare();
+      await ingestLocalVideo({ videoFile, videoId, sourceUrl, title, progress });
+    } catch (err) {
+      console.warn('nde: local-video ingest failed —', err.message);
+      await saveVideo({
+        videoId, status: 'failed', error: err.message,
+        job: { status: 'error', label: 'failed', error: err.message },
+      }).catch(e => console.warn('nde: ingest error save failed —', e.message));
+    } finally {
+      try { await cleanup?.(); } catch { /* temp dir */ }
+    }
+  })();
+
+  return doc;
 }
 
 // ─── Moment extraction (LLM) ────────────────────────────────────────
@@ -871,45 +931,56 @@ router.post('/videos/from-video', async (req, res) => {
     const url = String(req.body?.url || '').trim();
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'url required — a link to the video file' });
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-dl-'));
-    try {
-      let ext = '.mp4';
-      try { const p = new URL(url).pathname; const m = p.match(/\.[a-z0-9]{2,4}$/i); if (m) ext = m[0]; } catch { /* keep default */ }
-      const videoFile = path.join(dir, `src${ext}`);
-      const dl = await fetch(url, { redirect: 'follow', timeout: 900000 });
-      if (!dl.ok) throw new Error(`video fetch HTTP ${dl.status}`);
-      await new Promise((resolve, reject) => {
-        const out = fs.createWriteStream(videoFile);
-        dl.body.pipe(out);
-        dl.body.on('error', reject);
-        out.on('finish', resolve);
-        out.on('error', reject);
-      });
-      const record = await ingestLocalVideo({ videoFile, sourceUrl: url, title: req.body?.title || null });
-      res.json(record);
-    } finally {
-      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
-    }
+    // The download runs inside the job (a big file over a slow link is itself
+    // minutes), so this route answers as soon as the doc exists.
+    const doc = await startLocalVideoIngest({
+      videoId: localVideoIdForUrl(url),
+      sourceUrl: url,
+      title: req.body?.title || null,
+      cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
+      prepare: async () => {
+        let ext = '.mp4';
+        try { const m = new URL(url).pathname.match(/\.[a-z0-9]{2,4}$/i); if (m) ext = m[0]; } catch { /* keep default */ }
+        const videoFile = path.join(dir, `src${ext}`);
+        const dl = await fetch(url, { redirect: 'follow', timeout: 900000 });
+        if (!dl.ok) throw new Error(`video fetch HTTP ${dl.status}`);
+        await new Promise((resolve, reject) => {
+          const out = fs.createWriteStream(videoFile);
+          dl.body.pipe(out);
+          dl.body.on('error', reject);
+          out.on('finish', resolve);
+          out.on('error', reject);
+        });
+        return videoFile;
+      },
+    });
+    res.json({ ...doc, poll: `/api/nde/videos/${doc.videoId}` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Same, but the video's bytes ride the request body directly (e.g. a script
 // with the file on disk and no URL yet). Prefer the URL route above when the
-// video is already hosted somewhere — this buffers the whole file in memory.
+// video is already hosted somewhere — express.raw buffers this whole body in
+// memory before the handler sees it, so a 200MB upload is a 200MB spike.
 router.post('/videos/from-video/upload', express.raw({ type: '*/*', limit: '200mb' }), async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(400).json({ error: 'firebase not configured' });
     const buf = req.body;
     if (!buf || !buf.length) return res.status(400).json({ error: 'empty body' });
     const ext = String(req.query.ext || 'mp4').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4';
+    // Write the bytes to disk BEFORE answering so the buffer can be released;
+    // the job then works from the file, not from memory.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nde-up-'));
-    try {
-      const videoFile = path.join(dir, `src.${ext}`);
-      fs.writeFileSync(videoFile, buf);
-      const record = await ingestLocalVideo({ videoFile, sourceUrl: null, title: req.query.title ? String(req.query.title) : null });
-      res.json(record);
-    } finally {
-      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp dir */ }
-    }
+    const videoFile = path.join(dir, `src.${ext}`);
+    fs.writeFileSync(videoFile, buf);
+    const doc = await startLocalVideoIngest({
+      videoId: localVideoIdForBytes(buf),
+      sourceUrl: null,
+      title: req.query.title ? String(req.query.title) : null,
+      cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
+      prepare: async () => videoFile,
+    });
+    res.json({ ...doc, poll: `/api/nde/videos/${doc.videoId}` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
