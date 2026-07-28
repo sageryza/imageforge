@@ -520,6 +520,15 @@
     .reading-block p { font-size: 14.5px; line-height: 1.65; color: var(--text); margin-bottom: 10px; }
     .reading-card-meaning { font-size: 13px; color: var(--text-dim); line-height: 1.55; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
     .reading-card-meaning strong { color: var(--text); font-weight: 600; }
+    /* Two next-steps under the daily pull, side by side: learn the craft, or
+       ask your own question. Icon above label so both fit an iPhone 13 width
+       without the labels crowding each other. */
+    .tarot-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .tarot-opts .btn-ghost {
+      flex-direction: column; gap: 7px; width: 100%; min-width: 0;
+      padding: 12px 8px; font-size: 12.5px; letter-spacing: 0.2px;
+      line-height: 1.2; text-align: center; white-space: nowrap;
+    }
     .advice-box { background: rgba(230,194,129,0.08); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; }
     .advice-box .k { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
     .advice-box p { font-family: var(--serif); font-size: 16px; font-style: italic; line-height: 1.5; margin: 0; }
@@ -1328,7 +1337,10 @@
           <!-- The paid tarot: their own question + the full spreads. This is the
                ONLY thing below the daily pull — free is the inline per-card
                meanings above it, and nothing deeper. -->
-          <button class="btn-ghost" id="daily-ask" style="margin-top:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Ask the cards a question</button>
+          <div class="tarot-opts" id="daily-opts" style="display:none;">
+            <button class="btn-ghost" id="daily-learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg> Learn to read tarot</button>
+            <button class="btn-ghost" id="daily-ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Ask a question</button>
+          </div>
         </div>
 
         <!-- Dream reading -->
@@ -2516,11 +2528,13 @@
     });
     box.innerHTML = html;
     box.style.display = '';
+    $('daily-opts').style.display = '';
     bmShow('tarot-bm', tarotSaved, false);
   }
   function resetDailyTarot() {
     tarotRevealed = new Set();
     $('daily-tarot-reading').style.display = 'none';
+    $('daily-opts').style.display = 'none';
     bmHide('tarot-bm');
     renderDailyTarot();
   }
@@ -2784,6 +2798,9 @@
     watchAsk(p.id);
   }
   $('daily-ask').addEventListener('click', openAsk);
+  // "Learn to read tarot" → straight into the Witch School Tarot 101 deck.
+  // The lesson overlay lives inside the school view, so switch tabs first.
+  $('daily-learn').addEventListener('click', () => { go('school'); openLesson('tarot'); });
   $('ask-back').addEventListener('click', closeAsk);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && askOpen) closeAsk(); });
 
