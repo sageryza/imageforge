@@ -305,26 +305,13 @@ async function storeOne({ bucket, session, buf, ct, filename, bundleName: wanted
   const url = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
 
   const video = isVideoCT(ct);
-  let posterUrl = null;
-  let posterPath = null;
-  const posterBuf = poster || (video ? await posterFrame(buf, ct) : null);
-  if (posterBuf) {
-    posterPath = `${stem}-poster.jpg`;
-    const pf = bucket.file(posterPath);
-    if (!(await pf.exists())[0]) {
-      await pf.save(posterBuf, { metadata: { contentType: 'image/jpeg' } });
-      await pf.makePublic();
-    }
-    posterUrl = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
-  }
-
   const now = Date.now();
   const doc = {
     session, dumpSession, bundle, bundleName, seq, photoIndex, hash,
     track: null,                       // ← labelled later, never at dump time
     url, storagePath: objectPath,
     media: video ? 'video' : 'image',
-    posterUrl, posterPath,
+    posterUrl: null, posterPath: null, // ← filled in below, best-effort
     filename: filename || null,
     bytes: buf.length,
     status: 'new',
@@ -335,8 +322,34 @@ async function storeOne({ bucket, session, buf, ct, filename, bundleName: wanted
     createdAt: now, updatedAt: now,
     ...clean(defaults || {}),
   };
+  // WRITE THE DOC THE MOMENT THE BYTES ARE SAFE — before the poster frame.
+  // The poster runs ffmpeg over the whole clip, which on Render's free
+  // instance is the most expensive and least reliable thing in this function
+  // (a 32MB iPhone .mov died here, leaving the file in Storage with NO doc —
+  // so the upload was invisible in the app and looked like it never arrived).
+  // A dump must never be lost to a thumbnail: a missing poster is cosmetic,
+  // a missing doc means the file effectively doesn't exist.
   const ref = await db().collection(COL).add(doc);
-  return { id: ref.id, ...doc };
+
+  let posterUrl = null;
+  let posterPath = null;
+  try {
+    const posterBuf = poster || (video ? await posterFrame(buf, ct) : null);
+    if (posterBuf) {
+      posterPath = `${stem}-poster.jpg`;
+      const pf = bucket.file(posterPath);
+      if (!(await pf.exists())[0]) {
+        await pf.save(posterBuf, { metadata: { contentType: 'image/jpeg' } });
+        await pf.makePublic();
+      }
+      posterUrl = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
+      await ref.update({ posterUrl, posterPath, updatedAt: Date.now() });
+    }
+  } catch (err) {
+    console.warn(`drop: poster frame failed for ${objectPath} —`, err.message);
+  }
+
+  return { id: ref.id, ...doc, posterUrl, posterPath };
 }
 
 function clean(patch) {
