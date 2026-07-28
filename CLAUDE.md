@@ -1041,23 +1041,38 @@ lifted into a standalone tool later.
   `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
   any public link), `POST /videos/from-video/upload?ext=&title=` takes the raw
   video bytes directly in the request body instead (prefer the URL route for
-  anything big — it streams to disk; the upload route buffers the whole file
-  in memory, capped at 200MB). Either way `ingestLocalVideo()` does the new
-  part — **strip the video track with ffmpeg** (mono 44.1kHz AAC,
-  `nde-audio/<videoId>.m4a`, `videoId` a stable hash of the source so
-  re-ingesting the same URL updates the same doc) — then reuses
-  `movies.transcribeAudio` (whisper-1) for a browsable transcript, chunking at
-  10 minutes per call when the video runs long (each chunk's word/segment
-  times get its offset added back in). Saved as an ordinary
-  `forge-nde-videos` doc (`source:'local-video'`, no `moments` — that
-  extraction step is Anthony-Chene-specific and is simply skipped). **No new
-  cutting code was needed:** add the result as an Episode Editor source
-  (`{videoId, audioUrl, timeSec}` from the response) and `editor.js`'s
-  existing render/preview path already re-listens to a fresh whisper window
-  around each snippet's anchor whenever no align-cache exists for a videoId —
-  true for every local video — so the same word-precise cut the NDE
-  interviews get comes for free. Needs `ffmpeg`/`ffprobe` (already vendored,
-  same resolution as `editor.js`) and `OPENAI_API_KEY`.
+  anything big — `express.raw` buffers the upload route's whole body in memory
+  before the handler runs, so a 200MB upload is a 200MB spike; the URL route
+  streams to disk inside the job). `ingestLocalVideo()` does the new part —
+  **strip the video track with ffmpeg** (mono 44.1kHz AAC,
+  `nde-audio/<videoId>.m4a`) — then reuses `movies.transcribeAudio` (whisper-1)
+  for a browsable transcript, chunking at 10 minutes per call when the video
+  runs long (each chunk's segment times get its offset added back in;
+  everything is transcoded to 16k mono mp3 first because whisper's hard cap is
+  25MB and the stored 128k m4a passes it around the 25-minute mark). Saved as
+  an ordinary `forge-nde-videos` doc (`source:'local-video'`, no `moments` —
+  that extraction step is Anthony-Chene-specific and is simply skipped).
+- **Both routes are BACKGROUND JOBS** (house rule — nothing slow blocks a
+  request). They write a `status:'processing'` doc, return the `videoId` plus a
+  `poll` path immediately (~0.3s), and do the download/extract/transcribe in
+  `startLocalVideoIngest()`; the client polls `GET /videos/:videoId` and reads
+  `job.label` ("transcribing part 2 of 3"). A failure lands as
+  `status:'failed'` + `error` on the doc, never a hung request. Re-POSTing
+  while a job is running returns the existing doc instead of starting a second.
+- **`videoId` is a content-addressed hash** — of the URL for the URL route, of
+  the BYTES for the upload route — so re-ingesting the same video updates the
+  same doc instead of piling up duplicates. Storage uploads go through
+  `bucket.upload(localFile)` (streamed from disk), never
+  `file.save(fs.readFileSync(...))`: an hour of 128k mono audio is ~57MB and
+  Render's free instance has 512MB for the whole app.
+- **No new cutting code was needed:** add the result as an Episode Editor
+  source (`{videoId, audioUrl, timeSec}`) and `editor.js`'s existing
+  render/preview path already re-listens to a fresh whisper window around each
+  snippet's anchor whenever no align-cache exists for a videoId — true for
+  every local video — so the same word-precise cut the NDE interviews get comes
+  for free. A ragged word at a 10-minute transcript seam therefore never
+  reaches the finished audio. Needs `ffmpeg`/`ffprobe` (already vendored, same
+  resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
 - `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
