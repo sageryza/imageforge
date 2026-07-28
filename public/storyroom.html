@@ -105,6 +105,16 @@ textarea.field{min-height:80px; line-height:1.5;}
 .filelbl input{display:block; margin-top:8px; font-family:inherit; color:var(--ink);}
 .sheetact{display:flex; gap:8px; justify-content:flex-end; margin-top:4px;}
 .pickrow{display:block; width:100%; text-align:left; margin-bottom:6px;}
+/* The Summary — the story's key moments with arrows between, at a glance */
+.sumrow{display:flex; flex-wrap:wrap; align-items:center; gap:8px 4px; margin:0 0 1.4em;}
+.sumcard{flex:0 0 26%; min-width:0; display:flex; flex-direction:column; gap:5px; background:none; border:none; padding:0; cursor:pointer;
+  color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.sumcard:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
+.sumcard img{width:100%; aspect-ratio:5/7; object-fit:cover; border-radius:4px; display:block; border:1px solid var(--line); box-sizing:border-box;}
+.sumcard .sph{width:100%; aspect-ratio:5/7; border:1px dashed var(--line); border-radius:4px; box-sizing:border-box;}
+.sumlbl{font-size:.95em; line-height:1.2; text-align:center;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.sumarrow{flex:0 0 auto; font-size:1.25em; color:var(--ink2);}
 
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
@@ -375,7 +385,95 @@ function openProj(p, jumpBeat){
   var dbtn=document.createElement('button'); dbtn.className='btn'; dbtn.textContent='+ Dump art'; dbtn.onclick=function(){ dumpArt(p); };
   var sbtn=document.createElement('button'); sbtn.className='btn'; sbtn.textContent='+ Story'; sbtn.onclick=function(){ editProse(); };
   var vbtn=document.createElement('button'); vbtn.className='btn'; vbtn.textContent='+ Voiceover'; vbtn.onclick=function(){ voForced=true; drawVo(); voWrap.scrollIntoView({block:'center'}); };
-  tools.appendChild(abtn); tools.appendChild(dbtn); tools.appendChild(sbtn); tools.appendChild(vbtn); sec.appendChild(tools);
+  var smbtn=document.createElement('button'); smbtn.className='btn'; smbtn.textContent='+ Summary'; smbtn.onclick=function(){ editSummary(); };
+  tools.appendChild(abtn); tools.appendChild(dbtn); tools.appendChild(sbtn); tools.appendChild(vbtn); tools.appendChild(smbtn); sec.appendChild(tools);
+
+  // ── The Summary — the shape of the story at a glance: the few key beats
+  // that carry it, with arrows showing they lead into each other. Tap a
+  // moment to jump to its beat. ──
+  var sumWrap=document.createElement('div'); sec.appendChild(sumWrap);
+  function beatArt(bi){
+    var b=(p.beats||[])[bi]; if(!b) return '';
+    var cs=b.cards||[], pick='';
+    ['ok','cand','draft'].some(function(want){
+      return cs.some(function(c){ if(c&&c.url&&(NORM[c.status]||c.status)===want){ pick=c.url; return true; } return false; });
+    });
+    if(!pick) cs.some(function(c){ if(c&&c.url){ pick=c.url; return true; } return false; });
+    return pick;
+  }
+  function sumDefaultLabel(bi){
+    var b=(p.beats||[])[bi]; var t=String(b&&b.vo||'').trim();
+    return t? t.split(/\s+/).slice(0,7).join(' ') : 'Beat '+(bi+1);
+  }
+  function drawSummary(){
+    sumWrap.innerHTML='';
+    var sm=p.summary||[];
+    smbtn.style.display=(sm.length||!((p.beats||[]).length))? 'none':'';
+    if(!sm.length) return;
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='SUMMARY';
+    var ed=document.createElement('button'); ed.className='st'; ed.textContent='\u00b7 edit';
+    ed.onclick=function(){ editSummary(); };
+    pm.appendChild(ed); sumWrap.appendChild(pm);
+    var row=document.createElement('div'); row.className='sumrow';
+    sm.forEach(function(m,i){
+      if(i){ var ar=document.createElement('span'); ar.className='sumarrow'; ar.textContent='\u2192'; row.appendChild(ar); }
+      var c=document.createElement('button'); c.className='sumcard';
+      var art=beatArt(m.beat);
+      c.innerHTML=(art? '<img alt="" loading="lazy" src="'+esc(thumb(art))+'">' : '<span class="sph"></span>')
+        +'<span class="sumlbl">'+esc(m.label||sumDefaultLabel(m.beat))+'</span>';
+      c.onclick=function(){ tb.onclick(); var t=beatsView.querySelector('[data-beat="'+m.beat+'"]'); if(t) t.scrollIntoView({block:'start'}); };
+      row.appendChild(c);
+    });
+    sumWrap.appendChild(row);
+  }
+  function editSummary(){
+    var beats=p.beats||[];
+    if(!beats.length){ toast('Add beats first'); return; }
+    var sel={}; (p.summary||[]).forEach(function(m){ sel[m.beat]=m.label||''; });
+    var ov=document.createElement('div'); ov.className='modal';
+    var sheet=document.createElement('div'); sheet.className='sheet';
+    var h=document.createElement('h2'); h.textContent='The key moments'; sheet.appendChild(h);
+    var hint=document.createElement('p'); hint.className='vo none'; hint.style.margin='0 0 .8em'; hint.style.fontSize='15px';
+    hint.textContent='Pick the moments that carry the story. They show at the top, in order, with arrows between.';
+    sheet.appendChild(hint);
+    var list=document.createElement('div'); sheet.appendChild(list);
+    function renderList(){
+      list.innerHTML='';
+      beats.forEach(function(b,bi){
+        var on=sel[bi]!==undefined;
+        var t=document.createElement('button'); t.className='btn pickrow';
+        t.textContent=(on?'\u2713 ':'')+'Beat '+(bi+1)+(b.vo? ' \u2014 '+String(b.vo).slice(0,30):'');
+        if(on){ t.style.borderColor='var(--rose)'; t.style.color='var(--rose)'; }
+        t.onclick=function(){ if(on) delete sel[bi]; else sel[bi]=''; renderList(); };
+        list.appendChild(t);
+        if(on){
+          var inp=document.createElement('input'); inp.className='field'; inp.type='text';
+          inp.placeholder=sumDefaultLabel(bi);
+          inp.value=sel[bi];
+          inp.oninput=function(){ sel[bi]=inp.value; };
+          list.appendChild(inp);
+        }
+      });
+    }
+    renderList();
+    var act=document.createElement('div'); act.className='sheetact';
+    var cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel'; cancel.onclick=function(){ ov.remove(); };
+    var ok=document.createElement('button'); ok.className='btn primary'; ok.textContent='Save';
+    ok.onclick=function(){
+      var out=Object.keys(sel).map(Number).sort(function(a,b){return a-b})
+        .map(function(bi){ return {beat:bi, label:(sel[bi]||'').trim()}; });
+      toast('Saving\u2026');
+      api('/api/story/summary',{method:'POST',body:JSON.stringify({projectId:p.id, summary:out})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+          p.summary=d.summary||out; ov.remove(); toast(out.length?'Summary saved':'Summary cleared'); drawSummary();
+        })
+        .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+    };
+    act.appendChild(cancel); act.appendChild(ok); sheet.appendChild(act);
+    ov.appendChild(sheet); document.body.appendChild(ov);
+  }
+  drawSummary();
 
   // ── The story itself (prose) — read + edit in place ──
   var proseWrap=document.createElement('div'); sec.appendChild(proseWrap);
@@ -836,10 +934,22 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// Content-tap gesture (a page calls __scrollTap from its own tap handler):
-// a plain toggle — tap stops, tap starts again (at the current speed; default
-// Fast). Speed changes stay on the pill's −/+ buttons.
-window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
