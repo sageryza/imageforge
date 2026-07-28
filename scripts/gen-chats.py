@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-07-26 — rebuilt on top of main; #570 squash-merged into a broken chats.html (un-rebased branch vs #569 squash)
+# build marker: 2026-07-28 — RESYNCED from public/chats.html. It had drifted two
+# features behind (#586/#587 were edited straight into the page), so running this
+# would have silently reverted them. It now reproduces the live page byte for
+# byte: edit HERE and rebuild, or if you do edit the page directly, resync this
+# template in the same commit.
 # Home is a grid of chat tiles (picture icon, name, last activity); tapping a
 # tile opens that chat's thread — its replies oldest-to-newest, each with a
 # one-tap "polish" render in the neural onyx-British voice (cached; the free
@@ -107,6 +111,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-head{cursor:pointer;}
 .m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
 .msg.open .m-close{display:inline;}
+/* Per-chat Claude-account picker — sits above the archive row */
+.acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
+.acctrow .tbtn{min-width:34px; text-align:center;}
 .archrow{margin-top:2.2em; text-align:center;}
 .archrow button{background:none; border:none; color:var(--ink2); opacity:.7; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:6px;}
 .archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
@@ -191,6 +199,15 @@ body.reading .backwrap{display:block;}
 .nowplaying{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:10; display:none; align-items:center; gap:8px; max-width:min(60vw,240px); background:var(--barbg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 13px; box-shadow:0 2px 12px rgba(0,0,0,.14); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .nowplaying.show{display:flex;}
 .nowplaying svg{flex:none; color:var(--ink);}
+/* "New message" bar. A reply landing mid-read must NEVER rebuild the page under
+   her: new messages come in at the TOP, so a rebuild moved her scroll spot and
+   collapsed anything she had open. poll() buffers them instead and raises this;
+   tapping it is what shows them. Sits below the now-playing bar when both are
+   up (sibling selector — no JS coordination). */
+.newbar{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:11; display:none; align-items:center; gap:7px; background:var(--rose); color:var(--paper); border:none; border-radius:6px; padding:9px 14px; box-shadow:0 2px 12px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;}
+.newbar.show{display:flex;}
+.newbar svg{flex:none;}
+.nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
 .totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
 .totop.show{display:flex;}
@@ -209,6 +226,7 @@ __PILL_CSS__
 __PILL_HTML__
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
+<button id="newbar" class="newbar" aria-label="Show new messages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg><span id="newtxt">New message</span></button>
 <button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
 <div class="wrap">
   <section id="home">
@@ -217,9 +235,10 @@ __PILL_HTML__
       <h1>Chats</h1>
       <div class="rule"></div>
     </header>
-    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em;">
+    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
+      <button id="acctog" class="tbtn refreshbtn" aria-label="Swap which account is signed into the app"></button>
     </div>
     <div class="searchrow">
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
@@ -294,7 +313,7 @@ function splitBlocks(text){
   function flush(){ var s=buf.join('\\n'); if(s.trim()!=='') out.push(s); buf=[]; }
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
-    if(/^\s*```/.test(l)){
+    if(/^\\s*```/.test(l)){
       if(inCode){ buf.push(l); out.push(buf.join('\\n')); buf=[]; inCode=false; }
       else { flush(); buf.push(l); inCode=true; }
       continue;
@@ -309,29 +328,29 @@ function splitBlocks(text){
 function isWork(b){
   var t=b.trim(); if(!t) return false;
   if(/^```/.test(t)) return true;                    // fenced code = always work
-  if(/https?:\/\//.test(t)) return false;            // links are for her
+  if(/https?:\\/\\//.test(t)) return false;            // links are for her
   // Narration voice wins even when the block mentions "you" ("the way you
   // asked"): forward-looking / in-progress first person = doing the work.
-  if(/^(now|next|then|first|second|also|finally|meanwhile)[,: ]*\s*(i|let|the|to|on|checking|running|building|reading|writing|adding|updating|fixing|creating|testing|mirroring|committing|wiring|regenerating)/i.test(t)
+  if(/^(now|next|then|first|second|also|finally|meanwhile)[,: ]*\\s*(i|let|the|to|on|checking|running|building|reading|writing|adding|updating|fixing|creating|testing|mirroring|committing|wiring|regenerating)/i.test(t)
     || /^(let me|let's|i'll|i will|time to|on to|onto)\\b/i.test(t)
-    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\\b/i.test(t)
+    || /^i'?m\\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\\b/i.test(t)
     || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\\b/i.test(t)) return true;
   if(/\\byou\\b|\\byour\\b|\\byours\\b/i.test(t)) return false;   // second person = talking to her
   if(/\\bhere('s| is| are)\\b|\\bthis is what\\b/i.test(t)) return false;  // presenting something
-  if(/\?\s*($|\\n)/.test(t)) return false;            // asking her something
+  if(/\\?\\s*($|\\n)/.test(t)) return false;            // asking her something
   // Past-tense first-person = reporting what got done — that's for her.
   if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\\b/i.test(t)
-    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\\b/i.test(t)) return false;
+    || /^i('ve| have)?\\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\\b/i.test(t)) return false;
   // Otherwise fall back to line texture: mostly commands/diffs/hashes/paths.
   var lines=t.split('\\n').filter(function(l){ return l.trim()!==''; });
   if(!lines.length) return false;
   var hits=0;
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
-    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\\b/.test(l)
-      || /^[+\-]\s/.test(l)                          // diff line
+    if(/^\\s*(\\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\\b/.test(l)
+      || /^[+\\-]\\s/.test(l)                          // diff line
       || /\\b[0-9a-f]{10,40}\\b/.test(l)               // commit hash / long id
-      || /\s\/[\w.-]+\/[\w./-]+/.test(l)             // absolute-ish path
+      || /\\s\\/[\\w.-]+\\/[\\w./-]+/.test(l)             // absolute-ish path
     ) hits++;
   }
   return hits / lines.length >= 0.5;
@@ -367,6 +386,9 @@ function ago(iso){
 }
 __PILL_JS__
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// Feed-wide settings from the server (registry __settings doc). appAccount =
+// which Claude account is signed into the iOS app right now ("1"/"2").
+var settings={};
 // The feed hands us only a tail per chat (chatfeed.js trims it so the app
 // doesn't download the entire history on every launch). `truncated` marks the
 // chats that have more behind them; `fullLoaded` remembers which ones we've
@@ -379,6 +401,17 @@ function claudeUrlFor(name, list){
   var u=(chats[name]&&chats[name].url)||'';
   if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
   return u;
+}
+function appAccount(){ return (settings&&settings.appAccount)||'1'; }
+// The href an Open button should use for this chat. A chat on the account
+// that's signed into the app gets the direct claude.ai link (iOS hands it to
+// the Claude app); a chat on the OTHER account routes through /go so the tap
+// opens the BROWSER, where that account is signed in. Chats with no account
+// tag keep the old direct behavior.
+function openHref(name,url){
+  var acct=(chats[name]&&chats[name].account)||'';
+  if(!url||!acct||acct===appAccount()) return url;
+  return '/api/chatfeed/go?u='+encodeURIComponent(url)+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
 }
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
@@ -502,6 +535,7 @@ function statusFor(list){
 }
 var showArchived=false;
 function renderHome(){
+  clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
   document.getElementById('v-tiles').classList.toggle('on', view==='tiles');
   var el=document.getElementById('grid'); el.innerHTML='';
@@ -665,7 +699,7 @@ function renderMsg(m){
   var ob=document.createElement('div'); ob.className='openrow';
   ob.appendChild(bookmarkBtn(m));
   var murl=m.url||openUrl;
-  if(murl){ ob.appendChild(openClaudeBtn(murl)); }
+  if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
   row.appendChild(ob);
   return row;
 }
@@ -731,7 +765,33 @@ function openChat(name, keepScroll, focusId, noFetch){
   list.slice().reverse().forEach(function(m){ chatPanel.appendChild(renderMsg(m)); });
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
-  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(curl)); }
+  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(openHref(name, curl))); }
+  // Which Claude account this chat belongs to — normally stamped by the hook,
+  // but existing chats haven't posted since the env vars were added, so this
+  // sets it with one tap. Tapping the active number clears back to untagged.
+  var acr=document.createElement('div'); acr.className='acctrow';
+  var alab=document.createElement('span'); alab.textContent='Claude account'; acr.appendChild(alab);
+  ['1','2'].forEach(function(v){
+    var b=document.createElement('button'); b.className='tbtn'; b.textContent=v;
+    function paintA(){ b.classList.toggle('on', ((chats[name]&&chats[name].account)||'')===v); }
+    paintA(); acr._paints=(acr._paints||[]).concat(paintA);
+    b.onclick=function(){
+      var prev=(chats[name]&&chats[name].account)||'';
+      var next=prev===v? '' : v;
+      chats[name]=chats[name]||{}; chats[name].account=next;
+      acr._paints.forEach(function(f){f();}); saveCache();
+      api('/api/chatfeed/account',{method:'POST',body:JSON.stringify({chat:name, account:next})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          toast(next? 'Opens with account '+next : 'Account cleared');
+          // re-render so every Open button in the thread re-routes now
+          var y=window.scrollY; openChat(name,true,null,true); window.scrollTo(0,y);
+        })
+        .catch(function(){ chats[name].account=prev; acr._paints.forEach(function(f){f();}); saveCache(); toast('Couldn’t save that'); });
+    };
+    acr.appendChild(b);
+  });
+  chatPanel.appendChild(acr);
   var isArch=!!(chats[name]&&chats[name].archived);
   var ar=document.createElement('div'); ar.className='archrow';
   var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
@@ -778,7 +838,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           });
         }
         var seg=document.createElement('div'); seg.className='afilter';
-        [['new','New'],['like','\u2665'],['nox','Hide \u2715']].forEach(function(m){
+        [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
           var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
           sb.onclick=function(){
             filter = filter===m[0] ? null : m[0];
@@ -823,7 +883,7 @@ function openChat(name, keepScroll, focusId, noFetch){
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,vote:next})})
               .then(function(r){return r.json()})
               .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
-              .catch(function(){ toast('Couldn\u2019t save that'); });
+              .catch(function(){ toast('Couldn’t save that'); });
           }
           it._cast=cast;
           it._noteSave=function(text,cb){
@@ -831,7 +891,7 @@ function openChat(name, keepScroll, focusId, noFetch){
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,note:t||null})})
               .then(function(r){return r.json()})
               .then(function(d){ if(!d.ok) throw 0; it.note=t||null; if(cb)cb(true); })
-              .catch(function(){ toast('Couldn\u2019t save the note'); if(cb)cb(false); });
+              .catch(function(){ toast('Couldn’t save the note'); if(cb)cb(false); });
           };
           hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
           xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
@@ -915,6 +975,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   // instead of snapping back to Chat.
   if(curTab!=='chat') showTab(curTab);
 
+  clearNew();   // the thread just rebuilt from msgs — nothing is waiting
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
@@ -1158,6 +1219,25 @@ document.getElementById('v-list').onclick=function(){ view='list'; try{localStor
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
 
+// App/Web account toggle: shows which Claude account is signed into the iOS
+// app right now (the other one is on the web). Tap to swap after switching
+// sign-ins \\u2014 every Open button re-routes off it immediately.
+var SWAP='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>';
+var acctog=document.getElementById('acctog');
+function paintAcct(){
+  var a=appAccount(), w=a==='1'?'2':'1';
+  acctog.innerHTML=SWAP+'<span>App '+esc(a)+' \\u00b7 Web '+esc(w)+'</span>';
+}
+acctog.onclick=function(){
+  var prev=appAccount(), next=prev==='1'?'2':'1';
+  settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
+  api('/api/chatfeed/app-account',{method:'POST',body:JSON.stringify({account:next})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
+    .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); toast('Couldn\\u2019t save that'); });
+};
+paintAcct();
+
 // ---- Launch cache ---------------------------------------------------------
 // Every app-open used to start from nothing and pull the full feed — a
 // 1500-document read server-side just to re-fetch messages the phone had
@@ -1181,14 +1261,14 @@ function saveCache(){
     var keep=[]; Object.keys(byChat).forEach(function(c){ keep=keep.concat(byChat[c]); });
     var trunc={}; Object.keys(truncated).forEach(function(c){ trunc[c]=1; });
     Object.keys(dropped).forEach(function(c){ trunc[c]=1; });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, msgs:keep, truncated:Object.keys(trunc)}));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, settings:settings, msgs:keep, truncated:Object.keys(trunc)}));
   }catch(e){}   // full storage / private mode: the cache is only an optimization
 }
 function loadCache(){
   try{
     var d=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
     if(!d || !d.msgs || !d.msgs.length) return false;
-    chats=d.chats||{}; msgs=d.msgs;
+    chats=d.chats||{}; msgs=d.msgs; settings=d.settings||{}; paintAcct();
     truncated={}; fullLoaded={};
     (d.truncated||[]).forEach(function(c){ truncated[c]=1; });
     renderHome();
@@ -1201,6 +1281,7 @@ function load(){
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
+    settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
     // is gone — clear fullLoaded and let openChat pull the thread again.
     truncated={}; fullLoaded={};
@@ -1225,6 +1306,24 @@ function newestCreated(){
   for(var i=0;i<msgs.length;i++){ var c=msgs[i].created||''; if(c>max) max=c; }
   return max;
 }
+// The buffer behind the "New message" bar. A polled message is merged into msgs
+// and cached immediately, but NOTHING re-renders until she taps the bar — that's
+// what keeps her place (and anything she'd expanded). Any full rebuild
+// (renderHome / openChat) clears the count, because that render shows them all.
+var pendingNew=0;
+function paintNew(){
+  var b=document.getElementById('newbar');
+  b.classList.toggle('show', pendingNew>0);
+  document.getElementById('newtxt').textContent = pendingNew>1 ? pendingNew+' new messages' : 'New message';
+}
+function clearNew(){ if(pendingNew){ pendingNew=0; paintNew(); } }
+document.getElementById('newbar').onclick=function(){
+  scrollStop();
+  // She asked for the new one, so land on it: the newest is at the top, and in
+  // a thread that means the Chat tab even if she was looking at Assets.
+  if(cur){ curTab='chat'; openChat(cur,false,null,true); }
+  else { renderHome(); window.scrollTo(0,0); }
+};
 function poll(){
   var since=newestCreated();
   if(!since) return load();   // nothing yet (empty/failed first paint)
@@ -1232,6 +1331,7 @@ function poll(){
     .then(function(r){return r.json()})
     .then(function(data){
       if(data.chats) chats=data.chats;
+      if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
       if(!incoming.length) return;              // the common case: nothing to do
       // The delta is capped at 200 server-side. Hitting the cap means the
@@ -1239,23 +1339,23 @@ function poll(){
       // off the far end — a merge would leave holes, so start over clean.
       if(incoming.length>=200) return load();
       var have={}; msgs.forEach(function(m){ have[m.id]=1; });
-      var added=0, mine=false;
+      var added=0, mine=0;
       incoming.forEach(function(m){
         if(have[m.id]) return;
         msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
-        if(cur && m.chat===cur) mine=true;
+        if(cur && m.chat===cur) mine++;
       });
       if(!added) return;                        // never re-render for nothing
       saveCache();
-      // While she's reading a thread, only rebuild it if the new message is
-      // actually IN it — a reply landing in some other chat must not move the
-      // page under her. The home screen picks the rest up when she goes back.
-      if(cur){
-        if(!mine) return;
-        // Hold her place, and don't refetch: any full history she pulled is
-        // already in msgs.
-        var y=window.scrollY; openChat(cur,true,null,true); window.scrollTo(0,y);
-      } else renderHome();
+      // Sitting at the very top of the feed there's no place to lose and nothing
+      // expanded, so just show them — that's also the app-just-opened case.
+      if(!cur && window.scrollY<8){ renderHome(); return; }
+      // Otherwise buffer and raise the bar. In a thread only THIS chat's
+      // messages count: a reply landing in some other chat must not move the
+      // page under her, and the home screen picks those up when she goes back.
+      var n = cur ? mine : added;
+      if(!n) return;
+      pendingNew+=n; paintNew();
     })
     .catch(function(){});   // a failed poll is not worth surfacing; next one retries
 }
