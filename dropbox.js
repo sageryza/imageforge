@@ -13,6 +13,20 @@
 //   session — the dump itself, stamped with a date, so "the stuff I uploaded
 //             today that had crystals in it" is answerable later.
 //
+// Two rules make re-dumping safe, both modelled on how Photos itself behaves:
+//
+//   1. THE SAME BYTES ARE STORED ONCE. Every file is content-addressed by the
+//      md5 of its bytes (`drops/_/<hash>.<ext>`), so a photo that lives in two
+//      albums is ONE object with two docs pointing at it — the album entry is a
+//      reference, not a copy. Deleting one entry leaves the bytes alone until
+//      the last reference goes.
+//   2. RE-DUMPING AN ALBUM FILLS THE GAPS. A bundle is keyed by its slug and
+//      lives ACROSS dumps, and an arriving file whose hash is already in that
+//      bundle is skipped, not stored again. So re-sending "Clear quartz points"
+//      after a failed upload adds only what's missing instead of forking a
+//      second copy of the album (which is exactly what happened to Amethyst
+//      cluster: the same 50 photos landed twice).
+//
 // `track` (crystals / story-art / …) is deliberately NULL on arrival. Labelling
 // is a separate pass — by her, or by a chat reading the inbox and proposing
 // labels she confirms. Everything else on the doc is optional forever.
@@ -41,6 +55,7 @@
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fetch = require('node-fetch');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -52,6 +67,10 @@ let sharp = null;
 try { sharp = require('sharp'); } catch { /* HEIC passes through unconverted */ }
 
 const COL = 'forge-drops';
+// One doc per bundle, id = the bundle slug. Holds the album's number, its
+// display name, the session it first appeared in, and its file counter.
+const BUNDLES = 'forge-drop-bundles';
+const META = '__meta';          // seq allocator; slugs can't start with '_'
 const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp|tiff?|heic|heif)$/i;
 const VIDEO_RE = /\.(mov|mp4|m4v|avi|hevc|webm)$/i;
 
@@ -182,52 +201,107 @@ function newSession(at) {
     + `-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
 }
 
-// What a session already holds, so repeat uploads into it continue rather than
-// restart — a bundle re-opened later keeps its number and photo order.
-async function sessionState(session) {
-  const snap = await db().collection(COL).where('session', '==', session).get();
+const hashOf = (buf) => crypto.createHash('md5').update(buf).digest('hex');
+
+// The bundle registry is seeded from whatever is already in the collection the
+// first time it's needed, so a deploy onto existing data can't hand out numbers
+// that are already taken. After that the registry is the authority and nothing
+// scans the collection again.
+async function seedRegistry() {
+  const meta = db().collection(BUNDLES).doc(META);
+  if ((await meta.get()).exists) return;
+  const snap = await db().collection(COL).get();
   let maxSeq = 0;
-  const bundles = new Map();
+  const seen = new Map();
   snap.forEach((d) => {
     const v = d.data();
-    const s = Number(v.seq) || 0;
-    if (s > maxSeq) maxSeq = s;
-    if (v.bundle) {
-      const e = bundles.get(v.bundle) || { seq: s, name: v.bundleName || v.bundle, files: 0 };
-      e.files += 1;
-      if (s) e.seq = s;
-      bundles.set(v.bundle, e);
-    }
+    if ((Number(v.seq) || 0) > maxSeq) maxSeq = Number(v.seq) || 0;
+    if (!v.bundle) return;
+    const e = seen.get(v.bundle)
+      || { bundle: v.bundle, bundleName: v.bundleName || v.bundle, session: v.session, seq: Number(v.seq) || 0, files: 0 };
+    e.files += 1;
+    if (v.session < e.session) e.session = v.session;
+    seen.set(v.bundle, e);
   });
-  return { maxSeq, bundles };
+  const batch = db().batch();
+  seen.forEach((e) => batch.set(db().collection(BUNDLES).doc(e.bundle), e, { merge: true }));
+  batch.set(meta, { maxSeq });
+  await batch.commit();
 }
 
-// Where does the next file go? Same bundle → same seq, next photoIndex.
-function placeIn(state, bundleName) {
-  if (!bundleName) {
-    state.maxSeq += 1;
-    return { bundle: null, bundleName: null, seq: state.maxSeq, photoIndex: 0 };
-  }
-  const key = slug(bundleName) || 'unnamed';
-  let e = state.bundles.get(key);
-  if (!e) {
-    state.maxSeq += 1;
-    e = { seq: state.maxSeq, name: String(bundleName).slice(0, 80), files: 0 };
-    state.bundles.set(key, e);
-  }
-  const photoIndex = e.files;
-  e.files += 1;
-  return { bundle: key, bundleName: e.name, seq: e.seq, photoIndex };
+// Where does the next file go? Same album → same number, next photo slot.
+//
+// This runs in a TRANSACTION, and that's the whole point: the app uploads
+// several files at once, and the old version counted what was already in the
+// session on each request, so concurrent uploads all read the same count and
+// were handed the SAME photoIndex. That's why photo order inside an album came
+// out scrambled and why indexes had holes — the holes were never missing files.
+//
+// The bundle is looked up by slug across every dump, not per session, so
+// re-dumping an album continues it (see rule 2 in the header).
+async function placeIn(bundleName, session) {
+  await seedRegistry();
+  const key = slug(bundleName);
+  const meta = db().collection(BUNDLES).doc(META);
+  return db().runTransaction(async (tx) => {
+    if (!key) {                                   // a loose file — its own number
+      const m = await tx.get(meta);
+      const seq = ((m.exists && m.get('maxSeq')) || 0) + 1;
+      tx.set(meta, { maxSeq: seq }, { merge: true });
+      return { bundle: null, bundleName: null, seq, photoIndex: 0, session };
+    }
+    const ref = db().collection(BUNDLES).doc(key);
+    const d = await tx.get(ref);
+    if (d.exists) {
+      const e = d.data();
+      const photoIndex = Number(e.files) || 0;
+      tx.update(ref, { files: photoIndex + 1 });
+      return {
+        bundle: key, bundleName: e.bundleName || bundleName, seq: Number(e.seq) || 0,
+        photoIndex, session: e.session || session,
+      };
+    }
+    const m = await tx.get(meta);
+    const seq = ((m.exists && m.get('maxSeq')) || 0) + 1;
+    const name = String(bundleName).slice(0, 80);
+    tx.set(meta, { maxSeq: seq }, { merge: true });
+    tx.set(ref, { bundle: key, bundleName: name, session, seq, files: 1 });
+    return { bundle: key, bundleName: name, seq, photoIndex: 0, session };
+  });
 }
 
-async function storeOne({ bucket, session, buf, ct, filename, place, poster, defaults }) {
+// Already in this album? Then there is nothing to do. Equality on a single
+// field needs no composite index, and the hash is the only thing consulted —
+// filenames are useless here (the app names every export with a fresh UUID, so
+// the same photo sent twice arrives under two different names).
+async function existingCopy(hash, bundleKey) {
+  const snap = await db().collection(COL).where('hash', '==', hash).get();
+  const hit = snap.docs.find((d) => (d.get('bundle') || null) === (bundleKey || null));
+  return hit ? { id: hit.id, ...hit.data() } : null;
+}
+
+async function storeOne({ bucket, session, buf, ct, filename, bundleName: wanted, poster, defaults }) {
+  // Dedupe BEFORE claiming a slot in the album, so a skipped file doesn't burn
+  // a photoIndex and leave a hole behind it.
+  const hash = hashOf(buf);
+  const existing = await existingCopy(hash, slug(wanted) || null);
+  if (existing) return { ...existing, duplicate: true };
+
+  const place = await placeIn(wanted, session);
   const { seq, bundle, bundleName, photoIndex } = place;
-  const stem = `drops/${session}/${bundle || 'loose'}/`
-    + `${seq}-${photoIndex}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const dumpSession = session;
+  session = place.session;              // the album's own dump, so re-dumps roll up with it
+
+  // Content-addressed: identical bytes are one object no matter how many
+  // albums point at it, and a re-upload of something already stored costs a
+  // metadata check instead of a transfer.
+  const stem = `drops/_/${hash}`;
   const objectPath = `${stem}.${extFor(ct)}`;
   const file = bucket.file(objectPath);
-  await file.save(buf, { metadata: { contentType: ct } });
-  await file.makePublic();
+  if (!(await file.exists())[0]) {
+    await file.save(buf, { metadata: { contentType: ct } });
+    await file.makePublic();
+  }
   const url = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
 
   const video = isVideoCT(ct);
@@ -237,14 +311,16 @@ async function storeOne({ bucket, session, buf, ct, filename, place, poster, def
   if (posterBuf) {
     posterPath = `${stem}-poster.jpg`;
     const pf = bucket.file(posterPath);
-    await pf.save(posterBuf, { metadata: { contentType: 'image/jpeg' } });
-    await pf.makePublic();
+    if (!(await pf.exists())[0]) {
+      await pf.save(posterBuf, { metadata: { contentType: 'image/jpeg' } });
+      await pf.makePublic();
+    }
     posterUrl = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
   }
 
   const now = Date.now();
   const doc = {
-    session, bundle, bundleName, seq, photoIndex,
+    session, dumpSession, bundle, bundleName, seq, photoIndex, hash,
     track: null,                       // ← labelled later, never at dump time
     url, storagePath: objectPath,
     media: video ? 'video' : 'image',
@@ -438,7 +514,6 @@ router.post('/upload', async (req, res) => {
 
     const session = String(b.session || '').trim() || newSession();
     const bundleName = typeof b.bundle === 'string' ? b.bundle.trim() : '';
-    const state = await sessionState(session);
     const defaults = clean(b.defaults || {});
 
     const items = [];
@@ -446,12 +521,12 @@ router.post('/upload', async (req, res) => {
       const raw = await toBuffer(images[i]);
       const { buf, ct } = await normalize(raw.buf, raw.ct);
       items.push(await storeOne({
-        bucket, session, buf, ct, defaults,
+        bucket, session, buf, ct, defaults, bundleName,
         filename: Array.isArray(b.filenames) ? b.filenames[i] : null,
-        place: placeIn(state, bundleName),
       }));
     }
-    res.json({ ok: true, session, count: items.length, items });
+    const skipped = items.filter((i) => i.duplicate).length;
+    res.json({ ok: true, session, count: items.length - skipped, skipped, items });
   } catch (e) { fail(res, e); }
 });
 
@@ -476,13 +551,11 @@ router.post('/upload-file',
       let ct = req.get('content-type') || '';
       if (!ct || /octet-stream/i.test(ct)) ct = ctForName(filename);
 
-      const state = await sessionState(session);
       const { buf, ct: finalCt } = await normalize(req.body, ct);
-      const item = await storeOne({
-        bucket, session, buf, ct: finalCt, filename,
-        place: placeIn(state, bundleName),
-      });
-      res.json({ ok: true, session, item });
+      const item = await storeOne({ bucket, session, buf, ct: finalCt, filename, bundleName });
+      // `duplicate` tells the app this photo was already in the album, so a
+      // re-dump can report "12 already here" instead of counting them as new.
+      res.json({ ok: true, session, duplicate: Boolean(item.duplicate), item });
     } catch (e) { fail(res, e); }
   });
 
@@ -508,7 +581,6 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
     const session = String(req.query.session || '').trim() || newSession();
     const forced = String(req.query.bundle || '').trim();
     const nameOf = forced ? () => forced : bundleNamer(entries.map((e) => e.name));
-    const state = await sessionState(session);
 
     const items = [];
     for (const entry of entries) {
@@ -517,11 +589,12 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
       const { buf, ct } = await normalize(raw, ctForName(entry.name));
       items.push(await storeOne({
         bucket, session, buf, ct, filename: entry.name.split('/').pop(),
-        place: placeIn(state, nameOf(entry.name)),
+        bundleName: nameOf(entry.name),
       }));
     }
     const bundles = [...new Set(items.map((i) => i.bundleName).filter(Boolean))];
-    res.json({ ok: true, session, count: items.length, bundles, items });
+    const skipped = items.filter((i) => i.duplicate).length;
+    res.json({ ok: true, session, count: items.length - skipped, skipped, bundles, items });
   } catch (e) { fail(res, e); }
 });
 
@@ -564,9 +637,18 @@ router.patch('/items/:id', async (req, res) => {
 // The doc is the record; a leftover blob is harmless if a delete fails, so
 // never let Storage cleanup block removing the row.
 async function dropDoc(d, bucket) {
+  const paths = [d.get('storagePath'), d.get('posterPath')].filter(Boolean);
+  const hash = d.get('hash');
   await d.ref.delete();
   if (!bucket) return;
-  for (const p of [d.get('storagePath'), d.get('posterPath')].filter(Boolean)) {
+  // The bytes are shared: the same photo in two albums is one object with two
+  // docs pointing at it. Only the last reference may delete it — otherwise
+  // removing a file from one album would blank it out in the other.
+  if (hash) {
+    const others = await db().collection(COL).where('hash', '==', hash).limit(1).get();
+    if (!others.empty) return;
+  }
+  for (const p of paths) {
     try { await bucket.file(p).delete(); } catch { /* already gone */ }
   }
 }
