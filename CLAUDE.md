@@ -149,6 +149,16 @@ each opens a focused workflow that shares the same house styles.
   hook-equipped sessions. Still post manually (below) when the hook is absent,
   for non-image types, per-image prompts/styles, or true generation times on
   a backfill.
+- **NO contact sheets — review happens IN the gallery, labeled (July 2026,
+  Sophie's rule).** Every image deliverable goes into the gallery / the chat's
+  Assets tab **individually and LABELED** (the label is its `description` — what
+  she reviews by), and she reviews it there, one image at a time. **Do NOT build
+  or send a stitched contact sheet** — not in chat, not as a file. When you
+  re-roll an image, give the new version a **NEW id** and **KEEP** the old one
+  in the gallery as history (label it "…v1 — superseded"); nothing is
+  overwritten or deleted. To label an already-filed asset, re-POST
+  `POST /api/gallery { assetsOnly:true, chat, url, description }` (it dedupes by
+  url and updates the label in place).
 - **One command does upload + post:**
   `GALLERY_UID=<uid> node scripts/post-to-gallery.js --file ./image.png --prompt "…"`
   uploads the local file to membry Storage, makes it public, and writes the

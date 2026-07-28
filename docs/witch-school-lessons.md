@@ -122,11 +122,16 @@ node scripts/witch-school-cards.js my-lesson-spec.json
      to its own illustration's corner color; that's what makes the art float
      with no box.
 
-4. **Review before shipping.** Download the 10 images, build a contact sheet,
-   LOOK at it. Check: style match, no stray text, character consistency, each
-   image matches its card. Re-roll single duds by making a mini-spec with just
-   those ids (same id = overwrites in Storage; use the NEW sampled bg).
-   Send Sophie the contact sheet in chat.
+4. **Review in the Assets tab — NEVER a contact sheet (Sophie's rule, July
+   2026).** File EVERY generated image into the chat's Assets tab, **labeled**,
+   via `POST /api/gallery { assetsOnly:true, chat, url, description }` (the
+   `description` is the label she reviews by — write a meaningful one per
+   image). Then LOOK at each yourself (Read the PNGs) for style match, stray
+   text, character consistency, image-matches-card. **Do NOT build or send a
+   stitched contact sheet** — she reviews in the Assets tab, one labeled image
+   at a time. Re-roll a dud to a **NEW id** (e.g. `xx-03-v2`), never
+   overwriting: the old version STAYS in the gallery as history (label it
+   "…v1 — superseded"). Each re-roll gets its own sampled bg.
 
 ## Wiring into `public/witch.html`
 
