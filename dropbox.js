@@ -160,11 +160,29 @@ async function toBuffer(ref) {
 // Re-encode to JPEG at the ORIGINAL pixel dimensions — never resize, some of
 // these are listing photos. Videos pass through untouched.
 async function normalize(buf, ct) {
-  if (!/heic|heif/i.test(ct || '') || !sharp) return { buf, ct };
+  if (!/heic|heif/i.test(ct || '')) return { buf, ct };
+  // Two decoders, because sharp alone could not read a single one of the 1,122
+  // iPhone HEICs already in here. Two separate failures were hiding behind one
+  // silent catch:
+  //   1. libheif's security limit rejects the file outright without
+  //      `unlimited` — an iPhone HEIC has dozens of iref entries (depth map,
+  //      thumbnails, HDR gain map).
+  //   2. Even past that, this libheif build dies with "bad seek" a few bytes
+  //      past EOF on a tiled iPhone HEIC. The files are NOT truncated — their
+  //      box structure ends exactly on the last byte.
+  // heic-convert (libheif compiled to wasm) reads them at full resolution, so
+  // it's the fallback. Slower, but it's the difference between a listing photo
+  // and a file Etsy refuses.
+  if (sharp) {
+    try {
+      return { buf: await sharp(buf, { unlimited: true }).jpeg({ quality: 95 }).toBuffer(), ct: 'image/jpeg' };
+    } catch { /* fall through to the wasm decoder */ }
+  }
   try {
-    return { buf: await sharp(buf).jpeg({ quality: 95 }).toBuffer(), ct: 'image/jpeg' };
+    const convert = require('heic-convert');
+    return { buf: await convert({ buffer: buf, format: 'JPEG', quality: 0.95 }), ct: 'image/jpeg' };
   } catch {
-    return { buf, ct }; // libheif can't decode it — keep the original bytes
+    return { buf, ct }; // genuinely undecodable — keep the original bytes
   }
 }
 
@@ -280,10 +298,16 @@ async function existingCopy(hash, bundleKey) {
   return hit ? { id: hit.id, ...hit.data() } : null;
 }
 
-async function storeOne({ bucket, session, buf, ct, filename, bundleName: wanted, poster, defaults }) {
+async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundleName: wanted, poster, defaults }) {
+  // Hash the bytes AS THEY ARRIVED, before any conversion. What identifies a
+  // photo is the file the phone sent; if the hash were taken after re-encoding,
+  // changing the encoder settings later would make every stored photo look new
+  // and a re-dump would double up again.
+  const hash = hashOf(raw);
+  const { buf, ct } = await normalize(raw, rawCt);
+
   // Dedupe BEFORE claiming a slot in the album, so a skipped file doesn't burn
   // a photoIndex and leave a hole behind it.
-  const hash = hashOf(buf);
   const existing = await existingCopy(hash, slug(wanted) || null);
   if (existing) return { ...existing, duplicate: true };
 
@@ -519,9 +543,8 @@ router.post('/upload', async (req, res) => {
     const items = [];
     for (let i = 0; i < images.length; i++) {
       const raw = await toBuffer(images[i]);
-      const { buf, ct } = await normalize(raw.buf, raw.ct);
       items.push(await storeOne({
-        bucket, session, buf, ct, defaults, bundleName,
+        bucket, session, buf: raw.buf, ct: raw.ct, defaults, bundleName,
         filename: Array.isArray(b.filenames) ? b.filenames[i] : null,
       }));
     }
@@ -551,8 +574,7 @@ router.post('/upload-file',
       let ct = req.get('content-type') || '';
       if (!ct || /octet-stream/i.test(ct)) ct = ctForName(filename);
 
-      const { buf, ct: finalCt } = await normalize(req.body, ct);
-      const item = await storeOne({ bucket, session, buf, ct: finalCt, filename, bundleName });
+      const item = await storeOne({ bucket, session, buf: req.body, ct, filename, bundleName });
       // `duplicate` tells the app this photo was already in the album, so a
       // re-dump can report "12 already here" instead of counting them as new.
       res.json({ ok: true, session, duplicate: Boolean(item.duplicate), item });
@@ -586,9 +608,8 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
     for (const entry of entries) {
       // one at a time — never hold a whole camera roll in memory
       const raw = await entry.async('nodebuffer');
-      const { buf, ct } = await normalize(raw, ctForName(entry.name));
       items.push(await storeOne({
-        bucket, session, buf, ct, filename: entry.name.split('/').pop(),
+        bucket, session, buf: raw, ct: ctForName(entry.name), filename: entry.name.split('/').pop(),
         bundleName: nameOf(entry.name),
       }));
     }
