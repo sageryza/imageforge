@@ -417,6 +417,39 @@ lifted into a standalone tool later.
   votes/notes and act on them (favor the hearted ones, re-roll the ✕'d and
   anything noted "redo") — same review-loop pattern as writing notes, NOT on
   a timer.
+- **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
+  2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
+  covers the picture, with a **Style / Content** toggle (style left, content
+  right). Nothing derives it — the chat that generated the image posts the two
+  halves itself, because only it knows where the seam is:
+  - **style** = the look: house-style/LoRA trigger word and its suffixes, medium,
+    palette, rendering notes (`wtr watercolor drawing, loose wet-on-wet wash,
+    visible paper grain`).
+  - **content** = what is depicted: subject, action, setting, composition
+    (`a woman in a yellow raincoat feeding crows on a park bench at dusk`).
+  - `POST /api/gallery/assets/prompt` `{ chat, url, style, content }` — the
+    image's Firebase Storage url, x-studio-token when gated. Do this for EVERY
+    image deliverable, right after the image exists; it needs no gallery step
+    first (post it before the Stop hook files the image and the hook's post
+    converges onto the same record by url — never a second tile). Re-posting the
+    same url overwrites that image's split, so a fixed prompt is one more POST.
+    Sending only one side leaves the other alone; `""` clears a side. 1500 chars
+    each. Batch many images in one call with
+    `{ chat, items:[{url, style, content}, …] }` (per-item `ok`/`error` back).
+  - Stored on the chat's `forge-chat-assets` doc as `promptStyle` /
+    `promptContent`, returned by `GET /api/gallery/assets?chat=<name>` — so a
+    chat can also READ back what it (or an earlier session) filed.
+  - **Backfilling older images:** `node scripts/backfill-asset-prompts.js <chat>
+    --list` prints every image in that tab with its label and whether a prompt is
+    on file; then write a JSON array and post it with
+    `node scripts/backfill-asset-prompts.js <chat> prompts.json [--dry-run]`.
+    Each entry identifies its image by `"url"` (exact) or `"match"` (a substring
+    of the url OR of the label shown in the app — easier, since a chat remembers
+    what it called an image). `FORGE_BASE` overrides the server.
+  - An image with no prompt on file shows **no PROMPT button at all** — never
+    write "no prompt filed" anywhere; empty is silent by design.
+  - The same instructions are folded into the top of every Assets tab ("How to
+    post prompts", `howToPost()` in `public/chats.html`) — keep the two in sync.
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
@@ -999,6 +1032,9 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
+- **POST THE PROMPT for every image you deliver**, split into style + content —
+  `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
+  tab reads. Full rules in "Prompts on Assets images" above.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
