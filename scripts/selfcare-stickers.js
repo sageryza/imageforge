@@ -151,6 +151,23 @@ async function removeBackground(imageUrl) {
   return out;
 }
 
+// Replicate's output host resolved badly once mid-batch and lost a finished
+// sticker (the paid generate had already happened), so the download retries.
+async function fetchBuffer(url, tries = 4) {
+  let last;
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return Buffer.from(await r.arrayBuffer());
+    } catch (e) {
+      last = e;
+      if (i < tries) await new Promise(r => setTimeout(r, 2000 * i));
+    }
+  }
+  throw new Error('download failed: ' + last.message);
+}
+
 async function upload(buf, remotePath, contentType = 'image/png') {
   const file = getStorage().bucket().file(remotePath);
   await file.save(buf, { metadata: { contentType }, resumable: false });
@@ -195,7 +212,7 @@ async function trimSquare(buf) {
       const rawUrl = await upload(buf, `selfcare/stickers/${PACK}/_raw/${id}.png`);
       process.stdout.write('cut … ');
       const cutUrl = await removeBackground(rawUrl);
-      const cut = Buffer.from(await (await fetch(cutUrl)).arrayBuffer());
+      const cut = await fetchBuffer(cutUrl);
       const final = await trimSquare(cut);
       const url = await upload(final, `selfcare/stickers/${PACK}/${id}.png`);
       manifest.packs[PACK].art[id] = { img: url };

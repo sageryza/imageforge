@@ -12,6 +12,51 @@
         },
         "food": {
           "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food.png"
+        },
+        "outside": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/outside.png"
+        },
+        "sleep": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/sleep.png"
+        },
+        "thanks": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/thanks.png"
+        },
+        "call": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/call.png"
+        },
+        "journal": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/journal.png"
+        },
+        "make": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/make.png"
+        },
+        "read": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/read.png"
+        },
+        "music": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/music.png"
+        },
+        "wash": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/wash.png"
+        },
+        "tidy": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/tidy.png"
+        },
+        "quiet": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/quiet.png"
+        },
+        "meds": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/meds.png"
+        },
+        "plant": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/plant.png"
+        },
+        "write": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/write.png"
+        },
+        "move": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/move.png"
         }
       }
     }
