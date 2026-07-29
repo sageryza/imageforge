@@ -863,6 +863,49 @@ lifted into a standalone tool later.
   "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
+## Sticker Day (self-care sheet — `/selfcare`)
+- `public/selfcare.html` (page at `/selfcare`, **ungated/public** like `/witch`) —
+  seven small acts of self care a day, each one a **sticker**. An un-earned task
+  shows only as a flat grey **silhouette**; tapping it (= "I did this") peels the
+  sticker on in colour AND opens a bottom sheet revealing the art big with a
+  **mini lesson** on why it matters. Tapping an earned sticker reopens the
+  lesson; **undo lives in that sheet**, so a mis-tap is never permanent.
+- **The day's set:** 5 basics every day (water, food, movement, outside, sleep)
+  + 2 extras stepping deterministically through a pool of 12 (`setFor(iso)` —
+  days-since-epoch × 2), so the sheet changes daily and exhausts the pool before
+  repeating. All 7 done → the sheet gets a stamp. **Book** tab = every past
+  sheet + how many distinct stickers have been discovered.
+- **State is `localStorage` only** (`selfcare_sticker_book`, `{days:{iso:{set,
+  done}}}`). Nothing leaves the phone — which is why the page is ungated. Past
+  days store their own `set`, so a rendered old sheet is what it actually was.
+- **Tasks and packs are SEPARATE** in `public/selfcare-stickers.json`: `tasks`
+  = name + mini lesson; `packs.<id>.art.<taskId>.img` = the picture. **A new
+  sticker pack is a new art set over the same tasks, so it ships as pure data —
+  no app change.** Any task a pack has no art for falls back to the placeholder
+  shape drawn inline in `selfcare.html` (`ART`).
+- **The silhouette is the SAME PNG, CSS-masked** (`[data-done="0"] .pic::after`,
+  `mask-image:var(--u)` + flat `--ghost`), so the shape you see always matches
+  the sticker you get exactly. This is why sticker art **must be a transparent
+  die-cut PNG** — any background left on it masks as a grey rectangle instead of
+  the sticker's outline.
+- **Art pipeline: `scripts/selfcare-stickers.js`** — the Witch School look
+  (gpt-image-2 edits against `storage:witch-school/refs/style-*.png`, same as
+  `witch-school-cards.js`) so stickers and lesson cards read as one set, then
+  **background-remover (Replicate) → alpha-trim → upload** to
+  `selfcare/stickers/<pack>/<id>.png` (raws kept under `_raw/`). The prompt bans
+  cast shadows/surfaces/frames — they survive the cut and read as grime round
+  the edge — and the alpha trim + square re-pad is what keeps every sticker the
+  same visual size in its tile. Writes the manifest after EVERY sticker, so a
+  crash keeps what landed. `--only a,b` / `--force` / `--pack` / `--dry-run`
+  (prints cost first). ~$0.042 each, ~$0.71 for all 17.
+- **Lesson voice:** aimed at what people don't know, not encouragement (pasta is
+  carbohydrate and doesn't rebuild you; the 8-glasses rule came from a misread
+  1945 report; light through a window doesn't set your body clock). Same voice
+  rules as Witch School — no therapy-speak, aspirational not consoling.
+- **Open by design:** how sticker **packs** get unlocked (earned per finished
+  sheet? a few new ones a day?) is Sophie's call and is NOT built — only the
+  data structure for it is.
+
 ## Secretly a Witch (public witchy app)
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
