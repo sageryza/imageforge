@@ -394,6 +394,10 @@ app.get('/test', (req, res) => { res.sendFile(__dirname + '/public/test.html'); 
 
 app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); });
 
+// Sticker Day — the self-care sheet. Public/ungated: nothing leaves the phone,
+// the day's progress lives in localStorage.
+app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.html'); });
+
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
 // Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
 app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
