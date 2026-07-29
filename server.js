@@ -286,6 +286,9 @@ loadConfig().then(() => {
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
+  // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
+  // rate-limited per IP inside the module, since it spends on image gen.
+  app.use('/api/selfcare', require('./selfcare').router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)

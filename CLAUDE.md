@@ -905,6 +905,50 @@ lifted into a standalone tool later.
 - **Open by design:** how sticker **packs** get unlocked (earned per finished
   sheet? a few new ones a day?) is Sophie's call and is NOT built — only the
   data structure for it is.
+- **Finishing all 7 plays the celebration** — a unicorn cantering over a flat
+  pastel rainbow (`celebrate()`, SVG `animateMotion`, ~2.8s). Bands are
+  concentric solid-stroke arcs, NOT a gradient. It only fires on the tap that
+  completes the sheet (`updateProgress(true)`), never on page load, so
+  re-opening a finished day doesn't replay it.
+
+### Memory Passport (3rd tab of `/selfcare`)
+- **Four stamps a day** — small things that happened. Each is a postage stamp:
+  white scalloped paper with a picture inside. Tap an empty slot → the picker.
+- **The scalloped edge is drawn by the PAGE, not the model** (`stampSVG()` —
+  a square path with circles centred ON each edge punched out via
+  `fill-rule="evenodd"`). A model draws a scallop differently every time and
+  the point of a stamp is that the frame is identical on all of them. So the
+  generated art is only the square INSIDE, and the prompt bans borders/frames.
+- **Two ways to fill a slot:**
+  - **Free library** — 20 pre-drawn generic moments ("someone gave me a
+    compliment", "I got myself a treat"), `public/selfcare-stamps.json`, built
+    by `scripts/selfcare-stamps.js` (~$0.28 for all 20). Each sits on its OWN
+    flat pastel background colour so a page reads as a set, not one card
+    repeated. Reached from the **grey rounded-square button top-right in the
+    header** — deliberately above the passport page, never on it.
+  - **Draw your own** (the paid feature) — type a moment → `selfcare.js`
+    (`/api/selfcare`, PUBLIC, mounted in server.js) draws it with gpt-image-2
+    at **`quality:'low'`** (~1¢) in the same house line style but pastel.
+    **NOTE: there is no billing wired up** — the UI distinguishes free vs own,
+    but nothing actually checks for a subscription yet.
+- **Background job, always** (house rule): `POST /api/selfcare/stamp` returns
+  an id in ~0.2s, the client stores it in `localStorage` and RESUMES polling on
+  return, so leaving the app can't lose a stamp already paid for. State in
+  Firestore `forge-selfcare-stamps`; `GET /api/selfcare/stamp/:id` polls.
+- **The endpoint is public and spends money**, so it is rate-limited per IP
+  (20/hour) behind the app's own 4-a-day rule. Worth revisiting if the page
+  ever gets real traffic.
+- **A stamp landing plays a stick sound** — synthesised with WebAudio (filtered
+  noise burst over a low thud), so there's no audio file to load. iOS only
+  allows audio after a gesture, so the context is unlocked on the first tap.
+- **Everything is `localStorage`** except the generated images: the moment TEXT
+  is sent to OpenAI and the resulting picture lives in public Storage. That is
+  a real change from the stickers half, where nothing leaves the phone.
+- **Display copies:** `scripts/selfcare-thumbs.js` makes a 512px webp
+  (`thumb`) of every sticker/stamp/asset and writes it beside `img` in both
+  manifests. The originals are 400–700KB each and the library shows twenty at
+  once — serving them raw was ~26MB of page weight. The page uses `thumb` and
+  keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
 - **Witch School lessons: the complete creation workflow is documented in

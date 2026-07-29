@@ -60,10 +60,18 @@ const PROMPTS = {
 // gpt-image-2 medium 1024x1024 is ~$0.04; background removal is ~$0.002.
 const COST_PER = 0.042;
 
+// Non-task art that still wants the die-cut treatment (transparent PNG), e.g.
+// the unicorn that rides over the rainbow when a sheet is finished. Drawn with
+// `--asset unicorn`; lands on manifest.assets.<id> rather than in a pack.
+const ASSETS = {
+  unicorn: 'A cute unicorn in mid-canter with its mane and tail streaming behind it, seen from the side, facing right.',
+};
+
 const args = process.argv.slice(2);
 const flag = (n, d = null) => { const i = args.indexOf('--' + n); return i === -1 ? d : args[i + 1]; };
 const has = (n) => args.includes('--' + n);
 const PACK = flag('pack', 'ink');
+const ASSET = flag('asset');
 const ONLY = (flag('only') || '').split(',').map(s => s.trim()).filter(Boolean);
 const FORCE = has('force');
 const DRY = has('dry-run');
@@ -72,17 +80,27 @@ const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
 if (!manifest.packs[PACK]) { console.error(`no pack "${PACK}" in the manifest`); process.exit(1); }
 manifest.packs[PACK].art = manifest.packs[PACK].art || {};
 
-const allIds = [...(manifest.core || []), ...(manifest.extra || [])];
+// --asset draws one shared piece of art instead of the day's stickers.
+if (ASSET) {
+  if (!ASSETS[ASSET]) { console.error(`no asset "${ASSET}" — known: ${Object.keys(ASSETS).join(', ')}`); process.exit(1); }
+  manifest.assets = manifest.assets || {};
+}
+
+const allIds = ASSET ? [] : [...(manifest.core || []), ...(manifest.extra || [])];
 const todo = allIds.filter(id => {
   if (ONLY.length && !ONLY.includes(id)) return false;
   if (!PROMPTS[id]) { console.warn(`! no prompt for "${id}" — skipping`); return false; }
   return FORCE || !(manifest.packs[PACK].art[id] && manifest.packs[PACK].art[id].img);
 });
 
-console.log(`pack "${PACK}" · ${todo.length} sticker(s) to draw${FORCE ? ' (forced)' : ''}`);
-console.log(`estimated cost: $${(todo.length * COST_PER).toFixed(2)}`);
-if (DRY) { console.log(todo.join(', ') || '(nothing to do)'); process.exit(0); }
-if (!todo.length) process.exit(0);
+if (ASSET) {
+  console.log(`asset "${ASSET}" · estimated $${COST_PER.toFixed(2)}`);
+} else {
+  console.log(`pack "${PACK}" · ${todo.length} sticker(s) to draw${FORCE ? ' (forced)' : ''}`);
+  console.log(`estimated cost: $${(todo.length * COST_PER).toFixed(2)}`);
+}
+if (DRY) { console.log(ASSET || todo.join(', ') || '(nothing to do)'); process.exit(0); }
+if (!todo.length && !ASSET) process.exit(0);
 
 const OPENAI = process.env.OPENAI_API_KEY;
 const REPLICATE = process.env.REPLICATE_API_TOKEN;
@@ -194,6 +212,18 @@ async function trimSquare(buf) {
 (async () => {
   const refs = await materializeRefs(REFS);
   const done = [], failed = [];
+
+  if (ASSET) {
+    process.stdout.write(`asset ${ASSET} … `);
+    const buf = await generate(ASSETS[ASSET], refs);
+    const rawUrl = await upload(buf, `selfcare/assets/_raw/${ASSET}.png`);
+    process.stdout.write('cut … ');
+    const final = await trimSquare(await fetchBuffer(await removeBackground(rawUrl)));
+    manifest.assets[ASSET] = { img: await upload(final, `selfcare/assets/${ASSET}.png`) };
+    fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
+    console.log('ok →', manifest.assets[ASSET].img);
+    return;
+  }
 
   for (const id of todo) {
     process.stdout.write(`${id} … `);
