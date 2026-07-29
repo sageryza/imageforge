@@ -1,20 +1,42 @@
 {
   "_note": "Tasks are the self-care acts (name + mini lesson). Packs supply the ART for them, so a new sticker pack is a new art set over the same tasks — no app change. scripts/selfcare-stickers.js writes pack art entries; the mini lessons are hand-written. Any task a pack has no art for falls back to the placeholder shape drawn in selfcare.html.",
-
   "defaultPack": "ink",
   "perDay": 7,
-
   "packs": {
     "ink": {
       "name": "Ink",
       "note": "The house line-art look — the same style as the Witch School lesson cards (storage:witch-school/refs/style-*.png).",
-      "art": {}
+      "art": {
+        "water": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/water.png"
+        },
+        "food": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food.png"
+        }
+      }
     }
   },
-
-  "core": ["water", "food", "move", "outside", "sleep"],
-  "extra": ["thanks", "call", "journal", "make", "read", "music", "wash", "tidy", "quiet", "meds", "plant", "write"],
-
+  "core": [
+    "water",
+    "food",
+    "move",
+    "outside",
+    "sleep"
+  ],
+  "extra": [
+    "thanks",
+    "call",
+    "journal",
+    "make",
+    "read",
+    "music",
+    "wash",
+    "tidy",
+    "quiet",
+    "meds",
+    "plant",
+    "write"
+  ],
   "tasks": {
     "water": {
       "name": "Drink water",
@@ -36,7 +58,6 @@
       "name": "A real night's sleep",
       "lesson": "Most adults need seven to nine hours, and a long Saturday does not repay a whole week — the debt only partly clears. Sleep is when the brain flushes metabolic waste and files what you learned that day. The two things that damage it most are a wake-up time that moves around, and alcohol: it drops you off quickly, then fragments the second half of the night."
     },
-
     "thanks": {
       "name": "Three things you appreciate",
       "lesson": "Written down beats counted in your head, and specific beats general — \"the light on the kitchen wall at four\" does work that \"my apartment\" does not, because the detail is what makes you actually picture it. The research on this is modest but consistent, and oddly it holds up better a few times a week than every single day."
