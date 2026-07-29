@@ -3165,11 +3165,31 @@
     return n;
   }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
-  function openBook(filter) {
+  // A section's LAST page (1-based, 0 = the section is empty). Every section is
+  // chronological, so that's where its NEWEST entry sits. `dateISO` narrows it to
+  // the last page belonging to that day — a day with 5+ coincidences spans two
+  // pages, and the one just saved is on the later of them.
+  function bosSectNewest(key, dateISO) {
+    let last = 0, day = 0;
+    bosPages().forEach((p, i) => {
+      if (p.sect !== key) return;
+      last = i + 1;
+      if (dateISO && p.dateISO === dateISO) day = i + 1;
+    });
+    return day || last;
+  }
+  function openBook(filter, opts) {
     // Always open on the contents page; a section request (school lesson CTAs)
-    // jumps straight to that section's first page.
+    // jumps straight to that section's first page. `opts.newest` lands on the page
+    // the newest entry is actually ON instead — what a "Saved to your Book of
+    // Shadows" bookmark has to do: tap it and you're looking at the thing you just
+    // saved, not at the oldest page in the section.
     bosPageIdx = 0;
-    if (filter && filter !== 'all') bosPageIdx = Math.min(bosSectStart(bosSectOf(filter)), Math.max(1, bosPages().length));
+    if (filter && filter !== 'all') {
+      const sect = bosSectOf(filter);
+      const idx = (opts && opts.newest && bosSectNewest(sect, opts.dateISO)) || bosSectStart(sect);
+      bosPageIdx = Math.min(idx, Math.max(1, bosPages().length));
+    }
     $('bos-reader').style.display = '';
     document.body.classList.add('book-open');
     renderBosPage();
@@ -4359,8 +4379,10 @@
   // return to the app and once a minute, so the reset lands ONTIME at midnight.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} } });
   setInterval(() => { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} }, 60000);
-  // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
-  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
+  // The "Saved to your Book of Shadows" bookmark jumps to the page TODAY's
+  // coincidences were filed on — the newest Synchronicities page, not the first
+  // one (that's the oldest day in the book, which is never what you just saved).
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign', { newest: true, dateISO: todayISO() }); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
