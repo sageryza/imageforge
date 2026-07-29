@@ -1015,13 +1015,64 @@
     /* The closed cover is the same object as the open pages: near full-bleed
        with a generous border of background, only without the spread sliver.
        Height mirrors the reader's stage (viewport minus header/nav chrome). */
-    .bos-cover { width: 100%; height: 60vh; margin: 14px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    /* A tooled-leather grimoire, drawn entirely in CSS + one SVG ornament — no
+       image to download, and it scales to any phone. Flat colours only (the
+       no-gradients rule): the "leather" is one solid brown with an SVG grain
+       speckle over it, and every highlight is a flat lighter/darker block. */
+    .bos-cover {
+      --leather: #43301f; --leather-dk: #35251a; --leather-lt: #4e3927;
+      --tool: #bb9243;                  /* the gold tooling on the boards */
+      --brass: #ab8434;
+      position: relative; width: 100%; height: 60vh; margin: 14px auto 0;
+      background: var(--leather); border-radius: 3px 7px 7px 3px;
+      cursor: pointer; transition: transform 0.15s ease;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 22px rgba(48,30,20,0.22);
+    }
     .bos-cover:active { transform: scale(0.98); }
-    .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    /* Leather grain: fractal noise, tiled as one tiny inline SVG. It's a
+       texture, not a gradient — and it costs no request. */
+    .bos-cover::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+      opacity: 0.22; mix-blend-mode: overlay;
+    }
+    /* The page block: on a closed hardback the boards overhang the paper, so all
+       you see of it is a cream band along the fore-edge and the tail. Two flat
+       strips sitting just proud of the board edge — not a filled rectangle,
+       which would bury the leather. */
+    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: 9px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
+    .bos-leaves.tail { top: auto; right: -5px; bottom: -5px; left: 34px; width: auto; height: 6px; border-radius: 0 0 3px 3px; border: 1px solid #cbb994; border-top: none; }
+    /* Spine: a darker band down the hinge, with five raised sewing bands. */
+    .bos-spine-b { position: absolute; top: 0; bottom: 0; left: 0; width: 26px; background: var(--leather-dk); border-radius: 3px 0 0 3px; }
+    .bos-spine-b i { position: absolute; left: 0; right: 0; height: 6px; background: #4a3524; border-top: 1px solid #31221a; border-bottom: 1px solid #31221a; }
+    /* The hinge crease between spine and board. */
+    .bos-hinge { position: absolute; top: 0; bottom: 0; left: 26px; width: 3px; background: #2b1d13; }
+    /* Blind-tooled double rule around the board. */
+    .bos-rule { position: absolute; inset: 15px 17px 15px 39px; border: 1.5px solid var(--tool); border-radius: 2px; pointer-events: none; }
+    .bos-rule.in { inset: 22px 24px 22px 46px; border-width: 1px; opacity: 0.85; }
+    /* Gilt corner-pieces: ONE symbol, mirrored into all four corners. */
+    /* Sized and placed off the INNER rule, so the spray blooms inward from it. */
+    .bos-orn { position: absolute; width: 58px; height: 58px; color: var(--tool); pointer-events: none; }
+    .bos-orn.tl { top: 22px; left: 46px; }
+    .bos-orn.tr { top: 22px; right: 24px; transform: scaleX(-1); }
+    .bos-orn.bl { bottom: 22px; left: 46px; transform: scaleY(-1); }
+    .bos-orn.br { bottom: 22px; right: 24px; transform: scale(-1); }
+    /* The clasp: a leather strap off the board, a brass plate over the fore-edge. */
+    .bos-strap { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 15px; background: #2b1e15; border-radius: 2px 0 0 2px; }
+    .bos-clasp { position: absolute; right: -6px; top: 50%; transform: translateY(-50%); width: 25px; height: 38px; background: var(--brass); border: 1px solid #6f5219; border-radius: 2px; }
+    .bos-clasp::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 7px; margin-top: -3.5px; background: #c39a45; border-top: 1px solid #d7b268; border-bottom: 1px solid #6f5219; }
+    .bos-clasp::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: #dcb96f; border: 1px solid #6f5219; border-radius: 50%; }
+    /* The ribbon marker, hanging out of the tail into the gap above the button. */
+    .bos-ribbon { position: absolute; top: 100%; left: 46px; width: 11px; height: 22px; background: #2e2118; pointer-events: none; }
+    .bos-ribbon svg { position: absolute; left: 50%; top: 100%; width: 12px; height: 12px; margin: -4px 0 0 -6px; color: var(--tool); }
+    .bos-cover-inner { position: relative; text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     /* Small accent, not a co-equal glyph next to the title — Book of Shadows
        surfaces only, the app-wide .js-star size is untouched. */
-    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 34px; height: 34px; display: inline-block; }
-    .bos-cover-title { font-family: var(--serif); font-size: 34px; line-height: 1.2; color: #e8ddc8; letter-spacing: 1px; }
+    .bos-cover-star svg, .bos-cover-star { color: var(--tool); width: 34px; height: 34px; display: inline-block; }
+    /* Gilt-stamped title: lighter than the app's --gold, which is tuned for
+       cream backgrounds and disappears on leather. */
+    .bos-cover-title { font-family: var(--serif); font-size: 34px; line-height: 1.2; color: #e3b962; letter-spacing: 1px; }
     body.book-open { overflow: hidden; }
     /* The open book floats as a real object — a white 3:4 page block with a
        flat spine crease — on the app's own dark background (flat tones only,
@@ -1506,12 +1557,51 @@
         <div class="kicker">Your grimoire</div>
         <div class="section-sub">Your readings, synchronicities, spell work and dreams, all in one place.</div>
 
-        <!-- The book itself: a cover you open -->
+        <!-- The book itself: a tooled-leather cover you open. Every part of it is
+             CSS or vector — the corner-piece is ONE symbol reflected across the
+             diagonal (the <use>), then mirrored by CSS into all four corners, so
+             the whole binding costs no image request. -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <symbol id="bos-corner" viewBox="0 0 56 56">
+            <g fill="currentColor">
+              <!-- the bud every leaf springs from, in the crook of the corner -->
+              <circle cx="10.5" cy="10.5" r="2.6"/>
+              <!-- one side of the spray, then the same paths reflected across the
+                   diagonal (matrix 0 1 1 0 swaps x and y) — that reflection is what
+                   keeps the fleuron perfectly symmetrical at any size -->
+              <g id="bos-corner-half">
+                <path d="M12.5 13c11.5 1.5 18.5 5.5 22.5 11.5-7-4.5-14-7-23-6.5z"/>
+                <path d="M10.5 8.5c10.5 0 18 2 23.5 6-6.5-2.5-14-4-24-3z"/>
+                <circle cx="38.5" cy="27.5" r="1.5"/>
+              </g>
+              <use href="#bos-corner-half" transform="matrix(0 1 1 0 0 0)"/>
+              <!-- the centre leaf, sitting on the diagonal itself -->
+              <path d="M11 11c11.5 4 19 11.5 21 21.5-9.5-2-17-9.5-21-21.5z"/>
+              <circle cx="36" cy="36" r="2"/>
+            </g>
+          </symbol>
+          <symbol id="bos-star4" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12 0l2.1 9.9L24 12l-9.9 2.1L12 24l-2.1-9.9L0 12l9.9-2.1z"/>
+          </symbol>
+        </svg>
         <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
+          <div class="bos-leaves"></div>
+          <div class="bos-leaves tail"></div>
+          <div class="bos-spine-b"><i style="top:12%"></i><i style="top:29%"></i><i style="top:46%"></i><i style="top:63%"></i><i style="top:80%"></i></div>
+          <div class="bos-hinge"></div>
+          <div class="bos-rule"></div>
+          <div class="bos-rule in"></div>
+          <svg class="bos-orn tl"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn tr"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn bl"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn br"><use href="#bos-corner"/></svg>
           <div class="bos-cover-inner">
             <div class="bos-cover-title">Book of<br>Shadows</div>
             <span class="bos-cover-star js-star"></span>
           </div>
+          <div class="bos-strap"></div>
+          <div class="bos-clasp"></div>
+          <div class="bos-ribbon"><svg><use href="#bos-star4"/></svg></div>
         </div>
         <button class="btn" id="bos-quickwrite" style="margin:16px auto 0;">Add to your book <span class="js-star"></span></button>
 
@@ -2541,11 +2631,14 @@
 
   /* ══════════ SAVING THE DAILY READING ══════════ */
   let tarotSaved = false;
+  // The id of the entry this save wrote — the bookmark reopens THAT page.
+  let tarotSavedId = null;
   function saveDailyReading() {
     if (!dailyTarot || !dailyPicks || tarotSaved) return;
     const all = loadReadings();
+    tarotSavedId = 'r_' + Date.now();
     all.unshift({
-      id: 'r_' + Date.now(), date: nowStamp(),
+      id: tarotSavedId, date: nowStamp(),
       question: `Daily pull · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`,
       spread: 'three',
       cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
@@ -2564,7 +2657,7 @@
   }
   function bmHide(id) { const el = $(id); if (el) el.style.display = 'none'; }
   $('tarot-bm').addEventListener('click', () => {
-    if (tarotSaved) { go('book'); openBook('reading'); return; }
+    if (tarotSaved) { go('book'); openBook('reading', { entry: tarotSavedId, newest: true }); return; }
     saveDailyReading();
     bmShow('tarot-bm', true, true);
     toast('Saved to your Book of Shadows ✦');
@@ -2573,7 +2666,7 @@
   const skyEntryId = () => 'sky_' + todayISO();
   const skySaved = () => journalLoad().some(e => e.id === skyEntryId());
   $('sky-bm').addEventListener('click', () => {
-    if (skySaved()) { go('book'); openBook('reading'); return; }
+    if (skySaved()) { go('book'); openBook('reading', { entry: skyEntryId(), newest: true }); return; }
     const a = (dailyData && dailyData.astrology) || {};
     const text = [a.headline, a.reading].filter(Boolean).join('\n\n');
     if (!text) return;
@@ -2819,7 +2912,7 @@
     dailyCardsStamp = stamp;
     dailyPicks = dailyPull();
     // Composed lazily at reveal time so the corpus fetch has landed by then.
-    dailyTarot = null; tarotSaved = false;
+    dailyTarot = null; tarotSaved = false; tarotSavedId = null;
     resetDailyTarot();
   }
 
@@ -3169,6 +3262,12 @@
   // chronological, so that's where its NEWEST entry sits. `dateISO` narrows it to
   // the last page belonging to that day — a day with 5+ coincidences spans two
   // pages, and the one just saved is on the later of them.
+  // The page (1-based, 0 = not in the book) a specific saved entry is ON — how a
+  // bookmark lands on the exact reading you saved rather than the section's first.
+  function bosPageOfEntry(id) {
+    if (!id) return 0;
+    return bosPages().findIndex(p => p.e && p.e.id === id) + 1;
+  }
   function bosSectNewest(key, dateISO) {
     let last = 0, day = 0;
     bosPages().forEach((p, i) => {
@@ -3180,14 +3279,16 @@
   }
   function openBook(filter, opts) {
     // Always open on the contents page; a section request (school lesson CTAs)
-    // jumps straight to that section's first page. `opts.newest` lands on the page
-    // the newest entry is actually ON instead — what a "Saved to your Book of
-    // Shadows" bookmark has to do: tap it and you're looking at the thing you just
-    // saved, not at the oldest page in the section.
+    // jumps straight to that section's first page. A "Saved to your Book of
+    // Shadows" bookmark instead passes `opts.entry` (that entry's own page) or
+    // `opts.newest` (the newest page in the section, narrowed by `dateISO`), so
+    // tapping it shows the thing you just saved — not the oldest page down there.
     bosPageIdx = 0;
     if (filter && filter !== 'all') {
       const sect = bosSectOf(filter);
-      const idx = (opts && opts.newest && bosSectNewest(sect, opts.dateISO)) || bosSectStart(sect);
+      const idx = (opts && bosPageOfEntry(opts.entry))
+        || (opts && opts.newest && bosSectNewest(sect, opts.dateISO))
+        || bosSectStart(sect);
       bosPageIdx = Math.min(idx, Math.max(1, bosPages().length));
     }
     $('bos-reader').style.display = '';
