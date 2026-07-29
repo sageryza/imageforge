@@ -16,6 +16,7 @@ randomized per instance. Even coverage, no visible rows or columns.
 Usage:  python3 make_pattern.py [version ...]
 """
 
+import math
 import os
 import random
 import sys
@@ -107,10 +108,23 @@ def load(name):
     return im.crop(box) if box else im
 
 
-def shape(sprite, target, angle, rng):
-    """Scale a sprite so its long edge is `target` px, then rotate it."""
+def shape(sprite, target, angle, size_by="edge"):
+    """Scale a sprite to `target` px, then rotate it.
+
+    Two ways to call two stones "the same size", and they do not agree
+    when one is a long shard and the other a fat lump:
+
+      edge — same longest edge, i.e. each fits the same bounding square.
+             Literal, but a slim crystal then reads as the smaller one.
+      area — same amount of painted pixels, so they carry equal visual
+             weight. `target` is the side of the equivalent square.
+    """
     w, h = sprite.size
-    k = target / max(w, h)
+    if size_by == "area":
+        painted = int((np.array(sprite)[..., 3] >= 128).sum())
+        k = target / max(1.0, math.sqrt(painted))
+    else:
+        k = target / max(w, h)
     im = sprite.resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS)
     if angle:
         im = im.rotate(angle, resample=Image.BICUBIC, expand=True)
@@ -150,6 +164,7 @@ def layer_spots(layer, crystals, rng):
                 "y": (cy + rng.uniform(-jit, jit)) % TILE,
                 "angle": rng.uniform(*layer["rotate"]),
                 "size": layer["size"] * rng.uniform(*layer["scale"]),
+                "size_by": layer.get("size_by", "edge"),
             })
     return spots
 
@@ -172,7 +187,7 @@ def build(version, shift=(0, 0)):
     rng.shuffle(spots)
 
     for s in spots:
-        paste_wrapped(canvas, shape(sprites[s["name"]], s["size"], s["angle"], rng),
+        paste_wrapped(canvas, shape(sprites[s["name"]], s["size"], s["angle"], s["size_by"]),
                       (s["x"] + shift[0]) % TILE, (s["y"] + shift[1]) % TILE, TILE)
 
     return canvas.convert("RGB")
@@ -204,7 +219,31 @@ FILL = {"grid": 5, "size": 240, "scale": (0.78, 1.12), "rotate": (-40, 40),
 # pyrite is deliberately left out of every version: it is the one cutout
 # with a cast shadow painted into it, and against a flat ground that reads
 # as a smudge rather than a shadow.
+# Same size everywhere: one grid, no scale variation. Jitter and rotation
+# stay, or a uniform grid reads as a spreadsheet.
+UNIFORM_EDGE = {"grid": 5, "size": 430, "scale": (1.0, 1.0), "rotate": (-30, 30),
+                "jitter": 0.20, "spacing": 5, "size_by": "edge"}
+UNIFORM_AREA = {"grid": 5, "size": 322, "scale": (1.0, 1.0), "rotate": (-32, 32),
+                "jitter": 0.26, "spacing": 5, "size_by": "area"}
+
+ALL13 = ["aquamarine", "fluorite", "danburite", "halite", "celestite",
+         "spirit-quartz", "opal", "garnet", "rose-quartz",
+         "moonstone", "aragonite", "tourmaline", "lapis-lazuli"]
+COOL = ["aquamarine", "lapis-lazuli", "fluorite", "moonstone",
+        "spirit-quartz", "opal", "tourmaline", "celestite"]
+WARM = ["aragonite", "garnet", "rose-quartz", "halite",
+        "danburite", "tourmaline", "spirit-quartz"]
+
 VERSIONS = {
+    # --- white ground, every crystal the same size (sized by painted area,
+    # so a slim shard and a fat lump carry equal weight) ---
+    "v4-white-full-spectrum": {"bg": "#FFFFFF", "crystals": ALL13,
+                               "layers": [UNIFORM_AREA], "seed": 11},
+    "v5-white-cool": {"bg": "#FFFFFF", "crystals": COOL,
+                      "layers": [UNIFORM_AREA], "seed": 27},
+    "v6-white-warm": {"bg": "#FFFFFF", "crystals": WARM,
+                      "layers": [UNIFORM_AREA], "seed": 5},
+
     # Everything, on warm bone — the whole collection as one pattern.
     "v1-full-spectrum": {
         "bg": "#EFE7DA",
