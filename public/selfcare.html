@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#eef2ec">
+  <title>Sticker Day — a self care sheet</title>
+  <meta name="description" content="Seven small acts of self care a day. Each one is a sticker: you see the shape, and you find out what it looks like when you earn it.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Fonts load async so the CSS fetch never blocks first paint. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    :root{
+      --bg:#eef2ec;          /* pale sage paper */
+      --surface:#ffffff;
+      --sheet:#fbfaf5;       /* the sticker sheet itself */
+      --panel:#e7ece5;
+      --line:#dde4db;
+      --ink:#2c332e;
+      --dim:#697269;
+      --faint:#98a298;
+      --accent:#5c8d6c;      /* sage */
+      --accent-deep:#436b50;
+      --ghost:#d7ded6;       /* the un-earned silhouette */
+      --gold:#c9a227;
+      --radius:6px;          /* text buttons are rounded rects, never pills */
+      --radius-lg:14px;
+      --nav-h:62px;
+    }
+
+    html,body{ height:100%; }
+    body{
+      background:var(--bg); color:var(--ink);
+      font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      -webkit-font-smoothing:antialiased;
+      overflow-x:hidden; touch-action:manipulation;
+    }
+    .app{
+      max-width:640px; margin:0 auto; min-height:100%; position:relative;
+      padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 14px);
+    }
+
+    /* ── Header ── */
+    header{
+      position:sticky; top:0; z-index:40;
+      padding:calc(14px + env(safe-area-inset-top,0px)) 20px 12px;
+      background:var(--bg);
+      border-bottom:1px solid var(--line);
+    }
+    header h1{ font-size:20px; font-weight:800; letter-spacing:-.2px; }
+    header .date{ font-size:13px; color:var(--dim); font-weight:600; margin-top:1px; }
+
+    main{ padding:18px 16px 8px; }
+    .view{ display:none; }
+    .view.active{ display:block; animation:fade .28s ease; }
+    @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+    /* ── Progress ── */
+    .progress{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .bar{ flex:1; height:8px; background:var(--panel); border-radius:4px; overflow:hidden; }
+    .bar span{ display:block; height:100%; width:0; background:var(--accent); transition:width .45s cubic-bezier(.2,.8,.3,1); }
+    .count{ font-size:13px; font-weight:700; color:var(--dim); white-space:nowrap; }
+
+    /* ── The sheet ── */
+    .sheet-card{
+      background:var(--sheet); border:1px solid var(--line);
+      border-radius:var(--radius-lg); padding:20px 14px 16px; margin-bottom:16px;
+    }
+    .sheet-head{ text-align:center; margin-bottom:16px; }
+    .sheet-head .k{ font-size:10.5px; letter-spacing:2.2px; text-transform:uppercase; color:var(--faint); font-weight:700; }
+    .sheet-head h2{ font-size:17px; font-weight:800; margin-top:3px; }
+
+    .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px 6px; justify-items:center; }
+
+    .slot{
+      width:100%; display:flex; flex-direction:column; align-items:center; gap:7px;
+      background:none; border:0; cursor:pointer; padding:4px 2px 8px; font:inherit; color:inherit;
+    }
+    .art{
+      width:78px; height:78px; position:relative;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .art svg{ width:100%; height:100%; display:block; overflow:visible; }
+
+    /* Painted stickers (the real art) — a transparent PNG. The un-earned
+       silhouette is the SAME file masked to a flat colour, so the shape you
+       see is exactly the shape of the sticker you get. */
+    .pic{ width:100%; height:100%; position:relative; }
+    .pic img{ width:100%; height:100%; object-fit:contain; display:block; }
+    [data-done="0"] .pic img{ visibility:hidden; }
+    [data-done="0"] .pic::after{
+      content:''; position:absolute; inset:0; background:var(--ghost);
+      -webkit-mask-image:var(--u); mask-image:var(--u);
+      -webkit-mask-size:contain; mask-size:contain;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+      -webkit-mask-position:center; mask-position:center;
+    }
+
+    /* Un-earned: the whole drawing collapses to one flat silhouette and the
+       detail lines vanish — you get the shape, not the sticker. */
+    .slot[data-done="0"] .art svg *{ fill:var(--ghost) !important; stroke:none !important; }
+    .slot[data-done="0"] .art svg .det{ display:none; }
+    .slot[data-done="0"] .art{ opacity:.9; }
+
+    /* Earned: the die-cut white edge + a soft lift, like a real sticker. */
+    .slot[data-done="1"] .art svg,
+    .slot[data-done="1"] .art .pic img{
+      filter:
+        drop-shadow(1.6px 0 0 #fff) drop-shadow(-1.6px 0 0 #fff)
+        drop-shadow(0 1.6px 0 #fff) drop-shadow(0 -1.6px 0 #fff)
+        drop-shadow(0 3px 3px rgba(44,51,46,.22));
+    }
+    .slot[data-done="1"] .label{ color:var(--ink); font-weight:800; }
+    .slot.pop .art{ animation:peel .5s cubic-bezier(.2,1.3,.4,1); }
+    @keyframes peel{
+      0%{ transform:scale(.55) rotate(-12deg); opacity:.4; }
+      55%{ transform:scale(1.14) rotate(4deg); opacity:1; }
+      100%{ transform:none; }
+    }
+    .slot:active .art{ transform:scale(.94); }
+    .art{ transition:transform .12s ease; }
+
+    .label{
+      font-size:11.5px; line-height:1.25; font-weight:600; color:var(--dim);
+      text-align:center; max-width:92px;
+    }
+
+    /* Sparkle burst on earning */
+    .spark{ position:absolute; inset:0; pointer-events:none; }
+    .spark i{
+      position:absolute; left:50%; top:50%; width:6px; height:6px; border-radius:50%;
+      background:var(--gold); opacity:0;
+    }
+    .slot.pop .spark i{ animation:burst .62s ease-out forwards; }
+    @keyframes burst{
+      0%{ opacity:1; transform:translate(-50%,-50%) scale(.4); }
+      100%{ opacity:0; transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.9); }
+    }
+
+    /* ── Sheet-complete stamp ── */
+    .stamp{
+      display:none; margin:18px auto 2px; width:fit-content; text-align:center;
+      border:2.5px solid var(--accent); color:var(--accent);
+      border-radius:var(--radius); padding:8px 18px; transform:rotate(-4deg);
+    }
+    .stamp.on{ display:block; animation:thud .45s cubic-bezier(.2,1.4,.4,1); }
+    .stamp .t{ font-size:14px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; }
+    .stamp .d{ font-size:10.5px; font-weight:700; opacity:.8; letter-spacing:.6px; }
+    @keyframes thud{ 0%{ transform:rotate(-4deg) scale(2.2); opacity:0; } 100%{ transform:rotate(-4deg) scale(1); opacity:1; } }
+
+    /* ── Book ── */
+    .book-head{ margin-bottom:16px; }
+    .book-head h2{ font-size:22px; font-weight:800; }
+    .book-head p{ font-size:13.5px; color:var(--dim); margin-top:3px; line-height:1.5; }
+    .day{
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg);
+      padding:14px 14px 12px; margin-bottom:10px;
+    }
+    .day-top{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+    .day-top .dd{ font-size:14px; font-weight:800; }
+    .day-top .dn{ font-size:11.5px; font-weight:700; color:var(--faint); }
+    .day-top .dn.full{ color:var(--accent); }
+    .day-row{ display:flex; flex-wrap:wrap; gap:6px; }
+    .mini{ width:38px; height:38px; }
+    .mini svg{ width:100%; height:100%; display:block; overflow:visible; }
+    .mini[data-done="0"] svg *{ fill:var(--ghost) !important; stroke:none !important; }
+    .mini[data-done="0"] svg .det{ display:none; }
+    .empty-note{ font-size:13.5px; color:var(--dim); line-height:1.6; text-align:center; padding:30px 20px; }
+
+    .collection{
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg);
+      padding:16px; margin-bottom:16px; text-align:center;
+    }
+    .collection .big{ font-size:30px; font-weight:800; color:var(--accent); line-height:1; }
+    .collection .cap{ font-size:12px; font-weight:700; color:var(--dim); margin-top:5px; letter-spacing:.3px; }
+
+    /* ── Reveal sheet ── */
+    .scrim{
+      position:fixed; inset:0; background:rgba(30,38,32,.45); z-index:80;
+      opacity:0; pointer-events:none; transition:opacity .25s ease;
+    }
+    .scrim.on{ opacity:1; pointer-events:auto; }
+    .reveal{
+      position:fixed; left:0; right:0; bottom:0; z-index:90;
+      max-width:640px; margin:0 auto;
+      background:var(--surface); border-radius:18px 18px 0 0;
+      padding:22px 22px calc(26px + env(safe-area-inset-bottom,0px));
+      transform:translateY(102%); transition:transform .3s cubic-bezier(.2,.8,.3,1);
+      max-height:88vh; overflow-y:auto;
+    }
+    .reveal.on{ transform:none; }
+    .reveal .close{
+      position:absolute; top:14px; right:14px; width:32px; height:32px;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--panel); border:0; border-radius:50%; color:var(--dim); cursor:pointer;
+    }
+    .reveal .close svg{ width:17px; height:17px; }
+    .r-art{ width:132px; height:132px; margin:6px auto 14px; }
+    .r-art svg, .r-art .pic img{ width:100%; height:100%; display:block; overflow:visible;
+      filter: drop-shadow(2.4px 0 0 #fff) drop-shadow(-2.4px 0 0 #fff)
+              drop-shadow(0 2.4px 0 #fff) drop-shadow(0 -2.4px 0 #fff)
+              drop-shadow(0 5px 6px rgba(44,51,46,.25)); }
+    .r-earned{ text-align:center; font-size:10.5px; font-weight:800; letter-spacing:2px;
+      text-transform:uppercase; color:var(--accent); margin-bottom:5px; }
+    .r-name{ text-align:center; font-size:22px; font-weight:800; margin-bottom:14px; }
+    .r-why{ font-size:10.5px; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+      color:var(--faint); margin-bottom:7px; }
+    .r-lesson{ font-size:15px; line-height:1.62; color:var(--ink); }
+    .r-actions{ display:flex; gap:10px; margin-top:20px; }
+    .btn{
+      flex:1; padding:13px 16px; border:0; border-radius:var(--radius);
+      font:inherit; font-size:15px; font-weight:800; cursor:pointer;
+      background:var(--accent); color:#fff;
+    }
+    .btn.ghost{ background:var(--panel); color:var(--dim); flex:0 0 auto; padding:13px 18px; font-weight:700; }
+
+    /* ── Bottom nav ── */
+    nav{
+      position:fixed; left:0; right:0; bottom:0; z-index:60;
+      max-width:640px; margin:0 auto;
+      display:grid; grid-template-columns:1fr 1fr;
+      background:var(--surface); border-top:1px solid var(--line);
+      padding-bottom:env(safe-area-inset-bottom,0px);
+    }
+    nav button{
+      background:none; border:0; cursor:pointer; font:inherit;
+      height:var(--nav-h); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      color:var(--faint);
+    }
+    nav button.on{ color:var(--accent); }
+    nav svg{ width:21px; height:21px; }
+    nav span{ font-size:10.5px; font-weight:700; letter-spacing:.2px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Sticker Day</h1>
+    <div class="date" id="today-date"></div>
+  </header>
+
+  <main>
+    <!-- ── TODAY ── -->
+    <section class="view active" id="v-today">
+      <div class="progress">
+        <div class="bar"><span id="bar"></span></div>
+        <div class="count" id="count">0 of 7</div>
+      </div>
+
+      <div class="sheet-card">
+        <div class="sheet-head">
+          <div class="k">Today's sheet</div>
+          <h2>Tap a shape when you've done it</h2>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div class="stamp" id="stamp">
+          <div class="t">Sheet complete</div>
+          <div class="d" id="stamp-date"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BOOK ── -->
+    <section class="view" id="v-book">
+      <div class="book-head">
+        <h2>Your book</h2>
+        <p>Every sheet you've filled in, and the stickers you've collected.</p>
+      </div>
+      <div class="collection">
+        <div class="big" id="col-big">0 / 17</div>
+        <div class="cap" id="col-cap">stickers discovered</div>
+      </div>
+      <div id="days"></div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="on" data-tab="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      <span>Today</span>
+    </button>
+    <button data-tab="book">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></svg>
+      <span>Book</span>
+    </button>
+  </nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="reveal" id="reveal">
+  <button class="close" id="reveal-close" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+  </button>
+  <div class="r-earned" id="r-earned">Sticker earned</div>
+  <div class="r-art" id="r-art"></div>
+  <div class="r-name" id="r-name"></div>
+  <div class="r-why">Why it matters</div>
+  <div class="r-lesson" id="r-lesson"></div>
+  <div class="r-actions">
+    <button class="btn" id="r-ok">Nice</button>
+    <button class="btn ghost" id="r-undo">Undo</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // Heart reused at three sizes on the appreciation sticker.
+  var HEART = 'M50 84 C50 84 18 63 18 42 C18 29 29 22 38 25 C43 26.5 47 30 50 35 C53 30 57 26.5 62 25 C71 22 82 29 82 42 C82 63 50 84 50 84 Z';
+
+  // Every sticker: the art (flat colour, no gradients), the label you see on
+  // the empty shape, and the mini lesson revealed when you earn it.
+  // Paths with class="det" are the fine detail lines — hidden in silhouette,
+  // so the un-earned shape gives you the outline and nothing more.
+  // Placeholder shapes, used for any task the active pack has no art for.
+  var ART = {
+    /* ── The five that come round every day ── */
+    water: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path d="M30 20 H70 L64 84 Q63 88 59 88 H41 Q37 88 36 84 Z" fill="#dcedf7"/>'
+        + '<path d="M33.2 42 H66.8 L64 84 Q63 88 59 88 H41 Q37 88 36 84 Z" fill="#57aede"/>'
+        + '<path class="det" d="M40 50 H56" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".55"/>'
+        + '<path class="det" d="M30 20 H70" stroke="#b9d9ea" stroke-width="3" stroke-linecap="round" fill="none"/>'
+        + '</svg>',
+    },
+    food: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<circle cx="40" cy="45" r="11" fill="#6aa84f"/>'
+        + '<circle cx="57" cy="42" r="13" fill="#8bc36a"/>'
+        + '<circle cx="69" cy="49" r="8" fill="#e0574f"/>'
+        + '<path d="M16 54 H84 A34 34 0 0 1 16 54 Z" fill="#e8a13f"/>'
+        + '<path class="det" d="M24 62 A26 26 0 0 0 34 76" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".5"/>'
+        + '</svg>',
+    },
+    move: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path d="M14 62 C14 55 24 51 34 47 L46 38 C50 35 55 37 56 42 L59 52 C64 57 74 59 82 62 C86 63.5 88 66 88 69 L88 73 H14 Z" fill="#ef7d6a"/>'
+        + '<rect x="11" y="71" width="78" height="10" rx="5" fill="#f7f2e8"/>'
+        + '<path class="det" d="M40 51 L52 57 M36 58 L48 64" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" fill="none"/>'
+        + '</svg>',
+    },
+    outside: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g fill="#f6c344">'
+        + '<rect x="46.5" y="12" width="7" height="13" rx="3.5"/><rect x="46.5" y="75" width="7" height="13" rx="3.5"/>'
+        + '<rect x="12" y="46.5" width="13" height="7" rx="3.5"/><rect x="75" y="46.5" width="13" height="7" rx="3.5"/>'
+        + '<rect x="46.5" y="12" width="7" height="13" rx="3.5" transform="rotate(45 50 50)"/>'
+        + '<rect x="46.5" y="75" width="7" height="13" rx="3.5" transform="rotate(45 50 50)"/>'
+        + '<rect x="12" y="46.5" width="13" height="7" rx="3.5" transform="rotate(45 50 50)"/>'
+        + '<rect x="75" y="46.5" width="13" height="7" rx="3.5" transform="rotate(45 50 50)"/>'
+        + '</g>'
+        + '<circle cx="50" cy="50" r="21" fill="#f0ad2e"/>'
+        + '<circle class="det" cx="50" cy="50" r="14" fill="#f6c344"/>'
+        + '</svg>',
+    },
+    sleep: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path fill-rule="evenodd" fill="#a99adb" d="M16 52 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M38 44 a30 30 0 1 0 60 0 a30 30 0 1 0 -60 0 Z"/>'
+        + '<path d="M74 14 l3.4 7.4 8.1 1 -6 5.6 1.6 8 -7.1 -3.9 -7.1 3.9 1.6 -8 -6 -5.6 8.1 -1 Z" fill="#f4d97b"/>'
+        + '<circle class="det" cx="34" cy="44" r="4" fill="#8d7cc7"/>'
+        + '<circle class="det" cx="44" cy="66" r="2.8" fill="#8d7cc7"/>'
+        + '</svg>',
+    },
+
+    /* ── The rotating extras ── */
+    thanks: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="translate(24 36) scale(.3) translate(-50 -52)"><path d="'+HEART+'" fill="#f2a0b2"/></g>'
+        + '<g transform="translate(77 32) scale(.34) translate(-50 -52)"><path d="'+HEART+'" fill="#f2a0b2"/></g>'
+        + '<g transform="translate(50 58) scale(.62) translate(-50 -52)"><path d="'+HEART+'" fill="#e8748e"/></g>'
+        + '<path class="det" d="M38 48 C42 44 46 45 48 49" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".6"/>'
+        + '</svg>',
+    },
+    call: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(-35 50 50)">'
+        + '<rect x="43" y="20" width="14" height="60" rx="7" fill="#5f9e94"/>'
+        + '<rect x="29" y="12" width="42" height="20" rx="10" fill="#5f9e94"/>'
+        + '<rect x="29" y="68" width="42" height="20" rx="10" fill="#5f9e94"/>'
+        + '<ellipse class="det" cx="50" cy="22" rx="10" ry="5" fill="#3f7d74"/>'
+        + '<ellipse class="det" cx="50" cy="78" rx="10" ry="5" fill="#3f7d74"/>'
+        + '</g>'
+        + '</svg>',
+    },
+    journal: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(18 70 50)"><rect x="66" y="10" width="10" height="72" rx="5" fill="#e0574f"/>'
+        + '<path d="M66 82 H76 L71 92 Z" fill="#3c3a44"/></g>'
+        + '<rect x="20" y="18" width="52" height="64" rx="5" fill="#6f83c9"/>'
+        + '<rect class="det" x="28" y="24" width="38" height="52" rx="2" fill="#fdfbf5"/>'
+        + '<g class="det" stroke="#c9cfe6" stroke-width="2.6" stroke-linecap="round">'
+        + '<path d="M34 36 H60"/><path d="M34 46 H60"/><path d="M34 56 H60"/><path d="M34 66 H50"/></g>'
+        + '</svg>',
+    },
+    make: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(35 50 50)">'
+        + '<rect x="43" y="8" width="14" height="48" rx="4" fill="#c98a5a"/>'
+        + '<rect x="41" y="53" width="18" height="13" rx="2" fill="#c8ccd0"/>'
+        + '<path d="M42 66 H58 L55 88 Q50 95 45 88 Z" fill="#d8607c"/>'
+        + '<path class="det" d="M47 70 V84 M53 70 V84" stroke="#b34a63" stroke-width="2" stroke-linecap="round" fill="none"/>'
+        + '</g>'
+        + '</svg>',
+    },
+    read: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path d="M8 28 C24 21 40 21 50 30 C60 21 76 21 92 28 L92 76 C76 69 60 69 50 78 C40 69 24 69 8 76 Z" fill="#fdfbf5"/>'
+        + '<path d="M8 28 C24 21 40 21 50 30 L50 78 C40 69 24 69 8 76 Z" fill="#f0e9dc"/>'
+        + '<path class="det" d="M50 30 V78" stroke="#bfb3a0" stroke-width="2.6" fill="none"/>'
+        + '<g class="det" stroke="#cfc5b4" stroke-width="2.2" stroke-linecap="round">'
+        + '<path d="M18 40 H40"/><path d="M18 50 H40"/><path d="M18 60 H36"/>'
+        + '<path d="M60 40 H82"/><path d="M60 50 H82"/><path d="M60 60 H78"/></g>'
+        + '</svg>',
+    },
+    music: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<rect x="10" y="26" width="80" height="50" rx="6" fill="#6f6ab5"/>'
+        + '<rect class="det" x="19" y="34" width="62" height="25" rx="3" fill="#fdfbf5"/>'
+        + '<circle class="det" cx="38" cy="46" r="7" fill="#3c3a44"/>'
+        + '<circle class="det" cx="62" cy="46" r="7" fill="#3c3a44"/>'
+        + '<rect class="det" x="30" y="64" width="40" height="7" rx="2" fill="#4a4680"/>'
+        + '</svg>',
+    },
+    wash: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<circle cx="70" cy="28" r="13" fill="#cfe6f2"/>'
+        + '<circle cx="86" cy="46" r="7" fill="#cfe6f2"/>'
+        + '<circle cx="52" cy="22" r="8" fill="#cfe6f2"/>'
+        + '<rect x="18" y="46" width="54" height="36" rx="11" fill="#f2a9c0"/>'
+        + '<path class="det" d="M26 58 C30 54 36 53 42 55" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".7"/>'
+        + '<circle class="det" cx="70" cy="24" r="4" fill="#ffffff" opacity=".7"/>'
+        + '</svg>',
+    },
+    tidy: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(16 50 50)">'
+        + '<rect x="45" y="8" width="10" height="48" rx="5" fill="#c98a5a"/>'
+        + '<rect x="34" y="50" width="32" height="10" rx="3" fill="#a9702f"/>'
+        + '<path d="M36 58 H64 L72 90 H28 Z" fill="#e8b04b"/>'
+        + '<g class="det" stroke="#c1892c" stroke-width="2.2" stroke-linecap="round">'
+        + '<path d="M44 62 L40 88"/><path d="M50 62 L50 88"/><path d="M56 62 L60 88"/></g>'
+        + '</g>'
+        + '</svg>',
+    },
+    quiet: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path d="M68 46 H78 A11 11 0 0 1 78 68 H68 Z" fill="#efe9dc"/>'
+        + '<path d="M24 40 H70 L66 72 Q64 80 56 80 H38 Q30 80 28 72 Z" fill="#fdfbf5"/>'
+        + '<path d="M28 45 H66 L63 70 Q61.5 75 56 75 H38 Q32.5 75 31 70 Z" fill="#b5722f"/>'
+        + '<rect x="14" y="82" width="66" height="8" rx="4" fill="#e2dccf"/>'
+        + '<g class="det" stroke="#c4b9a6" stroke-width="3.2" stroke-linecap="round" fill="none">'
+        + '<path d="M40 32 C36 26 44 24 40 17"/><path d="M55 32 C51 26 59 24 55 17"/></g>'
+        + '</svg>',
+    },
+    meds: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(-25 46 44)">'
+        + '<path d="M16 44 A15 15 0 0 1 31 29 H46 V59 H31 A15 15 0 0 1 16 44 Z" fill="#e0625c"/>'
+        + '<path d="M46 29 H61 A15 15 0 0 1 61 59 H46 Z" fill="#f4f1ea"/>'
+        + '</g>'
+        + '<circle cx="70" cy="72" r="15" fill="#8bc36a"/>'
+        + '<path class="det" d="M60 72 H80" stroke="#5f9e63" stroke-width="2.8" stroke-linecap="round" fill="none"/>'
+        + '</svg>',
+    },
+    plant: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<path d="M50 60 C50 40 40 30 26 25 C26 43 34 55 50 60 Z" fill="#5f9e63"/>'
+        + '<path d="M50 60 C50 36 61 25 76 20 C76 40 67 54 50 60 Z" fill="#7ab375"/>'
+        + '<rect x="47" y="34" width="6" height="30" rx="3" fill="#4d8452"/>'
+        + '<path d="M30 64 H70 L66 88 Q65 92 61 92 H39 Q35 92 34 88 Z" fill="#d98555"/>'
+        + '<rect x="26" y="57" width="48" height="11" rx="3" fill="#c4703f"/>'
+        + '<path class="det" d="M36 30 C40 38 44 46 48 54" stroke="#4d8452" stroke-width="2" stroke-linecap="round" fill="none"/>'
+        + '</svg>',
+    },
+    write: {
+      art:'<svg viewBox="0 0 100 100">'
+        + '<g transform="rotate(-6 50 52)">'
+        + '<rect x="12" y="30" width="76" height="48" rx="5" fill="#f0e2c0"/>'
+        + '<path d="M12 34 L50 60 L88 34 L88 31 A1 1 0 0 0 87 30 H13 A1 1 0 0 0 12 31 Z" fill="#e2cf9f"/>'
+        + '<path class="det" d="M12 76 L40 56 M88 76 L60 56" stroke="#d6c294" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
+        + '<rect class="det" x="68" y="36" width="14" height="10" rx="1.5" fill="#e8748e"/>'
+        + '</g>'
+        + '</svg>',
+    }
+  };
+
+  // Tasks (name + mini lesson) and packs (the art) come from the manifest, so
+  // a new sticker pack ships as data — no change in here.
+  var TASKS = {}, PACKS = {}, PACK = 'ink';
+  var CORE = [], EXTRA = [], PER_DAY = 7, TOTAL = 0;
+
+  function applyManifest(m){
+    TASKS = m.tasks || {};
+    PACKS = m.packs || {};
+    PACK = state.pack && PACKS[state.pack] ? state.pack : (m.defaultPack || Object.keys(PACKS)[0] || 'ink');
+    CORE = m.core || [];
+    EXTRA = m.extra || [];
+    PER_DAY = m.perDay || 7;
+    TOTAL = CORE.length + EXTRA.length;
+  }
+
+  // The art for a task in the active pack, falling back to the placeholder
+  // shape when that pack hasn't been drawn yet.
+  function artFor(id){
+    var pack = PACKS[PACK], entry = pack && pack.art ? pack.art[id] : null;
+    if (entry && entry.img){
+      return '<div class="pic" style="--u:url(\'' + entry.img + '\')">'
+           + '<img src="' + entry.img + '" alt="" loading="lazy">'
+           + '</div>';
+    }
+    return ART[id] ? ART[id].art : '';
+  }
+  function nameFor(id){ return (TASKS[id] && TASKS[id].name) || id; }
+  function lessonFor(id){ return (TASKS[id] && TASKS[id].lesson) || ''; }
+
+  var KEY = 'selfcare_sticker_book';
+
+  /* ── Storage ── */
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY)) || { days:{} }; }
+    catch(e){ return { days:{} }; }
+  }
+  function save(s){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
+  var state = load();
+
+  /* ── Dates ── */
+  function isoOf(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function dayIndex(iso){
+    // Whole days since epoch, from the local date parts — no timezone drift.
+    var p = iso.split('-');
+    return Math.floor(Date.UTC(+p[0], +p[1]-1, +p[2]) / 86400000);
+  }
+  function prettyDate(iso){
+    var p = iso.split('-');
+    var d = new Date(+p[0], +p[1]-1, +p[2]);
+    return d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  }
+  function shortDate(iso){
+    var p = iso.split('-');
+    var d = new Date(+p[0], +p[1]-1, +p[2]);
+    return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+  }
+
+  // The two extras step through the pool a pair at a time, so the sheet is
+  // different every day and works through all twelve before repeating.
+  function setFor(iso){
+    var n = dayIndex(iso), out = CORE.slice(), take = PER_DAY - CORE.length;
+    for (var i = 0; i < take; i++) out.push(EXTRA[((n * take) + i) % EXTRA.length]);
+    return out;
+  }
+
+  var todayISO = isoOf(new Date());
+
+  function dayRecord(iso){
+    var rec = state.days[iso];
+    if (!rec) { rec = { set:setFor(iso), done:[] }; state.days[iso] = rec; }
+    if (!rec.set || !rec.set.length) rec.set = setFor(iso);
+    if (!rec.done) rec.done = [];
+    return rec;
+  }
+
+  /* ── Today ── */
+  var gridEl = document.getElementById('grid');
+  var barEl = document.getElementById('bar');
+  var countEl = document.getElementById('count');
+  var stampEl = document.getElementById('stamp');
+
+  function renderToday(){
+    var rec = dayRecord(todayISO);
+    document.getElementById('today-date').textContent = prettyDate(todayISO);
+    document.getElementById('stamp-date').textContent = shortDate(todayISO);
+    gridEl.innerHTML = '';
+
+    rec.set.forEach(function(id, i){
+      if (!TASKS[id]) return;
+      var done = rec.done.indexOf(id) !== -1;
+      var b = document.createElement('button');
+      b.className = 'slot';
+      b.setAttribute('data-done', done ? '1' : '0');
+      b.setAttribute('data-id', id);
+      b.setAttribute('aria-label', nameFor(id) + (done ? ' — earned' : ' — not yet'));
+      b.innerHTML = '<div class="art">' + artFor(id) + '<div class="spark">' + sparks() + '</div></div>'
+                  + '<div class="label">' + nameFor(id) + '</div>';
+      // A lone sticker on the last row sits in the middle rather than adrift
+      // on the left.
+      if (i === rec.set.length - 1 && rec.set.length % 3 === 1) b.style.gridColumn = '2';
+      b.addEventListener('click', function(){ tap(id, b); });
+      gridEl.appendChild(b);
+    });
+
+    updateProgress();
+  }
+
+  function sparks(){
+    var out = '', n = 7;
+    for (var i = 0; i < n; i++){
+      var a = (Math.PI * 2 / n) * i - Math.PI / 2;
+      out += '<i style="--dx:' + Math.round(Math.cos(a) * 46) + 'px;--dy:' + Math.round(Math.sin(a) * 46) + 'px"></i>';
+    }
+    return out;
+  }
+
+  function updateProgress(){
+    var rec = dayRecord(todayISO);
+    var n = rec.done.length, t = rec.set.length;
+    barEl.style.width = (t ? (n / t) * 100 : 0) + '%';
+    countEl.textContent = n + ' of ' + t;
+    stampEl.classList.toggle('on', n === t && t > 0);
+  }
+
+  function tap(id, btn){
+    var rec = dayRecord(todayISO);
+    var at = rec.done.indexOf(id);
+    if (at === -1){
+      rec.done.push(id);
+      save(state);
+      btn.setAttribute('data-done','1');
+      btn.classList.remove('pop');
+      void btn.offsetWidth;           // restart the animation
+      btn.classList.add('pop');
+      updateProgress();
+      openReveal(id, true);
+    } else {
+      // Already earned — tapping opens the lesson again, undo lives in there.
+      openReveal(id, false);
+    }
+  }
+
+  /* ── Reveal sheet ── */
+  var scrim = document.getElementById('scrim');
+  var reveal = document.getElementById('reveal');
+  var revealId = null;
+  var scrollLock = 0;
+
+  function openReveal(id, justEarned){
+    if (!TASKS[id]) return;
+    revealId = id;
+    document.getElementById('r-earned').style.display = justEarned ? '' : 'none';
+    document.getElementById('r-art').innerHTML = artFor(id);
+    document.getElementById('r-name').textContent = nameFor(id);
+    document.getElementById('r-lesson').textContent = lessonFor(id);
+    document.getElementById('r-ok').textContent = justEarned ? 'Nice' : 'Close';
+    // Undo only makes sense on a sticker earned today.
+    var rec = dayRecord(todayISO);
+    document.getElementById('r-undo').style.display = rec.done.indexOf(id) !== -1 ? '' : 'none';
+    // Looking at a sticker freezes the page behind it.
+    scrollLock = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    scrim.classList.add('on');
+    reveal.classList.add('on');
+    reveal.scrollTop = 0;
+  }
+  function closeReveal(){
+    revealId = null;
+    scrim.classList.remove('on');
+    reveal.classList.remove('on');
+    document.body.style.overflow = '';
+    window.scrollTo(0, scrollLock);
+  }
+  scrim.addEventListener('click', closeReveal);
+  document.getElementById('reveal-close').addEventListener('click', closeReveal);
+  document.getElementById('r-ok').addEventListener('click', closeReveal);
+  document.getElementById('r-undo').addEventListener('click', function(){
+    if (!revealId) return;
+    var rec = dayRecord(todayISO);
+    var at = rec.done.indexOf(revealId);
+    if (at !== -1){ rec.done.splice(at, 1); save(state); }
+    closeReveal();
+    renderToday();
+  });
+
+  /* ── Book ── */
+  function renderBook(){
+    var isos = Object.keys(state.days).filter(function(iso){
+      return (state.days[iso].done || []).length > 0;
+    }).sort().reverse();
+
+    var found = {};
+    isos.forEach(function(iso){ (state.days[iso].done || []).forEach(function(id){ found[id] = 1; }); });
+    document.getElementById('col-big').textContent = Object.keys(found).length + ' / ' + TOTAL;
+
+    var wrap = document.getElementById('days');
+    if (!isos.length){
+      wrap.innerHTML = '<div class="empty-note">Nothing in the book yet. Fill in a sticker on today’s sheet and it starts here.</div>';
+      return;
+    }
+    wrap.innerHTML = isos.map(function(iso){
+      var rec = state.days[iso];
+      var full = rec.done.length === rec.set.length;
+      var minis = rec.set.map(function(id){
+        if (!TASKS[id]) return '';
+        var done = rec.done.indexOf(id) !== -1;
+        return '<div class="mini" data-done="' + (done ? 1 : 0) + '" title="' + nameFor(id) + '">' + artFor(id) + '</div>';
+      }).join('');
+      return '<div class="day">'
+        + '<div class="day-top"><div class="dd">' + shortDate(iso) + (iso === todayISO ? ' · today' : '') + '</div>'
+        + '<div class="dn' + (full ? ' full' : '') + '">' + rec.done.length + ' of ' + rec.set.length + '</div></div>'
+        + '<div class="day-row">' + minis + '</div></div>';
+    }).join('');
+  }
+
+  /* ── Tabs ── */
+  document.querySelectorAll('nav button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var tab = b.getAttribute('data-tab');
+      document.querySelectorAll('nav button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      document.getElementById('v-today').classList.toggle('active', tab === 'today');
+      document.getElementById('v-book').classList.toggle('active', tab === 'book');
+      if (tab === 'book') renderBook();
+      window.scrollTo(0, 0);
+    });
+  });
+
+  // Left open past midnight, the sheet should roll over to the new day.
+  setInterval(function(){
+    var now = isoOf(new Date());
+    if (now !== todayISO){ todayISO = now; renderToday(); }
+  }, 60000);
+
+  // Boot: the manifest carries the tasks, the lessons and the pack art.
+  fetch('/selfcare-stickers.json', { cache:'no-cache' })
+    .then(function(r){ return r.json(); })
+    .then(function(m){
+      applyManifest(m);
+      renderToday();
+      save(state);
+    })
+    .catch(function(){
+      document.getElementById('grid').innerHTML =
+        '<div class="empty-note" style="grid-column:1/-1">Couldn’t load today’s sheet. Pull down to refresh.</div>';
+    });
+})();
+</script>
+</body>
+</html>

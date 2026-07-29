@@ -1,0 +1,155 @@
+{
+  "_note": "Tasks are the self-care acts (name + mini lesson). Packs supply the ART for them, so a new sticker pack is a new art set over the same tasks — no app change. scripts/selfcare-stickers.js writes pack art entries; the mini lessons are hand-written. Any task a pack has no art for falls back to the placeholder shape drawn in selfcare.html.",
+  "defaultPack": "ink",
+  "perDay": 7,
+  "packs": {
+    "ink": {
+      "name": "Ink",
+      "note": "The house line-art look — the same style as the Witch School lesson cards (storage:witch-school/refs/style-*.png).",
+      "art": {
+        "water": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/water.png"
+        },
+        "food": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food.png"
+        },
+        "outside": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/outside.png"
+        },
+        "sleep": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/sleep.png"
+        },
+        "thanks": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/thanks.png"
+        },
+        "call": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/call.png"
+        },
+        "journal": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/journal.png"
+        },
+        "make": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/make.png"
+        },
+        "read": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/read.png"
+        },
+        "music": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/music.png"
+        },
+        "wash": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/wash.png"
+        },
+        "tidy": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/tidy.png"
+        },
+        "quiet": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/quiet.png"
+        },
+        "meds": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/meds.png"
+        },
+        "plant": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/plant.png"
+        },
+        "write": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/write.png"
+        },
+        "move": {
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/move.png"
+        }
+      }
+    }
+  },
+  "core": [
+    "water",
+    "food",
+    "move",
+    "outside",
+    "sleep"
+  ],
+  "extra": [
+    "thanks",
+    "call",
+    "journal",
+    "make",
+    "read",
+    "music",
+    "wash",
+    "tidy",
+    "quiet",
+    "meds",
+    "plant",
+    "write"
+  ],
+  "tasks": {
+    "water": {
+      "name": "Drink water",
+      "lesson": "The eight-glasses rule was never based on research — somebody misread a 1945 report that also said most of your water arrives in food. Thirst is a reasonable guide, and soup, fruit and yoghurt count, as do tea and coffee. The honest check is colour: pale straw is fine, dark amber means you are behind."
+    },
+    "food": {
+      "name": "Eat a real meal",
+      "lesson": "Pasta, rice and bread are almost entirely carbohydrate. They refuel you, but they do not rebuild you — protein does that, and the body cannot stockpile it the way it stores fat, so it has to arrive through the day. A palm-sized portion at each meal covers it: eggs, beans, yoghurt, fish, chicken, tofu, lentils. Then something green for the fibre."
+    },
+    "move": {
+      "name": "Move your body",
+      "lesson": "The figure most health bodies agree on is 150 minutes a week of anything that lifts your heart rate — around twenty minutes a day, and it counts in chunks of five. The part people skip is strength: two sessions a week that actually load the muscles, whether that is hills, stairs, weights or push-ups against a kitchen counter. Muscle is what keeps you steady decades from now."
+    },
+    "outside": {
+      "name": "Get outside",
+      "lesson": "Morning light is the strongest signal your body clock gets, and it sets the timer that decides when you will feel sleepy tonight. Ten to twenty minutes outdoors within an hour of waking is enough. An overcast day outside is still many times brighter than a well-lit room, and glass filters out most of what makes it work — so it has to be outside, not by a window."
+    },
+    "sleep": {
+      "name": "A real night's sleep",
+      "lesson": "Most adults need seven to nine hours, and a long Saturday does not repay a whole week — the debt only partly clears. Sleep is when the brain flushes metabolic waste and files what you learned that day. The two things that damage it most are a wake-up time that moves around, and alcohol: it drops you off quickly, then fragments the second half of the night."
+    },
+    "thanks": {
+      "name": "Three things you appreciate",
+      "lesson": "Written down beats counted in your head, and specific beats general — \"the light on the kitchen wall at four\" does work that \"my apartment\" does not, because the detail is what makes you actually picture it. The research on this is modest but consistent, and oddly it holds up better a few times a week than every single day."
+    },
+    "call": {
+      "name": "Call someone",
+      "lesson": "Texting is not the same input. A voice carries timing, tone and interruption, and that is what the social wiring is listening for — which is why ten minutes on the phone with one person you already like lands differently than an hour of reading everyone at once. Weak ties count too: the neighbour, the person at the counter. Those matter more than their size suggests."
+    },
+    "journal": {
+      "name": "Write it down",
+      "lesson": "Expressive writing — fifteen minutes on the thing that is actually bothering you, not a log of what you did — is one of the better-studied small interventions there is. The mechanism seems to be that a loop has to become a sentence, and a sentence has an end. Nobody else reads it. You can throw the page out afterwards and keep the effect."
+    },
+    "make": {
+      "name": "Make something",
+      "lesson": "Making something absorbing does more for a bad mood than resting does, because it takes just enough attention to crowd out the rumination — the same reason a hard puzzle works and scrolling does not. It does not have to be good and it does not have to be finished. Half an hour of doing it badly still counts."
+    },
+    "read": {
+      "name": "Read a few pages",
+      "lesson": "A book asks for a kind of attention a feed never does — one long thread instead of a hundred short ones — and holding that thread is trainable in both directions. A few pages before bed also beats a screen for a plain physical reason: no bright light held close to your face at the hour your body is trying to wind down."
+    },
+    "music": {
+      "name": "Put music on",
+      "lesson": "Music you already know shifts mood within a couple of minutes, and the effect is strongest with familiar tracks — the brain runs ahead predicting the next bar, and getting it right feels good. Sad songs work with a sad mood rather than against it. Playing an instrument badly does more than listening, if that is on the table."
+    },
+    "wash": {
+      "name": "Wash properly",
+      "lesson": "A shower is the cheapest state-change there is: warm water plus a task with a clear end, at a point in the day when nothing else has one. There is a sleep angle too — a warm shower an hour or two before bed helps because of what happens afterwards, when your core temperature drops back down, and that drop is one of the cues for sleep."
+    },
+    "tidy": {
+      "name": "Tidy one thing",
+      "lesson": "One surface, not the whole flat. Clutter genuinely taxes attention — the visual system keeps re-registering the objects whether or not you look at them — so a single cleared table is a real reduction rather than a symbolic one. The bar sits at one thing precisely so that starting never requires a decision about scope."
+    },
+    "quiet": {
+      "name": "Five quiet minutes",
+      "lesson": "Five minutes of doing nothing on purpose is not the same as five minutes on your phone, and the difference shows up in how the next hour goes. Attention behaves like something that refills, and it refills faster on a blank interval than on a different kind of input. Set a timer so you are not also watching the clock."
+    },
+    "meds": {
+      "name": "Meds and vitamins",
+      "lesson": "Most people do not need a multivitamin — on a reasonably varied diet it mostly makes expensive urine. The ones worth an actual conversation are vitamin D if your winters are dark, B12 if you eat no animal products, and iron only if a blood test says so, because too much is its own problem. Prescriptions are the different case: those work by being boring and daily."
+    },
+    "plant": {
+      "name": "Tend a plant",
+      "lesson": "Looking after something else is a different lever from looking after yourself, and it works on days when the direct version will not — watering a plant is easier than making yourself lunch. Most houseplants die of kindness rather than neglect: put a finger in the soil, and only water when the top inch is dry."
+    },
+    "write": {
+      "name": "Write to someone",
+      "lesson": "People consistently underestimate how much a note out of nowhere means to whoever gets it — the sender worries about being awkward, the receiver is simply pleased, and the gap between those two is large and well documented. It needs no occasion and no length. Two sentences saying you thought of them is the whole thing."
+    }
+  }
+}
