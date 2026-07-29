@@ -1420,10 +1420,16 @@ app.get('/api/gallery/assets', async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
     await storyDb();
     const seen = new Map();
-    const add = (url, ms, prompt, description) => {
+    const add = (url, ms, prompt, description, style, content) => {
       if (!url) return;
       const existing = seen.get(url);
-      if (!existing) { seen.set(url, { url, ms: ms || 0, prompt: prompt || '', description: description || '' }); return; }
+      if (!existing) {
+        seen.set(url, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
+          promptStyle: style || '', promptContent: content || '' });
+        return;
+      }
+      if (style && !existing.promptStyle) existing.promptStyle = style;
+      if (content && !existing.promptContent) existing.promptContent = content;
       // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
       // label for the same image, so the model/quality caption wins.
       if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
@@ -1449,13 +1455,19 @@ app.get('/api/gallery/assets', async (req, res) => {
       try {
         const asnap = await admin.firestore().collection('forge-chat-assets')
           .where('chat', '==', chat).get();
-        asnap.docs.forEach((d) => { const a = d.data(); add(a.url, Date.parse(a.created) || 0, a.prompt, a.description); });
+        asnap.docs.forEach((d) => {
+          const a = d.data();
+          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent);
+        });
       } catch (e) { /* best effort */ }
     }
     const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
       .map((a) => {
         const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
         if (a.description) o.description = a.description;   // what this image IS, when a chat said so
+        // The generating prompt, split (see POST /api/gallery/assets/prompt).
+        if (a.promptStyle) o.promptStyle = a.promptStyle;
+        if (a.promptContent) o.promptContent = a.promptContent;
         return o;
       });
     // Direct thumbnail URLs: the thumb path is content-addressed, so we can
@@ -1573,6 +1585,66 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     }
     await ref.set(patch, { merge: true });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// The prompt behind an Assets-tab image, split in two: promptStyle (the house
+// style / LoRA trigger / look) and promptContent (what is actually depicted).
+// Only the chat that generated the image knows where that seam is, so the
+// split is posted, never parsed back out of a joined string. Shown in the
+// lightbox as an overlay ON the image (Style | Content toggle).
+// One image: { chat, url, style, content }. A whole backfill in one call:
+// { chat, items:[{url, style, content}, …] }. Idempotent — re-posting the same
+// url overwrites that image's split, and an empty string clears a side.
+const ASSET_PROMPT_MAX = 1500;
+app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, items } = req.body || {};
+    const chatName = String(chat || '').slice(0, 60);
+    if (!chatName) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const list = Array.isArray(items) && items.length ? items : [req.body || {}];
+    const clean = (v) => String(v == null ? '' : v).trim().slice(0, ASSET_PROMPT_MAX);
+    const acol = admin.firestore().collection('forge-chat-assets');
+    const del = admin.firestore.FieldValue.delete();
+    const results = [];
+    for (const raw of list) {
+      const url = String((raw && raw.url) || '');
+      if (!/^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(url)) {
+        results.push({ url, ok: false, error: 'hosted Firebase url required' });
+        continue;
+      }
+      // A side is only touched when it was sent, so posting just the content
+      // later never wipes a style filed earlier.
+      const patch = {};
+      if (raw.style !== undefined) patch.promptStyle = clean(raw.style) || del;
+      if (raw.content !== undefined) patch.promptContent = clean(raw.content) || del;
+      if (!Object.keys(patch).length) {
+        results.push({ url, ok: false, error: 'style or content required' });
+        continue;
+      }
+      const existing = await findChatAsset(chatName, { url });
+      if (existing) {
+        await existing.ref.update(patch);
+        results.push({ url, ok: true, updated: true });
+      } else {
+        // The prompt can land before the Stop hook files the image (same
+        // session, image already uploaded). Create the record now; the hook's
+        // later post converges onto it by url instead of adding a second tile.
+        const doc = { chat: chatName, url, urlKey: canonicalAssetUrl(url),
+          prompt: '', created: new Date().toISOString(), wip: true };
+        Object.keys(patch).forEach((k) => { if (patch[k] !== del) doc[k] = patch[k]; });
+        await acol.add(doc);
+        results.push({ url, ok: true, created: true });
+      }
+    }
+    const failed = results.filter((r) => !r.ok);
+    res.json({ ok: !failed.length, saved: results.length - failed.length, results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
