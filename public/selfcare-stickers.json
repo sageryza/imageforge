@@ -8,55 +8,72 @@
       "note": "The house line-art look — the same style as the Witch School lesson cards (storage:witch-school/refs/style-*.png).",
       "art": {
         "water": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/water.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/water.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/water-512.webp"
         },
         "food": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/food-512.webp"
         },
         "outside": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/outside.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/outside.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/outside-512.webp"
         },
         "sleep": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/sleep.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/sleep.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/sleep-512.webp"
         },
         "thanks": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/thanks.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/thanks.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/thanks-512.webp"
         },
         "call": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/call.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/call.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/call-512.webp"
         },
         "journal": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/journal.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/journal.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/journal-512.webp"
         },
         "make": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/make.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/make.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/make-512.webp"
         },
         "read": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/read.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/read.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/read-512.webp"
         },
         "music": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/music.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/music.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/music-512.webp"
         },
         "wash": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/wash.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/wash.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/wash-512.webp"
         },
         "tidy": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/tidy.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/tidy.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/tidy-512.webp"
         },
         "quiet": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/quiet.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/quiet.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/quiet-512.webp"
         },
         "meds": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/meds.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/meds.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/meds-512.webp"
         },
         "plant": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/plant.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/plant.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/plant-512.webp"
         },
         "write": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/write.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/write.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/write-512.webp"
         },
         "move": {
-          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/move.png"
+          "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/move.png",
+          "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/stickers/ink/move-512.webp"
         }
       }
     }
@@ -150,6 +167,12 @@
     "write": {
       "name": "Write to someone",
       "lesson": "People consistently underestimate how much a note out of nowhere means to whoever gets it — the sender worries about being awkward, the receiver is simply pleased, and the gap between those two is large and well documented. It needs no occasion and no length. Two sentences saying you thought of them is the whole thing."
+    }
+  },
+  "assets": {
+    "unicorn": {
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/assets/unicorn.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/assets/unicorn-512.webp"
     }
   }
 }

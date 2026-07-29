@@ -1,0 +1,146 @@
+{
+  "stamps": {
+    "compliment": {
+      "label": "Someone gave me a compliment",
+      "bg": "pale blush pink",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/compliment.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/compliment-512.webp"
+    },
+    "treat": {
+      "label": "I got myself a treat",
+      "bg": "soft mint green",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/treat.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/treat-512.webp"
+    },
+    "dog": {
+      "label": "I saw a good dog",
+      "bg": "butter yellow",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/dog.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/dog-512.webp"
+    },
+    "cat": {
+      "label": "A cat let me say hello",
+      "bg": "lilac",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cat.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cat-512.webp"
+    },
+    "cake": {
+      "label": "I ate something delicious",
+      "bg": "powder blue",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cake.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cake-512.webp"
+    },
+    "sun": {
+      "label": "The weather was good",
+      "bg": "pale peach",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/sun.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/sun-512.webp"
+    },
+    "flowers": {
+      "label": "I bought myself flowers",
+      "bg": "pale sage green",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/flowers.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/flowers-512.webp"
+    },
+    "message": {
+      "label": "A friend messaged me",
+      "bg": "baby pink",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/message.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/message-512.webp"
+    },
+    "bath": {
+      "label": "I had a long bath",
+      "bg": "pale aqua",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/bath.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/bath-512.webp"
+    },
+    "finished": {
+      "label": "I finished something",
+      "bg": "soft periwinkle",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/finished.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/finished-512.webp"
+    },
+    "bird": {
+      "label": "A bird came to the window",
+      "bg": "pale lemon",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/bird.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/bird-512.webp"
+    },
+    "rain": {
+      "label": "It rained while I was warm inside",
+      "bg": "dusty lavender",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/rain.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/rain-512.webp"
+    },
+    "sunset": {
+      "label": "I watched the sky change",
+      "bg": "pale coral",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/sunset.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/sunset-512.webp"
+    },
+    "hug": {
+      "label": "Someone hugged me",
+      "bg": "rose pink",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/hug.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/hug-512.webp"
+    },
+    "song": {
+      "label": "A song got me",
+      "bg": "pistachio green",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/song.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/song-512.webp"
+    },
+    "walk": {
+      "label": "I went somewhere new",
+      "bg": "pale sky blue",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/walk.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/walk-512.webp"
+    },
+    "cooked": {
+      "label": "I made myself a proper meal",
+      "bg": "apricot",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cooked.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/cooked-512.webp"
+    },
+    "laughed": {
+      "label": "Something made me laugh",
+      "bg": "pale mauve",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/laughed.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/laughed-512.webp"
+    },
+    "nap": {
+      "label": "I rested",
+      "bg": "soft mint",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/nap.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/nap-512.webp"
+    },
+    "luck": {
+      "label": "A small piece of luck",
+      "bg": "pale seafoam",
+      "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/luck.png",
+      "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/selfcare/passport/library/luck-512.webp"
+    }
+  },
+  "order": [
+    "compliment",
+    "treat",
+    "dog",
+    "cat",
+    "cake",
+    "sun",
+    "flowers",
+    "message",
+    "bath",
+    "finished",
+    "bird",
+    "rain",
+    "sunset",
+    "hug",
+    "song",
+    "walk",
+    "cooked",
+    "laughed",
+    "nap",
+    "luck"
+  ]
+}
