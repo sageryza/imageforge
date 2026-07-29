@@ -1122,6 +1122,12 @@
     .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
     .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
     .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
+    /* Section title page: the art on its own tinted leaf, section name under it. */
+    /* Centred in the leaf — a part-title sits in the middle of its page. */
+    .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
+    .bos-sectcover img { display: block; width: 86%; max-width: 330px; max-height: 46vh; margin: 0 auto 10px; border-radius: 0; }
+    .bos-sectcover .sc-name { font-family: var(--serif); font-size: 30px; line-height: 1.15; color: #221c14; }
+    .bos-sectcover .sc-line { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: #6d5c3f; margin-top: 8px; padding: 0 10px; }
     /* Reading pages: the pulled cards first, reading text behind an expand. */
     .bos-cards { display: flex; gap: 10px; justify-content: center; margin: 6px 0 4px; }
     .bos-cardslot { flex: 1; max-width: 92px; text-align: center; }
@@ -3208,6 +3214,15 @@
     return out;
   }
   const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
+  // Section title pages — a part-title leaf that opens each section, so arriving
+  // there tells you where you are instead of dropping you straight into entries.
+  // Art is the Witch School line style (scripts/witch-school-cards.js); `bg` is
+  // the sampled corner colour of its own PNG, which the page tints to so the
+  // drawing floats with no box round it. A section with no entry in this map
+  // simply has no title page — that's how they get added one at a time.
+  const BOS_SECT_COVERS = {
+    sync: { img: 'bos-sync', bg: '#fdfaf5', line: 'The coincidences you drew, day by day.' },
+  };
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
@@ -3242,9 +3257,15 @@
     const all = bosAllPages();
     const out = [];
     for (const s of BOS_SECTS) {
-      if (s.key === 'sync') syncPages().forEach(p => out.push(p));
-      else if (s.key === 'lesson') lessonMarkPages().forEach(p => out.push(p));
-      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; out.push(p); });
+      const pages = [];
+      if (s.key === 'sync') syncPages().forEach(p => pages.push(p));
+      else if (s.key === 'lesson') lessonMarkPages().forEach(p => pages.push(p));
+      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; pages.push(p); });
+      // The title page leads its section — but only once the section has
+      // something in it, so an unused section doesn't pad the book with a
+      // part-title in front of nothing.
+      if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      pages.forEach(p => out.push(p));
     }
     return out;
   }
@@ -3302,6 +3323,7 @@
     if (bosPageIdx > total) bosPageIdx = total;
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
+    book.style.removeProperty('--surface');   // clear a section title page's tint
     book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     // Odd pages read as the right-hand page of their spread (neighbor bleeds
     // off the LEFT edge); even pages the mirror — turning alternates sides.
@@ -3314,6 +3336,18 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    if (p.page === 'sectcover') {
+      const c = BOS_SECT_COVERS[p.sect] || {};
+      // The whole leaf takes the art's OWN sampled background colour, so the
+      // drawing floats with no box around it — the lesson-card trick.
+      if (c.bg) book.style.setProperty('--surface', c.bg);
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover">
+        ${c.img ? `<img src="${SW_IMG}${c.img}.png" alt="">` : ''}
+        <div class="sc-name">${esc(p.name || '')}</div>
+        ${c.line ? `<div class="sc-line">${esc(c.line)}</div>` : ''}
+      </div>`;
+      return;   // a part-title carries no page number, like a real book
+    }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
       // When the caption is the short AI label, the FULL original moment text
@@ -3396,6 +3430,7 @@
   function renderBosSpread() {
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
+    book.style.removeProperty('--surface');
     book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     // The contents opens the book like any right-hand page: the rest of the
     // book peeks in from the left edge (Sophie: not stacked papers).
@@ -3414,7 +3449,11 @@
   }
   $('bos-cover').addEventListener('click', () => openBook('all'));
   $('bos-close').addEventListener('click', closeBook);
-  $('bos-prev').addEventListener('click', () => { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } });
+  // Turning back off the contents page SHUTS the book — the contents is the
+  // first leaf, so the page before it is the cover. (Before this it just did
+  // nothing and the header's back arrow was the only way out.)
+  function bosBack() { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } else closeBook(); }
+  $('bos-prev').addEventListener('click', bosBack);
   $('bos-next').addEventListener('click', () => { if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); } });
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
@@ -3427,7 +3466,7 @@
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
     if (e.target.closest('a, button')) return;   // images (tarot cards) turn the page too
     // Tap zones: right side turns forward, left edge turns back.
-    if (e.clientX < window.innerWidth * 0.28) { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } }
+    if (e.clientX < window.innerWidth * 0.28) { bosBack(); }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
   /* Composer */
