@@ -635,13 +635,21 @@ router.post('/polish', async (req, res) => {
 
 router.post('/reply', async (req, res) => {
   try {
-    const { chat, text } = req.body || {};
+    const { chat, text, created } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    // `created` = when she actually sent it (the hook passes the transcript's
+    // timestamp for her own messages, so hers sorts ABOVE the reply it
+    // prompted). Ignored unless it parses and isn't in the future.
+    let at = new Date().toISOString();
+    if (created) {
+      const t = new Date(created).getTime();
+      if (!isNaN(t) && t <= Date.now() + 60000) at = new Date(t).toISOString();
+    }
     const doc = {
       chat: String(chat).slice(0, 60),
       text: String(text).slice(0, 8000),
       from: 'sophie',
-      created: new Date().toISOString(),
+      created: at,
     };
     const ref = await db().collection(MSGS).add(doc);
     res.json({ ok: true, id: ref.id });
