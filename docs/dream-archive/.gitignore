@@ -1,0 +1,4 @@
+# Collected dream text/transcripts are personal — this repo is public.
+# The scripts here regenerate them from their sources on demand.
+source-*.json
+archive.json

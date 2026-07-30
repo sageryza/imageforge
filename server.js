@@ -289,6 +289,15 @@ loadConfig().then(() => {
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
   // rate-limited per IP inside the module, since it spends on image gen.
   app.use('/api/selfcare', require('./selfcare').router);
+  // Voice-memo ingest. The Mac holds only the audio; the membry credential and
+  // the OpenAI key live here, so the laptop command needs no secrets at all.
+  const memos = require('./memos');
+  memos.init({
+    bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); },
+    transcribe: movies.transcribeAudio,
+    chat: openaiChat,
+  });
+  app.use('/api/memos', memos.router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
