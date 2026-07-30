@@ -1,4 +1,5 @@
-# Collected dream text/transcripts are personal — this repo is public.
-# The scripts here regenerate them from their sources on demand.
+# Collected dream text, transcripts and the rendered page are personal — this
+# repo is public. The scripts here regenerate all of it from source on demand.
 source-*.json
 archive.json
+archive.html
