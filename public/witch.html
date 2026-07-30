@@ -651,6 +651,12 @@
     .cart-btn svg { width: 16px; height: 16px; }
     .cart-btn .cbadge { background: var(--gold); color: #fff; border-radius: 50%; min-width: 18px; height: 18px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
     .sheet-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); z-index: 210; display: none; align-items: flex-end; justify-content: center; }
+    /* The product sheet is a full PAGE, not a panel half-shoved up the screen:
+       there is no backdrop strip left to mis-tap, and tapping outside no longer
+       closes it (only the ✕ and the phone's own back gesture do). */
+    .sheet-bg.page { align-items: stretch; background: var(--bg); }
+    .sheet-bg.page .sheet { max-height: none; min-height: 100%; border-radius: 0; border-top: none;
+                            padding-top: calc(14px + env(safe-area-inset-top)); }
     .sheet-bg.show { display: flex; }
     .sheet { background: var(--bg); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(26px + env(safe-area-inset-bottom)); position: relative; }
     .sheet .sx { position: sticky; top: 0; float: right; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; z-index: 2; }
@@ -673,11 +679,21 @@
     .ps-add:disabled { opacity: .5; }
     .ps-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-top: 16px; }
     .ps-desc p { margin: 8px 0; }
-    /* ── description / reviews toggle ── */
-    .ps-tabs { display: flex; gap: 8px; margin-top: 18px; }
-    .ps-tab { flex: 1; padding: 9px 10px; border-radius: 6px; border: 1px solid var(--line); background: none;
-              color: var(--text-dim); font-size: 13.5px; font-family: inherit; }
-    .ps-tab.on { color: var(--gold); border-color: var(--gold); }
+    /* ── description / reviews toggle ──
+       No boxes: two half-width labels over a hairline, and a gold line under
+       whichever one you're reading that SLIDES across when you tap the other.
+       (Nothing rises up around the label — the line is the whole indicator.) */
+    .ps-tabs { position: relative; display: flex; margin-top: 18px; border-bottom: 1px solid var(--line); }
+    .ps-tab { flex: 1 1 50%; padding: 10px 6px 12px; border: none; background: none;
+              color: var(--text-dim); font-size: 14px; font-family: inherit; cursor: pointer; }
+    .ps-tab.on { color: var(--gold); font-weight: 600; }
+    .ps-tabs::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 50%; height: 2px;
+                      background: var(--gold); transform: translateX(0); transition: transform 0.2s ease; }
+    .ps-tabs[data-on="reviews"]::after { transform: translateX(100%); }
+    /* ── a rating under every shop thumbnail ── */
+    .shop-item .srev { display: flex; align-items: center; gap: 2px; margin-top: 5px; min-height: 13px; }
+    .shop-item .srev .rv-star { width: 11px; height: 11px; stroke-width: 1.5; }
+    .shop-item .srev .n { font-size: 11px; color: var(--text-faint); margin-left: 3px; }
     /* ── product reviews (mirrored from Etsy) ── */
     .ps-rating { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
     .ps-rating[role="button"] { cursor: pointer; }
@@ -1707,7 +1723,7 @@
   </div>
 
   <!-- In-app buying: product sheet + cart sheet (bottom sheets over the shop) -->
-  <div class="sheet-bg" id="prod-sheet-bg" data-fullpage>
+  <div class="sheet-bg page" id="prod-sheet-bg" data-fullpage>
     <div class="sheet" id="prod-sheet"></div>
   </div>
   <div class="sheet-bg" id="cart-sheet-bg" data-fullpage>
@@ -2928,6 +2944,7 @@
   // with stock), and filtering is client-side — every product is already
   // loaded, so switching is instant.
   let SHOP_ITEMS = [], SHOP_CAT = 'all';
+  const SHOP_REV = {};   // handle -> { count, average }, filled by loadShopRatings()
   async function loadShop() {
     const wrap = $('shop-grid');
     if (wrap.dataset.loaded === '1') return;
@@ -2943,6 +2960,7 @@
         : '';
       renderShopGrid();
       wrap.dataset.loaded = '1';
+      loadShopRatings();  // stars under the thumbnails — one request, then redraw
       refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
@@ -2970,10 +2988,27 @@
         <div class="sbody">
           <div class="stitle">${esc(shortTitle(p.title))}</div>
           ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
+          ${srev(p.handle)}
           ${p.available ? '' : '<div class="soos">Sold out</div>'}
         </div>
       </a>`;
     }).join('');
+  }
+  function srev(handle) {
+    const r = SHOP_REV[handle];
+    if (!r || !r.count) return '<div class="srev"></div>';
+    return `<div class="srev">${starRow(r.average)}<span class="n">(${r.count.toLocaleString()})</span></div>`;
+  }
+  // Every tile's rating in ONE request (not one per thumbnail), then redraw.
+  // Ratings are garnish: a failure just leaves the rows empty.
+  async function loadShopRatings() {
+    const handles = SHOP_ITEMS.map(p => p.handle).filter(Boolean);
+    if (!handles.length) return;
+    try {
+      const d = await apiGet('/api/witch/shop/reviews?handles=' + encodeURIComponent(handles.join(',')));
+      Object.assign(SHOP_REV, d.items || {});
+      renderShopGrid();
+    } catch (e) { /* no ratings, no problem */ }
   }
   $('shop-cats').addEventListener('click', (e) => {
     const btn = e.target.closest('.shop-cat'); if (!btn) return;
@@ -3040,9 +3075,9 @@
         <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
         <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
       </div>
-      <div class="ps-tabs">
-        <button class="ps-tab ${tab === 'desc' ? 'on' : ''}" onclick="psTab('desc')">Description</button>
-        <button class="ps-tab ${tab === 'reviews' ? 'on' : ''}" onclick="psTab('reviews')">Reviews${revCount ? ` (${revCount.toLocaleString()})` : ''}</button>
+      <div class="ps-tabs" data-on="${tab}">
+        <button class="ps-tab ${tab === 'desc' ? 'on' : ''}" data-tab="desc" onclick="psTab('desc')">Description</button>
+        <button class="ps-tab ${tab === 'reviews' ? 'on' : ''}" data-tab="reviews" onclick="psTab('reviews')">Reviews${revCount ? ` (${revCount.toLocaleString()})` : ''}</button>
       </div>
       <div class="ps-desc"${tab === 'desc' ? '' : ' hidden'}>${p.descriptionHtml || ''}</div>
       <div class="ps-reviews" id="ps-reviews"${tab === 'reviews' ? '' : ' hidden'}></div>`;
@@ -3050,7 +3085,20 @@
   }
   // Tab choice lives on psState so picking a variant or photo doesn't bounce
   // you back to the description.
-  function psTab(t) { psState.tab = t; renderProdSheet(); }
+  // The line under the labels is a CSS transition, and a freshly-written element
+  // has nothing to animate FROM — so a tab tap moves the line and swaps the two
+  // panes in place instead of re-rendering the sheet (which would teleport it).
+  function psTab(t) {
+    if (!psState) return;
+    psState.tab = t;
+    const tabs = document.querySelector('#prod-sheet .ps-tabs');
+    if (!tabs) return renderProdSheet();
+    tabs.setAttribute('data-on', t);
+    tabs.querySelectorAll('.ps-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    const d = document.querySelector('#prod-sheet .ps-desc'), r = document.querySelector('#prod-sheet .ps-reviews');
+    if (d) d.hidden = t !== 'desc';
+    if (r) r.hidden = t !== 'reviews';
+  }
   function psImg(i) { psState.img = i; renderProdSheet(); }
   function psVar(id) { psState.variantId = id; renderProdSheet(); }
 
@@ -3183,7 +3231,9 @@
     const bg = $('cart-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
     if (!$('prod-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
   }
-  $('prod-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeProdSheet(); });
+  // Deliberately NO backdrop-tap close on the product page — that is exactly how
+  // it kept getting shut by accident. The ✕ and the back gesture close it.
+
   $('cart-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeCartSheet(); });
 
   /* ══════════ BOOK OF SHADOWS: the journal ══════════
@@ -5899,6 +5949,9 @@
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  // Warm the shelf while the app is idle on Home, so tapping Shop paints from
+  // memory instead of waiting on the first fetch.
+  setTimeout(() => { const g = $('shop-grid'); if (g && g.dataset.loaded !== '1') { try { loadShop(); } catch (e) {} } }, 1500);
   registerFullPage('prod-sheet-bg', closeProdSheet); // shop product sheet
   registerFullPage('cart-sheet-bg', closeCartSheet); // shop cart sheet
 

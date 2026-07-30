@@ -2985,7 +2985,8 @@ app.get('/api/witch/tarot-ask/:id', async (req, res) => {
 // Pulls the public products.json so the app's Shop tab shows real products
 // (image, title, price, link) without any storefront token. Cached in memory
 // ~10 min. Every product's own URL still opens the real Shopify checkout.
-let SHOP_CACHE = { at: 0, data: null };
+const SHOP_TTL_MS = 10 * 60 * 1000;
+let SHOP_CACHE = { at: 0, data: null, refreshing: false };
 // ── Shop curation: order + filter the app shop to mirror Sophie's Etsy ──
 // Words that appear on nearly every listing carry no matching signal — drop
 // them so the score reflects the distinctive product words.
@@ -3071,16 +3072,16 @@ async function etsyActiveListings() {
   return list;
 }
 
-app.get('/api/witch/shop', async (req, res) => {
-  try {
-    const debug = req.query.debug === '1';
-    const now = Date.now();
-    if (!debug && SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
+// Building the shelf means TWO slow upstreams — Shopify's products.json and the
+// Etsy listing order — so it is cached, and (below) served stale while it
+// refreshes rather than making whoever opened the tab wait for both.
+async function buildShopPayload(debug) {
+  {
     // The store's permanent .myshopify.com home — NOT secretlyawitch.com,
     // which now points at this very app (fetching it would loop back to us).
     const base = witchStoreOrigin();
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
-    if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
+    if (!r.ok) throw new Error(`shop returned ${r.status}`);
     const j = await r.json();
     // The store is shared with other brands; drop obvious non-witch items.
     const EXCLUDE = /people\s*watching|in case of amnesia|remember things|custom order|incel/i;
@@ -3181,10 +3182,30 @@ app.get('/api/witch/shop', async (req, res) => {
       .map(c => ({ key: c.key, name: c.name, count: products.filter(p => p.category === c.key).length }));
 
     const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, categories, products };
-    if (debug) return res.json({ ...out, debug: dbg });
-    SHOP_CACHE = { at: now, data: out };
-    res.json(out);
+    if (debug) return { ...out, debug: dbg };
+    SHOP_CACHE = { at: Date.now(), data: out, refreshing: false };
+    return out;
+  }
+}
+
+// Stale-while-revalidate. A warm cache answers instantly; an EXPIRED cache also
+// answers instantly and the rebuild runs behind the response instead of under
+// it, so opening the Shop tab stops waiting on Shopify + Etsy once the app has
+// served the shelf even once.
+app.get('/api/witch/shop', async (req, res) => {
+  try {
+    if (req.query.debug === '1') return res.json(await buildShopPayload(true));
+    if (SHOP_CACHE.data) {
+      if (Date.now() - SHOP_CACHE.at >= SHOP_TTL_MS && !SHOP_CACHE.refreshing) {
+        SHOP_CACHE.refreshing = true;
+        buildShopPayload(false).catch(() => {}).finally(() => { SHOP_CACHE.refreshing = false; });
+      }
+      return res.json(SHOP_CACHE.data);
+    }
+    res.json(await buildShopPayload(false));
   } catch (err) {
+    // A stale shelf beats an error page.
+    if (SHOP_CACHE.data) return res.json(SHOP_CACHE.data);
     res.status(500).json({ error: err.message });
   }
 });
