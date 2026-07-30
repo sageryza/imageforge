@@ -127,15 +127,31 @@ router.get('/', async (req, res) => {
     // we sort by needs no composite index.
     const since = String(req.query.since || '').slice(0, 40);
     if (since) {
-      const [dsnap, reg] = await Promise.all([
+      // Two queries, unioned. `created` is when a message was SENT, and Sophie's
+      // own messages carry her real send time — which is EARLIER than the reply
+      // they prompted. So a client whose newest message is that reply asks for
+      // "anything after <reply time>" and would never be handed her message: it
+      // is older than the cutoff the moment it exists. `postedAt` is when the
+      // doc was WRITTEN (monotonic, set below on every write), so the second
+      // query catches exactly those. Deduped by id; both are range+orderBy on a
+      // single field, so neither needs a composite index.
+      const [csnap, psnap, reg] = await Promise.all([
         db().collection(MSGS)
           .where('created', '>', since)
           .orderBy('created', 'desc')
           .limit(200)              // a burst backstop; a normal poll returns 0-2
           .get(),
+        db().collection(MSGS)
+          .where('postedAt', '>', since)
+          .orderBy('postedAt', 'desc')
+          .limit(200)
+          .get(),
         registry(),
       ]);
-      const messages = dsnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const byId = new Map();
+      csnap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+      psnap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+      const messages = Array.from(byId.values());
       // `delta:true` tells the client to MERGE rather than replace — it still
       // holds the trimmed tail and any full threads it has already pulled.
       return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true });
@@ -264,6 +280,9 @@ router.post('/', async (req, res) => {
       tldr: String(tldr || '').slice(0, 1000),
       from: 'claude',
       created: new Date().toISOString(),
+      // Same monotonic write stamp as /reply — it's what the delta poll ranges
+      // over, so nothing can be skipped for having an older `created`.
+      postedAt: new Date().toISOString(),
     };
     // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
     if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
@@ -666,6 +685,9 @@ router.post('/reply', async (req, res) => {
       text: String(text).slice(0, 8000),
       from: 'sophie',
       created: at,
+      // when the doc was WRITTEN — the delta poll needs a monotonic field,
+      // because `created` here is her real send time and runs behind the reply.
+      postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
     res.json({ ok: true, id: ref.id });
