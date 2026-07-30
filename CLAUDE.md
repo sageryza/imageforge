@@ -408,6 +408,24 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
+  conversation it was** instead of a monologue of Claude replies. The same hook
+  posts them: it already fires on `UserPromptSubmit` (that firing used to only
+  sweep up interrupted replies), and now also lifts her message out of the
+  transcript and POSTs it to `/api/chatfeed/reply` as `from:"sophie"`, keyed by
+  the transcript record's `uuid` so it can't double-post, carrying her real send
+  time via the route's new optional `created` (so hers sorts ABOVE the reply it
+  prompted). The app already rendered `from:"sophie"` as **"me"** in rose and
+  excludes it from the unread dot, so no client change was needed.
+  - **The machinery that also arrives as a "user" record is filtered out:**
+    `isMeta` ("Continue from where you left off"), `<task-notification>` /
+    `[SYSTEM NOTIFICATION …]`, `<github-webhook-activity>`, slash-command echoes
+    (`<command-name>`, `<local-command-stdout>`), `[Request interrupted …]`, and
+    the caveat preamble. `<system-reminder>` blocks are STRIPPED from her text
+    rather than used to reject the message (they ride inside real messages).
+  - First firing in a session **baselines her history and posts only her latest**,
+    same policy as the reply poster, so installing it never floods a live feed.
+  - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in

@@ -47,13 +47,14 @@ fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
 gstate="$HOME/.claude/forge-gallery-${sid}.done"
+ustate="$HOME/.claude/forge-user-${sid}.posted"
 
 # One transcript pass emits: one "F<TAB>{...}" line per feed post to make (every
 # turn not yet in the posted-set — usually just the latest, more when catching
 # up missed ones), then one "G<TAB>{...}" line per NEW image deliverable —
 # Firebase image URLs in the final reply, plus image files the chat sent via
 # SendUserFile (files sent before this hook existed are baselined on first run).
-out=$(NAME="$name" CLAUDE_URL="$claude_url" STATEFILE="$state" GSTATE="$gstate" \
+out=$(NAME="$name" CLAUDE_URL="$claude_url" STATEFILE="$state" GSTATE="$gstate" USTATE="$ustate" \
   python3 - "$transcript" 2>/dev/null << 'PY'
 import json, sys, os, re
 path = sys.argv[1]
@@ -94,6 +95,26 @@ turns = []
 cur_parts = []; cur_mid = None
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
+users = []      # Sophie's OWN messages, so the feed reads as a conversation
+
+# What Sophie actually typed/said, as opposed to the machinery that arrives as a
+# "user" record too: task notifications, webhook activity, slash-command echoes,
+# the harness's "Continue from where you left off" (isMeta), interrupt markers.
+# system-reminder blocks ride along inside her real messages, so they're cut out
+# rather than used to reject the message.
+REMINDER = re.compile(r'(?is)<system-reminder>.*?</system-reminder>')
+NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
+                   r'''|<task-notification|<github-webhook-activity|<command-name'''
+                   r'''|<local-command-stdout|Caveat: The messages below)''')
+def her_words(rec, txt):
+    if rec.get('isMeta'):
+        return ''
+    t = REMINDER.sub('', txt or '').strip()
+    if not t or NOISE.match(t):
+        return ''
+    if t == 'Continue from where you left off.':
+        return ''
+    return t
 
 def flush():
     global cur_parts, cur_mid
@@ -115,6 +136,10 @@ with open(path, encoding='utf-8') as f:
                 flush()           # end of the previous assistant turn
                 last_user = idx
                 raw_since = []
+                mine = her_words(r, gettext(r))
+                if mine and r.get('uuid'):
+                    users.append({'uuid': r['uuid'], 'text': mine,
+                                  'at': r.get('timestamp') or ''})
                 continue
             raw_since.append(ln)
             continue
@@ -131,6 +156,36 @@ with open(path, encoding='utf-8') as f:
                     if isinstance(p, str) and IMG.search(p):
                         sends.append((idx, p))
 flush()  # the final (current) turn
+
+# ── Sophie's own messages ──────────────────────────────────────────────────
+# Posted to /reply as from:"sophie" so a thread in the Chats app reads as the
+# conversation it was, not a monologue. Keyed by the transcript's per-record
+# uuid; her real send time rides along so her message sorts ABOVE the reply it
+# prompted. Same first-run policy as the replies above: baseline the history and
+# post only her latest, so installing this never floods a live feed.
+uf = os.environ.get('USTATE', '')
+if uf and users:
+    first_u = not os.path.exists(uf)
+    useen = set()
+    if not first_u:
+        try:
+            useen = set(x for x in open(uf).read().split('\n') if x)
+        except Exception:
+            pass
+    new_useen = set(useen)
+    if first_u:
+        for u in users[:-1]:
+            new_useen.add(u['uuid'])
+    for u in users:
+        if u['uuid'] in new_useen:
+            continue
+        mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
+        if u['at']:
+            mine["created"] = u['at']
+        print('U\t' + json.dumps(mine))
+        new_useen.add(u['uuid'])
+    os.makedirs(os.path.dirname(uf), exist_ok=True)
+    open(uf, 'w').write('\n'.join(sorted(new_useen)))
 
 if not turns:
     sys.exit(0)
@@ -243,6 +298,12 @@ post () {  # $1 = url, $2 = json body (retries once; long timeout for cold start
   || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
 }
+
+# Sophie's own messages FIRST, so hers is in the feed before the reply it
+# prompted (they carry her real send time, so the order holds either way).
+printf '%s\n' "$out" | sed -n 's/^U\t//p' | while IFS= read -r up; do
+  [ -n "$up" ] && post "$FEED/reply" "$up"
+done
 
 # post each un-posted turn (oldest first — usually just the latest, more when
 # backfilling ones the hook missed)
