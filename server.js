@@ -3436,11 +3436,16 @@ app.get('/api/witch/shop/product/:handle', async (req, res) => {
     const handle = String(req.params.handle || '');
     const hit = WITCH_PRODUCT_CACHE.get(handle);
     if (hit && Date.now() - hit.at < 10 * 60 * 1000) return res.json(hit.data);
+    // `options` + each variant's `selectedOptions` are what let the sheet show
+    // one dropdown PER option (kit type, journal or not) the way Etsy does,
+    // instead of one button per combination.
     const data = await witchStorefront(`query($handle: String!) {
       product(handle: $handle) {
         title descriptionHtml
+        options { name values }
         images(first: 8) { edges { node { url } } }
-        variants(first: 40) { edges { node { id title availableForSale price { amount currencyCode } } } }
+        variants(first: 40) { edges { node { id title availableForSale price { amount currencyCode }
+          selectedOptions { name value } } } }
       } }`, { handle });
     if (!data.product) return res.status(404).json({ error: 'not found' });
     const p = data.product;
@@ -3449,11 +3454,18 @@ app.get('/api/witch/shop/product/:handle', async (req, res) => {
       title: p.title,
       descriptionHtml: p.descriptionHtml || '',
       images: (p.images?.edges || []).map(e => e.node.url),
+      // Shopify gives every product a synthetic "Title: Default Title" option;
+      // it isn't a choice, so it never becomes a dropdown.
+      options: (p.options || [])
+        .filter(o => (o.values || []).length && !(o.name === 'Title' && o.values.length === 1 && o.values[0] === 'Default Title'))
+        .map(o => ({ name: o.name, values: o.values })),
       variants: (p.variants?.edges || []).map(e => ({
         id: e.node.id,
         title: e.node.title,
         available: Boolean(e.node.availableForSale),
         price: e.node.price?.amount || null,
+        // { "Kit": "travel kit", "Journal": "yes, include journal" }
+        options: (e.node.selectedOptions || []).reduce((m, o) => { m[o.name] = o.value; return m; }, {}),
       })),
     };
     WITCH_PRODUCT_CACHE.set(handle, { at: Date.now(), data: out });
