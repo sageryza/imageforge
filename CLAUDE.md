@@ -426,6 +426,22 @@ lifted into a standalone tool later.
   - First firing in a session **baselines her history and posts only her latest**,
     same policy as the reply poster, so installing it never floods a live feed.
   - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
+- **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
+  renames a chat with the pencil in its thread header; that writes `displayName`
+  on the registry doc and is the name she sees everywhere. **The Claude app's own
+  session title cannot be synced** — nothing exposes a session's title to the
+  outside and nothing can push a rename back into claude.ai (checked July 2026,
+  no API and no MCP tool for it), so the two names are separate by necessity and
+  hers wins. A chat reads what she calls it with
+  `GET /api/chatfeed/name?chat=<slug>` → `{ displayName, name }` (`name` falls
+  back to the slug) — use it when referring to yourself in a handoff or a
+  message, rather than the raw git-branch slug. The **slug stays the identity
+  key** for every route; renaming is cosmetic and never re-keys a chat's history.
+- **Gated pages must not be cached by the app.** `serveGated` sends
+  `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
+  and the iOS app's WKWebView served a heuristically-cached copy, so a shipped
+  page change (a moved button, a new tab) silently never reached her phone. This
+  actually happened with the header fixes. Keep that header on any new HTML route.
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in

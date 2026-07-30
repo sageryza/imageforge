@@ -547,6 +547,22 @@ router.post('/about', async (req, res) => {
 // underlying `chat` key (branch-derived) is unchanged, so every reply still
 // groups into the same chat; only the label Sophie sees changes. Empty name
 // clears it (falls back to the chat key). Stored on the registry doc.
+// What Sophie has named this chat. The rename in the Chats app (the pencil in
+// the thread header) is the SOURCE OF TRUTH for a chat's name — the Claude app's
+// own session title is not readable from anywhere and cannot be synced, so a
+// chat asks here instead of guessing from its git branch. Returns the slug's
+// displayName when she has set one, else null (the slug is then the name).
+router.get('/name', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    res.set('Cache-Control', 'no-store');
+    const snap = await regRef(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({ chat, displayName: d.displayName || null, name: d.displayName || chat });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/rename', async (req, res) => {
   try {
     const { chat, name } = req.body || {};

@@ -534,6 +534,11 @@ function serveGated(file) {
       }
     }
     const html = fs.readFileSync(__dirname + '/public/' + file, 'utf8');
+    // Always revalidate the HTML. Without this only an ETag ships, and the iOS
+    // app's WKWebView happily serves a heuristically-cached copy — so a shipped
+    // page change (a moved button, a new tab) silently never reached the phone.
+    // no-cache still allows a cheap 304 when nothing changed.
+    res.set('Cache-Control', 'no-cache, must-revalidate');
     res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
   };
 }
