@@ -205,8 +205,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .crow .cr-ic{width:46px; height:46px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
-.cr-name{font-size:1.15em; font-weight:600; line-height:1.12;}
-.cr-sub{font-size:.95em; color:var(--ink2); line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* The name is the whole row now, so it can be bigger. display:block is what
+   makes the ellipsis work at all — as an inline span it could never truncate,
+   which is how the old snippet ended up running off the screen. */
+.cr-name{display:block; font-size:1.45em; font-weight:600; line-height:1.2;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
 /* "Answered" check — mark a chat done; it grays until a newer message arrives */
@@ -757,11 +760,12 @@ function renderList(el,g,names){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'');
+    // Just the chat's name (Sophie's rule). The message snippet that used to sit
+    // beside it was an inline span, so it never truncated — it ran over the
+    // timestamp and the ✓ and off the side of the screen.
     row.innerHTML=iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
-      +'<span class="cr-sub">'+esc(status)+'</span></span>'
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
     row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
