@@ -1517,6 +1517,19 @@ app.get('/api/gallery/assets', async (req, res) => {
           if (v && v.vote) a.vote = v.vote;
           if (v && v.note) a.note = v.note;
           if (v && v.done) a.done = true;
+          // The whole back-and-forth, so the lightbox can render it and a chat
+          // reading this list sees its own replies too.
+          const thread = v ? assetThread(v) : [];
+          if (thread.length) {
+            a.thread = thread;
+            a.waiting = assetWaiting(thread);
+            const last = thread[thread.length - 1];
+            // Badge the tile when a chat has written since she last looked.
+            if (last.from === 'chat'
+              && (Date.parse(last.at || '') || 0) > (Date.parse((v && v.seenAt) || '') || 0)) {
+              a.unread = true;
+            }
+          }
         });
       }
     } catch (e) { /* votes are best-effort */ }
@@ -1560,6 +1573,68 @@ app.post('/api/gallery/asset-cleanup', express.json(), async (req, res) => {
 // number). An over-length note is REFUSED, never silently trimmed.
 const ASSET_NOTE_MAX = 2000;
 
+// A note on an image is a THREAD, not a single string: Sophie writes from the
+// Assets lightbox and the chat that made the image writes back. Deliberately
+// snail mail — a chat reads its threads the next time Sophie messages it, since
+// nothing here runs on a timer (house rule: no recurring self-check-ins).
+const ASSET_THREAD_MAX = 40;
+// One doc per chat+url, id derived from both so any caller finds the same doc.
+function assetVoteRef(chat, url) {
+  const id = require('crypto').createHash('sha1')
+    .update(String(chat) + '|' + String(url)).digest('hex');
+  return admin.firestore().collection('forge-asset-votes').doc(id);
+}
+// Legacy docs hold only a single `note` string (everything written before the
+// thread existed). Those are PRESENTED as a one-message thread from Sophie, so
+// no migration is needed and no old note is lost.
+function assetThread(data) {
+  const d = data || {};
+  if (Array.isArray(d.thread) && d.thread.length) {
+    return d.thread
+      .filter((m) => m && String(m.text || '').trim())
+      .map((m, i) => ({
+        id: String(m.id || 'm' + i),
+        from: m.from === 'chat' ? 'chat' : 'sophie',
+        text: String(m.text || ''),
+        at: m.at || d.updated || '',
+      }));
+  }
+  const legacy = String(d.note || '').trim();
+  return legacy ? [{ id: 'legacy', from: 'sophie', text: legacy, at: d.updated || '' }] : [];
+}
+// Who owes the next message: whoever did NOT send the last one.
+function assetWaiting(thread) {
+  if (!thread || !thread.length) return null;
+  return thread[thread.length - 1].from === 'sophie' ? 'chat' : 'sophie';
+}
+// Append one message. A transaction because Sophie can send from the app while
+// a chat is replying to the same image, and a read-modify-write would drop one.
+async function appendAssetMessage(ref, chat, url, from, text) {
+  const who = from === 'chat' ? 'chat' : 'sophie';
+  const msg = {
+    id: require('crypto').randomBytes(6).toString('hex'),
+    from: who, text, at: new Date().toISOString(),
+  };
+  const thread = await admin.firestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const next = assetThread(snap.exists ? snap.data() : {})
+      .concat([msg]).slice(-ASSET_THREAD_MAX);
+    const patch = {
+      chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+      thread: next, updated: msg.at,
+    };
+    if (who === 'sophie') {
+      patch.note = text;    // legacy mirror: her LATEST ask, what old readers read
+      patch.seenAt = msg.at; // she's writing, so she's caught up on the replies
+      // A fresh ask reopens the image even if a chat had marked it handled.
+      patch.done = admin.firestore.FieldValue.delete();
+    }
+    tx.set(ref, patch, { merge: true });
+    return next;
+  });
+  return { message: msg, thread };
+}
+
 // Sophie's curation vote on one Assets-tab image: ♥ ('like'), ✕ ('dislike'),
 // or null to clear. One doc per chat+url (deterministic id) in deckfactory.
 // Chats read the verdicts off GET /api/gallery/assets and act on them.
@@ -1573,9 +1648,7 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     const { chat, url, vote, note, done } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    const id = require('crypto').createHash('sha1')
-      .update(String(chat) + '|' + String(url)).digest('hex');
-    const ref = admin.firestore().collection('forge-asset-votes').doc(id);
+    const ref = assetVoteRef(chat, url);
     // vote, note, and done update independently: send only the field you're
     // changing (vote: 'like'|'dislike'|null to clear; note: string|null to
     // clear; done: true when a chat has acted on the note, false/null to clear).
@@ -1597,13 +1670,106 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
           length: t.length,
         });
       }
-      patch.note = t ? t : admin.firestore.FieldValue.delete();
+      // Legacy path: a note sent here APPENDS to the thread (below) rather than
+      // replacing it, so an older client can't wipe a conversation. Clearing
+      // (empty/null) only drops the `note` mirror; the thread is history.
+      if (!t) patch.note = admin.firestore.FieldValue.delete();
     }
     if (done !== undefined) {
       patch.done = done ? true : admin.firestore.FieldValue.delete();
     }
     await ref.set(patch, { merge: true });
+    if (note !== undefined && String(note == null ? '' : note).trim()) {
+      await appendAssetMessage(ref, chat, url, 'sophie',
+        String(note).trim());
+    }
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// One message in an image's note thread. Sophie's box in the Assets lightbox
+// posts from:'sophie'; the chat that made the image replies with from:'chat'.
+// Also the read receipt: { chat, url, seen:true } with no text marks her caught
+// up, which is what clears the unread badge on the tile.
+app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, url, text, from, seen } = req.body || {};
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const ref = assetVoteRef(chat, url);
+    const t = String(text == null ? '' : text).trim();
+    if (!t) {
+      if (!seen) return res.status(400).json({ error: 'text required' });
+      const at = new Date().toISOString();
+      await ref.set({ chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+        seenAt: at }, { merge: true });
+      return res.json({ ok: true, seenAt: at });
+    }
+    // Same refusal as the note field: her words are never silently truncated.
+    if (t.length > ASSET_NOTE_MAX) {
+      return res.status(413).json({
+        error: `That note is ${t.length} characters — the limit is ${ASSET_NOTE_MAX}. `
+          + `Nothing was saved; trim it by ${t.length - ASSET_NOTE_MAX} and send again.`,
+        limit: ASSET_NOTE_MAX,
+        length: t.length,
+      });
+    }
+    const out = await appendAssetMessage(ref, chat, url, from, t);
+    res.json({ ok: true, message: out.message, thread: out.thread,
+      waiting: assetWaiting(out.thread) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Every image in this chat that has a note thread — what a chat reads to find
+// what Sophie asked and what it already answered. Images she never wrote on are
+// omitted, so this stays small next to the full assets list. `waiting:'chat'`
+// is the queue: she spoke last and nobody has replied.
+app.get('/api/gallery/assets/notes', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const db = admin.firestore();
+    // The label ("what this image is") lives on the asset record, not the vote
+    // doc — join it in so a chat can recognise the image without opening it.
+    const [vs, as] = await Promise.all([
+      db.collection('forge-asset-votes').where('chat', '==', chat).get(),
+      db.collection('forge-chat-assets').where('chat', '==', chat).get(),
+    ]);
+    const labels = new Map();
+    as.docs.forEach((d) => {
+      const a = d.data();
+      if (a.url && a.description) labels.set(a.url, a.description);
+    });
+    const notes = [];
+    vs.docs.forEach((d) => {
+      const v = d.data();
+      const thread = assetThread(v);
+      if (!thread.length) return;
+      const o = { url: v.url, thread, waiting: assetWaiting(thread) };
+      if (labels.get(v.url)) o.description = labels.get(v.url);
+      if (v.vote) o.vote = v.vote;
+      if (v.done) o.done = true;
+      notes.push(o);
+    });
+    // The ones waiting on a chat first, then most recently written.
+    const lastAt = (n) => Date.parse(n.thread[n.thread.length - 1].at || '') || 0;
+    notes.sort((a, b) => {
+      const aw = a.waiting === 'chat' ? 0 : 1, bw = b.waiting === 'chat' ? 0 : 1;
+      return aw !== bw ? aw - bw : lastAt(b) - lastAt(a);
+    });
+    res.json({ chat, notes, waiting: notes.filter((n) => n.waiting === 'chat').length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
