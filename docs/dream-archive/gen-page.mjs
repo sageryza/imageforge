@@ -121,10 +121,12 @@ h2{font-size:19px;margin:4px 0 3px}
 .pane.on{display:block}
 /* Drawings sit two to a row and open bigger on tap. A lone drawing still
    fills only half the width, so a row never changes shape. */
-.pane[data-p="art"],.pane[data-p="old"]{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+/* Must be scoped to .on — an unscoped .pane[data-p=...] outranks
+   .pane{display:none} and leaves the drawings showing under every tab. */
+.pane.on[data-p="art"],.pane.on[data-p="old"]{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
 .pane[data-p="old"] .anote,.pane[data-p="audio"] .anote{grid-column:1/-1}
 .pane img{display:block;width:100%;border-radius:6px;background:#efe9df;cursor:zoom-in}
-.pane[data-p="audio"]{display:block}
+.pane.on[data-p="audio"]{display:block}
 .words{white-space:pre-wrap;color:#3d3833;max-width:640px}
 .words .rest{display:none;white-space:pre-wrap}
 .words.open .head{display:none}
