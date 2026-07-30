@@ -215,4 +215,50 @@ router.post('/ingest', gate, express.raw({ type: '*/*', limit: '30mb' }), async 
   }
 });
 
+// GET /audio/:id — stream one recording so the dream archive page can play it.
+//
+// memo-audio/** is readable only by a signed-in Firebase user, and the archive
+// page has no Firebase session, so the audio has to come through the server.
+// Deliberately narrow: it serves ONLY recordings the archive categorises as
+// dreams, so the other ~940 private recordings stay exactly as locked down as
+// they are today.
+router.get('/audio/:id', gate, async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    if (!/^[\w.\-:]{8,120}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+    const { manifest } = await readManifest();
+    const memo = manifest.memos.find(m => m.id === id || m.file === id);
+    if (!memo) return res.status(404).json({ error: 'not in the archive' });
+    if (memo.cat !== 'dream') return res.status(403).json({ error: 'only dream recordings are served here' });
+
+    const f = (await bucket()).file(`${PREFIX}/${memo.file}`);
+    const [exists] = await f.exists();
+    if (!exists) return res.status(404).json({ error: 'audio missing from storage' });
+    const [meta] = await f.getMetadata();
+    const total = Number(meta.size || 0);
+    res.set('Content-Type', meta.contentType || 'audio/mp4');
+    res.set('Accept-Ranges', 'bytes');
+    res.set('Cache-Control', 'private, max-age=3600');
+
+    // Range support, so scrubbing works instead of re-downloading each seek.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (range && total) {
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Math.min(Number(range[2]), total - 1) : total - 1;
+      if (start >= total || start > end) {
+        res.set('Content-Range', `bytes */${total}`);
+        return res.status(416).end();
+      }
+      res.status(206);
+      res.set('Content-Range', `bytes ${start}-${end}/${total}`);
+      res.set('Content-Length', String(end - start + 1));
+      return f.createReadStream({ start, end }).on('error', () => res.destroy()).pipe(res);
+    }
+    if (total) res.set('Content-Length', String(total));
+    f.createReadStream().on('error', () => res.destroy()).pipe(res);
+  } catch (err) {
+    if (!res.headersSent) res.status(502).json({ error: err.message });
+  }
+});
+
 module.exports = { router, init };
