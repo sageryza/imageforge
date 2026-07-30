@@ -894,7 +894,7 @@
     .deck-stage { flex: 1; display: flex; flex-direction: column; min-height: 0; cursor: pointer; -webkit-user-select: none; user-select: none; overflow: hidden; }
     @keyframes tcardIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
     /* Base .tcard is shared with the tarot cards — leave it. */
-    #deck-stage .tcard { background: none; border: none; border-radius: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: stretch; animation: tcardIn 0.22s ease; }
+    #deck-stage .tcard, .lsnap-stage .tcard { background: none; border: none; border-radius: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: stretch; animation: tcardIn 0.22s ease; }
     /* Whole illustration, never cropped — contain on the matching background.
        The image is the flexible part of the card: it grows to at most 42vh,
        and SHRINKS first when a card's text is long, so the text is never cut
@@ -975,10 +975,36 @@
        2-col grid as .bos-sync-grid), so several are visible per book page —
        tapping one jumps back to that exact card in the lesson. */
     .bos-lpk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 4px; }
-    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+    /* A saved lesson page is a SNAPSHOT of the card it came from — the same
+       markup, the same per-card background, scaled down inside a cropped frame,
+       so it reads as a little screenshot of the page rather than as a cropped
+       illustration with a caption. `.lsnap-stage` is a phone-shaped box (360x620)
+       and shares #deck-stage's own rule above, so a snapshot always looks like
+       what the lesson reader actually renders. The frame is shorter than the
+       stage, so the bottom is cropped the way a screenshot would be. */
+    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .bos-lsnap { cursor: pointer; }
-    .bos-lsnap img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; }
+    /* 432 of the 620-tall stage: the crop lands just ABOVE the body copy, so the
+       thumbnail ends cleanly instead of slicing a line of text in half. */
+    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 432; overflow: hidden;
+                   border: 1px solid var(--border); border-radius: 4px; }
+    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: 620px;
+                   transform: scale(var(--s, 0.46)); transform-origin: top left; }
+    .lsnap-stage .tcard { animation: none; }   /* a snapshot doesn't slide in */
     .bos-lsnap .t { font-family: var(--serif); font-size: 13.5px; line-height: 1.3; color: #221c14; margin-top: 6px; }
+    /* Tapping a snapshot ENLARGES it (it no longer jumps you into the lesson —
+       the small link under it does that, deliberately). */
+    #lsnap-view { position: fixed; inset: 0; z-index: 220; background: var(--bg);
+                  display: none; flex-direction: column; align-items: center; justify-content: center;
+                  padding: calc(env(safe-area-inset-top, 0px) + 8px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    #lsnap-view.show { display: flex; }
+    .lsnap-big { position: relative; overflow: hidden; border-radius: 6px; background: var(--surface); }
+    /* No border on the enlarged card: with border-box it ate 2px off the bottom
+       of the stage, i.e. it cropped the very card it is meant to show whole. */
+    .lsnap-actions { display: flex; gap: 18px; align-items: center; margin-top: 14px; }
+    .lsnap-actions button { background: none; border: none; font-family: inherit; font-size: 12.5px; letter-spacing: 0.3px;
+                            color: var(--gold); cursor: pointer; padding: 6px 2px; text-decoration: underline; }
+    .lsnap-actions button.plain { color: var(--text-dim); text-decoration: none; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
     .deck-prev { background: none; border: none; padding: 10px 4px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .deck-prev:hover { color: var(--gold); }
@@ -1785,6 +1811,8 @@
        sibling of the .quiz-app pages, OUTSIDE .app) so its position:fixed always
        maps to the viewport — nested inside the tab, a transformed ancestor (the
        tab-switch fade) would push it below the app header (double-header bug). -->
+  <!-- An enlarged saved lesson page (see .lsnap-* above) -->
+  <div id="lsnap-view" data-fullpage style="display:none;"></div>
   <div id="bos-reader" data-fullpage style="display:none;">
     <div class="bos-head">
       <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
@@ -3338,9 +3366,14 @@
   // The book reads like a real book: sections in a fixed order, each holding
   // its pages chronologically. Old 'note' and 'miracle' entries live on inside
   // Synchronicities so nothing already written is ever lost.
+  // `reverse` = that section reads NEWEST FIRST (Sophie's call for the two that
+  // fill up daily — you open them for what just happened). Spell work, Dreams and
+  // Lessons stay oldest-first. Nothing else may assume an order: every page
+  // carries a `ts`, and "jump to the newest / to this entry" go by that, not by
+  // position in the book.
   const BOS_SECTS = [
-    { key: 'reading', name: 'Readings', kinds: ['reading', 'sky'] },
-    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
+    { key: 'reading', name: 'Readings', kinds: ['reading', 'sky'], reverse: true },
+    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'], reverse: true },
     { key: 'spell', name: 'Spell work', kinds: ['spell'] },
     { key: 'dream', name: 'Dreams', kinds: ['dream'] },
     // Bookmarked school pages. Invisible until the first bookmark exists, so
@@ -3365,7 +3398,11 @@
   // drawing floats with no box round it. A section with no entry in this map
   // simply has no title page — that's how they get added one at a time.
   const BOS_SECT_COVERS = {
+    reading: { img: 'bos-reading', bg: '#fbfaf8', line: 'The cards you pulled, and what the sky was doing.' },
     sync: { img: 'bos-sync-b', bg: '#fcf9f4', line: 'The coincidences you drew, day by day.' },
+    spell: { img: 'bos-spell', bg: '#fefaf5', line: 'What you cast, and how it turned out.' },
+    dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
+    lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
@@ -3390,21 +3427,37 @@
     (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
     return out.sort((a, b) => a.ts - b.ts);
   }
-  function syncPages() {
+  // newestFirst reverses BOTH the days and the coincidences within a day, so the
+  // first cell of the first page is the most recent thing drawn (reversing whole
+  // pages only would leave a 5-draw day reading 5, then 1-4). Each page carries
+  // the newest ts on it, which is how "the newest page" is found.
+  function syncPages(newestFirst) {
     const byDay = {};
     syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
+    const days = Object.keys(byDay).sort();
+    if (newestFirst) days.reverse();
     const out = [];
-    Object.keys(byDay).sort().forEach(d => { const items = byDay[d]; for (let k = 0; k < items.length; k += 4) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: items.slice(k, k + 4) }); });
+    days.forEach(d => {
+      const items = newestFirst ? byDay[d].slice().reverse() : byDay[d];
+      for (let k = 0; k < items.length; k += 4) {
+        const chunk = items.slice(k, k + 4);
+        out.push({ sect: 'sync', page: 'sync', dateISO: d, items: chunk, ts: Math.max(0, ...chunk.map(x => x.ts || 0)) });
+      }
+    });
     return out;
   }
   function bosPages() {
     const all = bosAllPages();
     const out = [];
     for (const s of BOS_SECTS) {
-      const pages = [];
-      if (s.key === 'sync') syncPages().forEach(p => pages.push(p));
-      else if (s.key === 'lesson') lessonMarkPages().forEach(p => pages.push(p));
-      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; pages.push(p); });
+      let pages = [];
+      if (s.key === 'sync') pages = syncPages(s.reverse);
+      else if (s.key === 'lesson') pages = lessonMarkPages();
+      else {
+        pages = all.filter(p => s.kinds.includes(p.kind));
+        pages.forEach(p => { p.sect = s.key; });
+        if (s.reverse) pages = pages.slice().reverse();   // bosAllPages() is oldest-first
+      }
       // The title page leads its section — but only once the section has
       // something in it, so an unused section doesn't pad the book with a
       // part-title in front of nothing.
@@ -3423,24 +3476,81 @@
     return n;
   }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
-  // A section's LAST page (1-based, 0 = the section is empty). Every section is
-  // chronological, so that's where its NEWEST entry sits. `dateISO` narrows it to
-  // the last page belonging to that day — a day with 5+ coincidences spans two
-  // pages, and the one just saved is on the later of them.
   // The page (1-based, 0 = not in the book) a specific saved entry is ON — how a
   // bookmark lands on the exact reading you saved rather than the section's first.
   function bosPageOfEntry(id) {
     if (!id) return 0;
     return bosPages().findIndex(p => p.e && p.e.id === id) + 1;
   }
+  // The page holding a section's NEWEST entry (1-based, 0 = section empty), found
+  // by comparing TIMESTAMPS — so it is right whether the section reads oldest- or
+  // newest-first. `dateISO` narrows it to that day's newest page (a day with 5+
+  // coincidences spans two). A section title page is never the answer.
   function bosSectNewest(key, dateISO) {
-    let last = 0, day = 0;
+    let best = 0, bestTs = -1, day = 0, dayTs = -1;
     bosPages().forEach((p, i) => {
-      if (p.sect !== key) return;
-      last = i + 1;
-      if (dateISO && p.dateISO === dateISO) day = i + 1;
+      if (p.sect !== key || p.page === 'sectcover') return;
+      const ts = p.ts || 0;
+      if (ts > bestTs) { bestTs = ts; best = i + 1; }
+      if (dateISO && p.dateISO === dateISO && ts > dayTs) { dayTs = ts; day = i + 1; }
     });
-    return day || last;
+    return day || best;
+  }
+  /* ── saved lesson pages as snapshots ──────────────────────────────────
+     lsnapStage() writes the lesson reader's OWN card markup (minus the live CTA
+     button and the "tap to continue" hint — the parts of a screenshot you would
+     have cropped off) into a phone-shaped stage on that card's own background. */
+  function lsnapStage(c) {
+    const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">`;
+    return `<div class="lsnap-stage" style="background:${esc(c.bg || '#fdf9f3')};">
+      <div class="tcard">
+        <div class="deck-head">
+          <div class="tcard-kicker">${esc(c.kicker || '')}</div>
+          <div class="tcard-h">${esc(c.h || '')}</div>
+        </div>
+        ${art}
+        <div class="deck-text"><div class="tcard-body">${c.body || ''}</div></div>
+      </div>
+    </div>`;
+  }
+  // The stage is a fixed 360px-wide replica, so it is SCALED to whatever width
+  // it landed in — measured, not guessed, so it fits the book page and the
+  // enlarged view with the same code.
+  function lsnapFit() {
+    document.querySelectorAll('#bos-pagewrap .lsnap-frame').forEach(f => {
+      const st = f.querySelector('.lsnap-stage');
+      if (st && f.clientWidth) st.style.setProperty('--s', (f.clientWidth / 360).toFixed(4));
+    });
+  }
+  let lsnapOpen = null;   // { lesson, card } — what the Back link returns to
+  function openLsnap(lesson, card) {
+    const c = (LESSONS[lesson] || []).find(x => x.img === card);
+    if (!c) { closeBook(); go('school'); openLesson(lesson, card); return; }   // art changed: just go
+    lsnapOpen = { lesson, card };
+    const view = $('lsnap-view');
+    // As big as fits, whole card visible — no cropping in the enlarged view.
+    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / 620);
+    view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(620 * s)}px;">${lsnapStage(c)}</div>
+      <div class="lsnap-actions">
+        <button type="button" id="lsnap-back">Back to the lesson</button>
+        <button type="button" class="plain" id="lsnap-close">close</button>
+      </div>`;
+    view.querySelector('.lsnap-stage').style.setProperty('--s', s.toFixed(4));
+    view.style.display = ''; view.classList.add('show');
+    document.body.style.overflow = 'hidden';   // house rule: freeze the page behind
+    $('lsnap-close').addEventListener('click', closeLsnap);
+    $('lsnap-back').addEventListener('click', () => {
+      const at = lsnapOpen; closeLsnap();
+      closeBook(); go('school'); openLesson(at.lesson, at.card);
+    });
+    view.addEventListener('click', (e) => { if (e.target === view) closeLsnap(); }, { once: true });
+  }
+  function closeLsnap() {
+    const view = $('lsnap-view');
+    view.classList.remove('show'); view.style.display = 'none'; view.innerHTML = '';
+    lsnapOpen = null;
+    if ($('bos-reader').style.display !== 'none') document.body.style.overflow = 'hidden';   // the book is still open
+    else document.body.style.overflow = '';
   }
   function openBook(filter, opts) {
     // Always open on the contents page; a section request (school lesson CTAs)
@@ -3518,20 +3628,22 @@
       return;
     }
     if (p.page === 'lesson') {
-      // Bookmarked school pages as compact snapshots, two per row (up to 6 a
-      // page) — just enough to recognise the card. Tapping one jumps straight
-      // back to that exact card in the lesson, same as the old single return link.
+      // Bookmarked school pages as SNAPSHOTS of the card each one came from —
+      // same markup, same background, scaled down and cropped like a screenshot.
+      // Tapping one enlarges it; the small link under the enlarged one is what
+      // goes back into the lesson.
       let g = `<div class="bos-lesson-grid">`;
       p.marks.forEach(m => {
         const c = (LESSONS[m.lesson] || []).find(x => x.img === m.card);
-        g += `<div class="bos-lsnap" data-golesson="${esc(m.lesson)}" data-gocard="${esc(m.card || '')}">`;
+        g += `<div class="bos-lsnap" data-lsnap="${esc(m.lesson)}" data-lcard="${esc(m.card || '')}">`;
         g += c
-          ? `<img src="${SW_IMG}${c.img}.png" alt=""><div class="bos-lpk">${esc(c.kicker)}</div><div class="t">${esc(c.h)}</div>`
+          ? `<div class="lsnap-frame">${lsnapStage(c)}</div>`
           : `<div class="t">“${esc(LESSON_TITLES[m.lesson] || 'a lesson')}”</div><div class="bos-lpk">rewritten since saved</div>`;
         g += `</div>`;
       });
       g += `</div>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      lsnapFit();
       return;
     }
     let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
@@ -3602,8 +3714,8 @@
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
-    const gl = e.target.closest('[data-golesson]');
-    if (gl) { closeBook(); go('school'); openLesson(gl.dataset.golesson, gl.dataset.gocard); return; }
+    const gl = e.target.closest('[data-lsnap]');
+    if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
@@ -3639,14 +3751,25 @@
     $('bos-compose-save').addEventListener('click', () => {
       const text = $('bos-compose-text').value.trim(); if (!text) return;
       const all = journalLoad();
+      let wrote = null;
       if (isOutcome && bosOutcomeFor) {
         const e = all.find(x => x.id === bosOutcomeFor); if (e) e.outcome = text;
       } else {
         const ctx = $('bos-compose-context') ? $('bos-compose-context').value.trim() : '';
-        all.push({ id: 'j_' + Date.now(), type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
+        const id = 'j_' + Date.now();
+        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
+        wrote = { id, sect: bosSectOf(bosComposeType) };
       }
       journalSave(all); bosOutcomeFor = null; closeModal();
-      if ($('bos-reader').style.display !== 'none') { bosPageIdx = bosPages().length; renderBosPage(); }
+      // Land on the page the new entry is actually ON. This used to jump to the
+      // LAST page of the whole book, which was already the wrong section and is
+      // now doubly wrong: a new sign goes to the FRONT of Synchronicities. A sign
+      // has no page of its own (it joins a day's grid), so fall back to that
+      // section's newest page; an outcome edit stays where it was.
+      if (wrote && $('bos-reader').style.display !== 'none') {
+        bosPageIdx = bosPageOfEntry(wrote.id) || bosSectNewest(wrote.sect, todayISO()) || bosPages().length;
+        renderBosPage();
+      }
       updateBosCoverSub();
     });
   }
@@ -3672,6 +3795,7 @@
     c.style.height = Math.max(320, window.innerHeight - r.top - reserve) + 'px';
   }
   window.addEventListener('resize', sizeBosCover);
+  window.addEventListener('resize', () => { try { lsnapFit(); } catch (e) {} });
   requestAnimationFrame(sizeBosCover);
   // Miracles studio is no longer exposed (button removed) — its toggle is gone;
   // the dormant block stays hidden. Guard in case the button ever returns.
@@ -6040,6 +6164,7 @@
   registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
   registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
   registerFullPage('dream-app', closeDreamPage);    // the dream card full page
+  registerFullPage('lsnap-view', closeLsnap);       // enlarged saved lesson page
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz

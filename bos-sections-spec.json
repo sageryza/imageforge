@@ -3,6 +3,10 @@
            "storage:witch-school/refs/style-2.png"],
   "cards": [
     { "id": "bos-sync", "prompt": "Two identical small birds perched facing each other in perfect mirror symmetry on one thin bare branch, a single large four-point star floating in the gap between them, two tiny stars nearby. One clear subject, generous cream space, flat and simple." },
-    { "id": "bos-sync-b", "prompt": "Three identical moths in a neat vertical column, each exactly the same size and shape with wings spread flat and open, one small four-point star beside the middle moth. One clear subject, generous cream space, flat and simple." }
+    { "id": "bos-sync-b", "prompt": "Three identical moths in a neat vertical column, each exactly the same size and shape with wings spread flat and open, one small four-point star beside the middle moth. One clear subject, generous cream space, flat and simple." },
+    { "id": "bos-reading", "prompt": "Three identical tarot cards laid out in a neat horizontal row, all three face-down, each card back showing the same single four-point star, cards evenly spaced and exactly the same size. One clear subject, generous cream space, flat and simple." },
+    { "id": "bos-spell", "prompt": "Three identical small corked apothecary bottles standing in a neat horizontal row, all exactly the same size and shape, a sprig of dried herb tied to the middle bottle's neck, one tiny four-point star above it. One clear subject, generous cream space, flat and simple." },
+    { "id": "bos-dream", "prompt": "Three identical crescent moons stacked in a neat vertical column, each crescent exactly the same size and facing the same way, one small four-point star between each pair. One clear subject, generous cream space, flat and simple." },
+    { "id": "bos-lesson", "prompt": "Three identical closed books stacked neatly one on top of another, all exactly the same size, a thin ribbon bookmark hanging from the middle book, one small four-point star beside the top book. One clear subject, generous cream space, flat and simple." }
   ]
 }
