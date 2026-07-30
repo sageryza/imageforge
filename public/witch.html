@@ -667,6 +667,17 @@
     .ps-thumbs img.on { border-color: var(--gold); }
     .ps-title { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.2; margin-top: 14px; }
     .ps-price { color: var(--gold); font-size: 16px; margin-top: 6px; font-weight: 500; }
+    /* One dropdown per option (kit type, journal or not) like Etsy, instead of a
+       button per combination — a 12-variant product was a wall you had to
+       scroll past to reach the price. */
+    .ps-opts { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .ps-opt-l { display: block; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+    .ps-selwrap { position: relative; }
+    .ps-sel { -webkit-appearance: none; appearance: none; width: 100%; background: var(--surface); color: var(--text);
+              border: 1px solid var(--border); border-radius: 6px; padding: 11px 34px 11px 12px;
+              font-family: inherit; font-size: 14px; line-height: 1.2; cursor: pointer; }
+    .ps-selwrap .cv { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px;
+                      color: var(--text-dim); pointer-events: none; }
     .ps-vars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .ps-var { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
     .ps-var.on { border-color: var(--gold); color: var(--gold); }
@@ -3070,7 +3081,7 @@
       <div class="ps-title">${esc(p.title)}</div>
       <div class="ps-rating" id="ps-rating"></div>
       <div class="ps-price">${money(v.price)}</div>
-      ${showVars ? `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>` : ''}
+      ${showVars ? psVariantPicker(p, v) : ''}
       <div class="ps-row">
         <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
         <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
@@ -3101,6 +3112,49 @@
   }
   function psImg(i) { psState.img = i; renderProdSheet(); }
   function psVar(id) { psState.variantId = id; renderProdSheet(); }
+
+  /* ── variant picking: one dropdown per option, Etsy-style ───────────────
+     A kit with 4 sizes x journal-or-not is 8 variants; as buttons that was a
+     wall to scroll past. Products from before the server sent `options` (or a
+     stale cached payload) still get the old button list, so the sheet can never
+     end up with no way to choose. */
+  const CHEV = '<svg class="cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  function psVariantPicker(p, v) {
+    const opts = (p.options || []).filter(o => (o.values || []).length > 1);
+    if (!opts.length || !p.variants.some(x => x.options)) {
+      return `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === psState.variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>`;
+    }
+    const sel = v.options || {};
+    // A value with nothing buyable behind it says so, rather than silently
+    // bouncing you to another combination.
+    const soldOut = (name, val) => !p.variants.some(x => x.available && (x.options || {})[name] === val);
+    return `<div class="ps-opts">${opts.map(o => `
+      <label class="ps-opt"><span class="ps-opt-l">${esc(o.name)}</span>
+        <span class="ps-selwrap">
+          <select class="ps-sel" data-opt="${esc(o.name)}" onchange="psOpt(this)">
+            ${o.values.map(val => `<option value="${esc(val)}"${sel[o.name] === val ? ' selected' : ''}>${esc(val)}${soldOut(o.name, val) ? ' — sold out' : ''}</option>`).join('')}
+          </select>${CHEV}
+        </span>
+      </label>`).join('')}</div>`;
+  }
+  // Picking a value keeps every other choice if that combination exists; when it
+  // doesn't (Shopify grids have holes), it moves to the nearest variant that
+  // does have this value — preferring one in stock — and the other dropdowns
+  // follow, so what's on screen is always a real, buyable variant.
+  function psOpt(el) {
+    if (!psState) return;
+    const p = psState.p;
+    const cur = p.variants.find(x => x.id === psState.variantId) || p.variants[0] || {};
+    const want = { ...(cur.options || {}) };
+    want[el.dataset.opt] = el.value;
+    const names = Object.keys(want);
+    const exact = p.variants.filter(x => names.every(n => (x.options || {})[n] === want[n]));
+    const pick = exact.find(x => x.available) || exact[0]
+      || p.variants.find(x => x.available && (x.options || {})[el.dataset.opt] === el.value)
+      || p.variants.find(x => (x.options || {})[el.dataset.opt] === el.value);
+    if (pick) psState.variantId = pick.id;
+    renderProdSheet();
+  }
 
   /* ── reviews (mirrored from the Etsy shop, served by /api/witch/shop/
      reviews). Cached per handle so re-renders (variant taps) are free.
