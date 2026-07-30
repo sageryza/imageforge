@@ -506,6 +506,11 @@ lifted into a standalone tool later.
   - The same instructions are folded into the top of every Assets tab ("How to
     post prompts & reply to notes", `howToPost()` in `public/chats.html`) — keep
     the two in sync.
+  - **The Assets tab has a search bar** that filters the tiles as she types,
+    matching an image's label, its model/quality caption, BOTH halves of its
+    prompt, and every message in its note thread — so a filed prompt is what
+    makes an image findable later. It stacks with the New/♥/Hide ✕ filter and
+    runs client-side over the already-loaded tiles (no request per keystroke).
 - **The `/chats` header reserves the pill's corner.** The autoscroll pill is
   `position:fixed` over the top-right (x 324–374, y 14–192 on an iPhone 13), so
   ANY header control reaching that corner is untappable — the rename pencil was,
