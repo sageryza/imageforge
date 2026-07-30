@@ -24,7 +24,8 @@ const SOURCE_LABEL = {
 
 function card(d, i) {
   const tabs = [];
-  if (d.illustrations.length) tabs.push(['art', d.illustrations.length > 1 ? `Drawings ${d.illustrations.length}` : 'Drawing']);
+  // Just the plural — a bare number after the word read as part of its name.
+  if (d.illustrations.length) tabs.push(['art', d.illustrations.length > 1 ? 'Drawings' : 'Drawing']);
   if (d.text && d.text.trim()) tabs.push(['text', 'Words']);
   if (d.audio) tabs.push(['audio', 'Listen']);
   const first = tabs.length ? tabs[0][0] : null;
@@ -189,6 +190,7 @@ document.addEventListener('click', (e) => {
     const words = more.closest('.words');
     if (words === openWords) { closeOpen(true); return; }
     closeOpen(false);
+    if (window.__scrollStop) window.__scrollStop();
     words.classList.add('open');
     more.textContent = 'Close';
     openWords = words;
@@ -238,6 +240,12 @@ document.addEventListener('click', (e) => {
   big.src = img.src;
   big.style.cssText = 'max-width:100%;max-height:100%;border-radius:6px';
   o.appendChild(big);
+  // The pill (injected by the server) keeps running behind a position:fixed
+  // body — invisible while the drawing is open, then resuming the moment it
+  // closes, which reads as "closing started the autoscroll". Stop it properly
+  // through its own API, and never restart it on close: the house rule is that
+  // opening a picture pauses autoscroll, not that closing resumes it.
+  if (window.__scrollStop) window.__scrollStop();
   lockScroll();
   const close = () => { o.remove(); unlockScroll(); document.removeEventListener('keydown', onKey); };
   const onKey = (ev) => { if (ev.key === 'Escape') close(); };
