@@ -643,8 +643,6 @@
     .shop-cats::-webkit-scrollbar { display: none; }
     .shop-cat { flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-family: inherit; font-size: 12.5px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
     .shop-cat.on { border-color: var(--gold); color: var(--gold); }
-    .shop-cat .cc { color: var(--text-faint); font-size: 11px; margin-left: 4px; }
-    .shop-cat.on .cc { color: var(--gold-dim); }
     /* In-app buying: cart button, product sheet, cart sheet */
     .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .cart-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
@@ -710,7 +708,11 @@
                       background: var(--gold); transform: translateX(0); transition: transform 0.2s ease; }
     .ps-tabs[data-on="reviews"]::after { transform: translateX(100%); }
     /* ── a rating under every shop thumbnail ── */
-    .shop-item .srev { display: flex; align-items: center; gap: 2px; margin-top: 5px; min-height: 13px; }
+    /* Its own tap target — the stars open the product's reviews directly.
+       align-self keeps the row only as wide as the stars, so the tap that
+       misses them still opens the product normally. */
+    .shop-item .srev { display: flex; align-self: flex-start; align-items: center; gap: 2px;
+                       margin-top: 5px; min-height: 13px; padding: 2px 2px 3px; cursor: pointer; }
     .shop-item .srev .rv-star { width: 11px; height: 11px; stroke-width: 1.5; }
     .shop-item .srev .n { font-size: 11px; color: var(--text-faint); margin-left: 3px; }
     /* ── product reviews (mirrored from Etsy) ── */
@@ -3049,7 +3051,7 @@
       const cats = (d.categories || []).filter(c => SHOP_ITEMS.some(p => p.category === c.key));
       $('shop-cats').innerHTML = cats.length > 1
         ? [{ key: 'all', name: 'All', count: SHOP_ITEMS.length }, ...cats].map(c =>
-            `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}<span class="cc">${c.count}</span></button>`).join('')
+            `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}</button>`).join('')
         : '';
       renderShopGrid();
       wrap.dataset.loaded = '1';
@@ -3059,6 +3061,14 @@
       await done();
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
+  }
+  // Shopify's CDN resizes on request. The grid was pulling each product's
+  // FULL-SIZE original — ~150KB a tile, 54 of them — into a 180px square, which
+  // is what makes thumbnails crawl or give up on a phone connection. Asking for
+  // the size we actually draw cuts a tile to ~45KB.
+  function shopImg(u, w) {
+    if (!u || !/\.shopify\.com\//.test(u) || /[?&]width=/.test(u)) return u;
+    return u + (u.includes('?') ? '&' : '?') + 'width=' + w;
   }
   function renderShopGrid() {
     const wrap = $('shop-grid');
@@ -3074,7 +3084,7 @@
       const lo = p.priceMin || p.price;
       const ranged = p.priceMin && p.priceMax && parseFloat(p.priceMax) > parseFloat(p.priceMin);
       const price = lo ? `${ranged ? 'from ' : ''}$${lo}` : '';
-      const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
+      const img = p.image ? `<img class="simg" src="${esc(shopImg(p.image, 500))}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
       // In-app buying: tap opens the product sheet. The href stays as a
       // long-press/no-JS fallback to the store's product page.
       return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
@@ -3083,16 +3093,19 @@
           <div class="stitle">${esc(shortTitle(p.title))}</div>
           ${srev(p.handle)}
           ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
-          ${srev(p.handle)}
           ${p.available ? '' : '<div class="soos">Sold out</div>'}
         </div>
       </a>`;
     }).join('');
   }
+  // The stars are their own target: tapping them opens the product straight on
+  // its reviews, rather than the description you'd then have to switch away from.
   function srev(handle) {
     const r = SHOP_REV[handle];
     if (!r || !r.count) return '<div class="srev"></div>';
-    return `<div class="srev">${starRow(r.average)}<span class="n">(${r.count.toLocaleString()})</span></div>`;
+    return `<div class="srev" role="button" tabindex="0" aria-label="Read the ${r.count.toLocaleString()} reviews"
+      onclick="event.preventDefault();event.stopPropagation();openProduct('${esc(handle)}','reviews')"
+      >${starRow(r.average)}<span class="n">(${r.count.toLocaleString()})</span></div>`;
   }
   // Every tile's rating in ONE request (not one per thumbnail), then redraw.
   // Ratings are garnish: a failure just leaves the rows empty.
@@ -3138,7 +3151,7 @@
   }
 
   // ── product sheet ──
-  async function openProduct(handle) {
+  async function openProduct(handle, tab) {
     const bg = $('prod-sheet-bg'), sh = $('prod-sheet');
     bg.style.display = ''; bg.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -3148,7 +3161,7 @@
       const p = PROD_CACHE[handle] || (PROD_CACHE[handle] = await apiGet('/api/witch/shop/product/' + encodeURIComponent(handle)));
       await done();
       const firstAvail = p.variants.find(v => v.available) || p.variants[0] || null;
-      psState = { p, handle, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0 };
+      psState = { p, handle, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0, tab: tab || 'desc' };
       renderProdSheet();
     } catch (e) {
       await done();
@@ -3163,8 +3176,8 @@
     const revCount = (REV_CACHE[psState.handle] || {}).count || 0;
     sh.innerHTML = `
       <button class="ps-back" onclick="closeProdSheet()" aria-label="Back to the shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
-      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(u)}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
+      <img class="ps-img" src="${esc(shopImg(p.images[img] || p.images[0] || '', 1000))}" alt="">
+      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(shopImg(u, 160))}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
       <div class="ps-title">${esc(p.title)}</div>
       <div class="ps-rating" id="ps-rating"></div>
       <div class="ps-price">${money(v.price)}</div>
@@ -4848,7 +4861,7 @@
     // must point at the STORE — secretlyawitch.com is this app now, so
     // /products/* there just 301s back out to Shopify and dumps you off the app.
     el.innerHTML = row.map(p => `<a class="pcard" href="${LINKS.shop}/products/${p.handle}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
-      <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
+      <div class="pimg-wrap"><img class="pimg" src="${esc(shopImg(p.img, 500))}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">${esc(p.price)}</div>
       ${p.badge === 'new' ? `<div class="pnew">New product available! <span class="js-star"></span></div>` : ''}
