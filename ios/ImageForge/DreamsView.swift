@@ -106,9 +106,20 @@ private struct DreamsWebView: UIViewRepresentable {
         /// Read a copied audio recording off the clipboard, transcribe it via the
         /// server, and drop the text into the dream box. Mirrors how the native
         /// app used to accept a pasted Voice Memo.
+        /// The clipboard's changeCount from the last paste — Copy on a long
+        /// Voice Memo takes a moment to actually land on the clipboard, so a
+        /// too-quick paste silently grabs the PREVIOUS recording. If nothing
+        /// new was copied since last time, say so (but still paste it — a
+        /// deliberate re-paste of the same memo stays possible).
+        private static var lastPasteChangeCount = -1
+
         private func pasteRecording() {
             guard let web = webView else { return }
             let pb = UIPasteboard.general
+            if pb.changeCount == Self.lastPasteChangeCount {
+                run("window.__pasteAudioNote && window.__pasteAudioNote(\(jsString("Heads up — this is the same copy as last time. If you meant a new recording, give Copy a second to finish, then tap paste again.")))")
+            }
+            Self.lastPasteChangeCount = pb.changeCount
             let provider = pb.itemProviders.first { p in
                 p.registeredTypeIdentifiers.contains { UTType($0)?.conforms(to: .audio) == true }
             }
@@ -131,7 +142,7 @@ private struct DreamsWebView: UIViewRepresentable {
         /// POST the audio to /api/movies/dream/transcribe and inject the text.
         /// Done natively (not in the page) so the megabytes of audio never have
         /// to cross into JavaScript — only the resulting transcript does.
-        private func transcribe(data: Data, mime: String) {
+        private func transcribe(data: Data, mime: String, attempt: Int = 0) {
             guard let url = URL(string: MovieService.serverURL + "/api/movies/dream/transcribe") else { return }
             let dataURL = "data:\(mime);base64," + data.base64EncodedString()
             var req = URLRequest(url: url, timeoutInterval: 240)
@@ -145,6 +156,15 @@ private struct DreamsWebView: UIViewRepresentable {
                 if let respData,
                    let obj = try? JSONSerialization.jsonObject(with: respData) as? [String: Any],
                    let t = obj["text"] as? String { text = t }
+                // A dropped connection / timeout gets two automatic retries
+                // before the error ever reaches the screen — the audio is
+                // still in hand, so re-sending costs nothing.
+                if text.isEmpty, err != nil, attempt < 2 {
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 2.5) {
+                        self.transcribe(data: data, mime: mime, attempt: attempt + 1)
+                    }
+                    return
+                }
                 DispatchQueue.main.async {
                     if text.isEmpty {
                         let msg = err?.localizedDescription ?? "Couldn't read that recording"
