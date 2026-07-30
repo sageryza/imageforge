@@ -390,6 +390,19 @@ async function loadDreamBatch(id) {
   return memDreamBatch.get(id) || null;
 }
 
+// Idempotency: the page sends a random `key` with POST /dream so a retry after
+// a dropped connection returns the batch the first attempt already created,
+// instead of reading (and billing) the same recording twice.
+async function loadDreamBatchByKey(key) {
+  const db = firestore();
+  if (db) {
+    const snap = await db.collection(DREAM_BATCH_COLLECTION).where('key', '==', key).limit(1).get();
+    return snap.empty ? null : snap.docs[0].data();
+  }
+  for (const b of memDreamBatch.values()) if (b.key === key) return b;
+  return null;
+}
+
 // Turn a breakdown's plans into stored dream docs. Factored out so both the
 // synchronous POST /dream (back-compat) and the background batch use it.
 async function createDreamDocs(plans, text, title, owner) {
@@ -456,9 +469,20 @@ async function saveBufferToStorage(buffer, contentType, folder) {
   if (!b) return `data:${contentType};base64,${buffer.toString('base64')}`;
   const filename = `${folder}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
   const file = b.file(filename);
-  await file.save(buffer, { metadata: { contentType } });
-  await file.makePublic();
-  return `https://storage.googleapis.com/${b.name}/${filename}`;
+  // Retried: by this point the image is generated and paid for — losing it to
+  // a transient Storage/network blip would waste the whole render.
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await file.save(buffer, { metadata: { contentType } });
+      await file.makePublic();
+      return `https://storage.googleapis.com/${b.name}/${filename}`;
+    } catch (err) {
+      lastErr = err;
+      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 // Download with retries + size verification — replicate.delivery truncated
@@ -980,11 +1004,15 @@ HARD RULES:
 - "text" must be a verbatim slice of the recording, left in narrated order.
 - "mentions": one entry per distinct person, deduplicated ("my dad" and "Dad" are one). "desc" is ONLY what the dreamer said about how they looked — never invent one; use "" when none was given.`;
   const user = `The dream recording:\n\n${recording}`;
-  const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
-    ? await anthropicChatJSON(sys, user, { maxTokens: 6000 })
-    : await openaiChatJSON(
+  const ask = () => /claude/i.test(DREAM_BREAKDOWN_MODEL)
+    ? anthropicChatJSON(sys, user, { maxTokens: 6000 })
+    : openaiChatJSON(
         [{ role: 'system', content: sys }, { role: 'user', content: user }],
         { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: DREAM_SPLIT_EFFORT, retries: 2 });
+  let out = await ask();
+  // An empty split is a bad model roll, not a verdict on the recording —
+  // re-ask once before reaching for the fallback below.
+  if (!Array.isArray(out.dreams) || !out.dreams.length) out = await ask().catch(() => ({}));
   const raw = Array.isArray(out.dreams) ? out.dreams : [];
   const dreams = raw.map((d) => ({
     title: String(d.title || 'Untitled dream').trim(),
@@ -1001,7 +1029,16 @@ HARD RULES:
     }).filter(m => m.name).slice(0, 12),
     cast: [], characters: '', beats: [],
   })).filter(d => d.text);
-  if (!dreams.length) throw new Error('dream split found no dreams in the recording');
+  // Never fail the reading because the splitter came back empty ("dream split
+  // found no dreams in the recording", seen live 2026-07-30): the WHOLE
+  // recording as ONE dream is always a valid reading — the dreamer can still
+  // approve, cast, and render it.
+  if (!dreams.length) {
+    dreams.push({
+      title: 'Untitled dream', text: recording, driftCues: [],
+      mentions: [], cast: [], characters: '', beats: [],
+    });
+  }
   return { dreams };
 }
 
@@ -1508,6 +1545,52 @@ async function renderDreamPage(dream, group, quality, rendered) {
   return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
 }
 
+// ─── Resilient page drawing ─────────────────────────────────────────
+// Draw every planned page, then RE-TRY the failures in up to two more rounds
+// with a real pause before each. Each render call already retries its own
+// HTTP hiccups, but those retries span only a few seconds — a network blip
+// that lasts a minute used to burn through every page's attempts and drop
+// them all (the 2026-07-30 "3 of 3 pages failed" render). The rounds spread
+// attempts over ~a minute so the blip heals inside the job. Failures keep
+// their error messages (they used to be discarded) so the job error says WHY.
+// `drawOne(i, slots)` renders slot i (slots = all pages so far, sparse, for
+// carry-over refs); `persist(slots)` runs after every landed page so pages
+// already paid for survive a crash or a Render restart mid-job.
+async function drawPagesResilient(total, drawOne, progress, persist) {
+  const slots = new Array(total).fill(null);
+  const errors = new Map();
+  const pauses = [0, 20000, 45000];
+  for (let round = 0; round < pauses.length; round++) {
+    const missing = [];
+    for (let i = 0; i < total; i++) if (!slots[i]) missing.push(i);
+    if (!missing.length) break;
+    if (round) {
+      await progress(total - missing.length, total,
+        `retrying ${missing.length} page${missing.length > 1 ? 's' : ''}`);
+      await new Promise(r => setTimeout(r, pauses[round]));
+    }
+    for (const i of missing) {
+      try {
+        slots[i] = await drawOne(i, slots);
+        errors.delete(i);
+        await persist(slots);
+      } catch (err) {
+        errors.set(i, err.message);
+        console.warn(`movies: dream page ${i + 1}/${total} failed (round ${round + 1}) —`, err.message);
+      }
+      await progress(slots.filter(Boolean).length, total, 'drawing pages');
+    }
+  }
+  const failed = total - slots.filter(Boolean).length;
+  if (failed) {
+    const why = [...new Set(errors.values())].join('; ').slice(0, 400);
+    throw new Error(`${failed} of ${total} pages failed after 3 rounds of retries`
+      + (why ? ` — ${why}` : '')
+      + '. The finished pages are kept — re-render to fill the gaps.');
+  }
+  return slots;
+}
+
 // ─── Dream pages: the beats drawn as a comic ────────────────────────
 // The same 2x2 style engine the zine uses, but the captions are the beats'
 // own caption lines (not scene titles) and there is no cover. Beats pack
@@ -1524,30 +1607,41 @@ async function makeDreamPages(dream, quality, progress) {
   for (let i = 0; i < items.length; i += 4) groups.push(items.slice(i, i + 4));
   normalizeDreamCast(dream);   // keep cast[{name,look}] metadata for readers
   const total = groups.length;
-  let done = 0;
-  await progress(done, total, 'drawing pages');
-  const rendered = [];   // { url, who:Set<name> } — earlier pages, in order, to reference
-  const pages = [];
-  let failed = 0;
-  for (const group of groups) {
-    try {
-      const page = await renderDreamPage(dream, group, quality, rendered);
-      dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+  await progress(0, total, 'drawing pages');
+  const persist = dreamPagePersister(dream, quality);
+  await drawPagesResilient(total, async (i, slots) => {
+    // Earlier pages as character refs — { url, who:Set<name> }, in page order.
+    const rendered = [];
+    slots.forEach((pg, j) => {
+      if (!pg) return;
       const who = new Set();
-      group.forEach(s => (s.who || []).forEach(n => who.add(String(n))));
-      rendered.push({ url: page.url, who });
-      pages.push({ url: page.url, promptUsed: page.prompt, beatIds: group.map(s => s.id) });
-    } catch { failed++; }
-    await progress(++done, total, 'drawing pages');
-  }
-  // Keep the previous render — re-rolls are never lost.
-  if (dream.pages?.length) {
-    dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
-  }
-  dream.pages = pages;
-  dream.pagesQuality = quality;
-  dream.pagesMadeAt = new Date().toISOString();
-  if (failed) throw new Error(`${failed} of ${groups.length} pages failed — the finished pages are kept; re-render to fill the gaps`);
+      groups[j].forEach(s => (s.who || []).forEach(n => who.add(String(n))));
+      rendered.push({ url: pg.url, who });
+    });
+    const page = await renderDreamPage(dream, groups[i], quality, rendered);
+    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+    return { url: page.url, promptUsed: page.prompt, beatIds: groups[i].map(s => s.id) };
+  }, progress, persist);
+}
+
+// Shared by both render paths: the first page that lands rotates the previous
+// render into pageHistory ("re-rolls are never lost"), then dream.pages tracks
+// every page as it arrives — persisted by the job's throttled saves, so a
+// crash or Render restart mid-render never loses pages already paid for. A
+// render where NOTHING lands leaves the previous pages untouched.
+function dreamPagePersister(dream, quality) {
+  let rotated = false;
+  return (slots) => {
+    if (!rotated) {
+      if (dream.pages?.length) {
+        dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
+      }
+      rotated = true;
+      dream.pagesQuality = quality;
+    }
+    dream.pages = slots.filter(Boolean);
+    dream.pagesMadeAt = new Date().toISOString();
+  };
 }
 
 // ─── Dream pages v2 (staged flow): allot text per image, then draw ──
@@ -1651,37 +1745,39 @@ async function makeDreamPagesV2(dream, quality, progress) {
   const plans = await dreamPaginate(dream, castNames);
   dream.pagePlan = plans;
   const total = plans.length;
-  let done = 0;
-  await progress(done, total, 'drawing pages');
-  const rendered = [];
-  const pages = [];
-  let failed = 0;
-  for (let i = 0; i < plans.length; i++) {
-    try {
-      const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
-      dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-      rendered.push({ url: page.url, who: new Set(plans[i].who || []) });
-      pages.push({ url: page.url, promptUsed: page.prompt, text: plans[i].text, captions: plans[i].captions || [], who: plans[i].who || [] });
-    } catch { failed++; }
-    await progress(++done, total, 'drawing pages');
-  }
-  if (dream.pages?.length) {
-    dream.pageHistory = [...(dream.pageHistory || []), { pages: dream.pages, quality: dream.pagesQuality, madeAt: dream.pagesMadeAt }].slice(-3);
-  }
-  dream.pages = pages;
-  dream.pagesQuality = quality;
-  dream.pagesMadeAt = new Date().toISOString();
-  if (failed) throw new Error(`${failed} of ${total} pages failed — the finished pages are kept; re-render to fill the gaps`);
+  await progress(0, total, 'drawing pages');
+  const persist = dreamPagePersister(dream, quality);
+  await drawPagesResilient(total, async (i, slots) => {
+    const rendered = slots.filter(Boolean).map(pg => ({ url: pg.url, who: new Set(pg.who || []) }));
+    const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
+    dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
+    return { url: page.url, promptUsed: page.prompt, text: plans[i].text, captions: plans[i].captions || [], who: plans[i].who || [] };
+  }, progress, persist);
+}
+
+// Background jobs run in THIS process — if a stored doc says a job is running
+// but this process isn't running it, the process restarted (deploy / crash)
+// and the job is dead. Readers flip it to a clear error instead of letting
+// the app poll a corpse until a timeout. The grace window covers the brief
+// two-instance overlap during a zero-downtime deploy, where the OLD instance
+// is still legitimately drawing while the new one answers reads.
+const LIVE_DREAM_JOBS = new Set();
+const DEAD_JOB_GRACE_MS = 2 * 60 * 1000;
+function dreamJobDied(doc) {
+  const j = doc && doc.job;
+  return !!(j && j.status === 'running' && !LIVE_DREAM_JOBS.has(doc.id)
+    && Date.now() - new Date(j.startedAt || 0).getTime() > DEAD_JOB_GRACE_MS);
 }
 
 // Same background-job envelope as startJob, but persisted to the dreams
 // collection (a dream is not a movie, so it can't ride saveMovie).
 async function startDreamJob(dream, kind, fn) {
-  if (dream.job && dream.job.status === 'running') {
+  if (dream.job && dream.job.status === 'running' && LIVE_DREAM_JOBS.has(dream.id)) {
     const age = Date.now() - new Date(dream.job.startedAt || 0).getTime();
     if (age < 15 * 60 * 1000) throw new Error(`a "${dream.job.kind}" job is already running`);
   }
   dream.job = { kind, status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: new Date().toISOString() };
+  LIVE_DREAM_JOBS.add(dream.id);
   await saveDream(dream);
   (async () => {
     let lastSave = 0;
@@ -1697,6 +1793,7 @@ async function startDreamJob(dream, kind, fn) {
       dream.job = { ...dream.job, status: 'error', error: err.message };
     }
     await saveDream(dream).catch(e => console.warn('movies: dream save failed —', e.message));
+    LIVE_DREAM_JOBS.delete(dream.id);
   })();
 }
 
@@ -2454,6 +2551,15 @@ router.post('/dream', async (req, res) => {
     const owner = cleanOwner((req.body || {}).owner);
     if (!dream || !String(dream).trim()) return res.status(400).json({ error: 'dream is required' });
     const text = String(dream).trim();
+    // A retried POST (dropped connection) re-sends the same key — return the
+    // batch the first attempt created. Checked BEFORE the guest cap so a
+    // guest's retry doesn't burn a second day.
+    const key = typeof (req.body || {}).key === 'string' && req.body.key.trim()
+      ? req.body.key.trim().slice(0, 64) : null;
+    if (background && key) {
+      const existing = await loadDreamBatchByKey(key);
+      if (existing) return res.json({ batchId: existing.id, batch: existing });
+    }
     // Guest daily cap: one reading per person per day.
     if (owner && !(await claimGuestDay(owner))) {
       return res.status(429).json({ error: "That's your dream for today ✨ — come back tomorrow to illustrate another." });
@@ -2468,12 +2574,14 @@ router.post('/dream', async (req, res) => {
         id: 'db' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         status: 'reading',            // reading → done | error
         label: 'reading your dream',
+        key,
         dreamIds: [],
         dreamCount: 0,
         error: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      LIVE_DREAM_JOBS.add(batch.id);
       await saveDreamBatch(batch);
       (async () => {
         try {
@@ -2498,6 +2606,7 @@ router.post('/dream', async (req, res) => {
           batch.error = err.message;
         }
         await saveDreamBatch(batch).catch(e => console.warn('movies: batch save failed —', e.message));
+        LIVE_DREAM_JOBS.delete(batch.id);
       })();
       return res.json({ batchId: batch.id, batch });
     }
@@ -2525,10 +2634,14 @@ router.get('/dream-batch/:id', async (req, res) => {
   try {
     const batch = await loadDreamBatch(req.params.id);
     if (!batch) return res.status(404).json({ error: 'reading not found' });
+    // Dead fast if the process restarted mid-reading (the job can't finish);
+    // the age-based stale check stays as the backstop.
     if (batch.status === 'reading'
-        && Date.now() - new Date(batch.createdAt || 0).getTime() > DREAM_BATCH_STALE_MS) {
+        && ((!LIVE_DREAM_JOBS.has(batch.id)
+             && Date.now() - new Date(batch.createdAt || 0).getTime() > DEAD_JOB_GRACE_MS)
+            || Date.now() - new Date(batch.createdAt || 0).getTime() > DREAM_BATCH_STALE_MS)) {
       batch.status = 'error';
-      batch.error = 'reading took too long — try Illustrate again';
+      batch.error = 'the reading was interrupted — tap Illustrate again';
       await saveDreamBatch(batch).catch(() => {});
     }
     const out = { ...batch, dreams: [] };
@@ -2548,6 +2661,13 @@ router.get('/dream/:id', async (req, res) => {
   try {
     const doc = await loadDream(req.params.id);
     if (!doc) return res.status(404).json({ error: 'dream not found' });
+    // A job left 'running' by a process that no longer exists would be polled
+    // forever — surface it as an error the app can act on. Pages drawn before
+    // the restart were persisted as they landed, so nothing paid for is lost.
+    if (dreamJobDied(doc)) {
+      doc.job = { ...doc.job, status: 'error', error: 'the drawing was interrupted by a server restart — the finished pages are kept; re-render to fill the gaps' };
+      await saveDream(doc).catch(() => {});
+    }
     res.json(doc);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
