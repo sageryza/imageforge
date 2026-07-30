@@ -142,13 +142,22 @@ async function handleMap() {
   return mapCache.map;
 }
 
+let idsCache = { at: 0, ids: [] };
+async function parentIds() {
+  if (idsCache.ids.length && Date.now() - idsCache.at < 10 * 60 * 1000) return idsCache.ids;
+  try {
+    const docs = await db().collection(COL).listDocuments();
+    idsCache = { at: Date.now(), ids: docs.map(d => d.id) };
+  } catch { idsCache = { at: Date.now(), ids: idsCache.ids }; }
+  return idsCache.ids;
+}
+
 async function resolveListingId(handle) {
   const map = await handleMap();
   if (map[handle]) return String(map[handle]);
   const m = /-(\d{4,6})$/.exec(handle || '');
   if (!m) return null;
-  const parents = await db().collection(COL).listDocuments();
-  const hits = parents.map(d => d.id).filter(id => id.endsWith(m[1]));
+  const hits = (await parentIds()).filter(id => id.endsWith(m[1]));
   return hits.length === 1 ? hits[0] : null;
 }
 
@@ -164,6 +173,21 @@ router.get('/', async (req, res) => {
     const g = await db().collection(META).doc('global').get();
     const global = g.exists ? { count: g.data().count || 0, average: g.data().average || 0 } : { count: 0, average: 0 };
     if (req.query.summary === '1') return res.json({ global });
+
+    // GET /?handles=a,b,c → { items: { handle: {count, average} } }. The shop
+    // grid shows a rating under every tile, so it asks ONCE for the whole shelf
+    // instead of firing a request per thumbnail.
+    const many = String(req.query.handles || '').split(',').map(h => h.trim()).filter(Boolean).slice(0, 150);
+    if (many.length) {
+      const ids = await Promise.all(many.map(h => resolveListingId(h).catch(() => null)));
+      const uniq = [...new Set(ids.filter(Boolean))];
+      const snaps = uniq.length ? await db().getAll(...uniq.map(id => db().collection(COL).doc(id))) : [];
+      const byId = {};
+      snaps.forEach(sn => { if (sn.exists) byId[sn.id] = { count: sn.data().count || 0, average: sn.data().average || 0 }; });
+      const items = {};
+      many.forEach((h, i) => { const hit = ids[i] && byId[ids[i]]; if (hit && hit.count) items[h] = hit; });
+      return res.json({ global, items });
+    }
 
     const handle = String(req.query.handle || '');
     if (!handle) return res.status(400).json({ error: 'handle required' });
