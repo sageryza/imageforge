@@ -24,9 +24,9 @@ const SOURCE_LABEL = {
 
 function card(d, i) {
   const tabs = [];
-  if (d.illustrations.length) tabs.push(['art', 'Drawing' + (d.illustrations.length > 1 ? ` (${d.illustrations.length})` : '')]);
+  if (d.illustrations.length) tabs.push(['art', d.illustrations.length > 1 ? `Drawings ${d.illustrations.length}` : 'Drawing']);
   if (d.text && d.text.trim()) tabs.push(['text', 'Words']);
-  if (d.audio) tabs.push(['audio', 'Listen' + (d.audioSeconds ? ' ' + mmss(d.audioSeconds) : '')]);
+  if (d.audio) tabs.push(['audio', 'Listen']);
   const first = tabs.length ? tabs[0][0] : null;
 
   const panes = [];
@@ -56,7 +56,7 @@ function card(d, i) {
   if (d.audio) {
     panes.push(`<div class="pane${first === 'audio' ? ' on' : ''}" data-p="audio">
       <audio controls preload="none" src="${esc(BASE + d.audio)}"></audio>
-      <p class="anote">${esc(d.audioNote || 'Your own voice, the morning you recorded it.')}</p></div>`);
+      <p class="anote">${d.audioSeconds ? esc(mmss(d.audioSeconds)) + ' · ' : ''}${esc(d.audioNote || 'Your own voice, the morning you recorded it.')}</p></div>`);
   }
 
   // Superseded attempts are kept rather than deleted, so their drawings have to
@@ -68,7 +68,7 @@ function card(d, i) {
     panes.push(`<div class="pane" data-p="old"><p class="anote">Earlier drawings of this dream, kept as history.</p>${
       extraArt.map((u) => `<img loading="lazy" src="${esc(u)}" alt="earlier drawing">`).join('')
     }</div>`);
-    tabs.push(['old', `Earlier art (${extraArt.length})`]);
+    tabs.push(['old', 'Earlier']);
   }
 
   const flags = [];
@@ -84,7 +84,7 @@ function card(d, i) {
       ${d.unsplit ? `<p class="note">This recording was never split into separate dreams, so the words below are the whole thing — several dreams in a row.${
         d.alsoTitled && d.alsoTitled.length ? ` The others in it were called: ${esc(d.alsoTitled.join(', '))}.` : ''}</p>` : ''}
     </header>
-    ${tabs.length > 1 ? `<nav class="tabs">${tabs.map(([k, l], n) => `<button data-t="${k}"${n === 0 ? ' class="on"' : ''}>${esc(l)}</button>`).join('')}</nav>` : ''}
+    ${tabs.length > 1 ? `<nav class="tabs" style="--n:${tabs.length}" data-i="0">${tabs.map(([k, l], n) => `<button data-t="${k}"${n === 0 ? ' class="on"' : ''}>${esc(l)}</button>`).join('')}</nav>` : ''}
     ${panes.join('')}
   </article>`;
 }
@@ -113,10 +113,16 @@ h2{font-size:19px;margin:4px 0 3px}
   font-style:normal;vertical-align:1px;cursor:help}
 .inc,.vers{display:inline-block;font-size:11px;text-transform:none;letter-spacing:0;
   color:#8a8074;border:1px solid #ddd4c6;border-radius:6px;padding:0 6px;margin-left:4px}
-.tabs{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
-.tabs button{font:inherit;font-size:14px;padding:5px 12px;border-radius:6px;
-  border:1px solid #ddd4c6;background:#fff;color:#5d564e;cursor:pointer}
-.tabs button.on{background:#2a2622;border-color:#2a2622;color:#f7f4ee}
+/* Same shape as the shop's Description / Reviews tabs: equal-width plain text,
+   gold when active, a sliding rule beneath, one hairline under the row. Sized
+   from --n because a dream has one, two or three of them. */
+.tabs{position:relative;display:flex;border-bottom:1px solid #ddd4c6;margin:0 0 14px}
+.tabs button{flex:1 1 0;padding:10px 6px 12px;border:0;background:none;color:#8a8074;
+  font:inherit;font-size:14px;cursor:pointer}
+.tabs button.on{color:#9c6f33;font-weight:600}
+.tabs::after{content:'';position:absolute;left:0;bottom:-1px;height:2px;background:#9c6f33;
+  width:calc(100% / var(--n));transform:translateX(calc(100% * var(--i, 0)));
+  transition:transform .2s ease}
 .pane{display:none}
 .pane.on{display:block}
 /* Drawings sit two to a row and open bigger on tap. A lone drawing still
@@ -192,7 +198,10 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('.tabs button');
   if (!b) return;
   const art = b.closest('article');
-  art.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  const nav = b.closest('.tabs');
+  const all = [...nav.querySelectorAll('button')];
+  nav.style.setProperty('--i', all.indexOf(b));
+  all.forEach(x => x.classList.toggle('on', x === b));
   art.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.dataset.p === b.dataset.t));
 });
 // House rule: opening an image freezes the page behind it.
