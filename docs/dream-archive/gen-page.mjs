@@ -41,7 +41,19 @@ function card(d, i) {
   if (d.audio) {
     panes.push(`<div class="pane${first === 'audio' ? ' on' : ''}" data-p="audio">
       <audio controls preload="none" src="${esc(BASE + d.audio)}"></audio>
-      <p class="anote">Your own voice, the morning you recorded it.</p></div>`);
+      <p class="anote">${esc(d.audioNote || 'Your own voice, the morning you recorded it.')}</p></div>`);
+  }
+
+  // Superseded attempts are kept rather than deleted, so their drawings have to
+  // be reachable too — otherwise "nothing is lost" isn't true on the page.
+  const oldArt = (d.versions || []).flatMap((v) => v.illustrations || []);
+  const fresh = new Set(d.illustrations);
+  const extraArt = [...new Set(oldArt.filter((u) => !fresh.has(u)))];
+  if (extraArt.length) {
+    panes.push(`<div class="pane" data-p="old"><p class="anote">Earlier drawings of this dream, kept as history.</p>${
+      extraArt.map((u) => `<img loading="lazy" src="${esc(u)}" alt="earlier drawing">`).join('')
+    }</div>`);
+    tabs.push(['old', `Earlier art (${extraArt.length})`]);
   }
 
   const flags = [];
@@ -55,6 +67,8 @@ function card(d, i) {
       ${d.title ? `<h2>${esc(d.title)}</h2>` : ''}
       <div class="src">${esc(SOURCE_LABEL[d.source] || d.source)}${d.page ? ` · journal p${d.page}` : ''}</div>
       ${d.summary ? `<p class="sum">${esc(d.summary)}</p>` : ''}
+      ${d.unsplit ? `<p class="note">This recording was never split into separate dreams, so the words below are the whole thing — several dreams in a row.${
+        d.alsoTitled && d.alsoTitled.length ? ` The others in it were called: ${esc(d.alsoTitled.join(', '))}.` : ''}</p>` : ''}
     </header>
     ${tabs.length > 1 ? `<nav class="tabs">${tabs.map(([k, l], n) => `<button data-t="${k}"${n === 0 ? ' class="on"' : ''}>${esc(l)}</button>`).join('')}</nav>` : ''}
     ${panes.join('')}
@@ -81,6 +95,8 @@ header{margin:0 0 12px}
 h2{font-size:19px;margin:4px 0 3px}
 .src{font-size:12px;color:#a09484;text-transform:uppercase;letter-spacing:.06em}
 .sum{font-size:14px;color:#5d564e;margin:9px 0 0;font-style:italic}
+.note{font-size:13px;color:#8a5a3c;background:#faf1e9;border:1px solid #eadbc8;
+  border-radius:6px;padding:8px 10px;margin:9px 0 0}
 .q{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;
   border-radius:6px;background:#c2532f;color:#fff;font-size:11px;font-weight:700;
   font-style:normal;vertical-align:1px;cursor:help}
