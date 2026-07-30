@@ -36,7 +36,22 @@ function card(d, i) {
     }</div>`);
   }
   if (d.text && d.text.trim()) {
-    panes.push(`<div class="pane${first === 'text' ? ' on' : ''}" data-p="text"><div class="words">${esc(d.text.trim())}</div></div>`);
+    const full = d.text.trim();
+    // Show an opening paragraph; the rest opens on demand. Truncate on a
+    // sentence end near the limit so the preview doesn't stop mid-word.
+    const LIMIT = 320;
+    let head = full;
+    if (full.length > LIMIT + 80) {
+      const win = full.slice(0, LIMIT + 80);
+      const stop = Math.max(win.lastIndexOf('. '), win.lastIndexOf('! '), win.lastIndexOf('? '));
+      head = (stop > LIMIT / 2 ? win.slice(0, stop + 1) : full.slice(0, LIMIT)).trim();
+    }
+    const truncated = head.length < full.length;
+    panes.push(`<div class="pane${first === 'text' ? ' on' : ''}" data-p="text">`
+      + `<div class="words"${truncated ? ' data-full="1"' : ''}>`
+      + `<div class="head">${esc(head)}${truncated ? '…' : ''}</div>`
+      + (truncated ? `<div class="rest">${esc(full)}</div><button class="more">Read the whole dream</button>` : '')
+      + `</div></div>`);
   }
   if (d.audio) {
     panes.push(`<div class="pane${first === 'audio' ? ' on' : ''}" data-p="audio">
@@ -104,8 +119,24 @@ h2{font-size:19px;margin:4px 0 3px}
 .tabs button.on{background:#2a2622;border-color:#2a2622;color:#f7f4ee}
 .pane{display:none}
 .pane.on{display:block}
-.pane img{display:block;width:100%;max-width:520px;border-radius:6px;margin:0 0 10px;background:#efe9df}
+/* Drawings sit two to a row and open bigger on tap. A lone drawing still
+   fills only half the width, so a row never changes shape. */
+.pane[data-p="art"],.pane[data-p="old"]{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.pane[data-p="old"] .anote,.pane[data-p="audio"] .anote{grid-column:1/-1}
+.pane img{display:block;width:100%;border-radius:6px;background:#efe9df;cursor:zoom-in}
+.pane[data-p="audio"]{display:block}
 .words{white-space:pre-wrap;color:#3d3833;max-width:640px}
+.words .rest{display:none;white-space:pre-wrap}
+.words.open .head{display:none}
+.words.open .rest{display:block}
+.more{font:inherit;font-size:14px;margin-top:10px;padding:5px 12px;border-radius:6px;
+  border:1px solid #ddd4c6;background:#fff;color:#5d564e;cursor:pointer;display:inline-block}
+.more:hover{background:#efe9df}
+/* Closing has to be possible halfway through, so this rides at the bottom of
+   the screen the whole time a dream is open — never only at the end of the text. */
+#shut{position:fixed;left:14px;bottom:16px;z-index:60;display:none;font:inherit;font-size:15px;
+  padding:9px 16px;border-radius:6px;border:1px solid #2a2622;background:#2a2622;color:#f7f4ee;cursor:pointer}
+#shut.on{display:block}
 audio{width:100%;max-width:520px;display:block}
 .anote{font-size:13px;color:#8a8074;margin:8px 0 0}
 .undated{padding:24px 16px 8px}
@@ -127,8 +158,35 @@ ${a.dreams.slice().reverse().map(card).join('')}
 ${a.undated.length ? `<div class="undated"><h2>Date unknown — ${a.undated.length} old comics</h2>
   <p>These came in as an already-illustrated batch with no real dates on them, so rather than put them somewhere wrong they sit here until you can place them.</p></div>
   ${a.undated.map((d, i) => card(d, 9000 + i)).join('')}` : ''}
+<button id="shut">Close dream</button>
 <script>
+// One dream open at a time, so the floating Close is never ambiguous.
+let openWords = null;
+const shut = document.getElementById('shut');
+function closeOpen(scroll) {
+  if (!openWords) return;
+  const art = openWords.closest('article');
+  openWords.classList.remove('open');
+  const btn = openWords.querySelector('.more');
+  if (btn) btn.textContent = 'Read the whole dream';
+  openWords = null;
+  shut.classList.remove('on');
+  // Come back to the dream you were reading, not wherever the collapse left you.
+  if (scroll && art) art.scrollIntoView({ block: 'start' });
+}
+shut.addEventListener('click', () => closeOpen(true));
 document.addEventListener('click', (e) => {
+  const more = e.target.closest('.more');
+  if (more) {
+    const words = more.closest('.words');
+    if (words === openWords) { closeOpen(true); return; }
+    closeOpen(false);
+    words.classList.add('open');
+    more.textContent = 'Close';
+    openWords = words;
+    shut.classList.add('on');
+    return;
+  }
   const b = e.target.closest('.tabs button');
   if (!b) return;
   const art = b.closest('article');
