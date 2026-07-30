@@ -57,7 +57,6 @@ function card(d, i) {
   }
 
   const flags = [];
-  if (d.dateUncertain) flags.push(`<span class="q" title="${esc(d.dateNote || 'date uncertain')}">?</span>`);
   if (d.incomplete) flags.push('<span class="inc">you noted part of this was missing</span>');
   if (d.versions.length) flags.push(`<span class="vers">${d.versions.length} earlier version${d.versions.length > 1 ? 's' : ''} kept</span>`);
 
@@ -66,7 +65,6 @@ function card(d, i) {
       <div class="when">${esc(d.display)}${flags.length ? ' ' + flags.join(' ') : ''}</div>
       ${d.title ? `<h2>${esc(d.title)}</h2>` : ''}
       <div class="src">${esc(SOURCE_LABEL[d.source] || d.source)}${d.page ? ` · journal p${d.page}` : ''}</div>
-      ${d.summary ? `<p class="sum">${esc(d.summary)}</p>` : ''}
       ${d.unsplit ? `<p class="note">This recording was never split into separate dreams, so the words below are the whole thing — several dreams in a row.${
         d.alsoTitled && d.alsoTitled.length ? ` The others in it were called: ${esc(d.alsoTitled.join(', '))}.` : ''}</p>` : ''}
     </header>
@@ -87,19 +85,13 @@ h1{font-size:23px;margin:0 0 6px}
 .lede{font-size:15px;color:#5d564e;margin:0 0 12px}
 .counts{font-size:13px;color:#6b6459;display:flex;flex-wrap:wrap;gap:4px 14px}
 .counts b{color:#2a2622}
-.legend{font-size:13px;color:#6b6459;margin:12px 0 0;padding:9px 11px;
-  background:#efe9df;border:1px solid #ddd4c6;border-radius:6px}
 article{padding:20px 16px;border-bottom:1px solid #e6dfd3}
 header{margin:0 0 12px}
 .when{font-size:13px;color:#8a8074;letter-spacing:.03em;text-transform:uppercase}
 h2{font-size:19px;margin:4px 0 3px}
 .src{font-size:12px;color:#a09484;text-transform:uppercase;letter-spacing:.06em}
-.sum{font-size:14px;color:#5d564e;margin:9px 0 0;font-style:italic}
 .note{font-size:13px;color:#8a5a3c;background:#faf1e9;border:1px solid #eadbc8;
   border-radius:6px;padding:8px 10px;margin:9px 0 0}
-.q{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;
-  border-radius:6px;background:#c2532f;color:#fff;font-size:11px;font-weight:700;
-  font-style:normal;vertical-align:1px;cursor:help}
 .inc,.vers{display:inline-block;font-size:11px;text-transform:none;letter-spacing:0;
   color:#8a8074;border:1px solid #ddd4c6;border-radius:6px;padding:0 6px;margin-left:4px}
 .tabs{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
@@ -126,9 +118,8 @@ audio{width:100%;max-width:520px;display:block}
     <span><b>${a.total}</b> with words</span>
     <span>${Object.entries(years).map(([y, n]) => `${y}: ${n}`).join(' · ')}</span>
   </div>
-  <p class="legend">A red <span class="q">?</span> means the date isn't certain — tap it to see why. The 48 journal dreams all carry one, because your notebooks never wrote the year down; they're placed by page order across Feb 2024 to Jul 2025.</p>
 </div>
-${a.dreams.map(card).join('')}
+${a.dreams.slice().reverse().map(card).join('')}
 ${a.undated.length ? `<div class="undated"><h2>Date unknown — ${a.undated.length} old comics</h2>
   <p>These came in as an already-illustrated batch with no real dates on them, so rather than put them somewhere wrong they sit here until you can place them.</p></div>
   ${a.undated.map((d, i) => card(d, 9000 + i)).join('')}` : ''}
