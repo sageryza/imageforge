@@ -236,7 +236,16 @@ router.get('/audio/:id', gate, async (req, res) => {
     if (!exists) return res.status(404).json({ error: 'audio missing from storage' });
     const [meta] = await f.getMetadata();
     const total = Number(meta.size || 0);
-    res.set('Content-Type', meta.contentType || 'audio/mp4');
+    // Storage records some of these as audio/mp4a-latm, which iOS Safari won't
+    // reliably play. An .m4a is audio/mp4 as far as a browser is concerned, so
+    // normalise rather than passing the stored value straight through.
+    const stored = String(meta.contentType || '');
+    const ext = (memo.file.split('.').pop() || 'm4a').toLowerCase();
+    const type = /^audio\/(mp4|mpeg|aac|wav|ogg|webm)$/.test(stored) ? stored
+      : (ext === 'm4a' || ext === 'mp4' || ext === 'aac') ? 'audio/mp4'
+      : (ext === 'mp3') ? 'audio/mpeg'
+      : (stored || 'audio/mp4');
+    res.set('Content-Type', type);
     res.set('Accept-Ranges', 'bytes');
     res.set('Cache-Control', 'private, max-age=3600');
 
