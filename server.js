@@ -84,6 +84,13 @@ app.use((req, res, next) => {
 
 app.use(express.static(__dirname + '/public'));
 
+// The Mac-side voice-memo pusher, served so it can be run without cloning the
+// repo:  curl -fsSL <app>/push-memos.mjs -o /tmp/push-memos.mjs && node /tmp/push-memos.mjs
+// It contains no credentials — everything privileged happens in /api/memos.
+app.get('/push-memos.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
+});
+
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
