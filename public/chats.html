@@ -31,7 +31,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:4px;}
 .abouted{display:block; width:100%; margin:2px 0 0; font-family:'EBGaramond',Georgia,serif; font-size:16px; box-sizing:border-box;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:7px 9px;}
-.thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em;}
+/* The floating autoscroll pill is fixed over the top-right corner (x 324-374,
+   y 14-192 on an iPhone 13), so ANY header control that reaches that corner is
+   untappable — the rename pencil was. Both header rows reserve that column. */
+.thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -56,15 +59,34 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
 .lbtop .vote{width:38px; height:38px;}
 .lbtop .vote svg{width:18px; height:18px;}
-.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px;}
+.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
 .lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
   font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
 .lbnote .notesend.saved{background:#5d7a5a; color:#fff;}
+/* The note thread under the image: her letters and the chat's replies back.
+   Its own scroll area so a long exchange can never push the picture off. */
+.lbtalk{width:min(92vw,360px); margin-top:12px;}
+.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:5px;}
+.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:'EBGaramond',Georgia,serif;
+  font-size:14px; line-height:1.4; word-break:break-word; white-space:pre-wrap;}
+.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
+.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
+.lbmsg.pending{opacity:.55;}
+.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
+/* an unread reply from the chat — top centre, between the ♥ and the ✕ */
+.assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
+  font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center;
+  padding:0 5px; box-sizing:border-box; box-shadow:0 1px 4px rgba(0,0,0,.25); pointer-events:none;}
 #clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
 #clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
+/* With a note thread under it the picture can't have the whole screen, or the
+   thread and the box you type in fall off the bottom. */
+#clightbox.hastalk img{max-height:46vh;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
 /* the prompt behind the image: covers it completely (that's the point — you
    read the words instead of the picture), Style on the left of the toggle,
@@ -126,12 +148,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-head{cursor:pointer;}
 .m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
 .msg.open .m-close{display:inline;}
-/* Per-chat Claude-account picker — sits above the archive row */
+/* Per-chat Claude-account picker — the last thing under the messages (Archive
+   moved up to the header, so this is now the foot of the thread) */
 .acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .acctrow .tbtn{min-width:34px; text-align:center;}
-.archrow{margin-top:2.2em; text-align:center;}
-.archrow button{background:none; border:none; color:var(--ink2); opacity:.7; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:6px;}
 .archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
@@ -203,7 +224,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
 .openclaude svg{width:15px; height:15px; display:block; stroke:#fff;}
-.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0;}
+.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0; padding-right:56px;}
+/* An on/off switch, the iOS shape. Circular track, so it's the sanctioned
+   exception to no-pills — it's a toggle, not a text button. */
+.swi{position:relative; width:42px; height:26px; border-radius:13px; border:1.5px solid var(--line);
+  background:var(--barbg); padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.swi::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background:var(--ink2); transition:transform .18s, background .18s;}
+.swi.on{background:var(--chg); border-color:var(--chg);}
+.swi.on::after{transform:translateX(16px); background:var(--paper);}
 .tbtn.play{display:inline-flex; align-items:center; gap:6px;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
@@ -265,13 +294,15 @@ body.reading .backwrap{display:block;}
   <section id="home">
     <header>
       <div class="no">deck factory &middot; every chat, one place</div>
-      <h1>Chats</h1>
+      <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
+        <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+      </div>
       <div class="rule"></div>
     </header>
     <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
-      <button id="acctog" class="tbtn refreshbtn" aria-label="Swap which account is signed into the app"></button>
     </div>
     <div class="searchrow">
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
@@ -851,6 +882,24 @@ function openChat(name, keepScroll, focusId, noFetch){
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+  // Archive lives in the header, not at the foot of the thread \u2014 deciding
+  // whether to archive shouldn't mean scrolling past every message first.
+  // Same button, same place, either way: "Archive" / "Unarchive".
+  (function(){
+    var isArch=!!(chats[name]&&chats[name].archived);
+    var ab=document.createElement('button'); ab.className='tbtn';
+    ab.textContent=isArch? 'Unarchive' : 'Archive';
+    ab.onclick=function(){
+      api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          chats[name]=chats[name]||{}; chats[name].archived=!isArch;
+          toast(!isArch? 'Archived' : 'Restored'); goHome();
+        })
+        .catch(function(){ toast('Couldn\u2019t save that'); });
+    };
+    head.querySelector('.headbtns').appendChild(ab);
+  })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
   head.querySelector('.renamebtn').onclick=function(){ editName(name, head); };
@@ -888,19 +937,6 @@ function openChat(name, keepScroll, focusId, noFetch){
     acr.appendChild(b);
   });
   chatPanel.appendChild(acr);
-  var isArch=!!(chats[name]&&chats[name].archived);
-  var ar=document.createElement('div'); ar.className='archrow';
-  var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
-  ab.onclick=function(){
-    api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
-      .then(function(r){return r.json()})
-      .then(function(d){ if(!d.ok) throw 0;
-        chats[name]=chats[name]||{}; chats[name].archived=!isArch;
-        toast(!isArch? 'Archived' : 'Restored'); goHome();
-      })
-      .catch(function(){ toast('Couldn\u2019t save that'); });
-  };
-  ar.appendChild(ab); chatPanel.appendChild(ar);
   sec.appendChild(chatPanel);
 
   // Assets panel — this chat's images, lazy-loaded on first open
@@ -968,13 +1004,25 @@ function openChat(name, keepScroll, focusId, noFetch){
         function voteBtns(cell,it){
           var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
           var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+          // count of the chat's replies she hasn't opened yet (server sets unread)
+          var nb=document.createElement('div'); nb.className='nbadge';
+          function unreadCount(){
+            if(!it.unread) return 0;
+            var n=0, t=it.thread||[];
+            for(var i=t.length-1;i>=0 && t[i].from==='chat';i--) n++;
+            return n||1;
+          }
           function paint(){
             hb.classList.toggle('on', it.vote==='like');
             xb.classList.toggle('on', it.vote==='dislike');
             cell.classList.toggle('nay', it.vote==='dislike');
+            var n=unreadCount();
+            nb.textContent=n?String(n):'';
+            nb.style.display=n?'':'none';
             if(it._lbPaint) it._lbPaint();   // mirror into an open lightbox
             applyFilter();                   // a changed vote may hide/show tiles
           }
+          it._paintCell=paint;
           function cast(v){
             var next = it.vote===v ? null : v;
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,vote:next})})
@@ -983,17 +1031,34 @@ function openChat(name, keepScroll, focusId, noFetch){
               .catch(function(){ toast('Couldn’t save that'); });
           }
           it._cast=cast;
-          it._noteSave=function(text,cb){
+          // Send one letter in this image's thread. The bubble is already on
+          // screen by the time this runs (the lightbox appends it optimistically),
+          // so this only confirms or flags it.
+          it._noteSend=function(text,cb){
             var t=String(text||'').trim();
-            api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,note:t||null})})
-              .then(function(r){return r.json()})
-              .then(function(d){ if(!d.ok) throw 0; it.note=t||null; if(cb)cb(true); })
-              .catch(function(){ toast('Couldn’t save the note'); if(cb)cb(false); });
+            if(!t){ if(cb)cb(false); return; }
+            api('/api/gallery/assets/note',{method:'POST',
+              body:JSON.stringify({chat:name,url:it.url,text:t,from:'sophie'})})
+              .then(function(r){ return r.json().then(function(d){ return {s:r.status,d:d}; }); })
+              .then(function(x){
+                if(!x.d.ok) throw new Error(x.d.error||'failed');
+                it.note=t;                       // legacy mirror, same as the server
+                if(x.d.thread) it.thread=x.d.thread;
+                if(cb)cb(true);
+              })
+              .catch(function(e){ toast((e&&e.message)||'Couldn’t send that note'); if(cb)cb(false); });
+          };
+          // She's read the chat's replies — clears the tile badge for good.
+          it._markSeen=function(){
+            if(!it.unread) return;
+            it.unread=false; paint();
+            api('/api/gallery/assets/note',{method:'POST',
+              body:JSON.stringify({chat:name,url:it.url,seen:true})}).catch(function(){});
           };
           hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
           xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
           paint();
-          cell.appendChild(hb); cell.appendChild(xb);
+          cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
         a.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
@@ -1194,8 +1259,16 @@ function howToPost(chat){
     +'  "style": "wtr watercolor drawing, loose wash",\n'
     +'  "content": "a woman on a bench feeding crows"\n}</pre>'
     +'<pre># backfill this whole tab in one call\nnode scripts/backfill-asset-prompts.js '
-    +esc(JSON.stringify(chat))+' prompts.json</pre></div>';
-  d.innerHTML='<summary>How to post prompts</summary>'+body;
+    +esc(JSON.stringify(chat))+' prompts.json</pre>'
+    +'<p style="margin:10px 0 0">Notes on an image are a <b>conversation</b> — the chat '
+    +'that made it can write back. It reads what’s waiting the next time you message it '
+    +'(nothing runs on a timer), so replies arrive like letters, not chat.</p>'
+    +'<pre># what Sophie asked, and what’s still unanswered\nGET '+esc(location.origin)
+    +'/api/gallery/assets/notes?chat='+esc(encodeURIComponent(chat))+'\n\n# write back\nPOST '
+    +esc(location.origin)+'/api/gallery/assets/note\n{\n  "chat": '+esc(JSON.stringify(chat))
+    +',\n  "url": "&lt;the image’s Firebase url&gt;",\n  "from": "chat",\n'
+    +'  "text": "Re-rolled it — the hand is fixed in v2."\n}</pre></div>';
+  d.innerHTML='<summary>How to post prompts &amp; reply to notes</summary>'+body;
   return d;
 }
 
@@ -1204,6 +1277,7 @@ function lightbox(url, asset){
   scrollStop();
   var lb=document.getElementById('clightbox');
   lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
+  lb.classList.remove('hastalk');   // last image's thread must not shrink this one
   // The generating prompt, over the image: Style left, Content right, tap the
   // PROMPT button to cover/uncover the picture. Only offered when a chat
   // actually filed a split — nothing is shown (and nothing is said) when it
@@ -1247,22 +1321,59 @@ function lightbox(url, asset){
     row.onclick=function(e){ e.stopPropagation(); };
     var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=window.__HEART;
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
-    var nw=document.createElement('div'); nw.className='lbnote';
-    nw.onclick=function(e){ e.stopPropagation(); };
-    var ni=document.createElement('input'); ni.placeholder='Add a note…'; ni.value=asset.note||'';
-    var ns=document.createElement('button'); ns.className='notesend';
-    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-    function sendNote(){
-      asset._noteSave(ni.value, function(ok){
-        if(!ok) return;
-        ns.classList.add('saved'); toast('Note saved');
-        ni.blur();
-        setTimeout(function(){ ns.classList.remove('saved'); }, 1500);
+    // The thread: her notes and the chat's replies back, oldest at the top.
+    // Snail mail — the chat that made the image answers next time she messages
+    // it, so a reply landing here later is normal and expected.
+    var talk=document.createElement('div'); talk.className='lbtalk';
+    talk.onclick=function(e){ e.stopPropagation(); };
+    var th=document.createElement('div'); th.className='lbthread';
+    function paintThread(){
+      th.innerHTML='';
+      var msgs=asset.thread||[];
+      msgs.forEach(function(m){
+        var b=document.createElement('div');
+        b.className='lbmsg '+(m.from==='chat'?'them':'me');
+        b.textContent=m.text;
+        th.appendChild(b);
       });
+      th.style.display=msgs.length?'':'none';
+      th.scrollTop=th.scrollHeight;   // newest letter in view
+    }
+    var nw=document.createElement('div'); nw.className='lbnote';
+    var ni=document.createElement('input'); ni.placeholder='Write a note…';
+    var ns=document.createElement('button'); ns.className='notesend';
+    // Lucide "send" — the paper aeroplane (lucide-static 1.27.0)
+    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
+    function sendNote(){
+      var t=(ni.value||'').trim();
+      if(!t) return;
+      // It leaves the box the moment it's sent and joins the thread underneath,
+      // so the box is always empty and ready for the next one.
+      ni.value='';
+      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
+      paintThread();
+      var el=th.lastChild;
+      el.classList.add('pending');
+      function attempt(){
+        el.classList.remove('failed'); el.classList.add('pending');
+        asset._noteSend(t, function(ok){
+          el.classList.remove('pending');
+          if(ok) return;
+          // Nothing is lost on a failure — the letter stays on screen, outlined,
+          // and tapping it tries again.
+          el.classList.add('failed');
+          el.title='Not sent — tap to try again';
+          el.onclick=function(e){ e.stopPropagation(); attempt(); };
+        });
+      }
+      attempt();
     }
     ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
     ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
     nw.appendChild(ni); nw.appendChild(ns);
+    talk.appendChild(th); talk.appendChild(nw);
+    paintThread();
+    if(asset._markSeen) asset._markSeen();   // opening it counts as reading it
     asset._lbPaint=function(){
       hb.classList.toggle('on', asset.vote==='like');
       xb.classList.toggle('on', asset.vote==='dislike');
@@ -1274,7 +1385,8 @@ function lightbox(url, asset){
     row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
     var frame=lb.querySelector('.clframe');
     (frame||lb).appendChild(row);
-    lb.appendChild(nw);   // note box below the image, not over it
+    lb.appendChild(talk);   // thread + note box below the image, never over it
+    lb.classList.add('hastalk');   // shrinks the picture so the thread has room
   }
   if(promptBtn && !promptBtn.parentNode){   // image opened without the curate row
     var prow=document.createElement('div'); prow.className='lbtop';
@@ -1285,7 +1397,8 @@ function lightbox(url, asset){
   var cap=asset?(asset.description||asset.prompt||''):'';
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
-  lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
+  lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; };
 }
 function goHome(){
   scrollStop(); cur=null; curTab='chat';
@@ -1379,14 +1492,15 @@ document.getElementById('v-list').onclick=function(){ view='list'; try{localStor
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 
-// App/Web account toggle: shows which Claude account is signed into the iOS
-// app right now (the other one is on the web). Tap to swap after switching
-// sign-ins \u2014 every Open button re-routes off it immediately.
-var SWAP='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>';
+// Which Claude account is signed into the iOS app right now (the other one is
+// on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
+// account 2. Flip it after swapping sign-ins; every Open button re-routes off
+// it immediately, and the toast names the account so the switch needs no label.
 var acctog=document.getElementById('acctog');
 function paintAcct(){
-  var a=appAccount(), w=a==='1'?'2':'1';
-  acctog.innerHTML=SWAP+'<span>App '+esc(a)+' \u00b7 Web '+esc(w)+'</span>';
+  var on=appAccount()==='2';
+  acctog.classList.toggle('on', on);
+  acctog.setAttribute('aria-pressed', on?'true':'false');
 }
 acctog.onclick=function(){
   var prev=appAccount(), next=prev==='1'?'2':'1';

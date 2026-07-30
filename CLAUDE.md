@@ -417,6 +417,27 @@ lifted into a standalone tool later.
   votes/notes and act on them (favor the hearted ones, re-roll the ✕'d and
   anything noted "redo") — same review-loop pattern as writing notes, NOT on
   a timer.
+- **Notes are a THREAD — WRITE BACK on the image (July 2026).** A note is a
+  two-way conversation on that picture: she writes from the lightbox, and **the
+  chat that made the image replies on the image itself**. Deliberately snail
+  mail — you answer when she next messages you, so a reply landing hours later
+  is the expected rhythm, and there are still NO timers or self-check-ins.
+  - **Read what's waiting:** `GET /api/gallery/assets/notes?chat=<name>` — only
+    the images that have a thread, `waiting:"chat"` ones FIRST (she spoke last
+    and nobody answered), each with its `thread:[{from:"sophie"|"chat", text,
+    at}]`, the image's `description` label, and any `vote`/`done`. The full
+    `GET /api/gallery/assets` carries `thread` + `waiting` + `unread` too.
+  - **Reply:** `POST /api/gallery/assets/note`
+    `{ chat, url, text, from:"chat" }` — appends one message (2000 chars max,
+    over-length is REFUSED, never truncated). Answer what she asked, say what
+    you changed, and name the new image's label if you re-rolled it.
+  - **Check them in the same sweep as votes/prompts** whenever Sophie messages
+    you: read the notes, do the work, then reply on each image you acted on.
+    `done:true` (via the vote route) still marks one handled; her next message
+    on that image reopens it automatically.
+  - Legacy single `note` strings show up as a one-message thread from her, so
+    old notes are never lost, and `note` keeps mirroring her LATEST ask for any
+    older reader. Her tile shows a green count badge until she opens your reply.
 - **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
   2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
   covers the picture, with a **Style / Content** toggle (style left, content
@@ -449,7 +470,18 @@ lifted into a standalone tool later.
   - An image with no prompt on file shows **no PROMPT button at all** — never
     write "no prompt filed" anywhere; empty is silent by design.
   - The same instructions are folded into the top of every Assets tab ("How to
-    post prompts", `howToPost()` in `public/chats.html`) — keep the two in sync.
+    post prompts & reply to notes", `howToPost()` in `public/chats.html`) — keep
+    the two in sync.
+- **The `/chats` header reserves the pill's corner.** The autoscroll pill is
+  `position:fixed` over the top-right (x 324–374, y 14–192 on an iPhone 13), so
+  ANY header control reaching that corner is untappable — the rename pencil was,
+  for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
+  reservation on any new header row, and never place a control in that corner.
+  **Archive/Unarchive lives in the thread header** (same button, same spot,
+  either label) — deciding whether to archive must not mean scrolling past every
+  message first. The **App/Web account toggle is a plain on/off switch** on the
+  home header's title line (`.swi`, off = account 1, on = account 2, no text —
+  the toast names the account).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
