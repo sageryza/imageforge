@@ -196,18 +196,46 @@ document.addEventListener('click', (e) => {
   art.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.dataset.p === b.dataset.t));
 });
 // House rule: opening an image freezes the page behind it.
+// body{overflow:hidden} alone does NOT hold on iOS Safari — the page keeps
+// scrolling behind the picture. Pinning the body with position:fixed at its
+// current offset does, and it also stops the autoscroll pill moving the page
+// while you're looking at something.
+let lockedAt = 0;
+function lockScroll() {
+  lockedAt = window.scrollY || window.pageYOffset || 0;
+  const b = document.body;
+  b.style.position = 'fixed';
+  b.style.top = (-lockedAt) + 'px';
+  b.style.left = '0';
+  b.style.right = '0';
+  b.style.width = '100%';
+}
+function unlockScroll() {
+  const b = document.body;
+  b.style.position = '';
+  b.style.top = '';
+  b.style.left = '';
+  b.style.right = '';
+  b.style.width = '';
+  window.scrollTo(0, lockedAt);
+}
 document.addEventListener('click', (e) => {
   const img = e.target.closest('.pane img');
   if (!img) return;
   const o = document.createElement('div');
-  o.style.cssText = 'position:fixed;inset:0;background:rgba(20,18,16,.94);z-index:99;display:flex;align-items:center;justify-content:center;padding:16px';
+  o.style.cssText = 'position:fixed;inset:0;background:#141210;z-index:99;display:flex;'
+    + 'align-items:center;justify-content:center;padding:16px;touch-action:none';
   const big = document.createElement('img');
   big.src = img.src;
   big.style.cssText = 'max-width:100%;max-height:100%;border-radius:6px';
   o.appendChild(big);
-  const prev = document.body.style.overflow;
-  document.body.style.overflow = 'hidden';
-  o.addEventListener('click', () => { o.remove(); document.body.style.overflow = prev; });
+  lockScroll();
+  const close = () => { o.remove(); unlockScroll(); document.removeEventListener('keydown', onKey); };
+  const onKey = (ev) => { if (ev.key === 'Escape') close(); };
+  o.addEventListener('click', close);
+  // Belt and braces on iOS: swallow the scroll gesture over the overlay too.
+  o.addEventListener('touchmove', (ev) => ev.preventDefault(), { passive: false });
+  document.addEventListener('keydown', onKey);
   document.body.appendChild(o);
 });
 </script>`;
