@@ -659,6 +659,14 @@
                             padding-top: calc(14px + env(safe-area-inset-top)); }
     .sheet-bg.show { display: flex; }
     .sheet { background: var(--bg); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(26px + env(safe-area-inset-bottom)); position: relative; }
+    /* The product page leaves by a BACK arrow, top-left — it's a page in the app
+       now, not the bottom sheet it started as, and a ✕ in the corner was the
+       leftover of that. Same circular affordance so it stays visible while the
+       page scrolls; only the glyph and the side changed. */
+    .sheet .ps-back { position: sticky; top: 0; float: left; background: var(--surface); border: 1px solid var(--border);
+                      border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+                      color: var(--text-dim); cursor: pointer; z-index: 2; }
+    .sheet .ps-back svg { width: 17px; height: 17px; }
     .sheet .sx { position: sticky; top: 0; float: right; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; z-index: 2; }
     .sheet .sx svg { width: 15px; height: 15px; }
     .ps-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); background: var(--panel); display: block; }
@@ -2954,14 +2962,37 @@
   // scrolled as one long shelf. Categories come from the server (only ones
   // with stock), and filtering is client-side — every product is already
   // loaded, so switching is instant.
+  /* ── loading indicators: only when the wait is REAL ──────────────────────
+     A wait under about a second reads as instant, and a spinner that appears and
+     vanishes inside that window lands as a flicker rather than as progress —
+     worse than showing nothing. So the shop's indicators wait 600ms before they
+     draw, and once drawn they hold for 300ms so they can't strobe either. Now
+     that the shelf is prefetched and cached, that means it normally never
+     appears; a genuinely slow load still gets it. (Slow-by-nature work — image
+     generation, dream pages, AI readings — keeps showing its spinner at once.) */
+  const SPIN_DELAY = 600, SPIN_MIN = 300;
+  function spinner(el, label) {
+    let shownAt = 0;
+    const t = setTimeout(() => {
+      shownAt = Date.now();
+      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; ${label}</div>`;
+    }, SPIN_DELAY);
+    // Await the returned function before drawing real content.
+    return async () => {
+      clearTimeout(t);
+      const held = shownAt ? Date.now() - shownAt : SPIN_MIN;
+      if (held < SPIN_MIN) await new Promise(r => setTimeout(r, SPIN_MIN - held));
+    };
+  }
   let SHOP_ITEMS = [], SHOP_CAT = 'all';
   const SHOP_REV = {};   // handle -> { count, average }, filled by loadShopRatings()
   async function loadShop() {
     const wrap = $('shop-grid');
     if (wrap.dataset.loaded === '1') return;
-    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Gathering the shelves…</div>`;
+    const done = spinner(wrap, 'Gathering the shelves…');
     try {
       const d = await apiGet('/api/witch/shop');
+      await done();
       SHOP_ITEMS = (d.products || []).filter(p => p.image);
       if (!SHOP_ITEMS.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const cats = (d.categories || []).filter(c => SHOP_ITEMS.some(p => p.category === c.key));
@@ -2974,6 +3005,7 @@
       loadShopRatings();  // stars under the thumbnails — one request, then redraw
       refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
+      await done();
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
   }
@@ -2998,6 +3030,7 @@
         ${img}
         <div class="sbody">
           <div class="stitle">${esc(shortTitle(p.title))}</div>
+          ${srev(p.handle)}
           ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
           ${srev(p.handle)}
           ${p.available ? '' : '<div class="soos">Sold out</div>'}
@@ -3058,13 +3091,16 @@
     const bg = $('prod-sheet-bg'), sh = $('prod-sheet');
     bg.style.display = ''; bg.classList.add('show');
     document.body.style.overflow = 'hidden';
-    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Fetching…</div>`;
+    sh.innerHTML = '';
+    const done = spinner(sh, 'Fetching…');
     try {
       const p = PROD_CACHE[handle] || (PROD_CACHE[handle] = await apiGet('/api/witch/shop/product/' + encodeURIComponent(handle)));
+      await done();
       const firstAvail = p.variants.find(v => v.available) || p.variants[0] || null;
       psState = { p, handle, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0 };
       renderProdSheet();
     } catch (e) {
+      await done();
       sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't load this item — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">try the full shop</a>.</div>`;
     }
   }
@@ -3075,7 +3111,7 @@
     const tab = psState.tab || 'desc';
     const revCount = (REV_CACHE[psState.handle] || {}).count || 0;
     sh.innerHTML = `
-      <button class="sx" onclick="closeProdSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <button class="ps-back" onclick="closeProdSheet()" aria-label="Back to the shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
       ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(u)}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
       <div class="ps-title">${esc(p.title)}</div>
@@ -3235,20 +3271,24 @@
     const bg = $('cart-sheet-bg'), sh = $('cart-sheet');
     bg.style.display = ''; bg.classList.add('show');
     document.body.style.overflow = 'hidden';
-    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Opening the cart…</div>`;
-    await renderCart();
+    sh.innerHTML = '';
+    const done = spinner(sh, 'Opening the cart…');
+    await renderCart(undefined, done);
   }
-  async function renderCart(cartArg) {
+  // `done` is the delayed-spinner release from openCartSheet, when there is one.
+  async function renderCart(cartArg, done) {
     const sh = $('cart-sheet');
+    const settle = done || (async () => {});
     let cart = cartArg;
     if (cart === undefined) {
       cart = null;
       if (CART_ID) {
         try { cart = (await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID))).cart; }
-        catch (e) { sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
+        catch (e) { await settle(); sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
       }
     }
     if (!cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); }
+    await settle();   // release the delayed spinner before the cart is drawn
     const x = `<button class="sx" onclick="closeCartSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
     if (!cart || !cart.lines.length) {
       cartBadge(0);
