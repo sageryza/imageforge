@@ -212,8 +212,11 @@ function journal() {
     id: d.id,
     sort: d.sort + 'T12:00:00.000Z',
     display: d.display + (d.dayUncertain ? ' (day not written)' : ''),
-    dateUncertain: true,
-    dateNote: 'the journals have no years in them; placed by page order',
+    // Sophie confirmed the notebooks run Feb 2024 -> Jul 2025 and the page order
+    // is sound, so these are no longer flagged. The marker is for dates nobody
+    // can recover — the old imported comics, and anything coming from ChatGPT.
+    dateUncertain: false,
+    dateNote: 'placed by page order across the confirmed Feb 2024 - Jul 2025 run',
     title: null,
     text: d.text || null,
     summary: null, keywords: [],

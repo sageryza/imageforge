@@ -57,6 +57,7 @@ function card(d, i) {
   }
 
   const flags = [];
+  if (d.dateUncertain) flags.push(`<span class="q" title="${esc(d.dateNote || "nobody remembers when this one was")}">?</span>`);
   if (d.incomplete) flags.push('<span class="inc">you noted part of this was missing</span>');
   if (d.versions.length) flags.push(`<span class="vers">${d.versions.length} earlier version${d.versions.length > 1 ? 's' : ''} kept</span>`);
 
@@ -92,6 +93,9 @@ h2{font-size:19px;margin:4px 0 3px}
 .src{font-size:12px;color:#a09484;text-transform:uppercase;letter-spacing:.06em}
 .note{font-size:13px;color:#8a5a3c;background:#faf1e9;border:1px solid #eadbc8;
   border-radius:6px;padding:8px 10px;margin:9px 0 0}
+.q{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;
+  border-radius:6px;background:#c2532f;color:#fff;font-size:11px;font-weight:700;
+  font-style:normal;vertical-align:1px;cursor:help}
 .inc,.vers{display:inline-block;font-size:11px;text-transform:none;letter-spacing:0;
   color:#8a8074;border:1px solid #ddd4c6;border-radius:6px;padding:0 6px;margin-left:4px}
 .tabs{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
