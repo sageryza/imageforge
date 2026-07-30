@@ -91,6 +91,10 @@ app.get('/push-memos.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
 });
 
+app.get('/push-journal.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
+});
+
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -305,6 +309,11 @@ loadConfig().then(() => {
     chat: openaiChat,
   });
   app.use('/api/memos', memos.router);
+  // Journal scans. The master PDF is ~1GB, so the bytes go straight from her
+  // Mac to Storage — this only mints the upload session and records the result.
+  const journal = require('./journal');
+  journal.init({ bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); } });
+  app.use('/api/journal', journal.router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
