@@ -23,13 +23,24 @@ const { getStorage } = require('firebase-admin/storage');
 const sharp = require('sharp');
 const fs = require('fs');
 
-const STYLE = 'Use the attached images ONLY as a STYLE reference — match their exact look: bold confident black ink outlines, a flat limited palette (warm golden yellow, salmon pink, bright orange, black) on a soft cream off-white background, playful modern editorial illustration, flat colors with NO gradients and minimal shading, lots of generous negative space. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ';
-const CHAR = 'Where a woman appears, keep her consistent with the reference: reddish-brown hair in a messy topknot bun, a pink jacket with small black stars, pink-and-orange striped pants; calm and gentle. ';
-const END = ' Subject centered with lots of empty cream space around it. Absolutely no text, no words, no letters, no numbers, no captions.';
+const DEFAULT_STYLE = 'Use the attached images ONLY as a STYLE reference — match their exact look: bold confident black ink outlines, a flat limited palette (warm golden yellow, salmon pink, bright orange, black) on a soft cream off-white background, playful modern editorial illustration, flat colors with NO gradients and minimal shading, lots of generous negative space. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ';
+const DEFAULT_CHAR = 'Where a woman appears, keep her consistent with the reference: reddish-brown hair in a messy topknot bun, a pink jacket with small black stars, pink-and-orange striped pants; calm and gentle. ';
+const DEFAULT_END = ' Subject centered with lots of empty cream space around it. Absolutely no text, no words, no letters, no numbers, no captions.';
+
+// A recolored variant (e.g. the pastel lessons) sets these in its spec:
+//   "style": "...pastel palette on a PLAIN WHITE background...", "charDesc": "...",
+//   "end": "...empty white space...", "whiten": true   (see docs/witch-school-lessons.md)
+// The models still tint the "white" slightly, so `whiten: true` flood-fills the
+// border-connected background to pure white after generation (per-card
+// "whitenMode": "all" | "top" — use "top" when foreground content bleeds to the
+// bottom/side edge in a near-background color).
 
 const specPath = process.argv[2];
 if (!specPath) { console.error('usage: node scripts/witch-school-cards.js lesson-spec.json'); process.exit(1); }
 const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+const STYLE = spec.style || DEFAULT_STYLE;
+const CHAR = spec.charDesc || DEFAULT_CHAR;
+const END = spec.end || DEFAULT_END;
 const KEY = process.env.OPENAI_API_KEY;
 if (!KEY) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 
@@ -79,6 +90,32 @@ async function sampleBg(buf) {
   return '#' + avg.map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+// Flood-fill the border-connected background to pure white (for recolored specs
+// with `whiten: true`). Interior colors that match the background but are walled
+// off by the black outlines (a bubble, a thought cloud) are preserved because
+// they aren't reachable from the border. mode 'top' seeds only the top edge —
+// use it when foreground content bleeds to the bottom/side in a near-bg color.
+async function whitenBg(buf, mode = 'all', tol = 46) {
+  const { data, info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
+  const { width: W, height: H, channels: C } = info;
+  const idx = (x, y) => (y * W + x) * C;
+  const topOnly = mode === 'top';
+  const corners = topOnly ? [[2, 2], [W - 3, 2]] : [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]];
+  let br = 0, bg = 0, bb = 0;
+  for (const [x, y] of corners) { const i = idx(x, y); br += data[i]; bg += data[i + 1]; bb += data[i + 2]; }
+  br /= corners.length; bg /= corners.length; bb /= corners.length;
+  const tol2 = tol * tol;
+  const close = (i) => { const dr = data[i] - br, dg = data[i + 1] - bg, db = data[i + 2] - bb; return dr * dr + dg * dg + db * db <= tol2; };
+  const visited = new Uint8Array(W * H), stack = [];
+  const pushIf = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const p = y * W + x; if (visited[p] || !close(idx(x, y))) return; visited[p] = 1; stack.push(p); };
+  if (topOnly) { for (let x = 0; x < W; x++) pushIf(x, 0); }
+  else { for (let x = 0; x < W; x++) { pushIf(x, 0); pushIf(x, H - 1); } for (let y = 0; y < H; y++) { pushIf(0, y); pushIf(W - 1, y); } }
+  while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
+  const out = Buffer.from(data);
+  for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
+  return await sharp(out, { raw: { width: W, height: H, channels: C } }).png().toBuffer();
+}
+
 (async () => {
   const bucket = getStorage().bucket();
   spec.refs = await materializeRefs(spec.refs);
@@ -88,7 +125,8 @@ async function sampleBg(buf) {
     let ok = false;
     for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
       try {
-        const buf = await generate(prompt);
+        let buf = await generate(prompt);
+        if (spec.whiten) buf = await whitenBg(buf, card.whitenMode || 'all');
         const dest = `witch-school/assets/${card.id}.png`;
         await bucket.file(dest).save(buf, { metadata: { contentType: 'image/png' } });
         await bucket.file(dest).makePublic();

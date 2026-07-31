@@ -121,6 +121,23 @@ node scripts/witch-school-cards.js my-lesson-spec.json
      `{ img, bg }` lines. **Never skip the bg step**: each lesson screen tints
      to its own illustration's corner color; that's what makes the art float
      with no box.
+   - **Recolored lessons (e.g. the PASTEL palette, on WHITE — Sophie's
+     "What Do You Want to Wake Up To?").** A spec may override the palette and
+     force a white background so the art floats on white instead of cream:
+     - `"style"`: replace the whole style block (keep "bold black outlines,
+       flat colors, NO gradients"; state the exact palette with hex codes, e.g.
+       lilac `#C9B6E4` / pastel pink `#F6C6DA` / mint `#B6E5CF`, "on a PLAIN
+       WHITE background").
+     - `"charDesc"` / `"end"`: optional overrides of the character line and the
+       trailing "empty space / no text" line.
+     - `"whiten": true`: the models still tint the "white" slightly, so this
+       flood-fills the **border-connected** background to pure white after each
+       render (interior colors walled off by outlines — a bubble, a thought
+       cloud — are preserved). Per-card `"whitenMode": "top"` seeds only the top
+       edge; use it when foreground content bleeds to the bottom/side in a
+       near-background color (else the fill eats it — e.g. a pink duvet on a
+       pinkish ground). Default `"all"` seeds all four corners. With `whiten`,
+       the sampled bg comes out `#ffffff`.
 
 4. **Review in the Assets tab — NEVER a contact sheet (Sophie's rule, July
    2026).** File EVERY generated image into the chat's Assets tab, **labeled**,
