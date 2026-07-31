@@ -1,9 +1,9 @@
 # The autoscroll pill — ONE shared implementation for every scrollable web page
 # (Writing Room, Story Room, Chats, Wall all import these). Matches the native
-# AutoScrollPill: three discrete speeds — Slow / Medium / Fast — starting on
-# Medium, not a continuous dial. Idle: ▲ scroll-up / ▶ play / ▼ down. Playing:
-# − slower / ‖ pause / + faster (the − dims at Slow, the + dims at Fast). The
-# whole 48×52 button is the tap target, not just the glyph.
+# AutoScrollPill: five discrete speeds — Slow / Medium / Fast / Faster /
+# Fastest — starting on Fast, not a continuous dial. Idle: ▲ scroll-up / ▶ play
+# / ▼ down. Playing: − slower / ‖ pause / + faster (the − dims at Slow, the +
+# dims at Fastest). The whole 48×52 button is the tap target, not just the glyph.
 #
 # Public hooks other page code can call (tap-to-pause, close-image, tab-switch):
 #   window.__scrollStop()    — stop autoscroll
@@ -37,7 +37,7 @@ PILL_HTML = """
 """
 
 PILL_JS = """
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
