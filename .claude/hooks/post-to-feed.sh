@@ -38,6 +38,13 @@ if [ -z "$name" ]; then
     esac
   done
 fi
+# An unnamed session's branch is claude/new-session-<random> — stripping the
+# suffix collapsed EVERY unnamed session into one chat called "new-session"
+# (verified live 2026-07-31: four sessions' feeds merged). The slug must stay
+# unique per session, so generic names keep a stable per-session tail.
+case "$name" in
+  new-session|session|untitled) name="${name}-$(printf '%s' "$sid" | tr -dc 'a-z0-9' | cut -c1-6)";;
+esac
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
 
 claude_url=""
