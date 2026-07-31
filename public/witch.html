@@ -71,7 +71,10 @@
     header {
       position: sticky; top: 0; z-index: 40;
       display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-      padding: 16px 20px 14px;
+      /* First number = how far down the title sits. It has ~13px of slack
+         before it crowds the top edge; below that you're into the status
+         bar / notch, which the header deliberately stays clear of. */
+      padding: 13px 20px 14px;
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
     }
