@@ -314,6 +314,16 @@ loadConfig().then(() => {
   const journal = require('./journal');
   journal.init({ bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); } });
   app.use('/api/journal', journal.router);
+
+  // The dream archive — every dream from every source, built live so a dream
+  // recorded this morning is in it without anyone regenerating a page.
+  const dreamArchive = require('./dreamarchive');
+  dreamArchive.init({
+    deckDb: async () => admin.firestore(),
+    membryBucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); },
+    deckBucket: async () => admin.storage().bucket(),
+  });
+  app.use('/api/dream-archive', dreamArchive.router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
@@ -571,6 +581,8 @@ app.get('/song', serveGated('song.html'));
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
 app.get('/dreams', serveGated('dreams.html'));
+// The dream archive — every dream from every source, newest first.
+app.get('/dreams-archive', serveGated('dreams-archive.html'));
 // Public "try it" version of Dreams for friends: same page, NO gate, and it
 // runs in guest mode (the page mints a per-device guest id and namespaces every
 // dream to it) — so each visitor gets their OWN private past-dreams archive and
