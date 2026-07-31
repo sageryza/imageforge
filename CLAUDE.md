@@ -397,10 +397,17 @@ lifted into a standalone tool later.
   swaps sign-ins — it writes `appAccount` to the reserved registry doc
   `__settings` via `POST /api/chatfeed/app-account`. Open buttons compare the
   chat's `account` to `appAccount`: match (or untagged) → direct claude.ai link
-  (iOS universal link opens the Claude app); mismatch → the link goes through
-  `GET /api/chatfeed/go?u=<claude.ai url>` (302), which opens in the BROWSER
-  instead (universal links don't fire on server redirects), where that account
-  is signed in. Nothing to re-paste when she swaps accounts — only the toggle.
+  (iOS universal link opens the Claude app); mismatch → the same claude.ai
+  link with **`#no_universal_links` appended** — claude.ai's own
+  apple-app-site-association EXCLUDES any URL carrying that fragment (their
+  first match rule, checked July 2026), so iOS never hands it to the Claude
+  app and it opens in the BROWSER, where that account is signed in. **Do NOT
+  reach for redirect tricks here:** a server 302 to claude.ai (verified
+  2026-07-27) AND a self-navigating interstitial page (verified 2026-07-31)
+  both bounce into the Claude app on current iOS — the AASA fragment
+  exclusion is the only thing that works. `GET /api/chatfeed/go?u=` survives
+  as a legacy hop for cached pages; it now just 302s to the fragment-tagged
+  URL. Nothing to re-paste when she swaps accounts — only the toggle.
   Existing chats that haven't posted since the env vars were added are
   untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
   `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook

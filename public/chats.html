@@ -557,13 +557,18 @@ function claudeUrlFor(name, list){
 function appAccount(){ return (settings&&settings.appAccount)||'1'; }
 // The href an Open button should use for this chat. A chat on the account
 // that's signed into the app gets the direct claude.ai link (iOS hands it to
-// the Claude app); a chat on the OTHER account routes through /go so the tap
-// opens the BROWSER, where that account is signed in. Chats with no account
-// tag keep the old direct behavior.
+// the Claude app); a chat on the OTHER account gets the same link with
+// #no_universal_links appended — claude.ai's own apple-app-site-association
+// EXCLUDES any URL carrying that fragment (their first match rule, checked
+// July 2026), so iOS never hands it to the Claude app and it opens in the
+// BROWSER, where that account is signed in. This replaced the /go redirect
+// hop: both a server 302 and a self-navigating page were verified live to
+// bounce into the app anyway. Chats with no account tag keep the old direct
+// behavior.
 function openHref(name,url){
   var acct=(chats[name]&&chats[name].account)||'';
   if(!url||!acct||acct===appAccount()) return url;
-  return '/api/chatfeed/go?u='+encodeURIComponent(url)+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+  return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
