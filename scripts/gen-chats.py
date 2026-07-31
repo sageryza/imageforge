@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-07-31 — RESYNCED from public/chats.html (again). It had drifted two
-# features behind (#586/#587 were edited straight into the page), so running this
-# would have silently reverted them. It now reproduces the live page byte for
-# byte: edit HERE and rebuild, or if you do edit the page directly, resync this
-# template in the same commit.
-# Home is a grid of chat tiles (picture icon, name, last activity); tapping a
-# tile opens that chat's thread — its replies oldest-to-newest, each with a
-# one-tap "polish" render in the neural onyx-British voice (cached; the free
-# device voice was retired — Sophie found it robotic) — with the reply bar
-# pre-targeted to that chat (replies are picked up on chats' hourly checks).
+# build marker: 2026-07-31 — RESYNCED from public/chats.html. It had drifted
+# again: #636 (Archive in the header) and #642 (the ask-first sheet) were
+# edited straight into the page, so running this would have reverted both and
+# taken the archive confirmation with it — the very accident it exists to stop.
+# Same rule as before: edit HERE and rebuild, or if you edit the page directly,
+# resync this template in the same commit. Check `grep -c askFirst` on BOTH
+# files before committing; if they disagree, the template is stale.
 import base64, os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
@@ -30,6 +27,12 @@ html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase;}
+/* In a thread the back button is FIXED over the top-left (x 15-59) and the
+   autoscroll pill over the top-right, so this row has to start clear of one
+   and stop short of the other. Archive rides at its right end. */
+#thread header .no{display:flex; align-items:center; gap:10px; min-height:34px;
+  padding-left:48px; padding-right:56px;}
+#thread header .no .crumb{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .rule{height:1px; background:var(--line); margin:1em 0 1.6em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
@@ -129,16 +132,6 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
 .lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
   font-family:'EBGaramond',Georgia,serif; font-size:15px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
-/* how a chat files the prompt for an image — folded away until tapped */
-.howpost{margin:.2em 0 1em; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
-.howpost summary{cursor:pointer; padding:8px 10px; font-family:-apple-system,sans-serif; font-size:10px;
-  letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); list-style:none;}
-.howpost summary::-webkit-details-marker{display:none;}
-.howpost .hpbody{padding:0 10px 10px; font-size:13px; line-height:1.5; color:var(--ink2);}
-/* wraps rather than side-scrolls: this is read on a phone */
-.howpost pre{margin:6px 0 0; padding:8px; border-radius:6px; background:rgba(0,0,0,.05);
-  white-space:pre-wrap; word-break:break-word;
-  font-family:ui-monospace,Menlo,monospace; font-size:11px; line-height:1.45; color:var(--ink);}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
@@ -245,7 +238,34 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
 .openclaude svg{width:15px; height:15px; display:block; stroke:#fff;}
-.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0; padding-right:56px;}
+.headbtns{display:flex; align-items:center; gap:8px; margin:2px 0 0; padding-right:56px;}
+/* Refresh rides in the tab bar itself rather than wrapping to a line of its
+   own; the toggle takes whatever width is left. */
+.headbtns .viewtog{flex:1; min-width:0; width:auto;}
+.headbtns .viewtog button{flex:1; min-width:0; padding-left:4px; padding-right:4px;}
+.headbtns .threadrefresh{flex:none;}
+/* Ask-first sheet. Deliberately NOT window.confirm(): in the iOS app's
+   WKWebView a confirm panel only appears if the native side implements the
+   delegate for it — otherwise it returns false silently and the action would
+   never run at all. This is plain DOM, so it works everywhere. */
+.askwrap{position:fixed; inset:0; z-index:40; background:rgba(15,13,10,.55);
+  display:flex; align-items:center; justify-content:center; padding:24px;}
+.askbox{background:var(--paper); border:1px solid var(--line); border-radius:6px;
+  padding:18px 16px 14px; width:min(88vw,320px); box-shadow:0 6px 24px rgba(0,0,0,.22);}
+.askbox p{margin:0 0 14px; font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.35; color:var(--ink);}
+.askrow{display:flex; gap:8px; justify-content:flex-end;}
+.askrow button{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em;
+  text-transform:uppercase; border-radius:6px; padding:9px 14px; cursor:pointer; border:1px solid var(--line);
+  background:var(--barbg); color:var(--ink2); margin:0;}
+.askrow button.go{background:var(--ink); border-color:var(--ink); color:var(--paper);}
+/* Archive as words, beside the name — not a button, still tappable. */
+/* Vertical padding is the tap target, not decoration: as bare 11px text this
+   was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
+   costs no layout. */
+.archlink{flex:none; background:none; border:none; margin:0; padding:10px 6px; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.archlink:active{color:var(--ink);}
 /* An on/off switch, the iOS shape. Circular track, so it's the sanctioned
    exception to no-pills — it's a toggle, not a text button. */
 .swi{position:relative; width:42px; height:26px; border-radius:13px; border:1.5px solid var(--line);
@@ -295,9 +315,27 @@ body.reading .backwrap{display:block;}
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
-__PILL_CSS__
+
+.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+.vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+.vseg button + button{border-top:1.5px solid var(--ink);}
+.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
+.vseg button.dim{opacity:.3;}
+.vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
+#spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+
 </style>
-__PILL_HTML__
+
+<div class="float">
+  <div class="vseg">
+    <button id="vtop" aria-label="Scroll up, or slower while playing"></button>
+    <button id="vmid" aria-label="Play or pause autoscroll"></button>
+    <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
+  </div>
+  <span id="spd">Fast</span>
+</div>
+
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
 <button id="newbar" class="newbar" aria-label="Show new messages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg><span id="newtxt">New message</span></button>
@@ -460,7 +498,70 @@ function ago(iso){
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
 }
-__PILL_JS__
+
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
+var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
+var I={
+ up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+ down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+ play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+ pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+ plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+};
+function spd(){ return SPEEDS[si][1]; }
+function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
+function paintPill(){
+  if(playing){
+    vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
+    vtop.classList.toggle('dim', si===0); vbot.classList.toggle('dim', si===SPEEDS.length-1);
+  } else {
+    vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on');
+    vtop.classList.remove('dim'); vbot.classList.remove('dim');
+  }
+  showSpd();
+}
+function stepPill(ts){
+  if(!playing) return;
+  if(last!=null){
+    acc += dir*(ts-last)/1000*42*spd();
+    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
+    if(move!==0){ window.scrollBy(0,move); acc-=move; }
+    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
+    if(atEnd) scrollStop(); }
+  last=ts; raf=requestAnimationFrame(stepPill);
+}
+function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
+window.__scrollStop=scrollStop;
+window.__scrollStart=scrollStart;
+window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
+vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
+vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
+vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+// Leaving the page (tab switch, app background, webview hidden) stops
+// autoscroll — it must never keep scrolling while nobody's looking.
+document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
+window.addEventListener('pagehide',scrollStop);
+paintPill();
+
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 // Feed-wide settings from the server (registry __settings doc). appAccount =
 // which Claude account is signed into the iOS app right now ("1"/"2").
@@ -832,19 +933,23 @@ function openChat(name, keepScroll, focusId, noFetch){
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
-  head.innerHTML='<div class="no">chats</div>'
+  head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
-  // Archive lives in the header, not at the foot of the thread \u2014 deciding
-  // whether to archive shouldn't mean scrolling past every message first.
-  // Same button, same place, either way: "Archive" / "Unarchive".
+  // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
+  // text rather than a button \u2014 it isn't a place to go, it's a thing you do
+  // once. Same word and same spot either way: "Archive" / "Unarchive".
   (function(){
     var isArch=!!(chats[name]&&chats[name].archived);
-    var ab=document.createElement('button'); ab.className='tbtn';
+    var ab=document.createElement('button');
     ab.textContent=isArch? 'Unarchive' : 'Archive';
     ab.onclick=function(){
+      if(!isArch){ askFirst('Archive '+dispName(name)+'?', 'Archive', function(ok){ if(ok) doArchive(); }); }
+      else doArchive();
+    };
+    function doArchive(){
       api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
         .then(function(r){return r.json()})
         .then(function(d){ if(!d.ok) throw 0;
@@ -852,8 +957,9 @@ function openChat(name, keepScroll, focusId, noFetch){
           toast(!isArch? 'Archived' : 'Restored'); goHome();
         })
         .catch(function(){ toast('Couldn\u2019t save that'); });
-    };
-    head.querySelector('.headbtns').appendChild(ab);
+    }
+    ab.className='archlink';   // reads as text, still a button
+    head.querySelector('.no').appendChild(ab);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -901,12 +1007,15 @@ function openChat(name, keepScroll, focusId, noFetch){
   var assetsLoaded=false;
   function loadAssets(){
     if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
+    // A page at a time. The old single request was a hard truncate: once a chat
+    // passed the cap its OLDEST images silently stopped appearing (they were
+    // never deleted — just never sent). More pages load as she scrolls.
+    var PAGE=150;
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset=0')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];
         assetsPanel.innerHTML='';
-        assetsPanel.appendChild(howToPost(name));
         if(!a.length){ assetsPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images from this chat yet.'})); return; }
         // Grid tiles load small thumbnails (served straight from storage's CDN
         // when they exist, else generated by /api/story/thumb); the lightbox
@@ -1052,7 +1161,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           paint();
           cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
-        a.forEach(function(it){
+        function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
           // What the image IS, when the chat filed one — else the generic "from <chat>"
@@ -1077,8 +1186,45 @@ function openChat(name, keepScroll, focusId, noFetch){
           if(io) io.observe(img);
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
-        });
+        }); }
+        addTiles(a);
         assetsPanel.appendChild(grid);
+        // Infinite scroll: a sentinel under the grid pulls the next page when
+        // it comes near the viewport, so nothing is ever out of reach — and a
+        // chat with 40 images never pays for a request it doesn't need.
+        var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
+        var more=document.createElement('div'); more.className='state';
+        more.style.display='none'; assetsPanel.appendChild(more);
+        function nextPage(){
+          if(busy || loaded>=total) return;
+          busy=true; more.textContent='Loading more…'; more.style.display='';
+          api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset='+loaded)
+            .then(function(r){return r.json()})
+            .then(function(p){
+              var got=(p&&p.assets)||[];
+              if(p&&p.total) total=p.total;
+              loaded+=got.length;
+              addTiles(got);
+              applyFilter();          // a new tile obeys the search/filter too
+              busy=false;
+              more.style.display='none';
+              if(!got.length) loaded=total;   // never spin on an empty page
+              if(loaded<total) watchTail();
+            })
+            .catch(function(){ busy=false; more.textContent='Couldn\u2019t load more — scroll to retry.'; });
+        }
+        var tailIO=null;
+        function watchTail(){
+          if(loaded>=total) return;
+          if(!('IntersectionObserver' in window)){ more.style.display=''; more.textContent='Load more'; more.onclick=nextPage; return; }
+          if(tailIO) tailIO.disconnect();
+          tailIO=new IntersectionObserver(function(es){
+            if(es.some(function(e){return e.isIntersecting;})){ tailIO.disconnect(); nextPage(); }
+          },{rootMargin:'800px 0px'});
+          var last=grid.lastElementChild;
+          if(last) tailIO.observe(last);
+        }
+        watchTail();
       })
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
   }
@@ -1241,27 +1387,28 @@ function openPage(p){
 // every Assets tab — so the instructions live where the images do and can be
 // handed to any chat that isn't doing it yet. Kept in sync with the CLAUDE.md
 // section "Prompts on Assets images".
-function howToPost(chat){
-  var d=document.createElement('details'); d.className='howpost';
-  var body='<div class="hpbody">The chat that makes an image posts its prompt, split in two: '
-    +'<b>style</b> (the look — house style, LoRA trigger, medium) and <b>content</b> (what is depicted). '
-    +'Tap PROMPT on an image to read it over the picture.'
-    +'<pre>POST '+esc(location.origin)+'/api/gallery/assets/prompt\n'
-    +'{\n  "chat": '+esc(JSON.stringify(chat))+',\n  "url": "&lt;the image’s Firebase url&gt;",\n'
-    +'  "style": "wtr watercolor drawing, loose wash",\n'
-    +'  "content": "a woman on a bench feeding crows"\n}</pre>'
-    +'<pre># backfill this whole tab in one call\nnode scripts/backfill-asset-prompts.js '
-    +esc(JSON.stringify(chat))+' prompts.json</pre>'
-    +'<p style="margin:10px 0 0">Notes on an image are a <b>conversation</b> — the chat '
-    +'that made it can write back. It reads what’s waiting the next time you message it '
-    +'(nothing runs on a timer), so replies arrive like letters, not chat.</p>'
-    +'<pre># what Sophie asked, and what’s still unanswered\nGET '+esc(location.origin)
-    +'/api/gallery/assets/notes?chat='+esc(encodeURIComponent(chat))+'\n\n# write back\nPOST '
-    +esc(location.origin)+'/api/gallery/assets/note\n{\n  "chat": '+esc(JSON.stringify(chat))
-    +',\n  "url": "&lt;the image’s Firebase url&gt;",\n  "from": "chat",\n'
-    +'  "text": "Re-rolled it — the hand is fixed in v2."\n}</pre></div>';
-  d.innerHTML='<summary>How to post prompts &amp; reply to notes</summary>'+body;
-  return d;
+
+// Ask before something you can't undo with one tap. Locks the page behind it
+// like the lightbox does, and hands back true/false.
+function askFirst(question, okLabel, cb){
+  scrollStop();
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.textContent=question;
+  var row=document.createElement('div'); row.className='askrow';
+  var no=document.createElement('button'); no.textContent='Cancel';
+  var yes=document.createElement('button'); yes.className='go'; yes.textContent=okLabel;
+  function close(v){
+    wrap.remove(); document.body.style.overflow='';
+    cb(v);
+  }
+  no.onclick=function(e){ e.stopPropagation(); close(false); };
+  yes.onclick=function(e){ e.stopPropagation(); close(true); };
+  wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
+  box.onclick=function(e){ e.stopPropagation(); };
+  row.appendChild(no); row.appendChild(yes);
+  box.appendChild(q); box.appendChild(row); wrap.appendChild(box);
+  document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }
 
 // Image lightbox — freezes the page behind it (design rule)
