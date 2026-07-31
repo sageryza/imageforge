@@ -1,0 +1,7 @@
+# Collected dream text, transcripts and the rendered page are personal — this
+# repo is public. The scripts here regenerate all of it from source on demand.
+source-*.json
+archive.json
+archive.html
+# Dreams pulled out of Google Drive (text + openings) — same reason.
+drive/

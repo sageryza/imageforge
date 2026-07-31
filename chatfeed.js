@@ -127,15 +127,31 @@ router.get('/', async (req, res) => {
     // we sort by needs no composite index.
     const since = String(req.query.since || '').slice(0, 40);
     if (since) {
-      const [dsnap, reg] = await Promise.all([
+      // Two queries, unioned. `created` is when a message was SENT, and Sophie's
+      // own messages carry her real send time — which is EARLIER than the reply
+      // they prompted. So a client whose newest message is that reply asks for
+      // "anything after <reply time>" and would never be handed her message: it
+      // is older than the cutoff the moment it exists. `postedAt` is when the
+      // doc was WRITTEN (monotonic, set below on every write), so the second
+      // query catches exactly those. Deduped by id; both are range+orderBy on a
+      // single field, so neither needs a composite index.
+      const [csnap, psnap, reg] = await Promise.all([
         db().collection(MSGS)
           .where('created', '>', since)
           .orderBy('created', 'desc')
           .limit(200)              // a burst backstop; a normal poll returns 0-2
           .get(),
+        db().collection(MSGS)
+          .where('postedAt', '>', since)
+          .orderBy('postedAt', 'desc')
+          .limit(200)
+          .get(),
         registry(),
       ]);
-      const messages = dsnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const byId = new Map();
+      csnap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+      psnap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+      const messages = Array.from(byId.values());
       // `delta:true` tells the client to MERGE rather than replace — it still
       // holds the trimmed tail and any full threads it has already pulled.
       return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true });
@@ -264,6 +280,9 @@ router.post('/', async (req, res) => {
       tldr: String(tldr || '').slice(0, 1000),
       from: 'claude',
       created: new Date().toISOString(),
+      // Same monotonic write stamp as /reply — it's what the delta poll ranges
+      // over, so nothing can be skipped for having an older `created`.
+      postedAt: new Date().toISOString(),
     };
     // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
     if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
@@ -306,6 +325,9 @@ router.post('/icon', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// NOTE: the Assets tab the app actually renders is GET /api/gallery/assets in
+// server.js — that one is paged and dedupes a picture that lives at two storage
+// paths. This route predates it and nothing calls it; fix the server.js one.
 // Per-chat image gallery (the "Assets" tab inside a chat). Built from the union
 // of: image URLs already present in that chat's message text (so existing chats
 // show their art with no back-fill) + forge-chat-assets docs (uploaded-file
@@ -401,27 +423,22 @@ router.post('/app-account', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// Open a claude.ai session in the BROWSER instead of the Claude app. iOS
-// hands a tapped claude.ai link straight to the app (universal link), which
-// is wrong for a chat on the account that's signed in on the web — so those
-// Open buttons point here instead. NOT a 302: verified live (2026-07-27) that
-// Safari treats a server redirect to claude.ai as a link activation and
-// bounces into the Claude app anyway. Instead this serves a tiny page that
-// navigates ITSELF (script location.replace + meta-refresh fallback) —
-// self-initiated navigation doesn't trigger the universal-link handoff, so
-// the session opens in Safari, where that account's login lives.
+// Open a claude.ai session in the BROWSER instead of the Claude app.
+// LEGACY hop — kept only for cached copies of /chats; the page now appends
+// #no_universal_links to the claude.ai URL itself and links it directly.
+// claude.ai's apple-app-site-association EXCLUDES any URL carrying that
+// fragment (their first match rule, checked July 2026), so iOS never hands
+// it to the Claude app. The two redirect tricks this route tried before it
+// both failed live: a 302 bounced into the app (2026-07-27), and the
+// self-navigating page (location.replace + meta-refresh) bounced too
+// (2026-07-31) — automatic redirects don't defeat the universal link on
+// current iOS, the AASA exclusion does. So this now just 302s to the
+// fragment-tagged URL.
 router.get('/go', (req, res) => {
   const u = String(req.query.u || '').slice(0, 400);
   if (!/^https:\/\/claude\.ai\//.test(u)) return res.status(400).send('bad url');
-  const safe = u.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E');
   res.set('Cache-Control', 'no-store');
-  res.set('Content-Type', 'text/html; charset=utf-8').send(
-    '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<meta http-equiv="refresh" content="0;url=' + safe + '"><title>Opening…</title>'
-    + '<body style="font-family:-apple-system,sans-serif;padding:40px 24px;color:#444">'
-    + 'Opening the chat in your browser…'
-    + '<script>location.replace(' + JSON.stringify(safe) + ');</script>'
-  );
+  res.redirect(302, u + (u.includes('#') ? '' : '#no_universal_links'));
 });
 
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
@@ -493,6 +510,9 @@ router.get('/pages', async (req, res) => {
 // The shared autoscroll pill, appended to every served page so Compare pages
 // scroll hands-free like the rest of the app. Self-contained snippet built by
 // scripts/gen-pill-inject.py (re-run it after changing scripts/pill.py).
+// Exported: server.js appends the SAME snippet to gated static pages that opt
+// in (serveGated(file, { pill:true }) — e.g. /editor), so the pill is sourced
+// from one place and never re-implemented per page.
 let pillSnippet = null;
 function pillInject() {
   if (pillSnippet === null) {
@@ -547,6 +567,22 @@ router.post('/about', async (req, res) => {
 // underlying `chat` key (branch-derived) is unchanged, so every reply still
 // groups into the same chat; only the label Sophie sees changes. Empty name
 // clears it (falls back to the chat key). Stored on the registry doc.
+// What Sophie has named this chat. The rename in the Chats app (the pencil in
+// the thread header) is the SOURCE OF TRUTH for a chat's name — the Claude app's
+// own session title is not readable from anywhere and cannot be synced, so a
+// chat asks here instead of guessing from its git branch. Returns the slug's
+// displayName when she has set one, else null (the slug is then the name).
+router.get('/name', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    res.set('Cache-Control', 'no-store');
+    const snap = await regRef(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({ chat, displayName: d.displayName || null, name: d.displayName || chat });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/rename', async (req, res) => {
   try {
     const { chat, name } = req.body || {};
@@ -635,17 +671,61 @@ router.post('/polish', async (req, res) => {
 
 router.post('/reply', async (req, res) => {
   try {
-    const { chat, text } = req.body || {};
+    const { chat, text, created } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    // `created` = when she actually sent it (the hook passes the transcript's
+    // timestamp for her own messages, so hers sorts ABOVE the reply it
+    // prompted). Ignored unless it parses and isn't in the future.
+    let at = new Date().toISOString();
+    if (created) {
+      const t = new Date(created).getTime();
+      if (!isNaN(t) && t <= Date.now() + 60000) at = new Date(t).toISOString();
+    }
     const doc = {
       chat: String(chat).slice(0, 60),
       text: String(text).slice(0, 8000),
       from: 'sophie',
-      created: new Date().toISOString(),
+      created: at,
+      // when the doc was WRITTEN — the delta poll needs a monotonic field,
+      // because `created` here is her real send time and runs behind the reply.
+      postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router };
+// ─── Verdicts on a Compare page ─────────────────────────────────────────────
+// Check pages need a yes/no per item that survives the tab closing, so the chat
+// can read back what she decided instead of asking her to recite it.
+//   POST /api/chatfeed/verdict { chat, sheet, item, ok }
+//   GET  /api/chatfeed/verdict?chat=&sheet=
+router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    const { chat, sheet, item, ok } = req.body || {};
+    if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
+    const db = admin.firestore();
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    await db.collection('forge-chat-verdicts').doc(id).set({
+      chat, sheet,
+      items: { [String(item)]: ok === null ? null : !!ok },
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+router.get('/verdict', async (req, res) => {
+  try {
+    const { chat, sheet } = req.query || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
+    res.json({ ok: true, items: doc.exists ? (doc.data().items || {}) : {} });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+module.exports = { router, pillInject };

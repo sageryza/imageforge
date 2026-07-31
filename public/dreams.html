@@ -212,13 +212,33 @@
   }
   // The archive/zine list endpoint, scoped to this visitor when in guest mode.
   const dreamListPath = () => '/dream' + (OWNER ? ('?owner=' + encodeURIComponent(OWNER)) : '');
+  // NEVER throws: a dropped connection / timeout ("the network connection was
+  // lost") used to blow up whatever flow was mid-await and kill its poll loop.
+  // Now it comes back as {ok:false, status:0} and the callers' retry loops
+  // handle it like any other failed poll.
   async function api(path, opts = {}) {
     if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
-    const res = await fetch('/api/movies' + path, opts);
-    const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
-    return { ok: res.ok, status: res.status, body: b };
+    try {
+      const res = await fetch('/api/movies' + path, opts);
+      const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
+      return { ok: res.ok, status: res.status, body: b };
+    } catch (err) {
+      return { ok: false, status: 0, body: { error: 'The connection dropped — trying again.' } };
+    }
   }
   const jpost = (p, body) => api(p, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  // POST with retries for network-level failures (status 0). Safe to re-send:
+  // /dream carries an idempotency key, and a render retry that hits 409
+  // ("already running") means the first attempt DID start the job.
+  async function jpostRetry(p, body, tries = 4) {
+    let r;
+    for (let a = 0; a < tries; a++) {
+      r = await jpost(p, body);
+      if (r.status !== 0) return r;
+      await sleep(1600 * (a + 1));
+    }
+    return r;
+  }
   const esc = s => String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const $ = id => document.getElementById(id);
   const root = $('root'), overlay = $('overlay');
@@ -257,9 +277,13 @@
   // touch her sheet).
   async function capi(path, opts={}) {
     if (_tok) opts = { ...opts, headers: { ...(opts.headers||{}), 'x-studio-token': _tok } };
-    const res = await fetch('/api/character' + path, opts);
-    const t = await res.text(); let b; try{ b=JSON.parse(t); }catch{ b=t; }
-    return { ok: res.ok, status: res.status, body: b };
+    try {
+      const res = await fetch('/api/character' + path, opts);
+      const t = await res.text(); let b; try{ b=JSON.parse(t); }catch{ b=t; }
+      return { ok: res.ok, status: res.status, body: b };
+    } catch (err) {
+      return { ok:false, status:0, body:{ error:'The connection dropped — trying again.' } };
+    }
   }
   const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
   // Live browser dictation exists here? (No inside the iOS app webview.)
@@ -276,7 +300,7 @@
     recog.onresult = e => {
       let t = '';
       for(let i=0;i<e.results.length;i++) t += e.results[i][0].transcript;
-      S.text = seed + t; const ta = $('ta'); if(ta) ta.value = S.text;
+      S.text = seed + t; saveDraft(); const ta = $('ta'); if(ta) ta.value = S.text;
     };
     recog.onend = () => { S.recording = false; renderMain(); };
     recog.onerror = () => { S.recording = false; renderMain(); };
@@ -287,6 +311,29 @@
   function getActive(){ try{ return (localStorage.getItem('dreams_active')||'').split(',').filter(Boolean); }catch{ return []; } }
   function setActive(ids){ try{ ids.length ? localStorage.setItem('dreams_active', ids.join(',')) : localStorage.removeItem('dreams_active'); }catch{} }
 
+  // ── Draft persistence ──
+  // The dream box saves as you type and stays for the rest of the day (add to
+  // it whenever), then clears itself overnight so the morning starts fresh —
+  // but ONLY once its reading succeeded. A dream that never made it through
+  // stays put, however old, until it does.
+  let draftTimer = null;
+  function saveDraft(){
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(()=>{ try{
+      if((S.text||'').trim()){
+        localStorage.setItem('dreams_last', S.text);
+        localStorage.setItem('dreams_last_at', String(Date.now()));
+        localStorage.setItem('dreams_last_ok','0');
+      } else clearDraft();
+    }catch{} }, 350);
+  }
+  function clearDraft(){ try{
+    localStorage.removeItem('dreams_last');
+    localStorage.removeItem('dreams_last_at');
+    localStorage.removeItem('dreams_last_ok');
+  }catch{} }
+  function markDraftRead(){ try{ if(localStorage.getItem('dreams_last')) localStorage.setItem('dreams_last_ok','1'); }catch{} }
+
   // ── Stage 1 (free, fast): the read ONLY splits the recording into its
   //    dreams — order, drift cues, who's mentioned, saved-sheet candidates.
   //    Runs as a server background job (poll the batch), then the approval
@@ -295,12 +342,19 @@
     const body = (S.text||'').trim();
     if(!body){ showToast('Write down your dream first.'); return; }
     if(S.busy) return;
-    try{ localStorage.setItem('dreams_last', body); }catch{}   // remember it so it prefills next time
+    try{   // remember it so it prefills next time (clears overnight once read)
+      localStorage.setItem('dreams_last', body);
+      localStorage.setItem('dreams_last_at', String(Date.now()));
+      localStorage.setItem('dreams_last_ok','0');
+    }catch{}
     if(S.recording){ recog && recog.stop(); }
     S.busy=true; S.statusLabel='Reading your dream…'; S.current=null; S.finished=[]; S.review=[]; S.castTop=[]; S.castOthers=[];
     S.session++; const session=S.session;
     render();
-    const r = await jpost('/dream', { dream: body, background:true, owner: OWNER || undefined });
+    // The key makes a retried POST safe: the server returns the batch the
+    // first attempt created instead of reading the recording twice.
+    const key = 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const r = await jpostRetry('/dream', { dream: body, background:true, owner: OWNER || undefined, key });
     if(session!==S.session) return;
     if(!r.ok || !r.body.batchId){ S.busy=false; S.statusLabel=''; render(); showToast((r.body&&r.body.error)||'Could not read that dream.'); return; }
     try{ localStorage.setItem('dreams_reading', r.body.batchId); }catch{}
@@ -321,6 +375,7 @@
         }
         if(b.status==='done'){
           try{ localStorage.removeItem('dreams_reading'); }catch{}
+          markDraftRead();   // the recording is safely stored — the box may clear overnight
           S.busy=false; S.statusLabel='';
           await beginReview(b.dreams||[]); render(); return;
         }
@@ -424,8 +479,10 @@
     const started=[];
     for(const d of dreams){
       if(session!==S.session) return;
-      const rr = await jpost('/dream/'+d.id+'/render', { quality:'medium', characters:cast });
-      if(rr.ok){ started.push(d.id); setActive(started); }
+      const rr = await jpostRetry('/dream/'+d.id+'/render', { quality:'medium', characters:cast });
+      // 409 = a render is already running on this dream — the first attempt
+      // started it before the connection dropped, so just poll it.
+      if(rr.ok || rr.status===409){ started.push(d.id); setActive(started); }
       else showToast((rr.body&&rr.body.error)||'Render failed to start.');
     }
     await drain(started, dreams.length, session);
@@ -518,7 +575,7 @@
     root.innerHTML = h;
 
     // wire
-    const ta = $('ta'); if(ta) ta.oninput = e => S.text = e.target.value;
+    const ta = $('ta'); if(ta) ta.oninput = e => { S.text = e.target.value; saveDraft(); };
     const mic = $('mic'); if(mic) mic.onclick = toggleMic;
     const ill = $('illustrate'); if(ill) ill.onclick = illustrate;
     const pr=$('pasteRec'); if(pr) pr.onclick=()=>{ try{ NATIVE.pasteAudio.postMessage({}); }catch{} };
@@ -815,8 +872,25 @@
 
   // (No page-open wake-up ping needed: the server self-pings every 10 min to
   // stay under Render's idle window — see the keep-awake timer in server.js.)
-  // Prefill your last dream so you can just tap Illustrate to re-run it.
-  try{ S.text = localStorage.getItem('dreams_last') || ''; }catch{}
+  // Prefill your last dream. It stays for the rest of the day it was written,
+  // clears overnight once its reading succeeded ("leave at 12 o'clock"), and
+  // stays past midnight if the reading never went through.
+  try{
+    const t = localStorage.getItem('dreams_last') || '';
+    const at = Number(localStorage.getItem('dreams_last_at') || 0);
+    const ok = localStorage.getItem('dreams_last_ok') === '1';
+    if (t && !at) {
+      // Draft saved before day-tracking existed: stamp it as today's, already
+      // read (it only got here via a submit) — so it clears tomorrow morning.
+      localStorage.setItem('dreams_last_at', String(Date.now()));
+      localStorage.setItem('dreams_last_ok', '1');
+      S.text = t;
+    } else if (t && ok && new Date(at).toDateString() !== new Date().toDateString()) {
+      clearDraft();   // a new day — fresh box for a fresh dream
+    } else {
+      S.text = t;
+    }
+  }catch{}
 
   // ── Native paste-recording bridge (iOS app only) ──
   // The native wrapper reads a copied Voice Memo off the clipboard, transcribes
@@ -824,7 +898,11 @@
   window.__pasteAudioStart = ()=>{ S.transcribing=true; render(); };
   window.__pasteAudioEmpty = ()=>{ S.transcribing=false; render(); showToast('Copy a recording first — in Voice Memos: tap it → Share → Copy'); };
   window.__pasteAudioError = (m)=>{ S.transcribing=false; render(); showToast(m||"Couldn't read that recording"); };
-  window.__fillDream = (t)=>{ S.transcribing=false; S.text = (S.text ? S.text.trim()+' ' : '') + String(t||'').trim(); render(); const ta=$('ta'); if(ta) ta.focus(); };
+  // Non-fatal heads-up from the native side (e.g. "same copy as last time" —
+  // the clipboard hadn't changed since the previous paste). Transcription
+  // still proceeds; this just explains a surprising result before it lands.
+  window.__pasteAudioNote = (m)=>{ if(m) showToast(m); };
+  window.__fillDream = (t)=>{ S.transcribing=false; S.text = (S.text ? S.text.trim()+' ' : '') + String(t||'').trim(); saveDraft(); render(); const ta=$('ta'); if(ta) ta.focus(); };
 
   render();
   // If a reading or render was still going when the page was last closed,

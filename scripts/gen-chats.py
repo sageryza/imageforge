@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-07-26 — rebuilt on top of main; #570 squash-merged into a broken chats.html (un-rebased branch vs #569 squash)
-# Home is a grid of chat tiles (picture icon, name, last activity); tapping a
-# tile opens that chat's thread — its replies oldest-to-newest, each with a
-# one-tap "polish" render in the neural onyx-British voice (cached; the free
-# device voice was retired — Sophie found it robotic) — with the reply bar
-# pre-targeted to that chat (replies are picked up on chats' hourly checks).
+# build marker: 2026-07-31 — RESYNCED from public/chats.html. It had drifted
+# again: #636 (Archive in the header) and #642 (the ask-first sheet) were
+# edited straight into the page, so running this would have reverted both and
+# taken the archive confirmation with it — the very accident it exists to stop.
+# Same rule as before: edit HERE and rebuild, or if you edit the page directly,
+# resync this template in the same commit. Check `grep -c askFirst` on BOTH
+# files before committing; if they disagree, the template is stale.
 import base64, os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 font = base64.b64encode(open(os.path.join(ROOT, 'ios', 'ImageForge', 'EBGaramond.ttf'), 'rb').read()).decode()
 
-page = """<!doctype html>
+page = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Chats — every chat in one place</title>
@@ -26,6 +27,12 @@ html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase;}
+/* In a thread the back button is FIXED over the top-left (x 15-59) and the
+   autoscroll pill over the top-right, so this row has to start clear of one
+   and stop short of the other. Archive rides at its right end. */
+#thread header .no{display:flex; align-items:center; gap:10px; min-height:34px;
+  padding-left:48px; padding-right:56px;}
+#thread header .no .crumb{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .rule{height:1px; background:var(--line); margin:1em 0 1.6em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
@@ -45,7 +52,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-meta{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.14em; color:var(--ink2); text-transform:uppercase; margin-top:4px;}
 .abouted{display:block; width:100%; margin:2px 0 0; font-family:'EBGaramond',Georgia,serif; font-size:16px; box-sizing:border-box;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:7px 9px;}
-.thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em;}
+/* The floating autoscroll pill is fixed over the top-right corner (x 324-374,
+   y 14-192 on an iPhone 13), so ANY header control that reaches that corner is
+   untappable — the rename pencil was. Both header rows reserve that column. */
+.thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -70,16 +80,58 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
 .lbtop .vote{width:38px; height:38px;}
 .lbtop .vote svg{width:18px; height:18px;}
-.lbnote{display:flex; gap:6px; width:min(92vw,360px); margin-top:12px;}
+.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
 .lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
   font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
 .lbnote .notesend.saved{background:#5d7a5a; color:#fff;}
+/* The note thread under the image: her letters and the chat's replies back.
+   Its own scroll area so a long exchange can never push the picture off. */
+.lbtalk{width:min(92vw,360px); margin-top:12px;}
+.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:5px;}
+.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:'EBGaramond',Georgia,serif;
+  font-size:14px; line-height:1.4; word-break:break-word; white-space:pre-wrap;}
+.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
+.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
+.lbmsg.pending{opacity:.55;}
+.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
+/* an unread reply from the chat — top centre, between the ♥ and the ✕ */
+.assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
+  font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center;
+  padding:0 5px; box-sizing:border-box; box-shadow:0 1px 4px rgba(0,0,0,.25); pointer-events:none;}
 #clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
 #clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
+/* With a note thread under it the picture can't have the whole screen, or the
+   thread and the box you type in fall off the bottom. */
+#clightbox.hastalk img{max-height:46vh;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+/* the prompt behind the image: covers it completely (that's the point — you
+   read the words instead of the picture), Style on the left of the toggle,
+   Content on the right. .clwrap only wraps the img so the overlay lands on
+   exactly the image; it is deliberately NOT .clframe, which would move the
+   ♥/✕ row off the screen corners it sits in today. */
+#clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
+/* The wrapper shrink-wraps the <img>, so on a slow connection (or a cold
+   Render) it can still be 0×0 when you tap PROMPT — an inset:0 overlay would
+   then render as an unreadable stamp. .pon (only while the prompt is showing,
+   so nothing moves otherwise) floors the box so the words always have room. */
+#clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
+.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.2); flex:none;}
+.promptbtn.on{background:#3a3530; color:#faf7f0;}
+.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;
+  padding:14px; box-sizing:border-box; z-index:1;}
+.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}
+.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; padding:8px 4px; cursor:pointer;}
+.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
+.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
@@ -107,8 +159,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .msg.open .m-head{cursor:pointer;}
 .m-close{display:none; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto;}
 .msg.open .m-close{display:inline;}
-.archrow{margin-top:2.2em; text-align:center;}
-.archrow button{background:none; border:none; color:var(--ink2); opacity:.7; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:6px;}
+/* Per-chat Claude-account picker — the last thing under the messages (Archive
+   moved up to the header, so this is now the foot of the thread) */
+.acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
+.acctrow .tbtn{min-width:34px; text-align:center;}
 .archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
@@ -161,8 +216,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .crow .cr-ic{width:46px; height:46px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
-.cr-name{font-size:1.15em; font-weight:600; line-height:1.12;}
-.cr-sub{font-size:.95em; color:var(--ink2); line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* The name is the whole row now, so it can be bigger. display:block is what
+   makes the ellipsis work at all — as an inline span it could never truncate,
+   which is how the old snippet ended up running off the screen. */
+.cr-name{display:block; font-size:1.45em; font-weight:600; line-height:1.2;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
 /* "Answered" check — mark a chat done; it grays until a newer message arrives */
@@ -180,7 +238,42 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
 .openclaude svg{width:15px; height:15px; display:block; stroke:#fff;}
-.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0;}
+.headbtns{display:flex; align-items:center; gap:8px; margin:2px 0 0; padding-right:56px;}
+/* Refresh rides in the tab bar itself rather than wrapping to a line of its
+   own; the toggle takes whatever width is left. */
+.headbtns .viewtog{flex:1; min-width:0; width:auto;}
+.headbtns .viewtog button{flex:1; min-width:0; padding-left:4px; padding-right:4px;}
+.headbtns .threadrefresh{flex:none;}
+/* Ask-first sheet. Deliberately NOT window.confirm(): in the iOS app's
+   WKWebView a confirm panel only appears if the native side implements the
+   delegate for it — otherwise it returns false silently and the action would
+   never run at all. This is plain DOM, so it works everywhere. */
+.askwrap{position:fixed; inset:0; z-index:40; background:rgba(15,13,10,.55);
+  display:flex; align-items:center; justify-content:center; padding:24px;}
+.askbox{background:var(--paper); border:1px solid var(--line); border-radius:6px;
+  padding:18px 16px 14px; width:min(88vw,320px); box-shadow:0 6px 24px rgba(0,0,0,.22);}
+.askbox p{margin:0 0 14px; font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.35; color:var(--ink);}
+.askrow{display:flex; gap:8px; justify-content:flex-end;}
+.askrow button{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em;
+  text-transform:uppercase; border-radius:6px; padding:9px 14px; cursor:pointer; border:1px solid var(--line);
+  background:var(--barbg); color:var(--ink2); margin:0;}
+.askrow button.go{background:var(--ink); border-color:var(--ink); color:var(--paper);}
+/* Archive as words, beside the name — not a button, still tappable. */
+/* Vertical padding is the tap target, not decoration: as bare 11px text this
+   was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
+   costs no layout. */
+.archlink{flex:none; background:none; border:none; margin:0; padding:10px 6px; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.archlink:active{color:var(--ink);}
+/* An on/off switch, the iOS shape. Circular track, so it's the sanctioned
+   exception to no-pills — it's a toggle, not a text button. */
+.swi{position:relative; width:42px; height:26px; border-radius:13px; border:1.5px solid var(--line);
+  background:var(--barbg); padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.swi::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background:var(--ink2); transition:transform .18s, background .18s;}
+.swi.on{background:var(--chg); border-color:var(--chg);}
+.swi.on::after{transform:translateX(16px); background:var(--paper);}
 .tbtn.play{display:inline-flex; align-items:center; gap:6px;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
@@ -191,10 +284,28 @@ body.reading .backwrap{display:block;}
 .nowplaying{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:10; display:none; align-items:center; gap:8px; max-width:min(60vw,240px); background:var(--barbg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 13px; box-shadow:0 2px 12px rgba(0,0,0,.14); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .nowplaying.show{display:flex;}
 .nowplaying svg{flex:none; color:var(--ink);}
+/* "New message" bar. A reply landing mid-read must NEVER rebuild the page under
+   her: new messages come in at the TOP, so a rebuild moved her scroll spot and
+   collapsed anything she had open. poll() buffers them instead and raises this;
+   tapping it is what shows them. Sits below the now-playing bar when both are
+   up (sibling selector — no JS coordination). */
+.newbar{position:fixed; top:max(14px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateZ(0); z-index:11; display:none; align-items:center; gap:7px; background:var(--rose); color:var(--paper); border:none; border-radius:6px; padding:9px 14px; box-shadow:0 2px 12px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;}
+.newbar.show{display:flex;}
+.newbar svg{flex:none;}
+.nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
 .totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
+/* Search within a chat's Assets tab — matches the home search bar's shape
+   (rounded rectangle, never a pill). */
+.asearch{position:relative; margin:0 0 12px;}
+.asearch input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; padding:9px 38px 9px 12px; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink);}
+.asearch input:focus{outline:none; border-color:var(--rose);}
+.asearch input::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
+.asearch .qclear{right:2px;}
 .afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
 .afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
   letter-spacing:.05em; text-transform:uppercase; padding:7px 12px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
@@ -204,20 +315,42 @@ body.reading .backwrap{display:block;}
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
-__PILL_CSS__
+
+.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+.vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+.vseg button + button{border-top:1.5px solid var(--ink);}
+.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
+.vseg button.dim{opacity:.3;}
+.vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
+#spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+
 </style>
-__PILL_HTML__
+
+<div class="float">
+  <div class="vseg">
+    <button id="vtop" aria-label="Scroll up, or slower while playing"></button>
+    <button id="vmid" aria-label="Play or pause autoscroll"></button>
+    <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
+  </div>
+  <span id="spd">Fast</span>
+</div>
+
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
+<button id="newbar" class="newbar" aria-label="Show new messages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg><span id="newtxt">New message</span></button>
 <button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
 <div class="wrap">
   <section id="home">
     <header>
       <div class="no">deck factory &middot; every chat, one place</div>
-      <h1>Chats</h1>
+      <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
+        <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+      </div>
       <div class="rule"></div>
     </header>
-    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em;">
+    <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
     </div>
@@ -266,17 +399,17 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 // heading marks become bold lines. Everything else stays plain text.
 function md(t){
   var s=esc(t);
-  s=s.replace(/```[a-z]*\\n?([\\s\\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
-  s=s.replace(/\\*\\*([^*\\n][^*]*?)\\*\\*/g,'<b>$1</b>');
-  s=s.replace(/(^|[\\s(“"'>])\\*([^*\\n]+)\\*/g,'$1<i>$2</i>');
-  s=s.replace(/`([^`\\n]+)`/g,'<code>$1</code>');
-  s=s.replace(/^#{1,4}\\s+(.+)$/gm,'<b>$1</b>');
+  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
+  s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
+  s=s.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s=s.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
   // Clickable links, added last so pre/code blocks stay untouched:
   // markdown [text](url) first, then bare https:// URLs.
-  s=s.split(/(<div class="codebox">[\\s\\S]*?<\\/div>|<code>[^<]*?<\\/code>)/g).map(function(part){
+  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>|<code>[^<]*?<\/code>)/g).map(function(part){
     if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
-    part=part.replace(/\\[([^\\]\\n]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    part=part.replace(/(^|[^"'>])(https?:\\/\\/[^\\s<)\\]]+[^\\s<)\\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+    part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     return part;
   }).join('');
   return s;
@@ -290,19 +423,19 @@ function md(t){
 // chats.html; "Now I'm structuring the PDF" is work even though it's prose.
 // Ties break toward showing. First and last blocks never fold.
 function splitBlocks(text){
-  var out=[], lines=String(text||'').split('\\n'), buf=[], inCode=false;
-  function flush(){ var s=buf.join('\\n'); if(s.trim()!=='') out.push(s); buf=[]; }
+  var out=[], lines=String(text||'').split('\n'), buf=[], inCode=false;
+  function flush(){ var s=buf.join('\n'); if(s.trim()!=='') out.push(s); buf=[]; }
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
     if(/^\s*```/.test(l)){
-      if(inCode){ buf.push(l); out.push(buf.join('\\n')); buf=[]; inCode=false; }
+      if(inCode){ buf.push(l); out.push(buf.join('\n')); buf=[]; inCode=false; }
       else { flush(); buf.push(l); inCode=true; }
       continue;
     }
     if(inCode){ buf.push(l); continue; }
     if(l.trim()===''){ flush(); } else { buf.push(l); }
   }
-  if(inCode){ out.push(buf.join('\\n')); } else { flush(); }
+  if(inCode){ out.push(buf.join('\n')); } else { flush(); }
   return out;
 }
 // true = working narration (fold), false = message for Sophie (show).
@@ -313,24 +446,24 @@ function isWork(b){
   // Narration voice wins even when the block mentions "you" ("the way you
   // asked"): forward-looking / in-progress first person = doing the work.
   if(/^(now|next|then|first|second|also|finally|meanwhile)[,: ]*\s*(i|let|the|to|on|checking|running|building|reading|writing|adding|updating|fixing|creating|testing|mirroring|committing|wiring|regenerating)/i.test(t)
-    || /^(let me|let's|i'll|i will|time to|on to|onto)\\b/i.test(t)
-    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\\b/i.test(t)
-    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\\b/i.test(t)) return true;
-  if(/\\byou\\b|\\byour\\b|\\byours\\b/i.test(t)) return false;   // second person = talking to her
-  if(/\\bhere('s| is| are)\\b|\\bthis is what\\b/i.test(t)) return false;  // presenting something
-  if(/\?\s*($|\\n)/.test(t)) return false;            // asking her something
+    || /^(let me|let's|i'll|i will|time to|on to|onto)\b/i.test(t)
+    || /^i'?m\s+(going|now|checking|running|building|adding|updating|reading|writing|looking|fixing|creating|testing|wiring|mirroring|committing|pushing)\b/i.test(t)
+    || /^(checking|running|building|reading|verifying|validating|testing|committing|pushing|regenerating|mirroring|inspecting|looking)\b/i.test(t)) return true;
+  if(/\byou\b|\byour\b|\byours\b/i.test(t)) return false;   // second person = talking to her
+  if(/\bhere('s| is| are)\b|\bthis is what\b/i.test(t)) return false;  // presenting something
+  if(/\?\s*($|\n)/.test(t)) return false;            // asking her something
   // Past-tense first-person = reporting what got done — that's for her.
-  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\\b/i.test(t)
-    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\\b/i.test(t)) return false;
+  if(/^(done|all set|merged|shipped|fixed|finished|ok(ay)?[,!. ]|good news|both|everything)\b/i.test(t)
+    || /^i('ve| have)?\s*(did|made|built|fixed|added|created|changed|updated|merged|shipped|removed|swapped|moved)\b/i.test(t)) return false;
   // Otherwise fall back to line texture: mostly commands/diffs/hashes/paths.
-  var lines=t.split('\\n').filter(function(l){ return l.trim()!==''; });
+  var lines=t.split('\n').filter(function(l){ return l.trim()!==''; });
   if(!lines.length) return false;
   var hits=0;
   for(var i=0;i<lines.length;i++){
     var l=lines[i];
-    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\\b/.test(l)
+    if(/^\s*(\$|>|git|npm|npx|node|python3?|cd|curl|sudo|ls|cat|grep|mkdir|rm|cp|mv|chmod|brew|xcrun|pip|bash|sed|awk|echo|touch)\b/.test(l)
       || /^[+\-]\s/.test(l)                          // diff line
-      || /\\b[0-9a-f]{10,40}\\b/.test(l)               // commit hash / long id
+      || /\b[0-9a-f]{10,40}\b/.test(l)               // commit hash / long id
       || /\s\/[\w.-]+\/[\w./-]+/.test(l)             // absolute-ish path
     ) hits++;
   }
@@ -346,13 +479,13 @@ function foldBody(text){
   while(i<blocks.length-1){
     if(!work[i]){ parts.push(md(blocks[i])); i++; continue; }
     var j=i; while(j<blocks.length-1 && work[j]) j++;
-    var run=blocks.slice(i,j).join('\\n\\n');
+    var run=blocks.slice(i,j).join('\n\n');
     parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
       + '<div class="foldbody" hidden>'+md(run)+'</div></div>');
     i=j;
   }
   parts.push(md(blocks[blocks.length-1]));
-  out=parts.join('\\n');
+  out=parts.join('\n');
   return out.indexOf('foldtog')<0 ? md(text) : out;
 }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
@@ -365,8 +498,74 @@ function ago(iso){
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
 }
-__PILL_JS__
+
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
+var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
+var I={
+ up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+ down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+ play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+ pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+ plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
+};
+function spd(){ return SPEEDS[si][1]; }
+function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
+function paintPill(){
+  if(playing){
+    vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
+    vtop.classList.toggle('dim', si===0); vbot.classList.toggle('dim', si===SPEEDS.length-1);
+  } else {
+    vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on');
+    vtop.classList.remove('dim'); vbot.classList.remove('dim');
+  }
+  showSpd();
+}
+function stepPill(ts){
+  if(!playing) return;
+  if(last!=null){
+    acc += dir*(ts-last)/1000*42*spd();
+    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
+    if(move!==0){ window.scrollBy(0,move); acc-=move; }
+    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
+    if(atEnd) scrollStop(); }
+  last=ts; raf=requestAnimationFrame(stepPill);
+}
+function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
+window.__scrollStop=scrollStop;
+window.__scrollStart=scrollStart;
+window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
+vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
+vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
+vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+// Leaving the page (tab switch, app background, webview hidden) stops
+// autoscroll — it must never keep scrolling while nobody's looking.
+document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
+window.addEventListener('pagehide',scrollStop);
+paintPill();
+
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// Feed-wide settings from the server (registry __settings doc). appAccount =
+// which Claude account is signed into the iOS app right now ("1"/"2").
+var settings={};
 // The feed hands us only a tail per chat (chatfeed.js trims it so the app
 // doesn't download the entire history on every launch). `truncated` marks the
 // chats that have more behind them; `fullLoaded` remembers which ones we've
@@ -379,6 +578,22 @@ function claudeUrlFor(name, list){
   var u=(chats[name]&&chats[name].url)||'';
   if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
   return u;
+}
+function appAccount(){ return (settings&&settings.appAccount)||'1'; }
+// The href an Open button should use for this chat. A chat on the account
+// that's signed into the app gets the direct claude.ai link (iOS hands it to
+// the Claude app); a chat on the OTHER account gets the same link with
+// #no_universal_links appended — claude.ai's own apple-app-site-association
+// EXCLUDES any URL carrying that fragment (their first match rule, checked
+// July 2026), so iOS never hands it to the Claude app and it opens in the
+// BROWSER, where that account is signed in. This replaced the /go redirect
+// hop: both a server 302 and a self-navigating page were verified live to
+// bounce into the app anyway. Chats with no account tag keep the old direct
+// behavior.
+function openHref(name,url){
+  var acct=(chats[name]&&chats[name].account)||'';
+  if(!url||!acct||acct===appAccount()) return url;
+  return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
@@ -409,7 +624,7 @@ function editAbout(chat, row, current){
         row.innerHTML='<span class="aboutshow">'+(v?esc(v):'add a description')+'</span>';
         row.querySelector('.aboutshow').onclick=function(){ editAbout(chat,row,v); };
         toast('Saved'); })
-      .catch(function(){ done=false; toast('Couldn\\u2019t save'); });
+      .catch(function(){ done=false; toast('Couldn\u2019t save'); });
   }
   inp.addEventListener('blur',save);
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
@@ -437,7 +652,7 @@ function editName(chat, head){
       .then(function(d){ if(!d.ok) throw 0;
         chats[chat]=chats[chat]||{}; chats[chat].displayName=v||null;
         restore(dispName(chat)); toast('Renamed'); })
-      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn\\u2019t save that'); inp.focus(); });
+      .catch(function(){ done=false; if(btn) btn.style.display='none'; toast('Couldn\u2019t save that'); inp.focus(); });
   }
   inp.addEventListener('blur',save);
   inp.addEventListener('keydown',function(e){
@@ -458,7 +673,7 @@ function setIcon(chat){
       api('/api/chatfeed/icon',{method:'POST',body:JSON.stringify({chat:chat,image:cv.toDataURL('image/jpeg',.85)})})
         .then(function(r){return r.json()})
         .then(function(d){ if(!d.ok) throw 0; toast('Icon set'); load(); })
-        .catch(function(){ toast('Couldn\\u2019t set the icon'); });
+        .catch(function(){ toast('Couldn\u2019t set the icon'); });
     };
     img.src=URL.createObjectURL(f);
   };
@@ -498,10 +713,11 @@ function statusFor(list){
   var last=list.length? list[list.length-1] : null;
   var tldrs=list.filter(function(m){return m.tldr;});
   var sm=tldrs.length? tldrs[tldrs.length-1] : last;
-  return sm? plain(sm.tldr||(sm.text||'').split('\\n')[0]) : '';
+  return sm? plain(sm.tldr||(sm.text||'').split('\n')[0]) : '';
 }
 var showArchived=false;
 function renderHome(){
+  clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
   document.getElementById('v-tiles').classList.toggle('on', view==='tiles');
   var el=document.getElementById('grid'); el.innerHTML='';
@@ -513,7 +729,7 @@ function renderHome(){
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
   if(arch.length){
     var tog=document.createElement('button'); tog.className='archtoggle';
-    tog.textContent=(showArchived?'\\u25be':'\\u25b8')+' Archived ('+arch.length+')';
+    tog.textContent=(showArchived?'\u25be':'\u25b8')+' Archived ('+arch.length+')';
     tog.onclick=function(){ showArchived=!showArchived; renderHome(); };
     el.appendChild(tog);
     if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
@@ -596,11 +812,12 @@ function renderList(el,g,names){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var status=statusFor(list) || (chats[name]&&chats[name].about) || 'no messages yet';
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'');
+    // Just the chat's name (Sophie's rule). The message snippet that used to sit
+    // beside it was an inline span, so it never truncated — it ran over the
+    // timestamp and the ✓ and off the side of the screen.
     row.innerHTML=iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
-      +'<span class="cr-sub">'+esc(status)+'</span></span>'
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
     row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
@@ -612,11 +829,11 @@ function renderList(el,g,names){
 
 function renderMsg(m){
   var row=document.createElement('div'); row.className='msg'; if(m.id) row.dataset.mid=m.id;
-  var firstLine=plain((m.tldr||m.text||'').split('\\n')[0]).slice(0,140);
+  var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
     +'<span class="m-close">close &#9650;</span></div>'
-    +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\\u2026':'')+'</div>'
+    +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
     +'<div class="m-full">'+foldBody(m.text)+'</div>';
   // Wire the "working details" fold toggles (a message can have several).
   // Stops propagation so a tap doesn't also trigger the reading-aid autoscroll.
@@ -636,7 +853,7 @@ function renderMsg(m){
     var pol=document.createElement('button'); pol.className='tbtn play'; pol.innerHTML=PLAY+'<span>Play</span>';
     pol.onclick=function(e){
       e.stopPropagation();
-      pol.disabled=true; pol.innerHTML=PLAY+'<span>making\\u2026</span>';
+      pol.disabled=true; pol.innerHTML=PLAY+'<span>making\u2026</span>';
       api('/api/chatfeed/polish',{method:'POST',body:JSON.stringify({id:m.id})})
         .then(function(r){return r.json()})
         .then(function(d){
@@ -645,7 +862,7 @@ function renderMsg(m){
           var au=document.createElement('audio'); au.controls=true; au.src=d.url; au.autoplay=true;
           tools.replaceChild(au,pol);
         })
-        .catch(function(){ pol.disabled=false; pol.innerHTML=PLAY+'<span>Play</span>'; toast('Couldn\\u2019t make that one'); });
+        .catch(function(){ pol.disabled=false; pol.innerHTML=PLAY+'<span>Play</span>'; toast('Couldn\u2019t make that one'); });
     };
     tools.appendChild(pol);
   }
@@ -665,7 +882,7 @@ function renderMsg(m){
   var ob=document.createElement('div'); ob.className='openrow';
   ob.appendChild(bookmarkBtn(m));
   var murl=m.url||openUrl;
-  if(murl){ ob.appendChild(openClaudeBtn(murl)); }
+  if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
   row.appendChild(ob);
   return row;
 }
@@ -716,11 +933,34 @@ function openChat(name, keepScroll, focusId, noFetch){
   var sec=document.getElementById('thread'); sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
-  head.innerHTML='<div class="no">chats</div>'
+  head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
-  head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
+  head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+  // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
+  // text rather than a button \u2014 it isn't a place to go, it's a thing you do
+  // once. Same word and same spot either way: "Archive" / "Unarchive".
+  (function(){
+    var isArch=!!(chats[name]&&chats[name].archived);
+    var ab=document.createElement('button');
+    ab.textContent=isArch? 'Unarchive' : 'Archive';
+    ab.onclick=function(){
+      if(!isArch){ askFirst('Archive '+dispName(name)+'?', 'Archive', function(ok){ if(ok) doArchive(); }); }
+      else doArchive();
+    };
+    function doArchive(){
+      api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          chats[name]=chats[name]||{}; chats[name].archived=!isArch;
+          toast(!isArch? 'Archived' : 'Restored'); goHome();
+        })
+        .catch(function(){ toast('Couldn\u2019t save that'); });
+    }
+    ab.className='archlink';   // reads as text, still a button
+    head.querySelector('.no').appendChild(ab);
+  })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
   head.querySelector('.renamebtn').onclick=function(){ editName(name, head); };
@@ -731,20 +971,33 @@ function openChat(name, keepScroll, focusId, noFetch){
   list.slice().reverse().forEach(function(m){ chatPanel.appendChild(renderMsg(m)); });
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
-  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(curl)); }
-  var isArch=!!(chats[name]&&chats[name].archived);
-  var ar=document.createElement('div'); ar.className='archrow';
-  var ab=document.createElement('button'); ab.textContent=isArch? 'Unarchive this chat' : 'Archive this chat';
-  ab.onclick=function(){
-    api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
-      .then(function(r){return r.json()})
-      .then(function(d){ if(!d.ok) throw 0;
-        chats[name]=chats[name]||{}; chats[name].archived=!isArch;
-        toast(!isArch? 'Archived' : 'Restored'); goHome();
-      })
-      .catch(function(){ toast('Couldn\\u2019t save that'); });
-  };
-  ar.appendChild(ab); chatPanel.appendChild(ar);
+  if(curl && !list.length){ head.querySelector('.headbtns').appendChild(openClaudeBtn(openHref(name, curl))); }
+  // Which Claude account this chat belongs to — normally stamped by the hook,
+  // but existing chats haven't posted since the env vars were added, so this
+  // sets it with one tap. Tapping the active number clears back to untagged.
+  var acr=document.createElement('div'); acr.className='acctrow';
+  var alab=document.createElement('span'); alab.textContent='Claude account'; acr.appendChild(alab);
+  ['1','2'].forEach(function(v){
+    var b=document.createElement('button'); b.className='tbtn'; b.textContent=v;
+    function paintA(){ b.classList.toggle('on', ((chats[name]&&chats[name].account)||'')===v); }
+    paintA(); acr._paints=(acr._paints||[]).concat(paintA);
+    b.onclick=function(){
+      var prev=(chats[name]&&chats[name].account)||'';
+      var next=prev===v? '' : v;
+      chats[name]=chats[name]||{}; chats[name].account=next;
+      acr._paints.forEach(function(f){f();}); saveCache();
+      api('/api/chatfeed/account',{method:'POST',body:JSON.stringify({chat:name, account:next})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          toast(next? 'Opens with account '+next : 'Account cleared');
+          // re-render so every Open button in the thread re-routes now
+          var y=window.scrollY; openChat(name,true,null,true); window.scrollTo(0,y);
+        })
+        .catch(function(){ chats[name].account=prev; acr._paints.forEach(function(f){f();}); saveCache(); toast('Couldn’t save that'); });
+    };
+    acr.appendChild(b);
+  });
+  chatPanel.appendChild(acr);
   sec.appendChild(chatPanel);
 
   // Assets panel — this chat's images, lazy-loaded on first open
@@ -754,7 +1007,11 @@ function openChat(name, keepScroll, focusId, noFetch){
   var assetsLoaded=false;
   function loadAssets(){
     if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
+    // A page at a time. The old single request was a hard truncate: once a chat
+    // passed the cap its OLDEST images silently stopped appearing (they were
+    // never deleted — just never sent). More pages load as she scrolls.
+    var PAGE=150;
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset=0')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];
@@ -766,19 +1023,35 @@ function openChat(name, keepScroll, focusId, noFetch){
         // Thin three-way filter pill: New (unvoted) · ♥ (hearted) · Hide ✕
         // (everything but rejected). Tapping the active one turns the filter
         // off again, so the ✕'d tiles stay reachable to un-reject.
-        var cells=[], filter=null;
+        var cells=[], filter=null, q='';
+        // Everything written about an image is searchable: its label, the
+        // model/quality caption, both halves of the prompt, and the whole note
+        // thread — so "yellow raincoat" finds it by what's in the picture and
+        // "watercolor" by how it was made. Built once per tile, not per keystroke.
+        function haystack(it){
+          if(it._hay==null){
+            var t=[it.description, it.prompt, it.promptStyle, it.promptContent, it.note];
+            (it.thread||[]).forEach(function(m){ t.push(m.text); });
+            it._hay=t.filter(Boolean).join(' \n ').toLowerCase();
+          }
+          return it._hay;
+        }
         function applyFilter(){
+          var shown=0;
           cells.forEach(function(c){
             var v=c.it.vote||null, show=true;
             if(filter==='new') show=!v;
             else if(filter==='like') show=(v==='like');
             else if(filter==='nox') show=(v!=='dislike');
+            if(show && q) show=haystack(c.it).indexOf(q)>=0;
             if(c.it._broken) show=false;   // a dead image stays hidden
             c.cell.style.display=show?'':'none';
+            if(show) shown++;
           });
+          none.style.display=(shown||!cells.length)?'none':'';
         }
         var seg=document.createElement('div'); seg.className='afilter';
-        [['new','New'],['like','\u2665'],['nox','Hide \u2715']].forEach(function(m){
+        [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
           var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
           sb.onclick=function(){
             filter = filter===m[0] ? null : m[0];
@@ -790,6 +1063,26 @@ function openChat(name, keepScroll, focusId, noFetch){
         var arow=document.createElement('div'); arow.className='arow';
         arow.appendChild(seg);
         assetsPanel.appendChild(arow);
+        // Search this tab's images by anything written about them. Filters as
+        // she types (they're all already loaded — no request per keystroke) and
+        // stacks with the ♥/New/Hide filter above.
+        var srow=document.createElement('div'); srow.className='asearch';
+        var si=document.createElement('input'); si.type='search';
+        si.placeholder='Search these images…';
+        si.autocapitalize='none'; si.autocorrect='off';
+        var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
+        sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
+        si.oninput=function(){
+          q=(si.value||'').trim().toLowerCase();
+          sx.style.display=q?'':'none';
+          applyFilter();
+        };
+        sx.onclick=function(){ si.value=''; q=''; sx.style.display='none'; applyFilter(); si.focus(); };
+        srow.appendChild(si); srow.appendChild(sx);
+        assetsPanel.appendChild(srow);
+        var none=document.createElement('div'); none.className='state';
+        none.textContent='No images match that.'; none.style.display='none';
+        assetsPanel.appendChild(none);
         // Load each thumb as it nears the viewport. An IntersectionObserver is
         // far more reliable in the app's WKWebView than native loading="lazy",
         // which routinely needed a tap to trigger. rootMargin loads a screen or
@@ -811,34 +1104,64 @@ function openChat(name, keepScroll, focusId, noFetch){
         function voteBtns(cell,it){
           var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
           var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+          // count of the chat's replies she hasn't opened yet (server sets unread)
+          var nb=document.createElement('div'); nb.className='nbadge';
+          function unreadCount(){
+            if(!it.unread) return 0;
+            var n=0, t=it.thread||[];
+            for(var i=t.length-1;i>=0 && t[i].from==='chat';i--) n++;
+            return n||1;
+          }
           function paint(){
             hb.classList.toggle('on', it.vote==='like');
             xb.classList.toggle('on', it.vote==='dislike');
             cell.classList.toggle('nay', it.vote==='dislike');
+            var n=unreadCount();
+            nb.textContent=n?String(n):'';
+            nb.style.display=n?'':'none';
             if(it._lbPaint) it._lbPaint();   // mirror into an open lightbox
             applyFilter();                   // a changed vote may hide/show tiles
           }
+          it._paintCell=paint;
           function cast(v){
             var next = it.vote===v ? null : v;
             api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,vote:next})})
               .then(function(r){return r.json()})
               .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
-              .catch(function(){ toast('Couldn\u2019t save that'); });
+              .catch(function(){ toast('Couldn’t save that'); });
           }
           it._cast=cast;
-          it._noteSave=function(text,cb){
+          // Send one letter in this image's thread. The bubble is already on
+          // screen by the time this runs (the lightbox appends it optimistically),
+          // so this only confirms or flags it.
+          it._noteSend=function(text,cb){
             var t=String(text||'').trim();
-            api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:name,url:it.url,note:t||null})})
-              .then(function(r){return r.json()})
-              .then(function(d){ if(!d.ok) throw 0; it.note=t||null; if(cb)cb(true); })
-              .catch(function(){ toast('Couldn\u2019t save the note'); if(cb)cb(false); });
+            if(!t){ if(cb)cb(false); return; }
+            api('/api/gallery/assets/note',{method:'POST',
+              body:JSON.stringify({chat:name,url:it.url,text:t,from:'sophie'})})
+              .then(function(r){ return r.json().then(function(d){ return {s:r.status,d:d}; }); })
+              .then(function(x){
+                if(!x.d.ok) throw new Error(x.d.error||'failed');
+                it.note=t;                       // legacy mirror, same as the server
+                if(x.d.thread) it.thread=x.d.thread;
+                it._hay=null;                    // a new note is searchable too
+                if(cb)cb(true);
+              })
+              .catch(function(e){ toast((e&&e.message)||'Couldn’t send that note'); if(cb)cb(false); });
+          };
+          // She's read the chat's replies — clears the tile badge for good.
+          it._markSeen=function(){
+            if(!it.unread) return;
+            it.unread=false; paint();
+            api('/api/gallery/assets/note',{method:'POST',
+              body:JSON.stringify({chat:name,url:it.url,seen:true})}).catch(function(){});
           };
           hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
           xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
           paint();
-          cell.appendChild(hb); cell.appendChild(xb);
+          cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
-        a.forEach(function(it){
+        function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
           // What the image IS, when the chat filed one — else the generic "from <chat>"
@@ -863,10 +1186,47 @@ function openChat(name, keepScroll, focusId, noFetch){
           if(io) io.observe(img);
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
-        });
+        }); }
+        addTiles(a);
         assetsPanel.appendChild(grid);
+        // Infinite scroll: a sentinel under the grid pulls the next page when
+        // it comes near the viewport, so nothing is ever out of reach — and a
+        // chat with 40 images never pays for a request it doesn't need.
+        var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
+        var more=document.createElement('div'); more.className='state';
+        more.style.display='none'; assetsPanel.appendChild(more);
+        function nextPage(){
+          if(busy || loaded>=total) return;
+          busy=true; more.textContent='Loading more…'; more.style.display='';
+          api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset='+loaded)
+            .then(function(r){return r.json()})
+            .then(function(p){
+              var got=(p&&p.assets)||[];
+              if(p&&p.total) total=p.total;
+              loaded+=got.length;
+              addTiles(got);
+              applyFilter();          // a new tile obeys the search/filter too
+              busy=false;
+              more.style.display='none';
+              if(!got.length) loaded=total;   // never spin on an empty page
+              if(loaded<total) watchTail();
+            })
+            .catch(function(){ busy=false; more.textContent='Couldn\u2019t load more — scroll to retry.'; });
+        }
+        var tailIO=null;
+        function watchTail(){
+          if(loaded>=total) return;
+          if(!('IntersectionObserver' in window)){ more.style.display=''; more.textContent='Load more'; more.onclick=nextPage; return; }
+          if(tailIO) tailIO.disconnect();
+          tailIO=new IntersectionObserver(function(es){
+            if(es.some(function(e){return e.isIntersecting;})){ tailIO.disconnect(); nextPage(); }
+          },{rootMargin:'800px 0px'});
+          var last=grid.lastElementChild;
+          if(last) tailIO.observe(last);
+        }
+        watchTail();
       })
-      .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\\u2019t load images.</div>'; });
+      .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
   }
   // Compare panel — pages the chat published (comparison sheets, option
   // boards; what used to live as claude.ai artifacts). Lazy-loaded.
@@ -889,7 +1249,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           comparePanel.appendChild(row);
         });
       })
-      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\\u2019t load pages.</div>'; });
+      .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\u2019t load pages.</div>'; });
   }
   var tgChat=head.querySelector('.tg-chat'), tgAssets=head.querySelector('.tg-assets'), tgCompare=head.querySelector('.tg-compare');
   var panels={chat:chatPanel, assets:assetsPanel, compare:comparePanel};
@@ -915,6 +1275,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   // instead of snapping back to Chat.
   if(curTab!=='chat') showTab(curTab);
 
+  clearNew();   // the thread just rebuilt from msgs — nothing is waiting
   markSeen(name);
   document.getElementById('home').style.display='none';
   sec.style.display='';
@@ -934,8 +1295,8 @@ function focusMessage(name, id, noFetch){
     setTimeout(function(){ row.classList.remove('flash'); }, 2400);
     return;
   }
-  if(noFetch){ toast('Couldn\\u2019t find that message'); return; }
-  toast('Loading full history\\u2026');
+  if(noFetch){ toast('Couldn\u2019t find that message'); return; }
+  toast('Loading full history\u2026');
   api('/api/chatfeed/thread?chat='+encodeURIComponent(name)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){
@@ -944,14 +1305,14 @@ function focusMessage(name, id, noFetch){
       (d.messages||[]).forEach(function(m){ if(!have[m.id]){ msgs.push(m); have[m.id]=1; } });
       openChat(name, true, id, true);   // rebuild with full thread; noFetch=true
     })
-    .catch(function(){ toast('Couldn\\u2019t load history'); });
+    .catch(function(){ toast('Couldn\u2019t load history'); });
 }
 // An autoscroll pill that lives in THIS page and drives a same-origin iframe's
 // scroll — because iOS renders position:fixed unreliably INSIDE an iframe, so a
 // pill injected into the Compare page itself won't stay put on a phone. Same
 // look/behavior as the shared pill (default Fast; tap play/pause; -/+ speed).
 function mkPagePill(getWin){
-  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
   var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -1022,33 +1383,136 @@ function openPage(p){
   document.body.appendChild(v);
   document.body.style.overflow='hidden';
 }
+// How a chat files the prompt behind an image, shown folded-away at the top of
+// every Assets tab — so the instructions live where the images do and can be
+// handed to any chat that isn't doing it yet. Kept in sync with the CLAUDE.md
+// section "Prompts on Assets images".
+
+// Ask before something you can't undo with one tap. Locks the page behind it
+// like the lightbox does, and hands back true/false.
+function askFirst(question, okLabel, cb){
+  scrollStop();
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.textContent=question;
+  var row=document.createElement('div'); row.className='askrow';
+  var no=document.createElement('button'); no.textContent='Cancel';
+  var yes=document.createElement('button'); yes.className='go'; yes.textContent=okLabel;
+  function close(v){
+    wrap.remove(); document.body.style.overflow='';
+    cb(v);
+  }
+  no.onclick=function(e){ e.stopPropagation(); close(false); };
+  yes.onclick=function(e){ e.stopPropagation(); close(true); };
+  wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
+  box.onclick=function(e){ e.stopPropagation(); };
+  row.appendChild(no); row.appendChild(yes);
+  box.appendChild(q); box.appendChild(row); wrap.appendChild(box);
+  document.body.appendChild(wrap); document.body.style.overflow='hidden';
+}
+
 // Image lightbox — freezes the page behind it (design rule)
 function lightbox(url, asset){
   scrollStop();
   var lb=document.getElementById('clightbox');
-  lb.innerHTML='<img alt="" src="'+url.replace(/"/g,'&quot;')+'">';
+  lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
+  lb.classList.remove('hastalk');   // last image's thread must not shrink this one
+  // The generating prompt, over the image: Style left, Content right, tap the
+  // PROMPT button to cover/uncover the picture. Only offered when a chat
+  // actually filed a split — nothing is shown (and nothing is said) when it
+  // didn't. Built before .lbtop so the button can join that row.
+  var promptBtn=null;
+  if(asset && (asset.promptStyle||asset.promptContent)){
+    var wrap=lb.querySelector('.clwrap');
+    var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
+    ov.onclick=function(e){ e.stopPropagation(); };   // reading it must not close the lightbox
+    var tog=document.createElement('div'); tog.className='lbptog';
+    var sb=document.createElement('button'); sb.textContent='Style';
+    var cb=document.createElement('button'); cb.textContent='Content';
+    var txt=document.createElement('div'); txt.className='lbptext';
+    // Start on whichever side was filed; Style wins when both are.
+    var side=asset.promptStyle?'style':'content';
+    function paintSide(){
+      sb.classList.toggle('on', side==='style');
+      cb.classList.toggle('on', side==='content');
+      txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
+      txt.scrollTop=0;
+    }
+    sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
+    cb.onclick=function(e){ e.stopPropagation(); side='content'; paintSide(); };
+    tog.appendChild(sb); tog.appendChild(cb);
+    ov.appendChild(tog); ov.appendChild(txt);
+    paintSide();
+    wrap.appendChild(ov);
+    promptBtn=document.createElement('button');
+    promptBtn.className='promptbtn'; promptBtn.textContent='Prompt';
+    promptBtn.onclick=function(e){
+      e.stopPropagation();
+      var open=ov.style.display==='none';
+      ov.style.display=open?'flex':'none';
+      wrap.classList.toggle('pon', open);
+      promptBtn.classList.toggle('on', open);
+    };
+  }
   // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
   if(asset && asset._cast){
     var row=document.createElement('div'); row.className='lbtop';
     row.onclick=function(e){ e.stopPropagation(); };
     var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=window.__HEART;
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
-    var nw=document.createElement('div'); nw.className='lbnote';
-    nw.onclick=function(e){ e.stopPropagation(); };
-    var ni=document.createElement('input'); ni.placeholder='Add a note…'; ni.value=asset.note||'';
-    var ns=document.createElement('button'); ns.className='notesend';
-    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-    function sendNote(){
-      asset._noteSave(ni.value, function(ok){
-        if(!ok) return;
-        ns.classList.add('saved'); toast('Note saved');
-        ni.blur();
-        setTimeout(function(){ ns.classList.remove('saved'); }, 1500);
+    // The thread: her notes and the chat's replies back, oldest at the top.
+    // Snail mail — the chat that made the image answers next time she messages
+    // it, so a reply landing here later is normal and expected.
+    var talk=document.createElement('div'); talk.className='lbtalk';
+    talk.onclick=function(e){ e.stopPropagation(); };
+    var th=document.createElement('div'); th.className='lbthread';
+    function paintThread(){
+      th.innerHTML='';
+      var msgs=asset.thread||[];
+      msgs.forEach(function(m){
+        var b=document.createElement('div');
+        b.className='lbmsg '+(m.from==='chat'?'them':'me');
+        b.textContent=m.text;
+        th.appendChild(b);
       });
+      th.style.display=msgs.length?'':'none';
+      th.scrollTop=th.scrollHeight;   // newest letter in view
+    }
+    var nw=document.createElement('div'); nw.className='lbnote';
+    var ni=document.createElement('input'); ni.placeholder='Write a note…';
+    var ns=document.createElement('button'); ns.className='notesend';
+    // Lucide "send" — the paper aeroplane (lucide-static 1.27.0)
+    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
+    function sendNote(){
+      var t=(ni.value||'').trim();
+      if(!t) return;
+      // It leaves the box the moment it's sent and joins the thread underneath,
+      // so the box is always empty and ready for the next one.
+      ni.value='';
+      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
+      paintThread();
+      var el=th.lastChild;
+      el.classList.add('pending');
+      function attempt(){
+        el.classList.remove('failed'); el.classList.add('pending');
+        asset._noteSend(t, function(ok){
+          el.classList.remove('pending');
+          if(ok) return;
+          // Nothing is lost on a failure — the letter stays on screen, outlined,
+          // and tapping it tries again.
+          el.classList.add('failed');
+          el.title='Not sent — tap to try again';
+          el.onclick=function(e){ e.stopPropagation(); attempt(); };
+        });
+      }
+      attempt();
     }
     ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
     ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
     nw.appendChild(ni); nw.appendChild(ns);
+    talk.appendChild(th); talk.appendChild(nw);
+    paintThread();
+    if(asset._markSeen) asset._markSeen();   // opening it counts as reading it
     asset._lbPaint=function(){
       hb.classList.toggle('on', asset.vote==='like');
       xb.classList.toggle('on', asset.vote==='dislike');
@@ -1056,15 +1520,24 @@ function lightbox(url, asset){
     asset._lbPaint();
     hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
     xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
-    row.appendChild(hb); row.appendChild(xb);
+    // ♥ left, Prompt in the middle, ✕ right (the row is space-between)
+    row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
     var frame=lb.querySelector('.clframe');
     (frame||lb).appendChild(row);
-    lb.appendChild(nw);   // note box below the image, not over it
+    lb.appendChild(talk);   // thread + note box below the image, never over it
+    lb.classList.add('hastalk');   // shrinks the picture so the thread has room
+  }
+  if(promptBtn && !promptBtn.parentNode){   // image opened without the curate row
+    var prow=document.createElement('div'); prow.className='lbtop';
+    prow.style.justifyContent='center';
+    prow.onclick=function(e){ e.stopPropagation(); };
+    prow.appendChild(promptBtn); lb.appendChild(prow);
   }
   var cap=asset?(asset.description||asset.prompt||''):'';
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
-  lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
+  lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; };
 }
 function goHome(){
   scrollStop(); cur=null; curTab='chat';
@@ -1087,7 +1560,7 @@ document.getElementById('back').onclick=goHome;
   window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
   function hl(snip,q){
     var e=esc(snip||'');
-    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
+    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
     catch(_){ return e; }
   }
   function run(q){
@@ -1156,7 +1629,27 @@ document.getElementById('back').onclick=goHome;
 })();
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\\u2026'); load(); };
+document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+
+// Which Claude account is signed into the iOS app right now (the other one is
+// on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
+// account 2. Flip it after swapping sign-ins; every Open button re-routes off
+// it immediately, and the toast names the account so the switch needs no label.
+var acctog=document.getElementById('acctog');
+function paintAcct(){
+  var on=appAccount()==='2';
+  acctog.classList.toggle('on', on);
+  acctog.setAttribute('aria-pressed', on?'true':'false');
+}
+acctog.onclick=function(){
+  var prev=appAccount(), next=prev==='1'?'2':'1';
+  settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
+  api('/api/chatfeed/app-account',{method:'POST',body:JSON.stringify({account:next})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
+    .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); toast('Couldn\u2019t save that'); });
+};
+paintAcct();
 
 // ---- Launch cache ---------------------------------------------------------
 // Every app-open used to start from nothing and pull the full feed — a
@@ -1181,14 +1674,14 @@ function saveCache(){
     var keep=[]; Object.keys(byChat).forEach(function(c){ keep=keep.concat(byChat[c]); });
     var trunc={}; Object.keys(truncated).forEach(function(c){ trunc[c]=1; });
     Object.keys(dropped).forEach(function(c){ trunc[c]=1; });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, msgs:keep, truncated:Object.keys(trunc)}));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({chats:chats, settings:settings, msgs:keep, truncated:Object.keys(trunc)}));
   }catch(e){}   // full storage / private mode: the cache is only an optimization
 }
 function loadCache(){
   try{
     var d=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
     if(!d || !d.msgs || !d.msgs.length) return false;
-    chats=d.chats||{}; msgs=d.msgs;
+    chats=d.chats||{}; msgs=d.msgs; settings=d.settings||{}; paintAcct();
     truncated={}; fullLoaded={};
     (d.truncated||[]).forEach(function(c){ truncated[c]=1; });
     renderHome();
@@ -1201,6 +1694,7 @@ function load(){
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
     chats=data.chats||{}; msgs=data.messages||[];
+    settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
     // is gone — clear fullLoaded and let openChat pull the thread again.
     truncated={}; fullLoaded={};
@@ -1208,7 +1702,7 @@ function load(){
     saveCache();
     if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){
-    if(!cur && !msgs.length) document.getElementById('grid').innerHTML='<div class="state">Couldn\\u2019t reach the feed.</div>';
+    if(!cur && !msgs.length) document.getElementById('grid').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>';
   });
 }
 
@@ -1225,6 +1719,24 @@ function newestCreated(){
   for(var i=0;i<msgs.length;i++){ var c=msgs[i].created||''; if(c>max) max=c; }
   return max;
 }
+// The buffer behind the "New message" bar. A polled message is merged into msgs
+// and cached immediately, but NOTHING re-renders until she taps the bar — that's
+// what keeps her place (and anything she'd expanded). Any full rebuild
+// (renderHome / openChat) clears the count, because that render shows them all.
+var pendingNew=0;
+function paintNew(){
+  var b=document.getElementById('newbar');
+  b.classList.toggle('show', pendingNew>0);
+  document.getElementById('newtxt').textContent = pendingNew>1 ? pendingNew+' new messages' : 'New message';
+}
+function clearNew(){ if(pendingNew){ pendingNew=0; paintNew(); } }
+document.getElementById('newbar').onclick=function(){
+  scrollStop();
+  // She asked for the new one, so land on it: the newest is at the top, and in
+  // a thread that means the Chat tab even if she was looking at Assets.
+  if(cur){ curTab='chat'; openChat(cur,false,null,true); }
+  else { renderHome(); window.scrollTo(0,0); }
+};
 function poll(){
   var since=newestCreated();
   if(!since) return load();   // nothing yet (empty/failed first paint)
@@ -1232,6 +1744,7 @@ function poll(){
     .then(function(r){return r.json()})
     .then(function(data){
       if(data.chats) chats=data.chats;
+      if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
       if(!incoming.length) return;              // the common case: nothing to do
       // The delta is capped at 200 server-side. Hitting the cap means the
@@ -1239,23 +1752,23 @@ function poll(){
       // off the far end — a merge would leave holes, so start over clean.
       if(incoming.length>=200) return load();
       var have={}; msgs.forEach(function(m){ have[m.id]=1; });
-      var added=0, mine=false;
+      var added=0, mine=0;
       incoming.forEach(function(m){
         if(have[m.id]) return;
         msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
-        if(cur && m.chat===cur) mine=true;
+        if(cur && m.chat===cur) mine++;
       });
       if(!added) return;                        // never re-render for nothing
       saveCache();
-      // While she's reading a thread, only rebuild it if the new message is
-      // actually IN it — a reply landing in some other chat must not move the
-      // page under her. The home screen picks the rest up when she goes back.
-      if(cur){
-        if(!mine) return;
-        // Hold her place, and don't refetch: any full history she pulled is
-        // already in msgs.
-        var y=window.scrollY; openChat(cur,true,null,true); window.scrollTo(0,y);
-      } else renderHome();
+      // Sitting at the very top of the feed there's no place to lose and nothing
+      // expanded, so just show them — that's also the app-just-opened case.
+      if(!cur && window.scrollY<8){ renderHome(); return; }
+      // Otherwise buffer and raise the bar. In a thread only THIS chat's
+      // messages count: a reply landing in some other chat must not move the
+      // page under her, and the home screen picks those up when she goes back.
+      var n = cur ? mine : added;
+      if(!n) return;
+      pendingNew+=n; paintNew();
     })
     .catch(function(){});   // a failed poll is not worth surfacing; next one retries
 }

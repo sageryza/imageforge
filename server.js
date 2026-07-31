@@ -84,6 +84,17 @@ app.use((req, res, next) => {
 
 app.use(express.static(__dirname + '/public'));
 
+// The Mac-side voice-memo pusher, served so it can be run without cloning the
+// repo:  curl -fsSL <app>/push-memos.mjs -o /tmp/push-memos.mjs && node /tmp/push-memos.mjs
+// It contains no credentials — everything privileged happens in /api/memos.
+app.get('/push-memos.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
+});
+
+app.get('/push-journal.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
+});
+
 app.get('/', (req, res) => { res.sendFile(__dirname + '/public/index.html'); });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -286,6 +297,33 @@ loadConfig().then(() => {
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
+  // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
+  // rate-limited per IP inside the module, since it spends on image gen.
+  app.use('/api/selfcare', require('./selfcare').router);
+  // Voice-memo ingest. The Mac holds only the audio; the membry credential and
+  // the OpenAI key live here, so the laptop command needs no secrets at all.
+  const memos = require('./memos');
+  memos.init({
+    bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); },
+    transcribe: movies.transcribeAudio,
+    chat: openaiChat,
+  });
+  app.use('/api/memos', memos.router);
+  // Journal scans. The master PDF is ~1GB, so the bytes go straight from her
+  // Mac to Storage — this only mints the upload session and records the result.
+  const journal = require('./journal');
+  journal.init({ bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); } });
+  app.use('/api/journal', journal.router);
+
+  // The dream archive — every dream from every source, built live so a dream
+  // recorded this morning is in it without anyone regenerating a page.
+  const dreamArchive = require('./dreamarchive');
+  dreamArchive.init({
+    deckDb: async () => admin.firestore(),
+    membryBucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); },
+    deckBucket: async () => admin.storage().bucket(),
+  });
+  app.use('/api/dream-archive', dreamArchive.router);
   app.use('/api/sync', sync.router);
   app.use('/api/writing', writing.router); // Writing Room (dating-book drafts + review notes)
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
@@ -399,6 +437,10 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 // tile opens its lesson (a Compare page). Wrapped by the iOS "Lessons" tile.
 app.get('/lessons', (req, res) => { res.sendFile(__dirname + '/public/lessons.html'); });
 
+// Sticker Day — the self-care sheet. Public/ungated: nothing leaves the phone,
+// the day's progress lives in localStorage.
+app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.html'); });
+
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
 // Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
 app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
@@ -505,7 +547,13 @@ Read the two objects. Decide each axis same or different, and force the third's 
 // gate is disabled (open), so nothing breaks until it's configured.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 // Serve a token-gated page, injecting the token so its API calls authenticate.
-function serveGated(file) {
+// `opts.pill` appends the SHARED autoscroll pill — the one implementation
+// (scripts/pill.py → public/pill-inject.html) that chatfeed.js already appends
+// to every served Compare page. Pages opt in here instead of pasting a copy of
+// the pill into their HTML, so it only ever lives in one place; a page that
+// generates its own markup (chats/writing/storyroom/wall) keeps importing the
+// same source through its gen-*.py script.
+function serveGated(file, opts = {}) {
   return (req, res) => {
     if (STUDIO_TOKEN) {
       const m = (req.get('authorization') || '').match(/^Basic (.+)$/);
@@ -516,7 +564,14 @@ function serveGated(file) {
       }
     }
     const html = fs.readFileSync(__dirname + '/public/' + file, 'utf8');
-    res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
+    // Always revalidate the HTML. Without this only an ETag ships, and the iOS
+    // app's WKWebView happily serves a heuristically-cached copy — so a shipped
+    // page change (a moved button, a new tab) silently never reached the phone.
+    // no-cache still allows a cheap 304 when nothing changed.
+    res.set('Cache-Control', 'no-cache, must-revalidate');
+    let out = html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN);
+    if (opts.pill) out += require('./chatfeed').pillInject();
+    res.type('html').send(out);
   };
 }
 app.get('/studio', serveGated('studio.html'));
@@ -531,6 +586,8 @@ app.get('/song', serveGated('song.html'));
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
 app.get('/dreams', serveGated('dreams.html'));
+// The dream archive — every dream from every source, newest first.
+app.get('/dreams-archive', serveGated('dreams-archive.html'));
 // Public "try it" version of Dreams for friends: same page, NO gate, and it
 // runs in guest mode (the page mints a per-device guest id and namespaces every
 // dream to it) — so each visitor gets their OWN private past-dreams archive and
@@ -811,6 +868,29 @@ app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => 
     data.text = String(text || '').slice(0, 60000);
     await ref.set(data);
     res.json({ ok: true, chars: data.text.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// The description — what the video should be: shots, staging, visual notes.
+// Separate from `text` (the story itself) so a video's plan and its prose
+// never fight over one field.
+app.post('/api/story/description', express.json({ limit: '1mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, description } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    data.description = String(description || '').slice(0, 60000);
+    await ref.set(data);
+    res.json({ ok: true, chars: data.description.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1418,19 +1498,56 @@ app.get('/api/gallery/assets', async (req, res) => {
   try {
     const chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
+    // Paged, because this is a hard truncate otherwise: a chat past the cap
+    // silently lost its OLDEST images (they were never deleted — just never
+    // sent). `offset` walks back through the whole set, and `total` tells the
+    // client when to stop asking, so no image can be out of reach.
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 300));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     await storyDb();
     const seen = new Map();
-    const add = (url, ms, prompt, description) => {
+    // ONE picture can sit at two storage paths — where it was generated
+    // (…/witch-school/assets/<id>.png) and the copy the server made when the
+    // same image was also sent as a file (…/claude-deliveries/<id>.png). The
+    // bytes are identical and the filename is carried across, so the FILENAME
+    // is the identity; keying on the full url gave two tiles for one picture,
+    // one of them carrying the label and prompt and the other blank.
+    const keyOf = (url) => {
+      const clean = String(url).split('?')[0].split('#')[0];
+      const base = decodeURIComponent(clean.split('/').pop() || '').toLowerCase();
+      return base || clean;
+    };
+    const add = (url, ms, prompt, description, style, content) => {
       if (!url) return;
-      const existing = seen.get(url);
-      if (!existing) { seen.set(url, { url, ms: ms || 0, prompt: prompt || '', description: description || '' }); return; }
+      const k = keyOf(url);
+      const existing = seen.get(k);
+      if (!existing) {
+        seen.set(k, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
+          promptStyle: style || '', promptContent: content || '', alts: [] });
+        return;
+      }
+      // Same picture arriving by its other path: keep every field that has
+      // something in it, whichever copy carried it.
+      if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
+      // Checked BEFORE the merge below — afterwards every copy looks "rich",
+      // and the preferred-url swap could never fire.
+      const richer = !!(description || style || content);
+      const hasOwn = !!(existing.description || existing.promptStyle || existing.promptContent);
+      if (style && !existing.promptStyle) existing.promptStyle = style;
+      if (content && !existing.promptContent) existing.promptContent = content;
       // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
       // label for the same image, so the model/quality caption wins.
       if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
         existing.prompt = prompt;
       }
       if (description && !existing.description) existing.description = description;
+      // Show the copy her curation is attached to: the one that came with a
+      // label or a prompt. Otherwise keep the first (newest) url.
+      if (richer && !hasOwn) {
+        if (existing.alts.indexOf(existing.url) < 0) existing.alts.push(existing.url);
+        existing.url = url;
+      }
+      if ((ms || 0) > existing.ms) existing.ms = ms;
     };
     // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
     if (storyApp) {
@@ -1450,13 +1567,22 @@ app.get('/api/gallery/assets', async (req, res) => {
       try {
         const asnap = await admin.firestore().collection('forge-chat-assets')
           .where('chat', '==', chat).get();
-        asnap.docs.forEach((d) => { const a = d.data(); add(a.url, Date.parse(a.created) || 0, a.prompt, a.description); });
+        asnap.docs.forEach((d) => {
+          const a = d.data();
+          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent);
+        });
       } catch (e) { /* best effort */ }
     }
-    const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
+    const ordered = Array.from(seen.values()).sort((x, y) => y.ms - x.ms);
+    const total = ordered.length;
+    const assets = ordered.slice(offset, offset + limit)
       .map((a) => {
         const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
+        if (a.alts.length) o.alts = a.alts;   // the same picture's other path(s)
         if (a.description) o.description = a.description;   // what this image IS, when a chat said so
+        // The generating prompt, split (see POST /api/gallery/assets/prompt).
+        if (a.promptStyle) o.promptStyle = a.promptStyle;
+        if (a.promptContent) o.promptContent = a.promptContent;
         return o;
       });
     // Direct thumbnail URLs: the thumb path is content-addressed, so we can
@@ -1483,14 +1609,34 @@ app.get('/api/gallery/assets', async (req, res) => {
         const votes = new Map();
         vs.docs.forEach((d) => { const v = d.data(); votes.set(v.url, v); });
         assets.forEach((a) => {
-          const v = votes.get(a.url);
+          // A ♥ or a note may have been left on this picture's OTHER path
+          // before the two collapsed into one tile — don't lose it.
+          let v = votes.get(a.url);
+          if (!v && a.alts) {
+            for (const u of a.alts) { const alt = votes.get(u); if (alt) { v = alt; break; } }
+          }
           if (v && v.vote) a.vote = v.vote;
           if (v && v.note) a.note = v.note;
           if (v && v.done) a.done = true;
+          // The whole back-and-forth, so the lightbox can render it and a chat
+          // reading this list sees its own replies too.
+          const thread = v ? assetThread(v) : [];
+          if (thread.length) {
+            a.thread = thread;
+            a.waiting = assetWaiting(thread);
+            const last = thread[thread.length - 1];
+            // Badge the tile when a chat has written since she last looked.
+            if (last.from === 'chat'
+              && (Date.parse(last.at || '') || 0) > (Date.parse((v && v.seenAt) || '') || 0)) {
+              a.unread = true;
+            }
+          }
         });
       }
     } catch (e) { /* votes are best-effort */ }
-    res.json({ chat, assets });
+    // total = every unique picture this chat has, so the client knows whether
+    // another page exists rather than guessing from a full-looking response.
+    res.json({ chat, assets, total, offset, limit });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1530,6 +1676,68 @@ app.post('/api/gallery/asset-cleanup', express.json(), async (req, res) => {
 // number). An over-length note is REFUSED, never silently trimmed.
 const ASSET_NOTE_MAX = 2000;
 
+// A note on an image is a THREAD, not a single string: Sophie writes from the
+// Assets lightbox and the chat that made the image writes back. Deliberately
+// snail mail — a chat reads its threads the next time Sophie messages it, since
+// nothing here runs on a timer (house rule: no recurring self-check-ins).
+const ASSET_THREAD_MAX = 40;
+// One doc per chat+url, id derived from both so any caller finds the same doc.
+function assetVoteRef(chat, url) {
+  const id = require('crypto').createHash('sha1')
+    .update(String(chat) + '|' + String(url)).digest('hex');
+  return admin.firestore().collection('forge-asset-votes').doc(id);
+}
+// Legacy docs hold only a single `note` string (everything written before the
+// thread existed). Those are PRESENTED as a one-message thread from Sophie, so
+// no migration is needed and no old note is lost.
+function assetThread(data) {
+  const d = data || {};
+  if (Array.isArray(d.thread) && d.thread.length) {
+    return d.thread
+      .filter((m) => m && String(m.text || '').trim())
+      .map((m, i) => ({
+        id: String(m.id || 'm' + i),
+        from: m.from === 'chat' ? 'chat' : 'sophie',
+        text: String(m.text || ''),
+        at: m.at || d.updated || '',
+      }));
+  }
+  const legacy = String(d.note || '').trim();
+  return legacy ? [{ id: 'legacy', from: 'sophie', text: legacy, at: d.updated || '' }] : [];
+}
+// Who owes the next message: whoever did NOT send the last one.
+function assetWaiting(thread) {
+  if (!thread || !thread.length) return null;
+  return thread[thread.length - 1].from === 'sophie' ? 'chat' : 'sophie';
+}
+// Append one message. A transaction because Sophie can send from the app while
+// a chat is replying to the same image, and a read-modify-write would drop one.
+async function appendAssetMessage(ref, chat, url, from, text) {
+  const who = from === 'chat' ? 'chat' : 'sophie';
+  const msg = {
+    id: require('crypto').randomBytes(6).toString('hex'),
+    from: who, text, at: new Date().toISOString(),
+  };
+  const thread = await admin.firestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const next = assetThread(snap.exists ? snap.data() : {})
+      .concat([msg]).slice(-ASSET_THREAD_MAX);
+    const patch = {
+      chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+      thread: next, updated: msg.at,
+    };
+    if (who === 'sophie') {
+      patch.note = text;    // legacy mirror: her LATEST ask, what old readers read
+      patch.seenAt = msg.at; // she's writing, so she's caught up on the replies
+      // A fresh ask reopens the image even if a chat had marked it handled.
+      patch.done = admin.firestore.FieldValue.delete();
+    }
+    tx.set(ref, patch, { merge: true });
+    return next;
+  });
+  return { message: msg, thread };
+}
+
 // Sophie's curation vote on one Assets-tab image: ♥ ('like'), ✕ ('dislike'),
 // or null to clear. One doc per chat+url (deterministic id) in deckfactory.
 // Chats read the verdicts off GET /api/gallery/assets and act on them.
@@ -1543,9 +1751,7 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     const { chat, url, vote, note, done } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    const id = require('crypto').createHash('sha1')
-      .update(String(chat) + '|' + String(url)).digest('hex');
-    const ref = admin.firestore().collection('forge-asset-votes').doc(id);
+    const ref = assetVoteRef(chat, url);
     // vote, note, and done update independently: send only the field you're
     // changing (vote: 'like'|'dislike'|null to clear; note: string|null to
     // clear; done: true when a chat has acted on the note, false/null to clear).
@@ -1567,13 +1773,166 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
           length: t.length,
         });
       }
-      patch.note = t ? t : admin.firestore.FieldValue.delete();
+      // Legacy path: a note sent here APPENDS to the thread (below) rather than
+      // replacing it, so an older client can't wipe a conversation. Clearing
+      // (empty/null) only drops the `note` mirror; the thread is history.
+      if (!t) patch.note = admin.firestore.FieldValue.delete();
     }
     if (done !== undefined) {
       patch.done = done ? true : admin.firestore.FieldValue.delete();
     }
     await ref.set(patch, { merge: true });
+    if (note !== undefined && String(note == null ? '' : note).trim()) {
+      await appendAssetMessage(ref, chat, url, 'sophie',
+        String(note).trim());
+    }
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// One message in an image's note thread. Sophie's box in the Assets lightbox
+// posts from:'sophie'; the chat that made the image replies with from:'chat'.
+// Also the read receipt: { chat, url, seen:true } with no text marks her caught
+// up, which is what clears the unread badge on the tile.
+app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, url, text, from, seen } = req.body || {};
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const ref = assetVoteRef(chat, url);
+    const t = String(text == null ? '' : text).trim();
+    if (!t) {
+      if (!seen) return res.status(400).json({ error: 'text required' });
+      const at = new Date().toISOString();
+      await ref.set({ chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
+        seenAt: at }, { merge: true });
+      return res.json({ ok: true, seenAt: at });
+    }
+    // Same refusal as the note field: her words are never silently truncated.
+    if (t.length > ASSET_NOTE_MAX) {
+      return res.status(413).json({
+        error: `That note is ${t.length} characters — the limit is ${ASSET_NOTE_MAX}. `
+          + `Nothing was saved; trim it by ${t.length - ASSET_NOTE_MAX} and send again.`,
+        limit: ASSET_NOTE_MAX,
+        length: t.length,
+      });
+    }
+    const out = await appendAssetMessage(ref, chat, url, from, t);
+    res.json({ ok: true, message: out.message, thread: out.thread,
+      waiting: assetWaiting(out.thread) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Every image in this chat that has a note thread — what a chat reads to find
+// what Sophie asked and what it already answered. Images she never wrote on are
+// omitted, so this stays small next to the full assets list. `waiting:'chat'`
+// is the queue: she spoke last and nobody has replied.
+app.get('/api/gallery/assets/notes', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const db = admin.firestore();
+    // The label ("what this image is") lives on the asset record, not the vote
+    // doc — join it in so a chat can recognise the image without opening it.
+    const [vs, as] = await Promise.all([
+      db.collection('forge-asset-votes').where('chat', '==', chat).get(),
+      db.collection('forge-chat-assets').where('chat', '==', chat).get(),
+    ]);
+    const labels = new Map();
+    as.docs.forEach((d) => {
+      const a = d.data();
+      if (a.url && a.description) labels.set(a.url, a.description);
+    });
+    const notes = [];
+    vs.docs.forEach((d) => {
+      const v = d.data();
+      const thread = assetThread(v);
+      if (!thread.length) return;
+      const o = { url: v.url, thread, waiting: assetWaiting(thread) };
+      if (labels.get(v.url)) o.description = labels.get(v.url);
+      if (v.vote) o.vote = v.vote;
+      if (v.done) o.done = true;
+      notes.push(o);
+    });
+    // The ones waiting on a chat first, then most recently written.
+    const lastAt = (n) => Date.parse(n.thread[n.thread.length - 1].at || '') || 0;
+    notes.sort((a, b) => {
+      const aw = a.waiting === 'chat' ? 0 : 1, bw = b.waiting === 'chat' ? 0 : 1;
+      return aw !== bw ? aw - bw : lastAt(b) - lastAt(a);
+    });
+    res.json({ chat, notes, waiting: notes.filter((n) => n.waiting === 'chat').length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// The prompt behind an Assets-tab image, split in two: promptStyle (the house
+// style / LoRA trigger / look) and promptContent (what is actually depicted).
+// Only the chat that generated the image knows where that seam is, so the
+// split is posted, never parsed back out of a joined string. Shown in the
+// lightbox as an overlay ON the image (Style | Content toggle).
+// One image: { chat, url, style, content }. A whole backfill in one call:
+// { chat, items:[{url, style, content}, …] }. Idempotent — re-posting the same
+// url overwrites that image's split, and an empty string clears a side.
+const ASSET_PROMPT_MAX = 1500;
+app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, items } = req.body || {};
+    const chatName = String(chat || '').slice(0, 60);
+    if (!chatName) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const list = Array.isArray(items) && items.length ? items : [req.body || {}];
+    const clean = (v) => String(v == null ? '' : v).trim().slice(0, ASSET_PROMPT_MAX);
+    const acol = admin.firestore().collection('forge-chat-assets');
+    const del = admin.firestore.FieldValue.delete();
+    const results = [];
+    for (const raw of list) {
+      const url = String((raw && raw.url) || '');
+      if (!/^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(url)) {
+        results.push({ url, ok: false, error: 'hosted Firebase url required' });
+        continue;
+      }
+      // A side is only touched when it was sent, so posting just the content
+      // later never wipes a style filed earlier.
+      const patch = {};
+      if (raw.style !== undefined) patch.promptStyle = clean(raw.style) || del;
+      if (raw.content !== undefined) patch.promptContent = clean(raw.content) || del;
+      if (!Object.keys(patch).length) {
+        results.push({ url, ok: false, error: 'style or content required' });
+        continue;
+      }
+      const existing = await findChatAsset(chatName, { url });
+      if (existing) {
+        await existing.ref.update(patch);
+        results.push({ url, ok: true, updated: true });
+      } else {
+        // The prompt can land before the Stop hook files the image (same
+        // session, image already uploaded). Create the record now; the hook's
+        // later post converges onto it by url instead of adding a second tile.
+        const doc = { chat: chatName, url, urlKey: canonicalAssetUrl(url),
+          prompt: '', created: new Date().toISOString(), wip: true };
+        Object.keys(patch).forEach((k) => { if (patch[k] !== del) doc[k] = patch[k]; });
+        await acol.add(doc);
+        results.push({ url, ok: true, created: true });
+      }
+    }
+    const failed = results.filter((r) => !r.ok);
+    res.json({ ok: !failed.length, saved: results.length - failed.length, results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1688,8 +2047,11 @@ app.get('/crystals', serveGated('crystals.html'));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.
-// Engine is /api/editor (editor.js). Same gate as the Studio.
-app.get('/editor', serveGated('editor.html'));
+// Engine is /api/editor (editor.js). Same gate as the Studio. Episodes get long
+// (a 23-card arrangement scrolls for a while), so it carries the shared
+// autoscroll pill — the native EpisodeEditorView deliberately ships no pill of
+// its own, so this is the only one.
+app.get('/editor', serveGated('editor.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
@@ -2902,7 +3264,8 @@ app.get('/api/witch/tarot-ask/:id', async (req, res) => {
 // Pulls the public products.json so the app's Shop tab shows real products
 // (image, title, price, link) without any storefront token. Cached in memory
 // ~10 min. Every product's own URL still opens the real Shopify checkout.
-let SHOP_CACHE = { at: 0, data: null };
+const SHOP_TTL_MS = 10 * 60 * 1000;
+let SHOP_CACHE = { at: 0, data: null, refreshing: false };
 // ── Shop curation: order + filter the app shop to mirror Sophie's Etsy ──
 // Words that appear on nearly every listing carry no matching signal — drop
 // them so the score reflects the distinctive product words.
@@ -2988,16 +3351,16 @@ async function etsyActiveListings() {
   return list;
 }
 
-app.get('/api/witch/shop', async (req, res) => {
-  try {
-    const debug = req.query.debug === '1';
-    const now = Date.now();
-    if (!debug && SHOP_CACHE.data && now - SHOP_CACHE.at < 10 * 60 * 1000) return res.json(SHOP_CACHE.data);
+// Building the shelf means TWO slow upstreams — Shopify's products.json and the
+// Etsy listing order — so it is cached, and (below) served stale while it
+// refreshes rather than making whoever opened the tab wait for both.
+async function buildShopPayload(debug) {
+  {
     // The store's permanent .myshopify.com home — NOT secretlyawitch.com,
     // which now points at this very app (fetching it would loop back to us).
     const base = witchStoreOrigin();
     const r = await fetch(`${base}/products.json?limit=100`, { headers: { 'User-Agent': 'SecretlyAWitch/1.0 (app shop)' } });
-    if (!r.ok) return res.status(502).json({ error: `shop returned ${r.status}` });
+    if (!r.ok) throw new Error(`shop returned ${r.status}`);
     const j = await r.json();
     // The store is shared with other brands; drop obvious non-witch items.
     const EXCLUDE = /people\s*watching|in case of amnesia|remember things|custom order|incel/i;
@@ -3098,10 +3461,30 @@ app.get('/api/witch/shop', async (req, res) => {
       .map(c => ({ key: c.key, name: c.name, count: products.filter(p => p.category === c.key).length }));
 
     const out = { updatedAt: new Date().toISOString(), count: products.length, storeUrl: base, categories, products };
-    if (debug) return res.json({ ...out, debug: dbg });
-    SHOP_CACHE = { at: now, data: out };
-    res.json(out);
+    if (debug) return { ...out, debug: dbg };
+    SHOP_CACHE = { at: Date.now(), data: out, refreshing: false };
+    return out;
+  }
+}
+
+// Stale-while-revalidate. A warm cache answers instantly; an EXPIRED cache also
+// answers instantly and the rebuild runs behind the response instead of under
+// it, so opening the Shop tab stops waiting on Shopify + Etsy once the app has
+// served the shelf even once.
+app.get('/api/witch/shop', async (req, res) => {
+  try {
+    if (req.query.debug === '1') return res.json(await buildShopPayload(true));
+    if (SHOP_CACHE.data) {
+      if (Date.now() - SHOP_CACHE.at >= SHOP_TTL_MS && !SHOP_CACHE.refreshing) {
+        SHOP_CACHE.refreshing = true;
+        buildShopPayload(false).catch(() => {}).finally(() => { SHOP_CACHE.refreshing = false; });
+      }
+      return res.json(SHOP_CACHE.data);
+    }
+    res.json(await buildShopPayload(false));
   } catch (err) {
+    // A stale shelf beats an error page.
+    if (SHOP_CACHE.data) return res.json(SHOP_CACHE.data);
     res.status(500).json({ error: err.message });
   }
 });
@@ -3159,11 +3542,16 @@ app.get('/api/witch/shop/product/:handle', async (req, res) => {
     const handle = String(req.params.handle || '');
     const hit = WITCH_PRODUCT_CACHE.get(handle);
     if (hit && Date.now() - hit.at < 10 * 60 * 1000) return res.json(hit.data);
+    // `options` + each variant's `selectedOptions` are what let the sheet show
+    // one dropdown PER option (kit type, journal or not) the way Etsy does,
+    // instead of one button per combination.
     const data = await witchStorefront(`query($handle: String!) {
       product(handle: $handle) {
         title descriptionHtml
+        options { name values }
         images(first: 8) { edges { node { url } } }
-        variants(first: 40) { edges { node { id title availableForSale price { amount currencyCode } } } }
+        variants(first: 40) { edges { node { id title availableForSale price { amount currencyCode }
+          selectedOptions { name value } } } }
       } }`, { handle });
     if (!data.product) return res.status(404).json({ error: 'not found' });
     const p = data.product;
@@ -3172,11 +3560,18 @@ app.get('/api/witch/shop/product/:handle', async (req, res) => {
       title: p.title,
       descriptionHtml: p.descriptionHtml || '',
       images: (p.images?.edges || []).map(e => e.node.url),
+      // Shopify gives every product a synthetic "Title: Default Title" option;
+      // it isn't a choice, so it never becomes a dropdown.
+      options: (p.options || [])
+        .filter(o => (o.values || []).length && !(o.name === 'Title' && o.values.length === 1 && o.values[0] === 'Default Title'))
+        .map(o => ({ name: o.name, values: o.values })),
       variants: (p.variants?.edges || []).map(e => ({
         id: e.node.id,
         title: e.node.title,
         available: Boolean(e.node.availableForSale),
         price: e.node.price?.amount || null,
+        // { "Kit": "travel kit", "Journal": "yes, include journal" }
+        options: (e.node.selectedOptions || []).reduce((m, o) => { m[o.name] = o.value; return m; }, {}),
       })),
     };
     WITCH_PRODUCT_CACHE.set(handle, { at: Date.now(), data: out });

@@ -397,10 +397,17 @@ lifted into a standalone tool later.
   swaps sign-ins — it writes `appAccount` to the reserved registry doc
   `__settings` via `POST /api/chatfeed/app-account`. Open buttons compare the
   chat's `account` to `appAccount`: match (or untagged) → direct claude.ai link
-  (iOS universal link opens the Claude app); mismatch → the link goes through
-  `GET /api/chatfeed/go?u=<claude.ai url>` (302), which opens in the BROWSER
-  instead (universal links don't fire on server redirects), where that account
-  is signed in. Nothing to re-paste when she swaps accounts — only the toggle.
+  (iOS universal link opens the Claude app); mismatch → the same claude.ai
+  link with **`#no_universal_links` appended** — claude.ai's own
+  apple-app-site-association EXCLUDES any URL carrying that fragment (their
+  first match rule, checked July 2026), so iOS never hands it to the Claude
+  app and it opens in the BROWSER, where that account is signed in. **Do NOT
+  reach for redirect tricks here:** a server 302 to claude.ai (verified
+  2026-07-27) AND a self-navigating interstitial page (verified 2026-07-31)
+  both bounce into the Claude app on current iOS — the AASA fragment
+  exclusion is the only thing that works. `GET /api/chatfeed/go?u=` survives
+  as a legacy hop for cached pages; it now just 302s to the fragment-tagged
+  URL. Nothing to re-paste when she swaps accounts — only the toggle.
   Existing chats that haven't posted since the env vars were added are
   untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
   `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook
@@ -408,6 +415,40 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
+  conversation it was** instead of a monologue of Claude replies. The same hook
+  posts them: it already fires on `UserPromptSubmit` (that firing used to only
+  sweep up interrupted replies), and now also lifts her message out of the
+  transcript and POSTs it to `/api/chatfeed/reply` as `from:"sophie"`, keyed by
+  the transcript record's `uuid` so it can't double-post, carrying her real send
+  time via the route's new optional `created` (so hers sorts ABOVE the reply it
+  prompted). The app already rendered `from:"sophie"` as **"me"** in rose and
+  excludes it from the unread dot, so no client change was needed.
+  - **The machinery that also arrives as a "user" record is filtered out:**
+    `isMeta` ("Continue from where you left off"), `<task-notification>` /
+    `[SYSTEM NOTIFICATION …]`, `<github-webhook-activity>`, slash-command echoes
+    (`<command-name>`, `<local-command-stdout>`), `[Request interrupted …]`, and
+    the caveat preamble. `<system-reminder>` blocks are STRIPPED from her text
+    rather than used to reject the message (they ride inside real messages).
+  - First firing in a session **baselines her history and posts only her latest**,
+    same policy as the reply poster, so installing it never floods a live feed.
+  - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
+- **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
+  renames a chat with the pencil in its thread header; that writes `displayName`
+  on the registry doc and is the name she sees everywhere. **The Claude app's own
+  session title cannot be synced** — nothing exposes a session's title to the
+  outside and nothing can push a rename back into claude.ai (checked July 2026,
+  no API and no MCP tool for it), so the two names are separate by necessity and
+  hers wins. A chat reads what she calls it with
+  `GET /api/chatfeed/name?chat=<slug>` → `{ displayName, name }` (`name` falls
+  back to the slug) — use it when referring to yourself in a handoff or a
+  message, rather than the raw git-branch slug. The **slug stays the identity
+  key** for every route; renaming is cosmetic and never re-keys a chat's history.
+- **Gated pages must not be cached by the app.** `serveGated` sends
+  `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
+  and the iOS app's WKWebView served a heuristically-cached copy, so a shipped
+  page change (a moved button, a new tab) silently never reached her phone. This
+  actually happened with the header fixes. Keep that header on any new HTML route.
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in
@@ -417,6 +458,88 @@ lifted into a standalone tool later.
   votes/notes and act on them (favor the hearted ones, re-roll the ✕'d and
   anything noted "redo") — same review-loop pattern as writing notes, NOT on
   a timer.
+- **Notes are a THREAD — WRITE BACK on the image (July 2026).** A note is a
+  two-way conversation on that picture: she writes from the lightbox, and **the
+  chat that made the image replies on the image itself**. Deliberately snail
+  mail — you answer when she next messages you, so a reply landing hours later
+  is the expected rhythm, and there are still NO timers or self-check-ins.
+  - **Read what's waiting:** `GET /api/gallery/assets/notes?chat=<name>` — only
+    the images that have a thread, `waiting:"chat"` ones FIRST (she spoke last
+    and nobody answered), each with its `thread:[{from:"sophie"|"chat", text,
+    at}]`, the image's `description` label, and any `vote`/`done`. The full
+    `GET /api/gallery/assets` carries `thread` + `waiting` + `unread` too.
+  - **Reply:** `POST /api/gallery/assets/note`
+    `{ chat, url, text, from:"chat" }` — appends one message (2000 chars max,
+    over-length is REFUSED, never truncated). Answer what she asked, say what
+    you changed, and name the new image's label if you re-rolled it.
+  - **Check them in the same sweep as votes/prompts** whenever Sophie messages
+    you: read the notes, do the work, then reply on each image you acted on.
+    `done:true` (via the vote route) still marks one handled; her next message
+    on that image reopens it automatically.
+  - Legacy single `note` strings show up as a one-message thread from her, so
+    old notes are never lost, and `note` keeps mirroring her LATEST ask for any
+    older reader. Her tile shows a green count badge until she opens your reply.
+- **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
+  2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
+  covers the picture, with a **Style / Content** toggle (style left, content
+  right). Nothing derives it — the chat that generated the image posts the two
+  halves itself, because only it knows where the seam is:
+  - **style** = the look: house-style/LoRA trigger word and its suffixes, medium,
+    palette, rendering notes (`wtr watercolor drawing, loose wet-on-wet wash,
+    visible paper grain`).
+  - **content** = what is depicted: subject, action, setting, composition
+    (`a woman in a yellow raincoat feeding crows on a park bench at dusk`).
+  - `POST /api/gallery/assets/prompt` `{ chat, url, style, content }` — the
+    image's Firebase Storage url, x-studio-token when gated. Do this for EVERY
+    image deliverable, right after the image exists; it needs no gallery step
+    first (post it before the Stop hook files the image and the hook's post
+    converges onto the same record by url — never a second tile). Re-posting the
+    same url overwrites that image's split, so a fixed prompt is one more POST.
+    Sending only one side leaves the other alone; `""` clears a side. 1500 chars
+    each. Batch many images in one call with
+    `{ chat, items:[{url, style, content}, …] }` (per-item `ok`/`error` back).
+  - Stored on the chat's `forge-chat-assets` doc as `promptStyle` /
+    `promptContent`, returned by `GET /api/gallery/assets?chat=<name>` — so a
+    chat can also READ back what it (or an earlier session) filed.
+  - **Backfilling older images:** `node scripts/backfill-asset-prompts.js <chat>
+    --list` prints every image in that tab with its label and whether a prompt is
+    on file; then write a JSON array and post it with
+    `node scripts/backfill-asset-prompts.js <chat> prompts.json [--dry-run]`.
+    Each entry identifies its image by `"url"` (exact) or `"match"` (a substring
+    of the url OR of the label shown in the app — easier, since a chat remembers
+    what it called an image). `FORGE_BASE` overrides the server.
+  - An image with no prompt on file shows **no PROMPT button at all** — never
+    write "no prompt filed" anywhere; empty is silent by design.
+  - These instructions live HERE only. There used to be a "How to post prompts"
+    fold at the top of every Assets tab, but chats read this file, not that
+    page — so it was clutter only Sophie ever saw, and it's been removed.
+  - **The tab is PAGED and dedupes by filename (July 2026).**
+    `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
+    offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
+    It used to be a single capped request, which was a hard truncate — a chat
+    past 300 images silently lost its OLDEST ones (never deleted, just never
+    sent). **One picture can live at two storage paths** (where it was
+    generated, e.g. `witch-school/assets/<id>.png`, and the copy the server
+    makes when the same image is also sent as a file,
+    `claude-deliveries/<id>.png`), so the union keys on the FILENAME, not the
+    url: the copies collapse into one tile, every field is merged, the url kept
+    is the one carrying the label/prompt, the others ride along as `alts`, and a
+    ♥/note left on either path is still found.
+  - **The Assets tab has a search bar** that filters the tiles as she types,
+    matching an image's label, its model/quality caption, BOTH halves of its
+    prompt, and every message in its note thread — so a filed prompt is what
+    makes an image findable later. It stacks with the New/♥/Hide ✕ filter and
+    runs client-side over the already-loaded tiles (no request per keystroke).
+- **The `/chats` header reserves the pill's corner.** The autoscroll pill is
+  `position:fixed` over the top-right (x 324–374, y 14–192 on an iPhone 13), so
+  ANY header control reaching that corner is untappable — the rename pencil was,
+  for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
+  reservation on any new header row, and never place a control in that corner.
+  **Archive/Unarchive lives in the thread header** (same button, same spot,
+  either label) — deciding whether to archive must not mean scrolling past every
+  message first. The **App/Web account toggle is a plain on/off switch** on the
+  home header's title line (`.swi`, off = account 1, on = account 2, no text —
+  the toast names the account).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
@@ -863,6 +986,93 @@ lifted into a standalone tool later.
   "recent drafts" list (`GET /posts`, `GET /:id`, `DELETE /:id`). Same
   `STUDIO_TOKEN` gate; `/blog` served via `serveGated`.
 
+## Sticker Day (self-care sheet — `/selfcare`)
+- `public/selfcare.html` (page at `/selfcare`, **ungated/public** like `/witch`) —
+  seven small acts of self care a day, each one a **sticker**. An un-earned task
+  shows only as a flat grey **silhouette**; tapping it (= "I did this") peels the
+  sticker on in colour AND opens a bottom sheet revealing the art big with a
+  **mini lesson** on why it matters. Tapping an earned sticker reopens the
+  lesson; **undo lives in that sheet**, so a mis-tap is never permanent.
+- **The day's set:** 5 basics every day (water, food, movement, outside, sleep)
+  + 2 extras stepping deterministically through a pool of 12 (`setFor(iso)` —
+  days-since-epoch × 2), so the sheet changes daily and exhausts the pool before
+  repeating. All 7 done → the sheet gets a stamp. **Book** tab = every past
+  sheet + how many distinct stickers have been discovered.
+- **State is `localStorage` only** (`selfcare_sticker_book`, `{days:{iso:{set,
+  done}}}`). Nothing leaves the phone — which is why the page is ungated. Past
+  days store their own `set`, so a rendered old sheet is what it actually was.
+- **Tasks and packs are SEPARATE** in `public/selfcare-stickers.json`: `tasks`
+  = name + mini lesson; `packs.<id>.art.<taskId>.img` = the picture. **A new
+  sticker pack is a new art set over the same tasks, so it ships as pure data —
+  no app change.** Any task a pack has no art for falls back to the placeholder
+  shape drawn inline in `selfcare.html` (`ART`).
+- **The silhouette is the SAME PNG, CSS-masked** (`[data-done="0"] .pic::after`,
+  `mask-image:var(--u)` + flat `--ghost`), so the shape you see always matches
+  the sticker you get exactly. This is why sticker art **must be a transparent
+  die-cut PNG** — any background left on it masks as a grey rectangle instead of
+  the sticker's outline.
+- **Art pipeline: `scripts/selfcare-stickers.js`** — the Witch School look
+  (gpt-image-2 edits against `storage:witch-school/refs/style-*.png`, same as
+  `witch-school-cards.js`) so stickers and lesson cards read as one set, then
+  **background-remover (Replicate) → alpha-trim → upload** to
+  `selfcare/stickers/<pack>/<id>.png` (raws kept under `_raw/`). The prompt bans
+  cast shadows/surfaces/frames — they survive the cut and read as grime round
+  the edge — and the alpha trim + square re-pad is what keeps every sticker the
+  same visual size in its tile. Writes the manifest after EVERY sticker, so a
+  crash keeps what landed. `--only a,b` / `--force` / `--pack` / `--dry-run`
+  (prints cost first). ~$0.042 each, ~$0.71 for all 17.
+- **Lesson voice:** aimed at what people don't know, not encouragement (pasta is
+  carbohydrate and doesn't rebuild you; the 8-glasses rule came from a misread
+  1945 report; light through a window doesn't set your body clock). Same voice
+  rules as Witch School — no therapy-speak, aspirational not consoling.
+- **Open by design:** how sticker **packs** get unlocked (earned per finished
+  sheet? a few new ones a day?) is Sophie's call and is NOT built — only the
+  data structure for it is.
+- **Finishing all 7 plays the celebration** — a unicorn cantering over a flat
+  pastel rainbow (`celebrate()`, SVG `animateMotion`, ~2.8s). Bands are
+  concentric solid-stroke arcs, NOT a gradient. It only fires on the tap that
+  completes the sheet (`updateProgress(true)`), never on page load, so
+  re-opening a finished day doesn't replay it.
+
+### Memory Passport (3rd tab of `/selfcare`)
+- **Four stamps a day** — small things that happened. Each is a postage stamp:
+  white scalloped paper with a picture inside. Tap an empty slot → the picker.
+- **The scalloped edge is drawn by the PAGE, not the model** (`stampSVG()` —
+  a square path with circles centred ON each edge punched out via
+  `fill-rule="evenodd"`). A model draws a scallop differently every time and
+  the point of a stamp is that the frame is identical on all of them. So the
+  generated art is only the square INSIDE, and the prompt bans borders/frames.
+- **Two ways to fill a slot:**
+  - **Free library** — 20 pre-drawn generic moments ("someone gave me a
+    compliment", "I got myself a treat"), `public/selfcare-stamps.json`, built
+    by `scripts/selfcare-stamps.js` (~$0.28 for all 20). Each sits on its OWN
+    flat pastel background colour so a page reads as a set, not one card
+    repeated. Reached from the **grey rounded-square button top-right in the
+    header** — deliberately above the passport page, never on it.
+  - **Draw your own** (the paid feature) — type a moment → `selfcare.js`
+    (`/api/selfcare`, PUBLIC, mounted in server.js) draws it with gpt-image-2
+    at **`quality:'low'`** (~1¢) in the same house line style but pastel.
+    **NOTE: there is no billing wired up** — the UI distinguishes free vs own,
+    but nothing actually checks for a subscription yet.
+- **Background job, always** (house rule): `POST /api/selfcare/stamp` returns
+  an id in ~0.2s, the client stores it in `localStorage` and RESUMES polling on
+  return, so leaving the app can't lose a stamp already paid for. State in
+  Firestore `forge-selfcare-stamps`; `GET /api/selfcare/stamp/:id` polls.
+- **The endpoint is public and spends money**, so it is rate-limited per IP
+  (20/hour) behind the app's own 4-a-day rule. Worth revisiting if the page
+  ever gets real traffic.
+- **A stamp landing plays a stick sound** — synthesised with WebAudio (filtered
+  noise burst over a low thud), so there's no audio file to load. iOS only
+  allows audio after a gesture, so the context is unlocked on the first tap.
+- **Everything is `localStorage`** except the generated images: the moment TEXT
+  is sent to OpenAI and the resulting picture lives in public Storage. That is
+  a real change from the stickers half, where nothing leaves the phone.
+- **Display copies:** `scripts/selfcare-thumbs.js` makes a 512px webp
+  (`thumb`) of every sticker/stamp/asset and writes it beside `img` in both
+  manifests. The originals are 400–700KB each and the library shows twenty at
+  once — serving them raw was ~26MB of page weight. The page uses `thumb` and
+  keeps `img` as the untouched full-res original. Costs nothing to re-run.
+
 ## Secretly a Witch (public witchy app)
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
@@ -912,6 +1122,9 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
+- **POST THE PROMPT for every image you deliver**, split into style + content —
+  `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
+  tab reads. Full rules in "Prompts on Assets images" above.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
@@ -1123,7 +1336,7 @@ lifted into a standalone tool later.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
-- `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
+- `editor.js` (`/api/editor`, page at `/editor`, iOS tile "Episode Editor") — Sophie selects spans of a real
   interview transcript as **snippet cards**, arranges them (with **narration**
   and **gap** cards) into an episode, taps **Render**, and gets the finished
   audio. The cloud version of the hand-run supercut
@@ -1175,6 +1388,12 @@ lifted into a standalone tool later.
   rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
   snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
   order with its narration fills. 23 cards.
+- **iOS:** `EpisodeEditorView.swift` = a WKWebView on `/editor` that answers the
+  HTTP Basic gate with the studio token (same wrapper pattern as
+  `WritingRoomView`), registered as the `editor` tool in `RootView` — home-grid
+  tile "Episode Editor", SF Symbol `waveform`, deep link `deckfactory://editor`.
+  It pauses the page's audio on a screen change so a preview never keeps playing
+  from a hidden tab. Page changes ship via Render deploy — no TestFlight build.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at

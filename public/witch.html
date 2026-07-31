@@ -71,12 +71,29 @@
     header {
       position: sticky; top: 0; z-index: 40;
       display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-      padding: 16px 20px 14px;
+      /* First number = how far down the title sits. It has ~13px of slack
+         before it crowds the top edge; below that you're into the status
+         bar / notch, which the header deliberately stays clear of. */
+      padding: 13px 20px 14px;
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
     }
-    .sigil { justify-self: center; display: flex; align-items: center; color: var(--gold); opacity: 0.92; }
-    .sigil svg { width: 22px; height: 22px; }
+    /* ── The two stars flanking the title ──────────────────────────────────
+       BOTH DIALS ARE THE TWO NUMBERS BELOW. Change them and every header
+       follows — the app header and the Book of Shadows reader's copy of it.
+         --sigil-size  how big each star is (the title is 26px, so this is
+                       deliberately well under it)
+         --sigil-gap   how far each star sits from the title
+       They were centred in the leftover space either side, which put them
+       ~26px out and made the size the only thing you could tune; now the
+       grid pushes each one to the title's edge and the gap sets the rest. */
+    .sigil { --sigil-size: 15px; --sigil-gap: 14px;
+             display: flex; align-items: center; color: var(--gold); opacity: 0.92; }
+    .sigil svg { width: var(--sigil-size); height: var(--sigil-size); }
+    /* left star: hug the right edge of its column, then back off by the gap */
+    header .sigil, .bos-head .sigil { justify-self: end; margin-right: var(--sigil-gap); }
+    /* right star: the one AFTER the title — mirror it */
+    header h1 ~ .sigil, .bos-head h1 ~ .sigil { justify-self: start; margin-right: 0; margin-left: var(--sigil-gap); }
     header h1 {
       font-family: var(--serif); font-style: italic; font-weight: 500;
       font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
@@ -643,16 +660,28 @@
     .shop-cats::-webkit-scrollbar { display: none; }
     .shop-cat { flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-family: inherit; font-size: 12.5px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
     .shop-cat.on { border-color: var(--gold); color: var(--gold); }
-    .shop-cat .cc { color: var(--text-faint); font-size: 11px; margin-left: 4px; }
-    .shop-cat.on .cc { color: var(--gold-dim); }
     /* In-app buying: cart button, product sheet, cart sheet */
     .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .cart-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
     .cart-btn svg { width: 16px; height: 16px; }
     .cart-btn .cbadge { background: var(--gold); color: #fff; border-radius: 50%; min-width: 18px; height: 18px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
     .sheet-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); z-index: 210; display: none; align-items: flex-end; justify-content: center; }
+    /* The product sheet is a full PAGE, not a panel half-shoved up the screen:
+       there is no backdrop strip left to mis-tap, and tapping outside no longer
+       closes it (only the ✕ and the phone's own back gesture do). */
+    .sheet-bg.page { align-items: stretch; background: var(--bg); }
+    .sheet-bg.page .sheet { max-height: none; min-height: 100%; border-radius: 0; border-top: none;
+                            padding-top: calc(14px + env(safe-area-inset-top)); }
     .sheet-bg.show { display: flex; }
     .sheet { background: var(--bg); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(26px + env(safe-area-inset-bottom)); position: relative; }
+    /* The product page leaves by a BACK arrow, top-left — it's a page in the app
+       now, not the bottom sheet it started as, and a ✕ in the corner was the
+       leftover of that. Same circular affordance so it stays visible while the
+       page scrolls; only the glyph and the side changed. */
+    .sheet .ps-back { position: sticky; top: 0; float: left; background: var(--surface); border: 1px solid var(--border);
+                      border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+                      color: var(--text-dim); cursor: pointer; z-index: 2; }
+    .sheet .ps-back svg { width: 17px; height: 17px; }
     .sheet .sx { position: sticky; top: 0; float: right; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; z-index: 2; }
     .sheet .sx svg { width: 15px; height: 15px; }
     .ps-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-soft); background: var(--panel); display: block; }
@@ -661,6 +690,17 @@
     .ps-thumbs img.on { border-color: var(--gold); }
     .ps-title { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.2; margin-top: 14px; }
     .ps-price { color: var(--gold); font-size: 16px; margin-top: 6px; font-weight: 500; }
+    /* One dropdown per option (kit type, journal or not) like Etsy, instead of a
+       button per combination — a 12-variant product was a wall you had to
+       scroll past to reach the price. */
+    .ps-opts { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .ps-opt-l { display: block; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+    .ps-selwrap { position: relative; }
+    .ps-sel { -webkit-appearance: none; appearance: none; width: 100%; background: var(--surface); color: var(--text);
+              border: 1px solid var(--border); border-radius: 6px; padding: 11px 34px 11px 12px;
+              font-family: inherit; font-size: 14px; line-height: 1.2; cursor: pointer; }
+    .ps-selwrap .cv { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px;
+                      color: var(--text-dim); pointer-events: none; }
     .ps-vars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .ps-var { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
     .ps-var.on { border-color: var(--gold); color: var(--gold); }
@@ -673,11 +713,25 @@
     .ps-add:disabled { opacity: .5; }
     .ps-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-top: 16px; }
     .ps-desc p { margin: 8px 0; }
-    /* ── description / reviews toggle ── */
-    .ps-tabs { display: flex; gap: 8px; margin-top: 18px; }
-    .ps-tab { flex: 1; padding: 9px 10px; border-radius: 6px; border: 1px solid var(--line); background: none;
-              color: var(--text-dim); font-size: 13.5px; font-family: inherit; }
-    .ps-tab.on { color: var(--gold); border-color: var(--gold); }
+    /* ── description / reviews toggle ──
+       No boxes: two half-width labels over a hairline, and a gold line under
+       whichever one you're reading that SLIDES across when you tap the other.
+       (Nothing rises up around the label — the line is the whole indicator.) */
+    .ps-tabs { position: relative; display: flex; margin-top: 18px; border-bottom: 1px solid var(--line); }
+    .ps-tab { flex: 1 1 50%; padding: 10px 6px 12px; border: none; background: none;
+              color: var(--text-dim); font-size: 14px; font-family: inherit; cursor: pointer; }
+    .ps-tab.on { color: var(--gold); font-weight: 600; }
+    .ps-tabs::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 50%; height: 2px;
+                      background: var(--gold); transform: translateX(0); transition: transform 0.2s ease; }
+    .ps-tabs[data-on="reviews"]::after { transform: translateX(100%); }
+    /* ── a rating under every shop thumbnail ── */
+    /* Its own tap target — the stars open the product's reviews directly.
+       align-self keeps the row only as wide as the stars, so the tap that
+       misses them still opens the product normally. */
+    .shop-item .srev { display: flex; align-self: flex-start; align-items: center; gap: 2px;
+                       margin-top: 5px; min-height: 13px; padding: 2px 2px 3px; cursor: pointer; }
+    .shop-item .srev .rv-star { width: 11px; height: 11px; stroke-width: 1.5; }
+    .shop-item .srev .n { font-size: 11px; color: var(--text-faint); margin-left: 3px; }
     /* ── product reviews (mirrored from Etsy) ── */
     .ps-rating { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
     .ps-rating[role="button"] { cursor: pointer; }
@@ -859,7 +913,7 @@
     .deck-stage { flex: 1; display: flex; flex-direction: column; min-height: 0; cursor: pointer; -webkit-user-select: none; user-select: none; overflow: hidden; }
     @keyframes tcardIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
     /* Base .tcard is shared with the tarot cards — leave it. */
-    #deck-stage .tcard { background: none; border: none; border-radius: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: stretch; animation: tcardIn 0.22s ease; }
+    #deck-stage .tcard, .lsnap-stage .tcard { background: none; border: none; border-radius: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: stretch; animation: tcardIn 0.22s ease; }
     /* Whole illustration, never cropped — contain on the matching background.
        The image is the flexible part of the card: it grows to at most 42vh,
        and SHRINKS first when a card's text is long, so the text is never cut
@@ -940,10 +994,36 @@
        2-col grid as .bos-sync-grid), so several are visible per book page —
        tapping one jumps back to that exact card in the lesson. */
     .bos-lpk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 4px; }
-    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+    /* A saved lesson page is a SNAPSHOT of the card it came from — the same
+       markup, the same per-card background, scaled down inside a cropped frame,
+       so it reads as a little screenshot of the page rather than as a cropped
+       illustration with a caption. `.lsnap-stage` is a phone-shaped box (360x620)
+       and shares #deck-stage's own rule above, so a snapshot always looks like
+       what the lesson reader actually renders. The frame is shorter than the
+       stage, so the bottom is cropped the way a screenshot would be. */
+    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .bos-lsnap { cursor: pointer; }
-    .bos-lsnap img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; }
+    /* 432 of the 620-tall stage: the crop lands just ABOVE the body copy, so the
+       thumbnail ends cleanly instead of slicing a line of text in half. */
+    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 432; overflow: hidden;
+                   border: 1px solid var(--border); border-radius: 4px; }
+    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: 620px;
+                   transform: scale(var(--s, 0.46)); transform-origin: top left; }
+    .lsnap-stage .tcard { animation: none; }   /* a snapshot doesn't slide in */
     .bos-lsnap .t { font-family: var(--serif); font-size: 13.5px; line-height: 1.3; color: #221c14; margin-top: 6px; }
+    /* Tapping a snapshot ENLARGES it (it no longer jumps you into the lesson —
+       the small link under it does that, deliberately). */
+    #lsnap-view { position: fixed; inset: 0; z-index: 220; background: var(--bg);
+                  display: none; flex-direction: column; align-items: center; justify-content: center;
+                  padding: calc(env(safe-area-inset-top, 0px) + 8px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    #lsnap-view.show { display: flex; }
+    .lsnap-big { position: relative; overflow: hidden; border-radius: 6px; background: var(--surface); }
+    /* No border on the enlarged card: with border-box it ate 2px off the bottom
+       of the stage, i.e. it cropped the very card it is meant to show whole. */
+    .lsnap-actions { display: flex; gap: 18px; align-items: center; margin-top: 14px; }
+    .lsnap-actions button { background: none; border: none; font-family: inherit; font-size: 12.5px; letter-spacing: 0.3px;
+                            color: var(--gold); cursor: pointer; padding: 6px 2px; text-decoration: underline; }
+    .lsnap-actions button.plain { color: var(--text-dim); text-decoration: none; }
     .deck-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
     .deck-prev { background: none; border: none; padding: 10px 4px; color: var(--text-dim); font-family: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .deck-prev:hover { color: var(--gold); }
@@ -984,7 +1064,11 @@
        preference), title/desc/progress below the cover */
     #school-path .cat { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 16px; }
     .wcourse { cursor: pointer; }
-    .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    /* The cover art is drawn on the same cream as the page, so with nothing
+       around it a tile just dissolves into the background. An outlined rounded
+       box gives each one an edge to end at. */
+    .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                   border: 2px solid var(--gold); border-radius: 14px; background: var(--surface); }
     .wcourse .meta { padding: 8px 2px 0; }
     .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
     .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
@@ -1015,13 +1099,64 @@
     /* The closed cover is the same object as the open pages: near full-bleed
        with a generous border of background, only without the spread sliver.
        Height mirrors the reader's stage (viewport minus header/nav chrome). */
-    .bos-cover { width: 100%; height: 60vh; margin: 14px auto 0; background: #17130f; border: 1px solid #2c2620; border-radius: 3px 6px 6px 3px; box-shadow: inset 8px 0 0 #000; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+    /* A tooled-leather grimoire, drawn entirely in CSS + one SVG ornament — no
+       image to download, and it scales to any phone. Flat colours only (the
+       no-gradients rule): the "leather" is one solid brown with an SVG grain
+       speckle over it, and every highlight is a flat lighter/darker block. */
+    .bos-cover {
+      --leather: #43301f; --leather-dk: #35251a; --leather-lt: #4e3927;
+      --tool: #bb9243;                  /* the gold tooling on the boards */
+      --brass: #ab8434;
+      position: relative; width: 100%; height: 60vh; margin: 14px auto 0;
+      background: var(--leather); border-radius: 3px 7px 7px 3px;
+      cursor: pointer; transition: transform 0.15s ease;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 22px rgba(48,30,20,0.22);
+    }
     .bos-cover:active { transform: scale(0.98); }
-    .bos-cover-inner { text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    /* Leather grain: fractal noise, tiled as one tiny inline SVG. It's a
+       texture, not a gradient — and it costs no request. */
+    .bos-cover::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+      opacity: 0.22; mix-blend-mode: overlay;
+    }
+    /* The page block: on a closed hardback the boards overhang the paper, so all
+       you see of it is a cream band along the fore-edge and the tail. Two flat
+       strips sitting just proud of the board edge — not a filled rectangle,
+       which would bury the leather. */
+    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: 9px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
+    .bos-leaves.tail { top: auto; right: -5px; bottom: -5px; left: 34px; width: auto; height: 6px; border-radius: 0 0 3px 3px; border: 1px solid #cbb994; border-top: none; }
+    /* Spine: a darker band down the hinge, with five raised sewing bands. */
+    .bos-spine-b { position: absolute; top: 0; bottom: 0; left: 0; width: 26px; background: var(--leather-dk); border-radius: 3px 0 0 3px; }
+    .bos-spine-b i { position: absolute; left: 0; right: 0; height: 6px; background: #4a3524; border-top: 1px solid #31221a; border-bottom: 1px solid #31221a; }
+    /* The hinge crease between spine and board. */
+    .bos-hinge { position: absolute; top: 0; bottom: 0; left: 26px; width: 3px; background: #2b1d13; }
+    /* Blind-tooled double rule around the board. */
+    .bos-rule { position: absolute; inset: 15px 17px 15px 39px; border: 1.5px solid var(--tool); border-radius: 2px; pointer-events: none; }
+    .bos-rule.in { inset: 22px 24px 22px 46px; border-width: 1px; opacity: 0.85; }
+    /* Gilt corner-pieces: ONE symbol, mirrored into all four corners. */
+    /* Sized and placed off the INNER rule, so the spray blooms inward from it. */
+    .bos-orn { position: absolute; width: 58px; height: 58px; color: var(--tool); pointer-events: none; }
+    .bos-orn.tl { top: 22px; left: 46px; }
+    .bos-orn.tr { top: 22px; right: 24px; transform: scaleX(-1); }
+    .bos-orn.bl { bottom: 22px; left: 46px; transform: scaleY(-1); }
+    .bos-orn.br { bottom: 22px; right: 24px; transform: scale(-1); }
+    /* The clasp: a leather strap off the board, a brass plate over the fore-edge. */
+    .bos-strap { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 15px; background: #2b1e15; border-radius: 2px 0 0 2px; }
+    .bos-clasp { position: absolute; right: -6px; top: 50%; transform: translateY(-50%); width: 25px; height: 38px; background: var(--brass); border: 1px solid #6f5219; border-radius: 2px; }
+    .bos-clasp::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 7px; margin-top: -3.5px; background: #c39a45; border-top: 1px solid #d7b268; border-bottom: 1px solid #6f5219; }
+    .bos-clasp::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: #dcb96f; border: 1px solid #6f5219; border-radius: 50%; }
+    /* The ribbon marker, hanging out of the tail into the gap above the button. */
+    .bos-ribbon { position: absolute; top: 100%; left: 46px; width: 11px; height: 22px; background: #2e2118; pointer-events: none; }
+    .bos-ribbon svg { position: absolute; left: 50%; top: 100%; width: 12px; height: 12px; margin: -4px 0 0 -6px; color: var(--tool); }
+    .bos-cover-inner { position: relative; text-align: center; padding: 0 18px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     /* Small accent, not a co-equal glyph next to the title — Book of Shadows
        surfaces only, the app-wide .js-star size is untouched. */
-    .bos-cover-star svg, .bos-cover-star { color: var(--gold); width: 34px; height: 34px; display: inline-block; }
-    .bos-cover-title { font-family: var(--serif); font-size: 34px; line-height: 1.2; color: #e8ddc8; letter-spacing: 1px; }
+    .bos-cover-star svg, .bos-cover-star { color: var(--tool); width: 34px; height: 34px; display: inline-block; }
+    /* Gilt-stamped title: lighter than the app's --gold, which is tuned for
+       cream backgrounds and disappears on leather. */
+    .bos-cover-title { font-family: var(--serif); font-size: 34px; line-height: 1.2; color: #e3b962; letter-spacing: 1px; }
     body.book-open { overflow: hidden; }
     /* The open book floats as a real object — a white 3:4 page block with a
        flat spine crease — on the app's own dark background (flat tones only,
@@ -1030,8 +1165,9 @@
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 20px 12px; }
     .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
-    /* Reader header stars: a small accent beside the title, not a match for it. */
-    #bos-reader .sigil svg { width: 15px; height: 15px; }
+    /* The reader's stars are the same object as the app header's — size and
+       gap both come from --sigil-size / --sigil-gap, so there is nothing to
+       keep in sync here. */
     .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
     /* The page number lives at the BOTTOM of the page, serif, like a book. */
     .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
@@ -1071,6 +1207,12 @@
     .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
     .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
     .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
+    /* Section title page: the art on its own tinted leaf, section name under it. */
+    /* Centred in the leaf — a part-title sits in the middle of its page. */
+    .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
+    .bos-sectcover img { display: block; width: 86%; max-width: 330px; max-height: 46vh; margin: 0 auto 10px; border-radius: 0; }
+    .bos-sectcover .sc-name { font-family: var(--serif); font-size: 30px; line-height: 1.15; color: #221c14; }
+    .bos-sectcover .sc-line { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: #6d5c3f; margin-top: 8px; padding: 0 10px; }
     /* Reading pages: the pulled cards first, reading text behind an expand. */
     .bos-cards { display: flex; gap: 10px; justify-content: center; margin: 6px 0 4px; }
     .bos-cardslot { flex: 1; max-width: 92px; text-align: center; }
@@ -1197,10 +1339,32 @@
     .aspect-line b { color: var(--moon); font-weight: 500; }
 
     /* ── Accounts ── */
-    .acct-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; background: transparent; border: none; color: var(--text-dim); cursor: pointer; transition: color 0.15s ease; }
-    .acct-btn.show { display: flex; }
-    .acct-btn:hover { color: var(--gold); }
-    .acct-btn svg { width: 17px; height: 17px; }
+    /* Jump menu. The app is one long scroll per tab, so the header carries a way
+       to land straight on a section. It owns the top-right corner alone — the
+       settings gear used to sit beside it and is now the last row of the menu. */
+    .menu-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: flex; align-items: center;
+                justify-content: center; width: 34px; height: 34px; padding: 0; background: none; border: none;
+                color: var(--text-dim); cursor: pointer; transition: color 0.15s ease; }
+    .menu-btn svg { width: 20px; height: 20px; }
+    .menu-btn:hover, .menu-btn.on { color: var(--gold); }
+    /* The container never eats taps — only the scrim (which starts below the
+       header) and the panel do, so the hamburger can still toggle itself shut. */
+    #jump-menu { position: fixed; inset: 0; z-index: 60; display: none; pointer-events: none; }
+    #jump-menu .jm-scrim, #jump-menu .jm-panel { pointer-events: auto; }
+    #jump-menu.show { display: block; }
+    /* The scrim starts BELOW the header (top set when the menu opens), so the
+       hamburger stays tappable and toggles the menu shut — with a full-screen
+       scrim that tap landed on the scrim instead and the button never responded. */
+    #jump-menu .jm-scrim { position: absolute; inset: 0; background: rgba(48,43,52,0.26); }
+    /* Square corners and hard ink rules — around the panel and between every row. */
+    .jm-panel { position: absolute; right: 10px; width: 236px; max-height: 76vh; overflow-y: auto;
+                background: var(--surface); border: 1px solid var(--text); border-radius: 0;
+                box-shadow: 0 12px 30px rgba(48,30,20,0.18); }
+    .jm-panel button { display: block; width: 100%; text-align: left; background: none; border: none;
+                       border-top: 1px solid var(--text); font-family: inherit; font-size: 14.5px;
+                       color: var(--text); padding: 12px 14px; cursor: pointer; }
+    .jm-panel button:first-child { border-top: none; }
+    .jm-panel button:active { background: var(--panel); }
     .modal-bg { position: fixed; inset: 0; background: rgba(48,43,52,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 22px; }
     .modal-bg.show { display: flex; }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 24px; max-width: 360px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(48,30,20,0.28); text-align: center; }
@@ -1226,8 +1390,9 @@
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
       <h1>Secretly a Witch</h1>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
-      <button class="acct-btn" id="acct-btn" aria-label="Settings"></button>
+      <button class="menu-btn" id="menu-btn" aria-label="Jump to a section" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
     </header>
+    <div id="jump-menu" data-fullpage style="display:none;"><div class="jm-scrim"></div><div class="jm-panel" id="jm-panel"></div></div>
 
     <main>
       <!-- ═══════════ HOME ═══════════ -->
@@ -1366,7 +1531,7 @@
         <div class="prow" id="prow-2"></div>
 
         <!-- Moon — hidden from Home by request (code kept, just taken out of this area) -->
-        <div class="card moon-card" style="display:none;">
+        <div class="card moon-card" id="moon-card" style="display:none;">
           <div class="moon-glyph" id="moon-glyph">🌙</div>
           <div class="moon-phase" id="moon-phase">—</div>
           <div class="moon-meta" id="moon-meta"></div>
@@ -1506,12 +1671,51 @@
         <div class="kicker">Your grimoire</div>
         <div class="section-sub">Your readings, synchronicities, spell work and dreams, all in one place.</div>
 
-        <!-- The book itself: a cover you open -->
+        <!-- The book itself: a tooled-leather cover you open. Every part of it is
+             CSS or vector — the corner-piece is ONE symbol reflected across the
+             diagonal (the <use>), then mirrored by CSS into all four corners, so
+             the whole binding costs no image request. -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <symbol id="bos-corner" viewBox="0 0 56 56">
+            <g fill="currentColor">
+              <!-- the bud every leaf springs from, in the crook of the corner -->
+              <circle cx="10.5" cy="10.5" r="2.6"/>
+              <!-- one side of the spray, then the same paths reflected across the
+                   diagonal (matrix 0 1 1 0 swaps x and y) — that reflection is what
+                   keeps the fleuron perfectly symmetrical at any size -->
+              <g id="bos-corner-half">
+                <path d="M12.5 13c11.5 1.5 18.5 5.5 22.5 11.5-7-4.5-14-7-23-6.5z"/>
+                <path d="M10.5 8.5c10.5 0 18 2 23.5 6-6.5-2.5-14-4-24-3z"/>
+                <circle cx="38.5" cy="27.5" r="1.5"/>
+              </g>
+              <use href="#bos-corner-half" transform="matrix(0 1 1 0 0 0)"/>
+              <!-- the centre leaf, sitting on the diagonal itself -->
+              <path d="M11 11c11.5 4 19 11.5 21 21.5-9.5-2-17-9.5-21-21.5z"/>
+              <circle cx="36" cy="36" r="2"/>
+            </g>
+          </symbol>
+          <symbol id="bos-star4" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12 0l2.1 9.9L24 12l-9.9 2.1L12 24l-2.1-9.9L0 12l9.9-2.1z"/>
+          </symbol>
+        </svg>
         <div class="bos-cover" id="bos-cover" role="button" aria-label="Open your Book of Shadows">
+          <div class="bos-leaves"></div>
+          <div class="bos-leaves tail"></div>
+          <div class="bos-spine-b"><i style="top:12%"></i><i style="top:29%"></i><i style="top:46%"></i><i style="top:63%"></i><i style="top:80%"></i></div>
+          <div class="bos-hinge"></div>
+          <div class="bos-rule"></div>
+          <div class="bos-rule in"></div>
+          <svg class="bos-orn tl"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn tr"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn bl"><use href="#bos-corner"/></svg>
+          <svg class="bos-orn br"><use href="#bos-corner"/></svg>
           <div class="bos-cover-inner">
             <div class="bos-cover-title">Book of<br>Shadows</div>
             <span class="bos-cover-star js-star"></span>
           </div>
+          <div class="bos-strap"></div>
+          <div class="bos-clasp"></div>
+          <div class="bos-ribbon"><svg><use href="#bos-star4"/></svg></div>
         </div>
         <button class="btn" id="bos-quickwrite" style="margin:16px auto 0;">Add to your book <span class="js-star"></span></button>
 
@@ -1611,7 +1815,7 @@
   </div>
 
   <!-- In-app buying: product sheet + cart sheet (bottom sheets over the shop) -->
-  <div class="sheet-bg" id="prod-sheet-bg" data-fullpage>
+  <div class="sheet-bg page" id="prod-sheet-bg" data-fullpage>
     <div class="sheet" id="prod-sheet"></div>
   </div>
   <div class="sheet-bg" id="cart-sheet-bg" data-fullpage>
@@ -1654,6 +1858,8 @@
        sibling of the .quiz-app pages, OUTSIDE .app) so its position:fixed always
        maps to the viewport — nested inside the tab, a transformed ancestor (the
        tab-switch fade) would push it below the app header (double-header bug). -->
+  <!-- An enlarged saved lesson page (see .lsnap-* above) -->
+  <div id="lsnap-view" data-fullpage style="display:none;"></div>
   <div id="bos-reader" data-fullpage style="display:none;">
     <div class="bos-head">
       <button class="les-back" id="bos-close" aria-label="Close the book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
@@ -2541,11 +2747,14 @@
 
   /* ══════════ SAVING THE DAILY READING ══════════ */
   let tarotSaved = false;
+  // The id of the entry this save wrote — the bookmark reopens THAT page.
+  let tarotSavedId = null;
   function saveDailyReading() {
     if (!dailyTarot || !dailyPicks || tarotSaved) return;
     const all = loadReadings();
+    tarotSavedId = 'r_' + Date.now();
     all.unshift({
-      id: 'r_' + Date.now(), date: nowStamp(),
+      id: tarotSavedId, date: nowStamp(),
       question: `Daily pull · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`,
       spread: 'three',
       cards: dailyPicks.map(p => ({ name: p.card.name, orientation: p.orientation, position: p.position })),
@@ -2564,7 +2773,7 @@
   }
   function bmHide(id) { const el = $(id); if (el) el.style.display = 'none'; }
   $('tarot-bm').addEventListener('click', () => {
-    if (tarotSaved) { go('book'); openBook('reading'); return; }
+    if (tarotSaved) { go('book'); openBook('reading', { entry: tarotSavedId, newest: true }); return; }
     saveDailyReading();
     bmShow('tarot-bm', true, true);
     toast('Saved to your Book of Shadows ✦');
@@ -2573,7 +2782,7 @@
   const skyEntryId = () => 'sky_' + todayISO();
   const skySaved = () => journalLoad().some(e => e.id === skyEntryId());
   $('sky-bm').addEventListener('click', () => {
-    if (skySaved()) { go('book'); openBook('reading'); return; }
+    if (skySaved()) { go('book'); openBook('reading', { entry: skyEntryId(), newest: true }); return; }
     const a = (dailyData && dailyData.astrology) || {};
     const text = [a.headline, a.reading].filter(Boolean).join('\n\n');
     if (!text) return;
@@ -2819,7 +3028,7 @@
     dailyCardsStamp = stamp;
     dailyPicks = dailyPull();
     // Composed lazily at reveal time so the corpus fetch has landed by then.
-    dailyTarot = null; tarotSaved = false;
+    dailyTarot = null; tarotSaved = false; tarotSavedId = null;
     resetDailyTarot();
   }
 
@@ -2828,26 +3037,60 @@
   // scrolled as one long shelf. Categories come from the server (only ones
   // with stock), and filtering is client-side — every product is already
   // loaded, so switching is instant.
+  /* ── loading indicators: only when the wait is REAL ──────────────────────
+     A wait under about a second reads as instant, and a spinner that appears and
+     vanishes inside that window lands as a flicker rather than as progress —
+     worse than showing nothing. So the shop's indicators wait 600ms before they
+     draw, and once drawn they hold for 300ms so they can't strobe either. Now
+     that the shelf is prefetched and cached, that means it normally never
+     appears; a genuinely slow load still gets it. (Slow-by-nature work — image
+     generation, dream pages, AI readings — keeps showing its spinner at once.) */
+  const SPIN_DELAY = 600, SPIN_MIN = 300;
+  function spinner(el, label) {
+    let shownAt = 0;
+    const t = setTimeout(() => {
+      shownAt = Date.now();
+      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; ${label}</div>`;
+    }, SPIN_DELAY);
+    // Await the returned function before drawing real content.
+    return async () => {
+      clearTimeout(t);
+      const held = shownAt ? Date.now() - shownAt : SPIN_MIN;
+      if (held < SPIN_MIN) await new Promise(r => setTimeout(r, SPIN_MIN - held));
+    };
+  }
   let SHOP_ITEMS = [], SHOP_CAT = 'all';
+  const SHOP_REV = {};   // handle -> { count, average }, filled by loadShopRatings()
   async function loadShop() {
     const wrap = $('shop-grid');
     if (wrap.dataset.loaded === '1') return;
-    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Gathering the shelves…</div>`;
+    const done = spinner(wrap, 'Gathering the shelves…');
     try {
       const d = await apiGet('/api/witch/shop');
+      await done();
       SHOP_ITEMS = (d.products || []).filter(p => p.image);
       if (!SHOP_ITEMS.length) { wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">The shop is quiet right now — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">visit the full shop</a>.</div>`; wrap.dataset.loaded = '1'; return; }
       const cats = (d.categories || []).filter(c => SHOP_ITEMS.some(p => p.category === c.key));
       $('shop-cats').innerHTML = cats.length > 1
         ? [{ key: 'all', name: 'All', count: SHOP_ITEMS.length }, ...cats].map(c =>
-            `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}<span class="cc">${c.count}</span></button>`).join('')
+            `<button class="shop-cat${c.key === SHOP_CAT ? ' on' : ''}" data-cat="${esc(c.key)}">${esc(c.name)}</button>`).join('')
         : '';
       renderShopGrid();
       wrap.dataset.loaded = '1';
+      loadShopRatings();  // stars under the thumbnails — one request, then redraw
       refreshCartBadge(); // cosmetic — never blocks the shelves
     } catch (e) {
+      await done();
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;">Couldn't reach the shop — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">open the shop</a>.</div>`;
     }
+  }
+  // Shopify's CDN resizes on request. The grid was pulling each product's
+  // FULL-SIZE original — ~150KB a tile, 54 of them — into a 180px square, which
+  // is what makes thumbnails crawl or give up on a phone connection. Asking for
+  // the size we actually draw cuts a tile to ~45KB.
+  function shopImg(u, w) {
+    if (!u || !/\.shopify\.com\//.test(u) || /[?&]width=/.test(u)) return u;
+    return u + (u.includes('?') ? '&' : '?') + 'width=' + w;
   }
   function renderShopGrid() {
     const wrap = $('shop-grid');
@@ -2863,18 +3106,39 @@
       const lo = p.priceMin || p.price;
       const ranged = p.priceMin && p.priceMax && parseFloat(p.priceMax) > parseFloat(p.priceMin);
       const price = lo ? `${ranged ? 'from ' : ''}$${lo}` : '';
-      const img = p.image ? `<img class="simg" src="${esc(p.image)}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
+      const img = p.image ? `<img class="simg" src="${esc(shopImg(p.image, 500))}" alt="" loading="lazy">` : `<div class="simg-ph">✦</div>`;
       // In-app buying: tap opens the product sheet. The href stays as a
       // long-press/no-JS fallback to the store's product page.
       return `<a class="shop-item" href="${esc(p.url)}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
         ${img}
         <div class="sbody">
           <div class="stitle">${esc(shortTitle(p.title))}</div>
+          ${srev(p.handle)}
           ${price ? `<div class="sprice">${esc(price)}</div>` : ''}
           ${p.available ? '' : '<div class="soos">Sold out</div>'}
         </div>
       </a>`;
     }).join('');
+  }
+  // The stars are their own target: tapping them opens the product straight on
+  // its reviews, rather than the description you'd then have to switch away from.
+  function srev(handle) {
+    const r = SHOP_REV[handle];
+    if (!r || !r.count) return '<div class="srev"></div>';
+    return `<div class="srev" role="button" tabindex="0" aria-label="Read the ${r.count.toLocaleString()} reviews"
+      onclick="event.preventDefault();event.stopPropagation();openProduct('${esc(handle)}','reviews')"
+      >${starRow(r.average)}<span class="n">(${r.count.toLocaleString()})</span></div>`;
+  }
+  // Every tile's rating in ONE request (not one per thumbnail), then redraw.
+  // Ratings are garnish: a failure just leaves the rows empty.
+  async function loadShopRatings() {
+    const handles = SHOP_ITEMS.map(p => p.handle).filter(Boolean);
+    if (!handles.length) return;
+    try {
+      const d = await apiGet('/api/witch/shop/reviews?handles=' + encodeURIComponent(handles.join(',')));
+      Object.assign(SHOP_REV, d.items || {});
+      renderShopGrid();
+    } catch (e) { /* no ratings, no problem */ }
   }
   $('shop-cats').addEventListener('click', (e) => {
     const btn = e.target.closest('.shop-cat'); if (!btn) return;
@@ -2909,17 +3173,20 @@
   }
 
   // ── product sheet ──
-  async function openProduct(handle) {
+  async function openProduct(handle, tab) {
     const bg = $('prod-sheet-bg'), sh = $('prod-sheet');
     bg.style.display = ''; bg.classList.add('show');
     document.body.style.overflow = 'hidden';
-    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Fetching…</div>`;
+    sh.innerHTML = '';
+    const done = spinner(sh, 'Fetching…');
     try {
       const p = PROD_CACHE[handle] || (PROD_CACHE[handle] = await apiGet('/api/witch/shop/product/' + encodeURIComponent(handle)));
+      await done();
       const firstAvail = p.variants.find(v => v.available) || p.variants[0] || null;
-      psState = { p, handle, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0 };
+      psState = { p, handle, variantId: firstAvail ? firstAvail.id : null, qty: 1, img: 0, tab: tab || 'desc' };
       renderProdSheet();
     } catch (e) {
+      await done();
       sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't load this item — <a href="${LINKS.shop}" target="_blank" rel="noopener" style="color:var(--gold);">try the full shop</a>.</div>`;
     }
   }
@@ -2930,20 +3197,20 @@
     const tab = psState.tab || 'desc';
     const revCount = (REV_CACHE[psState.handle] || {}).count || 0;
     sh.innerHTML = `
-      <button class="sx" onclick="closeProdSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-      <img class="ps-img" src="${esc(p.images[img] || p.images[0] || '')}" alt="">
-      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(u)}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
+      <button class="ps-back" onclick="closeProdSheet()" aria-label="Back to the shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <img class="ps-img" src="${esc(shopImg(p.images[img] || p.images[0] || '', 1000))}" alt="">
+      ${p.images.length > 1 ? `<div class="ps-thumbs">${p.images.map((u, i) => `<img src="${esc(shopImg(u, 160))}" class="${i === img ? 'on' : ''}" onclick="psImg(${i})" alt="">`).join('')}</div>` : ''}
       <div class="ps-title">${esc(p.title)}</div>
       <div class="ps-rating" id="ps-rating"></div>
       <div class="ps-price">${money(v.price)}</div>
-      ${showVars ? `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>` : ''}
+      ${showVars ? psVariantPicker(p, v) : ''}
       <div class="ps-row">
         <div class="qty"><button onclick="psQty(-1)" aria-label="Less">−</button><span id="ps-qty">${qty}</span><button onclick="psQty(1)" aria-label="More">+</button></div>
         <button class="ps-add" id="ps-add" onclick="addToCart()" ${v.available ? '' : 'disabled'}>${v.available ? 'Add to cart ✦' : 'Sold out'}</button>
       </div>
-      <div class="ps-tabs">
-        <button class="ps-tab ${tab === 'desc' ? 'on' : ''}" onclick="psTab('desc')">Description</button>
-        <button class="ps-tab ${tab === 'reviews' ? 'on' : ''}" onclick="psTab('reviews')">Reviews${revCount ? ` (${revCount.toLocaleString()})` : ''}</button>
+      <div class="ps-tabs" data-on="${tab}">
+        <button class="ps-tab ${tab === 'desc' ? 'on' : ''}" data-tab="desc" onclick="psTab('desc')">Description</button>
+        <button class="ps-tab ${tab === 'reviews' ? 'on' : ''}" data-tab="reviews" onclick="psTab('reviews')">Reviews${revCount ? ` (${revCount.toLocaleString()})` : ''}</button>
       </div>
       <div class="ps-desc"${tab === 'desc' ? '' : ' hidden'}>${p.descriptionHtml || ''}</div>
       <div class="ps-reviews" id="ps-reviews"${tab === 'reviews' ? '' : ' hidden'}></div>`;
@@ -2951,9 +3218,65 @@
   }
   // Tab choice lives on psState so picking a variant or photo doesn't bounce
   // you back to the description.
-  function psTab(t) { psState.tab = t; renderProdSheet(); }
+  // The line under the labels is a CSS transition, and a freshly-written element
+  // has nothing to animate FROM — so a tab tap moves the line and swaps the two
+  // panes in place instead of re-rendering the sheet (which would teleport it).
+  function psTab(t) {
+    if (!psState) return;
+    psState.tab = t;
+    const tabs = document.querySelector('#prod-sheet .ps-tabs');
+    if (!tabs) return renderProdSheet();
+    tabs.setAttribute('data-on', t);
+    tabs.querySelectorAll('.ps-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    const d = document.querySelector('#prod-sheet .ps-desc'), r = document.querySelector('#prod-sheet .ps-reviews');
+    if (d) d.hidden = t !== 'desc';
+    if (r) r.hidden = t !== 'reviews';
+  }
   function psImg(i) { psState.img = i; renderProdSheet(); }
   function psVar(id) { psState.variantId = id; renderProdSheet(); }
+
+  /* ── variant picking: one dropdown per option, Etsy-style ───────────────
+     A kit with 4 sizes x journal-or-not is 8 variants; as buttons that was a
+     wall to scroll past. Products from before the server sent `options` (or a
+     stale cached payload) still get the old button list, so the sheet can never
+     end up with no way to choose. */
+  const CHEV = '<svg class="cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  function psVariantPicker(p, v) {
+    const opts = (p.options || []).filter(o => (o.values || []).length > 1);
+    if (!opts.length || !p.variants.some(x => x.options)) {
+      return `<div class="ps-vars">${p.variants.map(x => `<button class="ps-var ${x.id === psState.variantId ? 'on' : ''} ${x.available ? '' : 'oos'}" onclick="psVar('${esc(x.id)}')" ${x.available ? '' : 'disabled'}>${esc(x.title)}</button>`).join('')}</div>`;
+    }
+    const sel = v.options || {};
+    // A value with nothing buyable behind it says so, rather than silently
+    // bouncing you to another combination.
+    const soldOut = (name, val) => !p.variants.some(x => x.available && (x.options || {})[name] === val);
+    return `<div class="ps-opts">${opts.map(o => `
+      <label class="ps-opt"><span class="ps-opt-l">${esc(o.name)}</span>
+        <span class="ps-selwrap">
+          <select class="ps-sel" data-opt="${esc(o.name)}" onchange="psOpt(this)">
+            ${o.values.map(val => `<option value="${esc(val)}"${sel[o.name] === val ? ' selected' : ''}>${esc(val)}${soldOut(o.name, val) ? ' — sold out' : ''}</option>`).join('')}
+          </select>${CHEV}
+        </span>
+      </label>`).join('')}</div>`;
+  }
+  // Picking a value keeps every other choice if that combination exists; when it
+  // doesn't (Shopify grids have holes), it moves to the nearest variant that
+  // does have this value — preferring one in stock — and the other dropdowns
+  // follow, so what's on screen is always a real, buyable variant.
+  function psOpt(el) {
+    if (!psState) return;
+    const p = psState.p;
+    const cur = p.variants.find(x => x.id === psState.variantId) || p.variants[0] || {};
+    const want = { ...(cur.options || {}) };
+    want[el.dataset.opt] = el.value;
+    const names = Object.keys(want);
+    const exact = p.variants.filter(x => names.every(n => (x.options || {})[n] === want[n]));
+    const pick = exact.find(x => x.available) || exact[0]
+      || p.variants.find(x => x.available && (x.options || {})[el.dataset.opt] === el.value)
+      || p.variants.find(x => (x.options || {})[el.dataset.opt] === el.value);
+    if (pick) psState.variantId = pick.id;
+    renderProdSheet();
+  }
 
   /* ── reviews (mirrored from the Etsy shop, served by /api/witch/shop/
      reviews). Cached per handle so re-renders (variant taps) are free.
@@ -3034,20 +3357,24 @@
     const bg = $('cart-sheet-bg'), sh = $('cart-sheet');
     bg.style.display = ''; bg.classList.add('show');
     document.body.style.overflow = 'hidden';
-    sh.innerHTML = `<div class="empty" style="padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; Opening the cart…</div>`;
-    await renderCart();
+    sh.innerHTML = '';
+    const done = spinner(sh, 'Opening the cart…');
+    await renderCart(undefined, done);
   }
-  async function renderCart(cartArg) {
+  // `done` is the delayed-spinner release from openCartSheet, when there is one.
+  async function renderCart(cartArg, done) {
     const sh = $('cart-sheet');
+    const settle = done || (async () => {});
     let cart = cartArg;
     if (cart === undefined) {
       cart = null;
       if (CART_ID) {
         try { cart = (await apiGet('/api/witch/cart?id=' + encodeURIComponent(CART_ID))).cart; }
-        catch (e) { sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
+        catch (e) { await settle(); sh.innerHTML = `<div class="empty" style="padding:26px 0;">Couldn't reach the cart — check your signal and try again.</div>`; return; }
       }
     }
     if (!cart) { CART_ID = ''; localStorage.removeItem('witch_cart_id'); }
+    await settle();   // release the delayed spinner before the cart is drawn
     const x = `<button class="sx" onclick="closeCartSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
     if (!cart || !cart.lines.length) {
       cartBadge(0);
@@ -3084,7 +3411,9 @@
     const bg = $('cart-sheet-bg'); bg.classList.remove('show'); bg.style.display = '';
     if (!$('prod-sheet-bg').classList.contains('show')) document.body.style.overflow = '';
   }
-  $('prod-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeProdSheet(); });
+  // Deliberately NO backdrop-tap close on the product page — that is exactly how
+  // it kept getting shut by accident. The ✕ and the back gesture close it.
+
   $('cart-sheet-bg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeCartSheet(); });
 
   /* ══════════ BOOK OF SHADOWS: the journal ══════════
@@ -3095,9 +3424,14 @@
   // The book reads like a real book: sections in a fixed order, each holding
   // its pages chronologically. Old 'note' and 'miracle' entries live on inside
   // Synchronicities so nothing already written is ever lost.
+  // `reverse` = that section reads NEWEST FIRST (Sophie's call for the two that
+  // fill up daily — you open them for what just happened). Spell work, Dreams and
+  // Lessons stay oldest-first. Nothing else may assume an order: every page
+  // carries a `ts`, and "jump to the newest / to this entry" go by that, not by
+  // position in the book.
   const BOS_SECTS = [
-    { key: 'reading', name: 'Readings', kinds: ['reading', 'sky'] },
-    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'] },
+    { key: 'reading', name: 'Readings', kinds: ['reading', 'sky'], reverse: true },
+    { key: 'sync', name: 'Synchronicities', kinds: ['sign', 'miracle', 'note'], reverse: true },
     { key: 'spell', name: 'Spell work', kinds: ['spell'] },
     { key: 'dream', name: 'Dreams', kinds: ['dream'] },
     // Bookmarked school pages. Invisible until the first bookmark exists, so
@@ -3115,6 +3449,19 @@
     return out;
   }
   const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
+  // Section title pages — a part-title leaf that opens each section, so arriving
+  // there tells you where you are instead of dropping you straight into entries.
+  // Art is the Witch School line style (scripts/witch-school-cards.js); `bg` is
+  // the sampled corner colour of its own PNG, which the page tints to so the
+  // drawing floats with no box round it. A section with no entry in this map
+  // simply has no title page — that's how they get added one at a time.
+  const BOS_SECT_COVERS = {
+    reading: { img: 'bos-reading', bg: '#fbfaf8', line: 'The cards you pulled, and what the sky was doing.' },
+    sync: { img: 'bos-sync-b', bg: '#fcf9f4', line: 'The coincidences you drew, day by day.' },
+    spell: { img: 'bos-spell', bg: '#fefaf5', line: 'What you cast, and how it turned out.' },
+    dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
+    lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
+  };
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
@@ -3138,20 +3485,42 @@
     (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
     return out.sort((a, b) => a.ts - b.ts);
   }
-  function syncPages() {
+  // newestFirst reverses BOTH the days and the coincidences within a day, so the
+  // first cell of the first page is the most recent thing drawn (reversing whole
+  // pages only would leave a 5-draw day reading 5, then 1-4). Each page carries
+  // the newest ts on it, which is how "the newest page" is found.
+  function syncPages(newestFirst) {
     const byDay = {};
     syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
+    const days = Object.keys(byDay).sort();
+    if (newestFirst) days.reverse();
     const out = [];
-    Object.keys(byDay).sort().forEach(d => { const items = byDay[d]; for (let k = 0; k < items.length; k += 4) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: items.slice(k, k + 4) }); });
+    days.forEach(d => {
+      const items = newestFirst ? byDay[d].slice().reverse() : byDay[d];
+      for (let k = 0; k < items.length; k += 4) {
+        const chunk = items.slice(k, k + 4);
+        out.push({ sect: 'sync', page: 'sync', dateISO: d, items: chunk, ts: Math.max(0, ...chunk.map(x => x.ts || 0)) });
+      }
+    });
     return out;
   }
   function bosPages() {
     const all = bosAllPages();
     const out = [];
     for (const s of BOS_SECTS) {
-      if (s.key === 'sync') syncPages().forEach(p => out.push(p));
-      else if (s.key === 'lesson') lessonMarkPages().forEach(p => out.push(p));
-      else all.filter(p => s.kinds.includes(p.kind)).forEach(p => { p.sect = s.key; out.push(p); });
+      let pages = [];
+      if (s.key === 'sync') pages = syncPages(s.reverse);
+      else if (s.key === 'lesson') pages = lessonMarkPages();
+      else {
+        pages = all.filter(p => s.kinds.includes(p.kind));
+        pages.forEach(p => { p.sect = s.key; });
+        if (s.reverse) pages = pages.slice().reverse();   // bosAllPages() is oldest-first
+      }
+      // The title page leads its section — but only once the section has
+      // something in it, so an unused section doesn't pad the book with a
+      // part-title in front of nothing.
+      if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      pages.forEach(p => out.push(p));
     }
     return out;
   }
@@ -3165,11 +3534,96 @@
     return n;
   }
   function bosDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Undated'; }
-  function openBook(filter) {
+  // The page (1-based, 0 = not in the book) a specific saved entry is ON — how a
+  // bookmark lands on the exact reading you saved rather than the section's first.
+  function bosPageOfEntry(id) {
+    if (!id) return 0;
+    return bosPages().findIndex(p => p.e && p.e.id === id) + 1;
+  }
+  // The page holding a section's NEWEST entry (1-based, 0 = section empty), found
+  // by comparing TIMESTAMPS — so it is right whether the section reads oldest- or
+  // newest-first. `dateISO` narrows it to that day's newest page (a day with 5+
+  // coincidences spans two). A section title page is never the answer.
+  function bosSectNewest(key, dateISO) {
+    let best = 0, bestTs = -1, day = 0, dayTs = -1;
+    bosPages().forEach((p, i) => {
+      if (p.sect !== key || p.page === 'sectcover') return;
+      const ts = p.ts || 0;
+      if (ts > bestTs) { bestTs = ts; best = i + 1; }
+      if (dateISO && p.dateISO === dateISO && ts > dayTs) { dayTs = ts; day = i + 1; }
+    });
+    return day || best;
+  }
+  /* ── saved lesson pages as snapshots ──────────────────────────────────
+     lsnapStage() writes the lesson reader's OWN card markup (minus the live CTA
+     button and the "tap to continue" hint — the parts of a screenshot you would
+     have cropped off) into a phone-shaped stage on that card's own background. */
+  function lsnapStage(c) {
+    const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">`;
+    return `<div class="lsnap-stage" style="background:${esc(c.bg || '#fdf9f3')};">
+      <div class="tcard">
+        <div class="deck-head">
+          <div class="tcard-kicker">${esc(c.kicker || '')}</div>
+          <div class="tcard-h">${esc(c.h || '')}</div>
+        </div>
+        ${art}
+        <div class="deck-text"><div class="tcard-body">${c.body || ''}</div></div>
+      </div>
+    </div>`;
+  }
+  // The stage is a fixed 360px-wide replica, so it is SCALED to whatever width
+  // it landed in — measured, not guessed, so it fits the book page and the
+  // enlarged view with the same code.
+  function lsnapFit() {
+    document.querySelectorAll('#bos-pagewrap .lsnap-frame').forEach(f => {
+      const st = f.querySelector('.lsnap-stage');
+      if (st && f.clientWidth) st.style.setProperty('--s', (f.clientWidth / 360).toFixed(4));
+    });
+  }
+  let lsnapOpen = null;   // { lesson, card } — what the Back link returns to
+  function openLsnap(lesson, card) {
+    const c = (LESSONS[lesson] || []).find(x => x.img === card);
+    if (!c) { closeBook(); go('school'); openLesson(lesson, card); return; }   // art changed: just go
+    lsnapOpen = { lesson, card };
+    const view = $('lsnap-view');
+    // As big as fits, whole card visible — no cropping in the enlarged view.
+    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / 620);
+    view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(620 * s)}px;">${lsnapStage(c)}</div>
+      <div class="lsnap-actions">
+        <button type="button" id="lsnap-back">Back to the lesson</button>
+        <button type="button" class="plain" id="lsnap-close">close</button>
+      </div>`;
+    view.querySelector('.lsnap-stage').style.setProperty('--s', s.toFixed(4));
+    view.style.display = ''; view.classList.add('show');
+    document.body.style.overflow = 'hidden';   // house rule: freeze the page behind
+    $('lsnap-close').addEventListener('click', closeLsnap);
+    $('lsnap-back').addEventListener('click', () => {
+      const at = lsnapOpen; closeLsnap();
+      closeBook(); go('school'); openLesson(at.lesson, at.card);
+    });
+    view.addEventListener('click', (e) => { if (e.target === view) closeLsnap(); }, { once: true });
+  }
+  function closeLsnap() {
+    const view = $('lsnap-view');
+    view.classList.remove('show'); view.style.display = 'none'; view.innerHTML = '';
+    lsnapOpen = null;
+    if ($('bos-reader').style.display !== 'none') document.body.style.overflow = 'hidden';   // the book is still open
+    else document.body.style.overflow = '';
+  }
+  function openBook(filter, opts) {
     // Always open on the contents page; a section request (school lesson CTAs)
-    // jumps straight to that section's first page.
+    // jumps straight to that section's first page. A "Saved to your Book of
+    // Shadows" bookmark instead passes `opts.entry` (that entry's own page) or
+    // `opts.newest` (the newest page in the section, narrowed by `dateISO`), so
+    // tapping it shows the thing you just saved — not the oldest page down there.
     bosPageIdx = 0;
-    if (filter && filter !== 'all') bosPageIdx = Math.min(bosSectStart(bosSectOf(filter)), Math.max(1, bosPages().length));
+    if (filter && filter !== 'all') {
+      const sect = bosSectOf(filter);
+      const idx = (opts && bosPageOfEntry(opts.entry))
+        || (opts && opts.newest && bosSectNewest(sect, opts.dateISO))
+        || bosSectStart(sect);
+      bosPageIdx = Math.min(idx, Math.max(1, bosPages().length));
+    }
     $('bos-reader').style.display = '';
     document.body.classList.add('book-open');
     renderBosPage();
@@ -3181,6 +3635,7 @@
     if (bosPageIdx > total) bosPageIdx = total;
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
+    book.style.removeProperty('--surface');   // clear a section title page's tint
     book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     // Odd pages read as the right-hand page of their spread (neighbor bleeds
     // off the LEFT edge); even pages the mirror — turning alternates sides.
@@ -3193,6 +3648,18 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    if (p.page === 'sectcover') {
+      const c = BOS_SECT_COVERS[p.sect] || {};
+      // The whole leaf takes the art's OWN sampled background colour, so the
+      // drawing floats with no box around it — the lesson-card trick.
+      if (c.bg) book.style.setProperty('--surface', c.bg);
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover">
+        ${c.img ? `<img src="${SW_IMG}${c.img}.png" alt="">` : ''}
+        <div class="sc-name">${esc(p.name || '')}</div>
+        ${c.line ? `<div class="sc-line">${esc(c.line)}</div>` : ''}
+      </div>`;
+      return;   // a part-title carries no page number, like a real book
+    }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
       // When the caption is the short AI label, the FULL original moment text
@@ -3219,20 +3686,22 @@
       return;
     }
     if (p.page === 'lesson') {
-      // Bookmarked school pages as compact snapshots, two per row (up to 6 a
-      // page) — just enough to recognise the card. Tapping one jumps straight
-      // back to that exact card in the lesson, same as the old single return link.
+      // Bookmarked school pages as SNAPSHOTS of the card each one came from —
+      // same markup, same background, scaled down and cropped like a screenshot.
+      // Tapping one enlarges it; the small link under the enlarged one is what
+      // goes back into the lesson.
       let g = `<div class="bos-lesson-grid">`;
       p.marks.forEach(m => {
         const c = (LESSONS[m.lesson] || []).find(x => x.img === m.card);
-        g += `<div class="bos-lsnap" data-golesson="${esc(m.lesson)}" data-gocard="${esc(m.card || '')}">`;
+        g += `<div class="bos-lsnap" data-lsnap="${esc(m.lesson)}" data-lcard="${esc(m.card || '')}">`;
         g += c
-          ? `<img src="${SW_IMG}${c.img}.png" alt=""><div class="bos-lpk">${esc(c.kicker)}</div><div class="t">${esc(c.h)}</div>`
+          ? `<div class="lsnap-frame">${lsnapStage(c)}</div>`
           : `<div class="t">“${esc(LESSON_TITLES[m.lesson] || 'a lesson')}”</div><div class="bos-lpk">rewritten since saved</div>`;
         g += `</div>`;
       });
       g += `</div>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      lsnapFit();
       return;
     }
     let inner = `<div class="bos-date">${esc(bosDate(p.ts))}</div>`;
@@ -3275,6 +3744,7 @@
   function renderBosSpread() {
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
+    book.style.removeProperty('--surface');
     book.innerHTML = `<div class="bos-spine"></div><div class="bos-pagewrap" id="bos-pagewrap"></div>`;
     // The contents opens the book like any right-hand page: the rest of the
     // book peeks in from the left edge (Sophie: not stacked papers).
@@ -3293,20 +3763,24 @@
   }
   $('bos-cover').addEventListener('click', () => openBook('all'));
   $('bos-close').addEventListener('click', closeBook);
-  $('bos-prev').addEventListener('click', () => { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } });
+  // Turning back off the contents page SHUTS the book — the contents is the
+  // first leaf, so the page before it is the cover. (Before this it just did
+  // nothing and the header's back arrow was the only way out.)
+  function bosBack() { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } else closeBook(); }
+  $('bos-prev').addEventListener('click', bosBack);
   $('bos-next').addEventListener('click', () => { if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); } });
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
-    const gl = e.target.closest('[data-golesson]');
-    if (gl) { closeBook(); go('school'); openLesson(gl.dataset.golesson, gl.dataset.gocard); return; }
+    const gl = e.target.closest('[data-lsnap]');
+    if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
     if (e.target.closest('a, button')) return;   // images (tarot cards) turn the page too
     // Tap zones: right side turns forward, left edge turns back.
-    if (e.clientX < window.innerWidth * 0.28) { if (bosPageIdx > 0) { bosPageIdx--; renderBosPage(); } }
+    if (e.clientX < window.innerWidth * 0.28) { bosBack(); }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
   /* Composer */
@@ -3335,14 +3809,25 @@
     $('bos-compose-save').addEventListener('click', () => {
       const text = $('bos-compose-text').value.trim(); if (!text) return;
       const all = journalLoad();
+      let wrote = null;
       if (isOutcome && bosOutcomeFor) {
         const e = all.find(x => x.id === bosOutcomeFor); if (e) e.outcome = text;
       } else {
         const ctx = $('bos-compose-context') ? $('bos-compose-context').value.trim() : '';
-        all.push({ id: 'j_' + Date.now(), type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
+        const id = 'j_' + Date.now();
+        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
+        wrote = { id, sect: bosSectOf(bosComposeType) };
       }
       journalSave(all); bosOutcomeFor = null; closeModal();
-      if ($('bos-reader').style.display !== 'none') { bosPageIdx = bosPages().length; renderBosPage(); }
+      // Land on the page the new entry is actually ON. This used to jump to the
+      // LAST page of the whole book, which was already the wrong section and is
+      // now doubly wrong: a new sign goes to the FRONT of Synchronicities. A sign
+      // has no page of its own (it joins a day's grid), so fall back to that
+      // section's newest page; an outcome edit stays where it was.
+      if (wrote && $('bos-reader').style.display !== 'none') {
+        bosPageIdx = bosPageOfEntry(wrote.id) || bosSectNewest(wrote.sect, todayISO()) || bosPages().length;
+        renderBosPage();
+      }
       updateBosCoverSub();
     });
   }
@@ -3368,6 +3853,7 @@
     c.style.height = Math.max(320, window.innerHeight - r.top - reserve) + 'px';
   }
   window.addEventListener('resize', sizeBosCover);
+  window.addEventListener('resize', () => { try { lsnapFit(); } catch (e) {} });
   requestAnimationFrame(sizeBosCover);
   // Miracles studio is no longer exposed (button removed) — its toggle is gone;
   // the dormant block stays hidden. Guard in case the button ever returns.
@@ -4359,8 +4845,10 @@
   // return to the app and once a minute, so the reset lands ONTIME at midnight.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} } });
   setInterval(() => { try { coinDailyRollover(); } catch {} try { dailyMidnightSweep(); } catch {} }, 60000);
-  // The "Saved to your Book of Shadows" bookmark jumps to the Synchronicities section.
-  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign'); }); }
+  // The "Saved to your Book of Shadows" bookmark jumps to the page TODAY's
+  // coincidences were filed on — the newest Synchronicities page, not the first
+  // one (that's the oldest day in the book, which is never what you just saved).
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign', { newest: true, dateISO: todayISO() }); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
@@ -4395,7 +4883,7 @@
     // must point at the STORE — secretlyawitch.com is this app now, so
     // /products/* there just 301s back out to Shopify and dumps you off the app.
     el.innerHTML = row.map(p => `<a class="pcard" href="${LINKS.shop}/products/${p.handle}" rel="noopener" onclick="openProduct('${esc(p.handle)}');return false">
-      <div class="pimg-wrap"><img class="pimg" src="${p.img}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
+      <div class="pimg-wrap"><img class="pimg" src="${esc(shopImg(p.img, 500))}" alt="${esc(p.name)}" loading="lazy">${badgeHtml(p)}</div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">${esc(p.price)}</div>
       ${p.badge === 'new' ? `<div class="pnew">New product available! <span class="js-star"></span></div>` : ''}
@@ -5044,12 +5532,17 @@
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
      alone. The School home is a catalog of art-cover course tiles. */
+  // Covers are pulled from the lessons themselves. The bespoke `course-*` art
+  // was a scatter of small floating objects — no focal point, and it vanished
+  // against the cream. Every cover here is instead ONE figure doing that
+  // course's craft with its tools around her, which is why the Divination
+  // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
-    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'course-craft', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
+    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'dream'] },
-    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'course-plants', lessons: ['plants', 'plants2', 'apoth'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'course-crystal', lessons: ['crystal', 'crystal2'] },
-    { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'course-inner', lessons: ['shadow'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
+    { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
   ];
   let schoolCourse = null; // null = catalog; a course id = that course's path
   function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
@@ -5580,12 +6073,10 @@
   function closeModal() { $('modal-bg').classList.remove('show'); }
   $('modal-bg').addEventListener('click', e => { if (e.target === $('modal-bg')) closeModal(); });
 
-  function renderAcctBtn() {
-    const b = $('acct-btn'); if (!b) return;
-    b.classList.add('show');
-    // Always a gear (settings) icon — opens account when signed in, sign-in otherwise.
-    b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
-  }
+  // Accounts have no header button of their own — they are the last row of the
+  // jump menu, and only once Firebase is actually wired up.
+  let acctReady = false;
+  function openAccount() { if (fbUser) showAccount(); else showSignIn(); }
   function showSignIn() {
     openModal(`
       <h2>Make a free account</h2>
@@ -5691,8 +6182,7 @@
       await Promise.all([loadScript(base + 'firebase-auth-compat.js'), loadScript(base + 'firebase-firestore-compat.js')]);
       firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId, storageBucket: cfg.storageBucket, messagingSenderId: cfg.messagingSenderId, appId: cfg.appId });
       fbAuth = firebase.auth(); fbDb = firebase.firestore();
-      renderAcctBtn();
-      $('acct-btn').addEventListener('click', () => { if (fbUser) showAccount(); else showSignIn(); });
+      acctReady = true;
       if (fbAuth.isSignInWithEmailLink(location.href)) {
         let email = null; try { email = localStorage.getItem('witch_emailForSignIn'); } catch {}
         if (!email) email = window.prompt('Confirm your email to finish signing in:');
@@ -5702,7 +6192,7 @@
         // A fresh sign-in (a deliberate action after load), not the restored
         // session on first load — used to take them straight to the reading.
         const freshSignIn = witchAuthReady && !fbUser && !!user;
-        fbUser = user || null; renderAcctBtn();
+        fbUser = user || null;
         if (fbUser) { await pullCloud(); loadSavedNatal(); await refreshEntitlement(); } // pull may bring their saved birthday + membership
         // Made the account to unlock a reading they'd already set up → reveal it
         // now (that's the promise of the account step). Returning users still
@@ -5734,9 +6224,75 @@
   registerFullPage('dreamread-app', closeDreamReadDeep); // dream reading page
   registerFullPage('dreampast-app', closeDreamPast);// past dream readings list
   registerFullPage('dream-app', closeDreamPage);    // the dream card full page
+  /* ── jump menu ─────────────────────────────────────────────────────────
+     Every tab is a long scroll, so the hamburger lands you on a section
+     directly. Items name the ELEMENT to scroll to; `fallback` is where to land
+     when that element isn't on screen yet — the tarot cards and the moon only
+     appear once the daily reading is revealed, so those point at the card that
+     reveals them rather than doing nothing. Tab items just switch tabs. */
+  const JUMPS = [
+    { label: 'Synchronicities', view: 'home', el: 'coincidence-card' },
+    { label: 'Your daily reading', view: 'home', el: 'daily-card' },
+    { label: 'The quiz', view: 'home', el: 'quiz-card' },
+    { label: 'Tarot', view: 'home', el: 'tarot-card', fallback: 'daily-card' },
+    { label: 'Dreams', view: 'home', el: 'dream-card' },
+    { label: 'The moon', view: 'home', el: 'moon-card', fallback: 'dream-card' },
+    { label: 'Witch School', view: 'school' },
+    { label: 'Book of Shadows', view: 'book' },
+    { label: 'Shop', view: 'shop' },
+  ];
+  function jumpTo(item) {
+    closeJump();
+    const active = views.find(v => $('view-' + v).classList.contains('active'));
+    if (item.view && item.view !== active) go(item.view);
+    if (!item.el) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    // After a tab switch the target has to be laid out before it can be measured.
+    setTimeout(() => {
+      let el = $(item.el);
+      if ((!el || el.offsetParent === null) && item.fallback) el = $(item.fallback);
+      if (!el || el.offsetParent === null) return;
+      const head = document.querySelector('header');
+      const gap = () => (head ? head.offsetHeight : 56) + 10;
+      const land = (behavior) => window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap()), behavior });
+      land('smooth');
+      // Product rows and illustrations above the target finish loading while the
+      // smooth scroll is still running, which shifts it out from under you. Once
+      // the scroll has settled, check where the target actually ended up and
+      // correct if it drifted.
+      setTimeout(() => { if (Math.abs(el.getBoundingClientRect().top - gap()) > 24) land('auto'); }, 520);
+    }, 60);
+  }
+  function openJump() {
+    const panel = $('jm-panel'), menu = $('jump-menu'), head = document.querySelector('header');
+    const rows = JUMPS.map((j, i) => `<button type="button" data-jump="${i}">${esc(j.label)}</button>`);
+    if (acctReady) rows.push(`<button type="button" data-acct="1">${fbUser ? 'Account' : 'Sign in'}</button>`);
+    panel.innerHTML = rows.join('');
+    const hh = head ? head.offsetHeight : 56;
+    panel.style.top = (hh + 4) + 'px';
+    menu.querySelector('.jm-scrim').style.top = hh + 'px';
+    menu.style.display = ''; menu.classList.add('show');
+    $('menu-btn').classList.add('on'); $('menu-btn').setAttribute('aria-expanded', 'true');
+  }
+  function closeJump() {
+    const menu = $('jump-menu');
+    menu.classList.remove('show'); menu.style.display = 'none';
+    $('menu-btn').classList.remove('on'); $('menu-btn').setAttribute('aria-expanded', 'false');
+  }
+  $('menu-btn').addEventListener('click', () => ($('jump-menu').classList.contains('show') ? closeJump() : openJump()));
+  $('jump-menu').addEventListener('click', (e) => {
+    if (e.target.closest('[data-acct]')) { closeJump(); openAccount(); return; }
+    const b = e.target.closest('[data-jump]');
+    if (b) { jumpTo(JUMPS[+b.dataset.jump]); return; }
+    closeJump();   // anywhere else (the scrim) shuts it
+  });
+  registerFullPage('jump-menu', closeJump);         // the nav always closes it
+  registerFullPage('lsnap-view', closeLsnap);       // enlarged saved lesson page
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  // Warm the shelf while the app is idle on Home, so tapping Shop paints from
+  // memory instead of waiting on the first fetch.
+  setTimeout(() => { const g = $('shop-grid'); if (g && g.dataset.loaded !== '1') { try { loadShop(); } catch (e) {} } }, 1500);
   registerFullPage('prod-sheet-bg', closeProdSheet); // shop product sheet
   registerFullPage('cart-sheet-bg', closeCartSheet); // shop cart sheet
 

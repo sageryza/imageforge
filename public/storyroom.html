@@ -384,9 +384,10 @@ function openProj(p, jumpBeat){
   var abtn=document.createElement('button'); abtn.className='btn'; abtn.textContent='+ Add beat'; abtn.onclick=function(){ addBeat(p); };
   var dbtn=document.createElement('button'); dbtn.className='btn'; dbtn.textContent='+ Dump art'; dbtn.onclick=function(){ dumpArt(p); };
   var sbtn=document.createElement('button'); sbtn.className='btn'; sbtn.textContent='+ Story'; sbtn.onclick=function(){ editProse(); };
+  var dsbtn=document.createElement('button'); dsbtn.className='btn'; dsbtn.textContent='+ Description'; dsbtn.onclick=function(){ editDesc(); };
   var vbtn=document.createElement('button'); vbtn.className='btn'; vbtn.textContent='+ Voiceover'; vbtn.onclick=function(){ voForced=true; drawVo(); voWrap.scrollIntoView({block:'center'}); };
   var smbtn=document.createElement('button'); smbtn.className='btn'; smbtn.textContent='+ Summary'; smbtn.onclick=function(){ editSummary(); };
-  tools.appendChild(abtn); tools.appendChild(dbtn); tools.appendChild(sbtn); tools.appendChild(vbtn); tools.appendChild(smbtn); sec.appendChild(tools);
+  tools.appendChild(abtn); tools.appendChild(dbtn); tools.appendChild(sbtn); tools.appendChild(dsbtn); tools.appendChild(vbtn); tools.appendChild(smbtn); sec.appendChild(tools);
 
   // ── The Summary — the shape of the story at a glance: the few key beats
   // that carry it, with arrows showing they lead into each other. Tap a
@@ -501,6 +502,33 @@ function openProj(p, jumpBeat){
     });
   }
 
+  // ── The description — what the video should be (shots, staging, visual
+  // notes), separate from the story prose so the two never share one field ──
+  var descWrap=document.createElement('div'); sec.appendChild(descWrap);
+  function drawDesc(){
+    descWrap.innerHTML='';
+    dsbtn.style.display=String(p.description||'').trim()? 'none':'';
+    if(!String(p.description||'').trim()) return;
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE DESCRIPTION';
+    var ed=document.createElement('button'); ed.className='st'; ed.textContent='· edit';
+    ed.onclick=function(){ editDesc(); };
+    pm.appendChild(ed); descWrap.appendChild(pm);
+    var body=document.createElement('div'); body.className='prose'; body.textContent=p.description; descWrap.appendChild(body);
+  }
+  function editDesc(){
+    showModal({ title: p.description? 'Edit the description':'The description', okLabel:'Save',
+      fields:[ {key:'description', type:'textarea', placeholder:'What this video should be…', value:p.description||''} ],
+      onOk:function(v, close){
+        api('/api/story/description',{method:'POST',body:JSON.stringify({projectId:p.id, description:v.description||''})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+            p.description=String(v.description||''); close(); toast('Description saved'); drawDesc();
+          })
+          .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,50)); });
+      }
+    });
+  }
+
   // ── Whole-story voiceover: audio and/or its words, either half derivable ──
   var voWrap=document.createElement('div'); voWrap.className='vosec'; sec.appendChild(voWrap);
   var voForced=false;
@@ -587,7 +615,7 @@ function openProj(p, jumpBeat){
     voWrap.appendChild(row);
   }
   drawVoCur=drawVo;
-  drawProse(); drawVo();
+  drawProse(); drawDesc(); drawVo();
   if(p.voiceover&&p.voiceover.status) pollVo(p.id);
   // Beats / Grid pill
   var tabs=document.createElement('div'); tabs.className='tabs';
@@ -896,7 +924,7 @@ var nsBtn=document.getElementById('newstory'); if(nsBtn) nsBtn.onclick=newStory;
 
 // autoscroll pill — shared component (scripts/pill.py)
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
