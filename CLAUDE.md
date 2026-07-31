@@ -510,9 +510,9 @@ lifted into a standalone tool later.
     what it called an image). `FORGE_BASE` overrides the server.
   - An image with no prompt on file shows **no PROMPT button at all** — never
     write "no prompt filed" anywhere; empty is silent by design.
-  - The same instructions are folded into the top of every Assets tab ("How to
-    post prompts & reply to notes", `howToPost()` in `public/chats.html`) — keep
-    the two in sync.
+  - These instructions live HERE only. There used to be a "How to post prompts"
+    fold at the top of every Assets tab, but chats read this file, not that
+    page — so it was clutter only Sophie ever saw, and it's been removed.
   - **The tab is PAGED and dedupes by filename (July 2026).**
     `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
     offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
