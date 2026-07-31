@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test, dump
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, chats, test, dump
     var id: String { rawValue }
 
     var title: String {
@@ -18,6 +18,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
         case .story:     return "Story Room"
+        case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
@@ -36,6 +37,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .story:     return "Every story in one room — words, voice, art, films."
+        case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
@@ -54,6 +56,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "camera"
         case .ads:       return "megaphone"
         case .story:     return "rectangle.grid.2x2"
+        case .lessons:   return "books.vertical"
         case .writing:   return "text.book.closed"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
@@ -88,6 +91,7 @@ enum Tool: String, CaseIterable, Identifiable {
                              .forgeTitle("Story Room")
                              .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
                              .toolbarBackground(.visible, for: .navigationBar)
+        case .lessons:   LessonsView().forgeTitle("Lessons")
         case .writing:   WritingRoomView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
