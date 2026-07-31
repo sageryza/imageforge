@@ -702,15 +702,15 @@ router.post('/reply', async (req, res) => {
 //   GET  /api/chatfeed/verdict?chat=&sheet=
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
-    const { chat, sheet, item, ok } = req.body || {};
+    const { chat, sheet, item, ok, text } = req.body || {};
     if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
     const db = admin.firestore();
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
-    await db.collection('forge-chat-verdicts').doc(id).set({
-      chat, sheet,
-      items: { [String(item)]: ok === null ? null : !!ok },
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    const patch = { chat, sheet, updatedAt: new Date().toISOString() };
+    // a vote and a dictation are separate fields so writing one never clears the other
+    if (ok !== undefined) patch.items = { [String(item)]: ok === null ? null : !!ok };
+    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
     res.json({ ok: true });
   } catch (err) {
     res.status(502).json({ error: err.message });
@@ -722,7 +722,8 @@ router.get('/verdict', async (req, res) => {
     if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
-    res.json({ ok: true, items: doc.exists ? (doc.data().items || {}) : {} });
+    const d = doc.exists ? doc.data() : {};
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {} });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
