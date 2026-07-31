@@ -423,27 +423,22 @@ router.post('/app-account', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// Open a claude.ai session in the BROWSER instead of the Claude app. iOS
-// hands a tapped claude.ai link straight to the app (universal link), which
-// is wrong for a chat on the account that's signed in on the web — so those
-// Open buttons point here instead. NOT a 302: verified live (2026-07-27) that
-// Safari treats a server redirect to claude.ai as a link activation and
-// bounces into the Claude app anyway. Instead this serves a tiny page that
-// navigates ITSELF (script location.replace + meta-refresh fallback) —
-// self-initiated navigation doesn't trigger the universal-link handoff, so
-// the session opens in Safari, where that account's login lives.
+// Open a claude.ai session in the BROWSER instead of the Claude app.
+// LEGACY hop — kept only for cached copies of /chats; the page now appends
+// #no_universal_links to the claude.ai URL itself and links it directly.
+// claude.ai's apple-app-site-association EXCLUDES any URL carrying that
+// fragment (their first match rule, checked July 2026), so iOS never hands
+// it to the Claude app. The two redirect tricks this route tried before it
+// both failed live: a 302 bounced into the app (2026-07-27), and the
+// self-navigating page (location.replace + meta-refresh) bounced too
+// (2026-07-31) — automatic redirects don't defeat the universal link on
+// current iOS, the AASA exclusion does. So this now just 302s to the
+// fragment-tagged URL.
 router.get('/go', (req, res) => {
   const u = String(req.query.u || '').slice(0, 400);
   if (!/^https:\/\/claude\.ai\//.test(u)) return res.status(400).send('bad url');
-  const safe = u.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E');
   res.set('Cache-Control', 'no-store');
-  res.set('Content-Type', 'text/html; charset=utf-8').send(
-    '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<meta http-equiv="refresh" content="0;url=' + safe + '"><title>Opening…</title>'
-    + '<body style="font-family:-apple-system,sans-serif;padding:40px 24px;color:#444">'
-    + 'Opening the chat in your browser…'
-    + '<script>location.replace(' + JSON.stringify(safe) + ');</script>'
-  );
+  res.redirect(302, u + (u.includes('#') ? '' : '#no_universal_links'));
 });
 
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
