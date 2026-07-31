@@ -848,6 +848,29 @@ app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => 
   }
 });
 
+// The description — what the video should be: shots, staging, visual notes.
+// Separate from `text` (the story itself) so a video's plan and its prose
+// never fight over one field.
+app.post('/api/story/description', express.json({ limit: '1mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, description } = req.body || {};
+    const db = await storyDb();
+    if (!db) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    data.description = String(description || '').slice(0, 60000);
+    await ref.set(data);
+    res.json({ ok: true, chars: data.description.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // The Summary — the shape of the story at a glance: the few key beats that
 // carry it, shown at the top of the story page with arrows between them.
 // Stored as `summary: [{ beat: <index>, label }]`, kept in beat order.
