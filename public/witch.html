@@ -75,8 +75,22 @@
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
     }
-    .sigil { justify-self: center; display: flex; align-items: center; color: var(--gold); opacity: 0.92; }
-    .sigil svg { width: 22px; height: 22px; }
+    /* ── The two stars flanking the title ──────────────────────────────────
+       BOTH DIALS ARE THE TWO NUMBERS BELOW. Change them and every header
+       follows — the app header and the Book of Shadows reader's copy of it.
+         --sigil-size  how big each star is (the title is 26px, so this is
+                       deliberately well under it)
+         --sigil-gap   how far each star sits from the title
+       They were centred in the leftover space either side, which put them
+       ~26px out and made the size the only thing you could tune; now the
+       grid pushes each one to the title's edge and the gap sets the rest. */
+    .sigil { --sigil-size: 15px; --sigil-gap: 14px;
+             display: flex; align-items: center; color: var(--gold); opacity: 0.92; }
+    .sigil svg { width: var(--sigil-size); height: var(--sigil-size); }
+    /* left star: hug the right edge of its column, then back off by the gap */
+    header .sigil, .bos-head .sigil { justify-self: end; margin-right: var(--sigil-gap); }
+    /* right star: the one AFTER the title — mirror it */
+    header h1 ~ .sigil, .bos-head h1 ~ .sigil { justify-self: start; margin-right: 0; margin-left: var(--sigil-gap); }
     header h1 {
       font-family: var(--serif); font-style: italic; font-weight: 500;
       font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
@@ -1148,8 +1162,9 @@
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 20px 12px; }
     .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
-    /* Reader header stars: a small accent beside the title, not a match for it. */
-    #bos-reader .sigil svg { width: 15px; height: 15px; }
+    /* The reader's stars are the same object as the app header's — size and
+       gap both come from --sigil-size / --sigil-gap, so there is nothing to
+       keep in sync here. */
     .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
     /* The page number lives at the BOTTOM of the page, serif, like a book. */
     .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
