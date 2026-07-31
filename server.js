@@ -3762,7 +3762,8 @@ async function whitenBackground(buf, tol = 46) {
 }
 app.post('/api/generate/housestyle', async (req, res) => {
   try {
-    const { prompt, styleId = 'house-pastel', quality = 'low' } = req.body || {};
+    // Default MEDIUM — matches how the illustrated lessons (specA) were rendered.
+    const { prompt, styleId = 'house-pastel', quality = 'medium' } = req.body || {};
     if (!prompt) return res.status(400).json({ error: 'prompt is required' });
     if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
     const style = (MODELS.house || []).find(s => s.id === styleId);
