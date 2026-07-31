@@ -13,8 +13,16 @@
   body{margin:0; background:var(--paper); color:var(--ink);
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     padding-bottom:64px}
-  header{position:sticky; top:0; z-index:20; background:var(--paper);
-    border-bottom:1px solid var(--line); padding:12px 14px; display:flex; align-items:center; gap:10px}
+  /* The shared autoscroll pill is position:fixed over the top-right corner
+     (x 324–374 on an iPhone 13), so the header RESERVES that corner — anything
+     laid out under the pill is untappable. Same reservation .thread-head and
+     .headbtns carry on /chats; the calc mirrors the pill's own
+     right:max(14px,4vw) + its 48px width so it holds at any width.
+     z-index stays BELOW the pill's 9 (the house pattern — /writing and
+     /storyroom park their sticky bars at 5) and above ordinary content. */
+  header{position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:12px 14px;
+    padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
   header h1{font-size:17px; margin:0; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .wrap{padding:14px; max-width:720px; margin:0 auto}
   svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
@@ -69,6 +77,17 @@
     width:100%; max-width:720px; max-height:80vh; overflow-y:auto; padding:14px}
   .empty{color:var(--soft); font-size:14px; padding:10px 0}
   .saving{font-size:12px; color:var(--soft)}
+  /* The autoscroll pill itself is appended by the server (public/pill-inject.html,
+     built from scripts/pill.py) — never copied here. That snippet ships a
+     fallback palette for arbitrary Compare pages, including a dark-mode block;
+     this page is fixed light, so pin the pill to the page's own tokens. The
+     two-part selector outranks the snippet's plain .float rules. */
+  body .float{--paper:#FAF7F1; --ink:#23201B; --ink2:#7A7266; --chg:#C79633; --rose:#B4462F}
+  /* The pill's band runs to y≈196, so the top two episode rows sit under it —
+     and with only a few episodes the page doesn't scroll, so their 34px delete
+     button (flush right, entirely inside the pill's rect) would be permanently
+     untappable. Reserve the corner on those rows the same way the header does. */
+  #episodes .card:nth-child(-n+2){padding-right:calc(max(14px, 4vw) + 46px)}
 </style>
 </head>
 <body>
@@ -462,6 +481,9 @@ function sheet(html) {
   el.className = 'modal';
   el.innerHTML = `<div class="sheet">${html}</div>`;
   document.body.appendChild(el);
+  // An overlay freezes the page behind it: background scroll locks AND the
+  // shared autoscroll pill stops, so nothing moves under an open sheet.
+  if (window.__scrollStop) window.__scrollStop();
   document.body.style.overflow = 'hidden';
   const close = () => { el.remove(); document.body.style.overflow = ''; };
   el.addEventListener('click', e => { if (e.target === el) close(); });
