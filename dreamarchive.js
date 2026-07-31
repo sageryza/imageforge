@@ -22,7 +22,7 @@ const CACHE_MS = 3 * 60 * 1000;
 let deps = { deckDb: null, membryBucket: null, deckBucket: null };
 function init(d) { deps = { ...deps, ...d }; }
 
-let cache = { at: 0, data: null };
+let cache = { at: 0, key: null, data: null };
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 const ms = (v) => { if (!v) return 0; if (v.toDate) return v.toDate().getTime(); const t = Date.parse(v); return isNaN(t) ? 0 : t; };
@@ -44,7 +44,7 @@ async function readJson(bucket, path) {
   catch { return null; }
 }
 
-async function build() {
+async function build(withShared = false) {
   const deck = await deps.deckDb();
   const membry = await deps.membryBucket();
   const deckB = await deps.deckBucket();
@@ -152,8 +152,14 @@ async function build() {
   }
   out.push(...extra);
 
-  // 5 + 6. the static snapshots
-  for (const [path, tag] of [['dream-archive/journal.json', 'journal'], ['dream-archive/shared-gdoc.json', 'shared dream journal']]) {
+  // 5 + 6. the static snapshots.
+  // The shared Google Doc is OFF by default: several people wrote their own
+  // dreams into it and 113 of its 130 entries have no confirmed author, so it
+  // does not belong in a personal dream map. ?shared=1 includes it, which is
+  // what a future public version would want.
+  const sources = [['dream-archive/journal.json', 'journal']];
+  if (withShared) sources.push(['dream-archive/shared-gdoc.json', 'shared dream journal']);
+  for (const [path, tag] of sources) {
     const rows = await readJson(deckB, path);
     for (const r of (rows || [])) {
       out.push({
@@ -194,10 +200,12 @@ router.get('/status', (req, res) => res.json({ ok: true, cached: !!cache.data, b
 
 router.get('/data', async (req, res) => {
   try {
-    if (req.query.fresh === '1') cache = { at: 0, data: null };
-    if (cache.data && Date.now() - cache.at < CACHE_MS) return res.json(cache.data);
-    const data = await build();
-    cache = { at: Date.now(), data };
+    if (req.query.fresh === '1') cache = { at: 0, key: null, data: null };
+    const withShared = req.query.shared === '1';
+    const key = withShared ? 'shared' : 'mine';
+    if (cache.data && cache.key === key && Date.now() - cache.at < CACHE_MS) return res.json(cache.data);
+    const data = await build(withShared);
+    cache = { at: Date.now(), key, data };
     res.json(data);
   } catch (err) {
     console.warn('dream archive build failed —', err.message);
