@@ -695,4 +695,37 @@ router.post('/reply', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ─── Verdicts on a Compare page ─────────────────────────────────────────────
+// Check pages need a yes/no per item that survives the tab closing, so the chat
+// can read back what she decided instead of asking her to recite it.
+//   POST /api/chatfeed/verdict { chat, sheet, item, ok }
+//   GET  /api/chatfeed/verdict?chat=&sheet=
+router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    const { chat, sheet, item, ok } = req.body || {};
+    if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
+    const db = admin.firestore();
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    await db.collection('forge-chat-verdicts').doc(id).set({
+      chat, sheet,
+      items: { [String(item)]: ok === null ? null : !!ok },
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+router.get('/verdict', async (req, res) => {
+  try {
+    const { chat, sheet } = req.query || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
+    res.json({ ok: true, items: doc.exists ? (doc.data().items || {}) : {} });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 module.exports = { router, pillInject };
