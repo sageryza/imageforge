@@ -506,6 +506,18 @@ lifted into a standalone tool later.
   - The same instructions are folded into the top of every Assets tab ("How to
     post prompts & reply to notes", `howToPost()` in `public/chats.html`) — keep
     the two in sync.
+  - **The tab is PAGED and dedupes by filename (July 2026).**
+    `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
+    offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
+    It used to be a single capped request, which was a hard truncate — a chat
+    past 300 images silently lost its OLDEST ones (never deleted, just never
+    sent). **One picture can live at two storage paths** (where it was
+    generated, e.g. `witch-school/assets/<id>.png`, and the copy the server
+    makes when the same image is also sent as a file,
+    `claude-deliveries/<id>.png`), so the union keys on the FILENAME, not the
+    url: the copies collapse into one tile, every field is merged, the url kept
+    is the one carrying the label/prompt, the others ride along as `alts`, and a
+    ♥/note left on either path is still found.
   - **The Assets tab has a search bar** that filters the tiles as she types,
     matching an image's label, its model/quality caption, BOTH halves of its
     prompt, and every message in its note thread — so a filed prompt is what
