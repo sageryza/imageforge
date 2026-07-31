@@ -1336,7 +1336,7 @@ lifted into a standalone tool later.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
-- `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
+- `editor.js` (`/api/editor`, page at `/editor`, iOS tile "Episode Editor") — Sophie selects spans of a real
   interview transcript as **snippet cards**, arranges them (with **narration**
   and **gap** cards) into an episode, taps **Render**, and gets the finished
   audio. The cloud version of the hand-run supercut
@@ -1388,6 +1388,12 @@ lifted into a standalone tool later.
   rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
   snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
   order with its narration fills. 23 cards.
+- **iOS:** `EpisodeEditorView.swift` = a WKWebView on `/editor` that answers the
+  HTTP Basic gate with the studio token (same wrapper pattern as
+  `WritingRoomView`), registered as the `editor` tool in `RootView` — home-grid
+  tile "Episode Editor", SF Symbol `waveform`, deep link `deckfactory://editor`.
+  It pauses the page's audio on a screen change so a preview never keeps playing
+  from a hidden tab. Page changes ship via Render deploy — no TestFlight build.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
