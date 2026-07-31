@@ -213,6 +213,8 @@
       </div>
     </div>
     <div class="style-tiles" id="style-tiles"></div>
+    <button class="btn-secondary" id="replicate-toggle" onclick="toggleReplicate()" style="margin-top:6px; display:none;">▸ Replicate styles</button>
+    <div class="style-tiles" id="replicate-tiles" style="display:none; margin-top:12px;"></div>
 
     <div class="run-row">
       <button class="btn" id="run-selected" onclick="runSelected()" disabled>Run selected</button>
@@ -286,10 +288,28 @@
       renderTiles();
     }
 
+    // Replicate LoRA tiles are tucked behind a toggle (we don't use them now);
+    // the ChatGPT/House tiles show up top.
+    let replicateOpen = false;
+    function toggleReplicate() {
+      replicateOpen = !replicateOpen;
+      document.getElementById('replicate-tiles').style.display = replicateOpen ? '' : 'none';
+      updateReplicateToggle();
+    }
+    function updateReplicateToggle() {
+      const btn = document.getElementById('replicate-toggle');
+      const n = styles.filter(s => s.provider === 'replicate').length;
+      if (!btn) return;
+      btn.style.display = n ? '' : 'none';
+      btn.textContent = `${replicateOpen ? '▾' : '▸'} Replicate styles (${n})`;
+    }
+
     function renderTiles() {
       const samples = loadSamples();
       const grid = document.getElementById('style-tiles');
+      const repGrid = document.getElementById('replicate-tiles');
       grid.innerHTML = '';
+      repGrid.innerHTML = '';
       styles.forEach(s => {
         // Prefer a sample rendered this session, else the committed preview
         // shipped at /samples/<seg>.webp. If neither loads (e.g. DALL·E, which
@@ -316,8 +336,9 @@
           if (e.target.closest('.tile-check')) { toggleSelect(s.id); return; }
           runStyles([s]);
         });
-        grid.appendChild(tile);
+        (s.provider === 'replicate' ? repGrid : grid).appendChild(tile);
       });
+      updateReplicateToggle();
     }
 
     function toggleSelect(id) {
