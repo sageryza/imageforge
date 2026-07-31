@@ -227,7 +227,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
 .openclaude svg{width:15px; height:15px; display:block; stroke:#fff;}
-.headbtns{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0; padding-right:56px;}
+.headbtns{display:flex; align-items:center; gap:8px; margin:2px 0 0; padding-right:56px;}
+/* Refresh rides in the tab bar itself rather than wrapping to a line of its
+   own; the toggle takes whatever width is left. */
+.headbtns .viewtog{flex:1; min-width:0; width:auto;}
+.headbtns .viewtog button{flex:1; min-width:0; padding-left:4px; padding-right:4px;}
+.headbtns .threadrefresh{flex:none;}
+/* Archive as words, beside the name — not a button, still tappable. */
+/* Vertical padding is the tap target, not decoration: as bare 11px text this
+   was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
+   costs no layout. */
+.archlink{flex:none; background:none; border:none; margin:0; padding:10px 6px; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.archlink:active{color:var(--ink);}
 /* An on/off switch, the iOS shape. Circular track, so it's the sanctioned
    exception to no-pills — it's a toggle, not a text button. */
 .swi{position:relative; width:42px; height:26px; border-radius:13px; border:1.5px solid var(--line);
@@ -544,13 +557,18 @@ function claudeUrlFor(name, list){
 function appAccount(){ return (settings&&settings.appAccount)||'1'; }
 // The href an Open button should use for this chat. A chat on the account
 // that's signed into the app gets the direct claude.ai link (iOS hands it to
-// the Claude app); a chat on the OTHER account routes through /go so the tap
-// opens the BROWSER, where that account is signed in. Chats with no account
-// tag keep the old direct behavior.
+// the Claude app); a chat on the OTHER account gets the same link with
+// #no_universal_links appended — claude.ai's own apple-app-site-association
+// EXCLUDES any URL carrying that fragment (their first match rule, checked
+// July 2026), so iOS never hands it to the Claude app and it opens in the
+// BROWSER, where that account is signed in. This replaced the /go redirect
+// hop: both a server 302 and a self-navigating page were verified live to
+// bounce into the app anyway. Chats with no account tag keep the old direct
+// behavior.
 function openHref(name,url){
   var acct=(chats[name]&&chats[name].account)||'';
   if(!url||!acct||acct===appAccount()) return url;
-  return '/api/chatfeed/go?u='+encodeURIComponent(url)+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+  return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
@@ -895,12 +913,12 @@ function openChat(name, keepScroll, focusId, noFetch){
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
-  // Archive lives in the header, not at the foot of the thread \u2014 deciding
-  // whether to archive shouldn't mean scrolling past every message first.
-  // Same button, same place, either way: "Archive" / "Unarchive".
+  // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
+  // text rather than a button \u2014 it isn't a place to go, it's a thing you do
+  // once. Same word and same spot either way: "Archive" / "Unarchive".
   (function(){
     var isArch=!!(chats[name]&&chats[name].archived);
-    var ab=document.createElement('button'); ab.className='tbtn';
+    var ab=document.createElement('button');
     ab.textContent=isArch? 'Unarchive' : 'Archive';
     ab.onclick=function(){
       api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
@@ -911,7 +929,8 @@ function openChat(name, keepScroll, focusId, noFetch){
         })
         .catch(function(){ toast('Couldn\u2019t save that'); });
     };
-    head.querySelector('.headbtns').appendChild(ab);
+    ab.className='archlink';   // reads as text, still a button
+    head.querySelector('.thread-head').insertBefore(ab, head.querySelector('.renamebtn'));
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
