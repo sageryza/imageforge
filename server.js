@@ -2080,6 +2080,20 @@ const MODELS = {
   openai: [
     { id: 'gpt-image-2', name: 'ChatGPT (gpt-image-2)', quality: 'low' },
   ],
+  // House styles that render through gpt-image-2's EDITS endpoint with Sophie's
+  // own style-reference images (the same engine the illustrated lessons use) —
+  // NOT a Replicate LoRA. "Pastel" is the pastel-variant-2 look she picked from
+  // the prompt review: pastel palette on white, whitened background.
+  house: [
+    {
+      id: 'house-pastel',
+      name: 'Pastel (house)',
+      stylePrompt: 'Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. ',
+      end: ' Absolutely no text, no words, no letters, no numbers, no captions.',
+      refs: ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'],
+      whiten: true,
+    },
+  ],
 };
 
 // Resolve a Replicate model's version id. Pinned versions are returned as-is;
@@ -3677,6 +3691,92 @@ app.post('/api/generate/gptimage', async (req, res) => {
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── House style: gpt-image-2 EDITS with Sophie's style-reference images ──
+// The same engine the illustrated lessons use (not a LoRA): the two style refs
+// are attached as pure STYLE anchors and the house style prompt is prepended.
+// Refs live privately in Storage (witch-school/refs/style-*.png) and are
+// cached in memory after the first fetch.
+const houseRefCache = new Map();
+async function loadHouseRef(storagePath) {
+  if (houseRefCache.has(storagePath)) return houseRefCache.get(storagePath);
+  if (!bucket) throw new Error('Firebase not configured (style refs live in Storage)');
+  const [buf] = await bucket.file(storagePath).download();
+  houseRefCache.set(storagePath, buf);
+  return buf;
+}
+// Multi-reference gpt-image-2 edit (accepts several image[] style anchors).
+async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024' } = {}, retries = 2) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const form = new FormData();
+      form.append('model', 'gpt-image-2');
+      form.append('prompt', prompt);
+      form.append('size', size);
+      form.append('quality', quality);
+      form.append('output_format', 'webp');
+      form.append('output_compression', '80');
+      refBuffers.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
+        body: form,
+        timeout: 90000,
+      });
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+// Flood-fill the border-connected background to pure white (for whitened house
+// styles). Interior colours walled off by black outlines are preserved. Safe
+// for a single centred subject with white space around it (the Test Station case).
+async function whitenBackground(buf, tol = 46) {
+  const sharp = require('sharp');
+  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: W, height: H, channels: C } = info;
+  const idx = (x, y) => (y * W + x) * C;
+  const corners = [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]];
+  let br = 0, bg = 0, bb = 0;
+  for (const [x, y] of corners) { const i = idx(x, y); br += data[i]; bg += data[i + 1]; bb += data[i + 2]; }
+  br /= 4; bg /= 4; bb /= 4;
+  const tol2 = tol * tol;
+  const close = (i) => { const dr = data[i] - br, dg = data[i + 1] - bg, db = data[i + 2] - bb; return dr * dr + dg * dg + db * db <= tol2; };
+  const visited = new Uint8Array(W * H), stack = [];
+  const pushIf = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const p = y * W + x; if (visited[p] || !close(idx(x, y))) return; visited[p] = 1; stack.push(p); };
+  for (let x = 0; x < W; x++) { pushIf(x, 0); pushIf(x, H - 1); }
+  for (let y = 0; y < H; y++) { pushIf(0, y); pushIf(W - 1, y); }
+  while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
+  const out = Buffer.from(data);
+  for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
+  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp().toBuffer();
+}
+app.post('/api/generate/housestyle', async (req, res) => {
+  try {
+    const { prompt, styleId = 'house-pastel', quality = 'low' } = req.body || {};
+    if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+    if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+    const style = (MODELS.house || []).find(s => s.id === styleId);
+    if (!style) return res.status(400).json({ error: `unknown house style: ${styleId}` });
+    const refs = await Promise.all((style.refs || []).map(loadHouseRef));
+    if (!refs.length) return res.status(400).json({ error: 'house style has no reference images' });
+    const full = (style.stylePrompt || '') + prompt + (style.end || '');
+    const data = await openaiImageEditRefs(full, refs, { quality });
+    if (data.error) return res.status(400).json({ error: data.error.message || 'gpt-image-2 edit error' });
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
+    let buf = Buffer.from(b64, 'base64');
+    if (style.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('house whiten failed:', e.message); } }
+    const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
