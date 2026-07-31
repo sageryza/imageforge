@@ -1450,17 +1450,41 @@ app.get('/api/gallery/assets', async (req, res) => {
   try {
     const chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    const limit = Math.min(500, parseInt(req.query.limit, 10) || 300);
+    // Paged, because this is a hard truncate otherwise: a chat past the cap
+    // silently lost its OLDEST images (they were never deleted — just never
+    // sent). `offset` walks back through the whole set, and `total` tells the
+    // client when to stop asking, so no image can be out of reach.
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 300));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     await storyDb();
     const seen = new Map();
+    // ONE picture can sit at two storage paths — where it was generated
+    // (…/witch-school/assets/<id>.png) and the copy the server made when the
+    // same image was also sent as a file (…/claude-deliveries/<id>.png). The
+    // bytes are identical and the filename is carried across, so the FILENAME
+    // is the identity; keying on the full url gave two tiles for one picture,
+    // one of them carrying the label and prompt and the other blank.
+    const keyOf = (url) => {
+      const clean = String(url).split('?')[0].split('#')[0];
+      const base = decodeURIComponent(clean.split('/').pop() || '').toLowerCase();
+      return base || clean;
+    };
     const add = (url, ms, prompt, description, style, content) => {
       if (!url) return;
-      const existing = seen.get(url);
+      const k = keyOf(url);
+      const existing = seen.get(k);
       if (!existing) {
-        seen.set(url, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
-          promptStyle: style || '', promptContent: content || '' });
+        seen.set(k, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
+          promptStyle: style || '', promptContent: content || '', alts: [] });
         return;
       }
+      // Same picture arriving by its other path: keep every field that has
+      // something in it, whichever copy carried it.
+      if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
+      // Checked BEFORE the merge below — afterwards every copy looks "rich",
+      // and the preferred-url swap could never fire.
+      const richer = !!(description || style || content);
+      const hasOwn = !!(existing.description || existing.promptStyle || existing.promptContent);
       if (style && !existing.promptStyle) existing.promptStyle = style;
       if (content && !existing.promptContent) existing.promptContent = content;
       // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
@@ -1469,6 +1493,13 @@ app.get('/api/gallery/assets', async (req, res) => {
         existing.prompt = prompt;
       }
       if (description && !existing.description) existing.description = description;
+      // Show the copy her curation is attached to: the one that came with a
+      // label or a prompt. Otherwise keep the first (newest) url.
+      if (richer && !hasOwn) {
+        if (existing.alts.indexOf(existing.url) < 0) existing.alts.push(existing.url);
+        existing.url = url;
+      }
+      if ((ms || 0) > existing.ms) existing.ms = ms;
     };
     // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
     if (storyApp) {
@@ -1494,9 +1525,12 @@ app.get('/api/gallery/assets', async (req, res) => {
         });
       } catch (e) { /* best effort */ }
     }
-    const assets = Array.from(seen.values()).sort((x, y) => y.ms - x.ms).slice(0, limit)
+    const ordered = Array.from(seen.values()).sort((x, y) => y.ms - x.ms);
+    const total = ordered.length;
+    const assets = ordered.slice(offset, offset + limit)
       .map((a) => {
         const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
+        if (a.alts.length) o.alts = a.alts;   // the same picture's other path(s)
         if (a.description) o.description = a.description;   // what this image IS, when a chat said so
         // The generating prompt, split (see POST /api/gallery/assets/prompt).
         if (a.promptStyle) o.promptStyle = a.promptStyle;
@@ -1527,7 +1561,12 @@ app.get('/api/gallery/assets', async (req, res) => {
         const votes = new Map();
         vs.docs.forEach((d) => { const v = d.data(); votes.set(v.url, v); });
         assets.forEach((a) => {
-          const v = votes.get(a.url);
+          // A ♥ or a note may have been left on this picture's OTHER path
+          // before the two collapsed into one tile — don't lose it.
+          let v = votes.get(a.url);
+          if (!v && a.alts) {
+            for (const u of a.alts) { const alt = votes.get(u); if (alt) { v = alt; break; } }
+          }
           if (v && v.vote) a.vote = v.vote;
           if (v && v.note) a.note = v.note;
           if (v && v.done) a.done = true;
@@ -1547,7 +1586,9 @@ app.get('/api/gallery/assets', async (req, res) => {
         });
       }
     } catch (e) { /* votes are best-effort */ }
-    res.json({ chat, assets });
+    // total = every unique picture this chat has, so the client knows whether
+    // another page exists rather than guessing from a full-looking response.
+    res.json({ chat, assets, total, offset, limit });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

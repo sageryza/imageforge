@@ -325,6 +325,9 @@ router.post('/icon', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// NOTE: the Assets tab the app actually renders is GET /api/gallery/assets in
+// server.js — that one is paged and dedupes a picture that lives at two storage
+// paths. This route predates it and nothing calls it; fix the server.js one.
 // Per-chat image gallery (the "Assets" tab inside a chat). Built from the union
 // of: image URLs already present in that chat's message text (so existing chats
 // show their art with no back-fill) + forge-chat-assets docs (uploaded-file

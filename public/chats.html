@@ -959,7 +959,11 @@ function openChat(name, keepScroll, focusId, noFetch){
   var assetsLoaded=false;
   function loadAssets(){
     if(assetsLoaded) return; assetsLoaded=true;
-    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit=300')
+    // A page at a time. The old single request was a hard truncate: once a chat
+    // passed the cap its OLDEST images silently stopped appearing (they were
+    // never deleted — just never sent). More pages load as she scrolls.
+    var PAGE=150;
+    api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset=0')
       .then(function(r){return r.json()})
       .then(function(d){
         var a=(d&&d.assets)||[];
@@ -1110,7 +1114,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           paint();
           cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
-        a.forEach(function(it){
+        function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
           var b=document.createElement('button');
           // What the image IS, when the chat filed one — else the generic "from <chat>"
@@ -1135,8 +1139,45 @@ function openChat(name, keepScroll, focusId, noFetch){
           if(io) io.observe(img);
           cells.push({cell:cell, it:it});
           grid.appendChild(cell);
-        });
+        }); }
+        addTiles(a);
         assetsPanel.appendChild(grid);
+        // Infinite scroll: a sentinel under the grid pulls the next page when
+        // it comes near the viewport, so nothing is ever out of reach — and a
+        // chat with 40 images never pays for a request it doesn't need.
+        var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
+        var more=document.createElement('div'); more.className='state';
+        more.style.display='none'; assetsPanel.appendChild(more);
+        function nextPage(){
+          if(busy || loaded>=total) return;
+          busy=true; more.textContent='Loading more…'; more.style.display='';
+          api('/api/gallery/assets?chat='+encodeURIComponent(name)+'&limit='+PAGE+'&offset='+loaded)
+            .then(function(r){return r.json()})
+            .then(function(p){
+              var got=(p&&p.assets)||[];
+              if(p&&p.total) total=p.total;
+              loaded+=got.length;
+              addTiles(got);
+              applyFilter();          // a new tile obeys the search/filter too
+              busy=false;
+              more.style.display='none';
+              if(!got.length) loaded=total;   // never spin on an empty page
+              if(loaded<total) watchTail();
+            })
+            .catch(function(){ busy=false; more.textContent='Couldn\u2019t load more — scroll to retry.'; });
+        }
+        var tailIO=null;
+        function watchTail(){
+          if(loaded>=total) return;
+          if(!('IntersectionObserver' in window)){ more.style.display=''; more.textContent='Load more'; more.onclick=nextPage; return; }
+          if(tailIO) tailIO.disconnect();
+          tailIO=new IntersectionObserver(function(es){
+            if(es.some(function(e){return e.isIntersecting;})){ tailIO.disconnect(); nextPage(); }
+          },{rootMargin:'800px 0px'});
+          var last=grid.lastElementChild;
+          if(last) tailIO.observe(last);
+        }
+        watchTail();
       })
       .catch(function(){ assetsPanel.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
   }
