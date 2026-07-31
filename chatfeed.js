@@ -510,6 +510,9 @@ router.get('/pages', async (req, res) => {
 // The shared autoscroll pill, appended to every served page so Compare pages
 // scroll hands-free like the rest of the app. Self-contained snippet built by
 // scripts/gen-pill-inject.py (re-run it after changing scripts/pill.py).
+// Exported: server.js appends the SAME snippet to gated static pages that opt
+// in (serveGated(file, { pill:true }) — e.g. /editor), so the pill is sourced
+// from one place and never re-implemented per page.
 let pillSnippet = null;
 function pillInject() {
   if (pillSnippet === null) {
@@ -692,4 +695,4 @@ router.post('/reply', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router };
+module.exports = { router, pillInject };

@@ -532,7 +532,13 @@ Read the two objects. Decide each axis same or different, and force the third's 
 // gate is disabled (open), so nothing breaks until it's configured.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 // Serve a token-gated page, injecting the token so its API calls authenticate.
-function serveGated(file) {
+// `opts.pill` appends the SHARED autoscroll pill — the one implementation
+// (scripts/pill.py → public/pill-inject.html) that chatfeed.js already appends
+// to every served Compare page. Pages opt in here instead of pasting a copy of
+// the pill into their HTML, so it only ever lives in one place; a page that
+// generates its own markup (chats/writing/storyroom/wall) keeps importing the
+// same source through its gen-*.py script.
+function serveGated(file, opts = {}) {
   return (req, res) => {
     if (STUDIO_TOKEN) {
       const m = (req.get('authorization') || '').match(/^Basic (.+)$/);
@@ -548,7 +554,9 @@ function serveGated(file) {
     // page change (a moved button, a new tab) silently never reached the phone.
     // no-cache still allows a cheap 304 when nothing changed.
     res.set('Cache-Control', 'no-cache, must-revalidate');
-    res.type('html').send(html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN));
+    let out = html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN);
+    if (opts.pill) out += require('./chatfeed').pillInject();
+    res.type('html').send(out);
   };
 }
 app.get('/studio', serveGated('studio.html'));
@@ -2022,8 +2030,11 @@ app.get('/crystals', serveGated('crystals.html'));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.
-// Engine is /api/editor (editor.js). Same gate as the Studio.
-app.get('/editor', serveGated('editor.html'));
+// Engine is /api/editor (editor.js). Same gate as the Studio. Episodes get long
+// (a 23-card arrangement scrolls for a while), so it carries the shared
+// autoscroll pill — the native EpisodeEditorView deliberately ships no pill of
+// its own, so this is the only one.
+app.get('/editor', serveGated('editor.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
