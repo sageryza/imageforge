@@ -461,7 +461,7 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
@@ -1224,7 +1224,7 @@ function focusMessage(name, id, noFetch){
 // pill injected into the Compare page itself won't stay put on a phone. Same
 // look/behavior as the shared pill (default Fast; tap play/pause; -/+ speed).
 function mkPagePill(getWin){
-  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2]];
+  var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
   var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
