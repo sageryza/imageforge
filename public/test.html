@@ -281,6 +281,7 @@
       styles = [
         ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
         ...(models.openai || []).map(m => ({ ...m, provider: 'openai' })),
+        ...(models.house || []).map(m => ({ ...m, provider: 'house' })),
       ];
       renderTiles();
     }
@@ -300,7 +301,7 @@
         tile.dataset.id = s.id;
         tile.innerHTML = `
           <img src="${sample}" alt="${escHtml(s.name)} sample">
-          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
+          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'house' ? 'House' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
           <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
           <span class="tile-run"><span>▶ run</span></span>
           <span class="tile-label">${escHtml(s.name)}</span>
@@ -368,6 +369,14 @@
     }
 
     async function generateOne(style, prompt) {
+      if (style.provider === 'house') {
+        // gpt-image-2 EDITS with the house style refs — the style controls the
+        // background, so don't append the global bg suffix here.
+        return safeFetchJson('/api/generate/housestyle', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, styleId: style.id }),
+        });
+      }
       if (style.provider === 'openai') {
         const bgSuffix = getGlobalBgSuffix();
         const full = [prompt, bgSuffix].filter(Boolean).join(', ');
