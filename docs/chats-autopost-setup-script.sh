@@ -7,7 +7,9 @@
 # /home/user/.claude/ before Claude Code launches; the environment snapshot
 # carries it into every future session. v3: also files image deliverables
 # into the iOS gallery via POST /api/gallery. v4: tags each post with the
-# environment's FORGE_ACCOUNT so Open buttons route app-vs-browser.
+# environment's FORGE_ACCOUNT so Open buttons route app-vs-browser. v5: resolves
+# the slug per SESSION via /api/chatfeed/resolve so a reused branch name can
+# never file two sessions into one chat.
 # Source of truth for the hook body: imageforge/.claude/hooks/post-to-feed.sh.
 
 mkdir -p /home/user/.claude/hooks
@@ -61,6 +63,32 @@ case "$name" in
   new-session|session|untitled) name="${name}-$(printf '%s' "$sid" | tr -dc 'a-z0-9' | cut -c1-6)";;
 esac
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
+
+# One chat per SESSION (Aug 2026): branch names get reused, and two sessions
+# sharing a branch-derived slug filed their feeds into ONE chat (verified live
+# — a new session's posts interleaved into the chat Sophie had renamed
+# "Imprint"). The server resolves slug+session → the effective slug: the first
+# session keeps the pretty name, a different session forks to <name>-<sid6>.
+# Resolved once per session per name and cached; if the server is unreachable
+# the computed name stands (the server also re-keys url-carrying posts itself
+# as a fallback). An explicit FORGE_CHAT is deliberate (possibly shared across
+# sessions on purpose), so it is never forked.
+if [ -z "${FORGE_CHAT:-}" ]; then
+  rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
+  rstate="$HOME/.claude/forge-slug-${sid}-$(printf '%s' "$name" | cksum | cut -d' ' -f1)"
+  rname=""
+  if [ -f "$rstate" ]; then
+    rname=$(cat "$rstate" 2>/dev/null)
+  else
+    rname=$(curl -s -m 20 ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+      "$FEED/resolve?chat=$(printf '%s' "$name" | jq -sRr @uri)&session=$(printf '%s' "$rsid" | jq -sRr @uri)" \
+      | jq -r '.chat // empty' 2>/dev/null)
+    [ -n "$rname" ] && printf '%s' "$rname" > "$rstate"
+  fi
+  case "$rname" in
+    "$name"|"$name"-*) name="$rname";;   # accept only the name or its fork
+  esac
+fi
 
 claude_url=""
 if [ -n "${CLAUDE_CODE_REMOTE_SESSION_ID:-}" ]; then

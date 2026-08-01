@@ -93,6 +93,65 @@ function regRef(chat) {
   return db().collection(REG).doc(String(chat).slice(0, 60));
 }
 
+// ---- One chat per SESSION (Aug 2026) ---------------------------------------
+// Slugs derive from git branch names with the random tail stripped, and branch
+// names get REUSED across sessions — so two different Claude sessions could
+// post into ONE thread (verified live: a new session's posts interleaved into
+// the chat Sophie had renamed "Imprint"). The registry doc now records which
+// session OWNS a slug (`sessionId`, claimed on first resolve/post); a post
+// from a DIFFERENT session forks to `<slug>-<sid6>` — its own chat, its own
+// tile — instead of invading the thread. Renaming stays cosmetic and never
+// re-keys; the fork tail matches the hook's existing convention for generic
+// slugs (6 chars of the session id).
+function sidTail(session) {
+  return String(session).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+}
+async function resolveChat(base, session) {
+  const chat = String(base || '').slice(0, 60);
+  const sid = String(session || '').slice(0, 120);
+  if (!chat || !sid) return chat;
+  const snap = await db().collection(REG).doc(chat).get();
+  const owner = snap.exists ? (snap.data().sessionId || '') : '';
+  if (!owner) {
+    // unclaimed → this session takes the pretty name
+    await regRef(chat).set({ sessionId: sid }, { merge: true });
+    return chat;
+  }
+  if (owner === sid) return chat;
+  const tail = sidTail(sid) || 'x';
+  const fork = (chat + '-' + tail).slice(0, 60);
+  const fsnap = await db().collection(REG).doc(fork).get();
+  if (!fsnap.exists || !fsnap.data().sessionId) {
+    await regRef(fork).set({ sessionId: sid }, { merge: true });
+  }
+  return fork;
+}
+// The hook calls this ONCE per session (cached in a state file) and then
+// posts feed + gallery + user messages under the returned slug, so everything
+// a session makes stays together on one chat.
+router.get('/resolve', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const out = await resolveChat(chat, String(req.query.session || ''));
+    res.json({ chat: out });
+  } catch (err) { fail(res, err); }
+});
+// Admin: claim (or clear) a slug's owning session — used to untangle an
+// already-collided chat without touching its history: claim the slug for the
+// ORIGINAL thread (any placeholder id works, e.g. "legacy"), and every other
+// session's next post forks out to its own chat.
+router.post('/session', async (req, res) => {
+  try {
+    const { chat, sessionId } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(sessionId || '').slice(0, 120);
+    await regRef(chat).set({ sessionId: val || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, sessionId: val || null });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/', async (req, res) => {
   try {
     // Without this the app's webview heuristically caches the feed (no
@@ -222,8 +281,23 @@ router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
+    if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
+    // Chats whose NAME matches the query — Sophie's display name first, the
+    // slug as fallback — returned separately so the client can pin them at
+    // the top of the results (her rule: searching a chat's name should find
+    // the chat itself before any message-content hits).
+    let chatMatches = [];
+    try {
+      const reg = await registry();
+      const ql = q.toLowerCase();
+      chatMatches = Object.keys(reg.chats || {})
+        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
+        .filter((c) => c.name.toLowerCase().includes(ql) || c.chat.toLowerCase().includes(ql))
+        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+        .slice(0, 10)
+        .map((c) => ({ chat: c.chat, name: c.name }));
+    } catch (e) { /* name matches are a bonus; message search still answers */ }
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Word-aware match: anchor the query at a word start (\b) so "aries" no
     // longer matches inside "boundaries", while a prefix like "bound" still
@@ -249,7 +323,7 @@ router.get('/search', async (req, res) => {
       }
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
-    res.json({ results, indexed: searchIndex.length });
+    res.json({ results, chatMatches, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -286,6 +360,13 @@ router.post('/', async (req, res) => {
     };
     // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
     if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
+    // Old-hook fallback: a post whose deep link carries a session id goes
+    // through the same per-session resolution as /resolve, so a reused branch
+    // slug can't file two sessions into one thread even before the posting
+    // environment picks up the updated hook. Hook-resolved posts pass through
+    // unchanged (their fork slug is already claimed by the same session).
+    const sm = doc.url && doc.url.match(/session_([A-Za-z0-9_-]{6,})/);
+    if (sm) doc.chat = await resolveChat(doc.chat, sm[1]);
     if (audio && /^https?:\/\//.test(audio)) doc.audioUrl = String(audio);
     else if (audio && /^data:audio\//.test(audio)) {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
