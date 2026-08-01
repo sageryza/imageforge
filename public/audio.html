@@ -220,10 +220,18 @@ function row(it) {
   const el = document.createElement('div');
   el.className = 'item';
   const meta = [mmss(it.seconds), mb(it.bytes)].filter(Boolean).join(' · ');
+  // The words, when a recording has been transcribed (the share sheet's
+  // Whisper toggle, or a pipeline that filled them in later).
+  let words = '';
+  if (it.transcribeStatus === 'transcribing') words = '<div class="sub" style="margin:6px 0 0">Writing down the words…</div>';
+  else if (it.transcribeStatus === 'failed') words = '<div class="st err" style="margin:6px 0 0">' + esc(it.transcribeError || 'transcription failed') + '</div>';
+  else if (it.transcript) words = '<details style="margin:6px 0 0"><summary class="sub" style="cursor:pointer">The words</summary>'
+    + '<div class="sub" style="white-space:pre-wrap; margin-top:4px">' + esc(it.transcript) + '</div></details>';
   el.innerHTML = '<div class="top"><div class="num">' + it.seq + '</div>'
     + '<div class="nm">' + esc(it.name) + '</div>'
     + '<div class="meta">' + esc(meta) + '</div></div>'
     + '<audio controls preload="none" src="' + esc(it.url) + '"></audio>'
+    + words
     + '<div class="acts"><button class="ghost" data-a="rename">Rename</button>'
     + '<button class="ghost" data-a="copy">Copy link</button>'
     + '<button class="ghost" data-a="del">Delete</button></div>';

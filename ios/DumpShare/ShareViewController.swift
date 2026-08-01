@@ -13,11 +13,14 @@ import UniformTypeIdentifiers
 /// voice memos saved as files reach Deck Factory with one Share tap instead of
 /// a trip through the /audio page's picker.
 ///
-/// Uploads run in the FOREGROUND, while this sheet is open. A background
-/// URLSession inside an extension requires an App Group entitlement, and
-/// adding one to the host app risks its automatic signing in CI — not worth
-/// breaking the app's builds over. The cost is that a big share keeps the
-/// sheet up until it finishes, which is at least honest about what's happening.
+/// Uploads run through a BACKGROUND URLSession (Aug 2026, Sophie's call —
+/// house rule: nothing waits in the foreground). The sheet stages each file
+/// into the App Group container, hands one upload task per file to the
+/// system's transfer daemon, and dismisses — the uploads finish on their own,
+/// even with the phone locked. Fire-and-forget on purpose: the server de-dupes
+/// by content hash, so if something ever doesn't arrive, re-sharing the batch
+/// heals it instead of doubling it. Staged files are swept two days later on
+/// the next share.
 final class ShareViewController: UIViewController {
     private let card = UIView()
     private let titleLabel = UILabel()
@@ -25,9 +28,10 @@ final class ShareViewController: UIViewController {
     private let progress = UIProgressView(progressViewStyle: .default)
     private let sendButton = UIButton(type: .system)
     private let cancelButton = UIButton(type: .system)
+    // Whisper opt-in for recordings — shown only when the share contains audio.
+    private let transcribeSwitch = UISwitch()
 
     private var attachments: [NSItemProvider] = []
-    private var sent = 0
     private var failed = 0
     private var session = ""
 
@@ -87,9 +91,26 @@ final class ShareViewController: UIViewController {
         cancelButton.setTitleColor(dim, for: .normal)
         cancelButton.addTarget(self, action: #selector(cancel), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [
-            titleLabel, statusLabel, progress, sendButton, cancelButton,
-        ])
+        // Recordings can be transcribed on arrival (Whisper, a few cents per
+        // recording) — her choice per share, off unless she flips it.
+        var rows: [UIView] = [titleLabel, statusLabel]
+        let hasAudio = attachments.contains {
+            $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+        }
+        if hasAudio {
+            let lbl = UILabel()
+            lbl.text = "Transcribe the recordings"
+            lbl.font = .systemFont(ofSize: 14)
+            lbl.textColor = ink
+            transcribeSwitch.onTintColor = accent
+            transcribeSwitch.isOn = false
+            let row = UIStackView(arrangedSubviews: [lbl, transcribeSwitch])
+            row.axis = .horizontal
+            row.alignment = .center
+            rows.append(row)
+        }
+        rows.append(contentsOf: [progress, sendButton, cancelButton])
+        let stack = UIStackView(arrangedSubviews: rows)
         stack.axis = .vertical
         stack.spacing = 12
         stack.setCustomSpacing(6, after: titleLabel)
@@ -121,35 +142,54 @@ final class ShareViewController: UIViewController {
         cancelButton.isHidden = true
         progress.isHidden = false
         progress.progress = 0
-        statusLabel.text = "Sending… keep this open."
+        statusLabel.text = "Handing off…"
 
         Task {
+            // Stage every file into the App Group container — the transfer
+            // daemon must still be able to read them after this sheet is gone
+            // — queue one background upload task each, then dismiss. The only
+            // wait here is reading the files off disk, seconds not uploads.
+            let fm = FileManager.default
+            guard let container = fm.containerURL(
+                forSecurityApplicationGroupIdentifier: Self.appGroup) else {
+                await MainActor.run { self.stageFailed("No shared container — reinstall the app.") }
+                return
+            }
+            let outbox = container.appendingPathComponent("dumpshare-outbox", isDirectory: true)
+            try? fm.createDirectory(at: outbox, withIntermediateDirectories: true)
+            Self.sweepOutbox(outbox)
+
+            let bg = Self.makeBackgroundSession()
+            var queued = 0
             for (i, provider) in attachments.enumerated() {
                 do {
-                    let file = try await Self.loadFile(from: provider)
-                    defer { try? FileManager.default.removeItem(at: file) }
-                    try await upload(file)
-                    sent += 1
+                    let tmp = try await Self.loadFile(from: provider)
+                    let staged = outbox.appendingPathComponent(
+                        UUID().uuidString + "-" + tmp.lastPathComponent)
+                    try fm.moveItem(at: tmp, to: staged)
+                    bg.uploadTask(with: uploadRequest(for: staged), fromFile: staged).resume()
+                    queued += 1
                 } catch {
                     failed += 1
                 }
                 let done = Float(i + 1) / Float(attachments.count)
-                await MainActor.run {
-                    progress.setProgress(done, animated: true)
-                    statusLabel.text = "Sent \(sent) of \(attachments.count)…"
-                }
+                await MainActor.run { progress.setProgress(done, animated: true) }
             }
-            await MainActor.run { finish() }
+            await MainActor.run { self.finishQueued(queued) }
         }
     }
 
-    private func finish() {
+    private func finishQueued(_ queued: Int) {
         if failed == 0 {
+            // Everything is queued with the system — done here, uploads
+            // continue on their own even if the app closes or the phone locks.
             extensionContext?.completeRequest(returningItems: nil)
         } else {
             // Say what happened rather than dismissing on a silent partial fail.
-            titleLabel.text = "Sent \(sent), \(failed) failed"
-            statusLabel.text = "The ones that failed are still on your phone — try again."
+            titleLabel.text = queued > 0 ? "Sending \(queued), \(failed) unreadable" : "Couldn't read those"
+            statusLabel.text = queued > 0
+                ? "The unreadable ones are still on your phone — share them again."
+                : "Nothing could be read from that share."
             progress.isHidden = true
             sendButton.setTitle("Done", for: .normal)
             sendButton.isEnabled = true
@@ -157,6 +197,44 @@ final class ShareViewController: UIViewController {
             sendButton.removeTarget(self, action: #selector(send), for: .touchUpInside)
             sendButton.addTarget(self, action: #selector(dismissDone), for: .touchUpInside)
         }
+    }
+
+    private func stageFailed(_ message: String) {
+        titleLabel.text = "Couldn't hand off"
+        statusLabel.text = message
+        progress.isHidden = true
+        sendButton.setTitle("Done", for: .normal)
+        sendButton.isEnabled = true
+        sendButton.alpha = 1
+        sendButton.removeTarget(self, action: #selector(send), for: .touchUpInside)
+        sendButton.addTarget(self, action: #selector(dismissDone), for: .touchUpInside)
+    }
+
+    // Staged files can't be deleted on upload completion (nobody is around to
+    // hear it) — sweep anything older than two days on the next share instead.
+    private static func sweepOutbox(_ dir: URL) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(
+            at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let cutoff = Date().addingTimeInterval(-48 * 3600)
+        for f in files {
+            let mod = (try? f.resourceValues(forKeys: [.contentModificationDateKey])
+                .contentModificationDate) ?? .distantPast
+            if mod < cutoff { try? fm.removeItem(at: f) }
+        }
+    }
+
+    private static let appGroup = "group.com.sageryza.imageforge"
+
+    private static func makeBackgroundSession() -> URLSession {
+        // A fresh identifier per share: sessions are one-shot handoffs, and
+        // reusing an identifier while its tasks still run is an error.
+        let config = URLSessionConfiguration.background(
+            withIdentifier: "com.sageryza.imageforge.dumpshare." + UUID().uuidString)
+        config.sharedContainerIdentifier = appGroup
+        config.isDiscretionary = false
+        config.sessionSendsLaunchEvents = false
+        return URLSession(configuration: config)
     }
 
     @objc private func dismissDone() {
@@ -191,20 +269,23 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func upload(_ file: URL) async throws {
+    private func uploadRequest(for file: URL) -> URLRequest {
         let server = UserDefaults.standard.string(forKey: "forge.serverURL")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let base = server?.isEmpty == false ? server! : Self.defaultServer
         // Audio goes to the audio drop (permanent URLs for recordings — the
-        // Episode Editor / voiceovers / chats all read from there); images and
-        // clips keep going to the Dump. One date-stamped batch per share.
+        // Episode Editor / voiceovers / chats all read from there), carrying
+        // the Whisper toggle's choice; images and clips keep going to the
+        // Dump. One date-stamped batch per share.
         var comps: URLComponents
         if Self.isAudio(file) {
             comps = URLComponents(string: base + "/api/audio/upload-file")!
-            comps.queryItems = [
+            var items: [URLQueryItem] = [
                 .init(name: "batch", value: session),
                 .init(name: "filename", value: file.lastPathComponent),
             ]
+            if transcribeSwitch.isOn { items.append(.init(name: "transcribe", value: "1")) }
+            comps.queryItems = items
         } else {
             comps = URLComponents(string: base + "/api/drop/upload-file")!
             comps.queryItems = [
@@ -217,14 +298,7 @@ final class ShareViewController: UIViewController {
         req.setValue(Self.contentType(for: file), forHTTPHeaderField: "Content-Type")
         let token = UserDefaults.standard.string(forKey: "forge.studioToken") ?? ""
         if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
-
-        let (_, response) = try await URLSession.shared.upload(for: req, fromFile: file)
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard code < 400 else {
-            throw NSError(domain: "Dump", code: code, userInfo: [
-                NSLocalizedDescriptionKey: "Server returned \(code)",
-            ])
-        }
+        return req
     }
 
     private static let defaultServer = "https://imageforge-q125.onrender.com"

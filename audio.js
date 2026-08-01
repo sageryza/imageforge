@@ -346,9 +346,40 @@ router.get('/items/:id', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// POST /upload-file?batch=&filename=&name= — ONE recording as the raw request
-// body. This is what the page uses: no base64 inflating the file by a third,
-// and XHR can report real upload progress on a phone connection.
+// Whisper the recording in the BACKGROUND and write the words onto its doc —
+// the ?transcribe=1 path (the share sheet's toggle, Aug 2026). House rule: the
+// upload response never waits on this; clients read `transcript` /
+// `transcribeStatus` off the doc later. Whisper's hard cap is 25MB, so bigger
+// files record a clear error instead of a hung status.
+const WHISPER_CAP = 24 * 1024 * 1024;
+function transcribeItem(id, buf, ext) {
+  (async () => {
+    const ref = db().collection(COL).doc(String(id));
+    try {
+      await ref.set({ transcribeStatus: 'transcribing', updatedAt: Date.now() }, { merge: true });
+      const { transcribeAudio } = require('./movies');
+      const t = await transcribeAudio(buf, 'recording.' + (ext || 'm4a'));
+      await ref.set({
+        transcript: String(t.text || ''),
+        transcribeStatus: admin.firestore.FieldValue.delete(),
+        transcribedAt: Date.now(),
+        updatedAt: Date.now(),
+      }, { merge: true });
+    } catch (e) {
+      await ref.set({
+        transcribeStatus: 'failed',
+        transcribeError: String(e.message || e).slice(0, 300),
+        updatedAt: Date.now(),
+      }, { merge: true }).catch(() => {});
+    }
+  })();
+}
+
+// POST /upload-file?batch=&filename=&name=&transcribe= — ONE recording as the
+// raw request body. This is what the page and the share sheet use: no base64
+// inflating the file by a third, and XHR can report real upload progress on a
+// phone connection. transcribe=1 queues a background Whisper pass onto the doc
+// (a duplicate that already has words keeps them; one without gets them now).
 router.post('/upload-file',
   express.raw({ type: () => true, limit: '300mb' }),
   async (req, res) => {
@@ -366,7 +397,24 @@ router.post('/upload-file',
       if (!ct || /octet-stream/i.test(ct)) ct = ctForName(filename);
 
       const item = await storeOne({ bucket, batch, buf: req.body, ct, filename, name });
-      res.json({ ok: true, batch, duplicate: Boolean(item.duplicate), item });
+      let transcribing = false;
+      if (req.query.transcribe === '1' && item.id && !item.transcript
+          && item.transcribeStatus !== 'transcribing') {
+        if (!process.env.OPENAI_API_KEY) {
+          await db().collection(COL).doc(String(item.id)).set({
+            transcribeStatus: 'failed', transcribeError: 'OPENAI_API_KEY not configured',
+          }, { merge: true }).catch(() => {});
+        } else if (req.body.length > WHISPER_CAP) {
+          await db().collection(COL).doc(String(item.id)).set({
+            transcribeStatus: 'failed',
+            transcribeError: 'file is over Whisper’s 25MB cap — transcribe it via a pipeline that chunks',
+          }, { merge: true }).catch(() => {});
+        } else {
+          transcribing = true;
+          transcribeItem(item.id, req.body, item.ext);
+        }
+      }
+      res.json({ ok: true, batch, duplicate: Boolean(item.duplicate), transcribing, item });
     } catch (e) { fail(res, e); }
   });
 

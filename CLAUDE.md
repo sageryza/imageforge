@@ -848,12 +848,17 @@ lifted into a standalone tool later.
   `/api/memos` files into the stamped 993-memo archive (and costs money per
   file), and the Dump takes images + video only. A folder of recordings in the
   Files app had nowhere to go.
-- **The iOS Share sheet is NOT a way in.** `DumpShare`'s activation rule is
-  `SupportsImageWithMaxCount` / `SupportsMovieWithMaxCount`, so a voice memo
-  never offers ImageForge as a destination. The way in is the `/audio` page's
-  file picker (multi-select works straight out of the Files app) — or Voice
-  Memos → Share → Copy → Story Room's "Paste a recording" when it belongs to
-  one story. Adding audio to the share extension is a TestFlight build.
+- **The iOS Share sheet IS a way in (Aug 2026).** `DumpShare` activates for
+  files too and routes audio extensions here (`POST /upload-file`, one
+  date-stamped batch per share) — with a **"Transcribe the recordings"
+  toggle** on the sheet that passes `?transcribe=1` (background Whisper onto
+  the doc: `transcript` / `transcribeStatus`; over-25MB files record a clear
+  error). Uploads are a BACKGROUND URLSession via the
+  `group.com.sageryza.imageforge` App Group — the sheet stages files in the
+  shared container, queues the tasks, and dismisses; fire-and-forget, the md5
+  dedupe means re-sharing heals a lost upload. Other ways in: the `/audio`
+  page's file picker, or Voice Memos → Share → Copy → Story Room's "Paste a
+  recording" when it belongs to one story.
 - **Dump first, label afterwards** (same as the Dump): uploading asks only for a
   batch name, defaulted to the date. `name` (from the filename), `notes`,
   `tags`, `track` are all fillable later, from the page or by a chat.
