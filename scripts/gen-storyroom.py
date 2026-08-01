@@ -164,10 +164,8 @@ __PILL_HTML__
 <div class="wrap">
   <section id="home">
     <input id="storysearch" class="searchbar" type="search" placeholder="Search stories&hellip;" autocomplete="off">
-    <div class="newrow"><button id="newstory" class="btn primary">+ New story</button><button class="btn" onclick="location.href='/character'">Characters</button></div>
+    <div class="newrow"><button id="newstory" class="btn primary">+ New story</button><button class="btn" onclick="location.href='/character'">Characters</button><button id="filmsbtn" class="btn" style="display:none">Films</button></div>
     <div id="shelf"><div class="state">Loading the boards&hellip;</div></div>
-    <div class="pagemark" id="filmsmark" style="display:none">THE FILMS</div>
-    <div id="films"></div>
   </section>
   <section id="proj" style="display:none"></section>
 </div>
@@ -181,6 +179,10 @@ function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.st
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 var projects=[], notes={}, cur=null, homeY=0, query='';
+// Films (forge-movies docs) grouped by the story they belong to. A film with
+// no story — dream experiments, tests — waits behind the home's Films button
+// instead of cluttering the shelf (Sophie's rule, Aug 2026).
+var filmsByStory={}, unmatchedFilms=[];
 var voTimer=null, drawVoCur=null;
 // A voiceover render/transcription is a server-side background job recorded
 // on the doc — poll the boards until voiceover.status clears (survives
@@ -290,6 +292,7 @@ function renderShelf(){
     if(beats) bits.push(beats+(beats===1?' beat':' beats'));
     if(String(p.text||'').trim()) bits.push('story');
     if(p.voiceover&&(p.voiceover.url||p.voiceover.status)) bits.push('voice');
+    if((filmsByStory[p.id]||[]).some(function(f){return f.movieUrl;})||(p.draftFilm&&p.draftFilm.url)) bits.push('film');
     if(!bits.length) bits.push('new');
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML=(cov? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(cov))+'"></span>'
@@ -504,6 +507,138 @@ function openProj(p, jumpBeat){
     ov.appendChild(sheet); document.body.appendChild(ov);
   }
   drawSummary();
+
+  // ── The Film — the story's most recent rendered film, ON the story
+  // (Sophie, Aug 2026). A real film (a linked forge-movies doc with a stitch)
+  // wins; otherwise an ffmpeg DRAFT cut from the beat art — auto-stitched on
+  // first open, over the voiceover when there is one — so there's always
+  // something watchable the moment art exists. Below it, the frames. ──
+  var filmWrap=document.createElement('div'); sec.appendChild(filmWrap);
+  var draftKicked=false, draftTimer=null;
+  function artList(){
+    var out=[];
+    (p.beats||[]).forEach(function(b,bi){ var a=beatArt(bi); if(a) out.push(a); });
+    return out;
+  }
+  function mkVideo(src, poster){
+    var v=document.createElement('video'); v.className='player'; v.controls=true;
+    v.playsInline=true; v.setAttribute('playsinline',''); v.preload='none';
+    if(poster) v.poster=thumb(poster);
+    v.src=src;
+    return v;
+  }
+  function thumbRow(urls){
+    var zg=document.createElement('div'); zg.className='zgrid'; zg.style.margin='12px 0 0';
+    urls.forEach(function(u,i){
+      var cell=document.createElement('button'); cell.className='zcell';
+      cell.innerHTML='<img alt="" loading="lazy" src="'+esc(thumb(u))+'"><span class="zno">'+(i+1)+'</span>';
+      cell.onclick=function(){
+        window.__scrollStop();
+        var lb=document.getElementById('lightbox');
+        lb.innerHTML='<img alt="" src="'+esc(u)+'">';
+        lb.style.display='flex';
+        document.body.style.overflow='hidden';   // freeze the page behind
+        lb.onclick=function(){ lb.style.display='none'; lb.innerHTML=''; document.body.style.overflow=''; };
+      };
+      zg.appendChild(cell);
+    });
+    return zg;
+  }
+  function pollDraft(){
+    clearInterval(draftTimer);
+    draftTimer=setInterval(function(){
+      api('/api/story').then(function(r){return r.json()}).then(function(res){
+        if(!cur||cur.id!==p.id){ clearInterval(draftTimer); return; }
+        var p2=((res&&res.projects)||[]).filter(function(x){return x.id===p.id})[0];
+        if(!p2){ clearInterval(draftTimer); return; }
+        p.draftFilm=p2.draftFilm||null;
+        if(!(p.draftFilm&&p.draftFilm.status)){
+          clearInterval(draftTimer);
+          drawFilm();
+          toast(p.draftFilm&&p.draftFilm.error? 'Draft stitch failed':'Draft film ready');
+        }
+      }).catch(function(){});
+    },6000);
+  }
+  function kickDraft(force){
+    api('/api/story/draft-film',{method:'POST',body:JSON.stringify({projectId:p.id, force:!!force})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
+        p.draftFilm=d.draftFilm||{status:'stitching'};
+        drawFilm(); pollDraft();
+      })
+      .catch(function(e){ toast('Stitch failed: '+String(e.message||e).slice(0,60)); });
+  }
+  function drawFilm(){
+    filmWrap.innerHTML='';
+    var films=filmsByStory[p.id]||[];
+    var real=films.filter(function(f){return f.movieUrl;});
+    var df=p.draftFilm||null;
+    var art=artList();
+    if(!real.length&&!df&&!art.length&&!films.length) return;   // nothing filmable yet
+    var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE FILM'; filmWrap.appendChild(pm);
+    if(real.length){
+      var f0=real[0];   // newest linked film
+      filmWrap.appendChild(mkVideo(f0.movieUrl, f0.poster));
+      var row=document.createElement('div'); row.className='newrow'; row.style.margin='10px 0 0';
+      var ob=document.createElement('button'); ob.className='btn'; ob.textContent='Cuts & rejected art';
+      ob.onclick=function(){ openFilm(f0, function(){ openProj(p); }); };
+      row.appendChild(ob);
+      real.slice(1).forEach(function(f){
+        var b=document.createElement('button'); b.className='btn'; b.textContent=String(f.title||f.id).slice(0,24);
+        b.onclick=function(){ openFilm(f, function(){ openProj(p); }); };
+        row.appendChild(b);
+      });
+      filmWrap.appendChild(row);
+      // the film's frames, in order, from the movie doc
+      api('/api/movies/'+encodeURIComponent(f0.id)).then(function(r){return r.json()}).then(function(doc){
+        if(!cur||cur.id!==p.id) return;
+        var urls=((doc&&doc.scenes)||[]).map(function(sc){return sc&&sc.panel&&sc.panel.url;}).filter(Boolean);
+        if(urls.length) filmWrap.appendChild(thumbRow(urls));
+      }).catch(function(){});
+      return;
+    }
+    // No real film — the ffmpeg draft.
+    if(df&&df.status){
+      var st=document.createElement('p'); st.className='vo none';
+      st.textContent='Stitching the draft… it keeps working if you leave.';
+      filmWrap.appendChild(st);
+      if(df.url) filmWrap.appendChild(mkVideo(df.url, art[0]));
+      pollDraft();
+    } else if(df&&df.error){
+      if(df.url) filmWrap.appendChild(mkVideo(df.url, art[0]));
+      var er=document.createElement('div'); er.className='voerr'; er.textContent=df.error; filmWrap.appendChild(er);
+      var rr2=document.createElement('div'); rr2.className='newrow';
+      var rb2=document.createElement('button'); rb2.className='btn'; rb2.textContent='Try again';
+      rb2.onclick=function(){ toast('Stitching…'); kickDraft(true); };
+      rr2.appendChild(rb2); filmWrap.appendChild(rr2);
+    } else if(df&&df.url){
+      filmWrap.appendChild(mkVideo(df.url, art[0]));
+      var stale=JSON.stringify(df.art||[])!==JSON.stringify(art)
+        || String((p.voiceover&&p.voiceover.url)||'')!==String(df.voUrl||'');
+      var cap=document.createElement('p'); cap.className='vo none'; cap.style.fontSize='14px'; cap.style.margin='6px 0 4px';
+      cap.textContent='Draft — cut from the beat art'+(stale? ', and the art has changed since':'');
+      filmWrap.appendChild(cap);
+      var rr=document.createElement('div'); rr.className='newrow'; rr.style.margin='0';
+      var rb=document.createElement('button'); rb.className='btn'+(stale?' primary':''); rb.textContent='Restitch';
+      rb.onclick=function(){ toast('Stitching…'); kickDraft(true); };
+      rr.appendChild(rb); filmWrap.appendChild(rr);
+    } else if(art.length){
+      // first open with art and no draft yet — stitch without being asked, so
+      // walking into a story always shows the current rough cut
+      var st2=document.createElement('p'); st2.className='vo none';
+      st2.textContent='Stitching the draft… it keeps working if you leave.';
+      filmWrap.appendChild(st2);
+      if(!draftKicked){ draftKicked=true; kickDraft(false); }
+    } else if(films.length){
+      var no=document.createElement('p'); no.className='vo none';
+      no.textContent='A film is linked but nothing is stitched yet.';
+      filmWrap.appendChild(no);
+    }
+    if(art.length) filmWrap.appendChild(thumbRow(art));
+  }
+  drawFilm();
+  if(p.draftFilm&&p.draftFilm.status) pollDraft();
 
   // ── The story itself (prose) — read + edit in place ──
   var proseWrap=document.createElement('div'); sec.appendChild(proseWrap);
@@ -961,30 +1096,53 @@ document.querySelector('.wrap').addEventListener('click',function(e){
   window.__scrollStop();   // a tap on content only ever STOPS autoscroll
 });
 
-function renderFilms(films){
-  var mark=document.getElementById('filmsmark'), el=document.getElementById('films');
-  el.innerHTML='';
-  if(!films.length){ mark.style.display='none'; return; }
-  mark.style.display='';
-  shelfRows(el, films, function(m){
+// The films archive \u2014 everything the Movies pipeline made that has NO story
+// to live on (dream experiments, tests). Off the home screen by request
+// (Sophie, Aug 2026): a film with a story shows on the story itself; the
+// rest waits back here behind the Films button.
+function openFilmsArchive(){
+  if(!cur) homeY=window.scrollY;
+  window.__scrollStop();
+  clearInterval(voTimer);
+  cur={films:1};
+  var sec=document.getElementById('proj'); sec.innerHTML='';
+  var bar=document.createElement('div'); bar.className='eyebrowrow';
+  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
+    +'<div class="no">films &middot; no story attached</div>';
+  bar.querySelector('.backbtn').onclick=goHome;
+  sec.appendChild(bar);
+  var head=document.createElement('header');
+  head.innerHTML='<h1>Films</h1><div class="rule"></div>';
+  sec.appendChild(head);
+  var sub=document.createElement('p'); sub.className='sub';
+  sub.textContent='Experiments and films without a story. A film that belongs to a story lives on the story itself.';
+  sec.appendChild(sub);
+  var wrap=document.createElement('div'); sec.appendChild(wrap);
+  shelfRows(wrap, unmatchedFilms, function(m){
     var b=document.createElement('button'); b.className='tile';
     b.innerHTML=(m.poster? '<span class="t-cover"><img alt="" loading="lazy" src="'+esc(thumb(m.poster))+'"></span>'
                          : '<span class="t-cover t-blank"><span>'+esc((m.title||m.id||'?').slice(0,1))+'</span></span>')
       +'<span class="t-name">'+esc(m.title||m.id)+'</span>'
       +'<span class="t-meta">'+(m.sceneCount||0)+' scenes'+(m.movieUrl?'':' \u00b7 no film yet')+'</span>';
-    b.onclick=function(){ openFilm(m); };
+    b.onclick=function(){ openFilm(m, openFilmsArchive); };
     return b;
   });
+  document.getElementById('home').style.display='none';
+  sec.style.display='';
+  document.body.classList.add('reading');
+  window.scrollTo(0,0);
 }
-function openFilm(m){
+// backTo: where the \u2039 button returns \u2014 the films archive, a story page, or
+// (default) the shelf.
+function openFilm(m, backTo){
   if(!cur) homeY=window.scrollY;   // remember the shelf spot for back
   window.__scrollStop();
   cur={film:m.id};
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var bar=document.createElement('div'); bar.className='eyebrowrow';
-  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
+  bar.innerHTML='<button class="backbtn" aria-label="Back">&#8249;</button>'
     +'<div class="no">the films</div>';
-  bar.querySelector('.backbtn').onclick=goHome;
+  bar.querySelector('.backbtn').onclick=(typeof backTo==='function')? backTo : goHome;
   sec.appendChild(bar);
   var head=document.createElement('header');
   head.innerHTML='<h1>'+esc(m.title||m.id)+'</h1><div class="rule"></div>';
@@ -1074,8 +1232,19 @@ Promise.all([
     notes[id]={ t:n.text||'', a:n.audioUrl||n.audioData||null };
     if(!notes[id].a) notes[id]=notes[id].t;
   });
+  // Sort films onto their stories; the rest go behind the Films button.
+  var pid={}; projects.forEach(function(p){ pid[p.id]=1; });
+  filmsByStory={}; unmatchedFilms=[];
+  (((res[2]&&res[2].movies)||[]).filter(function(m){return m.movieUrl||m.poster;})).forEach(function(m){
+    if(m.storyId&&pid[m.storyId]){ (filmsByStory[m.storyId]=filmsByStory[m.storyId]||[]).push(m); }
+    else unmatchedFilms.push(m);
+  });
+  Object.keys(filmsByStory).forEach(function(k){
+    filmsByStory[k].sort(function(a,b){ return String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')); });
+  });
   renderShelf();
-  renderFilms(((res[2]&&res[2].movies)||[]).filter(function(m){return m.movieUrl||m.poster;}));
+  var fb=document.getElementById('filmsbtn');
+  if(fb){ fb.style.display=unmatchedFilms.length? '':'none'; fb.onclick=openFilmsArchive; }
 });
 })();
 </script>

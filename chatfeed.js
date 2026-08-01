@@ -752,8 +752,29 @@ router.post('/polish', async (req, res) => {
 
 router.post('/reply', async (req, res) => {
   try {
+    // Sophie's SIDE of a thread is her real conversation: the app's reply box
+    // and the hook lifting her messages out of the transcript. Notes typed
+    // inside a Compare page are NOT messages (Aug 2026: two pages' note boxes
+    // posted her notes into the thread as if she'd said them there) — so a
+    // /reply fired from inside a served page is REROUTED, not refused: the
+    // note lands on the page's verdict doc (sheet `page-<id>`, readable via
+    // GET /verdict) where the page's chat picks it up, the thread stays
+    // clean, and nothing she typed is ever dropped. New pages should post to
+    // /api/chatfeed/verdict directly.
     const { chat, text, created } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    const pageRef = String(req.get('referer') || '').match(/\/api\/chatfeed\/page\/([A-Za-z0-9_-]+)/);
+    if (pageRef) {
+      const sheet = 'page-' + pageRef[1];
+      const id = `${String(chat).slice(0, 80)}__${sheet}`;
+      await db().collection('forge-chat-verdicts').doc(id).set({
+        chat: String(chat).slice(0, 60),
+        sheet,
+        texts: { ['note-' + Date.now()]: String(text).slice(0, 2000) },
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      return res.json({ ok: true, keptOnPage: true });
+    }
     // `created` = when she actually sent it (the hook passes the transcript's
     // timestamp for her own messages, so hers sorts ABOVE the reply it
     // prompted). Ignored unless it parses and isn't in the future.

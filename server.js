@@ -1080,6 +1080,146 @@ async function storyTts(text, voice) {
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
 
+// ── Draft film: a story's beat art auto-cut into a watchable rough film ──
+// (Sophie, Aug 2026: opening a story should show the most immediate draft of
+// its film, even if it's not perfect — if all that exists is images, cut them
+// with ffmpeg, over the voiceover when there is one, just the images when not.)
+// One image per beat — best card by status (approved > candidate > draft, the
+// same pick the page's summary art uses) — timed evenly across the voiceover
+// (else 2.8s each), stitched to a 1000x1400 (5:7, the shelf's cover ratio)
+// h264 mp4 and saved to the boards' Storage. Stored on the doc as
+// `draftFilm: { url, at, seconds, art:[urls], voUrl, status?, error? }` — a
+// background job on the doc (house rule); the page polls GET /api/story.
+// `art`/`voUrl` fingerprint what the film was cut from, so the page can tell
+// a stale draft from a current one without re-stitching on every open.
+function draftFilmArt(data) {
+  const NORM = { approved: 'ok', candidate: 'cand', storyboard: 'draft', 'no art yet': 'miss' };
+  const urls = [];
+  (data.beats || []).forEach((b) => {
+    const cs = (b && b.cards) || [];
+    let pick = '';
+    for (const want of ['ok', 'cand', 'draft']) {
+      const hit = cs.find((c) => c && c.url && (NORM[c.status] || c.status) === want);
+      if (hit) { pick = hit.url; break; }
+    }
+    if (!pick) { const any = cs.find((c) => c && c.url); if (any) pick = any.url; }
+    if (pick) urls.push(pick);
+  });
+  return urls;
+}
+const DRAFT_FILM_STALE_MS = 15 * 60 * 1000;   // a stitch job older than this is dead
+app.post('/api/story/draft-film', express.json(), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { projectId, force } = req.body || {};
+    const db = await storyDb();
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const ref = db.collection('forge-story').doc(String(projectId));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
+    const data = doc.data();
+    const art = draftFilmArt(data);
+    if (!art.length) return res.status(400).json({ error: 'no art on the beats yet' });
+    const prev = (data.draftFilm && typeof data.draftFilm === 'object') ? data.draftFilm : {};
+    const running = prev.status === 'stitching'
+      && prev.statusAt && (Date.now() - new Date(prev.statusAt).getTime()) < DRAFT_FILM_STALE_MS;
+    if (running && !force) return res.json({ ok: true, draftFilm: prev, running: true });
+    const voUrl = (data.voiceover && data.voiceover.url) || '';
+    // keep the previous url so the page can show the old cut while the new
+    // one stitches; art/voUrl stay the OLD film's until the job lands
+    data.draftFilm = { ...prev, status: 'stitching', statusAt: new Date().toISOString() };
+    delete data.draftFilm.error;
+    await ref.set(data);
+    res.json({ ok: true, draftFilm: data.draftFilm });
+
+    // ── background: download art (+ voiceover), stitch, upload, patch doc ──
+    const finish = async (patch) => {
+      try {
+        const snap = await ref.get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        d.draftFilm = { ...(d.draftFilm || {}), ...patch };
+        delete d.draftFilm.status; delete d.draftFilm.statusAt;
+        if (!patch.error) delete d.draftFilm.error;
+        await ref.set(d);
+      } catch (e) { console.error('draft film update failed:', e.message); }
+    };
+    (async () => {
+      const os = require('os');
+      const { spawn } = require('child_process');
+      const ffmpeg = process.env.FFMPEG_PATH || require('ffmpeg-static');
+      const ffprobe = process.env.FFPROBE_PATH || require('ffprobe-static').path;
+      const run = (bin, args) => new Promise((resolve, reject) => {
+        const p = spawn(bin, args);
+        let out = '', err = '';
+        p.stdout.on('data', (c) => out += c); p.stderr.on('data', (c) => err += c);
+        p.on('close', (code) => (code === 0 ? resolve(out) : reject(new Error(path.basename(bin) + ': ' + err.slice(-300)))));
+      });
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'draftfilm-'));
+      try {
+        const imgs = [];
+        for (let i = 0; i < art.length; i++) {
+          const r = await fetch(art[i]);
+          if (!r.ok) throw new Error('art fetch ' + r.status);
+          const f = path.join(tmp, 'img' + i);
+          fs.writeFileSync(f, await r.buffer());
+          imgs.push(f);
+        }
+        let audioFile = null, audioDur = 0;
+        if (voUrl) {
+          const r = await fetch(voUrl);
+          if (r.ok) {
+            audioFile = path.join(tmp, 'vo');
+            fs.writeFileSync(audioFile, await r.buffer());
+            const probed = await run(ffprobe, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', audioFile]).catch(() => '');
+            audioDur = parseFloat(probed) || 0;
+            if (!audioDur) { audioFile = null; }
+          }
+        }
+        // evenly across the narration when there is one; 2.8s a picture when not
+        const per = audioDur ? Math.max(1.2, audioDur / imgs.length) : 2.8;
+        const segs = [];
+        for (let i = 0; i < imgs.length; i++) {
+          const seg = path.join(tmp, 'seg' + i + '.mp4');
+          await run(ffmpeg, ['-y', '-loop', '1', '-t', per.toFixed(3), '-i', imgs[i],
+            '-vf', 'scale=1000:1400:force_original_aspect_ratio=decrease,pad=1000:1400:(ow-iw)/2:(oh-ih)/2:color=#141210,fps=24,format=yuv420p',
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-an', seg]);
+          segs.push(seg);
+        }
+        const listFile = path.join(tmp, 'list.txt');
+        fs.writeFileSync(listFile, segs.map((f) => `file '${f}'`).join('\n'));
+        const silent = path.join(tmp, 'silent.mp4');
+        await run(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', silent]);
+        let outFile = silent;
+        if (audioFile) {
+          outFile = path.join(tmp, 'out.mp4');
+          await run(ffmpeg, ['-y', '-i', silent, '-i', audioFile,
+            '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-shortest', outFile]);
+        }
+        const bucket = storyApp.storage().bucket();
+        const dest = bucket.file(`story/draft-film-${projectId}-${Date.now()}.mp4`);
+        // streamed from disk, never fs.readFileSync — Render free has 512MB total
+        await bucket.upload(outFile, { destination: dest.name, metadata: { contentType: 'video/mp4' }, resumable: false });
+        await dest.makePublic();
+        await finish({
+          url: `https://storage.googleapis.com/${bucket.name}/${dest.name}`,
+          at: new Date().toISOString(),
+          seconds: Math.round(per * imgs.length),
+          art, voUrl,
+        });
+      } catch (e) {
+        await finish({ error: 'stitch failed: ' + e.message });
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    })();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Bulk-dump many images into a project's INBOX (unsorted holding area) in one
 // request — "add lots of art, sort it out later". Accepts data URLs or https
 // URLs. Sorting into beats happens via /api/story/assign.

@@ -250,6 +250,7 @@ async function listMovies() {
     sceneCount: (m.scenes || []).length,
     poster: (m.scenes || []).map(s => s.panel && s.panel.url).find(Boolean) || null,
     movieUrl: m.movieUrl || null,
+    storyId: m.storyId || null,   // which forge-story doc this film belongs to
     spend: m.spend || 0,
     job: m.job || null,
   }));
@@ -2138,7 +2139,7 @@ function authoredScene(s, i) {
 router.post('/', async (req, res) => {
   try {
     const { story, title, sceneCount, panelQuality, scenes, characters, aspect,
-            style, styles, characterRefs, motionProfile, morphPairs } = req.body || {};
+            style, styles, characterRefs, motionProfile, morphPairs, storyId } = req.body || {};
     // Two ways in: a story for GPT to break down, OR a hand-authored scene list
     // (exact beats, outfits, startAts) that skips the breakdown entirely.
     const authored = Array.isArray(scenes) && scenes.length;
@@ -2185,6 +2186,9 @@ router.post('/', async (req, res) => {
       id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
       title: wanted.length > 1 ? `${baseTitle} (${MOVIE_STYLES[sid].label})` : baseTitle,
       story: String(story || '').trim(),
+      // The forge-story doc this film was made from — what lets the Story
+      // Room show a story's film ON the story instead of in a loose pile.
+      storyId: String(storyId || '').trim().slice(0, 80) || null,
       characters: plan.characters,
       style: sid,
       morphPairs: opts.morphPairs,
@@ -2216,6 +2220,21 @@ router.post('/', async (req, res) => {
     res.json(movies.length > 1 ? { movies } : movies[0]);
   } catch (err) {
     res.status(err.message.includes('required') ? 400 : 502).json({ error: err.message });
+  }
+});
+
+// Link (or unlink, with an empty storyId) a movie to its forge-story doc
+// after the fact — the Story Room groups films under their story by this,
+// and scripts/link-films-to-stories.js backfills older films through it.
+router.post('/:id/story', async (req, res) => {
+  try {
+    const movie = await loadMovie(req.params.id);
+    if (!movie) return res.status(404).json({ error: 'movie not found' });
+    movie.storyId = String((req.body || {}).storyId || '').trim().slice(0, 80) || null;
+    await saveMovie(movie);
+    res.json({ ok: true, id: movie.id, storyId: movie.storyId });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
   }
 });
 

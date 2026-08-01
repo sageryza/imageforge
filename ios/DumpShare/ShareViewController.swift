@@ -8,6 +8,11 @@ import UniformTypeIdentifiers
 /// clips from Photos, Files, Safari, anywhere, and they land in the inbox as
 /// one unnamed bundle to be labelled later.
 ///
+/// Audio too (Aug 2026): a recording shared from the Files app uploads to the
+/// audio drop (`/api/audio/upload-file`, one date-stamped batch per share), so
+/// voice memos saved as files reach Deck Factory with one Share tap instead of
+/// a trip through the /audio page's picker.
+///
 /// Uploads run in the FOREGROUND, while this sheet is open. A background
 /// URLSession inside an extension requires an App Group entitlement, and
 /// adding one to the host app risks its automatic signing in CI — not worth
@@ -38,7 +43,8 @@ final class ShareViewController: UIViewController {
         attachments = (extensionContext?.inputItems as? [NSExtensionItem] ?? [])
             .flatMap { $0.attachments ?? [] }
             .filter { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
-                   || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }
+                   || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+                   || $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
         buildUI()
     }
 
@@ -59,7 +65,7 @@ final class ShareViewController: UIViewController {
         titleLabel.textColor = ink
 
         statusLabel.text = attachments.isEmpty
-            ? "No photos or videos in what you shared."
+            ? "No photos, videos or recordings in what you shared."
             : "Lands in the inbox — you can label it later."
         statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.textColor = dim
@@ -162,7 +168,9 @@ final class ShareViewController: UIViewController {
     /// before the closure returns.
     private static func loadFile(from provider: NSItemProvider) async throws -> URL {
         let type = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-            ? UTType.movie.identifier : UTType.image.identifier
+            ? UTType.movie.identifier
+            : provider.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+            ? UTType.audio.identifier : UTType.image.identifier
         return try await withCheckedThrowingContinuation { cont in
             provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
                 if let error { return cont.resume(throwing: error) }
@@ -186,12 +194,24 @@ final class ShareViewController: UIViewController {
     private func upload(_ file: URL) async throws {
         let server = UserDefaults.standard.string(forKey: "forge.serverURL")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        var comps = URLComponents(string: (server?.isEmpty == false ? server! : Self.defaultServer)
-                                  + "/api/drop/upload-file")!
-        comps.queryItems = [
-            .init(name: "session", value: session),
-            .init(name: "filename", value: file.lastPathComponent),
-        ]
+        let base = server?.isEmpty == false ? server! : Self.defaultServer
+        // Audio goes to the audio drop (permanent URLs for recordings — the
+        // Episode Editor / voiceovers / chats all read from there); images and
+        // clips keep going to the Dump. One date-stamped batch per share.
+        var comps: URLComponents
+        if Self.isAudio(file) {
+            comps = URLComponents(string: base + "/api/audio/upload-file")!
+            comps.queryItems = [
+                .init(name: "batch", value: session),
+                .init(name: "filename", value: file.lastPathComponent),
+            ]
+        } else {
+            comps = URLComponents(string: base + "/api/drop/upload-file")!
+            comps.queryItems = [
+                .init(name: "session", value: session),
+                .init(name: "filename", value: file.lastPathComponent),
+            ]
+        }
         var req = URLRequest(url: comps.url!)
         req.httpMethod = "POST"
         req.setValue(Self.contentType(for: file), forHTTPHeaderField: "Content-Type")
@@ -209,6 +229,13 @@ final class ShareViewController: UIViewController {
 
     private static let defaultServer = "https://imageforge-q125.onrender.com"
 
+    private static let audioExts: Set<String> = [
+        "m4a", "mp3", "wav", "aac", "aif", "aiff", "caf", "ogg", "oga", "opus", "flac", "amr",
+    ]
+    private static func isAudio(_ file: URL) -> Bool {
+        audioExts.contains(file.pathExtension.lowercased())
+    }
+
     private static func contentType(for file: URL) -> String {
         switch file.pathExtension.lowercased() {
         case "jpg", "jpeg": return "image/jpeg"
@@ -219,6 +246,16 @@ final class ShareViewController: UIViewController {
         case "webp":        return "image/webp"
         case "mov":         return "video/quicktime"
         case "mp4", "m4v":  return "video/mp4"
+        case "m4a":         return "audio/mp4"
+        case "mp3":         return "audio/mpeg"
+        case "wav":         return "audio/wav"
+        case "aac":         return "audio/aac"
+        case "aif", "aiff": return "audio/aiff"
+        case "caf":         return "audio/x-caf"
+        case "ogg", "oga":  return "audio/ogg"
+        case "opus":        return "audio/opus"
+        case "flac":        return "audio/flac"
+        case "amr":         return "audio/amr"
         default:            return "application/octet-stream"
         }
     }
