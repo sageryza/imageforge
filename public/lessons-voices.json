@@ -45,13 +45,7 @@
    "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/XIulCQGAkr2IaHW79e9z",
    "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/mm-machine.png",
    "voice": null,
-   "source": {
-    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/metaphor-machine-source.m4a",
-    "recorded": "2026-07-28",
-    "minutes": 5,
-    "note": "pitches the lesson and names a follow-up she wants: \"all the gates of the metaphor machine\"",
-    "kind": "her thinking the lesson up out loud — not a read-aloud of the written lesson"
-   }
+   "source": null
   },
   {
    "title": "Where Do You Crop Art?",
@@ -59,13 +53,7 @@
    "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/u10reFkKkeV7DDLfwcsG",
    "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/na-process.png",
    "voice": null,
-   "source": {
-    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/noise-art-source.m4a",
-    "recorded": "2026-07-29",
-    "minutes": 3,
-    "note": "the noise-art concept: input, change it, look, change it again — and how the metaphor machine gates meaning",
-    "kind": "her thinking the lesson up out loud — not a read-aloud of the written lesson"
-   }
+   "source": null
   },
   {
    "title": "Art Is Forgiving",
@@ -180,13 +168,7 @@
    "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/zBftSk1m7zjU6jTPccXC",
    "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/md-bubble.png",
    "voice": null,
-   "source": {
-    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/wake-up-to-source.m4a",
-    "recorded": "2026-07-28",
-    "minutes": 2,
-    "note": "names the title as a pun, then the real premise — Aunt Parvati and Mason pushing meditation, and the background processes she cannot just switch off",
-    "kind": "her thinking the lesson up out loud — not a read-aloud of the written lesson"
-   }
+   "source": null
   },
   {
    "title": "Valued Customer",
