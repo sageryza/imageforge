@@ -1212,6 +1212,12 @@ lifted into a standalone tool later.
   image, video, or any downloadable deliverable — send it as the final item,
   after all explanatory text, so it's easy to find and never buried
   mid-message.
+- **NO image-link lists in replies (Aug 2026, Sophie's rule — "don't do that again ever").**
+  Do not paste a link per image into a chat reply. File every image into the
+  chat's Assets tab yourself (`POST /api/gallery {assetsOnly:true, chat, url,
+  description}` + the prompt POST), put viewing pages in the Compare tab, and
+  the reply simply says where to look. A link belongs in a reply only when it
+  is ONE specific thing she must open (a new Compare page, a PR, a deploy).
 - **Delivered files/images go at the BOTTOM.** When sending or attaching any
   file or image, place it at the very END of the message, after all the text —
   never before or in the middle. Write the explanation first, deliver last.
