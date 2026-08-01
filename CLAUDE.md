@@ -1351,6 +1351,9 @@ lifted into a standalone tool later.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
+- **Full cutting-pipeline documentation: `docs/nde-precise-cutting.md`** — read
+  it before cutting interview audio; it is the doc of record for the precise
+  cutter (alignment caches, snapping rules, both implementations, data layout).
 - `editor.js` (`/api/editor`, page at `/editor`, iOS tile "Episode Editor") — Sophie selects spans of a real
   interview transcript as **snippet cards**, arranges them (with **narration**
   and **gap** cards) into an episode, taps **Render**, and gets the finished
