@@ -571,7 +571,10 @@ function openProj(p, jumpBeat){
       .then(function(r){return r.json()})
       .then(function(d){ if(!d.ok) throw new Error(d.error||'failed');
         p.voiceover={ url:d.voiceover.url||null, text:d.voiceover.text||'', status:d.voiceover.status||null,
-                      source:(p.voiceover&&p.voiceover.source)||null };
+                      source:(p.voiceover&&p.voiceover.source)||null,
+                      // the server keeps `alt` on the doc; carry it locally too
+                      // or the other take vanishes from the page until reload
+                      alt:(p.voiceover&&p.voiceover.alt)||null };
         if(body.audio||body.url) p.voiceover.source='recording';
         drawVo();
         if(d.voiceover.status) pollVo(p.id);
@@ -600,6 +603,19 @@ function openProj(p, jumpBeat){
     }
     if(String(vo.text||'').trim()){
       var tx=document.createElement('div'); tx.className='voscript'; tx.textContent=vo.text; voWrap.appendChild(tx);
+    }
+    // An earlier/alternate take of the SAME narration — she often records twice
+    // in a row and the keeper isn't always the second one. Shown under the main
+    // take with its own player so both can be heard without swapping anything.
+    if(vo.alt&&vo.alt.url){
+      var al=document.createElement('div'); al.className='pagemark'; al.style.marginTop='14px';
+      al.textContent='ANOTHER TAKE' + (vo.alt.seconds? ' · '+vo.alt.seconds+'s' : '');
+      voWrap.appendChild(al);
+      if(vo.alt.note){ var an=document.createElement('div'); an.className='vo none'; an.textContent=vo.alt.note; voWrap.appendChild(an); }
+      var aa=document.createElement('audio'); aa.controls=true; aa.preload='none'; aa.src=vo.alt.url; voWrap.appendChild(aa);
+      if(String(vo.alt.text||'').trim()){
+        var at=document.createElement('div'); at.className='voscript'; at.textContent=vo.alt.text; voWrap.appendChild(at);
+      }
     }
     var row=document.createElement('div'); row.className='newrow';
     // Paste a recording — the native bridge (app only): in Voice Memos,
