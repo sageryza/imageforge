@@ -883,7 +883,7 @@ app.post('/api/story/description', express.json({ limit: '40mb' }), async (req, 
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { projectId, description, audio } = req.body || {};
+    const { projectId, description, audio, audioUrl } = req.body || {};
     const db = await storyDb();
     if (!db) return res.status(503).json({ error: 'firebase not configured' });
     const ref = db.collection('forge-story').doc(String(projectId));
@@ -895,7 +895,11 @@ app.post('/api/story/description', express.json({ limit: '40mb' }), async (req, 
       const parsed = parseAudioDataUrl(audio);
       if (!parsed) return res.status(400).json({ error: 'audio must be a data:audio/* URL' });
       data.descriptionAudio = await saveStoryAudioBuffer(parsed.buffer, parsed.mime, `desc-${projectId}`);
-    } else if (audio === null) {
+    } else if (audioUrl && /^https?:\/\//.test(String(audioUrl))) {
+      // Already-hosted recording (e.g. a memo copied into Storage) — point at
+      // it rather than round-tripping megabytes of base64 through the phone.
+      data.descriptionAudio = String(audioUrl);
+    } else if (audio === null || audioUrl === null) {
       delete data.descriptionAudio;
     }
     await ref.set(data);
