@@ -109,4 +109,15 @@ router.post('/register', gate, express.json({ limit: '256kb' }), async (req, res
   }
 });
 
+// The timeline page-map: timeline page -> scan page -> image URL. Gated —
+// this hands out links to every page of the journal.
+router.get('/map', gate, async (req, res) => {
+  try {
+    const deck = deps.deckBucket ? await deps.deckBucket() : null;
+    if (!deck) return res.status(503).json({ error: 'not configured' });
+    const [buf] = await deck.file('dream-archive/timeline-map.json').download();
+    res.set('Cache-Control', 'private, max-age=600').type('application/json').send(buf);
+  } catch (err) { res.status(502).json({ error: err.message }); }
+});
+
 module.exports = { router, init };

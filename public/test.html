@@ -213,6 +213,8 @@
       </div>
     </div>
     <div class="style-tiles" id="style-tiles"></div>
+    <button class="btn-secondary" id="replicate-toggle" onclick="toggleReplicate()" style="margin-top:6px; display:none;">▸ Replicate styles</button>
+    <div class="style-tiles" id="replicate-tiles" style="display:none; margin-top:12px;"></div>
 
     <div class="run-row">
       <button class="btn" id="run-selected" onclick="runSelected()" disabled>Run selected</button>
@@ -281,14 +283,33 @@
       styles = [
         ...(models.replicate || []).map(m => ({ ...m, provider: 'replicate' })),
         ...(models.openai || []).map(m => ({ ...m, provider: 'openai' })),
+        ...(models.house || []).map(m => ({ ...m, provider: 'house' })),
       ];
       renderTiles();
+    }
+
+    // Replicate LoRA tiles are tucked behind a toggle (we don't use them now);
+    // the ChatGPT/House tiles show up top.
+    let replicateOpen = false;
+    function toggleReplicate() {
+      replicateOpen = !replicateOpen;
+      document.getElementById('replicate-tiles').style.display = replicateOpen ? '' : 'none';
+      updateReplicateToggle();
+    }
+    function updateReplicateToggle() {
+      const btn = document.getElementById('replicate-toggle');
+      const n = styles.filter(s => s.provider === 'replicate').length;
+      if (!btn) return;
+      btn.style.display = n ? '' : 'none';
+      btn.textContent = `${replicateOpen ? '▾' : '▸'} Replicate styles (${n})`;
     }
 
     function renderTiles() {
       const samples = loadSamples();
       const grid = document.getElementById('style-tiles');
+      const repGrid = document.getElementById('replicate-tiles');
       grid.innerHTML = '';
+      repGrid.innerHTML = '';
       styles.forEach(s => {
         // Prefer a sample rendered this session, else the committed preview
         // shipped at /samples/<seg>.webp. If neither loads (e.g. DALL·E, which
@@ -300,7 +321,7 @@
         tile.dataset.id = s.id;
         tile.innerHTML = `
           <img src="${sample}" alt="${escHtml(s.name)} sample">
-          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
+          <span class="tile-provider">${s.provider === 'openai' ? 'GPT' : s.provider === 'house' ? 'House' : s.provider === 'dalle' ? 'DALL·E' : 'LoRA'}</span>
           <span class="tile-check" title="Add to a multi-style run">${selected.has(s.id) ? '✓' : '◦'}</span>
           <span class="tile-run"><span>▶ run</span></span>
           <span class="tile-label">${escHtml(s.name)}</span>
@@ -315,8 +336,9 @@
           if (e.target.closest('.tile-check')) { toggleSelect(s.id); return; }
           runStyles([s]);
         });
-        grid.appendChild(tile);
+        (s.provider === 'replicate' ? repGrid : grid).appendChild(tile);
       });
+      updateReplicateToggle();
     }
 
     function toggleSelect(id) {
@@ -368,6 +390,14 @@
     }
 
     async function generateOne(style, prompt) {
+      if (style.provider === 'house') {
+        // gpt-image-2 EDITS with the house style refs — the style controls the
+        // background, so don't append the global bg suffix here.
+        return safeFetchJson('/api/generate/housestyle', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, styleId: style.id }),
+        });
+      }
       if (style.provider === 'openai') {
         const bgSuffix = getGlobalBgSuffix();
         const full = [prompt, bgSuffix].filter(Boolean).join(', ');

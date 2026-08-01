@@ -353,6 +353,11 @@ lifted into a standalone tool later.
   `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
   (x-studio-token header when gated). The hook names the chat from the git
   branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
+  **Unnamed sessions keep a per-session tail** (July 2026): every unnamed
+  session's branch is `claude/new-session-<random>`, and stripping the suffix
+  merged four different sessions into ONE chat called "new-session" — so a
+  generic slug (`new-session`/`session`/`untitled`) now gets 6 chars of the
+  session id appended, e.g. `new-session-7f3e9a`, one chat per session.
 - **Self-heal if you're NOT posting (any chat).** If your replies aren't
   showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
   If it's MISSING, your session's environment didn't install the hook —
@@ -510,9 +515,9 @@ lifted into a standalone tool later.
     what it called an image). `FORGE_BASE` overrides the server.
   - An image with no prompt on file shows **no PROMPT button at all** — never
     write "no prompt filed" anywhere; empty is silent by design.
-  - The same instructions are folded into the top of every Assets tab ("How to
-    post prompts & reply to notes", `howToPost()` in `public/chats.html`) — keep
-    the two in sync.
+  - These instructions live HERE only. There used to be a "How to post prompts"
+    fold at the top of every Assets tab, but chats read this file, not that
+    page — so it was clutter only Sophie ever saw, and it's been removed.
   - **The tab is PAGED and dedupes by filename (July 2026).**
     `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
     offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
@@ -1125,6 +1130,16 @@ lifted into a standalone tool later.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. Full rules in "Prompts on Assets images" above.
+- **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
+  She reviews images in the Assets tab, not in chat — a stack of markdown links
+  is clutter. Deliver images by filing them directly instead:
+  `POST /api/gallery { assetsOnly:true, chat, url, description }` (the
+  description = a real scene description, what she reviews by) + the prompt
+  POST above for every image, and when a set belongs together (a storyboard,
+  an options batch, frames of one video) ALSO compile it as a **Compare page**
+  so she sees the whole thing in order in the Compare tab. Mentioning an image
+  inline in prose is fine — the rule is that link dumps are not the delivery
+  mechanism.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
@@ -1336,7 +1351,10 @@ lifted into a standalone tool later.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
-- `editor.js` (`/api/editor`, page at `/editor`) — Sophie selects spans of a real
+- **Full cutting-pipeline documentation: `docs/nde-precise-cutting.md`** — read
+  it before cutting interview audio; it is the doc of record for the precise
+  cutter (alignment caches, snapping rules, both implementations, data layout).
+- `editor.js` (`/api/editor`, page at `/editor`, iOS tile "Episode Editor") — Sophie selects spans of a real
   interview transcript as **snippet cards**, arranges them (with **narration**
   and **gap** cards) into an episode, taps **Render**, and gets the finished
   audio. The cloud version of the hand-run supercut
@@ -1388,6 +1406,12 @@ lifted into a standalone tool later.
   rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
   snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
   order with its narration fills. 23 cards.
+- **iOS:** `EpisodeEditorView.swift` = a WKWebView on `/editor` that answers the
+  HTTP Basic gate with the studio token (same wrapper pattern as
+  `WritingRoomView`), registered as the `editor` tool in `RootView` — home-grid
+  tile "Episode Editor", SF Symbol `waveform`, deep link `deckfactory://editor`.
+  It pauses the page's audio on a screen change so a preview never keeps playing
+  from a hidden tab. Page changes ship via Render deploy — no TestFlight build.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at

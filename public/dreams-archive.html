@@ -1,0 +1,156 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dreams</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:0 0 60px;background:#f7f4ee;color:#2a2622;
+  font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+@media (prefers-color-scheme:dark){
+  body{background:#191713;color:#e8e2d6}
+  article{border-color:#37322a}
+  .tabs{border-color:#37322a} .tabs button{color:#97907f}
+  .words{color:#d9d3c6} .tx{color:#d9d3c6}
+  .top{border-color:#37322a}
+  .more{background:#211e19;border-color:#37322a;color:#c9c2b4}
+  .pane img{background:#211e19}
+}
+.top{padding:18px 16px 12px;border-bottom:1px solid #ddd4c6}
+h1{font-size:22px;margin:0 0 5px}
+.counts{font-size:13px;color:#8a8074;display:flex;flex-wrap:wrap;gap:3px 13px}
+article{padding:18px 16px;border-bottom:1px solid #e6dfd3}
+.when{font-size:13px;color:#8a8074;letter-spacing:.03em;text-transform:uppercase}
+h2{font-size:19px;margin:4px 0 3px}
+.src{font-size:12px;color:#a09484;text-transform:uppercase;letter-spacing:.06em}
+.q{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:6px;
+  background:#c2532f;color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
+.mark{display:inline-block;font-size:11px;color:#8a8074;border:1px solid #ddd4c6;border-radius:6px;padding:0 6px;margin-left:4px}
+.tabs{position:relative;display:flex;border-bottom:1px solid #ddd4c6;margin:12px 0 14px}
+.tabs button{flex:1 1 0;padding:10px 6px 12px;border:0;background:none;color:#8a8074;font:inherit;font-size:14px;cursor:pointer}
+.tabs button.on{color:#9c6f33;font-weight:600}
+.tabs::after{content:'';position:absolute;left:0;bottom:-1px;height:2px;background:#9c6f33;
+  width:calc(100% / var(--n));transform:translateX(calc(100% * var(--i,0)));transition:transform .2s ease}
+.pane{display:none}
+.pane.on{display:block}
+.pane.on[data-p="art"]{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.pane img{display:block;width:100%;border-radius:6px;background:#efe9df;cursor:zoom-in}
+.words{white-space:pre-wrap;max-width:640px}
+.words .rest{display:none;white-space:pre-wrap}
+.words.open .head{display:none}
+.words.open .rest{display:block}
+.more{font:inherit;font-size:14px;margin-top:10px;padding:5px 12px;border-radius:6px;
+  border:1px solid #ddd4c6;background:#fff;color:#5d564e;cursor:pointer}
+audio{width:100%;max-width:520px;display:block}
+.anote{font-size:13px;color:#8a8074;margin:8px 0 0}
+#shut{position:fixed;left:14px;bottom:16px;z-index:60;display:none;font:inherit;font-size:15px;
+  padding:9px 16px;border-radius:6px;border:1px solid #2a2622;background:#2a2622;color:#f7f4ee;cursor:pointer}
+#shut.on{display:block}
+.grp{padding:22px 16px 6px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#8a8074;
+  border-bottom:1px solid #ddd4c6}
+</style>
+<div class="top"><h1>Dreams</h1><div class="counts" id="counts"></div></div>
+<div id="list"></div>
+<button id="shut">Close dream</button>
+<script>
+var SRC={'voice memo':'recorded','dream pipeline':'illustrated','witch app':'illustrated',
+  'journal':'handwritten','shared dream journal':'shared journal','imported comic':'old comic'};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function mmss(n){return n?Math.floor(n/60)+':'+String(Math.round(n%60)).padStart(2,'0'):''}
+function card(d,i){
+  var tabs=[],panes=[];
+  if(d.illustrations&&d.illustrations.length){
+    tabs.push(['art',d.illustrations.length>1?'Drawings':'Drawing']);
+    panes.push('<div class="pane" data-p="art">'+d.illustrations.map(function(u){
+      return '<img loading="lazy" src="'+esc(u)+'" alt="">'}).join('')+'</div>');
+  }
+  if(d.text&&d.text.trim()){
+    var full=d.text.trim(),LIM=320,head=full;
+    if(full.length>LIM+80){
+      var win=full.slice(0,LIM+80),stop=Math.max(win.lastIndexOf('. '),win.lastIndexOf('! '),win.lastIndexOf('? '));
+      head=(stop>LIM/2?win.slice(0,stop+1):full.slice(0,LIM)).trim();
+    }
+    var tr=head.length<full.length;
+    tabs.push(['text','Words']);
+    panes.push('<div class="pane" data-p="text"><div class="words">'
+      +'<div class="head">'+esc(head)+(tr?'…':'')+'</div>'
+      +(tr?'<div class="rest">'+esc(full)+'</div><button class="more">Read the whole dream</button>':'')
+      +'</div></div>');
+  }
+  if(d.audio){
+    tabs.push(['audio','Listen']);
+    panes.push('<div class="pane" data-p="audio"><audio controls preload="none" src="'+esc(d.audio)+'"></audio>'
+      +'<p class="anote">'+(d.audioSeconds?esc(mmss(d.audioSeconds))+' · ':'')+'your own voice</p></div>');
+  }
+  var flags='';
+  if(d.dateUncertain) flags+=' <span class="q">?</span>';
+  if(d.notHers) flags+='<span class="mark">someone else wrote this</span>';
+  else if(d.authorUncertain) flags+='<span class="mark">shared journal</span>';
+  if(d.incomplete) flags+='<span class="mark">part missing</span>';
+  var html='<article>'
+    +'<div class="when">'+esc(d.display)+flags+'</div>'
+    +(d.title?'<h2>'+esc(d.title)+'</h2>':'')
+    +'<div class="src">'+esc(SRC[d.source]||d.source)+'</div>'
+    +(tabs.length>1?'<nav class="tabs" style="--n:'+tabs.length+'" data-i="0">'+tabs.map(function(t,n){
+        return '<button data-t="'+t[0]+'"'+(n===0?' class="on"':'')+'>'+esc(t[1])+'</button>'}).join('')+'</nav>':'')
+    +panes.join('')+'</article>';
+  return html;
+}
+function render(d){
+  document.getElementById('counts').innerHTML=
+    '<span><b>'+d.total+'</b> dreams</span><span><b>'+d.withAudio+'</b> to listen to</span><span><b>'+d.withArt+'</b> illustrated</span>';
+  var h=d.dreams.map(card).join('');
+  if(d.undated.length) h+='<div class="grp">date unknown — '+d.undated.length+'</div>'+d.undated.map(card).join('');
+  var list=document.getElementById('list'); list.innerHTML=h;
+  list.querySelectorAll('article').forEach(function(a){
+    var p=a.querySelector('.pane'); if(p) p.classList.add('on');
+  });
+}
+fetch('/api/dream-archive/data').then(function(r){return r.json()}).then(render)
+  .catch(function(){document.getElementById('counts').textContent='could not load'});
+
+var openWords=null,shut=document.getElementById('shut');
+function closeOpen(scroll){
+  if(!openWords)return;
+  var art=openWords.closest('article');
+  openWords.classList.remove('open');
+  var b=openWords.querySelector('.more'); if(b)b.textContent='Read the whole dream';
+  openWords=null; shut.classList.remove('on');
+  if(scroll&&art)art.scrollIntoView({block:'start'});
+}
+shut.onclick=function(){closeOpen(true)};
+document.addEventListener('click',function(e){
+  var more=e.target.closest('.more');
+  if(more){
+    var w=more.closest('.words');
+    if(w===openWords){closeOpen(true);return}
+    closeOpen(false);
+    if(window.__scrollStop)window.__scrollStop();
+    w.classList.add('open'); more.textContent='Close'; openWords=w; shut.classList.add('on');
+    return;
+  }
+  var b=e.target.closest('.tabs button');
+  if(b){
+    var nav=b.closest('.tabs'),art=b.closest('article'),all=[].slice.call(nav.querySelectorAll('button'));
+    nav.style.setProperty('--i',all.indexOf(b));
+    all.forEach(function(x){x.classList.toggle('on',x===b)});
+    art.querySelectorAll('.pane').forEach(function(p){p.classList.toggle('on',p.dataset.p===b.dataset.t)});
+    return;
+  }
+  var img=e.target.closest('.pane img');
+  if(img){
+    if(window.__scrollStop)window.__scrollStop();
+    var y=window.scrollY,bd=document.body;
+    var o=document.createElement('div');
+    o.style.cssText='position:fixed;inset:0;background:#141210;z-index:99;display:flex;align-items:center;justify-content:center;padding:16px;touch-action:none';
+    var big=document.createElement('img'); big.src=img.src;
+    big.style.cssText='max-width:100%;max-height:100%;border-radius:6px';
+    o.appendChild(big);
+    bd.style.position='fixed';bd.style.top=(-y)+'px';bd.style.left='0';bd.style.right='0';bd.style.width='100%';
+    o.addEventListener('click',function(){o.remove();
+      bd.style.position='';bd.style.top='';bd.style.left='';bd.style.right='';bd.style.width='';
+      window.scrollTo(0,y)});
+    o.addEventListener('touchmove',function(ev){ev.preventDefault()},{passive:false});
+    document.body.appendChild(o);
+  }
+});
+</script>

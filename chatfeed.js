@@ -510,6 +510,9 @@ router.get('/pages', async (req, res) => {
 // The shared autoscroll pill, appended to every served page so Compare pages
 // scroll hands-free like the rest of the app. Self-contained snippet built by
 // scripts/gen-pill-inject.py (re-run it after changing scripts/pill.py).
+// Exported: server.js appends the SAME snippet to gated static pages that opt
+// in (serveGated(file, { pill:true }) — e.g. /editor), so the pill is sourced
+// from one place and never re-implemented per page.
 let pillSnippet = null;
 function pillInject() {
   if (pillSnippet === null) {
@@ -692,4 +695,38 @@ router.post('/reply', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router };
+// ─── Verdicts on a Compare page ─────────────────────────────────────────────
+// Check pages need a yes/no per item that survives the tab closing, so the chat
+// can read back what she decided instead of asking her to recite it.
+//   POST /api/chatfeed/verdict { chat, sheet, item, ok }
+//   GET  /api/chatfeed/verdict?chat=&sheet=
+router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    const { chat, sheet, item, ok, text } = req.body || {};
+    if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
+    const db = admin.firestore();
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const patch = { chat, sheet, updatedAt: new Date().toISOString() };
+    // a vote and a dictation are separate fields so writing one never clears the other
+    if (ok !== undefined) patch.items = { [String(item)]: ok === null ? null : !!ok };
+    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+router.get('/verdict', async (req, res) => {
+  try {
+    const { chat, sheet } = req.query || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
+    const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
+    const d = doc.exists ? doc.data() : {};
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {} });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+module.exports = { router, pillInject };

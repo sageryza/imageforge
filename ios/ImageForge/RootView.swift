@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, writing, chats, test, dump
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump
     var id: String { rawValue }
 
     var title: String {
@@ -18,7 +18,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
         case .story:     return "Story Room"
+        case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
+        case .editor:    return "Episode Editor"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
         case .dump:      return "Dump"
@@ -36,7 +38,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .story:     return "Every story in one room — words, voice, art, films."
+        case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
+        case .editor:    return "Cut interview clips into an episode — then hear it."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
@@ -54,7 +58,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "camera"
         case .ads:       return "megaphone"
         case .story:     return "rectangle.grid.2x2"
+        case .lessons:   return "books.vertical"
         case .writing:   return "text.book.closed"
+        case .editor:    return "waveform"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
@@ -88,7 +94,9 @@ enum Tool: String, CaseIterable, Identifiable {
                              .forgeTitle("Story Room")
                              .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
                              .toolbarBackground(.visible, for: .navigationBar)
+        case .lessons:   LessonsView().forgeTitle("Lessons")
         case .writing:   WritingRoomView()
+        case .editor:    EpisodeEditorView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
         case .dump:      DumpView().forgeTitle("Dump")
@@ -275,6 +283,9 @@ struct RootView: View {
         case .tool(let t):
             // Story Room is a web page with its own in-page pill.
             if t == .writing || t == .chats || t == .story { return false }
+            // Episode Editor is a web page too — an arranging tool, not a read,
+            // and the pill would sit on top of its sticky header.
+            if t == .editor { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.
