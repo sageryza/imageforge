@@ -5,11 +5,15 @@
 //   node scripts/chained-frames.js sequence-spec.json
 //
 // Spec: { "refs": ["storage:..."], "outPrefix": "witch-school/assets/",
+//         "seedFrames": { "orig": "storage:witch-school/refs/sophie-sky.png" },
+//         "chainStyle": "...", "freshStyle": "...", "charDesc": "...", "end": "...",
 //         "cards": [{ "id": "sk-01", "prompt": "...", "fresh": true },
 //                   { "id": "sk-02", "prompt": "ADD: ..." }, ...] }
 // A card with "fresh": true composes from scratch (style refs only); all
 // others get [previous frame, style ref] and their prompt should describe
-// only what changes. "anchor": "<id>" overrides which earlier frame anchors.
+// only what changes. "anchor": "<id>" overrides which earlier frame anchors —
+// it can name a seedFrame, so a sequence can grow out of a real source image.
+// chainStyle/freshStyle/charDesc/end override the default prompt scaffolding.
 //
 // Env: OPENAI_API_KEY + FIREBASE_SERVICE_ACCOUNT (JSON) or FIREBASE_KEY_FILE.
 const { initializeApp, cert } = require('firebase-admin/app');
@@ -25,6 +29,10 @@ const END = ' Absolutely no text, no words, no letters, no numbers, no captions.
 const specPath = process.argv[2];
 if (!specPath) { console.error('usage: node scripts/chained-frames.js sequence-spec.json'); process.exit(1); }
 const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+const CHAIN = spec.chainStyle || CHAIN_STYLE;
+const FRESH = spec.freshStyle || FRESH_STYLE;
+const CHARD = spec.charDesc !== undefined ? spec.charDesc : CHAR;
+const ENDT = spec.end !== undefined ? spec.end : END;
 const KEY = process.env.OPENAI_API_KEY;
 if (!KEY) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 
@@ -73,18 +81,21 @@ async function sampleBg(buf) {
   const bucket = getStorage().bucket();
   const styleRefs = await materializeRefs(spec.refs);
   const outPrefix = spec.outPrefix || 'witch-school/assets/';
-  const local = {}; // id -> local path of finished frame
+  const local = {}; // id -> local path of finished frame (or seed source)
+  for (const [id, src] of Object.entries(spec.seedFrames || {})) {
+    local[id] = (await materializeRefs([src]))[0];
+  }
   const results = [];
   for (const card of spec.cards) {
     let inputs, prompt;
     if (card.fresh) {
       inputs = styleRefs;
-      prompt = FRESH_STYLE + CHAR + card.prompt + END;
+      prompt = FRESH + CHARD + card.prompt + ENDT;
     } else {
       const anchorId = card.anchor || results[results.length - 1]?.img;
       if (!anchorId || !local[anchorId]) throw new Error('no anchor frame for ' + card.id);
       inputs = [local[anchorId], styleRefs[0]];
-      prompt = CHAIN_STYLE + CHAR + card.prompt + END;
+      prompt = CHAIN + CHARD + card.prompt + ENDT;
     }
     let ok = false;
     for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
