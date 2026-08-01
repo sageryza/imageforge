@@ -33,6 +33,13 @@ const VOICES = {
   'II. The Pattern Collector':         { file:'pattern-collector.m4a', memo:'2024-04-09_1315_2024-04-09T20_15_25Z.m4a', date:'2024-04-09', min:22, confidence:'tentative — reads more like the idea than a clean take' },
 };
 
+// SOURCE recordings — where a lesson came from, not a read-aloud of it.
+// EMPTY BY DESIGN: nothing goes in here until Sophie has approved the match
+// in her Compare tab. A candidate found by matching is a suggestion, not a
+// fact, and filing one on her behalf is exactly the thing she asked not to
+// happen. Add an entry only after she says yes to that specific lesson.
+const SOURCES = {};
+
 // Per-tile background = the sampled off-white of that image (from the card
 // generator's bg sampling). Baked in so the page is fully self-contained.
 const BG = {
@@ -167,10 +174,12 @@ const allLessons = [
   ...SERIES.flatMap(s=>s.steps.map(t=>({group:s.cat+' (series)', t}))),
 ];
 const voicesOut = allLessons.map(({group, t})=>{
-  const [title,id,img]=t; const v=VOICES[title];
+  const [title,id,img]=t; const v=VOICES[title]; const s=SOURCES[title];
   return { title, group, page: PAGE+id, tileArt: img ? A+img+'.png' : null,
     voice: v ? { url: VO+v.file, sourceMemo: v.memo, recorded: v.date, minutes: v.min, confidence: v.confidence,
-                 alt: v.alt ? { url: VO+v.alt.file, sourceMemo: v.alt.memo, recorded: v.alt.date, minutes: v.alt.min, note: v.alt.note } : undefined } : null };
+                 alt: v.alt ? { url: VO+v.alt.file, sourceMemo: v.alt.memo, recorded: v.alt.date, minutes: v.alt.min, note: v.alt.note } : undefined } : null,
+    source: s ? { url: VO+s.file, recorded: s.date, minutes: s.min, note: s.note,
+                  kind: 'her thinking the lesson up out loud — not a read-aloud of the written lesson' } : null };
 });
 fs.writeFileSync(__dirname + '/../public/lessons-voices.json', JSON.stringify({ updated: new Date().toISOString().slice(0,10), lessons: voicesOut }, null, 1));
 console.log('wrote public/lessons-voices.json —', voicesOut.filter(l=>l.voice).length, 'of', voicesOut.length, 'lessons have a voice');
