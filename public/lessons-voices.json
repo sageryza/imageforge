@@ -1,0 +1,213 @@
+{
+ "updated": "2026-08-01",
+ "lessons": [
+  {
+   "title": "ADHD & Autism",
+   "group": "Understanding yourself",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/wkAeaIbOHrrs1lfyiY2G",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/nd-web.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/adhd-autism.m4a",
+    "sourceMemo": "2026-07-28_1602_2026-07-28T23_02_34Z.m4a",
+    "recorded": "2026-07-28",
+    "minutes": 4,
+    "confidence": "probable"
+   }
+  },
+  {
+   "title": "General Dysphoria",
+   "group": "Understanding yourself",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/RlRnbsyCDrWFvgfjMMSH",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/gd-mask-v2.png",
+   "voice": null
+  },
+  {
+   "title": "Two Questions, Not One",
+   "group": "Understanding yourself",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/CHWhYZyH5eTR2DTRNyGx",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/gx-field.png",
+   "voice": null
+  },
+  {
+   "title": "Inside & Outside Thoughts",
+   "group": "Understanding yourself",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/c4WWSdgGZwKawuj8AJ1e",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/cv-vehicle.png",
+   "voice": null
+  },
+  {
+   "title": "The Metaphor Machine",
+   "group": "Meaning & art",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/XIulCQGAkr2IaHW79e9z",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/mm-machine.png",
+   "voice": null
+  },
+  {
+   "title": "Where Do You Crop Art?",
+   "group": "Meaning & art",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/u10reFkKkeV7DDLfwcsG",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/na-process.png",
+   "voice": null
+  },
+  {
+   "title": "Art Is Forgiving",
+   "group": "Meaning & art",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/zUiF9vF3v31tM9EHiX5E",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/af-garage-v2.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/art-is-forgiving.m4a",
+    "sourceMemo": "2026-05-26_2055_2026-05-27T03_55_13Z.m4a",
+    "recorded": "2026-05-27",
+    "minutes": 6,
+    "confidence": "confirmed"
+   }
+  },
+  {
+   "title": "Astrology",
+   "group": "Magic & belief",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/pfkJX461R7lKDZN9rsiT",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/zw-cast.png",
+   "voice": null
+  },
+  {
+   "title": "Instrumentalism, Part I",
+   "group": "Magic & belief",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/V9n5OdTOVz2TsslNhBuz",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/in-secretcode.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/instrumentalism-1.m4a",
+    "sourceMemo": "2026-05-28_1354_2026-05-28T20_54_21Z.m4a",
+    "recorded": "2026-05-28",
+    "minutes": 2,
+    "confidence": "confirmed",
+    "alt": {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/instrumentalism-deep.m4a",
+     "sourceMemo": "2024-02-24_1439_2024-02-24T22_39_26Z.m4a",
+     "recorded": "2024-02-24",
+     "minutes": 23,
+     "note": "the long deep-dive version"
+    }
+   }
+  },
+  {
+   "title": "Animal Magic",
+   "group": "Magic & belief",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/gDIYNqnLaODjlnWs6gzp",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/an-snake.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/animal-magic.m4a",
+    "sourceMemo": "2026-05-25_1314_2026-05-25T20_14_45Z.m4a",
+    "recorded": "2026-05-25",
+    "minutes": 4,
+    "confidence": "confirmed"
+   }
+  },
+  {
+   "title": "OCD & Witchcraft",
+   "group": "Magic & belief",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/lLLfRpf29cdGbInr0dIV",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/oc-witchkit.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/ocd-witchcraft.m4a",
+    "sourceMemo": "2026-05-24_2122_2026-05-25T04_22_03Z.m4a",
+    "recorded": "2026-05-25",
+    "minutes": 4,
+    "confidence": "confirmed"
+   }
+  },
+  {
+   "title": "God Only Works in Mysterious Ways",
+   "group": "Magic & belief",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/Y8kNK5EkTN0AFHGW6bDr",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/gm-constellation.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/mysterious-ways.m4a",
+    "sourceMemo": "2026-05-27_2026_2026-05-28T03_26_02Z.m4a",
+    "recorded": "2026-05-28",
+    "minutes": 5,
+    "confidence": "probable"
+   }
+  },
+  {
+   "title": "Synthetic Learning Syndrome",
+   "group": "Life & culture",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/CKttNQvZyt8y54vWg2MA",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/sl-donut.png",
+   "voice": null
+  },
+  {
+   "title": "For the Hate of the Game",
+   "group": "Life & culture",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/zLN3YvU4Ad2klIS0bjpK",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/ht-loft-v2.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/hate-of-the-game.m4a",
+    "sourceMemo": "2026-05-25_2030_2026-05-26T03_30_31Z.m4a",
+    "recorded": "2026-05-26",
+    "minutes": 8,
+    "confidence": "confirmed"
+   }
+  },
+  {
+   "title": "What Do You Want to Wake Up To?",
+   "group": "Life & culture",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/zBftSk1m7zjU6jTPccXC",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/md-bubble.png",
+   "voice": null
+  },
+  {
+   "title": "Valued Customer",
+   "group": "Stories",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/YtPdWSAiIUT2ttey17ME",
+   "tileArt": null,
+   "voice": null
+  },
+  {
+   "title": "I. Actions & Intentions",
+   "group": "How to Read People (series)",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/Z1Swmoud4qxBNgQmKu8y",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/hr-scatter.png",
+   "voice": null
+  },
+  {
+   "title": "II. The Pattern Collector",
+   "group": "How to Read People (series)",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/2kBUIEuBEZzzb43GSNIE",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/hr-safespace-v2.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/pattern-collector.m4a",
+    "sourceMemo": "2024-04-09_1315_2024-04-09T20_15_25Z.m4a",
+    "recorded": "2024-04-09",
+    "minutes": 22,
+    "confidence": "tentative — reads more like the idea than a clean take"
+   }
+  },
+  {
+   "title": "III. Expert Mode",
+   "group": "How to Read People (series)",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/Aefj0WBAVygRyWXXXjIQ",
+   "tileArt": null,
+   "voice": null
+  },
+  {
+   "title": "My Experiment with Manifestation",
+   "group": "Manifestation (series)",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/TYSnJ3xHQImDCgrQ1hFh",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/mf-bed.png",
+   "voice": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/lessons-voices/manifestation-experiment.m4a",
+    "sourceMemo": "2026-05-27_1958_2026-05-28T02_58_27Z.m4a",
+    "recorded": "2026-05-28",
+    "minutes": 9,
+    "confidence": "confirmed"
+   }
+  },
+  {
+   "title": "In Case You’re Curious (Part II)",
+   "group": "Manifestation (series)",
+   "page": "https://imageforge-q125.onrender.com/api/chatfeed/page/vmdVVWn0tHMSmtjS1My6",
+   "tileArt": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/c2-herbalist-v2.png",
+   "voice": null
+  }
+ ]
+}
