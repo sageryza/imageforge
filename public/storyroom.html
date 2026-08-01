@@ -96,6 +96,13 @@ h1{font-weight:600; font-size:2.5em; line-height:1; margin:.15em 0 .3em;}
 .c-name{font-size:1.05em; flex:1;}
 .c-meta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; color:var(--ink2); text-transform:uppercase;}
 .newrow{display:flex; gap:8px; margin:0 0 1.6em; flex-wrap:wrap;}
+/* Search sits level with the floating autoscroll pill, so it stops 52px short
+   of the right edge — a control under the pill's corner is untappable. */
+.searchbar{display:block; width:calc(100% - 52px); box-sizing:border-box; -webkit-appearance:none; appearance:none;
+  font-family:'EBGaramond',Georgia,serif; font-size:18px; background:var(--barbg); color:var(--ink);
+  border:1px solid var(--line); border-radius:6px; padding:9px 12px; margin:0 0 12px;}
+.searchbar::placeholder{color:var(--ink2); font-style:italic;}
+.searchbar:focus{outline:none; border-color:var(--rose);}
 .modal{position:fixed; inset:0; background:rgba(15,13,10,.55); z-index:30; display:flex; align-items:center; justify-content:center; padding:20px;}
 .sheet{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:20px; width:100%; max-width:23em; max-height:82vh; overflow:auto; box-shadow:0 8px 30px rgba(0,0,0,.22);}
 .sheet h2{font-size:1.5em; font-weight:600; margin:0 0 .7em;}
@@ -159,6 +166,7 @@ textarea.field{min-height:80px; line-height:1.5;}
 
 <div class="wrap">
   <section id="home">
+    <input id="storysearch" class="searchbar" type="search" placeholder="Search stories&hellip;" autocomplete="off">
     <div class="newrow"><button id="newstory" class="btn primary">+ New story</button><button class="btn" onclick="location.href='/character'">Characters</button></div>
     <div id="shelf"><div class="state">Loading the boards&hellip;</div></div>
     <div class="pagemark" id="filmsmark" style="display:none">THE FILMS</div>
@@ -175,7 +183,7 @@ function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token'
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-var projects=[], notes={}, cur=null, homeY=0;
+var projects=[], notes={}, cur=null, homeY=0, query='';
 var voTimer=null, drawVoCur=null;
 // A voiceover render/transcription is a server-side background job recorded
 // on the doc — poll the boards until voiceover.status clears (survives
@@ -258,12 +266,25 @@ function shelfRows(container, items, makeTile){
     container.appendChild(line);
   }
 }
+// Search matches everywhere a story keeps words: title, prose, voiceover
+// words, beat narrations. Client-side over the loaded list — no requests.
+function storyMatches(p){
+  if(!query) return true;
+  var hay=(p.title||'')+' '+(p.id||'')+' '+(p.text||'')+' '+((p.voiceover&&p.voiceover.text)||'');
+  (p.beats||[]).forEach(function(b){ if(b&&b.vo) hay+=' '+b.vo; });
+  return hay.toLowerCase().indexOf(query)!==-1;
+}
+// order climbs as stories are created (server: max+1), so higher = newer;
+// stories with no order sort last, same end of the shelf as before.
+function storyOrd(p){ return typeof p.order==='number'? p.order : -1; }
+function newestFirst(a,b){ return storyOrd(b)-storyOrd(a); }
 function renderShelf(){
   var el=document.getElementById('shelf');
   if(!projects.length){ el.innerHTML='<div class="state">No stories yet — tap + New story, or they\u2019ll appear as projects land in the studio.</div>'; return; }
   el.innerHTML='';
-  var active=projects.filter(function(p){return !p.archived;});
-  var archived=projects.filter(function(p){return p.archived;});
+  var active=projects.filter(function(p){return !p.archived&&storyMatches(p);}).sort(newestFirst);
+  var archived=projects.filter(function(p){return p.archived&&storyMatches(p);}).sort(newestFirst);
+  if(query&&!active.length&&!archived.length){ el.innerHTML='<div class="state">Nothing matches \u201c'+esc(query)+'\u201d.</div>'; return; }
   shelfRows(el, active, function(p){
     var beats=(p.beats||[]).length;
     var n=Object.keys(notes).filter(function(id){return id.split(':')[0]==='story-'+p.id}).length;
@@ -518,19 +539,13 @@ function openProj(p, jumpBeat){
   var descWrap=document.createElement('div'); sec.appendChild(descWrap);
   function drawDesc(){
     descWrap.innerHTML='';
-    var has=String(p.description||'').trim()||p.descriptionAudio;
-    dsbtn.style.display=has? 'none':'';
-    if(!has) return;
+    dsbtn.style.display=String(p.description||'').trim()? 'none':'';
+    if(!String(p.description||'').trim()) return;
     var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE DESCRIPTION';
     var ed=document.createElement('button'); ed.className='st'; ed.textContent='· edit';
     ed.onclick=function(){ editDesc(); };
     pm.appendChild(ed); descWrap.appendChild(pm);
-    if(p.descriptionAudio){
-      var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=p.descriptionAudio; descWrap.appendChild(au);
-    }
-    if(String(p.description||'').trim()){
-      var body=document.createElement('div'); body.className='prose'; body.textContent=p.description; descWrap.appendChild(body);
-    }
+    var body=document.createElement('div'); body.className='prose'; body.textContent=p.description; descWrap.appendChild(body);
   }
   function editDesc(){
     showModal({ title: p.description? 'Edit the description':'The description', okLabel:'Save',
@@ -938,6 +953,8 @@ function deleteStory(p){
   ov.appendChild(sheet); document.body.appendChild(ov);
 }
 var nsBtn=document.getElementById('newstory'); if(nsBtn) nsBtn.onclick=newStory;
+var sBox=document.getElementById('storysearch');
+if(sBox) sBox.oninput=function(){ query=sBox.value.trim().toLowerCase(); renderShelf(); };
 
 // autoscroll pill — shared component (scripts/pill.py)
 
