@@ -69,7 +69,7 @@ async function main() {
     }
     // Carry over the Story Room's own fields when the manifest doesn't set them.
     const prev = (await db.collection('forge-story').doc(p.id).get()).data() || {};
-    for (const keep of ['text', 'description', 'voiceover', 'summary', 'inbox', 'archived', 'createdAt']) {
+    for (const keep of ['text', 'description', 'descriptionAudio', 'voiceover', 'summary', 'inbox', 'archived', 'createdAt']) {
       if (p[keep] === undefined && prev[keep] !== undefined) p[keep] = prev[keep];
     }
     await db.collection('forge-story').doc(p.id).set({
