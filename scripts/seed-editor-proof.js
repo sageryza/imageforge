@@ -25,7 +25,7 @@ function arg(name, fallback) {
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
 const BASE = (arg('base', 'https://imageforge-q125.onrender.com')).replace(/\/$/, '');
-const CANDIDATES = arg('candidates', `${process.env.HOME}/veridical-order.json`);
+const CANDIDATES = arg('candidates', require('path').join(__dirname, 'nde-montages', 'proof-veridical.json'));
 const TITLE = arg('title', 'PROOF');
 const REPLACE = process.argv.includes('--replace');
 
