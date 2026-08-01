@@ -24,6 +24,7 @@ for (const t of timing) {
     '-i', clip, '-i', `${OUT}/beat-${t.beat}.wav`,
     '-filter_complex',
     `[0:v]setpts=${slow.toFixed(4)}*PTS,fps=30,tpad=stop_mode=clone:stop_duration=${Math.max(0, target - dur * slow + 0.5).toFixed(3)},trim=duration=${target.toFixed(3)},` +
+    `colorlevels=rimax=0.94:gimax=0.94:bimax=0.94,` + // wan whites are ~F0 off-white; lift to pure so the pad is seamless
     `scale=1080:1620:flags=lanczos,pad=1080:1920:0:150:white,setsar=1[v];` +
     `[1:a]apad=whole_dur=${target.toFixed(3)},atrim=duration=${target.toFixed(3)},aformat=sample_rates=44100:channel_layouts=stereo[a]`,
     '-map', '[v]', '-map', '[a]',
