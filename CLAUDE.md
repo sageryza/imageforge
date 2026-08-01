@@ -358,6 +358,16 @@ lifted into a standalone tool later.
   merged four different sessions into ONE chat called "new-session" — so a
   generic slug (`new-session`/`session`/`untitled`) now gets 6 chars of the
   session id appended, e.g. `new-session-7f3e9a`, one chat per session.
+  **One chat per SESSION for every slug (Aug 2026):** branch names get REUSED,
+  and two sessions sharing a branch-derived slug filed into ONE thread
+  (verified live — a new session's posts interleaved into the chat Sophie had
+  renamed "Imprint"). The registry doc records which session owns a slug; the
+  hook resolves via `GET /api/chatfeed/resolve?chat=&session=` once per
+  session (first session keeps the pretty name, a different session forks to
+  `<slug>-<sid6>`) and uses the result for feed + gallery + user-message
+  posts. The server also re-resolves url-carrying `POST /api/chatfeed` posts
+  (old-hook fallback), and `POST /api/chatfeed/session {chat, sessionId}` can
+  claim a slug for its original thread when untangling an existing collision.
 - **Self-heal if you're NOT posting (any chat).** If your replies aren't
   showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
   If it's MISSING, your session's environment didn't install the hook —
@@ -559,6 +569,12 @@ lifted into a standalone tool later.
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
+  **A page must NEVER post to `/api/chatfeed/reply`** (Aug 2026, Sophie's
+  rule): notes she types on a Compare page are not chat messages and must stay
+  on the page — use `POST /api/chatfeed/verdict { chat, sheet, item, text }`.
+  The server enforces it: a /reply fired from inside a served page is rerouted
+  onto the page's verdict doc (sheet `page-<id>`; read it back with
+  `GET /api/chatfeed/verdict?chat=&sheet=page-<id>`), never into the thread.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
@@ -1547,6 +1563,21 @@ the `forge-stories` collection is retired (see migration below).
   **Migration:** `node scripts/migrate-stories.js [--dry-run]` (needs both
   service accounts) moved the old `forge-stories` docs; the old collection is
   left as a backup, delete it once verified.
+- **Films live ON their story (Aug 2026).** No more "THE FILMS" pile at the
+  bottom of the shelf. A movie doc carries `storyId` (accepted at creation by
+  `POST /api/movies`, set after the fact via `POST /api/movies/:id/story`;
+  older films backfilled by `node scripts/link-films-to-stories.js`); the
+  Story Room shows a story's newest stitched film in a THE FILM section on the
+  story page (with its frames as thumbnails, plus "Cuts & rejected art").
+  Films with NO story — dream experiments, tests — wait behind the home's
+  **Films** button (only visible when any exist). When a story has beat art
+  but no real film, the page shows a **draft film** instead: ffmpeg-stitched
+  from one image per beat (approved > candidate > draft), timed across the
+  voiceover when there is one (2.8s a picture when not), auto-kicked on first
+  open and re-stitchable when the art changes. `POST /api/story/draft-film
+  {projectId, force?}` — background job on the doc (`draftFilm.status`), the
+  page polls `GET /api/story`; result stored as `draftFilm:{url, at, seconds,
+  art, voUrl}` on the story doc, video at membry Storage `story/draft-film-*`.
 - **Chats add/update boards** the same as before: manifest JSON +
   `node scripts/sync-story.js manifest.json`. Docs are replaced wholesale BUT
   the sync now preserves Story-Room-owned fields (`text`, `voiceover`,

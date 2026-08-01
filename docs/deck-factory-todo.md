@@ -6,56 +6,52 @@ then build it and check it off here.
 
 ## Chats app
 
-- [ ] **Tap-to-open needs two taps.** Tapping a message in the Chats app
-  seems to CLOSE something first, and only a second tap actually opens it.
-  Research why (start in `scripts/gen-chats.py` / `public/chats.html` —
-  likely a first tap being consumed by collapsing an already-expanded
-  tile, a hover/focus state in the WKWebView, or a tap handler calling
-  `__scrollStop` and swallowing the event). Reported by Sophie Aug 2026.
+- [x] **Tap-to-open needs two taps.** (Done Aug 2026.) Cause: a thread
+  rebuild — the full history landing ~1s after entering a chat, the
+  New-message bar, an account change — wiped the `open` class off a
+  just-tapped message, so it looked like it closed itself. `openChat`
+  now carries open rows across rebuilds, matched by message id.
 
-- [ ] **Search should rank chat-NAME matches first.** When searching the
-  chats, results whose chat name (displayName or slug) matches the query
-  should sort above content matches, not mixed in with them.
+- [x] **Search should rank chat-NAME matches first.** (Done Aug 2026.)
+  `/api/chatfeed/search` returns `chatMatches` (display name or slug
+  contains the query) and the page pins them above message hits;
+  message hits show the display name now too.
 
-- [ ] **Chats getting filed into each other — give chats a unique code.**
-  Recurring: two different Claude sessions end up posting into ONE chat
-  thread. Root cause to verify: the registry keys on the git-branch slug,
-  and a REUSED branch name = the same slug — e.g. the Aug 2026 Story Room
-  session's branch `claude/deck-factory-story-room-8xu91f` posted into
-  the chat Sophie had renamed "Imprint" (originally a deck-factory-…
-  chat with the same slug). Renaming never re-keys, so the collision is
-  invisible until posts interleave. The generic-slug fix (July 2026)
-  already appends 6 chars of session id to `new-session`/`untitled`
-  slugs — consider extending that per-session tail to EVERY slug (or
-  keying the registry on session id) so two sessions can never share a
-  thread. Needs a migration story for existing chats' history.
+- [x] **Chats getting filed into each other — give chats a unique code.**
+  (Done Aug 2026.) Confirmed cause: reused branch names → one slug for
+  two sessions. The registry now records the owning session per slug;
+  the hook resolves via `GET /api/chatfeed/resolve` (first session keeps
+  the name, a different session forks to `<slug>-<sid6>`), the server
+  re-resolves url-carrying posts from old hooks, and
+  `POST /api/chatfeed/session` claims a slug for its original thread
+  when untangling an existing collision (done for "Imprint").
+
+- [x] **Compare-tab notes showed up as Sophie's chat messages.** (Done
+  Aug 2026.) Two Compare pages wired their note boxes to
+  `/api/chatfeed/reply`. The server now reroutes any /reply fired from
+  inside a served page onto the page's verdict doc (sheet `page-<id>`)
+  — notes stay in the Compare tab, the thread stays her real
+  conversation, nothing she types is dropped. Rule added to CLAUDE.md.
 
 ## Share sheet
 
-- [ ] **Research: share-sheet button for AUDIO (and images) → Firebase.**
-  Sophie wants: in the Files app (e.g. voice memos saved out of videos),
-  press Share → "Send to Deck Factory" → it uploads to Firebase. Today
-  the `DumpShare` extension activates only for images/movies
-  (`SupportsImageWithMaxCount` / `SupportsMovieWithMaxCount`), so audio
-  never offers Deck Factory; the `/audio` page's file picker is the
-  workaround. Likely shape: extend the extension's activation rule to
-  audio/file types and route audio files to the existing
-  `POST /api/audio/upload-file` (images keep going to the Dump). Needs a
-  TestFlight build. Research effort + confirm before building; she's
-  fine dropping it if it's genuinely hard.
+- [x] **Share-sheet button for AUDIO (and images) → Firebase.** (Built
+  Aug 2026 — needs a TestFlight build to reach her phone.) `DumpShare`
+  now activates for files too and routes audio extensions to
+  `POST /api/audio/upload-file` (one date-stamped batch per share);
+  images/clips keep going to the Dump. Trade-off: the generic file rule
+  also surfaces "Send to Deck Factory" for non-media files, where the
+  sheet just says "Nothing to dump".
 
-## Story Room (the larger change — shaping, discuss UI with Sophie first)
+## Story Room
 
-- [ ] **Every story shows its latest draft FILM, auto-stitched.** Opening
-  a story should show the most recent film draft, even a rough one: if
-  only images exist, stitch them with ffmpeg (each beat's art in order,
-  timed to the voiceover when there is one, plain slideshow when not).
-  Plus all the thumbnails visible. Goal: UI-friendly at scale — there
-  are getting to be tons of stories and browsing must stay easy.
-  Missing piece: films (`forge-movies`) carry NO link to their story —
-  a movie doc gets its own copy of the text, not a storyId. Add the
-  link going forward + best-guess backfill by title/text match.
-- [ ] **Take THE FILMS section off the Story Room home.** Several are
-  dream experiments, not real story films. Move the grid behind a
-  button — an archive of films / experiments — reachable but out of
-  the way.
+- [x] **Every story shows its latest draft FILM, auto-stitched.** (Done
+  Aug 2026.) THE FILM section on the story page: a linked real film
+  (newest stitch + frames + "Cuts & rejected art") when one exists,
+  else an ffmpeg draft cut from the beat art over the voiceover,
+  auto-stitched on first open, restitchable when art changes.
+  `POST /api/story/draft-film`; movies carry `storyId`
+  (`scripts/link-films-to-stories.js` backfilled 5, run 2026-08-01).
+- [x] **Take THE FILMS section off the Story Room home.** (Done Aug
+  2026.) Unmatched films (dream experiments, tests) wait behind the
+  home's Films button; the button only shows when any exist.
