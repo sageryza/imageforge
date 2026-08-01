@@ -312,7 +312,7 @@ loadConfig().then(() => {
   // Journal scans. The master PDF is ~1GB, so the bytes go straight from her
   // Mac to Storage — this only mints the upload session and records the result.
   const journal = require('./journal');
-  journal.init({ bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); } });
+  journal.init({ bucket: async () => { await storyDb(); return storyApp && storyApp.storage().bucket(); }, deckBucket: async () => admin.storage().bucket() });
   app.use('/api/journal', journal.router);
 
   // The dream archive — every dream from every source, built live so a dream

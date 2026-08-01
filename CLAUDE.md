@@ -353,6 +353,11 @@ lifted into a standalone tool later.
   `{ "chat": "<short-chat-name>", "text": "<reply>", "tldr": "<TLDR>" }`
   (x-studio-token header when gated). The hook names the chat from the git
   branch (e.g. `dating-book-design`); set `FORGE_CHAT` env to override.
+  **Unnamed sessions keep a per-session tail** (July 2026): every unnamed
+  session's branch is `claude/new-session-<random>`, and stripping the suffix
+  merged four different sessions into ONE chat called "new-session" — so a
+  generic slug (`new-session`/`session`/`untitled`) now gets 6 chars of the
+  session id appended, e.g. `new-session-7f3e9a`, one chat per session.
 - **Self-heal if you're NOT posting (any chat).** If your replies aren't
   showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
   If it's MISSING, your session's environment didn't install the hook —

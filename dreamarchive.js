@@ -168,7 +168,12 @@ async function build(withShared = false) {
         display: r.display, dateUncertain: !!r.dateUncertain,
         authorUncertain: !!r.authorUncertain, notHers: !!r.notHers,
         title: r.title || null, text: r.text || null,
-        audio: null, illustrations: [], versions: [], incomplete: !!r.incomplete,
+        audio: null,
+        // the actual handwritten page, located in the master scan by the
+        // anchor map; scanSure=false means the map was extrapolating there
+        illustrations: r.handwriting ? [r.handwriting] : [],
+        handwritingUncertain: r.handwriting && r.scanSure === false ? true : undefined,
+        versions: [], incomplete: !!r.incomplete,
       });
     }
   }
