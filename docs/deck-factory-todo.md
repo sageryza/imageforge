@@ -42,6 +42,15 @@ then build it and check it off here.
   images/clips keep going to the Dump. Trade-off: the generic file rule
   also surfaces "Send to Deck Factory" for non-media files, where the
   sheet just says "Nothing to dump".
+- [x] **Share sheet is a true background job + Whisper toggle.** (Aug
+  2026, Sophie's call — overriding the old no-App-Group caution.)
+  Uploads go through a background URLSession (App Group
+  `group.com.sageryza.imageforge`, files staged in the shared
+  container), so the sheet dismisses immediately — no "keep this open"
+  — for audio, images, and video alike. Audio shares get a "Transcribe
+  the recordings" toggle → `?transcribe=1` → background Whisper onto
+  the forge-audio doc; the `/audio` page shows the words under each
+  recording.
 
 ## Story Room
 
