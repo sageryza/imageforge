@@ -877,22 +877,31 @@ app.post('/api/story/text', express.json({ limit: '1mb' }), async (req, res) => 
 
 // The description — what the video should be: shots, staging, visual notes.
 // Separate from `text` (the story itself) so a video's plan and its prose
-// never fight over one field.
-app.post('/api/story/description', express.json({ limit: '1mb' }), async (req, res) => {
+// never fight over one field. A description can carry its own recording
+// (`descriptionAudio`) — Sophie often TALKS a video plan into Voice Memos,
+// and that audio is not the voiceover (which stays the narration take).
+app.post('/api/story/description', express.json({ limit: '40mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { projectId, description } = req.body || {};
+    const { projectId, description, audio } = req.body || {};
     const db = await storyDb();
     if (!db) return res.status(503).json({ error: 'firebase not configured' });
     const ref = db.collection('forge-story').doc(String(projectId));
     const doc = await ref.get();
     if (!doc.exists) return res.status(404).json({ error: 'unknown project' });
     const data = doc.data();
-    data.description = String(description || '').slice(0, 60000);
+    if (description !== undefined) data.description = String(description || '').slice(0, 60000);
+    if (audio) {
+      const parsed = parseAudioDataUrl(audio);
+      if (!parsed) return res.status(400).json({ error: 'audio must be a data:audio/* URL' });
+      data.descriptionAudio = await saveStoryAudioBuffer(parsed.buffer, parsed.mime, `desc-${projectId}`);
+    } else if (audio === null) {
+      delete data.descriptionAudio;
+    }
     await ref.set(data);
-    res.json({ ok: true, chars: data.description.length });
+    res.json({ ok: true, chars: (data.description || '').length, descriptionAudio: data.descriptionAudio || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
