@@ -1418,6 +1418,32 @@ lifted into a standalone tool later.
   the snippet's anchor; with no covering window (or if the phrase isn't really in
   it) it listens to a fresh window with OpenAI `whisper-1` word timestamps. Each
   render's `notes[]` records which path every clip took.
+- **Every finished cut is banked in the permanent clip cache (Aug 2026):**
+  `nde-episodes/editor/clip-cache/<sha1>.mp3`, keyed by
+  `CUT_VERSION|videoId|normalized words|rounded anchor` — so a clip is cut ONCE
+  ever, across previews, renders and episodes; after that it's a single small
+  download (render notes say `from clip-cache`). `POST /:id/preview` checks the
+  cache first and answers `ready` instantly on a hit — no job. Narration is
+  cached the same way (`narr-cache/<sha1>.mp3`, keyed by voice+model+tempo+
+  prefix+text), so re-rendering an episode never re-bills ElevenLabs for
+  unchanged lines. Bump `CUT_VERSION` in `editor.js` when the cutting logic
+  changes — every stale cut re-cuts itself on next use.
+- **Editing during a render is safe (Aug 2026).** Jobs persist ONLY
+  `job`/`renders` via field-level patches (`patchEpisode`), the page's PUT
+  patches only what changed, and preview completions patch their snippet inside
+  a transaction — nothing stamps a whole stale doc anymore (the old bug: the
+  job's 1.5s progress saves silently reverted anything Sophie edited
+  mid-render). A render always uses the arrangement as it was when Render was
+  pressed. The page saves are debounced (600ms) and applied optimistically, so
+  buttons respond instantly; a pending save flushes on navigation/pagehide.
+- **One episode per montage** (Realer Than Real, Telepathy, Not My Body, The
+  Colors, Universal Knowledge, The Music, Life Review, Welcomed Home, Deceased
+  Loved Ones, The Grass): cut lists banked in `scripts/nde-montages/*.json`
+  (the exact lists the delivered montage audios were cut from; PROOF's is
+  `proof-veridical.json`), seeded by `node scripts/seed-editor-montages.js`
+  (`--render` also renders each sequentially, which warms every clip into the
+  clip cache and drops the montage audio in the episode's Renders list;
+  `--only slug,…`, `--replace`, `--base`).
 - **Data:** Firestore `forge-editor`, one doc per episode —
   `{ id, title, sources:[{videoId, experiencer, timeSec, audioUrl}],
   snippets:[{id, name, videoId, text, timeSec}], sequence:[{type:'clip'|

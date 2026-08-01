@@ -170,6 +170,7 @@ let pollTimer = null;
 
 // ── episode list ───────────────────────────────────────────────────
 async function showList() {
+  await flushSave();
   ep = null;
   clearInterval(pollTimer); pollTimer = null;
   previewAudio.pause(); stopPreviewPoll(); previewNow = null;
@@ -210,6 +211,7 @@ $('#back').onclick = showList;
 
 // ── open one episode ───────────────────────────────────────────────
 async function openEpisode(id) {
+  await flushSave();
   const data = await api('/' + id);
   ep = data.episode; transcripts = data.transcripts || []; srcIdx = 0;
   anchor = focus = null;
@@ -224,25 +226,64 @@ $('#pageTitle').onclick = async () => {
   if (!ep) return;
   const t = prompt('Episode title', ep.title);
   if (!t || t === ep.title) return;
-  ep.title = t; $('#pageTitle').textContent = t; await save({ title: t });
+  ep.title = t; $('#pageTitle').textContent = t; queueSave();
 };
 
 function renderAll() { renderSources(); renderScript(); renderSnips(); renderSeq(); renderRenders(); renderJob(); }
 
-// ── save (PUT the parts that changed) ──────────────────────────────
-async function save(patch) {
+// ── save (debounced, in the background) ────────────────────────────
+// Every button updates the page INSTANTLY and the save happens behind it:
+// edits are coalesced for 600ms, one PUT is in flight at a time, and the
+// response never replaces local state (so a slow save can't undo a tap that
+// landed after it was sent). A failed save retries on its own.
+let saveTimer = null, saveInflight = null, dirty = false;
+
+function queueSave() {
+  dirty = true;
   $('#saveFlag').textContent = 'saving…';
-  try {
-    const body = patch || { snippets: ep.snippets, sequence: ep.sequence };
-    const { episode } = await api('/' + ep.id, { method: 'PUT', body: JSON.stringify(body) });
-    ep = episode;
-    $('#saveFlag').textContent = 'saved';
-    setTimeout(() => { if ($('#saveFlag').textContent === 'saved') $('#saveFlag').textContent = ''; }, 1400);
-  } catch (err) {
-    $('#saveFlag').textContent = 'save failed';
-    alert('Save failed: ' + err.message);
-  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveTimer = null; doSave(); }, 600);
 }
+
+function saveBody() {
+  return JSON.stringify({ title: ep.title, snippets: ep.snippets, sequence: ep.sequence });
+}
+
+async function doSave() {
+  if (!ep || !dirty || saveInflight) return;
+  dirty = false;
+  const id = ep.id, body = saveBody();
+  saveInflight = (async () => {
+    try {
+      await api('/' + id, { method: 'PUT', body });
+      if (!dirty) {
+        $('#saveFlag').textContent = 'saved';
+        setTimeout(() => { if ($('#saveFlag').textContent === 'saved') $('#saveFlag').textContent = ''; }, 1400);
+      }
+    } catch (err) {
+      dirty = true;
+      $('#saveFlag').textContent = 'save failed — retrying';
+      setTimeout(doSave, 2500);
+    }
+  })();
+  await saveInflight;
+  saveInflight = null;
+  if (dirty && !saveTimer) doSave();
+}
+
+// Leaving the episode (back button, switching episodes) waits for the pending
+// save; leaving the PAGE fires it as a keepalive request so it still lands.
+async function flushSave() {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (dirty) await doSave();
+  if (saveInflight) await saveInflight;
+}
+window.addEventListener('pagehide', () => {
+  if (!dirty || !ep) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  dirty = false;
+  fetch('/api/editor/' + ep.id, { method: 'PUT', headers: H, body: saveBody(), keepalive: true }).catch(() => {});
+});
 
 // ── 1. transcript picker ───────────────────────────────────────────
 function renderSources() {
@@ -309,7 +350,7 @@ $('#pickbar').addEventListener('click', async e => {
   });
   anchor = focus = null;
   renderScript(); renderSnips();
-  await save();
+  queueSave();
 });
 
 // ── snippet preview (▶ on every snippet card) ──────────────────────
@@ -417,20 +458,20 @@ $('#snips').addEventListener('click', async e => {
   const prev = e.target.closest('[data-prev]');
   if (prev) return tapPreview(prev.dataset.prev);
   const add = e.target.closest('[data-add]');
-  if (add) { ep.sequence.push({ type: 'clip', snippetId: add.dataset.add }); renderSeq(); return save(); }
+  if (add) { ep.sequence.push({ type: 'clip', snippetId: add.dataset.add }); renderSeq(); return queueSave(); }
   const ren = e.target.closest('[data-ren]');
   if (ren) {
     const s = ep.snippets.find(x => x.id === ren.dataset.ren);
     const n = prompt('Snippet name', s.name);
     if (!n) return;
-    s.name = n; renderSnips(); renderSeq(); return save();
+    s.name = n; renderSnips(); renderSeq(); return queueSave();
   }
   const del = e.target.closest('[data-dels]');
   if (del) {
     if (!confirm('Delete this snippet? Cards using it are removed too.')) return;
     ep.snippets = ep.snippets.filter(x => x.id !== del.dataset.dels);
     ep.sequence = ep.sequence.filter(i => i.type !== 'clip' || i.snippetId !== del.dataset.dels);
-    renderSnips(); renderSeq(); return save();
+    renderSnips(); renderSeq(); return queueSave();
   }
 });
 
@@ -473,7 +514,7 @@ $('#seq').addEventListener('click', async e => {
   else if (down) { const i = +down.dataset.down; [ep.sequence[i + 1], ep.sequence[i]] = [ep.sequence[i], ep.sequence[i + 1]]; }
   else if (rm) { ep.sequence.splice(+rm.dataset.rm, 1); }
   else return;
-  renderSeq(); save();
+  renderSeq(); queueSave();
 });
 
 function sheet(html) {
@@ -500,7 +541,7 @@ $('#addClip').onclick = () => {
     const p = e.target.closest('[data-pick]');
     if (!p) return;
     ep.sequence.push({ type: 'clip', snippetId: p.dataset.pick });
-    close(); renderSeq(); save();
+    close(); renderSeq(); queueSave();
   });
 };
 
@@ -515,7 +556,7 @@ $('#addNar').onclick = () => {
     const text = el.querySelector('#narText').value.trim();
     if (!text) return close();
     ep.sequence.push({ type: 'narration', text });
-    close(); renderSeq(); save();
+    close(); renderSeq(); queueSave();
   });
 };
 
@@ -528,7 +569,7 @@ $('#addGap').onclick = () => {
     const g = e.target.closest('[data-gap]');
     if (!g) return;
     ep.sequence.push({ type: 'gap', dur: +g.dataset.gap });
-    close(); renderSeq(); save();
+    close(); renderSeq(); queueSave();
   });
 };
 
@@ -572,7 +613,7 @@ function renderJob() {
   if (j.status === 'running') {
     $('#renderBtn').disabled = true;
     const prog = j.total ? ` (${Math.min(j.done, j.total)}/${j.total})` : '';
-    $('#jobBox').innerHTML = `<div class="status">Rendering — ${esc(j.label || 'working')}${prog}. You can leave this page; it keeps going.</div>`;
+    $('#jobBox').innerHTML = `<div class="status">Rendering — ${esc(j.label || 'working')}${prog}. You can keep editing or leave this page; the render uses the cards as they were when you pressed Render.</div>`;
   } else if (j.status === 'error') {
     $('#renderBtn').disabled = false;
     $('#jobBox').innerHTML = `<div class="status err">Render failed — ${esc(j.error || 'unknown error')}</div>`;

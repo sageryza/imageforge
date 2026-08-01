@@ -57,6 +57,15 @@ it is machine-verified, not ear-verified.
 - Episodes/renders: Firestore `forge-editor`; rendered mp3s in Storage
   `nde-episodes/`.
 - Alignment caches: Storage `nde-align-cache/` (see step 1).
+- Finished cuts (Aug 2026): Storage `nde-episodes/editor/clip-cache/<sha1>.mp3`
+  — content-addressed by `CUT_VERSION|videoId|normalized words|rounded anchor`.
+  `editor.js` checks this before cutting anything, so a clip is only ever cut
+  once; bump `CUT_VERSION` when the cutting logic changes so old cuts expire.
+  Narration lives beside it in `narr-cache/` (keyed by voice+model+tempo+
+  prefix+text).
+- Montage cut lists: `scripts/nde-montages/<slug>.json` — the exact candidate
+  lists the delivered montages were cut from; `scripts/seed-editor-montages.js`
+  turns them into editor episodes (`--render` warms the clip cache).
 
 ## Rules that must survive any refactor
 - Never cut on raw Whisper timestamps without alignment or snapping.
