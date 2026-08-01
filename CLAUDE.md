@@ -1130,6 +1130,16 @@ lifted into a standalone tool later.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. Full rules in "Prompts on Assets images" above.
+- **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
+  She reviews images in the Assets tab, not in chat — a stack of markdown links
+  is clutter. Deliver images by filing them directly instead:
+  `POST /api/gallery { assetsOnly:true, chat, url, description }` (the
+  description = a real scene description, what she reviews by) + the prompt
+  POST above for every image, and when a set belongs together (a storyboard,
+  an options batch, frames of one video) ALSO compile it as a **Compare page**
+  so she sees the whole thing in order in the Compare tab. Mentioning an image
+  inline in prose is fine — the rule is that link dumps are not the delivery
+  mechanism.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
