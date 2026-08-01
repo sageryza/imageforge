@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Drop — ImageForge</title>
+<style>
+  :root { --ink:#2b2b2b; --line:#e2ded5; --accent:#c98b3a; --bg:#faf8f3; --dim:#6b6459; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:1.4rem; margin:.2em 0; }
+  p.sub { color:var(--dim); margin-top:0; }
+  label { display:block; font-weight:600; margin:14px 0 4px; font-size:.95rem; }
+  input[type=text] { width:100%; padding:10px; border:1px solid var(--line); border-radius:6px;
+    font-size:1rem; background:#fff; color:var(--ink); }
+  input[type=file] { display:block; margin-top:8px; font-size:.95rem; max-width:100%; }
+  button { border:none; border-radius:6px; background:var(--accent); color:#fff; font-size:1rem;
+    font-weight:600; padding:12px 18px; cursor:pointer; margin-top:16px; }
+  button:disabled { opacity:.5; }
+  button.ghost { background:transparent; color:var(--dim); border:1px solid var(--line);
+    font-size:.85rem; font-weight:500; padding:6px 10px; margin:0; }
+  .sec { margin-top:24px; border-top:1px solid var(--line); padding-top:16px; }
+  .sec h2 { font-size:1rem; margin:0 0 10px; }
+  .item { border:1px solid var(--line); border-radius:6px; background:#fff;
+    padding:10px 12px; margin-bottom:8px; }
+  .item .top { display:flex; align-items:baseline; gap:8px; }
+  .item .num { color:var(--dim); font-size:.8rem; font-variant-numeric:tabular-nums; }
+  .item .nm { font-weight:600; flex:1; min-width:0; overflow-wrap:anywhere; }
+  .item .meta { color:var(--dim); font-size:.8rem; font-variant-numeric:tabular-nums;
+    white-space:nowrap; }
+  .item audio { width:100%; margin-top:8px; }
+  .item .acts { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .bar { height:4px; background:var(--line); border-radius:2px; margin-top:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); width:0; }
+  .st { font-size:.82rem; color:var(--dim); margin-top:6px; }
+  .st.err { color:#b3462f; }
+  .st.ok { color:#4a7c46; }
+  #status { margin-top:14px; font-size:.92rem; color:var(--dim); }
+  .note { font-size:.85rem; color:#8a8378; margin-top:24px; border-top:1px solid var(--line);
+    padding-top:14px; }
+  .note code { background:#fff; border:1px solid var(--line); border-radius:4px; padding:1px 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Audio drop</h1>
+  <p class="sub">Recordings off your phone into Firebase. Each one comes back as a permanent
+  link anything else can use — a story voiceover, an Episode Editor source, a chat that
+  needs to hear it.</p>
+
+  <label for="batch">Batch name</label>
+  <input type="text" id="batch" placeholder="what these are">
+
+  <label for="pick">Choose recordings</label>
+  <input type="file" id="pick" accept="audio/*" multiple>
+
+  <button id="go" disabled>Upload</button>
+  <div id="status"></div>
+
+  <div class="sec" id="queuesec" hidden>
+    <h2>Uploading</h2>
+    <div id="queue"></div>
+  </div>
+
+  <div class="sec">
+    <h2 id="haveh">In this batch</h2>
+    <div id="have"></div>
+  </div>
+
+  <p class="note">Files are matched by their contents, so re-sending a batch after a dropped
+  connection fills the gaps instead of uploading everything twice. Keep this page open while
+  it uploads — the transfer stops if you leave.</p>
+</div>
+
+<script>
+const TOKEN = '__STUDIO_TOKEN__';
+const API = '/api/audio';
+
+const $ = (id) => document.getElementById(id);
+const batchEl = $('batch'), pickEl = $('pick'), goEl = $('go');
+let queued = [];
+
+// Default batch: today, so dropping something never waits on naming it.
+const today = new Date();
+batchEl.value = [today.getFullYear(),
+  String(today.getMonth() + 1).padStart(2, '0'),
+  String(today.getDate()).padStart(2, '0')].join('-');
+
+function headers(extra) {
+  const h = Object.assign({}, extra || {});
+  if (TOKEN && TOKEN[0] !== '_') h['x-studio-token'] = TOKEN;
+  return h;
+}
+function slug(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '').slice(0, 60);
+}
+function mmss(sec) {
+  if (!sec && sec !== 0) return '';
+  const s = Math.round(sec);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function mb(bytes) {
+  if (!bytes) return '';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+pickEl.addEventListener('change', () => {
+  queued = Array.from(pickEl.files || []);
+  goEl.disabled = !queued.length;
+  goEl.textContent = queued.length
+    ? 'Upload ' + queued.length + (queued.length === 1 ? ' recording' : ' recordings')
+    : 'Upload';
+  $('status').textContent = '';
+});
+
+// One file, raw body, with real progress — fetch() can't report upload progress.
+function putOne(file, batch, onProgress) {
+  return new Promise((resolve, reject) => {
+    const q = '?batch=' + encodeURIComponent(batch)
+      + '&filename=' + encodeURIComponent(file.name || '');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', API + '/upload-file' + q);
+    const h = headers();
+    Object.keys(h).forEach((k) => xhr.setRequestHeader(k, h[k]));
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch (err) { /* non-JSON error page */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+      else reject(new Error(body.error || ('upload failed (' + xhr.status + ')')));
+    };
+    xhr.onerror = () => reject(new Error('network error'));
+    xhr.send(file);
+  });
+}
+
+goEl.addEventListener('click', async () => {
+  const batch = slug(batchEl.value) || 'default';
+  if (!queued.length) return;
+  goEl.disabled = true;
+  pickEl.disabled = true;
+  batchEl.disabled = true;
+
+  const rows = queued.map((f) => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = '<div class="top"><div class="nm">' + esc(f.name) + '</div>'
+      + '<div class="meta">' + mb(f.size) + '</div></div>'
+      + '<div class="bar"><i></i></div><div class="st">waiting</div>';
+    return el;
+  });
+  $('queue').innerHTML = '';
+  rows.forEach((r) => $('queue').appendChild(r));
+  $('queuesec').hidden = false;
+
+  let done = 0, failed = 0, skipped = 0;
+  // One at a time: a phone uplink shared eight ways just makes them all slow,
+  // and a serial queue means a failure is one obvious row, not a scramble.
+  for (let i = 0; i < queued.length; i++) {
+    const bar = rows[i].querySelector('.bar i');
+    const st = rows[i].querySelector('.st');
+    st.textContent = 'uploading';
+    st.className = 'st';
+    try {
+      const r = await putOne(queued[i], batch, (p) => { bar.style.width = (p * 100).toFixed(0) + '%'; });
+      bar.style.width = '100%';
+      if (r.duplicate) { skipped++; st.textContent = 'already in this batch'; st.className = 'st ok'; }
+      else { done++; st.textContent = 'saved' + (r.item && r.item.seconds ? ' · ' + mmss(r.item.seconds) : ''); st.className = 'st ok'; }
+    } catch (err) {
+      failed++;
+      st.textContent = err.message;
+      st.className = 'st err';
+    }
+  }
+
+  const bits = [];
+  if (done) bits.push(done + ' uploaded');
+  if (skipped) bits.push(skipped + ' already there');
+  if (failed) bits.push(failed + ' failed — pick them again to retry');
+  $('status').textContent = bits.join(' · ');
+
+  pickEl.disabled = false;
+  batchEl.disabled = false;
+  pickEl.value = '';
+  queued = [];
+  goEl.textContent = 'Upload';
+  load();
+});
+
+batchEl.addEventListener('change', load);
+
+async function load() {
+  const batch = slug(batchEl.value) || 'default';
+  $('haveh').textContent = 'In ' + batch;
+  const box = $('have');
+  box.textContent = 'loading…';
+  try {
+    const r = await fetch(API + '/items?batch=' + encodeURIComponent(batch), { headers: headers() });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'load failed');
+    if (!j.items.length) { box.innerHTML = '<p class="sub">Nothing here yet.</p>'; return; }
+    box.innerHTML = '';
+    j.items.forEach((it) => box.appendChild(row(it)));
+  } catch (err) {
+    box.innerHTML = '<p class="st err">' + esc(err.message) + '</p>';
+  }
+}
+
+function row(it) {
+  const el = document.createElement('div');
+  el.className = 'item';
+  const meta = [mmss(it.seconds), mb(it.bytes)].filter(Boolean).join(' · ');
+  el.innerHTML = '<div class="top"><div class="num">' + it.seq + '</div>'
+    + '<div class="nm">' + esc(it.name) + '</div>'
+    + '<div class="meta">' + esc(meta) + '</div></div>'
+    + '<audio controls preload="none" src="' + esc(it.url) + '"></audio>'
+    + '<div class="acts"><button class="ghost" data-a="rename">Rename</button>'
+    + '<button class="ghost" data-a="copy">Copy link</button>'
+    + '<button class="ghost" data-a="del">Delete</button></div>';
+
+  el.querySelector('[data-a=rename]').onclick = async () => {
+    const name = prompt('Name this recording', it.name);
+    if (name == null) return;
+    await fetch(API + '/items/' + it.id, {
+      method: 'PATCH',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: name }),
+    });
+    load();
+  };
+  el.querySelector('[data-a=copy]').onclick = async (e) => {
+    try { await navigator.clipboard.writeText(it.url); e.target.textContent = 'Copied'; }
+    catch (err) { prompt('Copy this link', it.url); }
+  };
+  el.querySelector('[data-a=del]').onclick = async () => {
+    if (!confirm('Delete "' + it.name + '"?')) return;
+    await fetch(API + '/items/' + it.id, { method: 'DELETE', headers: headers() });
+    load();
+  };
+  return el;
+}
+
+load();
+</script>
+</body>
+</html>

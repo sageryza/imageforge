@@ -260,6 +260,7 @@ loadConfig().then(() => {
   const ingest = require('./ingest');
   const crystals = require('./crystals');
   const dropbox = require('./dropbox');
+  const audioDrop = require('./audio');
   const etsyReport = require('./etsy-report');
   const shopify = require('./shopify');
   const blog = require('./blog');
@@ -295,6 +296,7 @@ loadConfig().then(() => {
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
+  app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
@@ -2044,6 +2046,11 @@ app.get('/import', serveGated('ingest.html'));
 // Firebase so a chat can pull them back out to price, sort into listings, and
 // build the numbered pick-your-own grids. Engine is /api/crystals (crystals.js).
 app.get('/crystals', serveGated('crystals.html'));
+
+// Audio drop: recordings off the phone (the Files app's picker is multi-select)
+// into Firebase, each one back as a permanent public url anything downstream can
+// use. Engine is /api/audio (audio.js).
+app.get('/audio', serveGated('audio.html'));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.

@@ -825,6 +825,45 @@ lifted into a standalone tool later.
   `POST /upload-file` (raw body — the iOS path), `POST /upload-zip`,
   `PATCH /bundle` (label a whole album at once), `DELETE /items/:id`.
 
+## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
+- `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for
+  audio. Nothing else did that job: `/api/story/voiceover` attaches ONE
+  recording to ONE story, `/api/songs` runs the whole song pipeline,
+  `/api/memos` files into the stamped 993-memo archive (and costs money per
+  file), and the Dump takes images + video only. A folder of recordings in the
+  Files app had nowhere to go.
+- **The iOS Share sheet is NOT a way in.** `DumpShare`'s activation rule is
+  `SupportsImageWithMaxCount` / `SupportsMovieWithMaxCount`, so a voice memo
+  never offers ImageForge as a destination. The way in is the `/audio` page's
+  file picker (multi-select works straight out of the Files app) — or Voice
+  Memos → Share → Copy → Story Room's "Paste a recording" when it belongs to
+  one story. Adding audio to the share extension is a TestFlight build.
+- **Dump first, label afterwards** (same as the Dump): uploading asks only for a
+  batch name, defaulted to the date. `name` (from the filename), `notes`,
+  `tags`, `track` are all fillable later, from the page or by a chat.
+- **Files are keyed by the md5 of their bytes**, so re-sending a batch after a
+  dropped connection tops it up instead of doubling it (`duplicate:true`).
+  `seq` comes from a **transaction** on the batch doc, never from counting the
+  collection — that's the bug that scrambled album order in `dropbox.js`.
+- One Firestore doc per recording (`forge-audio`, deckfactory), bytes at
+  `audio/<batch>/<NN>-<name>.<ext>` — a readable path, because these urls get
+  pasted into other tools by hand. `seconds` comes from ffprobe (best-effort;
+  no binary just leaves the field null). Public url = what every downstream
+  step wants: an Episode Editor source, a Story Room voiceover, `/api/nde`'s
+  from-video ingest, a chat that needs to hear it.
+- **Routes:** `GET /status` (open), `GET /batches`, `GET /items?batch=&track=`,
+  `GET /items/:id`, **`POST /upload-file?batch=&filename=&name=`** (ONE file as
+  the RAW body — no base64 inflation, and XHR reports real progress on a phone),
+  `POST /upload` `{batch, files:[{audio:dataURL|url, filename?, name?}]}` (the
+  chat path), `PATCH /items/:id`, `DELETE /items/:id`. Same `STUDIO_TOKEN` gate.
+- PATCH writes are whitelisted to `EDITABLE`; url/storagePath/hash/bytes/
+  seconds/createdAt are server-owned. Queries use one equality filter and sort
+  in memory, so there's no composite index to set up.
+- The page uploads **one file at a time** (a phone uplink shared eight ways just
+  makes them all slow) and the transfer is foreground — leaving the page stops
+  it. Transcription is deliberately NOT wired in; a recording's words come from
+  whichever pipeline claims it.
+
 ## Photo → Etsy pipeline (no POD)
 - `photostudio.js` (`/api/photostudio`, page at `/photo`) is a **separate track**
   from the POD pipeline for items Sophie already MADE (a handmade pouch, a
