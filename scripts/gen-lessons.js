@@ -33,20 +33,12 @@ const VOICES = {
   'II. The Pattern Collector':         { file:'pattern-collector.m4a', memo:'2024-04-09_1315_2024-04-09T20_15_25Z.m4a', date:'2024-04-09', min:22, confidence:'tentative — reads more like the idea than a clean take' },
 };
 
-// SOURCE recordings — where the lesson came from, not a read-aloud of it.
-// Sophie pitching the idea out loud ("I have another idea for one, and this
-// one is called the metaphor machine"), so the words don't match the written
-// lesson — but it IS her voice explaining the concept, which is what a short
-// needs when no read-aloud exists. Kept separate from VOICES for that reason:
-// no ▶ chip on the hub, but it rides in lessons-voices.json.
-const SOURCES = {
-  'The Metaphor Machine':         { file:'metaphor-machine-source.m4a', memo:'2026-07-28_*', date:'2026-07-28', min:5,
-                                    note:'pitches the lesson and names a follow-up she wants: "all the gates of the metaphor machine"' },
-  'What Do You Want to Wake Up To?': { file:'wake-up-to-source.m4a', memo:'2026-07-28_*', date:'2026-07-28', min:2,
-                                    note:'names the title as a pun, then the real premise — Aunt Parvati and Mason pushing meditation, and the background processes she cannot just switch off' },
-  'Where Do You Crop Art?':       { file:'noise-art-source.m4a', memo:'2026-07-29_*', date:'2026-07-29', min:3,
-                                    note:'the noise-art concept: input, change it, look, change it again — and how the metaphor machine gates meaning' },
-};
+// SOURCE recordings — where a lesson came from, not a read-aloud of it.
+// EMPTY BY DESIGN: nothing goes in here until Sophie has approved the match
+// in her Compare tab. A candidate found by matching is a suggestion, not a
+// fact, and filing one on her behalf is exactly the thing she asked not to
+// happen. Add an entry only after she says yes to that specific lesson.
+const SOURCES = {};
 
 // Per-tile background = the sampled off-white of that image (from the card
 // generator's bg sampling). Baked in so the page is fully self-contained.
