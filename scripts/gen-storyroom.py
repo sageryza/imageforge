@@ -133,8 +133,17 @@ textarea.field{min-height:80px; line-height:1.5;}
 __PILL_CSS__
 /* Back to the shelf. It used to float (position:fixed) over the page, which
    landed it right on top of a story's eyebrow line and hid the first words —
-   so it lives INLINE at the start of that line now and can't overlap anything. */
-.eyebrowrow{display:flex; align-items:center; gap:10px;}
+   so it lives INLINE at the start of that line. But inline-only meant it
+   scrolled away the moment you read past the title and there was no way back
+   without scrolling all the way up, so the row is STICKY: it rides the top of
+   the screen for the whole story, and content scrolls under it rather than
+   behind it. It must be a direct child of the section (NOT inside <header>) —
+   a sticky element only sticks within its own parent's box, so nesting it in
+   the header would unstick it as soon as the header scrolled past.
+   The side bleed re-paints .wrap's 6vw padding so nothing shows through. */
+.eyebrowrow{display:flex; align-items:center; gap:10px;
+  position:sticky; top:0; z-index:8; background:var(--paper);
+  margin:0 -6vw; padding:8px 6vw;}
 .backbtn{flex:0 0 auto; width:40px; height:40px; border-radius:6px; border:1px solid var(--line);
   background:var(--barbg); color:var(--ink2); font-size:20px; line-height:1; cursor:pointer;
   display:flex; align-items:center; justify-content:center; padding:0;}
@@ -349,11 +358,13 @@ function openProj(p, jumpBeat){
   clearInterval(voTimer);
   cur=p;
   var sec=document.getElementById('proj'); sec.innerHTML='';
+  var bar=document.createElement('div'); bar.className='eyebrowrow';
+  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
+    +'<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div>';
+  bar.querySelector('.backbtn').onclick=goHome;
+  sec.appendChild(bar);
   var head=document.createElement('header');
-  head.innerHTML='<div class="eyebrowrow"><button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
-    +'<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div></div>'
-    +'<h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
-  head.querySelector('.backbtn').onclick=goHome;
+  head.innerHTML='<h1>'+esc(p.title||p.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
   // The title is tappable — a story can be created with no name at all, so
   // naming it happens here, whenever she gets that far.
@@ -947,11 +958,13 @@ function openFilm(m){
   window.__scrollStop();
   cur={film:m.id};
   var sec=document.getElementById('proj'); sec.innerHTML='';
+  var bar=document.createElement('div'); bar.className='eyebrowrow';
+  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
+    +'<div class="no">the films</div>';
+  bar.querySelector('.backbtn').onclick=goHome;
+  sec.appendChild(bar);
   var head=document.createElement('header');
-  head.innerHTML='<div class="eyebrowrow"><button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
-    +'<div class="no">the films</div></div>'
-    +'<h1>'+esc(m.title||m.id)+'</h1><div class="rule"></div>';
-  head.querySelector('.backbtn').onclick=goHome;
+  head.innerHTML='<h1>'+esc(m.title||m.id)+'</h1><div class="rule"></div>';
   sec.appendChild(head);
   var video=document.createElement('video'); video.className='player'; video.controls=true;
   video.playsInline=true; video.setAttribute('playsinline','');
