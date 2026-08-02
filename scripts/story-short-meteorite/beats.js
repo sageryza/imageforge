@@ -15,7 +15,7 @@ module.exports.BEATS = [
       "Guys, I think I, like, cursed my ex-boyfriend, um, and I'm actually really scared",
     ],
     content: 'The woman stares straight at the viewer with wide, worried eyes, both hands pressed to her cheeks, while small lilac stars and a tiny crescent moon wobble in the air around her head.',
-    motion: 'The small stars and the crescent moon wobble and drift gently around her head while she blinks, her worried eyes glancing left and right.',
+    motion: 'Nervous confession energy: she leans in toward the viewer, eyes darting quickly side to side, pressing her hands harder into her cheeks, while the stars around her head jitter and tremble.',
   },
   {
     label: 'Meteorite 2 — the $10,000 meteorite in its case',
@@ -24,7 +24,7 @@ module.exports.BEATS = [
       "so this is a $10,000 meteorite, I know that sounds weird and, like, a scam, but, like, he was really rich, um, he was a, like, trust fund baby",
     ],
     content: 'The woman holds up a small clear display case with a dark grey lumpy meteorite inside, speckled with tiny glinting flecks, presenting it to the viewer with both hands; small pastel sparkles float around the case.',
-    motion: 'The pastel sparkles drift slowly around the case, the glinting flecks on the meteorite twinkle, and she tilts the case slightly as she presents it.',
+    motion: 'A slow dramatic camera push-in toward the display case as she raises it higher, the glinting flecks on the meteorite flaring one by one like a jewel under lights.',
   },
   {
     label: 'Meteorite 3 — the witchcraft business (retired voodoo dolls)',
@@ -34,7 +34,7 @@ module.exports.BEATS = [
       "I actually used to sell voodoo dolls, but I stopped because I, like, was getting all this bad energy",
     ],
     content: 'The woman stands proudly behind a little market stall of witchy goods with potion bottles, a crystal ball and a stack of tarot cards, while behind her a shelf holds a row of small stitched voodoo dolls, one tipped over into a wastebasket.',
-    motion: 'Soft candle-like light flickers over the stall, the tarot cards ruffle slightly, and the tipped voodoo doll rocks gently in the wastebasket while she smiles.',
+    motion: 'Busy shopkeeper pride: she sweeps one arm across the stall presenting her goods, the tarot cards fan out and flutter, and the voodoo doll tips over and drops deeper into the wastebasket.',
   },
   {
     label: 'Meteorite 4 — pins into his stomach, from bed',
@@ -42,7 +42,7 @@ module.exports.BEATS = [
       "I had been in my bed and I had been thinking, like, how much I hated him, and, like, I just kept getting this image of, like, him with, like, pins, like, going into his stomach",
     ],
     content: 'The woman lies in bed at night under a pale quilt with her eyes open, and above her floats one large round thought bubble showing a simple silhouette of a man with long sewing pins angled toward his stomach.',
-    motion: 'The thought bubble bobs gently above her, the pins inside it slide slowly closer to the silhouette, and her eyes widen slightly.',
+    motion: 'Menace building: the thought bubble swells larger and looms over the bed as the pins drive into the silhouette one after another, and her hands slowly clench the quilt.',
   },
   {
     label: 'Meteorite 5 — the vow: if this is real, I want to know',
@@ -50,7 +50,7 @@ module.exports.BEATS = [
       "I didn't just, like, wish that he would, like, have pain, I, like, specifically was, like, I don't believe this is real, so, like, if this is real, then I want to, like, know about it",
     ],
     content: 'The woman sits up cross-legged on her bed at night, one hand raised like she is making a solemn vow, a ring of small stars circling her raised hand, her face serious.',
-    motion: 'The ring of small stars rotates slowly around her raised hand, each star twinkling in turn, while she breathes calmly and steadily.',
+    motion: 'A vow being sealed: the ring of stars snaps into a fast spin around her raised hand, flares bright, then locks still all at once as her jaw sets with resolve.',
   },
   {
     label: 'Meteorite 6 — he shows up with stomach pain',
@@ -60,7 +60,7 @@ module.exports.BEATS = [
       "and he thought it was, like, guilt",
     ],
     content: 'A tall young man with short dark brown hair in a grey crewneck sweatshirt stands hunched in a doorway clutching his stomach, his face miserable; the woman holds the door open and looks at him with one eyebrow raised.',
-    motion: 'The man sways slightly while clutching his stomach and wincing, and the woman slowly raises her eyebrow further as the door drifts a little wider open.',
+    motion: 'A wave of pain hits him: he doubles over clutching his stomach and staggers a half step against the doorframe, while she coolly raises her eyebrow and holds the door.',
   },
   {
     label: "Meteorite 7 — the skeptic (none of that's real, babe)",
@@ -69,7 +69,7 @@ module.exports.BEATS = [
       "he was, like, really, like, science-y, and, like, he was, like, no, babe, none of that's real",
     ],
     content: 'The man stands with his arms crossed and chin up, dismissive, surrounded by floating doodles of an atom, a beaker and a magnet, while a small witch hat and a crystal ball float near the woman on the other side of the scene, being waved away.',
-    motion: 'The atom, beaker and magnet doodles orbit slowly around the man while he waves one hand dismissively, and the witch hat and crystal ball bob away toward the woman.',
+    motion: 'Dismissive lecture energy: he swats the witch hat away with the back of his hand so it tumbles through the air, the science doodles wobbling smugly on their orbits around him.',
   },
   {
     label: 'Meteorite 8 — the meteorite instead of escrow',
@@ -79,7 +79,7 @@ module.exports.BEATS = [
       "but he's, like, no, that's so embarrassing, like, instead I'm going to give you this meteorite",
     ],
     content: 'At a small table, the man pushes the meteorite in its clear case across toward the woman with both hands; a small tied money bag sits ignored at the edge of the table; the woman stands with her arms crossed, unimpressed.',
-    motion: 'The man slides the meteorite case slowly across the table toward her, the sparkles around it drifting, while she taps her fingers on her crossed arms.',
+    motion: 'The bargain: he shoves the meteorite case across the table so it slides and stops right in front of her, sparkles scattering off it — and she does not move at all, arms crossed.',
   },
   {
     label: 'Meteorite 9 — the rat under the table (he was lying)',
@@ -88,7 +88,7 @@ module.exports.BEATS = [
       "so he's, like, okay, I didn't actually do it, and then that's when he started, like, crying",
     ],
     content: 'The woman and the man sit across from each other at a small restaurant table at night; under the table a little grey rat looks up knowingly; the man looks away sweating while the woman leans in, staring at him.',
-    motion: 'The little rat sniffs and looks up, a single sweat drop slides down the man\'s face as he looks away, and the woman leans in slowly without blinking.',
+    motion: 'Comic reveal timing: the rat pops up taller and its whiskers twitch rapidly, a fat sweat drop falls off the man\'s face as he looks away, and she leans in sharply, unblinking.',
   },
   {
     label: 'Meteorite 10 — the mobius strip ritual',
@@ -98,7 +98,7 @@ module.exports.BEATS = [
       "this was my friend Mason's idea, because he, like, loves rituals",
     ],
     content: 'Four friends sit in a circle on a living room rug at night with lit candles, each holding up a twisted white paper loop, and in the center of the circle the meteorite sits in its clear case, glowing faintly.',
-    motion: 'The candle flames flicker softly, the twisted paper loops sway gently in the friends\' hands, and the faint glow around the meteorite pulses brighter and dimmer.',
+    motion: 'Ceremony rising: all the candle flames leap tall at the same moment, the friends turn their paper loops in unison, and the glow around the meteorite surges outward in a slow ring.',
   },
   {
     label: 'Meteorite 11 — the gibberish blessing song',
@@ -108,7 +108,7 @@ module.exports.BEATS = [
       "and then he, like, started bawling",
     ],
     content: 'The woman sits on her bed at night singing with her eyes closed, colorful pastel music notes floating up from her mouth, while the man lies curled up beside her crying big cartoon tears into a pillow.',
-    motion: 'The pastel music notes float steadily up from her mouth and drift apart, while the man\'s shoulders shake with soft sobs and big tears roll down.',
+    motion: 'Emotional swell: the music notes pour out faster and rise in a widening spiral, his shoulders heave with sobs, and one big tear splashes onto the pillow.',
   },
   {
     label: 'Meteorite 12 — "what did it mean?"',
@@ -116,6 +116,6 @@ module.exports.BEATS = [
       "he, like, rolled over, and he's, like, what did it mean? And I was, like, it was gibberish",
     ],
     content: 'The man lies in bed rolled over to face the woman with puffy eyes and a baffled expression; above the woman floats a small thought bubble containing only colorful meaningless squiggles, and she shrugs with a tiny smile.',
-    motion: 'The squiggles inside the thought bubble slowly writhe and rearrange themselves, he blinks with puffy eyes, and she gives a small shrug and a tiny smile.',
+    motion: 'Deadpan punchline: everything holds perfectly still for a beat — then only the squiggles in the thought bubble scramble wildly while he blinks, and she gives one small shrug.',
   },
 ];
