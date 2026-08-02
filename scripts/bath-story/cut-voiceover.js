@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const admin = require('firebase-admin');
-const { phraseSpan, clampBounds, snapToSilence, normWords } = require('/home/user/imageforge/editor.js');
+const { clampBounds, snapToSilence, normWords } = require('/home/user/imageforge/editor.js');
 
 const SCRATCH = process.env.BATH_SCRATCH || '/tmp/claude-0/-home-user/3f02d84e-abbd-5c13-b33d-ae39d8184c4b/scratchpad';
 const OUT = path.join(SCRATCH, 'bath-audio');
@@ -77,19 +77,38 @@ async function whisperText(file) {
   const silences = await detectSilences(WAV);
   console.log(`silences: ${silences.length}`);
 
-  // 1) locate every segment, then sanity-check order/coverage
-  const located = [];
+  // 1) locate segments as a strict PARTITION of the word list: the segments
+  // tile the whole recording in order, so match each segment's HEAD (first ~6
+  // words, searched after the previous head) and end each segment exactly
+  // where the next begins. Independent full-phrase matches drifted a few
+  // words at the seams (verify caught tail words leaking across cuts).
+  const ww = words.map(w => (normWords(w.word)[0] || ''));
+  const anchorAt = (phrase, from) => {
+    // one token per SPOKEN word, same as ww ("I've" → "i", not "i","ve")
+    const pw = phrase.split(/\s+/).map(t => normWords(t)[0] || '').filter(Boolean).slice(0, 6);
+    let best = null; // [score, i]
+    for (let i = from; i <= ww.length - pw.length; i++) {
+      let hit = 0;
+      for (let j = 0; j < pw.length; j++) if (ww[i + j] === pw[j]) hit++;
+      const score = hit / pw.length;
+      if (!best || score > best[0]) best = [score, i];
+      if (score === 1) break; // earliest perfect match wins
+    }
+    if (!best || best[0] < 0.6) return null;
+    return best[1];
+  };
+  const heads = [];
   for (const seg of SEGMENTS) {
-    const span = phraseSpan(words, seg.text);
-    if (!span) throw new Error(`${seg.id}: phrase not found`);
-    located.push({ ...seg, span });
-    console.log(`${seg.id} [${seg.panel || 'no-panel'}]: words ${span.start}-${span.end} score ${span.score.toFixed(3)}`);
+    const from = heads.length ? heads[heads.length - 1] + 4 : 0;
+    const at = anchorAt(seg.text, from);
+    if (at == null) throw new Error(`${seg.id}: head not found after word ${from}`);
+    heads.push(at);
   }
-  for (let i = 1; i < located.length; i++) {
-    const prev = located[i - 1], cur = located[i];
-    if (cur.span.start <= prev.span.end) console.warn(`WARN overlap ${prev.id}/${cur.id}`);
-    else if (cur.span.start !== prev.span.end + 1) console.warn(`WARN gap ${prev.id}→${cur.id}: words ${prev.span.end + 1}-${cur.span.start - 1} unassigned`);
-  }
+  const located = SEGMENTS.map((seg, i) => {
+    const span = { start: heads[i], end: i < heads.length - 1 ? heads[i + 1] - 1 : words.length - 1 };
+    console.log(`${seg.id} [${seg.panel || 'no-panel'}]: words ${span.start}-${span.end} "${ww[span.start]}…${ww[span.end]}"`);
+    return { ...seg, span };
+  });
 
   // 2) bounds: gap-aware pad + silence snap (end capped at next word's start)
   const manifest = [];
