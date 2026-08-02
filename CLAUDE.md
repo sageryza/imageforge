@@ -504,6 +504,16 @@ lifted into a standalone tool later.
     visible paper grain`).
   - **content** = what is depicted: subject, action, setting, composition
     (`a woman in a yellow raincoat feeding crows on a park bench at dusk`).
+  - **THE EXACT PROMPT, character for character — NEVER PARAPHRASE (Aug 2026,
+    Sophie's rule).** Both halves are the literal text that was sent to the
+    model: the content half verbatim, and the style half the real style
+    prefix/suffix/character-consistency lines as sent (when the style is a
+    wrapper around the content, mark the seam with `[content]`, and note any
+    attached style-ref images + size/quality after it). Never a summary, a
+    cleaned-up version, or a reconstruction from memory. If the exact text is
+    not available (an older image, an unknown generator), file NOTHING — the
+    PROMPT button stays hidden by design — or file `not available`; never
+    fill the gap with a paraphrase.
   - `POST /api/gallery/assets/prompt` `{ chat, url, style, content }` — the
     image's Firebase Storage url, x-studio-token when gated. Do this for EVERY
     image deliverable, right after the image exists; it needs no gallery step
@@ -1199,7 +1209,9 @@ lifted into a standalone tool later.
   or a bare URL. Applies to every image in a finished reply.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
-  tab reads. Full rules in "Prompts on Assets images" above.
+  tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
+  text on hand → file nothing (or `not available`). Full rules in "Prompts on
+  Assets images" above.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
