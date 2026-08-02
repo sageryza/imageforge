@@ -180,7 +180,7 @@ struct MovieMakerHome: View {
             // Full-screen push (not a popup sheet) — the boards read as a
             // proper native screen; the webview inside is still the live page.
             .navigationDestination(isPresented: $showStoryRoom) {
-                StoryRoomView()
+                StoryRoomView(pushed: true)
                     // The single "Story Room" heading lives in the native nav
                     // bar, in the branded eyebrow style (see forgeTitle).
                     .forgeTitle("Story Room")

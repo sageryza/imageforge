@@ -155,6 +155,11 @@ __PILL_CSS__
   background:var(--barbg); color:var(--ink2); font-size:20px; line-height:1; cursor:pointer;
   display:flex; align-items:center; justify-content:center; padding:0;}
 .backbtn:focus-visible{outline:2px solid var(--rose);}
+/* Inside the iOS app the NATIVE nav bar owns the back arrow (top-left corner,
+   same as every other tool), wired to window.__navBack() below — so the page's
+   own back row would be a second header floating in a dead band under the
+   native one. Hidden in-app; browsers have no native bar and keep the row. */
+body.native .eyebrowrow{display:none;}
 #toast{position:fixed; bottom:max(20px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
@@ -177,6 +182,24 @@ var TOKEN='__STUDIO_TOKEN__';
 function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Native shell detection ──
+// App builds WITH the nav-bar chevron inject window.__nativeNavBar (a
+// WKUserScript in StoryRoomView) — the native bar then carries the back arrow
+// in its top-left corner and the page hides its own back row (body.native CSS
+// above). Keyed on that marker, NOT on the pasteVoiceover bridge, so an older
+// app build without the chevron keeps the in-page row and is never left with
+// no way back. The native chevron calls __navBack(): true = a story/film view
+// consumed the tap and stepped back one level (its hidden back chip is
+// clicked, which already knows where "back" is — shelf, films archive, or the
+// story a film belongs to); false = already on the shelf, so the app pops
+// back to the home grid itself.
+if(window.__nativeNavBar) document.body.classList.add('native');
+window.__navBack=function(){
+  var b=document.querySelector('#proj .backbtn');
+  if(cur&&b){ b.click(); return true; }
+  return false;
+};
 
 var projects=[], notes={}, cur=null, homeY=0, query='';
 // Films (forge-movies docs) grouped by the story they belong to. A film with
