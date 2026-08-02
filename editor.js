@@ -652,12 +652,16 @@ async function buildClip(snippet, source, ctx) {
 // A narration card: ElevenLabs, spoken quietly, then nudged faster + levelled.
 // Cached like clips — the same words in the same voice are voiced (and paid
 // for) exactly once, however many renders reuse them.
-async function buildNarration(text, ctx) {
-  const narTag = crypto.randomBytes(3).toString('hex');
+function narrCachePath(text) {
   const cacheKey = crypto.createHash('sha1')
     .update([NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
     .digest('hex');
-  const cachePath = `${NARR_CACHE_FOLDER}/${cacheKey}.mp3`;
+  return `${NARR_CACHE_FOLDER}/${cacheKey}.mp3`;
+}
+
+async function buildNarration(text, ctx) {
+  const narTag = crypto.randomBytes(3).toString('hex');
+  const cachePath = narrCachePath(text);
   const cachedNar = await fromCache(cachePath, path.join(ctx.dir, `nar-${narTag}.mp3`));
   if (cachedNar) {
     ctx.log.push('narration from narr-cache');
@@ -1136,6 +1140,26 @@ router.post('/:id/preview', async (req, res) => {
     await startPreview(ep.id, snippet);
     res.json({ status: 'running' });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// A narration line for the page's whole-episode play: answers the cached mp3
+// when the same words have ever been voiced (render or earlier play), else
+// voices them once — the identical cost a render would pay, cached forever.
+router.post('/:id/narration-preview', async (req, res) => {
+  try {
+    const text = String((req.body && req.body.text) || '').trim();
+    if (!text) return res.status(400).json({ error: 'no text' });
+    const b = bucket();
+    if (!b) return res.status(500).json({ error: 'Firebase Storage unavailable' });
+    const cachePath = narrCachePath(text);
+    const [exists] = await b.file(cachePath).exists();
+    if (!exists) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-nar-'));
+      try { await buildNarration(text, { dir, downloads: new Map(), log: [] }); }
+      finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ } }
+    }
+    res.json({ url: storagePublicUrl(cachePath) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:id/preview/:snippetId', async (req, res) => {
