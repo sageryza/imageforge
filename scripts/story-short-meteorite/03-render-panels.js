@@ -1,7 +1,7 @@
 // One pastel 2:3 PORTRAIT panel per beat (1024x1536 = exactly 2:3) —
 // gpt-image-2 EDITS with the witch-school style refs, house character + a
 // consistent ex-boyfriend design, whitened background. Same style constants
-// as story-short-pastel/render-panels.js; concurrency 3 with retry.
+// as server.js MODELS.house[house-pastel]; concurrency 3 with retry.
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');

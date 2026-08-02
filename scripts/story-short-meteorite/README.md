@@ -4,7 +4,18 @@ Story Room project `songs-aug-2` ("The meteorite") → a 1080x1620 **portrait
 2:3** short in the Test Station **Pastel (house)** style, narrated by Sophie's
 own Story Room recording, precision-cut to chosen words.
 
-Differences from `story-short-pastel/` (Controlling My Own Destiny):
+**This folder is THE story-short recipe.** Its predecessor
+(`story-short-pastel/`, Controlling My Own Destiny) was deleted at Sophie's
+request in Aug 2026 — recoverable from git history, and its finished short +
+art still live in Firebase untouched.
+
+- **Motion is SCENE-DRIVEN — no house motion default (Sophie's rule, Aug
+  2026).** The old recipe stamped "gentle smooth dreamy motion, no camera
+  movement" onto every clip and every short came out with one energy. Don't.
+  Write each beat's motion prompt to match what that scene needs — a sharp
+  comic pop, a slow dramatic push-in, near-stillness before a punchline —
+  and use camera moves when the beat calls for them. The animator suffix
+  locks STYLE only, never motion.
 - **2:3 portrait end to end** — panels are 1024x1536 (exactly 2:3) and the
   final video is 1080x1620 with NO white padding (the 9:16 reel pad is gone).
 - **The narration is a SUPERCUT, not a tightened whole take.** The recording

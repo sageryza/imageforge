@@ -7,7 +7,9 @@ const TOKEN = process.env.REPLICATE_API_TOKEN;
 const VERSION = '4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea';
 const panels = require(OUT + '/panels.json');
 
-const TAIL = ' Flat pastel illustration style with bold black ink outlines on a white background. Gentle smooth dreamy motion, no camera movement.';
+// Style lock only — motion is described per beat in beats.js, matched to what
+// each scene needs (Sophie's rule, Aug 2026: no house motion default).
+const TAIL = ' Flat pastel illustration style with bold black ink outlines on a white background.';
 
 async function predict(input) {
   const res = await fetch('https://api.replicate.com/v1/predictions', {
