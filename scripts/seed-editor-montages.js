@@ -84,27 +84,46 @@ function buildEpisode(title, cands) {
   return { title, sources, snippets, sequence };
 }
 
+// The live server restarts whenever any chat deploys, and an in-memory render
+// job dies with it while its doc still says "running" — so never poll a
+// running job forever. The server accepts a new render once the stuck one is
+// >20 min old; re-kick then, a few times, before giving up on the episode.
 async function renderAndWait(id, title) {
-  await api(`/${id}/render`, { method: 'POST', body: JSON.stringify({}) });
-  process.stdout.write(`  rendering "${title}" `);
-  for (;;) {
-    await sleep(6000);
-    let data;
-    try { data = await api(`/${id}/job`); } catch { process.stdout.write('~'); continue; }
-    const j = data.job || {};
-    if (j.status === 'running') { process.stdout.write('.'); continue; }
-    if (j.status === 'error') { console.log(`\n  RENDER FAILED: ${j.error}`); return null; }
-    const r = (data.renders || [])[0];
-    if (r) {
-      const notes = r.notes || [];
-      const cached = notes.filter(n => n.includes('from clip-cache')).length;
-      const whisper = notes.filter(n => n.includes('via whisper')).length;
-      console.log(`\n  done — ${r.seconds}s, ${r.cards} cards (${cached} from cache, ${whisper} via whisper)`);
-      return r;
+  const before = ((await api(`/${id}/job`)).renders || []).length;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await api(`/${id}/render`, { method: 'POST', body: JSON.stringify({}) });
+    } catch (err) {
+      if (!/already running/.test(err.message)) throw err;
+      // a live job exists — fall through and wait on it
     }
-    console.log('\n  job finished but no render recorded');
-    return null;
+    process.stdout.write(`  rendering "${title}" (attempt ${attempt}) `);
+    for (;;) {
+      await sleep(6000);
+      let data;
+      try { data = await api(`/${id}/job`); } catch { process.stdout.write('~'); continue; }
+      const j = data.job || {};
+      if (j.status === 'running') {
+        const age = Date.now() - new Date(j.startedAt || 0).getTime();
+        if (age > 21 * 60 * 1000) { console.log('\n  job looks dead (server restarted?) — re-kicking'); break; }
+        process.stdout.write('.');
+        continue;
+      }
+      if (j.status === 'error') { console.log(`\n  RENDER FAILED: ${j.error}`); return null; }
+      const r = (data.renders || [])[0];
+      if ((data.renders || []).length > before && r) {
+        const notes = r.notes || [];
+        const cached = notes.filter(n => n.includes('from clip-cache')).length;
+        const whisper = notes.filter(n => n.includes('via whisper')).length;
+        console.log(`\n  done — ${r.seconds}s, ${r.cards} cards (${cached} from cache, ${whisper} via whisper)`);
+        return r;
+      }
+      console.log('\n  job finished but no new render recorded');
+      return null;
+    }
   }
+  console.log(`  giving up on "${title}" after 3 attempts`);
+  return null;
 }
 
 (async () => {
