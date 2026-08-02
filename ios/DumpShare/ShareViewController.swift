@@ -306,14 +306,23 @@ final class ShareViewController: UIViewController {
 
     /// A recording files into the VOICE MEMOS archive (membry `memo-audio/`,
     /// the private shelf JournalReader reads) via /api/memos/ingest. The
-    /// archive keys memos by their recording stamp, so the stamp comes from
-    /// the file's own modification date — the closest thing a shared file has
-    /// to "when this was recorded" — bumped a minute at a time when two files
-    /// in one share would otherwise collide.
+    /// archive keys memos by their recording stamp, so the stamp prefers the
+    /// audio's EMBEDDED creation date (the true recording time on a real
+    /// voice memo — file dates only say when a copy was made; verified Aug
+    /// 2026 when saved-from-video audio stamped "tonight" instead of
+    /// January), falling back to the file's modification date, bumped a
+    /// minute at a time when two files in one share would collide.
     private func memoRequest(for file: URL, usedStamps: inout Set<String>) async -> URLRequest {
         let fm = FileManager.default
-        var when = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date)
-            .flatMap { $0 } ?? Date()
+        let asset = AVURLAsset(url: file)
+        var when = Date()
+        if let item = try? await asset.load(.creationDate),
+           let embedded = try? await item.load(.dateValue) {
+            when = embedded
+        } else if let mtime = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date)
+            .flatMap({ $0 }) {
+            when = mtime
+        }
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd_HHmm"
         var stamp = f.string(from: when)
