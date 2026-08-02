@@ -192,13 +192,7 @@ async function toBuffer(ref) {
 
 // What's already in this batch, by content hash — so a re-send after a dropped
 // connection fills the gaps instead of storing everything twice. One equality
-// filter, sorted in memory: no composite index to set up.
-async function batchState(batch) {
-  const snap = await db().collection(COL).where('batch', '==', batch).get();
-  const byHash = new Map();
-  snap.forEach((d) => byHash.set(d.get('hash'), { id: d.id, ...d.data() }));
-  return { byHash };
-}
+// filter: no composite index to set up.
 
 // The next position in the batch, allocated atomically. Counting the collection
 // instead would hand two concurrent uploads the same number.
@@ -222,9 +216,13 @@ async function storeOne({ bucket, batch, buf, ct, filename, name }) {
   if (!buf || !buf.length) throw new Error('empty audio file');
   const hash = crypto.createHash('md5').update(buf).digest('hex');
 
-  const { byHash } = await batchState(batch);
-  const already = byHash.get(hash);
-  if (already) return { ...already, duplicate: true };
+  // Dedupe by content across ALL batches (Aug 2026, verified live by Sophie:
+  // the share sheet stamps a NEW batch per share, so the same recording sent
+  // in two separate shares landed twice — the old per-batch check only caught
+  // re-sends into one batch). A recording exists ONCE, whichever batch it
+  // arrived in first; deleting it frees the hash for a genuine re-upload.
+  const dup = await db().collection(COL).where('hash', '==', hash).limit(1).get();
+  if (!dup.empty) return { id: dup.docs[0].id, ...dup.docs[0].data(), duplicate: true };
 
   const ext = extFor(filename, ct);
   const seq = await allocSeq(batch);
