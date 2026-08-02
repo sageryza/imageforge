@@ -107,3 +107,21 @@ Tool: `node scripts/vo-remove-pauses.js in.mp3 out.mp3 [--script script.txt]
 [--edits edits.json] [--keep 0.28]` — both passes + verification; `--edits`
 dumps the cut list so frame timings can be remapped arithmetically instead of
 re-transcribed.
+
+### Thump-and-drift pauses (Aug 2026, round 2)
+One pause survived all of the above and Sophie heard it instantly: she set her
+phone down mid-pause. The thump registers at FULL speech level for ~0.3s, so
+the "nothing loud inside the cut" safety veto refused the cut — and Whisper
+inflated the NEXT word's start backwards across the quiet, so the gap never
+showed as a gap. Three fixes, all in `vo-remove-pauses.js`:
+- **Transients never veto.** Loud runs ≤0.15s inside a candidate pause are
+  bumps, not words — cut straight through them (removing the thump too). Only
+  SUSTAINED (≥0.2s) speech-level audio cancels a cut.
+- **The cut's end comes from energy, not the next word's timestamp**: first
+  point after the pause with ≥0.16s sustained audio above (speech-ref − 7dB).
+- **Merge overlapping windows before applying** — two adjacent inflated words
+  flag the same pause; unmerged overlaps double-count removal and corrupt the
+  arithmetic frame-timing remap.
+Ablation while we're at it: on the same track, the word-timing breath pass
+found 21 pauses (27.8s) vs room tone's 13 runs (7.1s), with only 3 overlapping
+— the breath pass is the workhorse, room tone is the sweeper. Both stay.
