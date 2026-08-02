@@ -1120,4 +1120,7 @@ module.exports = {
   // exported for tests / other tools
   phraseSpan, clampBounds, snapToSilence, ratio, normWords, windowTokens,
   textHash, previewState,
+  // exported so scripts/warm-clip-cache.js can pre-cut clips into the clip
+  // cache from anywhere (the identical code path a server render runs)
+  buildClip, sourceFor, clipCachePath, defaultAudioUrl,
 };
