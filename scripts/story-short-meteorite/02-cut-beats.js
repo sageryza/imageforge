@@ -172,6 +172,18 @@ function locateInFull(words, phrase) {
   return { start: best[1], end: best[2], score: best[0] };
 }
 
+// Extract a span's audio from the original recording with micro-fades
+// (~30ms in / ~100ms out), 44.1k mono — re-run whenever bounds change.
+function extractSpan(sp) {
+  const d = sp.cutEnd - sp.cutStart;
+  const dest = `${OUT}/span-${sp.beat}-${sp.si}.wav`;
+  execFileSync(FFMPEG, ['-y', '-i', VO, '-filter_complex',
+    `[0:a]atrim=start=${sp.cutStart.toFixed(3)}:end=${sp.cutEnd.toFixed(3)},asetpts=PTS-STARTPTS,` +
+    `afade=t=in:st=0:d=0.03,afade=t=out:st=${Math.max(0, d - 0.1).toFixed(3)}:d=0.1,` +
+    `aformat=sample_rates=44100:channel_layouts=mono[out]`,
+    '-map', '[out]', dest], { stdio: 'pipe' });
+}
+
 async function whisperFile(file) {
   const form = new FormData();
   form.append('file', new Blob([fs.readFileSync(file)], { type: 'audio/wav' }), 'w.wav');
@@ -215,28 +227,79 @@ async function whisperFile(file) {
   for (let wi = 0; wi < windows.length; wi++) {
     const w = windows[wi];
     const wwav = `${OUT}/win-${wi}.wav`;
+    const wjson = `${OUT}/win-${wi}.json`;
     execFileSync(FFMPEG, ['-y', '-ss', w.from.toFixed(3), '-t', (w.to - w.from).toFixed(3), '-i', VO,
       '-ac', '1', '-ar', '16000', wwav], { stdio: 'pipe' });
-    const tr = await whisperFile(wwav);
+    let tr;
+    if (fs.existsSync(wjson)) tr = JSON.parse(fs.readFileSync(wjson, 'utf8'));
+    else { tr = await whisperFile(wwav); fs.writeFileSync(wjson, JSON.stringify(tr)); }
     const silences = await detectSilences(wwav);
     console.log(`window ${wi} [${w.from.toFixed(1)}-${w.to.toFixed(1)}s]: ${tr.words.length} words, ${silences.length} silences`);
     for (const sp of w.spans) {
       const loc = phraseSpan(tr.words, sp.text);
       if (!loc || loc.score < 0.7) throw new Error(`window re-locate failed (b${sp.beat}.${sp.si}, score ${loc && loc.score})`);
-      let [rs, re] = clampBounds(tr.words, loc.start, loc.end);
-      const maxEnd = loc.end < tr.words.length - 1 ? tr.words[loc.end + 1].start : null;
+      // Anchor the matched BOUNDARIES to the expected first/last words. The
+      // NDE editor never needs this (its snippets are copied from the same
+      // transcript), but here the fuzzy match can start a filler word early
+      // ("well," / "yeah,") or end on a trailing "um" — and unlike the
+      // editor we know the exact word each span must start and end on.
+      const ww = tr.words.map(x => (normWords(x.word)[0] || ''));
+      const pw = normWords(sp.text);
+      let i0 = loc.start, i1 = loc.end;
+      if (ww[i0] !== pw[0]) {
+        let hit = -1;
+        for (let k = 1; k <= 6 && i0 + k <= i1; k++) if (ww[i0 + k] === pw[0]) { hit = i0 + k; break; }
+        if (hit < 0) for (let k = 1; k <= 2 && i0 - k >= 0; k++) if (ww[i0 - k] === pw[0]) { hit = i0 - k; break; }
+        if (hit >= 0) { console.log(`    b${sp.beat}.${sp.si}: start anchored ${i0}→${hit} (dropped "${ww.slice(Math.min(i0, hit), Math.max(i0, hit)).join(' ')}")`); i0 = hit; }
+        else console.warn(`    b${sp.beat}.${sp.si}: WARN start word "${pw[0]}" not found near match (have "${ww[i0]}")`);
+      }
+      const pl = pw[pw.length - 1];
+      if (ww[i1] !== pl) {
+        let hit = -1;
+        for (let k = 1; k <= 6 && i1 - k >= i0; k++) if (ww[i1 - k] === pl) { hit = i1 - k; break; }
+        if (hit < 0) for (let k = 1; k <= 2 && i1 + k < ww.length; k++) if (ww[i1 + k] === pl) { hit = i1 + k; break; }
+        if (hit >= 0) { console.log(`    b${sp.beat}.${sp.si}: end anchored ${i1}→${hit} (dropped "${ww.slice(Math.min(i1, hit) + 1, Math.max(i1, hit) + 1).join(' ')}")`); i1 = hit; }
+        else console.warn(`    b${sp.beat}.${sp.si}: WARN end word "${pl}" not found near match (have "${ww[i1]}")`);
+      }
+      let [rs, re] = clampBounds(tr.words, i0, i1);
+      const maxEnd = i1 < tr.words.length - 1 ? tr.words[i1 + 1].start : null;
       [rs, re] = snapToSilence(rs, re, silences, maxEnd);
       sp.cutStart = w.from + rs;
       sp.cutEnd = w.from + re;
       sp.winScore = loc.score;
-      const d = re - rs;
-      const dest = `${OUT}/span-${sp.beat}-${sp.si}.wav`;
-      execFileSync(FFMPEG, ['-y', '-i', VO, '-filter_complex',
-        `[0:a]atrim=start=${sp.cutStart.toFixed(3)}:end=${sp.cutEnd.toFixed(3)},asetpts=PTS-STARTPTS,` +
-        `afade=t=in:st=0:d=0.03,afade=t=out:st=${Math.max(0, d - 0.1).toFixed(3)}:d=0.1,` +
-        `aformat=sample_rates=44100:channel_layouts=mono[out]`,
-        '-map', '[out]', dest], { stdio: 'pipe' });
-      console.log(`  b${sp.beat}.${sp.si}: cut ${sp.cutStart.toFixed(2)}-${sp.cutEnd.toFixed(2)}s (${d.toFixed(2)}s, score ${loc.score.toFixed(3)})`);
+      extractSpan(sp);
+      console.log(`  b${sp.beat}.${sp.si}: cut ${sp.cutStart.toFixed(2)}-${sp.cutEnd.toFixed(2)}s (${(re - rs).toFixed(2)}s, score ${loc.score.toFixed(3)})`);
+    }
+  }
+
+  // 3.5 Per-span verify + boundary nudge. Whisper's word edges are fuzzy by
+  // ±100-200ms, and where Sophie's filler chains leave NO silence between
+  // words ("well,I've" / "yeah,so" / "rituals,um") the silence snap has
+  // nothing to snap to and a neighbor syllable bleeds into the cut. So each
+  // span is re-listened to ALONE and the offending boundary micro-shifted
+  // (70ms steps, ≤6 tries) until whisper hears exactly the right first and
+  // last words — grown when a word got clipped, shrunk when a stray rode in.
+  for (const sp of spans) {
+    const pw = normWords(sp.text);
+    const p0 = pw[0], pl = pw[pw.length - 1];
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const tr = await whisperFile(`${OUT}/span-${sp.beat}-${sp.si}.wav`);
+      const h = normWords(tr.text);
+      sp.heard = tr.text;
+      const startOK = h[0] === p0, endOK = h[h.length - 1] === pl;
+      if (startOK && endOK) { if (attempt) console.log(`  b${sp.beat}.${sp.si}: clean after ${attempt} nudge(s) → ${sp.cutStart.toFixed(2)}-${sp.cutEnd.toFixed(2)}s`); break; }
+      if (attempt === 5) { console.warn(`  b${sp.beat}.${sp.si}: WARN still unclean after nudging (heard "${(tr.text || '').slice(0, 60)}…")`); break; }
+      if (!startOK) {
+        const idx = h.indexOf(p0);
+        sp.cutStart += (idx > 0 ? 0.07 : -0.07); // stray words before → shrink; first word clipped → grow
+      }
+      if (!endOK) {
+        const idx = h.lastIndexOf(pl);
+        sp.cutEnd += (idx >= 0 && idx < h.length - 1 ? -0.07 : 0.07); // stray after → shrink; clipped → grow
+      }
+      if (sp.cutEnd - sp.cutStart < 0.4) { console.warn(`  b${sp.beat}.${sp.si}: WARN nudge floor hit`); break; }
+      extractSpan(sp);
+      console.log(`  b${sp.beat}.${sp.si}: nudged → ${sp.cutStart.toFixed(2)}-${sp.cutEnd.toFixed(2)}s (start:${startOK ? 'ok' : 'adjusting'} end:${endOK ? 'ok' : 'adjusting'})`);
     }
   }
 
