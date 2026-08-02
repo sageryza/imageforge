@@ -16,7 +16,6 @@ struct ColoringView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                StarTitle(text: "Coloring Pages").frame(maxWidth: .infinity).padding(.top, 4)
                 ToolStage(busy: busy, hasResult: pageURL != nil, aspect: 2.0 / 3.0,
                           maxHeight: 430,
                           loaderText: "drawing your page — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
@@ -44,8 +43,9 @@ struct ColoringView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Coloring Pages")
         .alert("Couldn't generate",
                isPresented: Binding(get: { errorText != nil },
                                     set: { if !$0 { errorText = nil } })) {

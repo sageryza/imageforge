@@ -21,7 +21,7 @@ struct StoryRoomView: View {
     @State private var loadFailed = false
     @State private var reloadKey = 0
     @StateObject private var webRef = StoryRoomWebRef()
-    @Environment(\.goHome) private var goHome
+    @Environment(\.goBack) private var goBack
     @Environment(\.dismiss) private var dismiss
 
     /// The page's own paper color (light/dark), so the nav-bar area blends
@@ -76,12 +76,7 @@ struct StoryRoomView: View {
         // shelf it pops to the home grid.
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button { navBack() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(Self.ink)
-                }
-                .accessibilityLabel("Back")
+                ForgeBackButton(tint: Self.ink, action: navBack)
             }
         }
         // The page carries its own in-page autoscroll pill — hide the native
@@ -98,12 +93,17 @@ struct StoryRoomView: View {
     private func navBack() {
         guard !loadFailed, let web = webRef.web else { leave(); return }
         web.evaluateJavaScript("window.__navBack ? window.__navBack() : false") { handled, _ in
-            if (handled as? Bool) != true { leave() }
+            if (handled as? Bool) == true { return }
+            // The page said no — but the web view itself may have navigated to
+            // ANOTHER page (the Characters button does location.href='/character',
+            // which has no __navBack). Step the web view's own history back to
+            // the Story Room before giving up and leaving the tool entirely.
+            if web.canGoBack { web.goBack() } else { leave() }
         }
     }
 
     private func leave() {
-        if pushed { dismiss() } else { goHome() }
+        if pushed { dismiss() } else { goBack() }
     }
 }
 

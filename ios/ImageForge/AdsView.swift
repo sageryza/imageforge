@@ -30,7 +30,6 @@ struct AdsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                StarTitle(text: "Ads").frame(maxWidth: .infinity).padding(.top, 4)
 
                 switch phase {
                 case .loading:
@@ -47,7 +46,9 @@ struct AdsView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Ads")
         .task { await refresh() }
         .alert("Something went wrong",
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {

@@ -1215,6 +1215,22 @@ lifted into a standalone tool later.
   needs Sophie's `@handle` pasted in.
 
 ## Design rules (forever)
+- **One header pattern for every Deck Factory tool screen (Aug 2026).** Apply
+  `.forgeToolBar("<Tool title>")` (ForgeNavTitle.swift) on every tool root: the
+  eyebrow title in the nav bar + a back chevron top-left that returns to the
+  PREVIOUS screen (RootView keeps a screen history and injects `\.goBack`; the
+  bottom bar, home grid, corner icons, and deep links all feed it). Per-screen
+  actions go top-right. NO in-content `StarTitle` rows on tool roots (the Home
+  grid keeps the serif masthead) — an in-content title under the bar reads as
+  a double header with the title stranded mid-screen. Web-wrapped tools keep
+  the chevron native and ask their page first (`__navBack` steps one in-page
+  level), then step the web view's OWN history (`canGoBack` — how the
+  Characters page returns to the Story Room shelf), then leave the tool.
+- **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
+  to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
+  button stays visible and taps do nothing. Every page that toggles the
+  `hidden` attribute MUST carry `[hidden]{display:none !important}` in its CSS
+  (editor.html has it; set.html always did).
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.

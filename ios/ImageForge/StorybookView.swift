@@ -33,18 +33,6 @@ struct StorybookView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                // Title pinned to the very top; the book-shape + story-library
-                // controls live in the corner of this row (no nav bar needed).
-                ZStack {
-                    StarTitle(text: "Storybook")
-                    HStack(spacing: 14) {
-                        Spacer()
-                        Button { showLibrary = true } label: {
-                            Image(systemName: "books.vertical").foregroundColor(Theme.textDim)
-                        }
-                        aspectMenu
-                    }
-                }
                 if busy { loadingCard }
                 bookSection
                 Divider().background(Theme.border)
@@ -54,19 +42,26 @@ struct StorybookView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .simultaneousGesture(TapGesture().onEnded { focusedField = nil })
-        .toolbar(.hidden, for: .navigationBar)   // keep the header at the very top
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focusedField = nil }
+            }
+            // The story-library + page-shape controls, top-right in the bar.
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button { showLibrary = true } label: {
+                    Image(systemName: "books.vertical").foregroundColor(Theme.textDim)
+                }
+                aspectMenu
             }
         }
         .sheet(isPresented: $showLibrary) {
             StoryPickerSheet { text in buildBook(from: text) }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Storybook")
         .task { await loadPages() }
         .alert("Couldn't make the page",
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
