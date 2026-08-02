@@ -47,17 +47,21 @@ case "$name" in
 esac
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
 
-# One chat per SESSION (Aug 2026): branch names get reused, and two sessions
-# sharing a branch-derived slug filed their feeds into ONE chat (verified live
-# — a new session's posts interleaved into the chat Sophie had renamed
-# "Imprint"). The server resolves slug+session → the effective slug: the first
-# session keeps the pretty name, a different session forks to <name>-<sid6>.
-# Resolved once per session per name and cached; if the server is unreachable
-# the computed name stands (the server also re-keys url-carrying posts itself
-# as a fallback). An explicit FORGE_CHAT is deliberate (possibly shared across
-# sessions on purpose), so it is never forked.
+# One chat per SESSION (Aug 2026): a chat's identity is the SESSION, not the
+# branch-derived slug — branch names get reused and naming conventions change,
+# and both merged or split threads for real (the "Imprint" collision, then its
+# orphaning). The server resolves session-first: a session that already owns a
+# chat posts there forever; a brand-new session keeps the pretty slug if it's
+# free, else forks to <name>-<sid6>. Resolved once per session per name and
+# cached — the cache is only a HINT, because every post below also carries the
+# session id and the server re-resolves authoritatively (so a re-bound or
+# merged chat heals even while this cache is stale). An explicit FORGE_CHAT is
+# deliberate (possibly shared across sessions on purpose): it is never forked,
+# and posts are tagged explicit so the server never re-keys them either.
+rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
+session_key=""; explicit=""
 if [ -z "${FORGE_CHAT:-}" ]; then
-  rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
+  session_key="$rsid"
   rstate="$HOME/.claude/forge-slug-${sid}-$(printf '%s' "$name" | cksum | cut -d' ' -f1)"
   rname=""
   if [ -f "$rstate" ]; then
@@ -68,9 +72,14 @@ if [ -z "${FORGE_CHAT:-}" ]; then
       | jq -r '.chat // empty' 2>/dev/null)
     [ -n "$rname" ] && printf '%s' "$rname" > "$rstate"
   fi
+  # accept any sane slug — session-first resolution may legitimately return a
+  # chat that shares nothing with the branch name (a re-bound thread)
   case "$rname" in
-    "$name"|"$name"-*) name="$rname";;   # accept only the name or its fork
+    ""|*[!a-z0-9._-]*) :;;
+    *) name="$rname";;
   esac
+else
+  explicit="1"
 fi
 
 claude_url=""
@@ -88,6 +97,7 @@ ustate="$HOME/.claude/forge-user-${sid}.posted"
 # Firebase image URLs in the final reply, plus image files the chat sent via
 # SendUserFile (files sent before this hook existed are baselined on first run).
 out=$(NAME="$name" CLAUDE_URL="$claude_url" STATEFILE="$state" GSTATE="$gstate" USTATE="$ustate" \
+  SESSION_KEY="$session_key" EXPLICIT="$explicit" \
   python3 - "$transcript" 2>/dev/null << 'PY'
 import json, sys, os, re
 path = sys.argv[1]
@@ -215,6 +225,12 @@ if uf and users:
         mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
         if u['at']:
             mine["created"] = u['at']
+        # the server routes session-first off this, so her message lands in the
+        # same chat as the reply it prompted even if NAME above is stale
+        if os.environ.get('SESSION_KEY'):
+            mine["session"] = os.environ['SESSION_KEY']
+        if os.environ.get('EXPLICIT'):
+            mine["explicit"] = True
         print('U\t' + json.dumps(mine))
         new_useen.add(u['uuid'])
     os.makedirs(os.path.dirname(uf), exist_ok=True)
@@ -308,6 +324,10 @@ for tn in turns:
     out = {"chat": os.environ['NAME'], "text": tn['text'][:20000], "tldr": tldr_of(tn['text'])}
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
+    if os.environ.get('SESSION_KEY'):
+        out["session"] = os.environ['SESSION_KEY']
+    if os.environ.get('EXPLICIT'):
+        out["explicit"] = True
     # Which Claude account this session runs under (FORGE_ACCOUNT env var set
     # on the cloud environment: "1" or "2"). The Chats app routes each chat's
     # Open button — Claude app vs browser — off this tag.
@@ -347,6 +367,10 @@ done
 # file each new image deliverable into the gallery
 nowms=$(date +%s%3N 2>/dev/null || echo $(($(date +%s)*1000)))
 pj=$(printf 'from %s' "$name" | jq -Rs .)
+# session tag → the server files the image session-first, same as feed posts
+sj=""
+[ -n "$session_key" ] && sj=",\"session\":$(printf '%s' "$session_key" | jq -Rs .)"
+[ -n "$explicit" ] && sj=",\"explicit\":true"
 printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   [ -n "$g" ] || continue
   u=$(printf '%s' "$g" | jq -r '.url // empty')
@@ -356,9 +380,9 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   # what the reply called this image, when it named it — shown as the caption
   dj=$(printf '%s' "$g" | jq -r 'if .desc then ",\"description\":" + (.desc|tostring|@json) else "" end')
   if [ -n "$u" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj$dj}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj$dj$sj}"
   elif [ -n "$w" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true$dj}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true$dj$sj}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
       png) mime=image/png;; webp) mime=image/webp;; gif) mime=image/gif;; *) mime=image/jpeg;;
@@ -366,7 +390,7 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
     tmp=$(mktemp)
     printf '{"image":"data:%s;base64,' "$mime" > "$tmp"
     base64 -w0 "$f" >> "$tmp" 2>/dev/null || base64 "$f" | tr -d '\n' >> "$tmp"
-    printf '","prompt":%s,"created":%s,"chat":%s%s}' "$pj" "$nowms" "$cj" "$dj" >> "$tmp"
+    printf '","prompt":%s,"created":%s,"chat":%s%s%s}' "$pj" "$nowms" "$cj" "$dj" "$sj" >> "$tmp"
     curl -s -m 120 -X POST "$GALLERY" -H "Content-Type: application/json" \
       ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d @"$tmp" >/dev/null 2>&1 || true
     rm -f "$tmp"
