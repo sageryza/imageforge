@@ -94,12 +94,12 @@ enum Tool: String, CaseIterable, Identifiable {
                              .forgeTitle("Story Room")
                              .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
                              .toolbarBackground(.visible, for: .navigationBar)
-        case .lessons:   LessonsView().forgeTitle("Lessons")
+        case .lessons:   LessonsView().forgeToolBar("Lessons")
         case .writing:   WritingRoomView()
         case .editor:    EpisodeEditorView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
-        case .dump:      DumpView().forgeTitle("Dump")
+        case .dump:      DumpView().forgeToolBar("Dump")
         }
     }
 }
@@ -188,12 +188,17 @@ struct RootView: View {
     // The app opens on Chats (its home feed); the module grid is one tap away on
     // the bottom bar's house icon.
     @State private var screen: Screen = .tool(.chats)
+    // Where you came from, most recent last — every tool's back chevron pops
+    // this, so back always means "the previous screen", however you got here
+    // (home grid, bottom bar, a corner icon, a deep link).
+    @State private var history: [Screen] = []
 
     var body: some View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            BottomBar(screen: $screen, recents: recents)
+            BottomBar(screen: Binding(get: { screen }, set: { setScreen($0) }),
+                      recents: recents)
         }
         .background(Theme.bg.ignoresSafeArea())
         // Keep the bottom bar pinned to the bottom edge — without this the
@@ -232,12 +237,25 @@ struct RootView: View {
     private func go(_ dest: String) {
         switch dest {
         case "", "home":
-            screen = .home
+            setScreen(.home)
         case "gallery", "creations":
-            screen = .gallery
+            setScreen(.gallery)
         default:
             if let t = Tool(rawValue: dest) { open(t) }
         }
+    }
+
+    /// Every screen change goes through here so the back chevron always knows
+    /// where "back" is. Capped so the stack can't grow without bound.
+    private func setScreen(_ s: Screen) {
+        guard s != screen else { return }
+        history.append(screen)
+        if history.count > 24 { history.removeFirst() }
+        screen = s
+    }
+
+    private func goBack() {
+        screen = history.popLast() ?? .home
     }
 
     // Keep the three recent tools + gallery alive so their state (a generated
@@ -250,7 +268,8 @@ struct RootView: View {
                 .allowsHitTesting(screen == .home)
             ForEach(recents.recentThree.filter { $0 != .chats }) { t in
                 NavigationStack { t.view }
-                    .environment(\.goHome, { screen = .home })
+                    .environment(\.goHome, { setScreen(.home) })
+                    .environment(\.goBack, { goBack() })
                     .environment(\.openTool, { open($0) })
                     .opacity(screen == .tool(t) ? 1 : 0)
                     .allowsHitTesting(screen == .tool(t))
@@ -258,11 +277,14 @@ struct RootView: View {
             // Chats is the launch screen — kept always-alive (like Home and
             // Gallery), not part of the recent-tool rotation.
             NavigationStack { ChatFeedView() }
-                .environment(\.goHome, { screen = .home })
+                .environment(\.goHome, { setScreen(.home) })
+                .environment(\.goBack, { goBack() })
                 .environment(\.openTool, { open($0) })
                 .opacity(screen == .tool(.chats) ? 1 : 0)
                 .allowsHitTesting(screen == .tool(.chats))
             NavigationStack { CreationsView() }
+                .environment(\.goHome, { setScreen(.home) })
+                .environment(\.goBack, { goBack() })
                 .opacity(screen == .gallery ? 1 : 0)
                 .allowsHitTesting(screen == .gallery)
             // The autoscroll pill, on every native scrollable screen. The
@@ -298,7 +320,7 @@ struct RootView: View {
         // Chats is always-alive and isn't part of the recent rotation, so it
         // never gets promoted into a bottom-bar slot.
         if t != .chats { recents.use(t) }
-        screen = .tool(t)
+        setScreen(.tool(t))
     }
 }
 

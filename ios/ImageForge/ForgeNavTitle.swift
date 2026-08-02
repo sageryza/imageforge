@@ -36,3 +36,47 @@ private enum ForgeTitle {
             : UIColor(red: 0.541, green: 0.514, blue: 0.467, alpha: 1)
     })
 }
+
+/// Where the standard back chevron goes: the PREVIOUS screen. RootView keeps
+/// the screen history and injects the real action; with no history it falls
+/// back to the Home grid.
+struct GoBackKey: EnvironmentKey { static let defaultValue: () -> Void = {} }
+extension EnvironmentValues {
+    var goBack: () -> Void {
+        get { self[GoBackKey.self] }
+        set { self[GoBackKey.self] = newValue }
+    }
+}
+
+/// The one back button every tool screen carries, top-left: a chevron that
+/// returns to the previous screen. Pass `action` to intercept it — the
+/// web-wrapped tools ask their page to step back a level first.
+struct ForgeBackButton: View {
+    var tint: Color = Theme.text
+    var action: (() -> Void)? = nil
+    @Environment(\.goBack) private var goBack
+
+    var body: some View {
+        Button { (action ?? goBack)() } label: {
+            Image(systemName: "chevron.left")
+                .font(.body.weight(.semibold))
+                .foregroundColor(tint)
+        }
+        .accessibilityLabel("Back")
+    }
+}
+
+extension View {
+    /// The standard header for every tool screen: the eyebrow title in the nav
+    /// bar + the back chevron top-left (previous screen). Trailing controls
+    /// stay per-screen. This is THE pattern — don't hand-roll tool headers.
+    func forgeToolBar(_ title: String, tint: Color = Theme.text,
+                      back: (() -> Void)? = nil) -> some View {
+        self.forgeTitle(title)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    ForgeBackButton(tint: tint, action: back)
+                }
+            }
+    }
+}

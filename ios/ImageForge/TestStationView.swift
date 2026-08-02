@@ -23,7 +23,6 @@ struct TestStationView: View {
     @State private var showConsent = false
     @State private var pendingStyles: [TestStyle] = []
     @FocusState private var promptFocused: Bool
-    @Environment(\.goHome) private var goHome
     @Environment(\.openTool) private var openTool
 
     // Three across.
@@ -37,7 +36,6 @@ struct TestStationView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                StarTitle(text: "Test Station").frame(maxWidth: .infinity).padding(.top, 4)
                 promptField
                 if !results.isEmpty { resultsSection }   // image(s) above the styles
                 stylesSection
@@ -52,17 +50,6 @@ struct TestStationView: View {
                 Spacer()
                 Button("Done") { promptFocused = false }
             }
-            // Home (back to the module grid) top-left; Chats top-right —
-            // Test Station's entry point is a home-screen corner icon, so it
-            // carries the matching corner nav.
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { goHome() } label: {
-                    Image(systemName: "house")
-                        .font(.system(size: 18))
-                        .foregroundColor(Theme.accent)
-                }
-                .accessibilityLabel("Back to all the modules")
-            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { openTool(.chats) } label: {
                     Image(systemName: Tool.chats.icon)
@@ -73,8 +60,9 @@ struct TestStationView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Test Station")
         .alert("Couldn't generate",
                isPresented: Binding(get: { errorText != nil },
                                     set: { if !$0 { errorText = nil } })) {

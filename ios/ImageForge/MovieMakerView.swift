@@ -110,7 +110,7 @@ struct MovieMakerHome: View {
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
     @FocusState private var inputFocused: Bool
-    @Environment(\.goHome) private var goHome
+    @Environment(\.goBack) private var goBack
 
     // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
@@ -138,12 +138,7 @@ struct MovieMakerHome: View {
                     Button("Done") { inputFocused = false }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { goHome() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
-                            .foregroundColor(Reel.ink)
-                    }
-                    .accessibilityLabel("Back to all the modules")
+                    ForgeBackButton(tint: Reel.ink)
                 }
                 // Save · dice · Story Room all live in the header now (top-right)
                 // — as high as they go on screen.
