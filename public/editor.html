@@ -358,7 +358,9 @@ $('#pickbar').addEventListener('click', async e => {
 // episode. The server caches the cut per span, so the first tap may wait on a
 // background job and every tap after it is instant. One preview at a time.
 const previewAudio = new Audio();
-const previewUrls = new Map();   // snippetId → url, learned this session
+const previewUrls = new Map();   // `${episodeId}:${snippetId}` → url, learned this session
+// (keyed by BOTH — seeded episodes share snippet ids like sn00, and keying on
+// the id alone made one episode's remembered clip play in another episode)
 let previewPoll = null;          // { id, timer } while a cut is being made
 let previewNow = null;           // { id, state:'loading'|'playing' }
 
@@ -383,7 +385,7 @@ function stopPreviewPoll() {
 }
 
 function playPreview(id, url) {
-  previewUrls.set(id, url);
+  previewUrls.set(ep.id + ':' + id, url);
   previewAudio.src = url;
   setPreview({ id, state: 'playing' });
   previewAudio.play().catch(err => {
@@ -401,7 +403,7 @@ async function tapPreview(id) {
   }
   previewAudio.pause();
   stopPreviewPoll();
-  const known = previewUrls.get(id);
+  const known = previewUrls.get(ep.id + ':' + id);
   if (known) return playPreview(id, known);   // free + instant on a repeat
   setPreview({ id, state: 'loading' });
   try {
@@ -427,7 +429,7 @@ function pollPreview(id) {
     stopPreviewPoll();
     const waiting = previewNow && previewNow.id === id;
     if (r.status === 'ready' && r.url) {
-      if (waiting) playPreview(id, r.url); else previewUrls.set(id, r.url);
+      if (waiting) playPreview(id, r.url); else previewUrls.set(ep.id + ':' + id, r.url);
       return;
     }
     if (waiting) setPreview(null);
