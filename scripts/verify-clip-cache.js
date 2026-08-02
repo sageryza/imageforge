@@ -13,6 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 const admin = require('firebase-admin');
@@ -90,8 +91,27 @@ async function whisper(file) {
       let heard = '';
       try { heard = await whisper(local); }
       catch (err) { problems.push(`${where}: whisper failed — ${err.message}`); continue; }
-      const r = editor.ratio(editor.normWords(snippet.text), editor.normWords(heard));
+      let r = editor.ratio(editor.normWords(snippet.text), editor.normWords(heard));
       checked++;
+      if (r < MIN_RATIO) {
+        // Whole-file whisper is a flawed judge: it silently drops repeated
+        // phrases and garbles accented speech (see docs/nde-precise-cutting.md
+        // — "full-file transcription is NOT a valid verifier"). Before flagging,
+        // re-listen in overlapping ~5s pieces and re-score on the joined text;
+        // a good clip recovers, a truly wrong one stays low.
+        const pieces = [];
+        const dur = parseFloat(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', local]).toString()) || 0;
+        for (let t = 0; t < dur; t += 4) {
+          const piece = local + `.${t}.mp3`;
+          execFileSync('ffmpeg', ['-y', '-ss', String(t), '-t', '5', '-i', local, '-c:a', 'libmp3lame', '-q:a', '4', piece], { stdio: 'pipe' });
+          try { pieces.push(await whisper(piece)); } catch { /* piece optional */ }
+          fs.unlinkSync(piece);
+        }
+        const joined = pieces.join(' ');
+        const r2 = editor.ratio(editor.normWords(snippet.text), editor.normWords(joined));
+        r = Math.max(r, r2);
+        if (r2 >= MIN_RATIO) heard = joined;
+      }
       if (r < MIN_RATIO) {
         problems.push(`${where}: match ${(r * 100).toFixed(0)}% — heard "${heard.slice(0, 90)}"`);
         console.log(`  BAD   "${snippet.name}" ${(r * 100).toFixed(0)}% — heard: ${heard.slice(0, 70)}`);
