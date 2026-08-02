@@ -1,0 +1,166 @@
+<!doctype html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Lab</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body { font-family: -apple-system, "Helvetica Neue", sans-serif; background: #faf7f2; color: #2b2622; padding: 14px 12px 60px; }
+  h1 { font-size: 20px; margin-bottom: 10px; }
+  .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
+  textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 15px; background: #fdfcf9; resize: vertical; }
+  .shape { font-size: 11.5px; color: #8a8177; margin: 6px 0 10px; }
+  .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; }
+  .controls { display: flex; align-items: center; gap: 10px; }
+  .controls label { font-size: 12.5px; color: #6f675e; }
+  input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 15px; background: #fdfcf9; }
+  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; }
+  button.go:disabled { opacity: .5; }
+  .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
+  .run { margin-bottom: 18px; }
+  .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .runhead .p { font-size: 14px; font-weight: 600; }
+  .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .grid img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .pending { font-size: 13px; color: #6f675e; background: #f6f1e9; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; }
+  .failed { color: #a33; }
+  .note { font-size: 12px; color: #8a8177; }
+  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
+  #lb.on { display: flex; }
+  #lb img { max-width: 100%; max-height: 84vh; border-radius: 6px; }
+  #lb .cap { color: #ddd; font-size: 13px; margin-top: 10px; text-align: center; }
+</style></head><body>
+<h1>Prompt Lab</h1>
+
+<div class="panel">
+  <textarea id="prompt"></textarea>
+  <div class="shape">Sent as: <code>wtr <span id="echo">your words</span>. White background</code></div>
+  <div class="controls">
+    <label>LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
+    <button class="go" id="go" onclick="go()">Generate</button>
+  </div>
+  <div class="err" id="err" hidden></div>
+</div>
+
+<div id="pendings"></div>
+<div id="runs"></div>
+
+<div id="lb" onclick="closeLB()"><img id="lbimg" src=""><div class="cap" id="lbcap"></div></div>
+<script>
+  var LSKEY = 'promptlab_pending';
+  var timer = null;
+  var swapTimer = null;
+  var swapping = {};   // id -> true while a 'ready' run waits for permanent urls
+
+  document.getElementById('prompt').addEventListener('input', function () {
+    var v = this.value.trim().replace(/\.+$/, '');
+    document.getElementById('echo').textContent = v || 'your words';
+  });
+
+  function pendingIds() {
+    try { return JSON.parse(localStorage.getItem(LSKEY) || '[]'); } catch (e) { return []; }
+  }
+  function setPending(ids) { localStorage.setItem(LSKEY, JSON.stringify(ids)); }
+
+  function go() {
+    var prompt = document.getElementById('prompt').value.trim();
+    var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var err = document.getElementById('err');
+    err.hidden = true;
+    if (!prompt) { err.textContent = 'Type a prompt first.'; err.hidden = false; return; }
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    fetch('/api/promptlab', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt, lora_scale: scale }),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      btn.disabled = false;
+      if (!d.id) { err.textContent = d.error || 'Could not start.'; err.hidden = false; return; }
+      var ids = pendingIds(); ids.push(d.id); setPending(ids);
+      renderPendings(); startPolling();
+    }).catch(function (e) {
+      btn.disabled = false;
+      err.textContent = 'Network error — try again.'; err.hidden = false;
+    });
+  }
+
+  function renderPendings() {
+    var ids = pendingIds();
+    document.getElementById('pendings').innerHTML = ids.map(function () {
+      return '<div class="pending">Drawing… about half a minute. You can leave — it keeps going.</div>';
+    }).join('');
+  }
+
+  function startPolling() {
+    if (timer) return;
+    timer = setInterval(poll, 2000);
+    poll();
+  }
+
+  // A run shows the moment the model finishes ('ready', Replicate's own
+  // links); the permanent Storage copies swap in quietly when 'done'.
+  function poll() {
+    var ids = pendingIds();
+    if (!ids.length) { clearInterval(timer); timer = null; renderPendings(); return; }
+    ids.forEach(function (id) {
+      fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.status === 'ready' || d.status === 'done' || d.status === 'failed') {
+          setPending(pendingIds().filter(function (x) { return x !== id; }));
+          if (d.status === 'ready') { swapping[id] = true; startSwapPolling(); }
+          renderPendings(); loadRuns();
+        }
+      }).catch(function () {});
+    });
+  }
+
+  function startSwapPolling() {
+    if (swapTimer) return;
+    swapTimer = setInterval(function () {
+      var ids = Object.keys(swapping);
+      if (!ids.length) { clearInterval(swapTimer); swapTimer = null; return; }
+      ids.forEach(function (id) {
+        fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; loadRuns(); }
+        }).catch(function () {});
+      });
+    }, 5000);
+  }
+
+  function loadRuns() {
+    fetch('/api/promptlab?limit=40').then(function (r) { return r.json(); }).then(function (d) {
+      var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
+      document.getElementById('runs').innerHTML = runs.map(function (r) {
+        if (r.status === 'failed') {
+          return '<div class="run"><div class="runhead"><span class="p failed">' + esc(r.prompt) + '</span>' +
+            '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
+        }
+        var imgs = (r.images && r.images.length) ? r.images : (r.tempImages || []);
+        var cap = esc(r.prompt) + ' · scale ' + r.loraScale;
+        return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
+          '<span class="tag">scale ' + r.loraScale + '</span></div>' +
+          '<div class="grid">' + imgs.map(function (u, i) {
+            return '<img src="' + u + '" loading="lazy" onclick="openLB(\'' + u + '\',\'' + cap.replace(/'/g, "\\'") + ' · image ' + (i + 1) + '\')">';
+          }).join('') + '</div></div>';
+      }).join('');
+    }).catch(function () {});
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function openLB(u, cap) {
+    document.getElementById('lbimg').src = u;
+    document.getElementById('lbcap').textContent = cap;
+    document.getElementById('lb').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLB() {
+    document.getElementById('lb').classList.remove('on');
+    document.body.style.overflow = '';
+  }
+
+  loadRuns();
+  if (pendingIds().length) { renderPendings(); startPolling(); }
+</script>
+</body></html>

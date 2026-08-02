@@ -614,6 +614,10 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
+// Prompt Lab: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
+// runs, background jobs on /api/promptlab). A real route so the iOS app can
+// wrap it in a WKWebView tile later, same pattern as /writing and /editor.
+app.get('/promptlab', serveGated('promptlab.html'));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
@@ -4151,7 +4155,7 @@ async function runPromptLabJob(docRef, cfg) {
           lora_scale: cfg.loraScale, megapixels: '1', num_outputs: 4,
           aspect_ratio: cfg.aspectRatio, output_format: 'webp',
           guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
-          num_inference_steps: 28, seed: cfg.seed,
+          num_inference_steps: cfg.steps, seed: cfg.seed,
         },
       }),
     });
@@ -4159,15 +4163,19 @@ async function runPromptLabJob(docRef, cfg) {
     if (prediction.error) throw new Error(String(prediction.error));
     if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 1500));
       const poll = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
       prediction = await poll.json();
     }
     if (prediction.status === 'failed') throw new Error(prediction.error || 'generation failed');
     const urls = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
-    const images = [];
-    for (const u of urls) images.push(await saveToFirebase(u, 'promptlab'));
-    await docRef.update({ status: 'done', images, predictTime: prediction.metrics?.predict_time || null });
+    // Show Replicate's own links the moment they exist (status 'ready' —
+    // playground-equal speed), then copy to Storage in parallel and swap the
+    // permanent urls in. Replicate deletes API outputs after ~1hr, so the
+    // copies are what keep the run history browsable.
+    await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
+    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    await docRef.update({ status: 'done', images });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
@@ -4189,15 +4197,19 @@ app.post('/api/promptlab', async (req, res) => {
     const loraScale = Number(req.body.lora_scale ?? 1);
     const seed = Number.isFinite(Number(req.body.seed)) ? Number(req.body.seed) : 85;
     const aspectRatio = String(req.body.aspect_ratio || '2:3');
-    const fullPrompt = `${known.trigger} ${content}.${suffix ? ` ${suffix} ` : ' '}`;
+    // Per-model extras so the other house styles work here too: HOONIE's
+    // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
+    const steps = known.defaultSteps ?? 28;
+    const tail = [known.promptSuffix, suffix].filter(Boolean).join(', ');
+    const fullPrompt = `${known.trigger} ${content}.${tail ? ` ${tail} ` : ' '}`;
     const version = `${known.id}:${await resolveReplicateVersion(known)}`;
     const docRef = admin.firestore().collection(PROMPTLAB).doc();
     await docRef.set({
       id: docRef.id, status: 'running', prompt: content, fullPrompt, suffix,
-      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio,
+      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale: loraScale, seed, aspectRatio });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
