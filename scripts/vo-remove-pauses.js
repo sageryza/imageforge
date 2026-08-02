@@ -91,26 +91,43 @@ async function rmsProfile(file) {
 }
 const at = (prof, t) => prof[Math.max(0, Math.min(prof.length - 1, Math.round(t / 0.02)))];
 
-function breathCuts(words, prof) {
-  const cuts = [];
+function breathCuts(words, prof, speechRef) {
+  // v2 (thump-and-drift fix): a loud TRANSIENT inside a pause (a phone set
+  // down) must not veto the cut — only SUSTAINED speech-level audio does —
+  // and the cut's END comes from sustained energy resume, not the next
+  // word's whisper start (whisper inflates that backward across a pause).
+  const at = (t) => prof[Math.max(0, Math.min(prof.length - 1, Math.round(t / 0.02)))];
+  const sustained = (i, thr, k) => { for (let j = 0; j < k; j++) { if (i + j >= prof.length || prof[i + j] <= thr) return false; } return true; };
+  const thr = speechRef - 7;
+  const raw = [];
   for (let i = 0; i < words.length - 1; i++) {
     const w = words[i], nx = words[i + 1];
     const inflated = (w.end - w.start) > 0.55 + 0.07 * w.word.length;
-    if ((nx.start - w.end) < 0.4 && !inflated) continue;
-    const a = w.start, b = nx.start;
-    if (b - a < 0.5) continue;
-    let peak = -99;
-    for (let t = a; t < a + (b - a) * 0.6; t += 0.02) peak = Math.max(peak, at(prof, t));
-    let speechEnd = a;
-    for (let t = a; t < a + (b - a) * 0.7; t += 0.02) if (at(prof, t) > peak - 6) speechEnd = t;
-    const cs = speechEnd + 0.10, ce = b - 0.10;
+    const nxInflated = (nx.end - nx.start) > 0.55 + 0.07 * nx.word.length;
+    if ((nx.start - w.end) < 0.4 && !inflated && !nxInflated) continue;
+    const a = Math.round(w.start / 0.02), b = Math.min(prof.length - 1, Math.round(Math.min(nx.end, w.start + 10) / 0.02));
+    if ((b - a) * 0.02 < 0.5) continue;
+    let se = a;
+    for (let j = a; j < b; j++) if (prof[j] > thr && (j - a) * 0.02 < 1.2) se = j; else if ((j - a) * 0.02 >= 1.2) break;
+    let rs = -1;
+    for (let j = se + Math.round(0.25 / 0.02); j < b; j++) if (sustained(j, thr, 8)) { rs = j; break; }
+    if (rs === -1) continue;
+    const cs = se * 0.02 + 0.10, ce = rs * 0.02 - 0.10;
     if (ce - cs < 0.35) continue;
-    let maxIn = -99;
-    for (let t = cs; t < ce; t += 0.02) maxIn = Math.max(maxIn, at(prof, t));
-    if (maxIn > peak - 5) continue;
-    cuts.push([cs + KEEP / 2, ce - KEEP / 2]);
+    let veto = false;
+    for (let j = Math.round(cs / 0.02); j < Math.round(ce / 0.02); j++) if (sustained(j, thr, 10)) { veto = true; break; }
+    if (veto) continue;
+    raw.push([cs + KEEP / 2, ce - KEEP / 2]);
   }
-  return cuts.filter(([a, b]) => b - a > 0.05);
+  // merge overlaps: adjacent inflated words flag the SAME pause; unmerged
+  // overlaps double-count removal and corrupt arithmetic timing remaps.
+  raw.sort((x, y) => x[0] - y[0]);
+  const cuts = [];
+  for (const c of raw.filter(([x, y]) => y - x > 0.05)) {
+    if (cuts.length && c[0] <= cuts[cuts.length - 1][1] + 0.05) cuts[cuts.length - 1][1] = Math.max(cuts[cuts.length - 1][1], c[1]);
+    else cuts.push([c[0], c[1]]);
+  }
+  return cuts;
 }
 function roomToneCuts(prof) {
   const sorted = [...prof].sort((a, b) => a - b);
@@ -145,7 +162,9 @@ function ratio(a, b) {
   console.log('pass 1: breath pauses (word timing + relative energy)');
   const { words, dur } = await chunkWords(IN);
   const prof1 = await rmsProfile(IN);
-  const cuts1 = breathCuts(words, prof1);
+  const sortedRef = [...prof1].sort((a, b) => a - b);
+  const speechRef = sortedRef[Math.floor(prof1.length * 0.85)];
+  const cuts1 = breathCuts(words, prof1, speechRef);
   const mid = path.join(TMP, 'mid.mp3');
   await applyCuts(IN, cuts1, mid, dur);
   const rm1 = cuts1.reduce((x, [a, b]) => x + (b - a), 0);
