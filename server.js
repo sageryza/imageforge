@@ -1565,10 +1565,22 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { url, image, prompt, created, style, type, dry, chat, assetsOnly } = req.body || {};
+    const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit } = req.body || {};
     const createdMs = Number(created) || Date.now();
     const description = assetDescription(req.body && req.body.description);
-    const chatName = chat ? String(chat).slice(0, 60) : '';
+    let chatName = chat ? String(chat).slice(0, 60) : '';
+    // Same session-first routing as the chat feed: the hook sends its session
+    // id so an image files into the chat that SESSION owns, even when the
+    // hook's cached slug is stale (and merged chats' tombstones redirect).
+    // Best-effort — a resolution hiccup must never block a filing.
+    if (chatName && admin.apps.length) {
+      try {
+        const cf = require('./chatfeed');
+        chatName = explicit
+          ? await cf.followMoves(chatName)
+          : await cf.resolveChat(chatName, String(session || '').slice(0, 120));
+      } catch (e) { /* keep the name the hook sent */ }
+    }
     // assetsOnly: a work-in-progress image caught behind the scenes — file it to
     // the chat's Assets tab (forge-chat-assets, deckfactory) ONLY, never the main
     // "My Creations" gallery, so that stays curated to finished deliverables.
