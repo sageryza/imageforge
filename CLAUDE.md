@@ -598,6 +598,27 @@ lifted into a standalone tool later.
   label is overlaid later in prep, not generated. Pricing: 16 credits per generate
   (=4 options), 4 per upscale; ~6–8¢/generate on a paid plan.
 - Flow: generate (MJ) → pick 1 of 4 → label overlay + print prep → MPC fulfilment.
+- **Midjourney VIDEO — animate any still into a short clip (Aug 2026).**
+  `POST /api/apiframe/video { startImage, prompt?, motion?, resolution? }` →
+  `{ jobId, poll }`; poll `GET /api/apiframe/job/:id` (same route as stills) until
+  `COMPLETED`, then `video` is the finished mp4 (mirrored to Firebase, `?save=0`
+  to skip). `startImage` MUST be a **public https URL** (a Firebase Storage image
+  is ideal). `prompt` describes the MOTION (what should move); `motion` low|high
+  (default low); `resolution` sd|hd (default **hd** — same price). Exported
+  helper `animate(startImage, opts)`. **Pricing: flat 48 credits = $0.48 per
+  clip**, no duration tiers (MJ video is a fixed ~5s job; SD and HD cost the
+  same, so always take HD). **For movie-making chats:** this is an alternative to
+  the Replicate wan/kling animators in `movies.js` — feed any panel/still URL and
+  get an MJ-styled clip back; runs as its own poll (no movie doc needed).
+  **Gotcha:** MJ video capacity on APIFRAME can be intermittently unavailable —
+  a job may FAIL fast with "No available capacity" / "video submit failed"; a
+  failed job charges **nothing** (the charge posts then refunds), so just
+  resubmit. The `job()` helper works for ANY APIFRAME video model, not just MJ —
+  the same `/videos/generate` shape drives cheaper models too (e.g.
+  `seedance-2-mini` ~$0.07, `veo-3.1-lite` ~$0.09), each with its own param
+  object. Read the live credit balance any time with `GET /v2/me`
+  (`team.credits`); every model's price is in `GET /v2/models` as
+  `costMin`/`costMax` (credits, 1cr=1¢).
 - **Bring-your-own-Midjourney** (`ingest.js`, `/api/ingest`, page at `/import`):
   the alternate art path — Sophie generates in her *own* MJ account and bulk-
   downloads keepers by keyword with a browser export tool (that step runs on her
