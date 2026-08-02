@@ -569,6 +569,16 @@ lifted into a standalone tool later.
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
+  **New VERSION of a deliverable = a NEW page, never an edit of the old one
+  (Aug 2026, Sophie's rule — earned the hard way).** Deleting-and-reposting a
+  page when the work changes made her lose track of what she was looking at,
+  and re-pointing an old page at new media (or worse, overwriting the media
+  file at the same URL — a cached copy then silently plays STALE content)
+  made "which version is this?" unanswerable. So: every new cut/render/version
+  gets a NEW page whose TITLE states the version and what it is ("Short 1 v4 —
+  tightest cut"), pointing at NEW version-numbered media files; the old pages
+  and files stay as history. DELETE+re-post is only for fixing a typo on the
+  SAME version.
   **A page must NEVER post to `/api/chatfeed/reply`** (Aug 2026, Sophie's
   rule): notes she types on a Compare page are not chat messages and must stay
   on the page — use `POST /api/chatfeed/verdict { chat, sheet, item, text }`.
