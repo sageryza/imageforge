@@ -386,8 +386,9 @@ function openProj(p, jumpBeat){
   cur=p;
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var bar=document.createElement('div'); bar.className='eyebrowrow';
-  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
-    +'<div class="no">story room &middot; '+((p.beats||[]).length)+' beats</div>';
+  // The app's native bar already says STORY ROOM — this row is ONLY the way
+  // back (one header, no beats count; Sophie, Aug 2026).
+  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>';
   bar.querySelector('.backbtn').onclick=goHome;
   sec.appendChild(bar);
   var head=document.createElement('header');
@@ -717,6 +718,22 @@ function openProj(p, jumpBeat){
       })
       .catch(function(e){ toast('Failed: '+String(e.message||e).slice(0,60)); });
   }
+  // The words of a recording are for checking, not reading past — a
+  // 17-minute transcript buried the whole page (Sophie, Aug 2026). Folded
+  // behind a "transcription" toggle, closed by default.
+  function foldedWords(text){
+    var w=document.createElement('div');
+    var tog=document.createElement('button'); tog.className='st'; tog.style.marginLeft='0';
+    tog.textContent='· transcription';
+    var tx=document.createElement('div'); tx.className='voscript'; tx.textContent=text; tx.style.display='none';
+    tog.onclick=function(){
+      var open=tx.style.display==='none';
+      tx.style.display=open?'':'none';
+      tog.textContent=open?'· hide transcription':'· transcription';
+    };
+    w.appendChild(tog); w.appendChild(tx);
+    return w;
+  }
   function drawVo(){
     voWrap.innerHTML='';
     var vo=p.voiceover||{};
@@ -748,7 +765,7 @@ function openProj(p, jumpBeat){
       var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=vo.url; voWrap.appendChild(au);
     }
     if(String(vo.text||'').trim()){
-      var tx=document.createElement('div'); tx.className='voscript'; tx.textContent=vo.text; voWrap.appendChild(tx);
+      voWrap.appendChild(foldedWords(vo.text));
     }
     // An earlier/alternate take of the SAME narration — she often records twice
     // in a row and the keeper isn't always the second one. Shown under the main
@@ -760,7 +777,7 @@ function openProj(p, jumpBeat){
       if(vo.alt.note){ var an=document.createElement('div'); an.className='vo none'; an.textContent=vo.alt.note; voWrap.appendChild(an); }
       var aa=document.createElement('audio'); aa.controls=true; aa.preload='none'; aa.src=vo.alt.url; voWrap.appendChild(aa);
       if(String(vo.alt.text||'').trim()){
-        var at=document.createElement('div'); at.className='voscript'; at.textContent=vo.alt.text; voWrap.appendChild(at);
+        voWrap.appendChild(foldedWords(vo.alt.text));
       }
     }
     var row=document.createElement('div'); row.className='newrow';
@@ -1200,8 +1217,7 @@ function openFilmsArchive(){
   cur={films:1};
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var bar=document.createElement('div'); bar.className='eyebrowrow';
-  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>'
-    +'<div class="no">films &middot; no story attached</div>';
+  bar.innerHTML='<button class="backbtn" aria-label="Back to the shelf">&#8249;</button>';
   bar.querySelector('.backbtn').onclick=goHome;
   sec.appendChild(bar);
   var head=document.createElement('header');
@@ -1233,8 +1249,7 @@ function openFilm(m, backTo){
   cur={film:m.id};
   var sec=document.getElementById('proj'); sec.innerHTML='';
   var bar=document.createElement('div'); bar.className='eyebrowrow';
-  bar.innerHTML='<button class="backbtn" aria-label="Back">&#8249;</button>'
-    +'<div class="no">the films</div>';
+  bar.innerHTML='<button class="backbtn" aria-label="Back">&#8249;</button>';
   bar.querySelector('.backbtn').onclick=(typeof backTo==='function')? backTo : goHome;
   sec.appendChild(bar);
   var head=document.createElement('header');
