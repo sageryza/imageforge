@@ -42,7 +42,6 @@ struct InstagramView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                StarTitle(text: "Instagram").frame(maxWidth: .infinity).padding(.top, 4)
                 HStack(spacing: 10) {
                     NavigationLink(destination: CarouselView()) {
                         HStack {
@@ -82,8 +81,9 @@ struct InstagramView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Instagram")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { planning = true } label: { Image(systemName: "square.grid.3x3") }

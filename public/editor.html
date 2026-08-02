@@ -33,6 +33,15 @@
   button.gold{background:var(--gold); border-color:var(--goldline); font-weight:600}
   button.ghost{background:transparent}
   button.icon{width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center}
+  /* An author display rule (like .icon's flex) silently overrides the UA's
+     [hidden]{display:none} — which kept the back button visible on the episode
+     list, where it goes nowhere. Restate the attribute so hidden ALWAYS wins. */
+  [hidden]{display:none !important}
+  /* Inside the app the nav bar carries the back chevron (and the tool title),
+     so the page's own back button never shows — and on the episode list the
+     whole header would only duplicate the bar's title, so it folds away. */
+  body.native #back{display:none !important}
+  body.native.at-list header{display:none}
   button[disabled]{opacity:.45}
   /* the one circular control on the page: hear this snippet on its own */
   button.play{border-radius:50%; border-color:var(--goldline); color:var(--goldline)}
@@ -90,7 +99,7 @@
   #episodes .card:nth-child(-n+2){padding-right:calc(max(14px, 4vw) + 46px)}
 </style>
 </head>
-<body>
+<body class="at-list">
 <header>
   <button class="icon ghost" id="back" hidden aria-label="Back">
     <svg viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
@@ -170,12 +179,15 @@ let pollTimer = null;
 
 // ── episode list ───────────────────────────────────────────────────
 async function showList() {
-  await flushSave();
-  ep = null;
-  clearInterval(pollTimer); pollTimer = null;
-  previewAudio.pause(); stopPreviewPoll(); previewNow = null;
+  // Flip the view FIRST — flushSave/api can take many seconds on a cold
+  // server, and a back tap must never look like it did nothing.
   $('#epView').hidden = true; $('#listView').hidden = false;
   $('#back').hidden = true; $('#pageTitle').textContent = 'Episode Editor';
+  document.body.classList.add('at-list');
+  clearInterval(pollTimer); pollTimer = null;
+  previewAudio.pause(); stopPreviewPoll(); previewNow = null;
+  await flushSave();
+  ep = null;
   const { episodes } = await api('/');
   $('#episodes').innerHTML = episodes.length ? episodes.map(e => `
     <div class="card" data-open="${esc(e.id)}">
@@ -207,7 +219,7 @@ $('#newEp').onclick = async () => {
   openEpisode(episode.id);
 };
 
-$('#back').onclick = showList;
+$('#back').onclick = () => showList().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
 
 // ── open one episode ───────────────────────────────────────────────
 async function openEpisode(id) {
@@ -216,6 +228,7 @@ async function openEpisode(id) {
   ep = data.episode; transcripts = data.transcripts || []; srcIdx = 0;
   anchor = focus = null;
   $('#listView').hidden = true; $('#epView').hidden = false; $('#back').hidden = false;
+  document.body.classList.remove('at-list');
   $('#pageTitle').textContent = ep.title;
   renderAll();
   const pending = localStorage.getItem('editor_pending_' + ep.id);
@@ -634,6 +647,19 @@ function renderRenders() {
       <audio controls preload="none" src="${esc(r.url)}"></audio>
     </div>`).join('') : '';
 }
+
+// In the app, the native nav bar carries the back chevron + tool title
+// (body.native hides this page's own — see the CSS). The chevron asks
+// __navBack first: inside an episode it steps back to the list; on the list
+// it answers false and the app leaves the tool. Same pattern as /storyroom.
+if (window.__nativeNavBar) document.body.classList.add('native');
+window.__navBack = () => {
+  if (!$('#epView').hidden) {
+    showList().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
+    return true;
+  }
+  return false;
+};
 
 showList().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
 </script>

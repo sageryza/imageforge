@@ -82,7 +82,9 @@ struct CreationsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .forgeTitle("My Creations")
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("My Creations")
         // While the image popup is open, hide the nav bar so its dim backdrop
         // covers the WHOLE screen — otherwise the nav-bar strip at the top
         // swallows taps and you can only dismiss by tapping the lower half.
