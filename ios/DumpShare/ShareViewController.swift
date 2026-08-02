@@ -1,5 +1,6 @@
 import UIKit
 import UniformTypeIdentifiers
+import AVFoundation
 
 /// "Send to Deck Factory" — the share-sheet way into the Dump.
 ///
@@ -8,10 +9,12 @@ import UniformTypeIdentifiers
 /// clips from Photos, Files, Safari, anywhere, and they land in the inbox as
 /// one unnamed bundle to be labelled later.
 ///
-/// Audio too (Aug 2026): a recording shared from the Files app uploads to the
-/// audio drop (`/api/audio/upload-file`, one date-stamped batch per share), so
-/// voice memos saved as files reach Deck Factory with one Share tap instead of
-/// a trip through the /audio page's picker.
+/// Audio too (Aug 2026, revised same week — Sophie's call): a recording shared
+/// from the Files app files into the VOICE MEMOS archive (`/api/memos/ingest`
+/// → membry `memo-audio/`, the private shelf JournalReader reads) — not the
+/// public Deck Factory audio drop. The toggle picks whether the memo pipeline
+/// transcribes + categorizes it on arrival (Whisper, ~1¢/min) or files it
+/// quietly as a note for later.
 ///
 /// Uploads run through a BACKGROUND URLSession (Aug 2026, Sophie's call —
 /// house rule: nothing waits in the foreground). The sheet stages each file
@@ -91,19 +94,22 @@ final class ShareViewController: UIViewController {
         cancelButton.setTitleColor(dim, for: .normal)
         cancelButton.addTarget(self, action: #selector(cancel), for: .touchUpInside)
 
-        // Recordings can be transcribed on arrival (Whisper, a few cents per
-        // recording) — her choice per share, off unless she flips it.
+        // Recordings file into the voice-memo archive; the toggle picks
+        // whether the pipeline transcribes + categorizes on arrival (Whisper,
+        // ~1¢ a minute — ON by default, that's what makes a memo findable) or
+        // files them quietly as notes for later.
         var rows: [UIView] = [titleLabel, statusLabel]
         let hasAudio = attachments.contains {
             $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
         }
         if hasAudio {
+            statusLabel.text = "Recordings file with your voice memos; photos and clips land in the inbox."
             let lbl = UILabel()
             lbl.text = "Transcribe the recordings"
             lbl.font = .systemFont(ofSize: 14)
             lbl.textColor = ink
             transcribeSwitch.onTintColor = accent
-            transcribeSwitch.isOn = false
+            transcribeSwitch.isOn = true
             let row = UIStackView(arrangedSubviews: [lbl, transcribeSwitch])
             row.axis = .horizontal
             row.alignment = .center
@@ -161,13 +167,17 @@ final class ShareViewController: UIViewController {
 
             let bg = Self.makeBackgroundSession()
             var queued = 0
+            var usedStamps = Set<String>()
             for (i, provider) in attachments.enumerated() {
                 do {
                     let tmp = try await Self.loadFile(from: provider)
                     let staged = outbox.appendingPathComponent(
                         UUID().uuidString + "-" + tmp.lastPathComponent)
                     try fm.moveItem(at: tmp, to: staged)
-                    bg.uploadTask(with: uploadRequest(for: staged), fromFile: staged).resume()
+                    let req = Self.isAudio(staged)
+                        ? await memoRequest(for: staged, usedStamps: &usedStamps)
+                        : dumpRequest(for: staged)
+                    bg.uploadTask(with: req, fromFile: staged).resume()
                     queued += 1
                 } catch {
                     failed += 1
@@ -269,36 +279,81 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func uploadRequest(for file: URL) -> URLRequest {
+    private static func serverBase() -> String {
         let server = UserDefaults.standard.string(forKey: "forge.serverURL")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = server?.isEmpty == false ? server! : Self.defaultServer
-        // Audio goes to the audio drop (permanent URLs for recordings — the
-        // Episode Editor / voiceovers / chats all read from there), carrying
-        // the Whisper toggle's choice; images and clips keep going to the
-        // Dump. One date-stamped batch per share.
-        var comps: URLComponents
-        if Self.isAudio(file) {
-            comps = URLComponents(string: base + "/api/audio/upload-file")!
-            var items: [URLQueryItem] = [
-                .init(name: "batch", value: session),
-                .init(name: "filename", value: file.lastPathComponent),
-            ]
-            if transcribeSwitch.isOn { items.append(.init(name: "transcribe", value: "1")) }
-            comps.queryItems = items
-        } else {
-            comps = URLComponents(string: base + "/api/drop/upload-file")!
-            comps.queryItems = [
-                .init(name: "session", value: session),
-                .init(name: "filename", value: file.lastPathComponent),
-            ]
-        }
-        var req = URLRequest(url: comps.url!)
+        return server?.isEmpty == false ? server! : defaultServer
+    }
+
+    private static func signedRequest(_ url: URL, contentType: String) -> URLRequest {
+        var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.setValue(Self.contentType(for: file), forHTTPHeaderField: "Content-Type")
+        req.setValue(contentType, forHTTPHeaderField: "Content-Type")
         let token = UserDefaults.standard.string(forKey: "forge.studioToken") ?? ""
         if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
         return req
+    }
+
+    /// Images and clips go to the Dump, one date-stamped bundle per share.
+    private func dumpRequest(for file: URL) -> URLRequest {
+        var comps = URLComponents(string: Self.serverBase() + "/api/drop/upload-file")!
+        comps.queryItems = [
+            .init(name: "session", value: session),
+            .init(name: "filename", value: file.lastPathComponent),
+        ]
+        return Self.signedRequest(comps.url!, contentType: Self.contentType(for: file))
+    }
+
+    /// A recording files into the VOICE MEMOS archive (membry `memo-audio/`,
+    /// the private shelf JournalReader reads) via /api/memos/ingest. The
+    /// archive keys memos by their recording stamp, so the stamp prefers the
+    /// audio's EMBEDDED creation date (the true recording time on a real
+    /// voice memo — file dates only say when a copy was made; verified Aug
+    /// 2026 when saved-from-video audio stamped "tonight" instead of
+    /// January), falling back to the file's modification date, bumped a
+    /// minute at a time when two files in one share would collide.
+    private func memoRequest(for file: URL, usedStamps: inout Set<String>) async -> URLRequest {
+        let fm = FileManager.default
+        let asset = AVURLAsset(url: file)
+        var when = Date()
+        if let item = try? await asset.load(.creationDate),
+           let embedded = try? await item.load(.dateValue) {
+            when = embedded
+        } else if let mtime = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date)
+            .flatMap({ $0 }) {
+            when = mtime
+        }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd_HHmm"
+        var stamp = f.string(from: when)
+        while usedStamps.contains(stamp) {
+            when = when.addingTimeInterval(60)
+            stamp = f.string(from: when)
+        }
+        usedStamps.insert(stamp)
+
+        var dur = 0
+        if let seconds = try? await AVURLAsset(url: file).load(.duration).seconds,
+           seconds.isFinite { dur = Int(seconds.rounded()) }
+
+        // The staged name carries a UUID prefix (outbox collision guard) and
+        // the iOS export prefix — peel both back to a human title.
+        var title = file.deletingPathExtension().lastPathComponent
+        if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
+        if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
+
+        let iso = ISO8601DateFormatter().string(from: when)
+        var comps = URLComponents(string: Self.serverBase() + "/api/memos/ingest")!
+        var items: [URLQueryItem] = [
+            .init(name: "stamp", value: stamp),
+            .init(name: "iso", value: iso),
+            .init(name: "dur", value: String(dur)),
+            .init(name: "ext", value: file.pathExtension.lowercased()),
+            .init(name: "title", value: title),
+        ]
+        if !transcribeSwitch.isOn { items.append(.init(name: "transcribe", value: "0")) }
+        comps.queryItems = items
+        return Self.signedRequest(comps.url!, contentType: Self.contentType(for: file))
     }
 
     private static let defaultServer = "https://imageforge-q125.onrender.com"

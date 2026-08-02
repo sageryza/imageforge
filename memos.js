@@ -162,7 +162,12 @@ const gate = (req, res, next) => {
 
 // POST /ingest?stamp=2026-07-15_0812&iso=...&title=...&dur=95&ext=m4a
 // Body: the raw audio bytes.
-router.post('/ingest', gate, express.raw({ type: '*/*', limit: '30mb' }), async (req, res) => {
+// transcribe=0 (Aug 2026, the share sheet's Whisper toggle turned off) files
+// the recording into the archive WITHOUT the paid transcribe/classify pass —
+// cat 'note', enrichable later. The 120mb cap (was 30mb) lets long
+// saved-from-video audio archive at all; anything over Whisper's 24MB still
+// files as 'toolong' with no transcript rather than bouncing.
+router.post('/ingest', gate, express.raw({ type: '*/*', limit: '120mb' }), async (req, res) => {
   try {
     if (!deps.bucket) return res.status(503).json({ error: 'membry credential not configured' });
     const ip = req.ip || (req.headers['x-forwarded-for'] || '').split(',')[0] || 'unknown';
@@ -189,7 +194,9 @@ router.post('/ingest', gate, express.raw({ type: '*/*', limit: '30mb' }), async 
 
     let cat = 'toolong', transcript = null, sort = null;
     const tooBig = buf.length > MAX_BYTES;
-    if (dur / 60 <= MAX_MIN && !tooBig) {
+    if (q.transcribe === '0') {
+      cat = 'note';   // filed quietly; a later pass can transcribe + re-sort it
+    } else if (dur / 60 <= MAX_MIN && !tooBig) {
       const t = await deps.transcribe(buf, 'memo.' + ext);
       transcript = String((t && t.text) || '').trim();
       if (transcript.length < 8) { cat = 'empty'; transcript = null; }

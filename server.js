@@ -1220,6 +1220,62 @@ app.post('/api/story/draft-film', express.json(), async (req, res) => {
   }
 });
 
+// ── Journal scans (JournalReader) ───────────────────────────────────────────
+// POST /api/journal/upload-file?filename= — ONE journal PDF as the raw body,
+// stored PRIVATE in membry Storage at journal-scans/<name> — the shelf the
+// journal extraction pipeline reads, the same one the app's own "Send
+// journals to Claude" picker fills — plus the manifest.json index merged the
+// way the app merges it (newest record per filename wins). This is the share
+// extension's way in ("Send to JournalReader" from Genius Scan / Files): the
+// extension stays a plain HTTP client — no Firebase SDK, no per-extension
+// auth — because the server's membry credential does the write. NEVER
+// makePublic here: these are her private journals.
+const JOURNAL_FOLDER = 'journal-scans';
+function journalMonthGuess(name) {
+  const n = String(name).toLowerCase();
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july',
+    'august', 'september', 'october', 'november', 'december'];
+  return months.find((m) => n.includes(m) || n.includes(m.slice(0, 3))) || null;
+}
+app.post('/api/journal/upload-file', express.raw({ type: () => true, limit: '120mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!req.body || !req.body.length) {
+      return res.status(400).json({ error: 'empty body — POST the file as the request body' });
+    }
+    const db = await storyDb();   // initializes storyApp (membry) when configured
+    if (!db || !storyApp) return res.status(503).json({ error: 'story credential not configured' });
+    const name = String(req.query.filename || '').replace(/[/\\]/g, '_').trim()
+      || ('scan-' + Date.now() + '.pdf');
+    const bucket = storyApp.storage().bucket();
+    await bucket.file(`${JOURNAL_FOLDER}/${name}`).save(req.body, {
+      contentType: req.get('content-type') || 'application/pdf', resumable: false,
+    });
+    // Manifest merge, matching the app's JournalScanRecord shape exactly:
+    // { month?, name, size, url, uploadedAt (seconds) } — newest wins by name.
+    const rec = {
+      month: journalMonthGuess(name), name, size: req.body.length,
+      url: '', uploadedAt: Date.now() / 1000,
+    };
+    try {
+      const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
+      const all = {};
+      try {
+        const [buf] = await mf.download();
+        JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
+      } catch (e) { /* first scan ever — start a fresh index */ }
+      all[name] = rec;
+      const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false });
+    } catch (e) { console.error('journal manifest merge failed:', e.message); }
+    res.json({ ok: true, name, size: req.body.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Bulk-dump many images into a project's INBOX (unsorted holding area) in one
 // request — "add lots of art, sort it out later". Accepts data URLs or https
 // URLs. Sorting into beats happens via /api/story/assign.
