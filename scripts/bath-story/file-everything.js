@@ -16,6 +16,11 @@ const TIMELINE = JSON.parse(fs.readFileSync(path.join(SCRATCH, 'bath-audio/timel
 
 const STYLE_HALF = 'Pastel (house) V2 — gpt-image-2 edits with the witch-school style refs: bold confident black ink outlines, flat colors, no gradients, minimal shading, soft pastel palette of lilac, pastel pink, mint and pale yellow, plain white background, playful modern editorial illustration; whitened background; 1024x1536 portrait, medium quality.';
 
+// Set once the draft film exists in Storage (stitch-film.js); shown at the
+// top of the Compare page. PAGE_ONLY=1 skips gallery/assets/prompts and just
+// replaces the page (delete old id + re-post).
+const FILM_URL = process.env.BATH_FILM_URL || 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/bath-thought-experiment/bath-draft-film.mp4';
+
 const LABELS = {
   'bath-calm': 'Bath 1 — the thought experiment begins in the tub',
   'bath-bubble-normal': 'Bath 2 — thought bubble: running into the ex at the supermarket, normal clothes',
@@ -73,6 +78,8 @@ function buildPage() {
 </style></head><body><div class="wrap">
 <h1>The Bath Thought Experiment</h1>
 <p class="sub">Pastel V2 storyboard &middot; portrait 2:3 &middot; her voiceover cut per panel (precise cutting, machine-verified)</p>
+${process.env.WITH_FILM ? `<div class="full"><h2>The draft film — panels timed to the voiceover (hard cuts; animation comes later)</h2>
+<video controls playsinline preload="metadata" style="width:100%;border-radius:6px" src="${FILM_URL}"></video></div>` : ''}
 <div class="full"><h2>The whole voiceover, pauses tightened</h2>
 <audio controls preload="none" src="${TIMELINE.stitched}"></audio></div>
 ${cards}
@@ -80,6 +87,15 @@ ${cards}
 }
 
 (async () => {
+  if (process.env.PAGE_ONLY) {
+    if (process.env.DELETE_PAGE_ID) {
+      const res = await fetch(`${BASE}/api/chatfeed/page/${process.env.DELETE_PAGE_ID}`, { method: 'DELETE' });
+      console.log('deleted old page:', process.env.DELETE_PAGE_ID, res.status);
+    }
+    const page = await post('/api/chatfeed/page', { chat: CHAT, title: 'The Bath Thought Experiment', html: buildPage() });
+    console.log('compare page:', JSON.stringify(page).slice(0, 200));
+    return;
+  }
   // 1) iOS My Creations gallery — true make-times, via the documented CLI
   for (const p of PANELS) {
     const out = execFileSync('node', ['scripts/post-to-gallery.js', '--url', p.url,
