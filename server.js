@@ -4127,6 +4127,107 @@ app.post('/api/generate/replicate', async (req, res) => {
   }
 });
 
+// ─── Prompt Lab (try prompts against a LoRA — background jobs) ──────
+// Sophie's prompt tester: fixed recipe (always 4 outputs, seed 85, 2:3,
+// guidance 3, 28 steps) so runs stay comparable — only the words and the
+// LoRA scale vary from the page. The trigger word is always prepended and
+// the suffix always appended server-side, matching the hand-typed shape her
+// scale tests used ("wtr little girl in a sundress. White background ").
+// aspect_ratio / seed / suffix / model are accepted in the body for later
+// even though the page doesn't expose them yet.
+// House rule: generation is a fire-and-forget job on a Firestore doc — the
+// POST returns the id in ~0.2s and the page polls GET /:id, resuming from
+// localStorage if it was closed mid-run.
+const PROMPTLAB = 'forge-promptlab';
+async function runPromptLabJob(docRef, cfg) {
+  try {
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: cfg.version,
+        input: {
+          prompt: cfg.fullPrompt, model: 'dev', go_fast: false,
+          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: 4,
+          aspect_ratio: cfg.aspectRatio, output_format: 'webp',
+          guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
+          num_inference_steps: 28, seed: cfg.seed,
+        },
+      }),
+    });
+    let prediction = await createRes.json();
+    if (prediction.error) throw new Error(String(prediction.error));
+    if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+      await new Promise(r => setTimeout(r, 2000));
+      const poll = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+      prediction = await poll.json();
+    }
+    if (prediction.status === 'failed') throw new Error(prediction.error || 'generation failed');
+    const urls = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
+    const images = [];
+    for (const u of urls) images.push(await saveToFirebase(u, 'promptlab'));
+    await docRef.update({ status: 'done', images, predictTime: prediction.metrics?.predict_time || null });
+  } catch (err) {
+    console.warn('promptlab job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
+app.post('/api/promptlab', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const content = String(req.body.prompt || '').trim().replace(/\.+$/, '');
+    if (!content) return res.status(400).json({ error: 'prompt required' });
+    const modelId = req.body.model || 'sageryza/watercolordrawings';
+    const known = MODELS.replicate.find(m => m.id === modelId);
+    if (!known) return res.status(400).json({ error: `unknown model ${modelId}` });
+    const suffix = String(req.body.suffix ?? 'White background').trim();
+    const loraScale = Number(req.body.lora_scale ?? 1);
+    const seed = Number.isFinite(Number(req.body.seed)) ? Number(req.body.seed) : 85;
+    const aspectRatio = String(req.body.aspect_ratio || '2:3');
+    const fullPrompt = `${known.trigger} ${content}.${suffix ? ` ${suffix} ` : ' '}`;
+    const version = `${known.id}:${await resolveReplicateVersion(known)}`;
+    const docRef = admin.firestore().collection(PROMPTLAB).doc();
+    await docRef.set({
+      id: docRef.id, status: 'running', prompt: content, fullPrompt, suffix,
+      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio,
+      images: [], createdAt: admin.firestore.Timestamp.now(),
+    });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale: loraScale, seed, aspectRatio });
+    res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/promptlab/:id', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const snap = await admin.firestore().collection(PROMPTLAB).doc(req.params.id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    res.json({ ...d, createdAt: d.createdAt?.toMillis?.() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/promptlab', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const limit = Math.min(Number(req.query.limit) || 40, 100);
+    const q = await admin.firestore().collection(PROMPTLAB)
+      .orderBy('createdAt', 'desc').limit(limit).get();
+    res.json({ runs: q.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Style test: generate preview images ────────────────────────────
 app.post('/api/generate/style-test', async (req, res) => {
   try {
