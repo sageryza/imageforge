@@ -377,6 +377,52 @@ async function loadVideo(videoId) {
   return snap.exists ? snap.data() : null;
 }
 
+// Building a picker window used to mean re-reading the interview's WHOLE
+// multi-megabyte transcript doc from Firestore — for every source, on every
+// episode open (~3s server-side for a big episode, every single time). The
+// finished windows are small and transcripts are effectively immutable, so
+// they're cached: in memory for this process, and in `forge-editor-windows`
+// so the cache survives deploys. `?freshWindows=1` on GET /:id recomputes
+// (use after re-fetching a transcript).
+const WINDOW_COLLECTION = process.env.EDITOR_WINDOW_COLLECTION || 'forge-editor-windows';
+const windowMemo = new Map(); // `${videoId}_${timeSec}` → {title, window}
+
+async function windowFor(videoId, timeSec, fresh) {
+  const key = `${videoId}_${Math.round(Number(timeSec) || 0)}`;
+  if (!fresh && windowMemo.has(key)) return windowMemo.get(key);
+  const db = firestore();
+
+  if (!fresh && db) {
+    try {
+      const snap = await db.collection(WINDOW_COLLECTION).doc(key).get();
+      if (snap.exists) {
+        const hit = { title: snap.data().title || '', window: snap.data().window };
+        windowMemo.set(key, hit);
+        return hit;
+      }
+    } catch (err) { /* cache optional — fall through to the transcript */ }
+  }
+
+  let video = null;
+  try { video = await loadVideo(videoId); } catch (err) { /* transcript optional */ }
+  const out = {
+    title: (video && video.title) || '',
+    window: video ? windowTokens(video.transcript, timeSec) : { start: 0, end: 0, words: [], times: [] },
+  };
+  // Only persist real windows — a video with no banked transcript may get one
+  // later, and an empty cache entry would hide it forever.
+  if (out.window.words.length) {
+    windowMemo.set(key, out);
+    if (db) {
+      db.collection(WINDOW_COLLECTION).doc(key)
+        .set({ videoId, timeSec: Math.round(Number(timeSec) || 0), ...out, updatedAt: new Date().toISOString() })
+        .catch(err => console.warn('editor: window cache write failed —', err.message));
+    }
+  }
+  if (windowMemo.size > 300) windowMemo.clear();
+  return out;
+}
+
 // Word-tokenize ±radius seconds of a transcript around a centre time. Each word
 // carries an interpolated timestamp so a picked span knows where it lives in
 // the interview — that anchor is what selects the alignment window at render.
@@ -1000,20 +1046,15 @@ router.get('/:id', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
     if (!ep) return res.status(404).json({ error: 'not found' });
-    // All sources fetched at once (and each video once) — a dozen serial
-    // Firestore reads used to be most of the wait opening an episode.
-    const videoCache = new Map();
+    // All sources fetched at once, each window from the cache (see windowFor)
+    // — recomputing them from whole transcript docs was ~3s per episode open.
+    const fresh = req.query.freshWindows === '1';
     const transcripts = await Promise.all(ep.sources.map(async src => {
-      let video = null;
-      try {
-        if (!videoCache.has(src.videoId)) videoCache.set(src.videoId, loadVideo(src.videoId));
-        video = await videoCache.get(src.videoId);
-      } catch (err) { /* transcript optional */ }
-      const win = video ? windowTokens(video.transcript, src.timeSec) : { start: 0, end: 0, words: [], times: [] };
+      const { title, window: win } = await windowFor(src.videoId, src.timeSec, fresh);
       return {
         videoId: src.videoId,
         experiencer: src.experiencer,
-        title: (video && video.title) || '',
+        title,
         timeSec: src.timeSec,
         ...win,
       };
