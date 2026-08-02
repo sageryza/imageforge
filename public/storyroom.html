@@ -720,7 +720,7 @@ function openProj(p, jumpBeat){
   function drawVo(){
     voWrap.innerHTML='';
     var vo=p.voiceover||{};
-    var has=vo.url||String(vo.text||'').trim()||vo.status||vo.error;
+    var has=vo.url||(vo.parts&&vo.parts.length)||String(vo.text||'').trim()||vo.status||vo.error;
     vbtn.style.display=(has||voForced)? 'none':'';
     if(!has&&!voForced) return;
     var pm=document.createElement('div'); pm.className='pagemark'; pm.textContent='THE VOICEOVER'; voWrap.appendChild(pm);
@@ -733,7 +733,18 @@ function openProj(p, jumpBeat){
     if(vo.error){
       var er=document.createElement('div'); er.className='voerr'; er.textContent=vo.error; voWrap.appendChild(er);
     }
-    if(vo.url){
+    if(vo.parts&&vo.parts.length){
+      // Separate, ordered takes (Aug 2026, Sophie's rule: recordings stay
+      // LINKED BUT SEPARATE). A stitched vo.url may still sit on the doc for
+      // the film pipeline, but what plays here is the real takes, in order.
+      vo.parts.forEach(function(pt,i){
+        var lb=document.createElement('div'); lb.className='vo none'; lb.style.fontSize='14px'; lb.style.margin=(i?'10px':'0')+' 0 2px';
+        var mm=pt.seconds? Math.floor(pt.seconds/60)+':'+String(Math.round(pt.seconds)%60).padStart(2,'0') : '';
+        lb.textContent=(i+1)+'. '+(pt.title||('Take '+(i+1)))+(mm? ' · '+mm:'');
+        voWrap.appendChild(lb);
+        var pa=document.createElement('audio'); pa.controls=true; pa.preload='none'; pa.src=pt.url; voWrap.appendChild(pa);
+      });
+    } else if(vo.url){
       var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=vo.url; voWrap.appendChild(au);
     }
     if(String(vo.text||'').trim()){
