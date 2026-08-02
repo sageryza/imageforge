@@ -16,6 +16,11 @@ catch (e) { console.error('Natal-chart engine unavailable:', e.message); }
 
 const app = express();
 
+// gzip every compressible response — the editor's transcript payloads are
+// ~300KB of JSON that shrink ~4x, which is the difference between a snappy
+// and a sluggish episode open on a phone connection.
+app.use(require('compression')());
+
 // ─── CORS ───────────────────────────────────────────────────────────
 // The API is called from browser apps on other origins (e.g. a Claude
 // artifact), so cross-origin requests must be allowed. Permissive for now
