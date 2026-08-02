@@ -10,14 +10,21 @@
     <string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
     <key>NSExtensionAttributes</key>
     <dict>
-      <!-- Photos and videos only. Counts are generous because a crystal album
-           or a batch of clips is the normal case, not the exception. -->
+      <!-- Photos, videos, and (Aug 2026) audio. There is no
+           "SupportsAudioWithMaxCount" key, so audio rides on the generic FILE
+           rule — that also surfaces "Send to Deck Factory" for other file
+           types, where the sheet just says "Nothing to dump"; accepted
+           trade-off over a fragile SUBQUERY predicate. Counts are generous
+           because a crystal album or a folder of recordings is the normal
+           case, not the exception. -->
       <key>NSExtensionActivationRule</key>
       <dict>
         <key>NSExtensionActivationSupportsImageWithMaxCount</key>
         <integer>500</integer>
         <key>NSExtensionActivationSupportsMovieWithMaxCount</key>
         <integer>100</integer>
+        <key>NSExtensionActivationSupportsFileWithMaxCount</key>
+        <integer>200</integer>
       </dict>
     </dict>
   </dict>

@@ -1,22 +1,15 @@
 // Animate each pastel panel with wan-2.2-i2v-fast (same pinned version as
 // movies.js VIDEO_MODELS.draft), 720p, 121 frames (~7.5s), concurrency 4.
+// The 2:3 input keeps its aspect through wan, so the clips come back portrait.
 const fs = require('fs');
-const OUT = '/tmp/claude-0/-home-user/5cf8109c-feb1-5772-9302-0197d40bce90/scratchpad/destiny';
+const { OUT, BEATS } = require('./beats');
 const TOKEN = process.env.REPLICATE_API_TOKEN;
 const VERSION = '4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea';
 const panels = require(OUT + '/panels.json');
 
-const TAIL = ' Flat pastel illustration style with bold black ink outlines on a white background. Gentle smooth dreamy motion, no camera movement.';
-const MOTION = [
-  'The hovering glass shards slowly rotate in place and the small sparks drift upward while the angry woman breathes, her shoulders rising and falling.',
-  'The round thought bubbles slowly orbit around the seated woman\'s head, each drifting gently up and down, while she blinks and looks from one to another.',
-  'The glowing spiral of stars in the sky slowly rotates while the crowd points, and the soft glow around the woman\'s hands gently pulses brighter and dimmer.',
-  'The three ribbons of light flow and undulate slowly outward from the woman, and the small coin, leaf and star glide smoothly along the ribbons.',
-  'The stream water flows steadily, and ripples spread outward from the woman\'s fingertip as the bend in the stream gently widens.',
-  'The tiny glowing star rises from the woman\'s cupped hands, arcs through the air leaving a soft trail, and descends toward her open palm with the little gift.',
-  'The constellation lines gently slide the paving stones and the little gate into place as the woman walks slowly forward along the path.',
-  'The glowing thread reins sway gently in the breeze, the stars twinkle, and the woman\'s hair and jacket move softly in the wind.',
-];
+// Style lock only — motion is described per beat in beats.js, matched to what
+// each scene needs (Sophie's rule, Aug 2026: no house motion default).
+const TAIL = ' Flat pastel illustration style with bold black ink outlines on a white background.';
 
 async function predict(input) {
   const res = await fetch('https://api.replicate.com/v1/predictions', {
@@ -49,14 +42,14 @@ async function downloadTo(url, dest, tries = 3) {
   }
 }
 
-async function one(p, i) {
+async function one(p) {
   const dest = `${OUT}/clip-${p.beat}.mp4`;
   if (fs.existsSync(dest) && !process.env.FORCE) { console.log(`beat ${p.beat}: clip exists, skip`); return; }
   console.log(`beat ${p.beat}: animating…`);
   const t0 = Date.now();
   const pred = await predict({
     image: p.url,
-    prompt: MOTION[p.beat] + TAIL,
+    prompt: BEATS[p.beat].motion + TAIL,
     resolution: '720p',
     num_frames: 121,
     frames_per_second: 16,
@@ -65,7 +58,7 @@ async function one(p, i) {
   });
   const out = Array.isArray(pred.output) ? pred.output[0] : pred.output;
   const size = await downloadTo(out, dest);
-  console.log(`beat ${p.beat}: done in ${((Date.now() - t0) / 1000).toFixed(0)}s → ${dest} (${size} bytes)`);
+  console.log(`beat ${p.beat}: done in ${((Date.now() - t0) / 1000).toFixed(0)}s (${size} bytes)`);
 }
 
 (async () => {

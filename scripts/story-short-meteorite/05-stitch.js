@@ -1,14 +1,17 @@
-// Stitch the 8 wan clips to the 8 tightened narration beats into a 1080x1920
-// vertical short. Each beat's video is slowed (≤1.9x) toward its narration
-// length, last frame held for any remainder, padded on white to 9:16.
+// Stitch the wan clips to the precisely-cut narration beats into a 1080x1620
+// PORTRAIT 2:3 short (this story's ask — not 9:16, so the panels fill the
+// frame with no padding). Each beat's clip is slowed (≤1.9x) toward its
+// narration length, last frame held for any remainder; whites lifted so the
+// style's white background stays pure; concat + loudnorm.
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 const FFMPEG = require('ffmpeg-static');
 const FFPROBE = require('ffprobe-static').path;
-const OUT = '/tmp/claude-0/-home-user/5cf8109c-feb1-5772-9302-0197d40bce90/scratchpad/destiny';
+const { OUT } = require('./beats');
 const timing = require(OUT + '/timing.json');
 
 const PAUSE = 0.35, MAX_SLOW = 1.9;
+const FINAL = `${OUT}/the-meteorite-short.mp4`;
 const probe = (f, args) => execFileSync(FFPROBE, ['-v', 'error', ...args, f]).toString().trim();
 
 const parts = [];
@@ -18,14 +21,12 @@ for (const t of timing) {
   const target = t.duration + PAUSE;
   const slow = Math.min(target / dur, MAX_SLOW);
   const part = `${OUT}/part-${t.beat}.mp4`;
-  // video: slow → hold last frame to target → 30fps → scale/pad to 1080x1920 white
-  // audio: beat wav padded with silence to target
   execFileSync(FFMPEG, ['-y',
     '-i', clip, '-i', `${OUT}/beat-${t.beat}.wav`,
     '-filter_complex',
     `[0:v]setpts=${slow.toFixed(4)}*PTS,fps=30,tpad=stop_mode=clone:stop_duration=${Math.max(0, target - dur * slow + 0.5).toFixed(3)},trim=duration=${target.toFixed(3)},` +
-    `colorlevels=rimax=0.94:gimax=0.94:bimax=0.94,` + // wan whites are ~F0 off-white; lift to pure so the pad is seamless
-    `scale=1080:1620:flags=lanczos,pad=1080:1920:0:150:white,setsar=1[v];` +
+    `colorlevels=rimax=0.94:gimax=0.94:bimax=0.94,` + // wan whites are ~F0 off-white; lift to pure
+    `scale=1080:1620:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1620,setsar=1[v];` +
     `[1:a]apad=whole_dur=${target.toFixed(3)},atrim=duration=${target.toFixed(3)},aformat=sample_rates=44100:channel_layouts=stereo[a]`,
     '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
@@ -40,6 +41,6 @@ for (const t of timing) {
 fs.writeFileSync(`${OUT}/concat.txt`, parts.map(p => `file '${p}'`).join('\n'));
 execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', `${OUT}/concat.txt`,
   '-c:v', 'copy', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k',
-  `${OUT}/controlling-my-own-destiny-short.mp4`], { stdio: 'pipe' });
-const fd = probe(`${OUT}/controlling-my-own-destiny-short.mp4`, ['-show_entries', 'format=duration', '-of', 'csv=p=0']);
-console.log('FINAL:', `${OUT}/controlling-my-own-destiny-short.mp4`, fd + 's');
+  FINAL], { stdio: 'pipe' });
+const fd = probe(FINAL, ['-show_entries', 'format=duration', '-of', 'csv=p=0']);
+console.log('FINAL:', FINAL, fd + 's');

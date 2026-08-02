@@ -93,6 +93,111 @@ function regRef(chat) {
   return db().collection(REG).doc(String(chat).slice(0, 60));
 }
 
+// ---- One chat per SESSION (Aug 2026) ---------------------------------------
+// A chat's real identity is the Claude SESSION behind it, not the branch-derived
+// slug: branch names get reused, naming conventions change, and slugs collide —
+// each of those merged or split threads for real (the chat Sophie renamed
+// "Imprint" lost its session to a fork when its slug was claimed by a
+// placeholder). So resolution is SESSION-FIRST: a session that already owns a
+// chat posts there forever, whatever its branch says today. The slug only
+// matters the first time a session posts — it keeps the pretty name if it's
+// free, otherwise forks to `<slug>-<sid6>`. Renaming (displayName) stays
+// cosmetic and never re-keys anything.
+function sidTail(session) {
+  return String(session).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+}
+// A merged/repaired chat leaves a tombstone doc behind ({ movedTo }) so posts
+// still addressed to the old slug — stale hook caches, the app's reply box on
+// an old thread — land in the surviving chat instead of resurrecting the tile.
+async function followMoves(chat) {
+  let cur = String(chat || '').slice(0, 60);
+  if (!cur) return cur;
+  const reg = await registry();
+  const seen = new Set();
+  while (reg.chats[cur] && reg.chats[cur].movedTo && !seen.has(cur)) {
+    seen.add(cur);
+    cur = String(reg.chats[cur].movedTo).slice(0, 60);
+  }
+  return cur;
+}
+async function resolveChat(base, session) {
+  const chat = await followMoves(base);
+  const sid = String(session || '').slice(0, 120);
+  if (!chat || !sid) return chat;
+  // 1) Session-first: this session already has a home → everything it posts
+  //    goes there, no matter what slug it arrived under. This is what makes a
+  //    chat's identity survive branch renames and naming-convention changes.
+  const reg = await registry();
+  const mine = Object.keys(reg.chats)
+    .filter((s) => (reg.chats[s].sessionId || '') === sid && !reg.chats[s].movedTo);
+  if (mine.length) {
+    if (mine.includes(chat)) return chat;
+    // duplicates only happen after registry surgery — pick deterministically
+    mine.sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+    return mine[0];
+  }
+  // 2) First post from a new session: take the pretty name if it's unclaimed…
+  const owner = (reg.chats[chat] || {}).sessionId || '';
+  if (!owner) {
+    await regRef(chat).set({ sessionId: sid }, { merge: true });
+    return chat;
+  }
+  if (owner === sid) return chat;
+  // 3) …else fork to a chat of its own. If even the fork slug is taken by yet
+  //    another session (two ids sharing 6 leading chars), widen the tail.
+  let tail = sidTail(sid) || 'x';
+  let fork = (chat + '-' + tail).slice(0, 60);
+  const fowner = (reg.chats[fork] || {}).sessionId || '';
+  if (fowner && fowner !== sid) {
+    tail = String(sid).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || tail;
+    fork = (chat + '-' + tail).slice(0, 60);
+  }
+  await regRef(fork).set({ sessionId: sid }, { merge: true });
+  return fork;
+}
+// The hook calls this ONCE per session (cached in a state file) and then
+// posts feed + gallery + user messages under the returned slug, so everything
+// a session makes stays together on one chat.
+router.get('/resolve', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const out = await resolveChat(chat, String(req.query.session || ''));
+    res.json({ chat: out });
+  } catch (err) { fail(res, err); }
+});
+// Admin: bind a chat to its owning session (or clear the binding) — the
+// untangle tool for an already-collided chat. Pass the REAL session id of the
+// conversation the thread belongs to; resolution is session-first, so a
+// placeholder id ORPHANS the thread (that is exactly what froze "Imprint" —
+// its slug was claimed by "imprint-legacy", which no live session could ever
+// match, so even its own session forked away). Binding also clears the same
+// session id off every OTHER registry doc, so a session has exactly one home.
+// Optional { movedTo } sets/clears the tombstone redirect for a merged chat.
+router.post('/session', async (req, res) => {
+  try {
+    const { chat, sessionId, movedTo } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(sessionId || '').slice(0, 120);
+    const chatId = String(chat).slice(0, 60);
+    if (val) {
+      const dupes = await db().collection(REG).where('sessionId', '==', val).get();
+      for (const d of dupes.docs) {
+        if (d.id !== chatId) {
+          await regRef(d.id).set({ sessionId: admin.firestore.FieldValue.delete() }, { merge: true });
+        }
+      }
+    }
+    const patch = { sessionId: val || admin.firestore.FieldValue.delete() };
+    if (movedTo !== undefined) {
+      patch.movedTo = movedTo ? String(movedTo).slice(0, 60) : admin.firestore.FieldValue.delete();
+    }
+    await regRef(chatId).set(patch, { merge: true });
+    res.json({ ok: true, chat: chatId, sessionId: val || null });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/', async (req, res) => {
   try {
     // Without this the app's webview heuristically caches the feed (no
@@ -222,8 +327,23 @@ router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
+    if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
+    // Chats whose NAME matches the query — Sophie's display name first, the
+    // slug as fallback — returned separately so the client can pin them at
+    // the top of the results (her rule: searching a chat's name should find
+    // the chat itself before any message-content hits).
+    let chatMatches = [];
+    try {
+      const reg = await registry();
+      const ql = q.toLowerCase();
+      chatMatches = Object.keys(reg.chats || {})
+        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
+        .filter((c) => c.name.toLowerCase().includes(ql) || c.chat.toLowerCase().includes(ql))
+        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+        .slice(0, 10)
+        .map((c) => ({ chat: c.chat, name: c.name }));
+    } catch (e) { /* name matches are a bonus; message search still answers */ }
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Word-aware match: anchor the query at a word start (\b) so "aries" no
     // longer matches inside "boundaries", while a prefix like "bound" still
@@ -249,7 +369,7 @@ router.get('/search', async (req, res) => {
       }
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
-    res.json({ results, indexed: searchIndex.length });
+    res.json({ results, chatMatches, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -271,7 +391,7 @@ router.get('/thread', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr, url, account } = req.body || {};
+    const { chat, title, text, audio, tldr, url, account, session, explicit } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -286,6 +406,17 @@ router.post('/', async (req, res) => {
     };
     // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
     if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
+    // The server is the authority on where a post files. The hook sends its
+    // session id explicitly; older hooks carry it inside the deep link. Either
+    // way the post goes through session-first resolution, so a stale hook-side
+    // slug cache (or a reused branch name) can never file into the wrong
+    // thread. `explicit` marks a deliberate FORGE_CHAT name shared across
+    // sessions on purpose — those are never re-keyed (tombstones still apply).
+    const sm = doc.url && doc.url.match(/session_([A-Za-z0-9_-]{6,})/);
+    const skey = String(session || (sm ? sm[1] : '')).slice(0, 120);
+    doc.chat = explicit
+      ? await followMoves(doc.chat)
+      : await resolveChat(doc.chat, skey);
     if (audio && /^https?:\/\//.test(audio)) doc.audioUrl = String(audio);
     else if (audio && /^data:audio\//.test(audio)) {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
@@ -574,9 +705,14 @@ router.post('/about', async (req, res) => {
 // displayName when she has set one, else null (the slug is then the name).
 router.get('/name', async (req, res) => {
   try {
-    const chat = String(req.query.chat || '').slice(0, 60);
+    let chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
     res.set('Cache-Control', 'no-store');
+    // Pass &session=<id> to resolve session-first — a chat asking "what am I
+    // called?" then gets its EFFECTIVE slug (fork, re-bound thread, or merge
+    // target) along with Sophie's display name, not the raw branch slug.
+    const session = String(req.query.session || '').slice(0, 120);
+    chat = session ? await resolveChat(chat, session) : await followMoves(chat);
     const snap = await regRef(chat).get();
     const d = snap.exists ? snap.data() : {};
     res.json({ chat, displayName: d.displayName || null, name: d.displayName || chat });
@@ -671,8 +807,29 @@ router.post('/polish', async (req, res) => {
 
 router.post('/reply', async (req, res) => {
   try {
-    const { chat, text, created } = req.body || {};
+    // Sophie's SIDE of a thread is her real conversation: the app's reply box
+    // and the hook lifting her messages out of the transcript. Notes typed
+    // inside a Compare page are NOT messages (Aug 2026: two pages' note boxes
+    // posted her notes into the thread as if she'd said them there) — so a
+    // /reply fired from inside a served page is REROUTED, not refused: the
+    // note lands on the page's verdict doc (sheet `page-<id>`, readable via
+    // GET /verdict) where the page's chat picks it up, the thread stays
+    // clean, and nothing she typed is ever dropped. New pages should post to
+    // /api/chatfeed/verdict directly.
+    const { chat, text, created, session, explicit } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    const pageRef = String(req.get('referer') || '').match(/\/api\/chatfeed\/page\/([A-Za-z0-9_-]+)/);
+    if (pageRef) {
+      const sheet = 'page-' + pageRef[1];
+      const id = `${String(chat).slice(0, 80)}__${sheet}`;
+      await db().collection('forge-chat-verdicts').doc(id).set({
+        chat: String(chat).slice(0, 60),
+        sheet,
+        texts: { ['note-' + Date.now()]: String(text).slice(0, 2000) },
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      return res.json({ ok: true, keptOnPage: true });
+    }
     // `created` = when she actually sent it (the hook passes the transcript's
     // timestamp for her own messages, so hers sorts ABOVE the reply it
     // prompted). Ignored unless it parses and isn't in the future.
@@ -681,8 +838,16 @@ router.post('/reply', async (req, res) => {
       const t = new Date(created).getTime();
       if (!isNaN(t) && t <= Date.now() + 60000) at = new Date(t).toISOString();
     }
+    // Same session-first routing as the feed: the hook sends `session` with
+    // her lifted messages so they land in the SAME chat as the reply they
+    // prompted, even if the hook's cached slug is stale. The app's reply box
+    // sends no session — that targets the slug she's looking at (tombstones
+    // still redirect a merged chat's slug to the surviving thread).
+    const her = explicit
+      ? await followMoves(chat)
+      : await resolveChat(chat, String(session || '').slice(0, 120));
     const doc = {
-      chat: String(chat).slice(0, 60),
+      chat: String(her).slice(0, 60),
       text: String(text).slice(0, 8000),
       from: 'sophie',
       created: at,
@@ -729,4 +894,4 @@ router.get('/verdict', async (req, res) => {
   }
 });
 
-module.exports = { router, pillInject };
+module.exports = { router, pillInject, resolveChat, followMoves };

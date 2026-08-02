@@ -177,6 +177,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .sr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto; flex:none;}
 .sr-snip{font-size:15.5px; line-height:1.4; color:var(--ink);}
 .sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
+/* Chat-name results sit above message hits — the name reads at full size. */
+.sres.schat .sr-chat{font-family:'EBGaramond',Georgia,serif; font-size:17px; letter-spacing:0; text-transform:none;}
+.sres.schat .sr-chat b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Compare tab: a chat's published pages (comparison sheets / option boards) */
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
@@ -923,7 +926,14 @@ function openChat(name, keepScroll, focusId, noFetch){
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   if(!noFetch) ensureFullThread(name);
-  var sec=document.getElementById('thread'); sec.innerHTML='';
+  var sec=document.getElementById('thread');
+  // A rebuild (the full history landing ~1s after entering, the New-message
+  // bar, an account change) must NOT collapse what she's reading: it made a
+  // just-tapped message look like it closed itself, forcing a second tap.
+  // Carry the open rows across, matched by message id.
+  var wasOpen={};
+  sec.querySelectorAll('.msg.open').forEach(function(r){ if(r.dataset.mid) wasOpen[r.dataset.mid]=1; });
+  sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
@@ -981,6 +991,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var mrows=[];
   list.slice().reverse().forEach(function(m){
     var row=renderMsg(m);
+    if(m.id&&wasOpen[m.id]) row.classList.add('open');
     mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     chatPanel.appendChild(row);
   });
@@ -1615,11 +1626,21 @@ document.getElementById('back').onclick=goHome;
       .then(function(d){
         if(qi.value.trim()!==q) return;   // a newer keystroke already fired
         var rs=(d&&d.results)||[];
+        var cm=(d&&d.chatMatches)||[];
         grid.style.display='none'; sr.style.display=''; sr.innerHTML='';
-        if(!rs.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
+        if(!rs.length&&!cm.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
+        // Chats whose NAME matches come first (Sophie's rule, Aug 2026):
+        // searching a chat's name should find the chat itself at the top,
+        // above any message-content hits. Tapping one opens the chat.
+        cm.forEach(function(c){
+          var b=document.createElement('button'); b.className='sres schat';
+          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+hl(c.name,q)+'</span><span class="sr-time">chat</span></div>';
+          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(c.chat); };
+          sr.appendChild(b);
+        });
         rs.forEach(function(m){
           var b=document.createElement('button'); b.className='sres';
-          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(m.chat)+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
+          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
           b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
           sr.appendChild(b);

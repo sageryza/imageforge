@@ -358,6 +358,28 @@ lifted into a standalone tool later.
   merged four different sessions into ONE chat called "new-session" — so a
   generic slug (`new-session`/`session`/`untitled`) now gets 6 chars of the
   session id appended, e.g. `new-session-7f3e9a`, one chat per session.
+  **A chat's identity is its SESSION, not its slug (Aug 2026 v2):** branch
+  names get REUSED and naming conventions change, and both broke threads for
+  real — first two sessions sharing a slug interleaved into ONE thread (the
+  chat Sophie renamed "Imprint"), then the untangle claimed that slug with a
+  placeholder session id, which ORPHANED the thread (no live session could
+  match it, so even its own session forked away and Imprint went silent).
+  Resolution is now **session-first**: the registry doc records which session
+  owns each slug, and a session that already owns a chat posts there FOREVER,
+  whatever its branch says today. The slug only matters on a session's first
+  post — it keeps the pretty name if unclaimed, else forks to `<slug>-<sid6>`.
+  The hook resolves once per session (`GET /api/chatfeed/resolve?chat=&session=`)
+  as a hint, and **every post — feed, gallery, and Sophie's lifted messages —
+  also carries `session`, so the server re-resolves authoritatively** (a stale
+  hook cache can't mis-file; `explicit:true` marks a deliberately shared
+  FORGE_CHAT, never re-keyed). A merged/repaired chat leaves a registry
+  tombstone `{ movedTo }` that redirects anything still addressed to the old
+  slug. Untangling: `POST /api/chatfeed/session {chat, sessionId}` binds a
+  thread to its REAL session id (never a placeholder — that's what orphaned
+  Imprint) and clears that id off every other doc; `scripts/merge-chat.js`
+  moves a mis-filed message/asset span between chats, re-keys votes, and
+  plants the tombstone (`--dry-run` first; the Imprint repair is its header
+  example).
 - **Self-heal if you're NOT posting (any chat).** If your replies aren't
   showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
   If it's MISSING, your session's environment didn't install the hook —
@@ -445,10 +467,13 @@ lifted into a standalone tool later.
   outside and nothing can push a rename back into claude.ai (checked July 2026,
   no API and no MCP tool for it), so the two names are separate by necessity and
   hers wins. A chat reads what she calls it with
-  `GET /api/chatfeed/name?chat=<slug>` → `{ displayName, name }` (`name` falls
-  back to the slug) — use it when referring to yourself in a handoff or a
-  message, rather than the raw git-branch slug. The **slug stays the identity
-  key** for every route; renaming is cosmetic and never re-keys a chat's history.
+  `GET /api/chatfeed/name?chat=<slug>&session=<your session id>` →
+  `{ chat, displayName, name }` — ALWAYS pass `session` (the
+  `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`): the returned `chat` is your
+  EFFECTIVE slug (session-first — a fork or re-bound thread, not necessarily
+  the branch slug), and that's the slug to use for pages, asset prompts,
+  notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
+  a chat's history.
 - **Gated pages must not be cached by the app.** `serveGated` sends
   `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
   and the iOS app's WKWebView served a heuristically-cached copy, so a shipped
@@ -494,6 +519,16 @@ lifted into a standalone tool later.
     visible paper grain`).
   - **content** = what is depicted: subject, action, setting, composition
     (`a woman in a yellow raincoat feeding crows on a park bench at dusk`).
+  - **THE EXACT PROMPT, character for character — NEVER PARAPHRASE (Aug 2026,
+    Sophie's rule).** Both halves are the literal text that was sent to the
+    model: the content half verbatim, and the style half the real style
+    prefix/suffix/character-consistency lines as sent (when the style is a
+    wrapper around the content, mark the seam with `[content]`, and note any
+    attached style-ref images + size/quality after it). Never a summary, a
+    cleaned-up version, or a reconstruction from memory. If the exact text is
+    not available (an older image, an unknown generator), file NOTHING — the
+    PROMPT button stays hidden by design — or file `not available`; never
+    fill the gap with a paraphrase.
   - `POST /api/gallery/assets/prompt` `{ chat, url, style, content }` — the
     image's Firebase Storage url, x-studio-token when gated. Do this for EVERY
     image deliverable, right after the image exists; it needs no gallery step
@@ -559,6 +594,22 @@ lifted into a standalone tool later.
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
+  **New VERSION of a deliverable = a NEW page, never an edit of the old one
+  (Aug 2026, Sophie's rule — earned the hard way).** Deleting-and-reposting a
+  page when the work changes made her lose track of what she was looking at,
+  and re-pointing an old page at new media (or worse, overwriting the media
+  file at the same URL — a cached copy then silently plays STALE content)
+  made "which version is this?" unanswerable. So: every new cut/render/version
+  gets a NEW page whose TITLE states the version and what it is ("Short 1 v4 —
+  tightest cut"), pointing at NEW version-numbered media files; the old pages
+  and files stay as history. DELETE+re-post is only for fixing a typo on the
+  SAME version.
+  **A page must NEVER post to `/api/chatfeed/reply`** (Aug 2026, Sophie's
+  rule): notes she types on a Compare page are not chat messages and must stay
+  on the page — use `POST /api/chatfeed/verdict { chat, sheet, item, text }`.
+  The server enforces it: a /reply fired from inside a served page is rerouted
+  onto the page's verdict doc (sheet `page-<id>`; read it back with
+  `GET /api/chatfeed/verdict?chat=&sheet=page-<id>`), never into the thread.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
@@ -832,12 +883,17 @@ lifted into a standalone tool later.
   `/api/memos` files into the stamped 993-memo archive (and costs money per
   file), and the Dump takes images + video only. A folder of recordings in the
   Files app had nowhere to go.
-- **The iOS Share sheet is NOT a way in.** `DumpShare`'s activation rule is
-  `SupportsImageWithMaxCount` / `SupportsMovieWithMaxCount`, so a voice memo
-  never offers ImageForge as a destination. The way in is the `/audio` page's
-  file picker (multi-select works straight out of the Files app) — or Voice
-  Memos → Share → Copy → Story Room's "Paste a recording" when it belongs to
-  one story. Adding audio to the share extension is a TestFlight build.
+- **The iOS Share sheet IS a way in (Aug 2026).** `DumpShare` activates for
+  files too and routes audio extensions here (`POST /upload-file`, one
+  date-stamped batch per share) — with a **"Transcribe the recordings"
+  toggle** on the sheet that passes `?transcribe=1` (background Whisper onto
+  the doc: `transcript` / `transcribeStatus`; over-25MB files record a clear
+  error). Uploads are a BACKGROUND URLSession via the
+  `group.com.sageryza.imageforge` App Group — the sheet stages files in the
+  shared container, queues the tasks, and dismisses; fire-and-forget, the md5
+  dedupe means re-sharing heals a lost upload. Other ways in: the `/audio`
+  page's file picker, or Voice Memos → Share → Copy → Story Room's "Paste a
+  recording" when it belongs to one story.
 - **Dump first, label afterwards** (same as the Dump): uploading asks only for a
   batch name, defaulted to the date. `name` (from the filename), `notes`,
   `tags`, `track` are all fillable later, from the page or by a chat.
@@ -1168,7 +1224,9 @@ lifted into a standalone tool later.
   or a bare URL. Applies to every image in a finished reply.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
-  tab reads. Full rules in "Prompts on Assets images" above.
+  tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
+  text on hand → file nothing (or `not available`). Full rules in "Prompts on
+  Assets images" above.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
@@ -1526,6 +1584,17 @@ the `forge-stories` collection is retired (see migration below).
   NO 3D tilt — Sophie asked for "just a line." Rows are TOP-aligned and
   `.t-name` reserves/clamps 2 lines, so covers and the meta line up no matter
   how long a title is (bottom-aligning offsets the covers — that was a bug).
+- **Back navigation (Aug 2026): the native nav bar's top-left chevron is THE
+  back arrow in the app.** `StoryRoomView`'s toolbar chevron asks the page
+  first (`window.__navBack()` steps a story/film view back one level — shelf,
+  films archive, or the film's own story); when the page says it's already on
+  the shelf, the app pops to the home grid (or back to Movies when pushed,
+  `pushed: true`). Builds with the chevron inject `window.__nativeNavBar`
+  (WKUserScript), which hides the page's own sticky back row (`body.native`)
+  so there's never a second back arrow stranded under the header; older
+  builds and plain browsers keep the in-page row. Never key that hiding on
+  the `pasteVoiceover` bridge — old chevron-less builds have it too and would
+  be left with no way back.
 - **Voiceover in: paste, don't record.** There is deliberately NO record
   button — Sophie narrates in iOS Voice Memos. Ways in: **"Paste a
   recording"** (app only, `pasteVoiceover` WKScriptMessage bridge in
@@ -1547,6 +1616,21 @@ the `forge-stories` collection is retired (see migration below).
   **Migration:** `node scripts/migrate-stories.js [--dry-run]` (needs both
   service accounts) moved the old `forge-stories` docs; the old collection is
   left as a backup, delete it once verified.
+- **Films live ON their story (Aug 2026).** No more "THE FILMS" pile at the
+  bottom of the shelf. A movie doc carries `storyId` (accepted at creation by
+  `POST /api/movies`, set after the fact via `POST /api/movies/:id/story`;
+  older films backfilled by `node scripts/link-films-to-stories.js`); the
+  Story Room shows a story's newest stitched film in a THE FILM section on the
+  story page (with its frames as thumbnails, plus "Cuts & rejected art").
+  Films with NO story — dream experiments, tests — wait behind the home's
+  **Films** button (only visible when any exist). When a story has beat art
+  but no real film, the page shows a **draft film** instead: ffmpeg-stitched
+  from one image per beat (approved > candidate > draft), timed across the
+  voiceover when there is one (2.8s a picture when not), auto-kicked on first
+  open and re-stitchable when the art changes. `POST /api/story/draft-film
+  {projectId, force?}` — background job on the doc (`draftFilm.status`), the
+  page polls `GET /api/story`; result stored as `draftFilm:{url, at, seconds,
+  art, voUrl}` on the story doc, video at membry Storage `story/draft-film-*`.
 - **Chats add/update boards** the same as before: manifest JSON +
   `node scripts/sync-story.js manifest.json`. Docs are replaced wholesale BUT
   the sync now preserves Story-Room-owned fields (`text`, `voiceover`,
