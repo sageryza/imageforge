@@ -1569,6 +1569,17 @@ the `forge-stories` collection is retired (see migration below).
   NO 3D tilt — Sophie asked for "just a line." Rows are TOP-aligned and
   `.t-name` reserves/clamps 2 lines, so covers and the meta line up no matter
   how long a title is (bottom-aligning offsets the covers — that was a bug).
+- **Back navigation (Aug 2026): the native nav bar's top-left chevron is THE
+  back arrow in the app.** `StoryRoomView`'s toolbar chevron asks the page
+  first (`window.__navBack()` steps a story/film view back one level — shelf,
+  films archive, or the film's own story); when the page says it's already on
+  the shelf, the app pops to the home grid (or back to Movies when pushed,
+  `pushed: true`). Builds with the chevron inject `window.__nativeNavBar`
+  (WKUserScript), which hides the page's own sticky back row (`body.native`)
+  so there's never a second back arrow stranded under the header; older
+  builds and plain browsers keep the in-page row. Never key that hiding on
+  the `pasteVoiceover` bridge — old chevron-less builds have it too and would
+  be left with no way back.
 - **Voiceover in: paste, don't record.** There is deliberately NO record
   button — Sophie narrates in iOS Voice Memos. Ways in: **"Paste a
   recording"** (app only, `pasteVoiceover` WKScriptMessage bridge in
