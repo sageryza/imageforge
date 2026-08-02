@@ -76,3 +76,34 @@ it is machine-verified, not ear-verified.
 - Narration cards fail loudly without `ELEVENLABS_API_KEY` — never silently
   skipped.
 - Verify batches with `nde-verify-cuts.py` before delivering.
+
+## Noisy pauses in voice-memo narration (Aug 2026 findings — Tolle shorts)
+The pipeline above cuts SNIPPETS out of interviews. Cutting a whole read-through
+of a narration (Sophie's Story Room voice memos) hits a different failure:
+pauses full of breath/mouth/room noise. Measured live: after loudnorm her
+pauses sat at **~-20dB RMS while quiet speech was -17dB** — 4-7dB apart — so
+NO absolute silence threshold can find them (`silencedetect` at -32dB reported
+a track "pause-free" that a human heard as full of gaps). What works:
+
+1. **Locate pauses by WORD TIMING, chunked.** whisper-1 word timestamps over
+   **75s chunks** (offsets restored). A hidden pause shows as an inter-word gap
+   > 0.4s OR an inflated word span — a short word "lasting" longer than
+   `0.55s + 0.07s × chars` means Whisper folded trailing noise into the word
+   (observed: "that" spanning 1.7s). **Never transcribe the full file for
+   this** — long-file Whisper silently drops stretches and fakes multi-second
+   phantom gaps (observed 7s and 14s phantoms that did not exist in the audio).
+2. **Find the pause edges by RELATIVE energy.** 20ms RMS profile from PCM; in
+   the window [word.start → nextWord.start], speech ends at the last bin
+   within 6dB of the window's OWN peak. Safety: skip the cut if anything
+   inside it comes within 5dB of that peak.
+3. **Then a room-tone pass.** Floor = 8th percentile of all 20ms bins; any
+   run ≥ 0.45s within 4dB of the floor is a residual gap. (This one catches
+   what pass 1 leaves; on its own it misses the loud breath pauses.)
+4. **Compress to ~0.28s, never delete** — zero-gap joins sound robotic.
+5. **Verify by chunked re-transcription ratio** (≥93% or fail the run).
+   Full-file transcription is NOT a valid verifier (see the phantom gaps).
+
+Tool: `node scripts/vo-remove-pauses.js in.mp3 out.mp3 [--script script.txt]
+[--edits edits.json] [--keep 0.28]` — both passes + verification; `--edits`
+dumps the cut list so frame timings can be remapped arithmetically instead of
+re-transcribed.
