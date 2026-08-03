@@ -18,6 +18,10 @@
   .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; }
   .controls { display: flex; align-items: center; gap: 10px; }
   .controls label { font-size: 12.5px; color: #6f675e; }
+  .xthree { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
+  .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
+  .seedbtn svg { width: 19px; height: 19px; }
+  .seedtag { font-size: 11.5px; color: #6f675e; }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; }
   button.go:disabled { opacity: .5; }
@@ -55,6 +59,9 @@
   <div class="shape">Sent as: <code id="shape"></code></div>
   <div class="controls">
     <label>LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
+    <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
+    <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
+    <span class="seedtag" id="seedtag"></span>
     <button class="go" id="go" onclick="go()">Generate</button>
   </div>
   <div class="err" id="err" hidden></div>
@@ -85,7 +92,23 @@
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
   };
+  document.getElementById('seedbtn').innerHTML = ICONS.sprout;
+
+  // The seed: starts at 85 (the test convention), the sprout button steps it
+  // up one — it only SETS the seed, Generate still fires the run. Persisted so
+  // a reload keeps the seed you were on; the little number keeps it visible.
+  function curSeed() {
+    var s = parseInt(localStorage.getItem('promptlab_seed') || '85', 10);
+    return Number.isFinite(s) ? s : 85;
+  }
+  function showSeed() { document.getElementById('seedtag').textContent = 'seed ' + curSeed(); }
+  document.getElementById('seedbtn').addEventListener('click', function () {
+    localStorage.setItem('promptlab_seed', String(curSeed() + 1));
+    showSeed();
+  });
+  showSeed();
   document.getElementById('lblike').innerHTML = ICONS.heart;
   document.getElementById('lbx').innerHTML = ICONS.x;
   document.getElementById('lbsave').innerHTML = ICONS.download;
@@ -137,36 +160,58 @@
   }
   function setPending(list) { localStorage.setItem(LSKEY, JSON.stringify(list)); }
 
-  function go() {
+  function startRun(scale) {
     var prompt = document.getElementById('prompt').value.trim();
-    var scale = parseFloat(document.getElementById('scale').value) || 1;
     var S = STYLES[styleKey];
-    var err = document.getElementById('err');
-    err.hidden = true;
-    if (!prompt) { err.textContent = 'Type a prompt first.'; err.hidden = false; return; }
-    var btn = document.getElementById('go');
-    btn.disabled = true;
-    fetch('/api/promptlab', {
+    var seed = curSeed();
+    return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix }),
+      body: JSON.stringify({ prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed }),
     }).then(function (r) { return r.json(); }).then(function (d) {
-      btn.disabled = false;
-      if (!d.id) { err.textContent = d.error || 'Could not start.'; err.hidden = false; return; }
+      if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
-      list.push({ id: d.id, prompt: prompt, scale: scale, style: S.label });
+      list.push({ id: d.id, prompt: prompt, scale: scale, style: S.label, seed: seed });
       setPending(list);
       renderPendings(); startPolling();
-    }).catch(function (e) {
-      btn.disabled = false;
-      err.textContent = 'Network error — try again.'; err.hidden = false;
     });
   }
+
+  function checkPrompt() {
+    var err = document.getElementById('err');
+    err.hidden = true;
+    if (!document.getElementById('prompt').value.trim()) {
+      err.textContent = 'Type a prompt first.'; err.hidden = false; return false;
+    }
+    return true;
+  }
+  function showErr(e) {
+    var err = document.getElementById('err');
+    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+  }
+
+  function go() {
+    if (!checkPrompt()) return;
+    var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+  }
+
+  // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
+  document.getElementById('xthree').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    var btn = document.getElementById('xthree');
+    btn.disabled = true;
+    Promise.all([1, 1.2, 1.4].map(function (s) { return startRun(s).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  });
 
   function renderPendings() {
     var list = pendingList();
     document.getElementById('pendings').innerHTML = list.map(function (p) {
       var what = p.prompt
-        ? '<b>“' + esc(p.prompt) + '”</b> · ' + esc(p.style || '') + ' · scale ' + p.scale
+        ? '<b>“' + esc(p.prompt) + '”</b> · ' + esc(p.style || '') + ' · scale ' + p.scale +
+          (p.seed ? ' · seed ' + p.seed : '')
         : 'Drawing…';
       return '<div class="pending">' + what + ' — drawing… You can leave, it keeps going.</div>';
     }).join('');
@@ -224,7 +269,8 @@
         var label = styleLabelFor(r.model);
         var votes = r.votes || {};
         return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
-          '<span class="tag">' + label + '</span><span class="tag">scale ' + r.loraScale + '</span></div>' +
+          '<span class="tag">' + label + '</span><span class="tag">scale ' + r.loraScale + '</span>' +
+          (r.seed != null ? '<span class="tag">seed ' + r.seed + '</span>' : '') + '</div>' +
           '<div class="grid">' + runImages(r).map(function (u, i) {
             var v = votes[i];
             var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
@@ -251,7 +297,8 @@
     lbCur = { id: id, i: i };
     document.getElementById('lbimg').src = runImages(r)[i];
     document.getElementById('lbcap').textContent =
-      r.prompt + ' · ' + styleLabelFor(r.model) + ' · scale ' + r.loraScale + ' · image ' + (i + 1);
+      r.prompt + ' · ' + styleLabelFor(r.model) + ' · scale ' + r.loraScale +
+      (r.seed != null ? ' · seed ' + r.seed : '') + ' · image ' + (i + 1);
     syncLbVotes();
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
