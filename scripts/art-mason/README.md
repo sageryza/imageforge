@@ -67,7 +67,7 @@ wrapper WON over every styled prompt, so add NO style description:
     Use the attached image only as the style reference — do not copy its
     content. Draw: <content>
 
-Quality HIGH (her call in the test chat), 1024x1536, no whiten (the
+Quality via `WC_QUALITY` env (`high` default, `medium` → `-med` ids; both rendered 2026-08-03, high-vs-medium Compare page filed). 1024x1536, no whiten (the
 paper look must survive). Mason is a poet-philosopher with round glasses
 — NOT a Viking. `render-wc-test.js` + `panels-wc.json`; images at
 `story-shorts/art-mason/wc-test/`.

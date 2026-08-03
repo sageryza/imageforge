@@ -6,6 +6,7 @@ const path = require('path');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getStorage } = require('firebase-admin/storage');
 
+const SUF = process.env.WC_QUALITY === 'medium' ? '-med' : '';
 const WRAP = 'Use the attached image only as the style reference — do not copy its content. Draw: ';
 const MASON = 'Mason, a gentle poet-philosopher with reddish shoulder-length hair, a full red beard, and round glasses, ';
 
@@ -28,7 +29,7 @@ async function edit(prompt, ref, retries = 2) {
       form.append('model', 'gpt-image-2');
       form.append('prompt', prompt);
       form.append('size', '1024x1536');
-      form.append('quality', 'high');
+      form.append('quality', process.env.WC_QUALITY || 'high');
       form.append('output_format', 'png');
       form.append('image[]', new Blob([ref], { type: 'image/png' }), 'ref1.png');
       const res = await fetch('https://api.openai.com/v1/images/edits', {
@@ -55,7 +56,7 @@ async function edit(prompt, ref, retries = 2) {
   const ref = fs.readFileSync(path.join(__dirname, 'datescan0013.png'));
   const manifest = []; const failed = [];
   await Promise.all(PANELS.map(async (p) => {
-    const local = path.join(__dirname, `${p.id}.png`);
+    const local = path.join(__dirname, `${p.id}${SUF}.png`);
     try {
       if (!fs.existsSync(local) || process.env.FORCE) {
         console.log(`${p.id}: rendering…`);
@@ -63,7 +64,7 @@ async function edit(prompt, ref, retries = 2) {
         fs.writeFileSync(local, buf);
         console.log(`${p.id}: done (${buf.length} bytes)`);
       }
-      const dest = `story-shorts/art-mason/wc-test/${p.id}.png`;
+      const dest = `story-shorts/art-mason/wc-test/${p.id}${SUF}.png`;
       await bucket.upload(local, { destination: dest, metadata: { contentType: 'image/png' } });
       await bucket.file(dest).makePublic();
       const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
@@ -72,7 +73,7 @@ async function edit(prompt, ref, retries = 2) {
     } catch (e) { console.error(`${p.id}: FAILED — ${e.message}`); failed.push(p.id); }
   }));
   manifest.sort((a, b) => PANELS.findIndex(x => x.id === a.id) - PANELS.findIndex(x => x.id === b.id));
-  fs.writeFileSync(path.join(__dirname, 'panels-wc.json'), JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(path.join(__dirname, `panels-wc${SUF}.json`), JSON.stringify(manifest, null, 2));
   console.log(`ALL DONE — ${manifest.length}/${PANELS.length}${failed.length ? ', FAILED: ' + failed.join(',') : ''}`);
   process.exit(failed.length ? 2 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
