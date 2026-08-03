@@ -294,6 +294,11 @@
   function openLB(id, i) {
     var r = runsById[id];
     if (!r) return;
+    // Opening an image freezes the page behind it (design rule): the shared
+    // autoscroll pill stops, not just the background scroll lock — otherwise
+    // it keeps running under the lightbox and the page has moved on by the
+    // time the image is closed.
+    if (window.__scrollStop) window.__scrollStop();
     lbCur = { id: id, i: i };
     document.getElementById('lbimg').src = runImages(r)[i];
     document.getElementById('lbcap').textContent =

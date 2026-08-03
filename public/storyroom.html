@@ -1193,7 +1193,13 @@ function stepPill(ts){
     if(atEnd) scrollStop(); }
   last=ts; raf=requestAnimationFrame(stepPill);
 }
-function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function canScroll(d){ return d>0 ? (window.innerHeight+window.scrollY < document.body.scrollHeight-4) : (window.scrollY>2); }
+// Pressing play at an end of the page used to do nothing at all: autoscroll
+// remembers the direction it stopped in, so after riding UP to the top the next
+// play still meant "up" and there was nowhere to go. A direction with no room
+// flips to the one that has room, so a press always moves the page.
+function scrollStart(d){ if(!canScroll(d) && canScroll(-d)) d=-d;
+  dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
 function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
