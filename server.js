@@ -618,8 +618,8 @@ app.get('/character', serveGated('character.html'));
 // runs, background jobs on /api/promptlab), iOS tile "Playground"
 // (PlaygroundView.swift wraps /playground, same pattern as /writing and
 // /editor). /promptlab is the original alias, kept for links already shared.
-app.get('/playground', serveGated('promptlab.html'));
-app.get('/promptlab', serveGated('promptlab.html'));
+app.get('/playground', serveGated('promptlab.html', { pill: true }));
+app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
