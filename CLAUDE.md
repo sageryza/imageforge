@@ -1215,13 +1215,31 @@ lifted into a standalone tool later.
   (`coin_<day>_<i>`) or an explicit `slot` field. `newestFirst` now reverses the
   DAYS only — inside a day the order never flips.
 - **Moments can be added from inside the book, not just Home (Aug 2026).** An
-  empty cell on a Synchronicities page (or the row under a full one) opens the
-  same write-then-draw flow and files against THAT page's day, so a day can hold
-  more than Home's three boxes. The pending job lives in `witch_sync_jobs`
+  empty cell on a Synchronicities page IS a Home coincidence box — same square,
+  same border, same place in the grid, contenteditable, with "Draw it!" under it
+  where the caption goes. NOT a dashed placeholder and NOT an "Add a moment"
+  label (both shipped once and Sophie rejected them: "go look at what it looks
+  like on the home screen"). A day that exactly fills a page turns onto a fresh
+  blank page of four more boxes, the way paper does. Two gotchas: the book
+  stage's tap-to-turn handler must skip `[contenteditable="true"]` or a tap into
+  the box turns the page instead of focusing it, and text typed but not yet
+  drawn lives in `syncDrafts` so a repaint can't eat it. The pending job lives
+  in `witch_sync_jobs`
   (localStorage, deliberately NOT cloud-synced — a half-finished draw is one
   device's business); `resumeSyncJobs()` picks it up on return, same as the Home
   boxes. A moment added to an old day is stamped at that day's noon so it can't
   hijack "the newest page".
+- **The book shows a moment in HER OWN WORDS, three lines (Aug 2026).** The
+  short AI label is the HOME screen's caption; on a book page (two columns, room
+  to spare) showing only the label threw most of what she wrote away. The cap is
+  `-webkit-line-clamp: 3` over `desc`, and `more…` is appended AFTER layout only
+  where the clamp really cut the text — and OUTSIDE the cap, since a
+  line-clamp box clips anything following the clamped text. `more…` is not
+  underlined.
+- **A saved bookmark can carry a word to its left** (`.bm-save.has-lbl` +
+  `.bm-lbl`, hidden until `.filled`) — the tarot one says "see in book", so the
+  second tap (jump to the page in the book) isn't a secret. Opt-in per bookmark:
+  only markup that includes the span gets one.
 - **No "A gentle nudge" advice box on tarot readings (Aug 2026, Sophie).** The
   reading ends on the reading. Removed from the saved-reading render and the
   Ask-the-cards result, and from both server tarot prompts. Old saved readings
