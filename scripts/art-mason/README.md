@@ -72,6 +72,28 @@ paper look must survive). Mason is a poet-philosopher with round glasses
 — NOT a Viking. `render-wc-test.js` + `panels-wc.json`; images at
 `story-shorts/art-mason/wc-test/`.
 
+## Watercolor STORY set + Mason character ref (2026-08-03)
+
+Sophie's character reference for Mason: her watercolor sketch of a person with
+round glasses, reddish shoulder-length hair, plum top, holding a red folder
+(banked at membry `claude-deliveries/refs/mason-char-ref.jpeg`; local copy
+`mason-char-ref.jpeg`, NOT committed — personal art, public repo, same as
+`datescan0013.png`). `render-wc-story.js` renders the full 22-panel story
+(v2 content prompts with the pastel style clauses stripped) with the datescan
+style ref on every panel and the char ref attached as a SECOND image on the
+5 Mason panels, wrapper: "…The second attached image is the character
+reference for Mason — draw the same person (same face, round glasses, same
+hair, same clothes) in the style of the first image. Draw: …".
+`ONLY=id,id` renders a subset (manifest merges, never drops);
+`WC_QUALITY` default **medium** (storyboard tier — house pattern: medium
+first, high re-render for keepers). Images at
+`story-shorts/art-mason/wc-story/` + 720px webp thumbs under `thumbs/`.
+`file-wc-story.js [ids]` posts Assets tiles + exact prompt halves + My
+Creations in one go. First run 2026-08-03 (Sophie: "three at first, at
+medium"): the 3 char panels (portrait, pipeline, gallery-hang) — character
+held (glasses, hair, plum shirt, even the red book); filed to the
+`mason-noise-art-images` chat.
+
 ### Compare pages need DISPLAY COPIES, not the originals
 
 The watercolor renders are full-res PNGs (~2–3MB each). Eight of them on one

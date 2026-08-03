@@ -15,3 +15,7 @@ sa.json
 __pycache__/
 *.pyc
 .grab-venv/
+scripts/art-mason/datescan0013.png
+scripts/art-mason/mason-char-ref.jpeg
+scripts/art-mason/wcs-*.png
+scripts/art-mason/wcs-*.webp

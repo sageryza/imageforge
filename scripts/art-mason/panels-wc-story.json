@@ -1,0 +1,32 @@
+[
+  {
+    "id": "wcs-mason-portrait",
+    "char": true,
+    "label": "Mason in his studio — watercolor story",
+    "content": "Mason (the person from the character reference) standing in his cluttered artist studio among homemade contraptions of pipes and funnels, arms crossed, pleased with himself. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-mason-portrait.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-mason-portrait.webp",
+    "madeAt": 1785785066722
+  },
+  {
+    "id": "wcs-pipeline",
+    "char": true,
+    "label": "Mason operating the noise-art pipeline — watercolor story",
+    "content": "Mason (the person from the character reference) operating his noise-art pipeline: he holds a long pipe with a moppy net head full of small colored dots feeding in; the pipe runs through a wider accordion squeegee section and a moppy section, snaking up and around, and finally empties onto a small framed picture hung high on a gallery wall. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-pipeline.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-pipeline.webp",
+    "madeAt": 1785785060821
+  },
+  {
+    "id": "wcs-gallery-hang",
+    "char": true,
+    "label": "Mason hanging his art in the gallery — watercolor story",
+    "content": "Mason (the person from the character reference) up on a small stepladder, hanging a small framed abstract picture of colored dots high on a white gallery wall. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-gallery-hang.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-gallery-hang.webp",
+    "madeAt": 1785785059423
+  }
+]
