@@ -81,9 +81,18 @@ round glasses, reddish shoulder-length hair, plum top, holding a red folder
 `datescan0013.png`). `render-wc-story.js` renders the full 22-panel story
 (v2 content prompts with the pastel style clauses stripped) with the datescan
 style ref on every panel and the char ref attached as a SECOND image on the
-5 Mason panels, wrapper: "…The second attached image is the character
-reference for Mason — draw the same person (same face, round glasses, same
-hair, same clothes) in the style of the first image. Draw: …".
+5 Mason panels, wrapper: "Use the first attached image only as the style
+reference — do not copy its content. The second attached image is the
+character reference for Mason. Draw: …".
+
+**DESCRIBE NOTHING A REFERENCE IMAGE CARRIES (Sophie's rule, earned here).**
+The plain wrapper won because it adds no description — and that applies to
+the CHARACTER as much as the style. The first cut of this script said "draw
+the same person (same face, round glasses, same hair, same clothes)", which
+is describing Mason; the reference image is what says who he is. The wrapper
+now only NAMES what each attached image is. Same for the content prompts:
+`MASON` is just "Mason (the person from the character reference)", never a
+list of his features.
 `ONLY=id,id` renders a subset (manifest merges, never drops);
 `WC_QUALITY` default **medium** (storyboard tier — house pattern: medium
 first, high re-render for keepers). Images at

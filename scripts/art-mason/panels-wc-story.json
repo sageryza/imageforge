@@ -7,7 +7,19 @@
     "quality": "medium",
     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-mason-portrait.png",
     "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-mason-portrait.webp",
-    "madeAt": 1785785066722
+    "madeAt": 1785785066722,
+    "wrap": "Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason — draw the same person (same face, round glasses, same hair, same clothes) in the style of the first image. Draw: [content]"
+  },
+  {
+    "id": "wcs-mason-portrait-r2",
+    "base": "wcs-mason-portrait",
+    "char": true,
+    "label": "Mason in his studio — watercolor story",
+    "content": "Mason (the person from the character reference) standing in his cluttered artist studio among homemade contraptions of pipes and funnels, arms crossed, pleased with himself. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-mason-portrait-r2.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-mason-portrait-r2.webp",
+    "madeAt": 1785788696058
   },
   {
     "id": "wcs-pipeline",
@@ -17,7 +29,19 @@
     "quality": "medium",
     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-pipeline.png",
     "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-pipeline.webp",
-    "madeAt": 1785785060821
+    "madeAt": 1785785060821,
+    "wrap": "Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason — draw the same person (same face, round glasses, same hair, same clothes) in the style of the first image. Draw: [content]"
+  },
+  {
+    "id": "wcs-pipeline-r2",
+    "base": "wcs-pipeline",
+    "char": true,
+    "label": "Mason operating the noise-art pipeline — watercolor story",
+    "content": "Mason (the person from the character reference) operating his noise-art pipeline: he holds a long pipe with a moppy net head full of small colored dots feeding in; the pipe runs through a wider accordion squeegee section and a moppy section, snaking up and around, and finally empties onto a small framed picture hung high on a gallery wall. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-pipeline-r2.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-pipeline-r2.webp",
+    "madeAt": 1785788681402
   },
   {
     "id": "wcs-gallery-hang",
@@ -27,6 +51,18 @@
     "quality": "medium",
     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-gallery-hang.png",
     "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-gallery-hang.webp",
-    "madeAt": 1785785059423
+    "madeAt": 1785785059423,
+    "wrap": "Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason — draw the same person (same face, round glasses, same hair, same clothes) in the style of the first image. Draw: [content]"
+  },
+  {
+    "id": "wcs-gallery-hang-r2",
+    "base": "wcs-gallery-hang",
+    "char": true,
+    "label": "Mason hanging his art in the gallery — watercolor story",
+    "content": "Mason (the person from the character reference) up on a small stepladder, hanging a small framed abstract picture of colored dots high on a white gallery wall. Nobody else in the scene.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-gallery-hang-r2.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-gallery-hang-r2.webp",
+    "madeAt": 1785788683667
   }
 ]

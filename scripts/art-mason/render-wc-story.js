@@ -12,7 +12,7 @@ const sharp = require('sharp');
 
 const QUALITY = process.env.WC_QUALITY || 'medium';
 const WRAP_STYLE = 'Use the attached image only as the style reference — do not copy its content. Draw: ';
-const WRAP_CHAR = 'Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason — draw the same person (same face, round glasses, same hair, same clothes) in the style of the first image. Draw: ';
+const WRAP_CHAR = 'Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason. Draw: ';
 const MASON = 'Mason (the person from the character reference) ';
 
 const PANELS = [
@@ -99,7 +99,10 @@ async function edit(prompt, refs, retries = 2) {
   const manifest = []; const failed = [];
 
   const only = process.env.ONLY ? process.env.ONLY.split(',').map(s => s.trim()) : null;
-  const queue = PANELS.filter(p => !only || only.includes(p.id));
+  // SUFFIX gives a re-roll a NEW id (old tiles stay in Assets as history)
+  const SUF = process.env.SUFFIX || '';
+  const queue = PANELS.filter(p => !only || only.includes(p.id))
+    .map(p => SUF ? { ...p, id: p.id + SUF } : p);
   async function worker() {
     for (let p; (p = queue.shift()); ) {
       const local = path.join(__dirname, `${p.id}.png`);
@@ -123,7 +126,9 @@ async function edit(prompt, refs, retries = 2) {
         await bucket.file(thumbDest).makePublic();
         const thumb = `https://storage.googleapis.com/${bucket.name}/${thumbDest}`;
         console.log(`${p.id}: uploaded → ${url}`);
-        manifest.push({ id: p.id, char: p.char, label: p.label, content: p.content, quality: QUALITY, url, thumb, madeAt: Date.now() });
+        // record the EXACT wrapper this render used — the prompt filed to the
+        // Assets tab must be the real text, never reconstructed from today's constants
+        manifest.push({ id: p.id, base: p.id.replace(SUF, ''), char: p.char, label: p.label, content: p.content, wrap: (p.char ? WRAP_CHAR : WRAP_STYLE) + '[content]', quality: QUALITY, url, thumb, madeAt: Date.now() });
       } catch (e) { console.error(`${p.id}: FAILED — ${e.message}`); failed.push(p.id); }
     }
   }
@@ -132,7 +137,7 @@ async function edit(prompt, refs, retries = 2) {
   const mPath = path.join(__dirname, 'panels-wc-story.json');
   const prior = fs.existsSync(mPath) ? JSON.parse(fs.readFileSync(mPath, 'utf8')) : [];
   const merged = [...prior.filter(e => !manifest.some(n => n.id === e.id)), ...manifest];
-  merged.sort((a, b) => PANELS.findIndex(x => x.id === a.id) - PANELS.findIndex(x => x.id === b.id));
+  merged.sort((a, b) => PANELS.findIndex(x => x.id === (a.base || a.id)) - PANELS.findIndex(x => x.id === (b.base || b.id)));
   fs.writeFileSync(mPath, JSON.stringify(merged, null, 2));
   console.log(`ALL DONE — ${manifest.length}/${PANELS.length}${failed.length ? ', FAILED: ' + failed.join(',') : ''}`);
   process.exit(failed.length ? 2 : 0);

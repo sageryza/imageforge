@@ -9,7 +9,7 @@ const { execFileSync } = require('child_process');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'mason-noise-art-images';
 const WRAP_STYLE = 'Use the attached image only as the style reference — do not copy its content. Draw: [content]';
-const WRAP_CHAR = 'Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason — draw the same person (same face, round glasses, same hair, same clothes) in the style of the first image. Draw: [content]';
+const WRAP_CHAR = 'Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason. Draw: [content]';
 
 (async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'panels-wc-story.json'), 'utf8'));
@@ -26,7 +26,9 @@ const WRAP_CHAR = 'Use the first attached image only as the style reference — 
 
   const items = panels.map(p => ({
     url: p.url,
-    style: (p.char ? WRAP_CHAR : WRAP_STYLE) +
+    // p.wrap is the exact wrapper that render recorded; the constants are only
+    // the fallback for entries rendered before that field existed
+    style: (p.wrap || (p.char ? WRAP_CHAR : WRAP_STYLE)) +
       ` (attached: datescan0013.png as the style reference${p.char ? ', mason-char-ref.jpeg as the Mason character reference' : ''}; 1024x1536, quality ${p.quality})`,
     content: p.content,
   }));
