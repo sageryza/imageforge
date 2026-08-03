@@ -68,6 +68,18 @@
     "madeAt": 1785791318237
   },
   {
+    "id": "wcs-pipeline-v3-med",
+    "base": "wcs-pipeline",
+    "char": true,
+    "label": "Mason operating the noise-art pipeline v3",
+    "content": "Mason (the person from the character reference) making his noise art, showing the pipeline: he holds a long fuchsia pipe, and attached to it is an ambiguous mop-net handle thing that has all these colored dots in it; from there the dots get suctioned into a yellow pipe — a squeegee, accordion-type pipe thing, a little wider; after that step the same dots, slightly different colors, are on an aquamarine seafoam-green moppy type thing, a little bit different; the pipe snakes down low — not all the way to the floor — then back up and around so it fits in the image, maybe one more pipe iteration, and then it lands onto a framed picture on the wall of the gallery. Nobody else in the scene.",
+    "wrap": "Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason. Draw: [content]",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-pipeline-v3-med.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-pipeline-v3-med.webp",
+    "madeAt": 1785793874937
+  },
+  {
     "id": "wcs-gallery-hang",
     "char": true,
     "label": "Mason hanging his art in the gallery — watercolor story",
