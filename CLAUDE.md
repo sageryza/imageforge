@@ -610,11 +610,19 @@ lifted into a standalone tool later.
   The server enforces it: a /reply fired from inside a served page is rerouted
   onto the page's verdict doc (sheet `page-<id>`; read it back with
   `GET /api/chatfeed/verdict?chat=&sheet=page-<id>`), never into the thread.
-  **Don't reach for a Compare page by default (Aug 2026, Sophie).** A routine
-  options batch / small test set does NOT need one — the labeled Assets tiles
-  are the review surface. Build a page only when Sophie asks for one or the
-  set genuinely can't be reviewed as tiles. And when you DO build one, lay the
-  images out in **rows of TWO**, never one full-width image per row.
+  **The Compare tab is for COMPARISONS ONLY (Aug 2026 v2, Sophie).** Its one
+  use: things that are pretty similar but have some differences, put
+  **side-by-side** so the differences show — two versions of a prompt, two
+  renders of the same panel, two cuts. Whenever that situation comes up, USE
+  a Compare page; a routine options batch / small test set is NOT a
+  comparison and does NOT get one — the labeled Assets tiles are the review
+  surface.
+  **A Compare page contains ONLY the things being compared (Aug 2026 v2,
+  Sophie).** No instructions, no how-to text, no extra buttons, no headings,
+  nothing unnecessary — the compared items side-by-side (a minimal name to
+  identify each item is fine) and nothing else. When the compared items are
+  images, lay them out in **rows of TWO**, never one full-width image per
+  row.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
