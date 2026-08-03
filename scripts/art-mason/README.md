@@ -71,3 +71,16 @@ Quality via `WC_QUALITY` env (`high` default, `medium` → `-med` ids; both rend
 paper look must survive). Mason is a poet-philosopher with round glasses
 — NOT a Viking. `render-wc-test.js` + `panels-wc.json`; images at
 `story-shorts/art-mason/wc-test/`.
+
+### Compare pages need DISPLAY COPIES, not the originals
+
+The watercolor renders are full-res PNGs (~2–3MB each). Eight of them on one
+Compare page was **20MB** — unusable on a phone. Same lesson as
+`scripts/selfcare-thumbs.js`: serve a resized webp and keep the original as
+the untouched full-res file (Assets tiles still point at the originals).
+
+    sharp(file).resize({ width: 720 }).webp({ quality: 82 })
+    → story-shorts/art-mason/wc-test/thumbs/<id>-<tier>.webp   (~90–200KB)
+
+720px wide is plenty for a two-per-row layout on an iPhone 13. That took the
+high-vs-medium page from 20MB to 1.1MB.
