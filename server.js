@@ -4254,6 +4254,25 @@ app.get('/api/promptlab/:id', async (req, res) => {
   }
 });
 
+// ♥/✕ on one image of a run (votes: { <imageIndex>: 'like'|'dislike' } on the
+// doc). Sending the same vote again clears it — the page's toggles.
+app.post('/api/promptlab/:id/vote', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const i = Number(req.body.image);
+    if (!Number.isInteger(i) || i < 0 || i > 3) return res.status(400).json({ error: 'image index 0-3 required' });
+    const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
+    res.json({ ok: true, image: i, vote });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
