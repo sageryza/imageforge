@@ -73,8 +73,11 @@
       display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       /* First number = how far down the title sits. It has ~13px of slack
          before it crowds the top edge; below that you're into the status
-         bar / notch, which the header deliberately stays clear of. */
-      padding: 13px 20px 14px;
+         bar / notch, which the header deliberately stays clear of.
+         Sophie found 13px read as "low on the screen" — 5px is the top of
+         that slack, so the title sits as high as it can without touching
+         the notch. */
+      padding: 5px 20px 10px;
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
     }
@@ -234,23 +237,42 @@
     .bm-save.filled { color: var(--gold); }
     .bm-save.filled svg { fill: var(--gold); }
     .bm-save.just svg { animation: bmPop 0.5s ease; }
+    /* A saved bookmark can carry a word to its LEFT ("see in book") so the
+       second tap — the one that jumps to the page in the Book of Shadows — is
+       discoverable instead of secret. Opt-in per bookmark: only a button whose
+       markup includes the .bm-lbl span gets one, and it stays hidden until the
+       reading is actually saved. line-height is reset because .bm-save zeroes
+       it for the bare icon. */
+    .bm-save.has-lbl { display: inline-flex; align-items: center; gap: 6px; line-height: 1; }
+    .bm-lbl { display: none; font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+    .bm-save.filled .bm-lbl { display: inline; }
     .card.has-bm { position: relative; }
     .card.has-bm .cards-title, .card.has-bm .kicker { padding-right: 30px; }
+    .bm-save.has-lbl ~ .cards-title { padding-right: 108px; }   /* the label needs the room */
     /* Book of Shadows — Synchronicities: 4 boxes a page (Little Book of Miracles look) */
     .bos-sync-date { text-align: right; font-family: var(--serif); font-size: 18px; color: #221c14; margin-bottom: 16px; }
     .bos-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
     .bos-sync-box { width: 100%; aspect-ratio: 1; border: 1px solid #d9cbb4; border-radius: 3px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
     .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
-    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
-    .bos-sync-more { background: none; border: none; padding: 0; margin-left: 4px; font: inherit; font-size: 11px; color: #8a7a5e; text-decoration: underline; cursor: pointer; }
+    /* The caption runs to THREE lines here. The home screen's is clamped to two
+       because three boxes share a phone width, but a book page has two columns
+       and room to spare — a one-line clamp was throwing away most of what
+       Sophie wrote. */
+    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bos-sync-more { display: block; background: none; border: none; padding: 0; margin-top: 2px; font: inherit; font-size: 11px; color: #8a7a5e; cursor: pointer; }
     .bos-sync-box img.bos-sync-load { width: auto; height: 46%; opacity: 0.75; }
-    /* An empty cell IS the "add another one" affordance — a dashed box where the
-       drawing will go, so the day's grid shows its own room to grow. */
-    .bos-sync-add { display: block; width: 100%; padding: 0; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
-    .bos-sync-add .bos-sync-box { border-style: dashed; border-color: #c9b898; background: #fdfbf6; color: #a08f70; font-size: 26px; line-height: 1; }
-    .bos-sync-add .bos-sync-cap { color: #8a7a5e; }
-    /* Shown instead, under a page whose four cells are already full. */
-    .bos-sync-addrow { display: block; width: 100%; margin-top: 16px; padding: 9px 12px; border: 1px dashed #c9b898; border-radius: 6px; background: #fdfbf6; color: #8a7a5e; font: inherit; font-size: 12px; cursor: pointer; }
+    /* ── Writing a new moment straight onto the page ──────────────────────
+       An empty cell is the SAME box as a drawn one — same square, same border,
+       same place in the grid — that you type into, with "Draw it!" under it
+       where the caption goes. Deliberately the Home coincidence box's
+       behaviour (.coin-box / .coin-btn) in the book's own ink: nothing dashed,
+       nothing offset, no extra label. 16px text because iOS auto-zooms the
+       page on focus below that. */
+    .bos-sync-box.write { display: block; text-align: left; padding: 8px; box-sizing: border-box; overflow: auto; color: #221c14; font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; }
+    .bos-sync-box.write:focus { border-color: #b99a5e; }
+    .bos-sync-draw { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; margin-top: 7px; padding: 0; background: none; border: none; font-family: var(--serif); font-size: 13.5px; font-weight: 500; color: #9c6f33; cursor: pointer; }
+    .bos-sync-draw svg { width: 13px; height: 13px; }
+    .bos-sync-draw:disabled { opacity: 0.6; cursor: not-allowed; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -1502,7 +1524,7 @@
 
         <!-- Today's cards (tarot) -->
         <div class="card has-bm" id="tarot-card" style="display:none;">
-          <button class="bm-save" id="tarot-bm" type="button" style="display:none;" aria-label="Save this reading to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          <button class="bm-save has-lbl" id="tarot-bm" type="button" style="display:none;" aria-label="Save this reading to your Book of Shadows"><span class="bm-lbl">see in book</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <div class="cards-title">Today's Cards</div>
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
@@ -1792,7 +1814,6 @@
 
       <!-- ═══════════ SHOP ═══════════ -->
       <section class="view" id="view-shop">
-        <div class="kicker">The apothecary</div>
         <div class="shop-head">
           <div class="section-title">Shop</div>
           <button class="cart-btn" onclick="openCartSheet()" aria-label="Open cart">
@@ -1800,7 +1821,7 @@
             <span>Cart</span><span class="cbadge" id="cart-badge" style="display:none;">0</span>
           </button>
         </div>
-        <div class="section-sub">Tools for the curious. Step into your power. ✦</div>
+        <div class="section-sub">Tools for the curious. Step into your power.</div>
         <div id="shop-cats" class="shop-cats"></div>
         <div id="shop-grid" class="shop-grid"></div>
       </section>
@@ -3540,6 +3561,11 @@
         const chunk = items.slice(k, k + 4);
         out.push({ sect: 'sync', page: 'sync', dateISO: d, items: chunk, ts: Math.max(0, ...chunk.map(x => x.ts || 0)) });
       }
+      // A day that exactly fills its last page turns onto a fresh one, the way a
+      // paper book does — otherwise there'd be nowhere left to write that day's
+      // next moment. (Never for a part-full page: its own empty cells are the
+      // place to write.)
+      if (items.length % 4 === 0) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: [], ts: 0 });
     });
     return out;
   }
@@ -3705,41 +3731,68 @@
       // stays reachable behind a tiny "more…" link (never deleted, just tucked
       // away — Sophie's call; Home shows only the caption).
       let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
+      // Every empty cell is a box you write in, exactly like Home's — the day's
+      // next free slots, left to right, so a moment stays in the cell it was
+      // written in once it's drawn.
+      let nextSlot = syncNextSlot(p.dateISO);
       for (let k = 0; k < 4; k++) {
         const it = p.items[k];
         if (!it) {
-          // An empty cell is where the next moment goes — tapping it adds one to
-          // THIS day, so the book isn't limited to Home's three boxes.
-          g += `<button type="button" class="bos-sync-cell bos-sync-add" data-sync-add="1">
-            <div class="bos-sync-box">+</div>
-            <div class="bos-sync-cap">Add a moment</div>
-          </button>`;
+          const slot = nextSlot++;
+          const draft = syncDrafts[p.dateISO + '#' + slot] || '';
+          g += `<div class="bos-sync-cell">
+            <div class="bos-sync-box write" contenteditable="true" data-sync-slot="${slot}">${esc(draft)}</div>
+            <button type="button" class="bos-sync-draw" data-sync-draw="${slot}">Draw it! <span class="js-star"></span></button>
+          </div>`;
           continue;
         }
-        const hasMore = it.label && it.desc && it.desc !== it.label;
         const art = it.url
           ? `<img src="${esc(it.url)}" alt="">`
           : (it.pending ? `<img class="bos-sync-load" src="/hoonie-loading.gif" alt="drawing…">` : '');
+        // The book shows the moment in HER OWN WORDS, up to three lines — the
+        // short AI label is the Home screen's caption, and on a page this wide
+        // it left most of what she wrote invisible. `more…` is added after
+        // layout, only when the text really was cut off (below).
         g += `<div class="bos-sync-cell">
           <div class="bos-sync-box">${art}</div>
-          <div class="bos-sync-cap">${esc(it.label || it.desc || '')}${hasMore ? `<button type="button" class="bos-sync-more" data-more="${k}">more…</button>` : ''}</div>
+          <div class="bos-sync-cap" data-cap="${k}">${esc(it.desc || it.label || '')}</div>
         </div>`;
       }
       g += `</div>`;
-      // A full page keeps the way in as a row under the grid (the new moment
-      // lands on this day's next page).
-      if (p.items.length >= 4) g += `<button type="button" class="bos-sync-addrow" data-sync-add="1">+ Add a moment to this day</button>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      renderStars();
       const items = p.items;
+      // `more…` only where the three-line clamp actually cut the text off —
+      // measured, not guessed from a character count.
+      document.querySelectorAll('#bos-pagewrap .bos-sync-cap').forEach(cap => {
+        if (cap.scrollHeight <= cap.clientHeight + 1) return;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'bos-sync-more'; b.dataset.more = cap.dataset.cap; b.textContent = 'more…';
+        // NOT inside the cap: it's a -webkit-line-clamp box, so anything after
+        // the clamped text is clipped away with it.
+        cap.parentNode.appendChild(b);
+      });
       document.querySelectorAll('.bos-sync-more').forEach(b => b.addEventListener('click', (e) => {
         e.stopPropagation();
         const it = items[+b.dataset.more]; if (!it) return;
         openModal(`<h2 style="margin-bottom:10px;">${esc(it.label || 'The moment')}</h2><p class="sub" style="text-align:left; white-space:pre-wrap;">${esc(it.desc)}</p><button class="close-x" id="sync-more-x">close</button>`);
         $('sync-more-x').addEventListener('click', closeModal);
       }));
+      // Keep what's been typed but not yet drawn, so a page turn (or another
+      // cell's drawing finishing and repainting the page) can't eat it.
       const addDay = p.dateISO;
-      document.querySelectorAll('[data-sync-add]').forEach(b => b.addEventListener('click', (e) => {
-        e.stopPropagation(); openSyncAdd(addDay);
+      document.querySelectorAll('#bos-pagewrap .bos-sync-box.write').forEach(box => {
+        box.addEventListener('input', () => { syncDrafts[addDay + '#' + box.dataset.syncSlot] = box.textContent || ''; });
+      });
+      document.querySelectorAll('#bos-pagewrap [data-sync-draw]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const slot = +b.dataset.syncDraw;
+        const box = document.querySelector('#bos-pagewrap .bos-sync-box.write[data-sync-slot="' + slot + '"]');
+        const desc = ((box && box.textContent) || '').trim();
+        if (!desc) { if (box) box.focus(); return; }
+        delete syncDrafts[addDay + '#' + slot];
+        b.disabled = true; b.textContent = '…';
+        syncAddMoment(addDay, desc, slot);
       }));
       return;
     }
@@ -3836,7 +3889,10 @@
     if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
-    if (e.target.closest('a, button')) return;   // images (tarot cards) turn the page too
+    // Images (tarot cards) turn the page too. A box you can type into must NOT
+    // — the Synchronicities write-a-moment cell is a contenteditable, and
+    // without this a tap into it turned the page instead of giving it focus.
+    if (e.target.closest('a, button, [contenteditable="true"]')) return;
     // Tap zones: right side turns forward, left edge turns back.
     if (e.clientX < window.innerWidth * 0.28) { bosBack(); }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
@@ -4661,12 +4717,14 @@
   /* ── Adding a moment from INSIDE the book ────────────────────────────────
      Home has three boxes and they reset at midnight, so it can only ever hold
      three of a day's coincidences. The Synchronicities pages take as many as a
-     day actually had: an empty cell (or the row under a full page) opens the
-     same write-it-then-draw-it flow, files it against THAT page's day, and it
-     lands in the next free slot after Home's 0-1-2.
+     day actually had: an empty cell on a page IS a box you write in — the same
+     square, in the same place in the grid, with "Draw it!" under it — and what
+     you draw is filed against THAT page's day in the next free slot after
+     Home's 0-1-2.
      The pending job lives in localStorage, NOT in the synced archive — a
      half-finished draw is this device's business, and `resumeSyncJobs()` picks
      it back up on return exactly the way the Home boxes do. */
+  const syncDrafts = {};                 // 'YYYY-MM-DD#<slot>' -> text typed, not yet drawn
   const SYNC_PEND = 'witch_sync_jobs';   // { entryId: { job, dateISO, desc, slot, ts } }
   function syncPendAll() { return pendGet(SYNC_PEND) || {}; }
   function syncPendSet(id, v) { const m = syncPendAll(); if (v) m[id] = v; else delete m[id]; pendSet(SYNC_PEND, Object.keys(m).length ? m : null); }
@@ -4719,8 +4777,8 @@
     const all = syncPendAll();
     Object.keys(all).forEach(id => { if (all[id] && all[id].job) syncWatch(id); });
   }
-  async function syncAddMoment(dateISO, desc) {
-    const slot = syncNextSlot(dateISO);
+  async function syncAddMoment(dateISO, desc, slotArg) {
+    const slot = typeof slotArg === 'number' ? slotArg : syncNextSlot(dateISO);
     const id = 'sync_' + dateISO + '_' + slot;
     const ts = syncStampFor(dateISO);
     syncPendSet(id, { dateISO, desc, slot, ts });
@@ -4735,22 +4793,6 @@
       syncPendSet(id, null); syncRepaint();
       toast('Couldn\'t start the drawing — ' + e.message);
     }
-  }
-  function openSyncAdd(dateISO) {
-    const when = syncDateLabel(dateISO);
-    openModal(`<h2 style="margin-bottom:4px;">Another coincidence</h2>
-      <p class="sub">${when ? 'It goes on ' + esc(when) + '.' : 'It goes on this page.'}</p>
-      <textarea id="sync-add-text" rows="5" placeholder="What was put in your path?" style="width:100%;"></textarea>
-      <button class="btn" id="sync-add-go" style="margin-top:14px;">Draw it! <span class="js-star"></span></button>
-      <button class="close-x" id="sync-add-close">close</button>`);
-    renderStars();
-    $('sync-add-close').addEventListener('click', closeModal);
-    $('sync-add-go').addEventListener('click', () => {
-      const t = $('sync-add-text').value.trim(); if (!t) return;
-      closeModal();
-      syncAddMoment(dateISO, t);
-    });
-    setTimeout(() => { const ta = $('sync-add-text'); if (ta) ta.focus(); }, 60);
   }
   // The day key is stored via pendGet/pendSet (JSON) so it survives the cloud
   // round-trip — the old plain-string value made pushCloud's JSON.parse throw,
