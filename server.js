@@ -1261,23 +1261,47 @@ app.post('/api/journal/upload-file', express.raw({ type: () => true, limit: '120
     const name = String(req.query.filename || '').replace(/[/\\]/g, '_').trim()
       || ('scan-' + Date.now() + '.pdf');
     const bucket = storyApp.storage().bucket();
+    const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
+
+    // Two dedupe rules together (Aug 2026): same NAME overwrites (a re-export
+    // replaces its older self), same BYTES under a different name is skipped
+    // (the exact file can't land twice). Hashing is free — md5 of the body
+    // here, and GCS already keeps an md5 on every stored object, so records
+    // that predate the hash field heal from object metadata, no downloads.
+    const hash = require('crypto').createHash('md5').update(req.body).digest('hex');
+    const all = {};
+    try {
+      const [buf] = await mf.download();
+      JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
+    } catch (e) { /* first scan ever — start a fresh index */ }
+    let healed = false;
+    for (const r of Object.values(all)) {
+      if (r.hash) continue;
+      try {
+        const [meta] = await bucket.file(`${JOURNAL_FOLDER}/${r.name}`).getMetadata();
+        if (meta.md5Hash) { r.hash = Buffer.from(meta.md5Hash, 'base64').toString('hex'); healed = true; }
+      } catch (e) { /* object missing — leave the record unhashed */ }
+    }
+    const dup = Object.values(all).find((r) => r.hash === hash);
+    if (dup) {
+      // keep any healing we just learned, then answer without storing twice
+      if (healed) {
+        const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false }).catch(() => {});
+      }
+      return res.json({ ok: true, duplicate: true, name: dup.name, size: dup.size });
+    }
+
     await bucket.file(`${JOURNAL_FOLDER}/${name}`).save(req.body, {
       contentType: req.get('content-type') || 'application/pdf', resumable: false,
     });
-    // Manifest merge, matching the app's JournalScanRecord shape exactly:
-    // { month?, name, size, url, uploadedAt (seconds) } — newest wins by name.
-    const rec = {
+    // Manifest merge, matching the app's JournalScanRecord shape (the app's
+    // decoder ignores the extra hash field): newest wins by name.
+    all[name] = {
       month: journalMonthGuess(name), name, size: req.body.length,
-      url: '', uploadedAt: Date.now() / 1000,
+      url: '', uploadedAt: Date.now() / 1000, hash,
     };
     try {
-      const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
-      const all = {};
-      try {
-        const [buf] = await mf.download();
-        JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
-      } catch (e) { /* first scan ever — start a fresh index */ }
-      all[name] = rec;
       const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
       await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false });
     } catch (e) { console.error('journal manifest merge failed:', e.message); }
