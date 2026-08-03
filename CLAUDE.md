@@ -1248,6 +1248,15 @@ lifted into a standalone tool later.
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
   text on hand → file nothing (or `not available`). Full rules in "Prompts on
   Assets images" above.
+- **If you ADD anything to a prompt Sophie gave, TELL HER — every time (Aug
+  2026, Sophie, VERY IMPORTANT).** When she supplies prompt text, or asks for a
+  "plain" run, send it exactly as given. Anything you add — style language, a
+  content line she didn't dictate, a style-ref preamble, quality hints — must
+  be named explicitly, word for word, in the reply that delivers the result.
+  This rule was earned: a "plain" style-ref test shipped with Claude-written
+  style description in the prompt and she only found out from the PROMPT
+  overlay. A truly plain run contains only her words (plus unavoidable API
+  params); if a necessary line has to come from you, say which line is yours.
 - **FILE THE MODEL · QUALITY CAPTION on every image too (Aug 2026, Sophie).**
   The Assets tile's caption is the asset doc's `prompt` field — file it as a
   curated tag like `gpt-image-2 · medium` via `POST /api/gallery
