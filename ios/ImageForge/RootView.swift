@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump, playground
     var id: String { rawValue }
 
     var title: String {
@@ -24,6 +24,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .chats:     return "Chats"
         case .test:      return "Test Station"
         case .dump:      return "Dump"
+        case .playground: return "Playground"
         }
     }
 
@@ -44,6 +45,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
+        case .playground: return "Try prompts on a style — four images a run, same seed."
         }
     }
 
@@ -65,6 +67,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
+        case .playground: return "paintpalette"
         }
     }
 
@@ -100,6 +103,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
         case .dump:      DumpView().forgeToolBar("Dump")
+        case .playground: PlaygroundView()
         }
     }
 }
@@ -308,6 +312,9 @@ struct RootView: View {
             // Episode Editor is a web page too — an arranging tool, not a read,
             // and the pill would sit on top of its sticky header.
             if t == .editor { return false }
+            // Playground is a short web form + grid — nothing to autoscroll,
+            // and the pill would cover its Generate corner.
+            if t == .playground { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.

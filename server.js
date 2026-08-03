@@ -614,9 +614,11 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
-// Prompt Lab: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
-// runs, background jobs on /api/promptlab). A real route so the iOS app can
-// wrap it in a WKWebView tile later, same pattern as /writing and /editor.
+// Playground: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
+// runs, background jobs on /api/promptlab), iOS tile "Playground"
+// (PlaygroundView.swift wraps /playground, same pattern as /writing and
+// /editor). /promptlab is the original alias, kept for links already shared.
+app.get('/playground', serveGated('promptlab.html'));
 app.get('/promptlab', serveGated('promptlab.html'));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.

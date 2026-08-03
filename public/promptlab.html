@@ -1,12 +1,15 @@
 <!doctype html><html><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prompt Lab</title>
+<title>Playground</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
   body { font-family: -apple-system, "Helvetica Neue", sans-serif; background: #faf7f2; color: #2b2622; padding: 14px 12px 60px; }
   h1 { font-size: 20px; margin-bottom: 10px; }
   .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
+  .styles { display: flex; gap: 8px; margin-bottom: 10px; }
+  .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
+  .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 15px; background: #fdfcf9; resize: vertical; }
   .shape { font-size: 11.5px; color: #8a8177; margin: 6px 0 10px; }
   .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; }
@@ -30,11 +33,12 @@
   #lb img { max-width: 100%; max-height: 84vh; border-radius: 6px; }
   #lb .cap { color: #ddd; font-size: 13px; margin-top: 10px; text-align: center; }
 </style></head><body>
-<h1>Prompt Lab</h1>
+<h1>Playground</h1>
 
 <div class="panel">
+  <div class="styles" id="styles"></div>
   <textarea id="prompt"></textarea>
-  <div class="shape">Sent as: <code>wtr <span id="echo">your words</span>. White background</code></div>
+  <div class="shape">Sent as: <code id="shape"></code></div>
   <div class="controls">
     <label>LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="go" id="go" onclick="go()">Generate</button>
@@ -52,10 +56,42 @@
   var swapTimer = null;
   var swapping = {};   // id -> true while a 'ready' run waits for permanent urls
 
-  document.getElementById('prompt').addEventListener('input', function () {
-    var v = this.value.trim().replace(/\.+$/, '');
-    document.getElementById('echo').textContent = v || 'your words';
-  });
+  // The styles on offer. The server owns the real presets (trigger word,
+  // baked suffix, steps — HOONIE gets 40 automatically); `suffix` here is the
+  // page-level tail: Watercolor keeps the "White background" convention,
+  // Hoonie sends none because its baked suffix already ends in one.
+  var STYLES = {
+    watercolor: { model: 'sageryza/watercolordrawings', label: 'Watercolor',
+                  trigger: 'wtr', suffix: 'White background', baked: '' },
+    hoonie:     { model: 'sageryza/hoonie', label: 'Hoonie linocut',
+                  trigger: 'HOONIE', suffix: '', baked: 'linocut relief print, white background' },
+  };
+  var styleKey = localStorage.getItem('promptlab_style');
+  if (!STYLES[styleKey]) styleKey = 'watercolor';
+
+  function renderStyles() {
+    document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
+      return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
+        STYLES[k].label + '</button>';
+    }).join('');
+  }
+  function setStyle(k) {
+    styleKey = k;
+    localStorage.setItem('promptlab_style', k);
+    renderStyles(); updateShape();
+  }
+  function styleLabelFor(model) {
+    for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
+    return model ? model.split('/').pop() : '';
+  }
+
+  function updateShape() {
+    var S = STYLES[styleKey];
+    var v = document.getElementById('prompt').value.trim().replace(/\.+$/, '') || 'your words';
+    var tail = [S.baked, S.suffix].filter(Boolean).join(', ');
+    document.getElementById('shape').textContent = S.trigger + ' ' + v + '.' + (tail ? ' ' + tail : '');
+  }
+  document.getElementById('prompt').addEventListener('input', updateShape);
 
   function pendingIds() {
     try { return JSON.parse(localStorage.getItem(LSKEY) || '[]'); } catch (e) { return []; }
@@ -65,6 +101,7 @@
   function go() {
     var prompt = document.getElementById('prompt').value.trim();
     var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var S = STYLES[styleKey];
     var err = document.getElementById('err');
     err.hidden = true;
     if (!prompt) { err.textContent = 'Type a prompt first.'; err.hidden = false; return; }
@@ -72,7 +109,7 @@
     btn.disabled = true;
     fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, lora_scale: scale }),
+      body: JSON.stringify({ prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix }),
     }).then(function (r) { return r.json(); }).then(function (d) {
       btn.disabled = false;
       if (!d.id) { err.textContent = d.error || 'Could not start.'; err.hidden = false; return; }
@@ -135,9 +172,10 @@
             '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
         }
         var imgs = (r.images && r.images.length) ? r.images : (r.tempImages || []);
-        var cap = esc(r.prompt) + ' · scale ' + r.loraScale;
+        var label = styleLabelFor(r.model);
+        var cap = esc(r.prompt) + ' · ' + label + ' · scale ' + r.loraScale;
         return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
-          '<span class="tag">scale ' + r.loraScale + '</span></div>' +
+          '<span class="tag">' + label + '</span><span class="tag">scale ' + r.loraScale + '</span></div>' +
           '<div class="grid">' + imgs.map(function (u, i) {
             return '<img src="' + u + '" loading="lazy" onclick="openLB(\'' + u + '\',\'' + cap.replace(/'/g, "\\'") + ' · image ' + (i + 1) + '\')">';
           }).join('') + '</div></div>';
@@ -160,7 +198,14 @@
     document.body.style.overflow = '';
   }
 
-  loadRuns();
+  // The app's nav-bar chevron asks the page first: close the lightbox if it's
+  // open, else let the app leave the tool.
+  window.__navBack = function () {
+    if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
+    return false;
+  };
+
+  renderStyles(); updateShape(); loadRuns();
   if (pendingIds().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>
