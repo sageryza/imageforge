@@ -34,3 +34,23 @@ Next steps: Sophie reviews/culls in the Assets tab → re-rolls → voiceover cu
 from the actual recordings per `docs/nde-precise-cutting.md` (the memo audio
 is in membry Storage `memo-audio/`) → animate literal→metaphor pairs → stitch
 (lift `scripts/story-short-pastel/` stages 2–5).
+
+## v2 (2026-08-02) — the animal-bleed fix
+
+v1's panels all inherited the cat/dog/mouse/snake from the style refs
+(`style-2.png` is the woman surrounded by five animals; the EDITS endpoint
+bleeds ref content). Root causes and the v2 fixes, per the established
+exact-prompt patterns from the witch-school `na-*` noise-art set:
+
+- **Character lines only where a person belongs** (`char: true`) — v1 stamped
+  Mason + the woman onto every panel, inviting people (and their ref-animal
+  entourage) into bare diagrams.
+- **Explicit guards** on every panel: "definitely NO animals or creatures",
+  "Nobody, no people" on diagrams, "NOT the recurring woman" on Mason.
+- **Reused the proven `na-*` content prompts verbatim** (bouncer, viewer,
+  campfire, wider net, zoomout5, beef jerky, split, teacup, gold frame,
+  ambiguous checkout, pipeline-v2 with the orange pipe / simpler tubing /
+  picture hung high), adapted square → 2:3.
+
+`render-panels-v2.js` + `panels-v2.json`; images at
+`story-shorts/art-mason/v2/`. v1 tiles stay in Assets labeled superseded.

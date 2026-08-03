@@ -614,6 +614,10 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
+// Prompt Lab: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
+// runs, background jobs on /api/promptlab). A real route so the iOS app can
+// wrap it in a WKWebView tile later, same pattern as /writing and /editor.
+app.get('/promptlab', serveGated('promptlab.html'));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
@@ -4122,6 +4126,115 @@ app.post('/api/generate/replicate', async (req, res) => {
       permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
     }
     res.json({ url: permanentUrls[0], urls: permanentUrls });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Prompt Lab (try prompts against a LoRA — background jobs) ──────
+// Sophie's prompt tester: fixed recipe (always 4 outputs, seed 85, 2:3,
+// guidance 3, 28 steps) so runs stay comparable — only the words and the
+// LoRA scale vary from the page. The trigger word is always prepended and
+// the suffix always appended server-side, matching the hand-typed shape her
+// scale tests used ("wtr little girl in a sundress. White background ").
+// aspect_ratio / seed / suffix / model are accepted in the body for later
+// even though the page doesn't expose them yet.
+// House rule: generation is a fire-and-forget job on a Firestore doc — the
+// POST returns the id in ~0.2s and the page polls GET /:id, resuming from
+// localStorage if it was closed mid-run.
+const PROMPTLAB = 'forge-promptlab';
+async function runPromptLabJob(docRef, cfg) {
+  try {
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: cfg.version,
+        input: {
+          prompt: cfg.fullPrompt, model: 'dev', go_fast: false,
+          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: 4,
+          aspect_ratio: cfg.aspectRatio, output_format: 'webp',
+          guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
+          num_inference_steps: cfg.steps, seed: cfg.seed,
+        },
+      }),
+    });
+    let prediction = await createRes.json();
+    if (prediction.error) throw new Error(String(prediction.error));
+    if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+      await new Promise(r => setTimeout(r, 1500));
+      const poll = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+      prediction = await poll.json();
+    }
+    if (prediction.status === 'failed') throw new Error(prediction.error || 'generation failed');
+    const urls = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
+    // Show Replicate's own links the moment they exist (status 'ready' —
+    // playground-equal speed), then copy to Storage in parallel and swap the
+    // permanent urls in. Replicate deletes API outputs after ~1hr, so the
+    // copies are what keep the run history browsable.
+    await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
+    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    await docRef.update({ status: 'done', images });
+  } catch (err) {
+    console.warn('promptlab job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
+app.post('/api/promptlab', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const content = String(req.body.prompt || '').trim().replace(/\.+$/, '');
+    if (!content) return res.status(400).json({ error: 'prompt required' });
+    const modelId = req.body.model || 'sageryza/watercolordrawings';
+    const known = MODELS.replicate.find(m => m.id === modelId);
+    if (!known) return res.status(400).json({ error: `unknown model ${modelId}` });
+    const suffix = String(req.body.suffix ?? 'White background').trim();
+    const loraScale = Number(req.body.lora_scale ?? 1);
+    const seed = Number.isFinite(Number(req.body.seed)) ? Number(req.body.seed) : 85;
+    const aspectRatio = String(req.body.aspect_ratio || '2:3');
+    // Per-model extras so the other house styles work here too: HOONIE's
+    // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
+    const steps = known.defaultSteps ?? 28;
+    const tail = [known.promptSuffix, suffix].filter(Boolean).join(', ');
+    const fullPrompt = `${known.trigger} ${content}.${tail ? ` ${tail} ` : ' '}`;
+    const version = `${known.id}:${await resolveReplicateVersion(known)}`;
+    const docRef = admin.firestore().collection(PROMPTLAB).doc();
+    await docRef.set({
+      id: docRef.id, status: 'running', prompt: content, fullPrompt, suffix,
+      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
+      images: [], createdAt: admin.firestore.Timestamp.now(),
+    });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps });
+    res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/promptlab/:id', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const snap = await admin.firestore().collection(PROMPTLAB).doc(req.params.id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    res.json({ ...d, createdAt: d.createdAt?.toMillis?.() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/promptlab', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const limit = Math.min(Number(req.query.limit) || 40, 100);
+    const q = await admin.firestore().collection(PROMPTLAB)
+      .orderBy('createdAt', 'desc').limit(limit).get();
+    res.json({ runs: q.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
