@@ -610,6 +610,11 @@ lifted into a standalone tool later.
   The server enforces it: a /reply fired from inside a served page is rerouted
   onto the page's verdict doc (sheet `page-<id>`; read it back with
   `GET /api/chatfeed/verdict?chat=&sheet=page-<id>`), never into the thread.
+  **Don't reach for a Compare page by default (Aug 2026, Sophie).** A routine
+  options batch / small test set does NOT need one — the labeled Assets tiles
+  are the review surface. Build a page only when Sophie asks for one or the
+  set genuinely can't be reviewed as tiles. And when you DO build one, lay the
+  images out in **rows of TWO**, never one full-width image per row.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
@@ -1243,6 +1248,14 @@ lifted into a standalone tool later.
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
   text on hand → file nothing (or `not available`). Full rules in "Prompts on
   Assets images" above.
+- **FILE THE MODEL · QUALITY CAPTION on every image too (Aug 2026, Sophie).**
+  The Assets tile's caption is the asset doc's `prompt` field — file it as a
+  curated tag like `gpt-image-2 · medium` via `POST /api/gallery
+  { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium", description }`
+  (it upgrades an already-filed tile in place; search matches it). And when a
+  style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
+  Sophie's formula — name it in the description label ("style prompt by
+  ChatGPT").
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
