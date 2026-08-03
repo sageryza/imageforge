@@ -1306,6 +1306,27 @@ app.post('/api/journal/upload-file', express.raw({ type: () => true, limit: '120
       await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false });
     } catch (e) { console.error('journal manifest merge failed:', e.message); }
     res.json({ ok: true, name, size: req.body.length });
+
+    // ── background: a COVER for the shelf — page 1 rendered at ~500px wide,
+    // true aspect, stored PRIVATE beside the scans (mupdf WASM, no native
+    // deps). Bodies over 40MB skip the render (memory on the free instance);
+    // a chat backfills those with `node scripts/journal-thumbs.js`.
+    if (req.body.length <= 40 * 1024 * 1024) {
+      const body = req.body;
+      (async () => {
+        try {
+          const mupdf = await import('mupdf');
+          const doc = mupdf.Document.openDocument(body, 'application/pdf');
+          const page = doc.loadPage(0);
+          const b = page.getBounds();
+          const zoom = 500 / Math.max(1, b[2] - b[0]);
+          const pix = page.toPixmap(mupdf.Matrix.scale(zoom, zoom), mupdf.ColorSpace.DeviceRGB, false, true);
+          await bucket.file(`${JOURNAL_FOLDER}/thumbs/${name}.png`).save(Buffer.from(pix.asPNG()), {
+            contentType: 'image/png', resumable: false,
+          });
+        } catch (e) { console.error('journal thumb failed:', e.message); }
+      })();
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
