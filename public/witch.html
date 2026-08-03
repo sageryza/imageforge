@@ -243,6 +243,14 @@
     .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
     .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
     .bos-sync-more { background: none; border: none; padding: 0; margin-left: 4px; font: inherit; font-size: 11px; color: #8a7a5e; text-decoration: underline; cursor: pointer; }
+    .bos-sync-box img.bos-sync-load { width: auto; height: 46%; opacity: 0.75; }
+    /* An empty cell IS the "add another one" affordance — a dashed box where the
+       drawing will go, so the day's grid shows its own room to grow. */
+    .bos-sync-add { display: block; width: 100%; padding: 0; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
+    .bos-sync-add .bos-sync-box { border-style: dashed; border-color: #c9b898; background: #fdfbf6; color: #a08f70; font-size: 26px; line-height: 1; }
+    .bos-sync-add .bos-sync-cap { color: #8a7a5e; }
+    /* Shown instead, under a page whose four cells are already full. */
+    .bos-sync-addrow { display: block; width: 100%; margin-top: 16px; padding: 9px 12px; border: 1px dashed #c9b898; border-radius: 6px; background: #fdfbf6; color: #8a7a5e; font: inherit; font-size: 12px; cursor: pointer; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -2206,11 +2214,11 @@
      same per-day seed the pull uses, so today's read is stable all day and
      tomorrow's is different. If the corpus is missing (or a card isn't in it),
      the deck's own up/rev strings stand in. */
-  let TAROT_TEXT = { cards: {}, advice: [] };
+  let TAROT_TEXT = { cards: {} };
   async function loadTarotReadings() {
     try {
       const j = await apiGet('/api/witch/tarot-readings');
-      if (j && j.cards) TAROT_TEXT = { cards: j.cards || {}, advice: Array.isArray(j.advice) ? j.advice : [] };
+      if (j && j.cards) TAROT_TEXT = { cards: j.cards || {} };
     } catch {}
   }
   // The daily seed — the SAME string dailyPull() draws from, so the words and
@@ -2226,7 +2234,6 @@
     return (t && pickVariant(t.meanings, seed + '|' + card.name + '|v'))
       || (orientation === 'reversed' ? card.rev : card.up);
   }
-  function dailyAdvice(seed) { return pickVariant(TAROT_TEXT.advice, seed + '|adv') || ''; }
 
   function tarotCardHtml(card, orientation, position) {
     const rev = orientation === 'reversed';
@@ -2259,7 +2266,9 @@
       html += '<h3>The reading</h3>';
       String(data.reading).split(/\n\n+/).forEach(p => { if (p.trim()) html += `<p>${esc(p.trim())}</p>`; });
     }
-    if (data.advice) html += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(data.advice)}</p></div>`;
+    // No closing "gentle nudge" advice box — the reading ends on the reading
+    // (Sophie's call, Aug 2026). Older saved readings still carry an `advice`
+    // string on the doc; it is simply not rendered.
     return html;
   }
 
@@ -2717,7 +2726,6 @@
         name: p.card.name, position: p.position, orientation: p.orientation,
         meaning: cardMeaning(p.card, p.orientation, seed),
       })),
-      advice: dailyAdvice(seed),
     };
   }
   // The free daily reading, whole: a short line per card, inline, the moment
@@ -2871,7 +2879,6 @@
           String(r.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
           h += `</div>`;
         }
-        if (r.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(r.advice)}</p></div>`;
         h += `<div class="glance-sec"><div class="tfun">
           <button class="tfun-tile" id="ask-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${askState.saved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
           <button class="tfun-tile" id="ask-again" type="button"><span class="tfun-ti">${T_ICON.ask}</span><span><span class="tfun-tt">Ask something else</span><span class="tfun-td">A new question, a new spread, a fresh draw.</span></span></button>
@@ -3476,19 +3483,51 @@
   }
   function isoOfTs(ts) { if (!ts) return '0000-00-00'; const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
   function syncDateLabel(iso) { const p = iso.split('-').map(Number); const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[p[1] - 1] ? `${M[p[1] - 1]} ${p[2]}` : ''; }
+  // ── A coincidence's SLOT is what orders a day (NOT its timestamp) ────────
+  // The slot is which box the moment was written in: Home's three boxes read
+  // left→right as 0-1-2, and anything added later from inside the book takes
+  // 3, 4, … So a day in the book reads in the order Sophie wrote it, which is
+  // the order she sees on Home.
+  // Timestamps can't do this job — they record when each DRAWING happened to
+  // finish, and that disagrees with the writing order constantly: a box typed
+  // first can be drawn hours later, and a redraw restamps its entry. Real data
+  // had 24 July as box 2 (9:24 am), box 0 (5:46 pm), box 1 (5:47 pm) and 30
+  // July as 1, 0, 2 — both scrambled against the boxes on screen.
+  // Legacy hand-written entries (signs, notes, miracles) carry no slot; they
+  // sort after the day's drawn boxes, chronologically among themselves.
+  const SYNC_NO_SLOT = 1e9;
+  function syncSlotOf(e) {
+    if (typeof e.slot === 'number') return e.slot;
+    // 'coin_2026-07-24_1', 'coin_2026-07-24_1_ported', 'coin_keep_0'
+    const m = String(e.id || '').match(/_(\d+)(?:_[a-z]+)?$/);
+    return m ? +m[1] : SYNC_NO_SLOT;
+  }
   // Synchronicities = the drawn coincidences (archived daily) + any legacy
   // hand-written sign/note/miracle entries — grouped by day, 4 to a page.
+  // A `pending` entry is one whose drawing is still being generated: it holds
+  // its cell (with the spinner) so the moment is never lost if the app is left.
   function syncItems() {
     const out = [];
-    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '', label: e.label || null }); });
-    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: null, desc: e.text || '' }); } });
-    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
-    return out.sort((a, b) => a.ts - b.ts);
+    syncArchLoad().forEach(e => {
+      if (!e || (!e.url && !e.pending)) return;
+      out.push({ id: e.id, dateISO: e.dateISO, ts: e.ts || 0, slot: syncSlotOf(e), url: e.url || null, desc: e.desc || '', label: e.label || null, pending: !e.url && !!e.pending });
+    });
+    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ id: e.id, dateISO: isoOfTs(ts), ts, slot: SYNC_NO_SLOT, url: null, desc: e.text || '' }); } });
+    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ id: e.id, dateISO: isoOfTs(ts), ts, slot: SYNC_NO_SLOT, url: e.url || null, desc: e.text || e.title || '' }); });
+    // Moments added from inside the book whose drawing is still being made —
+    // they hold their cell (with the spinner) so nothing typed is ever lost.
+    const pend = syncPendAll();
+    Object.keys(pend).forEach(id => { const p = pend[id]; if (p) out.push({ id, dateISO: p.dateISO, ts: p.ts || 0, slot: typeof p.slot === 'number' ? p.slot : SYNC_NO_SLOT, url: null, desc: p.desc || '', label: null, pending: true }); });
+    return out.sort((a, b) =>
+      (a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0)
+      || (a.slot - b.slot)
+      || (a.ts - b.ts));
   }
-  // newestFirst reverses BOTH the days and the coincidences within a day, so the
-  // first cell of the first page is the most recent thing drawn (reversing whole
-  // pages only would leave a 5-draw day reading 5, then 1-4). Each page carries
-  // the newest ts on it, which is how "the newest page" is found.
+  // newestFirst reverses the DAYS only — you open the section on the most recent
+  // day. Inside a day the moments keep their written order (slot), so a page
+  // reads the way the boxes read on Home, and a 5-moment day pages as 1-4 then
+  // 5 rather than backwards. Each page carries the newest ts on it, which is how
+  // "the newest page" is found.
   function syncPages(newestFirst) {
     const byDay = {};
     syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
@@ -3496,7 +3535,7 @@
     if (newestFirst) days.reverse();
     const out = [];
     days.forEach(d => {
-      const items = newestFirst ? byDay[d].slice().reverse() : byDay[d];
+      const items = byDay[d];
       for (let k = 0; k < items.length; k += 4) {
         const chunk = items.slice(k, k + 4);
         out.push({ sect: 'sync', page: 'sync', dateISO: d, items: chunk, ts: Math.max(0, ...chunk.map(x => x.ts || 0)) });
@@ -3668,13 +3707,28 @@
       let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
       for (let k = 0; k < 4; k++) {
         const it = p.items[k];
-        const hasMore = it && it.label && it.desc && it.desc !== it.label;
+        if (!it) {
+          // An empty cell is where the next moment goes — tapping it adds one to
+          // THIS day, so the book isn't limited to Home's three boxes.
+          g += `<button type="button" class="bos-sync-cell bos-sync-add" data-sync-add="1">
+            <div class="bos-sync-box">+</div>
+            <div class="bos-sync-cap">Add a moment</div>
+          </button>`;
+          continue;
+        }
+        const hasMore = it.label && it.desc && it.desc !== it.label;
+        const art = it.url
+          ? `<img src="${esc(it.url)}" alt="">`
+          : (it.pending ? `<img class="bos-sync-load" src="/hoonie-loading.gif" alt="drawing…">` : '');
         g += `<div class="bos-sync-cell">
-          <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
-          <div class="bos-sync-cap">${it ? esc(it.label || it.desc || '') : ''}${hasMore ? `<button type="button" class="bos-sync-more" data-more="${k}">more…</button>` : ''}</div>
+          <div class="bos-sync-box">${art}</div>
+          <div class="bos-sync-cap">${esc(it.label || it.desc || '')}${hasMore ? `<button type="button" class="bos-sync-more" data-more="${k}">more…</button>` : ''}</div>
         </div>`;
       }
       g += `</div>`;
+      // A full page keeps the way in as a row under the grid (the new moment
+      // lands on this day's next page).
+      if (p.items.length >= 4) g += `<button type="button" class="bos-sync-addrow" data-sync-add="1">+ Add a moment to this day</button>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
       const items = p.items;
       document.querySelectorAll('.bos-sync-more').forEach(b => b.addEventListener('click', (e) => {
@@ -3682,6 +3736,10 @@
         const it = items[+b.dataset.more]; if (!it) return;
         openModal(`<h2 style="margin-bottom:10px;">${esc(it.label || 'The moment')}</h2><p class="sub" style="text-align:left; white-space:pre-wrap;">${esc(it.desc)}</p><button class="close-x" id="sync-more-x">close</button>`);
         $('sync-more-x').addEventListener('click', closeModal);
+      }));
+      const addDay = p.dateISO;
+      document.querySelectorAll('[data-sync-add]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation(); openSyncAdd(addDay);
       }));
       return;
     }
@@ -4599,6 +4657,101 @@
   function syncArchLoad() { try { return JSON.parse(localStorage.getItem(SYNC_ARCH) || '[]'); } catch { return []; } }
   function syncArchSave(a) { try { localStorage.setItem(SYNC_ARCH, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
   function syncArchUpsert(entry) { const a = syncArchLoad(); const i = a.findIndex(x => x.id === entry.id); if (i >= 0) a[i] = { ...a[i], ...entry }; else a.push(entry); syncArchSave(a); }
+
+  /* ── Adding a moment from INSIDE the book ────────────────────────────────
+     Home has three boxes and they reset at midnight, so it can only ever hold
+     three of a day's coincidences. The Synchronicities pages take as many as a
+     day actually had: an empty cell (or the row under a full page) opens the
+     same write-it-then-draw-it flow, files it against THAT page's day, and it
+     lands in the next free slot after Home's 0-1-2.
+     The pending job lives in localStorage, NOT in the synced archive — a
+     half-finished draw is this device's business, and `resumeSyncJobs()` picks
+     it back up on return exactly the way the Home boxes do. */
+  const SYNC_PEND = 'witch_sync_jobs';   // { entryId: { job, dateISO, desc, slot, ts } }
+  function syncPendAll() { return pendGet(SYNC_PEND) || {}; }
+  function syncPendSet(id, v) { const m = syncPendAll(); if (v) m[id] = v; else delete m[id]; pendSet(SYNC_PEND, Object.keys(m).length ? m : null); }
+  // Home owns slots 0-2 for every day even if a box was left empty, so a book
+  // moment never steals a place the three boxes still read from.
+  function syncNextSlot(dateISO) {
+    let max = 2;
+    syncItems().forEach(e => { if (e.dateISO === dateISO && e.slot < SYNC_NO_SLOT) max = Math.max(max, e.slot); });
+    return max + 1;
+  }
+  // A moment added to an OLD day is stamped at that day's noon, so it sorts into
+  // its own day and can't hijack "the newest page" of the section.
+  function syncStampFor(dateISO) {
+    if (dateISO === todayISO()) return Date.now();
+    const p = String(dateISO).split('-').map(Number);
+    const t = new Date(p[0], (p[1] || 1) - 1, p[2] || 1, 12, 0, 0).getTime();
+    return isNaN(t) ? Date.now() : t;
+  }
+  function syncBookOpen() { return $('bos-reader').style.display !== 'none'; }
+  function syncRepaint() {
+    if (!syncBookOpen()) return;
+    const p = bosPages()[bosPageIdx - 1];
+    if (p && p.page === 'sync') renderBosPage();
+  }
+  // Adding can push a day onto a NEW page, so land on the page the moment is
+  // actually on rather than assuming the index held still.
+  function syncGoToEntry(id) {
+    if (!syncBookOpen()) return;
+    const i = bosPages().findIndex(p => p.page === 'sync' && p.items.some(x => x.id === id));
+    if (i >= 0) bosPageIdx = i + 1;
+    renderBosPage();
+  }
+  function syncWatch(id) {
+    const p = syncPendAll()[id]; if (!p || !p.job) return;
+    pollJob('/api/witch/job/' + p.job, {
+      key: 'sync' + id,
+      onDone: (d) => {
+        const cur = syncPendAll()[id];
+        const url = d.result && d.result.url;
+        const label = (d.result && d.result.label) || null;   // AI-written ≤6-word caption
+        syncPendSet(id, null);
+        if (url && cur) syncArchUpsert({ id, dateISO: cur.dateISO, ts: cur.ts, slot: cur.slot, url, desc: cur.desc, label });
+        else toast('Couldn\'t draw that one — try rewording it ✦');
+        syncRepaint();
+      },
+      onError: () => { syncPendSet(id, null); syncRepaint(); toast('Couldn\'t draw that one — try rewording it ✦'); },
+    });
+  }
+  function resumeSyncJobs() {
+    const all = syncPendAll();
+    Object.keys(all).forEach(id => { if (all[id] && all[id].job) syncWatch(id); });
+  }
+  async function syncAddMoment(dateISO, desc) {
+    const slot = syncNextSlot(dateISO);
+    const id = 'sync_' + dateISO + '_' + slot;
+    const ts = syncStampFor(dateISO);
+    syncPendSet(id, { dateISO, desc, slot, ts });
+    syncGoToEntry(id);   // the placeholder cell + its spinner are on screen at once
+    try {
+      // Same distillation the Home boxes use: raw note → one pastel spot drawing.
+      const job = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
+      const cur = syncPendAll()[id]; if (!cur) return;
+      syncPendSet(id, { ...cur, job });
+      syncWatch(id);
+    } catch (e) {
+      syncPendSet(id, null); syncRepaint();
+      toast('Couldn\'t start the drawing — ' + e.message);
+    }
+  }
+  function openSyncAdd(dateISO) {
+    const when = syncDateLabel(dateISO);
+    openModal(`<h2 style="margin-bottom:4px;">Another coincidence</h2>
+      <p class="sub">${when ? 'It goes on ' + esc(when) + '.' : 'It goes on this page.'}</p>
+      <textarea id="sync-add-text" rows="5" placeholder="What was put in your path?" style="width:100%;"></textarea>
+      <button class="btn" id="sync-add-go" style="margin-top:14px;">Draw it! <span class="js-star"></span></button>
+      <button class="close-x" id="sync-add-close">close</button>`);
+    renderStars();
+    $('sync-add-close').addEventListener('click', closeModal);
+    $('sync-add-go').addEventListener('click', () => {
+      const t = $('sync-add-text').value.trim(); if (!t) return;
+      closeModal();
+      syncAddMoment(dateISO, t);
+    });
+    setTimeout(() => { const ta = $('sync-add-text'); if (ta) ta.focus(); }, 60);
+  }
   // The day key is stored via pendGet/pendSet (JSON) so it survives the cloud
   // round-trip — the old plain-string value made pushCloud's JSON.parse throw,
   // so the cloud never knew which day the draws belonged to and a pull could
@@ -6319,6 +6472,7 @@
   // Resume any background jobs that were mid-flight when the app was left.
   function resumePendingJobs() {
     try { resumeCoinJobs(); } catch (e) {}
+    try { resumeSyncJobs(); } catch (e) {}
     try { resumeDreamRead(); } catch (e) {}
     try { resumeDreamIllus(); } catch (e) {}
     try { resumeAskReading(); } catch (e) {}
@@ -6333,10 +6487,22 @@
     if (document.visibilityState === 'visible') resumePendingJobs();
   });
   window.addEventListener('pageshow', (e) => { if (e.persisted) resumePendingJobs(); });
-  // Load the real Rider-Waite art + the written card meanings first, then
-  // render the home state (which calls the daily reading once signed in +
-  // birthday is set).
-  Promise.all([loadDeckImages(), loadTarotReadings()]).finally(() => renderHome());
+  // ── Home paints IMMEDIATELY — nothing here waits on the network ──
+  // This used to be `Promise.all([loadDeckImages(), loadTarotReadings()])
+  // .finally(renderHome)`, which held the ENTIRE tarot section (and the daily
+  // reading state) behind two fetches — one of them the ~190KB written-meanings
+  // corpus. Everything else on Home renders synchronously, so the tarot was
+  // visibly the last thing to appear on every open. Neither fetch is needed for
+  // the first paint: the three card BACKS are pure markup, the deck art is only
+  // needed once a card is flipped, and the corpus only once all three are.
+  renderHome();
+  loadDeckImages().then(() => {
+    // If a card was already flipped before the art landed (or a saved Ask
+    // reading resumed), repaint it now that DECK_IMG has the real faces.
+    if (tarotRevealed.size) renderDailyTarot();
+    if (askState.status === 'working' || askState.status === 'done') renderAsk();
+  });
+  loadTarotReadings();
   </script>
 </body>
 </html>

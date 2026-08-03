@@ -3306,8 +3306,7 @@ Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT ment
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
-  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today"
 }`;
     const tarotUser = `Date: ${date}.
 Their daily 3-card tarot pull (past / present / future):
@@ -3425,6 +3424,9 @@ Write the deeper page now.`;
 let TAROT_DECK = null;
 try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* manifest optional */ }
 app.get('/api/witch/tarot-deck', (req, res) => {
+  // Committed static data — cache it like the readings corpus so a repeat open
+  // doesn't re-fetch the map before it can show a flipped card's real art.
+  res.set('Cache-Control', 'public, max-age=3600');
   if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
   res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
 });
@@ -3526,8 +3528,7 @@ They did not ask anything specific, so read the spread as a general reading of w
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "...", "meaning": "1-2 sentences for this card in this position and orientation" } ],
-  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}"
 }
 Give one "cards" entry per card drawn, in the order given, with the position copied exactly.`;
         const userMsg = `Spread: ${spreadName}.${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}
