@@ -89,13 +89,49 @@ async function imagine(prompt, opts = {}) {
   return r.jobId || r.id;
 }
 
-// Poll one job. Returns { id, status, images, gridUrl, raw }.
+// Submit a Midjourney VIDEO generation — animate a still into a short clip.
+// Midjourney video is a fixed ~5s job at a flat 48 credits ($0.48) regardless of
+// motion or resolution, so HD is always worth taking. Returns the APIFRAME job id.
+//   startImage : REQUIRED public https URL of the still to animate.
+//   opts.prompt: motion description (what should move) — defaults to a gentle drift.
+//   opts.motion: 'low' | 'high'  (default 'low')
+//   opts.resolution: 'sd' | 'hd' (default 'hd' — same price)
+async function animate(startImage, opts = {}) {
+  if (!APIFRAME_KEY) throw new Error('APIFRAME_KEY not configured');
+  if (!startImage || !/^https:\/\//i.test(startImage)) {
+    throw new Error('startImage must be a public https URL');
+  }
+  const r = await api('/videos/generate', {
+    method: 'POST',
+    body: {
+      model: 'midjourney-video',
+      prompt: opts.prompt || 'gentle natural motion, subtle camera drift',
+      midjourneyVideoParams: {
+        start_image: startImage,
+        motion: opts.motion === 'high' ? 'high' : 'low',
+        resolution: opts.resolution === 'sd' ? 'sd' : 'hd',
+      },
+    },
+  });
+  return r.jobId || r.id;
+}
+
+// Pull a video URL out of an APIFRAME job result, whatever key it uses.
+function videoUrlOf(result) {
+  if (!result) return null;
+  return result.video || result.videoUrl || result.url
+    || (Array.isArray(result.videos) ? result.videos[0] : null) || null;
+}
+
+// Poll one job. Works for both image and video jobs.
+// Returns { id, status, images, gridUrl, video, error, raw }.
 async function job(id) {
   const j = await api(`/jobs/${id}`);
   const result = j.result || {};
   return {
     id, status: j.status,
-    images: result.images || null, gridUrl: result.gridUrl || null, raw: j,
+    images: result.images || null, gridUrl: result.gridUrl || null,
+    video: videoUrlOf(result), error: j.error || null, raw: j,
   };
 }
 
@@ -117,6 +153,22 @@ async function saveImagesToFirebase(images, folder = 'deck-cards') {
     } catch { out.push(url); }
   }
   return out;
+}
+
+// Mirror a finished MJ video to Firebase (its CDN URL expires). Returns the
+// permanent public URL, or the original URL when Firebase isn't configured.
+async function saveVideoToFirebase(url, folder = 'apiframe-video') {
+  const bucket = bucketOrNull();
+  if (!bucket || !url) return url;
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, agent: proxyAgent || undefined });
+    const buf = await r.buffer();
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`;
+    const file = bucket.file(filename);
+    await file.save(buf, { metadata: { contentType: 'video/mp4' } });
+    await file.makePublic();
+    return `https://storage.googleapis.com/${bucket.name}/${filename}`;
+  } catch { return url; }
 }
 
 // ─── Router ─────────────────────────────────────────────────────────
@@ -146,15 +198,35 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// GET /job/:id — poll a generation. When COMPLETED, mirror the 4 images to
-// Firebase (pass ?save=0 to skip and return the raw MJ CDN URLs).
+// GET /job/:id — poll an image OR video generation. When COMPLETED, mirror the
+// result to Firebase (the 4 images, or the video clip). Pass ?save=0 to skip and
+// return the raw MJ CDN URLs (which expire).
 router.get('/job/:id', async (req, res) => {
   try {
     const j = await job(req.params.id);
-    if (j.status === 'COMPLETED' && j.images && req.query.save !== '0') {
-      j.images = await saveImagesToFirebase(j.images);
+    if (j.status === 'COMPLETED' && req.query.save !== '0') {
+      if (j.images) j.images = await saveImagesToFirebase(j.images);
+      if (j.video) j.video = await saveVideoToFirebase(j.video);
     }
     res.json(j);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
+});
+
+// POST /video — animate a still into a Midjourney video clip (flat $0.48).
+// Body: { startImage (public https url), prompt?, motion?, resolution? }.
+// Returns { jobId, poll } immediately — poll GET /job/:id until COMPLETED, then
+// `video` is the finished clip (mirrored to Firebase unless ?save=0).
+router.post('/video', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const startImage = b.startImage || b.start_image || b.image || b.url;
+    if (!startImage) return res.status(400).json({ error: 'startImage (a public https URL) is required' });
+    const jobId = await animate(startImage, {
+      prompt: b.prompt, motion: b.motion, resolution: b.resolution,
+    });
+    res.status(202).json({ ok: true, jobId, startImage, poll: `/api/apiframe/job/${jobId}` });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }
@@ -163,6 +235,6 @@ router.get('/job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(APIFRAME_KEY),
-  imagine, job, deckCardPrompt, saveImagesToFirebase,
+  imagine, animate, job, deckCardPrompt, saveImagesToFirebase, saveVideoToFirebase,
   STYLE_SUFFIX,
 };
