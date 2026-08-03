@@ -2165,7 +2165,12 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
 // One image: { chat, url, style, content }. A whole backfill in one call:
 // { chat, items:[{url, style, content}, …] }. Idempotent — re-posting the same
 // url overwrites that image's split, and an empty string clears a side.
-const ASSET_PROMPT_MAX = 1500;
+// A truncated prompt is a WRONG prompt — the whole point of the split is that
+// it is the exact text the model was sent. The cap used to be 1500 and silently
+// sliced, which quietly filed a chopped-off style block against real images. So
+// the ceiling is generous enough for a full style prompt, and over-length is
+// REFUSED rather than trimmed (same rule the note thread already follows).
+const ASSET_PROMPT_MAX = 6000;
 app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -2176,7 +2181,7 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
     if (!chatName) return res.status(400).json({ error: 'chat required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const list = Array.isArray(items) && items.length ? items : [req.body || {}];
-    const clean = (v) => String(v == null ? '' : v).trim().slice(0, ASSET_PROMPT_MAX);
+    const clean = (v) => String(v == null ? '' : v).trim();
     const acol = admin.firestore().collection('forge-chat-assets');
     const del = admin.firestore.FieldValue.delete();
     const results = [];
@@ -2189,8 +2194,22 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
       // A side is only touched when it was sent, so posting just the content
       // later never wipes a style filed earlier.
       const patch = {};
-      if (raw.style !== undefined) patch.promptStyle = clean(raw.style) || del;
-      if (raw.content !== undefined) patch.promptContent = clean(raw.content) || del;
+      const over = [];
+      if (raw.style !== undefined) {
+        const s = clean(raw.style);
+        if (s.length > ASSET_PROMPT_MAX) over.push('style (' + s.length + ')');
+        else patch.promptStyle = s || del;
+      }
+      if (raw.content !== undefined) {
+        const c = clean(raw.content);
+        if (c.length > ASSET_PROMPT_MAX) over.push('content (' + c.length + ')');
+        else patch.promptContent = c || del;
+      }
+      if (over.length) {
+        results.push({ url, ok: false,
+          error: over.join(' and ') + ' over ' + ASSET_PROMPT_MAX + ' chars — refused, not truncated' });
+        continue;
+      }
       if (!Object.keys(patch).length) {
         results.push({ url, ok: false, error: 'style or content required' });
         continue;
