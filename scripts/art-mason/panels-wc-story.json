@@ -80,6 +80,54 @@
     "madeAt": 1785793874937
   },
   {
+    "id": "wcs-metaphor-machine",
+    "base": "wcs-metaphor-machine",
+    "char": false,
+    "label": "The metaphor machine",
+    "content": "A giant machine, and there’s almost like a conveyor belt, and into it go raw materials, like things in the real world — like things people say, or like books or art pieces or something, or just moments. The things go in, and they get into the center, and then this little weird device thing sort of spins them around and basically discards the physical aspect of them, and what’s left is the abstraction that was inside — like the essence, and it can exist without the thing. Nobody in the scene. The colors don't have to match the colors of the style reference image.",
+    "wrap": "Use the attached image only as the style reference — do not copy its content. Draw: [content]",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-metaphor-machine.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-metaphor-machine.webp",
+    "madeAt": 1785794357928
+  },
+  {
+    "id": "wcs-bouncer-gates",
+    "base": "wcs-bouncer-gates",
+    "char": false,
+    "label": "The bouncer checking for signs of abstraction",
+    "content": "A bouncer standing in front of a nightclub, checking ID, like, okay: do you have any of these three to five signs that often refer to abstraction? Nobody else in the scene.",
+    "wrap": "Use the attached image only as the style reference — do not copy its content. Draw: [content]",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-bouncer-gates.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-bouncer-gates.webp",
+    "madeAt": 1785794351726
+  },
+  {
+    "id": "wcs-gallery-puzzled",
+    "base": "wcs-gallery-puzzled",
+    "char": false,
+    "label": "The person in the gallery, scratching their head",
+    "content": "The person looking at the art in the gallery that Mason made: they’re scratching their head, staring at the picture. Nobody else in the scene.",
+    "wrap": "Use the attached image only as the style reference — do not copy its content. Draw: [content]",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-gallery-puzzled.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-gallery-puzzled.webp",
+    "madeAt": 1785794351319
+  },
+  {
+    "id": "wcs-dots-meaning",
+    "base": "wcs-dots-meaning",
+    "char": false,
+    "label": "Finding meaning in a random pattern of dots",
+    "content": "Noise: you take dots, like a random pattern of dots, and you find meaning in it, so you might circle things — the dots being collected by shapes that are all different, sort of oblong, some more like a constellation. Nobody, no people. The colors don't have to match the colors of the style reference image.",
+    "wrap": "Use the attached image only as the style reference — do not copy its content. Draw: [content]",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-dots-meaning.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-dots-meaning.webp",
+    "madeAt": 1785794351993
+  },
+  {
     "id": "wcs-gallery-hang",
     "char": true,
     "label": "Mason hanging his art in the gallery — watercolor story",

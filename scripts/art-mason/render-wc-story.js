@@ -105,9 +105,13 @@ async function edit(prompt, refs, retries = 2) {
   const manifest = []; const failed = [];
 
   const only = process.env.ONLY ? process.env.ONLY.split(',').map(s => s.trim()) : null;
-  // SUFFIX gives a re-roll a NEW id (old tiles stay in Assets as history)
+  // SUFFIX gives a re-roll a NEW id (old tiles stay in Assets as history);
+  // EXTRA_IDS get EXTRA_LINE appended to their content (recorded in the
+  // manifest, so the filed prompt is still exactly what was sent)
   const SUF = process.env.SUFFIX || '';
+  const extraIds = process.env.EXTRA_IDS ? process.env.EXTRA_IDS.split(',').map(s => s.trim()) : [];
   const queue = PANELS.filter(p => !only || only.includes(p.id))
+    .map(p => extraIds.includes(p.id) ? { ...p, content: p.content + ' ' + process.env.EXTRA_LINE } : p)
     .map(p => SUF ? { ...p, id: p.id + SUF } : p);
   async function worker() {
     for (let p; (p = queue.shift()); ) {
