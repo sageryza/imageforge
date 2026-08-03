@@ -27,14 +27,25 @@
   .runhead .p { font-size: 14px; font-weight: 600; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  .grid img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .cell { position: relative; }
+  .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .badge.like { background: #c25a72; color: #fff; }
+  .badge.dislike { background: #9a938a; color: #fff; }
+  .badge svg { width: 12px; height: 12px; }
   .pending { font-size: 13px; color: #6f675e; background: #f6f1e9; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; }
+  .pending b { color: #2b2622; font-weight: 600; }
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
   #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
   #lb.on { display: flex; }
-  #lb img { max-width: 100%; max-height: 84vh; border-radius: 6px; }
+  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
   #lb .cap { color: #ddd; font-size: 13px; margin-top: 10px; text-align: center; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
+  .lbbtn svg { width: 21px; height: 21px; }
+  .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
 </style></head><body>
 <h1>Playground</h1>
 
@@ -52,12 +63,32 @@
 <div id="pendings"></div>
 <div id="runs"></div>
 
-<div id="lb" onclick="closeLB()"><img id="lbimg" src=""><div class="cap" id="lbcap"></div></div>
+<div id="lb">
+  <img id="lbimg" src="">
+  <div class="cap" id="lbcap"></div>
+  <div class="lbbtns">
+    <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
+    <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
+    <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
+  </div>
+</div>
 <script>
   var LSKEY = 'promptlab_pending';
   var timer = null;
   var swapTimer = null;
-  var swapping = {};   // id -> true while a 'ready' run waits for permanent urls
+  var swapping = {};      // id -> true while a 'ready' run waits for permanent urls
+  var runsById = {};      // id -> run doc from the last list load
+  var lbCur = null;       // { id, i } while the lightbox is open
+
+  // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
+  var ICONS = {
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+  };
+  document.getElementById('lblike').innerHTML = ICONS.heart;
+  document.getElementById('lbx').innerHTML = ICONS.x;
+  document.getElementById('lbsave').innerHTML = ICONS.download;
 
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps — HOONIE gets 40 automatically); `suffix` here is the
@@ -96,10 +127,15 @@
   }
   document.getElementById('prompt').addEventListener('input', updateShape);
 
-  function pendingIds() {
-    try { return JSON.parse(localStorage.getItem(LSKEY) || '[]'); } catch (e) { return []; }
+  // Pending entries carry what's being drawn so the card can say so.
+  // Older saved entries may be plain id strings — normalize on read.
+  function pendingList() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(LSKEY) || '[]');
+      return arr.map(function (e) { return typeof e === 'string' ? { id: e } : e; });
+    } catch (e) { return []; }
   }
-  function setPending(ids) { localStorage.setItem(LSKEY, JSON.stringify(ids)); }
+  function setPending(list) { localStorage.setItem(LSKEY, JSON.stringify(list)); }
 
   function go() {
     var prompt = document.getElementById('prompt').value.trim();
@@ -116,7 +152,9 @@
     }).then(function (r) { return r.json(); }).then(function (d) {
       btn.disabled = false;
       if (!d.id) { err.textContent = d.error || 'Could not start.'; err.hidden = false; return; }
-      var ids = pendingIds(); ids.push(d.id); setPending(ids);
+      var list = pendingList();
+      list.push({ id: d.id, prompt: prompt, scale: scale, style: S.label });
+      setPending(list);
       renderPendings(); startPolling();
     }).catch(function (e) {
       btn.disabled = false;
@@ -125,9 +163,12 @@
   }
 
   function renderPendings() {
-    var ids = pendingIds();
-    document.getElementById('pendings').innerHTML = ids.map(function () {
-      return '<div class="pending">Drawing… about half a minute. You can leave — it keeps going.</div>';
+    var list = pendingList();
+    document.getElementById('pendings').innerHTML = list.map(function (p) {
+      var what = p.prompt
+        ? '<b>“' + esc(p.prompt) + '”</b> · ' + esc(p.style || '') + ' · scale ' + p.scale
+        : 'Drawing…';
+      return '<div class="pending">' + what + ' — drawing… You can leave, it keeps going.</div>';
     }).join('');
   }
 
@@ -140,13 +181,13 @@
   // A run shows the moment the model finishes ('ready', Replicate's own
   // links); the permanent Storage copies swap in quietly when 'done'.
   function poll() {
-    var ids = pendingIds();
-    if (!ids.length) { clearInterval(timer); timer = null; renderPendings(); return; }
-    ids.forEach(function (id) {
-      fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
+    var list = pendingList();
+    if (!list.length) { clearInterval(timer); timer = null; renderPendings(); return; }
+    list.forEach(function (p) {
+      fetch('/api/promptlab/' + p.id).then(function (r) { return r.json(); }).then(function (d) {
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed') {
-          setPending(pendingIds().filter(function (x) { return x !== id; }));
-          if (d.status === 'ready') { swapping[id] = true; startSwapPolling(); }
+          setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
+          if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
           renderPendings(); loadRuns();
         }
       }).catch(function () {});
@@ -166,40 +207,103 @@
     }, 5000);
   }
 
+  function runImages(r) {
+    return (r.images && r.images.length) ? r.images : (r.tempImages || []);
+  }
+
   function loadRuns() {
     fetch('/api/promptlab?limit=40').then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
+      runsById = {};
       document.getElementById('runs').innerHTML = runs.map(function (r) {
+        runsById[r.id] = r;
         if (r.status === 'failed') {
           return '<div class="run"><div class="runhead"><span class="p failed">' + esc(r.prompt) + '</span>' +
             '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
         }
-        var imgs = (r.images && r.images.length) ? r.images : (r.tempImages || []);
         var label = styleLabelFor(r.model);
-        var cap = esc(r.prompt) + ' · ' + label + ' · scale ' + r.loraScale;
+        var votes = r.votes || {};
         return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
           '<span class="tag">' + label + '</span><span class="tag">scale ' + r.loraScale + '</span></div>' +
-          '<div class="grid">' + imgs.map(function (u, i) {
-            return '<img src="' + u + '" loading="lazy" onclick="openLB(\'' + u + '\',\'' + cap.replace(/'/g, "\\'") + ' · image ' + (i + 1) + '\')">';
+          '<div class="grid">' + runImages(r).map(function (u, i) {
+            var v = votes[i];
+            var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
+            return '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
           }).join('') + '</div></div>';
       }).join('');
     }).catch(function () {});
   }
 
+  // One delegated handler for every tile.
+  document.getElementById('runs').addEventListener('click', function (e) {
+    var img = e.target.closest('img[data-run]');
+    if (!img) return;
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+  });
+
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function openLB(u, cap) {
-    document.getElementById('lbimg').src = u;
-    document.getElementById('lbcap').textContent = cap;
+  function openLB(id, i) {
+    var r = runsById[id];
+    if (!r) return;
+    lbCur = { id: id, i: i };
+    document.getElementById('lbimg').src = runImages(r)[i];
+    document.getElementById('lbcap').textContent =
+      r.prompt + ' · ' + styleLabelFor(r.model) + ' · scale ' + r.loraScale + ' · image ' + (i + 1);
+    syncLbVotes();
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
   }
   function closeLB() {
+    lbCur = null;
     document.getElementById('lb').classList.remove('on');
     document.body.style.overflow = '';
   }
+  document.getElementById('lb').addEventListener('click', function (e) {
+    if (e.target.closest('.lbbtn')) return;   // buttons handle themselves
+    closeLB();
+  });
+
+  function syncLbVotes() {
+    if (!lbCur) return;
+    var votes = (runsById[lbCur.id] || {}).votes || {};
+    document.getElementById('lblike').classList.toggle('on', votes[lbCur.i] === 'like');
+    document.getElementById('lbx').classList.toggle('on', votes[lbCur.i] === 'dislike');
+  }
+
+  function vote(kind) {
+    if (!lbCur) return;
+    var r = runsById[lbCur.id];
+    var votes = r.votes = r.votes || {};
+    var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
+    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    syncLbVotes();
+    fetch('/api/promptlab/' + lbCur.id + '/vote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: lbCur.i, vote: next || '' }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
+  document.getElementById('lblike').addEventListener('click', function () { vote('like'); });
+  document.getElementById('lbx').addEventListener('click', function () { vote('dislike'); });
+
+  // Save to Photos: share the image file so iOS offers "Save Image". Where the
+  // share sheet isn't available, fall back to a plain download.
+  document.getElementById('lbsave').addEventListener('click', function () {
+    if (!lbCur) return;
+    var url = document.getElementById('lbimg').src;
+    fetch(url).then(function (r) { return r.blob(); }).then(function (blob) {
+      var file = new File([blob], 'playground.webp', { type: blob.type || 'image/webp' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file] }).catch(function () {});
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'playground.webp';
+      document.body.appendChild(a); a.click(); a.remove();
+    }).catch(function () {});
+  });
 
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.
@@ -210,6 +314,6 @@
 
   if (window.__nativeNavBar) document.body.classList.add('native');
   renderStyles(); updateShape(); loadRuns();
-  if (pendingIds().length) { renderPendings(); startPolling(); }
+  if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>
