@@ -1,0 +1,30 @@
+[
+  {
+    "id": "wc-mason-portrait",
+    "label": "Watercolor test — Mason in his studio",
+    "content": "Mason, a gentle poet-philosopher with reddish shoulder-length hair, a full red beard, and round glasses, standing in his cluttered artist studio among homemade contraptions of pipes and funnels, arms crossed, pleased with himself.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-test/wc-mason-portrait.png",
+    "madeAt": 1785722728976
+  },
+  {
+    "id": "wc-pipeline",
+    "label": "Watercolor test — Mason operating the noise-art pipeline",
+    "content": "Mason, a gentle poet-philosopher with reddish shoulder-length hair, a full red beard, and round glasses, operating his noise-art pipeline: he holds a long pipe with a moppy net head full of small colored dots feeding in; the pipe runs through a wider accordion squeegee section and a moppy section, snaking up and around, and finally empties onto a small framed picture hung high on a gallery wall.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-test/wc-pipeline.png",
+    "madeAt": 1785722704306
+  },
+  {
+    "id": "wc-process-framed",
+    "label": "Watercolor test — the gold frame around Mason’s process",
+    "content": "Mason, a gentle poet-philosopher with reddish shoulder-length hair, a full red beard, and round glasses, standing beside his pipe contraption in an art gallery and presenting it with one open hand, while an ornate gold picture frame hangs in mid-air around the entire machine.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-test/wc-process-framed.png",
+    "madeAt": 1785722703752
+  },
+  {
+    "id": "wc-gallery-hang",
+    "label": "Watercolor test — Mason hanging his art in the gallery",
+    "content": "Mason, a gentle poet-philosopher with reddish shoulder-length hair, a full red beard, and round glasses, up on a small stepladder, hanging a small framed abstract picture of colored dots high on a white gallery wall.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-test/wc-gallery-hang.png",
+    "madeAt": 1785722698682
+  }
+]
