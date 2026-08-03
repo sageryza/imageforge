@@ -19,7 +19,7 @@ const WRAP_CHAR = 'Use the first attached image only as the style reference — 
   for (const p of panels) {
     const res = await fetch(`${BASE}/api/gallery`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: p.url, description: p.label, prompt: `gpt-image-2 · ${p.quality}` }),
+      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: p.url, description: `${p.label} — ${p.quality}`, prompt: `gpt-image-2 · ${p.quality}` }),
     });
     console.log(`${p.id}: asset tile → ${res.status}`);
   }

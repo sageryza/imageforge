@@ -44,6 +44,18 @@
     "madeAt": 1785788681402
   },
   {
+    "id": "wcs-pipeline-r3-high",
+    "base": "wcs-pipeline",
+    "char": true,
+    "label": "Mason operating the noise-art pipeline — watercolor story",
+    "content": "Mason (the person from the character reference) operating his noise-art pipeline: he holds a long pipe with a moppy net head full of small colored dots feeding in; the pipe runs through a wider accordion squeegee section and a moppy section, then snakes DOWN low toward the floor and back UP again, and finally empties onto a small framed picture hung high on a gallery wall. Nobody else in the scene.",
+    "wrap": "Use the first attached image only as the style reference — do not copy its content. The second attached image is the character reference for Mason. Draw: [content]",
+    "quality": "high",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/wcs-pipeline-r3-high.png",
+    "thumb": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/story-shorts/art-mason/wc-story/thumbs/wcs-pipeline-r3-high.webp",
+    "madeAt": 1785790938259
+  },
+  {
     "id": "wcs-gallery-hang",
     "char": true,
     "label": "Mason hanging his art in the gallery — watercolor story",
