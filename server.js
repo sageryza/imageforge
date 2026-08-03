@@ -3597,6 +3597,10 @@ function shopWords(t) {
 const SHOP_NAME_OVERRIDES = { // handle -> nice one-line name
   'labradorite-choose-exact-crystal-67898': 'Labradorite Crystal',
   'fluorite-wand-point-crystal-mineral-86535': 'Fluorite Wand Point',
+  // Both card sets shorten to plain "Witchcraft Cards", which read as the same
+  // product twice in the Cards tab. Only the newer one is renamed, so the
+  // long-standing listing keeps the name it has always had.
+  'witchcraft-cards-233495': 'Witchcraft Cards — Set of 4',
 };
 function shopShortName(title, handle) {
   if (handle && SHOP_NAME_OVERRIDES[handle]) return SHOP_NAME_OVERRIDES[handle];
@@ -3627,6 +3631,31 @@ const SHOP_CATEGORIES = [
   { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
   { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
 ];
+// ─── The head of the shelf (Sophie's picks, Aug 2026) ───────────────
+// Everything else is ordered by Etsy's `featured_rank`, but Etsy has NO API for
+// it — updateListing cannot write featured_rank — so the handful she wants up
+// front is pinned here by handle instead. Anything not listed keeps its Etsy
+// order behind them, and this changes the APP's shelf only; Etsy's own shop
+// order still has to be dragged in Etsy.
+// The Cards tab is this same list filtered, so a card's place here IS its place
+// there: Magic Rituals sits above the apothecary/mineralogy set so that it
+// leads the Cards tab (Sophie: "at the top of the cards tab, the first one"),
+// which costs that set one place in All.
+const SHOP_PINNED = [
+  'huge-witchcraft-kit-witch-alter-sets-86658',      // Witchcraft Kit
+  'witchy-essential-43160',                          // Witchy Essential Oils
+  'witchcraft-apothecary-w-mortar-and-54053',        // the apothecary kit
+  'magic-rituals-card-deck-217746',                  // first card in the Cards tab
+  'witchcraft-cards-apothecary-crystal-19221',       // apothecary + mineralogy, set of 2
+  'boo-boo-doll-healing-witchcraft-magic-kiss-band-aid-457217',  // near the top, not at it
+];
+function shopApplyPins(products) {
+  const rank = new Map(SHOP_PINNED.map((h, i) => [h, i]));
+  const pinned = [], rest = [];
+  for (const p of products) (rank.has(p.handle) ? pinned : rest).push(p);
+  pinned.sort((a, b) => rank.get(a.handle) - rank.get(b.handle));
+  return pinned.concat(rest);
+}
 // Evaluation order — deliberately NOT the display order above. Changing how
 // the bar reads must never change which bucket a product lands in.
 const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
@@ -3770,6 +3799,9 @@ async function buildShopPayload(debug) {
       products = products.map(p => ({ ...p, title: shopShortName(p.title, p.handle), fullTitle: p.title }));
       if (debug) dbg = { error: e.message };
     }
+
+    // Sophie's pinned picks lead the shelf, whatever Etsy's featured order said.
+    products = shopApplyPins(products);
 
     // Tag each product with its category, and report only the categories that
     // actually have stock so the filter bar never shows an empty tab.
