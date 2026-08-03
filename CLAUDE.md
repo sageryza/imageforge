@@ -1220,17 +1220,41 @@ lifted into a standalone tool later.
   needs Sophie's `@handle` pasted in.
 
 ## Design rules (forever)
-- **One header pattern for every Deck Factory tool screen (Aug 2026).** Apply
-  `.forgeToolBar("<Tool title>")` (ForgeNavTitle.swift) on every tool root: the
-  eyebrow title in the nav bar + a back chevron top-left that returns to the
-  PREVIOUS screen (RootView keeps a screen history and injects `\.goBack`; the
-  bottom bar, home grid, corner icons, and deep links all feed it). Per-screen
-  actions go top-right. NO in-content `StarTitle` rows on tool roots (the Home
-  grid keeps the serif masthead) — an in-content title under the bar reads as
-  a double header with the title stranded mid-screen. Web-wrapped tools keep
-  the chevron native and ask their page first (`__navBack` steps one in-page
-  level), then step the web view's OWN history (`canGoBack` — how the
-  Characters page returns to the Story Room shelf), then leave the tool.
+- **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
+  decision — REVERSES the earlier "forgeToolBar on every tool root" rule for
+  web tools).** For any tool that is a WKWebView on a served page, the header
+  is built in the page's own HTML/CSS (the Chats/Writing Room pattern), NOT a
+  native SwiftUI bar. Two reasons, both Sophie's: full design control (the
+  rename pencil, Archive, tabs, toggles, search — none of it fits a native
+  bar) and shipping speed (a page header changes with a Render deploy; a
+  native bar needs a TestFlight build). The native wrapper stays a bare
+  WKWebView host — no `.forgeToolBar`, no in-app title on web tool roots.
+  - **One look, shared code.** Pages must still MATCH each other: build page
+    headers to one shared pattern the way the autoscroll pill is shared (ONE
+    source — `scripts/pill.py` — imported by every gen script / injected by
+    the server), not a fresh hand-rolled header per page. When adding or
+    changing a page header, reuse/extract the shared pieces (the eyebrow
+    title style, the back control, the pill-corner reservation) instead of
+    copying variants around. The Chats header is the reference look.
+  - **Reserve the pill's top-right corner on every header row** (see the
+    `/chats` section — `padding-right:56px`): with no native bar the page's
+    pill floats high over its own header, so no control may live in that
+    corner.
+  - **A page with inner levels draws its own back affordance** (Story Room's
+    in-page back row is the model). Where a native chevron exists on current
+    builds it asks the page first (`window.__navBack` steps one in-page
+    level, then the web view's own history via `canGoBack`, then leaves the
+    tool) — keep that contract working on pages that have it.
+  - **PURE-NATIVE tools (no web page — Test Station, Dump, Lessons, My
+    Creations, etc.) still use `.forgeToolBar("<Tool title>")`**
+    (ForgeNavTitle.swift): eyebrow title in the nav bar, back chevron
+    top-left to the PREVIOUS screen (RootView keeps the screen history and
+    injects `\.goBack`), per-screen actions top-right, NO in-content
+    `StarTitle` rows (the Home grid keeps the serif masthead). There's no
+    page to own a header there, so the native pattern stays right.
+  - Web tools that shipped WITH a native bar (Playground, Episode Editor,
+    Story Room's title/chevron) keep working as-is; move each to a
+    page-owned header at its next real redesign, not as churn.
 - **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
   to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
   button stays visible and taps do nothing. Every page that toggles the
