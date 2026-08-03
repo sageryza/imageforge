@@ -374,7 +374,25 @@ async function loadVideo(videoId) {
   const db = firestore();
   if (!db) return null;
   const snap = await db.collection(NDE_COLLECTION).doc(videoId).get();
-  return snap.exists ? snap.data() : null;
+  if (!snap.exists) return null;
+  const video = snap.data();
+  // A multi-hour audiobook's transcript is too big for a Firestore doc, so
+  // the grabber banks it as JSON in Storage and leaves a pointer — inflate it
+  // here so every reader sees the same shape. Rarely hit twice: windowFor
+  // caches the small finished windows.
+  const t = video.transcript;
+  if (t && t.storage && !(t.segments || []).length) {
+    const b = bucket();
+    if (b) {
+      try {
+        const [buf] = await b.file(t.storage).download();
+        video.transcript = { ...t, ...JSON.parse(buf.toString('utf8')) };
+      } catch (err) {
+        console.warn('editor: transcript pointer read failed —', err.message);
+      }
+    }
+  }
+  return video;
 }
 
 // Building a picker window used to mean re-reading the interview's WHOLE
