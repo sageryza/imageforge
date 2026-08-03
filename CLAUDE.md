@@ -1205,6 +1205,27 @@ lifted into a standalone tool later.
     `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **Synchronicities order by SLOT, not by timestamp (Aug 2026).** A day's
+  coincidences in the Book of Shadows read in the order Sophie WROTE them —
+  Home's three boxes are slots 0-1-2, anything added later from inside the book
+  takes 3, 4, … Timestamps record when each DRAWING finished and disagree
+  constantly (a box typed first can be drawn hours later; a redraw restamps its
+  entry), which is what had 24 July reading box 1, 0, 2 in the book while Home
+  showed 0, 1, 2. `syncSlotOf()` reads the slot off the archive id
+  (`coin_<day>_<i>`) or an explicit `slot` field. `newestFirst` now reverses the
+  DAYS only — inside a day the order never flips.
+- **Moments can be added from inside the book, not just Home (Aug 2026).** An
+  empty cell on a Synchronicities page (or the row under a full one) opens the
+  same write-then-draw flow and files against THAT page's day, so a day can hold
+  more than Home's three boxes. The pending job lives in `witch_sync_jobs`
+  (localStorage, deliberately NOT cloud-synced — a half-finished draw is one
+  device's business); `resumeSyncJobs()` picks it up on return, same as the Home
+  boxes. A moment added to an old day is stamped at that day's noon so it can't
+  hijack "the newest page".
+- **No "A gentle nudge" advice box on tarot readings (Aug 2026, Sophie).** The
+  reading ends on the reading. Removed from the saved-reading render and the
+  Ask-the-cards result, and from both server tarot prompts. Old saved readings
+  still carry an `advice` string on the doc; it is simply not rendered.
 - **The Shop tab sells IN the app (July 2026):** product bottom-sheet →
   cart → hand off to Shopify checkout only for the pay screen. Storefront
   API via server proxy — `GET /api/witch/shop/product/:handle`,
