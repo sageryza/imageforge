@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump, playground
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump, playground, scratchpad
     var id: String { rawValue }
 
     var title: String {
@@ -25,6 +25,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .test:      return "Test Station"
         case .dump:      return "Dump"
         case .playground: return "Playground"
+        case .scratchpad: return "Scratch Pad"
         }
     }
 
@@ -46,6 +47,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
         case .playground: return "Try prompts on a style — four images a run, same seed."
+        case .scratchpad: return "Think in pictures — hearted art laid out as beats."
         }
     }
 
@@ -68,6 +70,8 @@ enum Tool: String, CaseIterable, Identifiable {
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
         case .playground: return "paintpalette"
+        // The dashed placement slot is the pad's own signature shape.
+        case .scratchpad: return "square.dashed"
         }
     }
 
@@ -104,6 +108,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .test:      TestStationView()
         case .dump:      DumpView().forgeToolBar("Dump")
         case .playground: PlaygroundView()
+        case .scratchpad: ScratchPadView()
         }
     }
 }
@@ -315,6 +320,9 @@ struct RootView: View {
             // Playground is a short web form + grid — nothing to autoscroll,
             // and the pill would cover its Generate corner.
             if t == .playground { return false }
+            // Scratch Pad is a web page with its own injected pill — showing
+            // the native one too would stack two pills.
+            if t == .scratchpad { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.

@@ -1768,10 +1768,16 @@ lifted into a standalone tool later.
   removes it). Top-right button → popup of hearted thumbnails 4 to a row →
   tap one → it lands on the pad as a beat in a thin gray frame; with beats
   already down, dashed slots appear (front / between / behind) and she taps
-  where it goes. Tapping a beat opens a popup: the picture big + five bare
-  color chips (gray/mustard/green/blue/pink) that set the FRAME color.
-  Regenerate/versions will live in that popup later (deliberately unbuilt;
-  design flexible — all versions same size, ordered by recency).
+  where it goes. **The pad is four to a row and incomplete rows CENTER**
+  (flex, not grid — the first beat sits in the middle of the top, Sophie's
+  spec). Tapping a beat opens a popup: the art at THUMBNAIL size (never
+  blown up — Sophie's spec), five bare color chips (gray/mustard/green/
+  blue/pink) that set the FRAME color and keep the popup open, and a
+  three-line text box (`beat.text`, saved on close). Regenerate/versions
+  will live in that popup later (deliberately unbuilt; design flexible —
+  all versions same size, ordered by recency). iOS: home-grid tile
+  "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
+  header rule).
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/
