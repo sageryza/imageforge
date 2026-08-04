@@ -34,6 +34,8 @@
 //                          (default: the end); returns { beats }
 //   POST /color          → { id, color } — set a beat's frame color
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
+//   POST /text           → { id, text } — the beat's note (the popup's
+//                          three-line text box; 5000 chars max)
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -125,6 +127,24 @@ router.post('/add', async (req, res) => {
       return cur;
     });
     res.json({ ok: true, beat, beats });
+  } catch (e) { fail(res, e); }
+});
+
+router.post('/text', async (req, res) => {
+  try {
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const text = String(req.body.text ?? '').slice(0, 5000);
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      b.text = text;
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
 

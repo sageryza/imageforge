@@ -22,15 +22,18 @@ header .no{flex:1;}
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:0;}
 .iconbtn svg{width:17px; height:17px;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 1em; line-height:1.5;}
-#pad{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:1.4em;}
-.beat{position:relative; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
+/* Four to a row; incomplete rows CENTER (Sophie: the first beat lands in the
+   middle of the top, not the left — flex + justify-content does exactly that,
+   and a full row still fills the width). */
+#pad{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:1.4em;}
+.beat{position:relative; width:calc(25% - 9px); aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
 .beat img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 .beat.c-mustard{border:3px solid var(--mustard);}
 .beat.c-green{border:3px solid var(--green);}
 .beat.c-blue{border:3px solid var(--blue);}
 .beat.c-pink{border:3px solid var(--pink);}
-.slot{aspect-ratio:2/3; border:1.5px dashed var(--ink2); border-radius:4px; background:none; padding:0; cursor:pointer;}
+.slot{width:calc(25% - 9px); aspect-ratio:2/3; border:1.5px dashed var(--ink2); border-radius:4px; background:none; padding:0; cursor:pointer;}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
 .sheet .wrap{padding-top:3vh;}
@@ -40,8 +43,10 @@ header .no{flex:1;}
 #inboxgrid button img{width:100%; height:100%; object-fit:cover; display:block;}
 #inboxgrid button.used{opacity:.35;}
 #beatpop{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:22px; background:rgba(20,17,12,.82); padding:5vw;}
-#beatpop img{max-width:88vw; max-height:62vh; border:3px solid var(--line); border-radius:4px; background:var(--barbg);}
+  justify-content:center; gap:20px; background:rgba(20,17,12,.82); padding:5vw;}
+/* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
+   big) — openBeat() copies the pad tile's pixel width onto it. */
+#beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
 .chips{display:flex; gap:16px;}
@@ -49,6 +54,9 @@ header .no{flex:1;}
 .chip.on{outline:2.5px solid #fff; outline-offset:3px;}
 .chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
 .chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
+#pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+  line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
+  padding:10px 12px; resize:none;}
 </style>
 <div class="wrap">
   <header>
@@ -79,6 +87,7 @@ header .no{flex:1;}
     <button class="chip blue" data-c="blue"></button>
     <button class="chip pink" data-c="pink"></button>
   </div>
+  <textarea id="pnote" rows="3"></textarea>
 </div>
 
 <script>
@@ -149,29 +158,48 @@ function place(at, it){
 /* tapping anywhere that is not a slot quietly cancels placing */
 document.addEventListener('click',function(){ if(pending){pending=null;render();} });
 
-/* ── the beat popup: the picture big, and its frame color ─────────── */
+/* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
 function openBeat(b){
   popBeat=b;
   var im=document.getElementById('popimg');
+  // Same size as it sits on the pad — the popup never blows the art up.
+  var tile=document.querySelector('#pad .beat');
+  im.style.width=(tile?tile.offsetWidth:90)+'px';
   im.src=b.url; im.className=b.color?'c-'+b.color:'';
   document.querySelectorAll('.chip').forEach(function(c){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
+  document.getElementById('pnote').value=b.text||'';
   document.getElementById('beatpop').hidden=false; lock(true);
 }
+/* A chip sets the frame color and the popup STAYS open (there's a text box
+   here now); tapping the scrim is what closes it. */
 document.querySelectorAll('.chip').forEach(function(c){
   c.onclick=function(ev){
     ev.stopPropagation();
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
+    document.getElementById('popimg').className=col?'c-'+col:'';
+    document.querySelectorAll('.chip').forEach(function(x){
+      x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
+    });
     api('/color',{method:'POST',body:JSON.stringify({id:popBeat.id,color:col})})
       .then(function(r){return r.json()})
-      .then(function(d){if(d.beats)beats=d.beats;render();});
-    closeBeat();
+      .then(function(d){if(d.beats)beats=d.beats;});
   };
 });
-function closeBeat(){document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
+function saveNote(){
+  if(!popBeat)return;
+  var t=document.getElementById('pnote').value;
+  if(t===(popBeat.text||''))return;
+  popBeat.text=t;
+  api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
+    .then(function(r){return r.json()})
+    .then(function(d){if(d.beats)beats=d.beats;});
+}
+function closeBeat(){saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 document.getElementById('beatpop').onclick=function(ev){ if(ev.target===this)closeBeat(); };
 
 load();
