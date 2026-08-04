@@ -2142,7 +2142,7 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
-    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} }
+    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} try { bosWarmPages([1, 2, 3, 4]); } catch {} }
     if (view === 'school') { try { renderSchoolPath(); } catch {} try { warmSchoolCovers(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
@@ -3609,6 +3609,36 @@
     }
     return out;
   }
+  /* ── Warm a page's pictures before you turn to it ──────────────────────
+     Every page's art is a network fetch, so a turn used to land on the words
+     and then pop the pictures in a beat later: the Synchronicities part-title
+     showed its name before the moths arrived, and a saved reading turned to
+     three empty card slots that filled afterwards. Turning BACK looked fine
+     only because the browser had cached them by then.
+     Nothing here changes what a page renders — it just asks for the images of
+     the pages either side of the one you're on (and the first few when the
+     Shadows tab opens), so by the time you get there they're already in cache.
+     Cheap now that the art is webp: a page is tens of KB, not megabytes. */
+  const bosWarmed = new Set();
+  function bosPageImages(p) {
+    if (!p) return [];
+    if (p.page === 'sectcover') { const c = BOS_SECT_COVERS[p.sect]; return c && c.img ? [SW_IMG + c.img + SW_EXT] : []; }
+    if (p.page === 'sync') return (p.items || []).map(it => it && it.url).filter(Boolean);
+    if (p.page === 'lesson') return (p.marks || []).map(m => (LESSONS[m.lesson] || []).find(x => x.img === m.card))
+      .filter(Boolean).map(c => SW_IMG + c.img + SW_EXT);
+    const e = p.e;
+    if (!e) return [];
+    if (p.src === 'reading') return (e.cards || []).map(c => DECK_IMG[c.name]).filter(Boolean);
+    return e.url ? [e.url] : [];
+  }
+  function bosWarmPages(idxs) {
+    const pages = bosPages();
+    idxs.forEach(i => bosPageImages(pages[i - 1]).forEach(u => {
+      if (bosWarmed.has(u)) return;
+      bosWarmed.add(u);
+      const im = new Image(); im.decoding = 'async'; im.src = u;
+    }));
+  }
   // 1-based page number where a section starts — the contents' page numbers.
   function bosSectStart(key) {
     const pages = bosPages();
@@ -3733,6 +3763,7 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    bosWarmPages([bosPageIdx + 1, bosPageIdx - 1, bosPageIdx + 2]);
     if (p.page === 'sectcover') {
       const c = BOS_SECT_COVERS[p.sect] || {};
       // The whole leaf takes the art's OWN sampled background colour, so the
@@ -3887,8 +3918,7 @@
     const rows = BOS_SECTS.filter(s => s.key !== 'lesson' || lessonMarkPages().length).map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     $('bos-pagewrap').innerHTML = `<div class="bos-page">
-      <div class="bos-title-page"><div class="t">Book of Shadows</div></div>
-      <div class="bos-toc-h">Contents</div>
+      <div class="bos-title-page"><div class="t">Contents</div></div>
       ${rows}
       </div>`;
   }
