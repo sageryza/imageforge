@@ -302,6 +302,7 @@ loadConfig().then(() => {
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
+  app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);
@@ -623,6 +624,10 @@ app.get('/character', serveGated('character.html'));
 // /editor). /promptlab is the original alias, kept for links already shared.
 app.get('/playground', serveGated('promptlab.html', { pill: true }));
 app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
+// Scratch Pad: stage ONE of a story — hearted Playground images arranged as
+// beats with unlabelled color frames (thinking on paper; Story Room is stage
+// two). Deliberately minimal; see scratchpad.js.
+app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
