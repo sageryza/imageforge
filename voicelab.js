@@ -78,9 +78,11 @@ router.get('/status', async (req, res) => {
   res.json(out);
 });
 
-// The account's voices, Sophie's own clones first (her Sophie voices, then
-// cloned/generated, then added library voices). Cached 10 minutes — the list
-// changes when she trains a clone, not per page load.
+// Only the voices Sophie wants offered right now (Aug 2026: just her new
+// professional clone — she asked for the rest to come off for the time being).
+// To offer more again, add ids here; empty = every non-premade account voice.
+const OFFERED_VOICE_IDS = ['UTkHGl2ImiT6gwtAFCql']; // "Sophie — morning"
+// Cached 10 minutes — the list changes when she trains a clone, not per load.
 let voicesCache = { at: 0, list: null };
 router.get('/voices', async (req, res) => {
   try {
@@ -96,6 +98,7 @@ router.get('/voices', async (req, res) => {
         at: Date.now(),
         list: (data.voices || [])
           .filter((v) => v.category !== 'premade')
+          .filter((v) => !OFFERED_VOICE_IDS.length || OFFERED_VOICE_IDS.includes(v.voice_id))
           .map((v) => ({ voiceId: v.voice_id, name: v.name, category: v.category, description: v.description || '' }))
           .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)),
       };
