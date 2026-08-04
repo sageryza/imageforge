@@ -1257,7 +1257,18 @@
     /* Section title page: the art on its own tinted leaf, section name under it. */
     /* Centred in the leaf — a part-title sits in the middle of its page. */
     .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
-    .bos-sectcover img { display: block; width: 86%; max-width: 330px; max-height: 46vh; margin: 0 auto 10px; border-radius: 0; }
+    /* The art's box is SIZED BEFORE THE PICTURE ARRIVES (`aspect-ratio`, and a
+       width that folds the old max-width/max-height into one min()), so the
+       name sits where it will finally sit instead of being centred alone and
+       then shoved down when the image lands. The covers are square 1024s;
+       object-fit keeps a non-square one honest rather than stretching it. */
+    .bos-sectcover img { display: block; width: min(86%, 330px, 46vh); aspect-ratio: 1; object-fit: contain; margin: 0 auto 10px; border-radius: 0; }
+    /* …and the leaf reveals as ONE thing: while the art is still coming, the
+       whole part-title is held back (a blank tinted leaf), then art and words
+       fade in together. Held for at most BOS_COVER_HOLD ms, so a slow or dead
+       network still gets the words. */
+    .bos-sectcover.warming > * { opacity: 0; }
+    .bos-sectcover > * { transition: opacity 0.18s ease; }
     .bos-sectcover .sc-name { font-family: var(--serif); font-size: 30px; line-height: 1.15; color: #221c14; }
     .bos-sectcover .sc-line { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: #6d5c3f; margin-top: 8px; padding: 0 10px; }
     /* Reading pages: the pulled cards first, reading text behind an expand. */
@@ -2142,7 +2153,7 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
-    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} try { bosWarmPages([1, 2, 3, 4]); } catch {} }
+    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} try { bosWarmSectCovers(); bosWarmPages([1, 2, 3, 4]); } catch {} }
     if (view === 'school') { try { renderSchoolPath(); } catch {} try { warmSchoolCovers(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
@@ -3510,6 +3521,7 @@
     dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
     lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
+  const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
@@ -3619,7 +3631,8 @@
      the pages either side of the one you're on (and the first few when the
      Shadows tab opens), so by the time you get there they're already in cache.
      Cheap now that the art is webp: a page is tens of KB, not megabytes. */
-  const bosWarmed = new Set();
+  const bosWarmed = new Map();   // url → the Image warming it, so readiness is knowable
+  function bosImgReady(u) { const im = bosWarmed.get(u); return !!(im && im.complete && im.naturalWidth); }
   function bosPageImages(p) {
     if (!p) return [];
     if (p.page === 'sectcover') { const c = BOS_SECT_COVERS[p.sect]; return c && c.img ? [SW_IMG + c.img + SW_EXT] : []; }
@@ -3631,13 +3644,24 @@
     if (p.src === 'reading') return (e.cards || []).map(c => DECK_IMG[c.name]).filter(Boolean);
     return e.url ? [e.url] : [];
   }
+  function bosWarm(urls) {
+    urls.forEach(u => {
+      if (bosWarmed.has(u)) return;
+      const im = new Image(); im.decoding = 'async'; im.src = u;
+      bosWarmed.set(u, im);
+    });
+  }
   function bosWarmPages(idxs) {
     const pages = bosPages();
-    idxs.forEach(i => bosPageImages(pages[i - 1]).forEach(u => {
-      if (bosWarmed.has(u)) return;
-      bosWarmed.add(u);
-      const im = new Image(); im.decoding = 'async'; im.src = u;
-    }));
+    idxs.forEach(i => bosWarm(bosPageImages(pages[i - 1])));
+  }
+  /* The five section title pages are the pages you JUMP to — from the contents,
+     from a school CTA, from a bookmark — and a jump skips the neighbour warming
+     entirely, so those landings were always a cold fetch. There are only five of
+     them and they're webp (~170KB for the set), so the Shadows tab warms them
+     all at once and every jump lands on art that's already in cache. */
+  function bosWarmSectCovers() {
+    bosWarm(Object.values(BOS_SECT_COVERS).filter(c => c && c.img).map(c => SW_IMG + c.img + SW_EXT));
   }
   // 1-based page number where a section starts — the contents' page numbers.
   function bosSectStart(key) {
@@ -3732,6 +3756,7 @@
     // `opts.newest` (the newest page in the section, narrowed by `dateISO`), so
     // tapping it shows the thing you just saved — not the oldest page down there.
     bosPageIdx = 0;
+    try { bosWarmSectCovers(); } catch {}   // openBook can be reached without the tab (a bookmark, a CTA)
     if (filter && filter !== 'all') {
       const sect = bosSectOf(filter);
       const idx = (opts && bosPageOfEntry(opts.entry))
@@ -3769,11 +3794,23 @@
       // The whole leaf takes the art's OWN sampled background colour, so the
       // drawing floats with no box around it — the lesson-card trick.
       if (c.bg) book.style.setProperty('--surface', c.bg);
-      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover">
-        ${c.img ? `<img src="${SW_IMG}${c.img}${SW_EXT}" alt="">` : ''}
+      const src = c.img ? SW_IMG + c.img + SW_EXT : '';
+      // Warm but not yet arrived → hold the words with it, so the leaf never
+      // shows a name floating on its own above where the drawing will be.
+      const hold = !!src && !bosImgReady(src);
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover${hold ? ' warming' : ''}">
+        ${src ? `<img src="${src}" alt="">` : ''}
         <div class="sc-name">${esc(p.name || '')}</div>
         ${c.line ? `<div class="sc-line">${esc(c.line)}</div>` : ''}
       </div>`;
+      if (hold) {
+        const leaf = $('bos-pagewrap').querySelector('.bos-sectcover'), im = leaf.querySelector('img');
+        const show = () => leaf.classList.remove('warming');
+        im.addEventListener('load', show, { once: true });
+        im.addEventListener('error', show, { once: true });
+        if (im.complete) show();
+        setTimeout(show, BOS_COVER_HOLD);   // a slow or dead network still gets the words
+      }
       return;   // a part-title carries no page number, like a real book
     }
     if (p.page === 'sync') {
