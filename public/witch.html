@@ -1159,7 +1159,12 @@
        you see of it is a cream band along the fore-edge and the tail. Two flat
        strips sitting just proud of the board edge — not a filled rectangle,
        which would bury the leather. */
-    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: 9px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
+    /* The fore-edge runs all the way DOWN to the tail's own bottom. It used to
+       stop 9px short, so the two strips never met and the corner showed a notch
+       of background between them — which read as a second, broken page poking
+       out at the bottom right (Sophie spotted it). They now share a bottom edge
+       and overlap for the last 7px, so the block reads as one wrapped page. */
+    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: -5px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
     .bos-leaves.tail { top: auto; right: -5px; bottom: -5px; left: 34px; width: auto; height: 6px; border-radius: 0 0 3px 3px; border: 1px solid #cbb994; border-top: none; }
     /* Spine: a darker band down the hinge, with five raised sewing bands. */
     .bos-spine-b { position: absolute; top: 0; bottom: 0; left: 0; width: 26px; background: var(--leather-dk); border-radius: 3px 0 0 3px; }
@@ -1204,7 +1209,10 @@
        keep in sync here. */
     .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
     /* The page number lives at the BOTTOM of the page, serif, like a book. */
-    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
+    /* Pinned to the bottom of the leaf. It used to sit right under whatever
+       content the page had, so a short page (a 2x2 lesson spread) left the
+       number stranded halfway up with blank paper below it. */
+    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: auto; padding-top: 20px; }
     .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 10px 0 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
     /* Like a real open book: the page you're NOT reading is still there — a
        slab of page running clean off the screen edge — and it alternates
@@ -1235,8 +1243,11 @@
     .bos-title-page .star { color: var(--gold); line-height: 0; display: inline-block; margin-bottom: 8px; }
     .bos-title-page .star svg { width: 15px; height: 15px; }
     .bos-title-page .t { font-family: var(--serif); font-size: 21px; color: #221c14; line-height: 1.25; }
-    /* Contents: gold section names, dot leaders, black page numbers. */
-    .bos-toc-h { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; margin-bottom: 10px; }
+    /* Contents: gold section names, dot leaders, black page numbers.
+       "Contents" is set in the title's own serif, not the uppercase sans
+       eyebrow it used to be, and the star above the title is gone
+       (Sophie, Aug 2026). */
+    .bos-toc-h { font-family: var(--serif); font-size: 17px; color: #221c14; margin-bottom: 10px; }
     .bos-toc-row { display: flex; align-items: baseline; gap: 6px; padding: 9px 0; cursor: pointer; }
     .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
     .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
@@ -1256,9 +1267,9 @@
     .bos-cardslot .co { font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
     .bos-cardph { width: 100%; aspect-ratio: 3 / 5; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); margin-bottom: 6px; }
     .bos-cardph svg { width: 18px; height: 18px; }
-    .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; }
+    .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; display: flex; flex-direction: column; }
     @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
-    .bos-page { animation: bosPageIn 0.2s ease; }
+    .bos-page { animation: bosPageIn 0.2s ease; flex: 1 0 auto; display: flex; flex-direction: column; }
     .bos-date { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; }
     .bos-type { display: inline-block; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #6d5c3f; border: 1px solid #d9cbb4; border-radius: 6px; padding: 2px 8px; margin-left: 8px; }
     .bos-page h3 { font-family: var(--serif); font-size: 22px; font-weight: 500; color: #221c14; margin: 10px 0 8px; }
@@ -3871,7 +3882,7 @@
     const rows = BOS_SECTS.filter(s => s.key !== 'lesson' || lessonMarkPages().length).map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     $('bos-pagewrap').innerHTML = `<div class="bos-page">
-      <div class="bos-title-page"><div class="star">${STAR}</div><div class="t">Book of Shadows</div></div>
+      <div class="bos-title-page"><div class="t">Book of Shadows</div></div>
       <div class="bos-toc-h">Contents</div>
       ${rows}
       </div>`;
