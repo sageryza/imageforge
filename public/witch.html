@@ -1029,23 +1029,41 @@
        tapping one jumps back to that exact card in the lesson. */
     .bos-lpk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 4px; }
     /* A saved lesson page is a SNAPSHOT of the card it came from — the same
-       markup, the same per-card background, scaled down inside a cropped frame,
-       so it reads as a little screenshot of the page rather than as a cropped
-       illustration with a caption. `.lsnap-stage` is a phone-shaped box (360x620)
-       and shares #deck-stage's own rule above, so a snapshot always looks like
-       what the lesson reader actually renders. */
+       markup, the same per-card background, scaled down inside a frame, so it
+       reads as a little screenshot of the page rather than as a cropped
+       illustration with a caption. `.lsnap-stage` is a card-shaped box
+       (360 x --lsnap-h) and shares #deck-stage's own rule above, so a snapshot
+       always looks like what the lesson reader actually renders.
+       `--lsnap-h` is the ONE place the height is set: the frame's aspect ratio,
+       the stage's height and the enlarged view's maths all read it. */
+    :root { --lsnap-h: 470; }
     .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .bos-lsnap { cursor: pointer; }
-    /* The WHOLE card, 360x620 — kicker, title, art AND the words under it. The
-       frame used to be 432 tall so the crop landed just above the body copy,
-       which meant a saved lesson only ever showed as a picture with a title;
-       the one thing a snapshot is for (what did this page SAY) was the part
-       cut off. Matching the stage exactly means nothing is cropped. */
-    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 620; overflow: hidden;
+    /* The WHOLE card — kicker, title, art AND the words under it. The frame
+       used to be 432 tall so the crop landed just above the body copy, which
+       meant a saved lesson only ever showed as a picture with a title; the one
+       thing a snapshot is for (what did this page SAY) was the part cut off.
+       Matching the stage exactly means nothing is cropped. */
+    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / var(--lsnap-h); overflow: hidden;
                    border: 1px solid var(--border); border-radius: 4px; }
-    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: 620px;
+    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: calc(var(--lsnap-h) * 1px);
                    transform: scale(var(--s, 0.46)); transform-origin: top left; }
     .lsnap-stage .tcard { animation: none; }   /* a snapshot doesn't slide in */
+    /* A snapshot packs its card TIGHT. The live deck spreads one card over a
+       whole phone screen — the art grows into whatever is spare and the words
+       float centred in what's left — and copying that geometry into the book
+       put a band of blank paper between the title and the picture and again
+       between the picture and the words. That padding is why a saved lesson
+       was 620 tall, why four of them overran the leaf, and why the page number
+       got shoved off the bottom. So here the three parts sit directly on top of
+       each other and the ART absorbs the difference: every snapshot is exactly
+       the same size, none of them has a gap in it, and no card's words are cut
+       off (the tallest body on file needs 340px, which still leaves the picture
+       room at this height). */
+    .lsnap-stage .tcard-img, .lsnap-stage .tcard-html { flex: 1 1 0; min-height: 0; max-height: none; }
+    .lsnap-stage .deck-text { flex: 0 0 auto; padding: 8px 24px 12px; overflow: hidden; }
+    .lsnap-stage .deck-text > :first-child { margin-top: 0; }
+    .lsnap-stage .deck-text > :last-child { margin-bottom: 0; }
     .bos-lsnap .t { font-family: var(--serif); font-size: 13.5px; line-height: 1.3; color: #221c14; margin-top: 6px; }
     /* Tapping a snapshot ENLARGES it (it no longer jumps you into the lesson —
        the small link under it does that, deliberately). */
@@ -3673,6 +3691,11 @@
      lsnapStage() writes the lesson reader's OWN card markup (minus the live CTA
      button and the "tap to continue" hint — the parts of a screenshot you would
      have cropped off) into a phone-shaped stage on that card's own background. */
+  // The card's height lives in CSS (`--lsnap-h`) so the frame, the stage and
+  // the enlarged view can never drift apart.
+  function lsnapH() {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lsnap-h')) || 470;
+  }
   function lsnapStage(c) {
     const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`;
     return `<div class="lsnap-stage" style="background:${esc(c.bg || '#fdf9f3')};">
@@ -3702,8 +3725,9 @@
     lsnapOpen = { lesson, card };
     const view = $('lsnap-view');
     // As big as fits, whole card visible — no cropping in the enlarged view.
-    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / 620);
-    view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(620 * s)}px;">${lsnapStage(c)}</div>
+    const H = lsnapH();
+    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / H);
+    view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(H * s)}px;">${lsnapStage(c)}</div>
       <div class="lsnap-actions">
         <button type="button" id="lsnap-back">Back to the lesson</button>
         <button type="button" class="plain" id="lsnap-close">close</button>
