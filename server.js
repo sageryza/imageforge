@@ -302,6 +302,9 @@ loadConfig().then(() => {
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
+  // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
+  // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
+  app.use('/api/voicelab', require('./voicelab').router);
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
@@ -2359,6 +2362,9 @@ app.get('/crystals', serveGated('crystals.html'));
 // into Firebase, each one back as a permanent public url anything downstream can
 // use. Engine is /api/audio (audio.js).
 app.get('/audio', serveGated('audio.html'));
+// Voice Studio — pick a cloned voice, type text, get it spoken. Engine is
+// /api/voicelab (voicelab.js). Gets the shared autoscroll pill.
+app.get('/voice', serveGated('voice.html', { pill: true }));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.
