@@ -104,48 +104,38 @@ async function job(id) {
 // tier undercuts Replicate for the same job (seedance-1.5-pro: 1 credit =
 // $0.01 per 480p second, vs Replicate's seedance-1-lite at about the same
 // per-second price for an older model — checked Aug 2026).
-// GOTCHA: Seedance lives on APIFRAME's PRO API (api.apiframe.pro, flat body,
-// `Authorization` header), NOT the v2 API the Midjourney routes use — v2's
-// /videos/generate rejects the documented fields with "Unrecognized keys"
-// (verified live Aug 2026). Submit at /seedance-imagine, poll with POST
-// /fetch {task_id} → { status: 'processing'|'finished'|'failed', video_url }.
-// Credit table (docs.apiframe.ai/seedance.md): seedance-1.5-pro 480p is
-// 4/8/12 credits for 4/8/12s; 720p doubles it; generate_audio doubles again.
-const PRO_BASE = process.env.APIFRAME_PRO_BASE || 'https://api.apiframe.pro';
-
-async function proApi(path, body) {
-  const res = await fetch(PRO_BASE + path, {
-    method: 'POST',
-    headers: { 'Authorization': APIFRAME_KEY, 'Content-Type': 'application/json',
-      'User-Agent': UA, 'Accept': 'application/json' },
-    body: JSON.stringify(body),
-    agent: proxyAgent || undefined,
-  });
-  const text = await res.text();
-  let json;
-  try { json = JSON.parse(text); } catch { json = { _raw: text }; }
-  if (!res.ok) {
-    const e = new Error(`APIFRAME ${res.status}: ${text.slice(0, 200)}`);
-    e.status = res.status;
-    throw e;
-  }
-  return json;
-}
-
+// GOTCHAS (both verified live Aug 2026): the docs' v1 route
+// (api.apiframe.pro/seedance-imagine) rejects `afk_` keys — v2 accounts must
+// use v2's POST /videos/generate. And v2 wants the video options NESTED under
+// `seedanceParams` (like `midjourneyParams` for MJ) — sent flat they fail
+// with "Unrecognized keys". v2 model ids use dashes ("seedance-1-5-pro").
+// Cheapest tier: seedance-1-lite at 480p. Poll GET /v2/jobs/:id like MJ.
 async function seedanceVideo(prompt, opts = {}) {
   if (!APIFRAME_KEY) throw new Error('APIFRAME_KEY not configured');
+  const params = { resolution: opts.resolution || '480p' };
+  if (opts.imageUrl) params.start_image = opts.imageUrl;
+  if (opts.endImageUrl) params.end_image = opts.endImageUrl;
+  if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
+  if (opts.seed != null) params.seed = Number(opts.seed);
   const body = {
     prompt,
-    model: opts.model || 'seedance-1.5-pro',
-    resolution: opts.resolution || '480p',
-    duration: Number(opts.duration) || 4,
+    model: String(opts.model || 'seedance-1-lite').replace(/\./g, '-'),
+    seedanceParams: params,
   };
-  if (opts.imageUrl) body.image_url = opts.imageUrl;
-  if (opts.aspectRatio) body.aspect_ratio = opts.aspectRatio;
-  const r = await proApi('/seedance-imagine', body);
-  const id = r.task_id || r.jobId || r.id;
-  if (!id) throw new Error('APIFRAME gave no task id: ' + JSON.stringify(r).slice(0, 200));
+  const r = await api('/videos/generate', { method: 'POST', body });
+  const id = r.jobId || r.id || r.task_id;
+  if (!id) throw new Error('APIFRAME gave no job id: ' + JSON.stringify(r).slice(0, 200));
   return id;
+}
+
+// Pull the video URL out of a completed job — result shapes vary a little
+// between models, so check the likely fields rather than one.
+function videoUrlOf(result) {
+  if (!result) return null;
+  return result.video_url || result.videoUrl || result.url
+    || (Array.isArray(result.videos) && result.videos[0])
+    || (Array.isArray(result.output) && result.output[0])
+    || (typeof result.video === 'string' ? result.video : null);
 }
 
 // Mirror a finished clip to Firebase (APIFRAME/CDN URLs can expire).
@@ -197,8 +187,8 @@ router.get('/status', (req, res) => {
 });
 
 // POST /video — start a Seedance video generation (image-to-video or text-to-
-// video). Body: { prompt, imageUrl?, model?, resolution?, duration?, aspectRatio? }.
-// Defaults are the cheapest tier: seedance-1.5-pro, 480p, 4s (4 credits ≈ $0.04).
+// video). Body: { prompt, imageUrl?, endImageUrl?, model?, resolution?,
+// cameraFixed?, seed? }. Defaults are the cheapest tier: seedance-1-lite, 480p.
 router.post('/video', async (req, res) => {
   try {
     const b = req.body || {};
@@ -210,21 +200,16 @@ router.post('/video', async (req, res) => {
   }
 });
 
-// GET /video-job/:id — poll a video generation (Pro API fetch). Statuses map
-// to the MJ route's vocabulary: finished → COMPLETED, failed → FAILED. When
-// COMPLETED, mirror the clip to Firebase (pass ?save=0 for the raw CDN URL).
+// GET /video-job/:id — poll a video generation. When COMPLETED, mirror the
+// clip to Firebase (pass ?save=0 for the raw CDN URL).
 router.get('/video-job/:id', async (req, res) => {
   try {
-    const j = await proApi('/fetch', { task_id: req.params.id });
-    const st = String(j.status || '').toLowerCase();
-    const status = st === 'finished' ? 'COMPLETED'
-      : (st === 'failed' || st === 'error') ? 'FAILED'
-      : (st || 'PROCESSING').toUpperCase();
-    let video = j.video_url || j.videoUrl || null;
-    if (status === 'COMPLETED' && video && req.query.save !== '0') {
+    const j = await api(`/jobs/${req.params.id}`);
+    let video = videoUrlOf(j.result);
+    if (j.status === 'COMPLETED' && video && req.query.save !== '0') {
       video = await saveVideoToFirebase(video);
     }
-    res.json({ id: req.params.id, status, video, percentage: j.percentage, raw: j });
+    res.json({ id: req.params.id, status: j.status, video, raw: j });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }
