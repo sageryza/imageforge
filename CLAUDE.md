@@ -662,6 +662,11 @@ lifted into a standalone tool later.
     first-run calibration pass against MJ's live DOM (it logs what it finds).
 
 ## Movies (the newest medium — iOS is the frontend)
+- **Making one of Sophie's concept videos? Read
+  `docs/movies/sophies-movie-pipeline.md` FIRST** — her own recorded
+  instructions (Aug 2026): voiceover aligned via the NDE precise cutter,
+  images in pastel variant V2 at 2:3 portrait, and her literal-image →
+  metaphorical-image formula with animation between the two panels.
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
   a July 2026 prototyping run (~$1.35 for a 12-scene film with dream bridges).
   **No web page** — the native iOS app (`ios/`, Movies tab) is the frontend.
