@@ -1759,6 +1759,33 @@ lifted into a standalone tool later.
   re-dispatch from your branch (`imageforge_ref` input) if a main build
   buries it.
 
+## Scratch Pad (stage ONE of a story — before the Story Room)
+- `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by
+  `scripts/gen-scratchpad.py`) — thinking with pictures before the Story Room
+  (stage two) makes it a board; a stage ZERO is planned but not designed.
+  Sophie hearts images in the Playground; those hearts ARE the pad's inbox
+  (read live from `forge-promptlab` votes — nothing is copied, un-hearting
+  removes it). Top-right button → popup of hearted thumbnails 4 to a row →
+  tap one → it lands on the pad as a beat in a thin gray frame; with beats
+  already down, dashed slots appear (front / between / behind) and she taps
+  where it goes. Tapping a beat opens a popup: the picture big + five bare
+  color chips (gray/mustard/green/blue/pink) that set the FRAME color.
+  Regenerate/versions will live in that popup later (deliberately unbuilt;
+  design flexible — all versions same size, ordered by recency).
+- **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
+  place for thinking on paper, so it is MINIMAL. The frame colors are
+  deliberately UNLABELLED indicators — never write "example"/"explanation"/
+  etc. anywhere; the color skips left-brain labeling by design. No machinery
+  on the pad itself (finished artwork only — no draw/redraw buttons on the
+  canvas; everything operational lives in popups or off-canvas). Iterating
+  fast on this module with her is expected — check the chat before assuming
+  the current shape is settled.
+- Data: ONE doc `forge-scratchpad/pad` (deckfactory) — `{ beats:[{id, url,
+  color, src:{runId,i,prompt,model,engine,quality}, addedAt}] }`; `src` is
+  carried so the later regenerate knows how each image was made. Routes:
+  `GET /` (pad), `GET /inbox`, `POST /add {url, at?, src?}`,
+  `POST /color {id, color|null}`. STUDIO_TOKEN gate, only `/status` open.
+
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
   Its style is settled (Aug 2026) and the headline rule is counter-intuitive:
