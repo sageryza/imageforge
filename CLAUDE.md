@@ -1179,6 +1179,20 @@ lifted into a standalone tool later.
   keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
+- **School art is served as WEBP, never the PNG originals (Aug 2026).** Every
+  card `witch-school-cards.js` writes is a 1024² PNG at ~1MB, and that was the
+  whole reason the Lessons tab crawled: five ~1.1MB covers on the tab, one
+  lesson's deck ~10MB, plus a boot preload of the first card of all 16 lessons
+  (~16MB) that started on the HOME screen and queued ahead of the tab you'd just
+  opened. `scripts/witch-school-webp.js` writes a same-size webp beside each PNG
+  (~50KB, ~22× smaller — no downscaling, so nothing is lost) with a ONE YEAR
+  immutable cache header (the PNGs come back `max-age=3600`, so a repeat visit
+  re-downloaded everything). `SW_IMG` points at `witch-school/webp/` and every
+  reference uses `SW_EXT`, never a hard-coded `.png`. The preload now waits for
+  the School tab instead of firing at boot. **After adding new cards, run the
+  converter, then `scripts/witch-school-webp-verify.js` BEFORE deploying** — the
+  page has no PNG fallback by design (a fallback would re-download the megabyte
+  this removes), so a missing webp is a broken picture in a live lesson.
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
