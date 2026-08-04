@@ -1656,6 +1656,14 @@ lifted into a standalone tool later.
   buries it.
 
 ## Story Room (forge-story) — THE story surface (merged July 2026)
+- **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
+  Its style is settled (Aug 2026) and the headline rule is counter-intuitive:
+  **write NO style description at all** — attach `refs/evan-film-style.png` and
+  say only to use it as a style reference, not its content, colors not required.
+  Written style blocks were tested and rejected. gpt-image-2 edits, quality
+  **medium** (not high), **1024x1536** portrait. Evan's locked character
+  reference is `refs/evan-character.png`.
+
 The three old story features — native Story Boards, the Story Room page, and
 the `stories.js`/`forge-stories` saved-text library — are ONE surface now: the
 **Story Room** (`/storyroom`, live web page; iOS tile "Story Room" =
