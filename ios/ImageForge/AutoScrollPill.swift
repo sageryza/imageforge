@@ -44,10 +44,23 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
 
     func toggle() { playing ? stop() : start(direction == 0 ? 1 : direction) }
 
+    /// Room left to travel in a direction — the same bounds `tick` stops at.
+    private static func hasRoom(_ sv: UIScrollView, _ dir: Double) -> Bool {
+        let minY = -sv.adjustedContentInset.top
+        let maxY = max(minY, sv.contentSize.height + sv.adjustedContentInset.bottom - sv.bounds.height)
+        return dir > 0 ? sv.contentOffset.y < maxY - 1 : sv.contentOffset.y > minY + 1
+    }
+
     func start(_ dir: Double) {
-        direction = dir
-        target = Self.findScrollView()
-        guard target != nil else { return }
+        guard let sv = Self.findScrollView() else { return }
+        // Play at an end of the page used to do nothing at all: autoscroll
+        // remembers the direction it stopped in, so after riding UP to the top
+        // the next play still meant "up" and there was nowhere to go. A
+        // direction with no room flips to the one that has room.
+        var d = dir
+        if !Self.hasRoom(sv, d), Self.hasRoom(sv, -d) { d = -d }
+        direction = d
+        target = sv
         playing = true
         lastTime = nil
         link?.invalidate()

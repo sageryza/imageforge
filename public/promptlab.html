@@ -1,18 +1,28 @@
 <!doctype html><html><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prompt Lab</title>
+<title>Playground</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
   body { font-family: -apple-system, "Helvetica Neue", sans-serif; background: #faf7f2; color: #2b2622; padding: 14px 12px 60px; }
   h1 { font-size: 20px; margin-bottom: 10px; }
+  /* In the app the native nav bar already says Playground — never two titles. */
+  body.native h1 { display: none; }
   .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
-  textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 15px; background: #fdfcf9; resize: vertical; }
+  .styles { display: flex; gap: 8px; margin-bottom: 10px; }
+  .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
+  .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
+  /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
+  textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 16px; background: #fdfcf9; resize: vertical; }
   .shape { font-size: 11.5px; color: #8a8177; margin: 6px 0 10px; }
   .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; }
   .controls { display: flex; align-items: center; gap: 10px; }
   .controls label { font-size: 12.5px; color: #6f675e; }
-  input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 15px; background: #fdfcf9; }
+  .xthree { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
+  .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
+  .seedbtn svg { width: 19px; height: 19px; }
+  .seedtag { font-size: 11.5px; color: #6f675e; }
+  input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
@@ -21,22 +31,37 @@
   .runhead .p { font-size: 14px; font-weight: 600; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  .grid img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .cell { position: relative; }
+  .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .badge.like { background: #c25a72; color: #fff; }
+  .badge.dislike { background: #9a938a; color: #fff; }
+  .badge svg { width: 12px; height: 12px; }
   .pending { font-size: 13px; color: #6f675e; background: #f6f1e9; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; }
+  .pending b { color: #2b2622; font-weight: 600; }
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
   #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
   #lb.on { display: flex; }
-  #lb img { max-width: 100%; max-height: 84vh; border-radius: 6px; }
+  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
   #lb .cap { color: #ddd; font-size: 13px; margin-top: 10px; text-align: center; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
+  .lbbtn svg { width: 21px; height: 21px; }
+  .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
 </style></head><body>
-<h1>Prompt Lab</h1>
+<h1>Playground</h1>
 
 <div class="panel">
+  <div class="styles" id="styles"></div>
   <textarea id="prompt"></textarea>
-  <div class="shape">Sent as: <code>wtr <span id="echo">your words</span>. White background</code></div>
+  <div class="shape">Sent as: <code id="shape"></code></div>
   <div class="controls">
     <label>LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
+    <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
+    <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
+    <span class="seedtag" id="seedtag"></span>
     <button class="go" id="go" onclick="go()">Generate</button>
   </div>
   <div class="err" id="err" hidden></div>
@@ -45,49 +70,150 @@
 <div id="pendings"></div>
 <div id="runs"></div>
 
-<div id="lb" onclick="closeLB()"><img id="lbimg" src=""><div class="cap" id="lbcap"></div></div>
+<div id="lb">
+  <img id="lbimg" src="">
+  <div class="cap" id="lbcap"></div>
+  <div class="lbbtns">
+    <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
+    <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
+    <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
+  </div>
+</div>
 <script>
   var LSKEY = 'promptlab_pending';
   var timer = null;
   var swapTimer = null;
-  var swapping = {};   // id -> true while a 'ready' run waits for permanent urls
+  var swapping = {};      // id -> true while a 'ready' run waits for permanent urls
+  var runsById = {};      // id -> run doc from the last list load
+  var lbCur = null;       // { id, i } while the lightbox is open
 
-  document.getElementById('prompt').addEventListener('input', function () {
-    var v = this.value.trim().replace(/\.+$/, '');
-    document.getElementById('echo').textContent = v || 'your words';
-  });
+  // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
+  var ICONS = {
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+  };
+  document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
-  function pendingIds() {
-    try { return JSON.parse(localStorage.getItem(LSKEY) || '[]'); } catch (e) { return []; }
+  // The seed: starts at 85 (the test convention), the sprout button steps it
+  // up one — it only SETS the seed, Generate still fires the run. Persisted so
+  // a reload keeps the seed you were on; the little number keeps it visible.
+  function curSeed() {
+    var s = parseInt(localStorage.getItem('promptlab_seed') || '85', 10);
+    return Number.isFinite(s) ? s : 85;
   }
-  function setPending(ids) { localStorage.setItem(LSKEY, JSON.stringify(ids)); }
+  function showSeed() { document.getElementById('seedtag').textContent = 'seed ' + curSeed(); }
+  document.getElementById('seedbtn').addEventListener('click', function () {
+    localStorage.setItem('promptlab_seed', String(curSeed() + 1));
+    showSeed();
+  });
+  showSeed();
+  document.getElementById('lblike').innerHTML = ICONS.heart;
+  document.getElementById('lbx').innerHTML = ICONS.x;
+  document.getElementById('lbsave').innerHTML = ICONS.download;
 
-  function go() {
+  // The styles on offer. The server owns the real presets (trigger word,
+  // baked suffix, steps — HOONIE gets 40 automatically); `suffix` here is the
+  // page-level tail: Watercolor keeps the "White background" convention,
+  // Hoonie sends none because its baked suffix already ends in one.
+  var STYLES = {
+    watercolor: { model: 'sageryza/watercolordrawings', label: 'Watercolor',
+                  trigger: 'wtr', suffix: 'White background', baked: '' },
+    hoonie:     { model: 'sageryza/hoonie', label: 'Hoonie linocut',
+                  trigger: 'HOONIE', suffix: '', baked: 'linocut relief print, white background' },
+  };
+  var styleKey = localStorage.getItem('promptlab_style');
+  if (!STYLES[styleKey]) styleKey = 'watercolor';
+
+  function renderStyles() {
+    document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
+      return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
+        STYLES[k].label + '</button>';
+    }).join('');
+  }
+  function setStyle(k) {
+    styleKey = k;
+    localStorage.setItem('promptlab_style', k);
+    renderStyles(); updateShape();
+  }
+  function styleLabelFor(model) {
+    for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
+    return model ? model.split('/').pop() : '';
+  }
+
+  function updateShape() {
+    var S = STYLES[styleKey];
+    var v = document.getElementById('prompt').value.trim().replace(/\.+$/, '') || 'your words';
+    var tail = [S.baked, S.suffix].filter(Boolean).join(', ');
+    document.getElementById('shape').textContent = S.trigger + ' ' + v + '.' + (tail ? ' ' + tail : '');
+  }
+  document.getElementById('prompt').addEventListener('input', updateShape);
+
+  // Pending entries carry what's being drawn so the card can say so.
+  // Older saved entries may be plain id strings — normalize on read.
+  function pendingList() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(LSKEY) || '[]');
+      return arr.map(function (e) { return typeof e === 'string' ? { id: e } : e; });
+    } catch (e) { return []; }
+  }
+  function setPending(list) { localStorage.setItem(LSKEY, JSON.stringify(list)); }
+
+  function startRun(scale) {
     var prompt = document.getElementById('prompt').value.trim();
-    var scale = parseFloat(document.getElementById('scale').value) || 1;
-    var err = document.getElementById('err');
-    err.hidden = true;
-    if (!prompt) { err.textContent = 'Type a prompt first.'; err.hidden = false; return; }
-    var btn = document.getElementById('go');
-    btn.disabled = true;
-    fetch('/api/promptlab', {
+    var S = STYLES[styleKey];
+    var seed = curSeed();
+    return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, lora_scale: scale }),
+      body: JSON.stringify({ prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed }),
     }).then(function (r) { return r.json(); }).then(function (d) {
-      btn.disabled = false;
-      if (!d.id) { err.textContent = d.error || 'Could not start.'; err.hidden = false; return; }
-      var ids = pendingIds(); ids.push(d.id); setPending(ids);
+      if (!d.id) throw new Error(d.error || 'Could not start.');
+      var list = pendingList();
+      list.push({ id: d.id, prompt: prompt, scale: scale, style: S.label, seed: seed });
+      setPending(list);
       renderPendings(); startPolling();
-    }).catch(function (e) {
-      btn.disabled = false;
-      err.textContent = 'Network error — try again.'; err.hidden = false;
     });
   }
 
+  function checkPrompt() {
+    var err = document.getElementById('err');
+    err.hidden = true;
+    if (!document.getElementById('prompt').value.trim()) {
+      err.textContent = 'Type a prompt first.'; err.hidden = false; return false;
+    }
+    return true;
+  }
+  function showErr(e) {
+    var err = document.getElementById('err');
+    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+  }
+
+  function go() {
+    if (!checkPrompt()) return;
+    var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+  }
+
+  // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
+  document.getElementById('xthree').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    var btn = document.getElementById('xthree');
+    btn.disabled = true;
+    Promise.all([1, 1.2, 1.4].map(function (s) { return startRun(s).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  });
+
   function renderPendings() {
-    var ids = pendingIds();
-    document.getElementById('pendings').innerHTML = ids.map(function () {
-      return '<div class="pending">Drawing… about half a minute. You can leave — it keeps going.</div>';
+    var list = pendingList();
+    document.getElementById('pendings').innerHTML = list.map(function (p) {
+      var what = p.prompt
+        ? '<b>“' + esc(p.prompt) + '”</b> · ' + esc(p.style || '') + ' · scale ' + p.scale +
+          (p.seed ? ' · seed ' + p.seed : '')
+        : 'Drawing…';
+      return '<div class="pending">' + what + ' — drawing… You can leave, it keeps going.</div>';
     }).join('');
   }
 
@@ -100,13 +226,13 @@
   // A run shows the moment the model finishes ('ready', Replicate's own
   // links); the permanent Storage copies swap in quietly when 'done'.
   function poll() {
-    var ids = pendingIds();
-    if (!ids.length) { clearInterval(timer); timer = null; renderPendings(); return; }
-    ids.forEach(function (id) {
-      fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
+    var list = pendingList();
+    if (!list.length) { clearInterval(timer); timer = null; renderPendings(); return; }
+    list.forEach(function (p) {
+      fetch('/api/promptlab/' + p.id).then(function (r) { return r.json(); }).then(function (d) {
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed') {
-          setPending(pendingIds().filter(function (x) { return x !== id; }));
-          if (d.status === 'ready') { swapping[id] = true; startSwapPolling(); }
+          setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
+          if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
           renderPendings(); loadRuns();
         }
       }).catch(function () {});
@@ -126,41 +252,120 @@
     }, 5000);
   }
 
+  function runImages(r) {
+    return (r.images && r.images.length) ? r.images : (r.tempImages || []);
+  }
+
   function loadRuns() {
     fetch('/api/promptlab?limit=40').then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
+      runsById = {};
       document.getElementById('runs').innerHTML = runs.map(function (r) {
+        runsById[r.id] = r;
         if (r.status === 'failed') {
           return '<div class="run"><div class="runhead"><span class="p failed">' + esc(r.prompt) + '</span>' +
             '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
         }
-        var imgs = (r.images && r.images.length) ? r.images : (r.tempImages || []);
-        var cap = esc(r.prompt) + ' · scale ' + r.loraScale;
+        var label = styleLabelFor(r.model);
+        var votes = r.votes || {};
         return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
-          '<span class="tag">scale ' + r.loraScale + '</span></div>' +
-          '<div class="grid">' + imgs.map(function (u, i) {
-            return '<img src="' + u + '" loading="lazy" onclick="openLB(\'' + u + '\',\'' + cap.replace(/'/g, "\\'") + ' · image ' + (i + 1) + '\')">';
+          '<span class="tag">' + label + '</span><span class="tag">scale ' + r.loraScale + '</span>' +
+          (r.seed != null ? '<span class="tag">seed ' + r.seed + '</span>' : '') + '</div>' +
+          '<div class="grid">' + runImages(r).map(function (u, i) {
+            var v = votes[i];
+            var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
+            return '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
           }).join('') + '</div></div>';
       }).join('');
     }).catch(function () {});
   }
 
+  // One delegated handler for every tile.
+  document.getElementById('runs').addEventListener('click', function (e) {
+    var img = e.target.closest('img[data-run]');
+    if (!img) return;
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+  });
+
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function openLB(u, cap) {
-    document.getElementById('lbimg').src = u;
-    document.getElementById('lbcap').textContent = cap;
+  function openLB(id, i) {
+    var r = runsById[id];
+    if (!r) return;
+    // Opening an image freezes the page behind it (design rule): the shared
+    // autoscroll pill stops, not just the background scroll lock — otherwise
+    // it keeps running under the lightbox and the page has moved on by the
+    // time the image is closed.
+    if (window.__scrollStop) window.__scrollStop();
+    lbCur = { id: id, i: i };
+    document.getElementById('lbimg').src = runImages(r)[i];
+    document.getElementById('lbcap').textContent =
+      r.prompt + ' · ' + styleLabelFor(r.model) + ' · scale ' + r.loraScale +
+      (r.seed != null ? ' · seed ' + r.seed : '') + ' · image ' + (i + 1);
+    syncLbVotes();
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
   }
   function closeLB() {
+    lbCur = null;
     document.getElementById('lb').classList.remove('on');
     document.body.style.overflow = '';
   }
+  document.getElementById('lb').addEventListener('click', function (e) {
+    if (e.target.closest('.lbbtn')) return;   // buttons handle themselves
+    closeLB();
+  });
 
-  loadRuns();
-  if (pendingIds().length) { renderPendings(); startPolling(); }
+  function syncLbVotes() {
+    if (!lbCur) return;
+    var votes = (runsById[lbCur.id] || {}).votes || {};
+    document.getElementById('lblike').classList.toggle('on', votes[lbCur.i] === 'like');
+    document.getElementById('lbx').classList.toggle('on', votes[lbCur.i] === 'dislike');
+  }
+
+  function vote(kind) {
+    if (!lbCur) return;
+    var r = runsById[lbCur.id];
+    var votes = r.votes = r.votes || {};
+    var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
+    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    syncLbVotes();
+    fetch('/api/promptlab/' + lbCur.id + '/vote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: lbCur.i, vote: next || '' }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
+  document.getElementById('lblike').addEventListener('click', function () { vote('like'); });
+  document.getElementById('lbx').addEventListener('click', function () { vote('dislike'); });
+
+  // Save to Photos: share the image file so iOS offers "Save Image". Where the
+  // share sheet isn't available, fall back to a plain download.
+  document.getElementById('lbsave').addEventListener('click', function () {
+    if (!lbCur) return;
+    var url = document.getElementById('lbimg').src;
+    fetch(url).then(function (r) { return r.blob(); }).then(function (blob) {
+      var file = new File([blob], 'playground.webp', { type: blob.type || 'image/webp' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file] }).catch(function () {});
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'playground.webp';
+      document.body.appendChild(a); a.click(); a.remove();
+    }).catch(function () {});
+  });
+
+  // The app's nav-bar chevron asks the page first: close the lightbox if it's
+  // open, else let the app leave the tool.
+  window.__navBack = function () {
+    if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
+    return false;
+  };
+
+  if (window.__nativeNavBar) document.body.classList.add('native');
+  renderStyles(); updateShape(); loadRuns();
+  if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

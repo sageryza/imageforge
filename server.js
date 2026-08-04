@@ -614,10 +614,12 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
-// Prompt Lab: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
-// runs, background jobs on /api/promptlab). A real route so the iOS app can
-// wrap it in a WKWebView tile later, same pattern as /writing and /editor.
-app.get('/promptlab', serveGated('promptlab.html'));
+// Playground: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
+// runs, background jobs on /api/promptlab), iOS tile "Playground"
+// (PlaygroundView.swift wraps /playground, same pattern as /writing and
+// /editor). /promptlab is the original alias, kept for links already shared.
+app.get('/playground', serveGated('promptlab.html', { pill: true }));
+app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
@@ -1259,27 +1261,72 @@ app.post('/api/journal/upload-file', express.raw({ type: () => true, limit: '120
     const name = String(req.query.filename || '').replace(/[/\\]/g, '_').trim()
       || ('scan-' + Date.now() + '.pdf');
     const bucket = storyApp.storage().bucket();
+    const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
+
+    // Two dedupe rules together (Aug 2026): same NAME overwrites (a re-export
+    // replaces its older self), same BYTES under a different name is skipped
+    // (the exact file can't land twice). Hashing is free — md5 of the body
+    // here, and GCS already keeps an md5 on every stored object, so records
+    // that predate the hash field heal from object metadata, no downloads.
+    const hash = require('crypto').createHash('md5').update(req.body).digest('hex');
+    const all = {};
+    try {
+      const [buf] = await mf.download();
+      JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
+    } catch (e) { /* first scan ever — start a fresh index */ }
+    let healed = false;
+    for (const r of Object.values(all)) {
+      if (r.hash) continue;
+      try {
+        const [meta] = await bucket.file(`${JOURNAL_FOLDER}/${r.name}`).getMetadata();
+        if (meta.md5Hash) { r.hash = Buffer.from(meta.md5Hash, 'base64').toString('hex'); healed = true; }
+      } catch (e) { /* object missing — leave the record unhashed */ }
+    }
+    const dup = Object.values(all).find((r) => r.hash === hash);
+    if (dup) {
+      // keep any healing we just learned, then answer without storing twice
+      if (healed) {
+        const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false }).catch(() => {});
+      }
+      return res.json({ ok: true, duplicate: true, name: dup.name, size: dup.size });
+    }
+
     await bucket.file(`${JOURNAL_FOLDER}/${name}`).save(req.body, {
       contentType: req.get('content-type') || 'application/pdf', resumable: false,
     });
-    // Manifest merge, matching the app's JournalScanRecord shape exactly:
-    // { month?, name, size, url, uploadedAt (seconds) } — newest wins by name.
-    const rec = {
+    // Manifest merge, matching the app's JournalScanRecord shape (the app's
+    // decoder ignores the extra hash field): newest wins by name.
+    all[name] = {
       month: journalMonthGuess(name), name, size: req.body.length,
-      url: '', uploadedAt: Date.now() / 1000,
+      url: '', uploadedAt: Date.now() / 1000, hash,
     };
     try {
-      const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
-      const all = {};
-      try {
-        const [buf] = await mf.download();
-        JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
-      } catch (e) { /* first scan ever — start a fresh index */ }
-      all[name] = rec;
       const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
       await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false });
     } catch (e) { console.error('journal manifest merge failed:', e.message); }
     res.json({ ok: true, name, size: req.body.length });
+
+    // ── background: a COVER for the shelf — page 1 rendered at ~500px wide,
+    // true aspect, stored PRIVATE beside the scans (mupdf WASM, no native
+    // deps). Bodies over 40MB skip the render (memory on the free instance);
+    // a chat backfills those with `node scripts/journal-thumbs.js`.
+    if (req.body.length <= 40 * 1024 * 1024) {
+      const body = req.body;
+      (async () => {
+        try {
+          const mupdf = await import('mupdf');
+          const doc = mupdf.Document.openDocument(body, 'application/pdf');
+          const page = doc.loadPage(0);
+          const b = page.getBounds();
+          const zoom = 500 / Math.max(1, b[2] - b[0]);
+          const pix = page.toPixmap(mupdf.Matrix.scale(zoom, zoom), mupdf.ColorSpace.DeviceRGB, false, true);
+          await bucket.file(`${JOURNAL_FOLDER}/thumbs/${name}.png`).save(Buffer.from(pix.asPNG()), {
+            contentType: 'image/png', resumable: false,
+          });
+        } catch (e) { console.error('journal thumb failed:', e.message); }
+      })();
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2118,7 +2165,12 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
 // One image: { chat, url, style, content }. A whole backfill in one call:
 // { chat, items:[{url, style, content}, …] }. Idempotent — re-posting the same
 // url overwrites that image's split, and an empty string clears a side.
-const ASSET_PROMPT_MAX = 1500;
+// A truncated prompt is a WRONG prompt — the whole point of the split is that
+// it is the exact text the model was sent. The cap used to be 1500 and silently
+// sliced, which quietly filed a chopped-off style block against real images. So
+// the ceiling is generous enough for a full style prompt, and over-length is
+// REFUSED rather than trimmed (same rule the note thread already follows).
+const ASSET_PROMPT_MAX = 6000;
 app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -2129,7 +2181,7 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
     if (!chatName) return res.status(400).json({ error: 'chat required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const list = Array.isArray(items) && items.length ? items : [req.body || {}];
-    const clean = (v) => String(v == null ? '' : v).trim().slice(0, ASSET_PROMPT_MAX);
+    const clean = (v) => String(v == null ? '' : v).trim();
     const acol = admin.firestore().collection('forge-chat-assets');
     const del = admin.firestore.FieldValue.delete();
     const results = [];
@@ -2142,8 +2194,22 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
       // A side is only touched when it was sent, so posting just the content
       // later never wipes a style filed earlier.
       const patch = {};
-      if (raw.style !== undefined) patch.promptStyle = clean(raw.style) || del;
-      if (raw.content !== undefined) patch.promptContent = clean(raw.content) || del;
+      const over = [];
+      if (raw.style !== undefined) {
+        const s = clean(raw.style);
+        if (s.length > ASSET_PROMPT_MAX) over.push('style (' + s.length + ')');
+        else patch.promptStyle = s || del;
+      }
+      if (raw.content !== undefined) {
+        const c = clean(raw.content);
+        if (c.length > ASSET_PROMPT_MAX) over.push('content (' + c.length + ')');
+        else patch.promptContent = c || del;
+      }
+      if (over.length) {
+        results.push({ url, ok: false,
+          error: over.join(' and ') + ' over ' + ASSET_PROMPT_MAX + ' chars — refused, not truncated' });
+        continue;
+      }
       if (!Object.keys(patch).length) {
         results.push({ url, ok: false, error: 'style or content required' });
         continue;
@@ -3240,8 +3306,7 @@ Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT ment
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
-  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today"
 }`;
     const tarotUser = `Date: ${date}.
 Their daily 3-card tarot pull (past / present / future):
@@ -3359,6 +3424,9 @@ Write the deeper page now.`;
 let TAROT_DECK = null;
 try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* manifest optional */ }
 app.get('/api/witch/tarot-deck', (req, res) => {
+  // Committed static data — cache it like the readings corpus so a repeat open
+  // doesn't re-fetch the map before it can show a flipped card's real art.
+  res.set('Cache-Control', 'public, max-age=3600');
   if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
   res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
 });
@@ -3460,8 +3528,7 @@ They did not ask anything specific, so read the spread as a general reading of w
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "...", "meaning": "1-2 sentences for this card in this position and orientation" } ],
-  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}"
 }
 Give one "cards" entry per card drawn, in the order given, with the position copied exactly.`;
         const userMsg = `Spread: ${spreadName}.${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}
@@ -3530,6 +3597,10 @@ function shopWords(t) {
 const SHOP_NAME_OVERRIDES = { // handle -> nice one-line name
   'labradorite-choose-exact-crystal-67898': 'Labradorite Crystal',
   'fluorite-wand-point-crystal-mineral-86535': 'Fluorite Wand Point',
+  // Both card sets shorten to plain "Witchcraft Cards", which read as the same
+  // product twice in the Cards tab. Only the newer one is renamed, so the
+  // long-standing listing keeps the name it has always had.
+  'witchcraft-cards-233495': 'Witchcraft Cards — Set of 4',
 };
 function shopShortName(title, handle) {
   if (handle && SHOP_NAME_OVERRIDES[handle]) return SHOP_NAME_OVERRIDES[handle];
@@ -3560,6 +3631,31 @@ const SHOP_CATEGORIES = [
   { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
   { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
 ];
+// ─── The head of the shelf (Sophie's picks, Aug 2026) ───────────────
+// Everything else is ordered by Etsy's `featured_rank`, but Etsy has NO API for
+// it — updateListing cannot write featured_rank — so the handful she wants up
+// front is pinned here by handle instead. Anything not listed keeps its Etsy
+// order behind them, and this changes the APP's shelf only; Etsy's own shop
+// order still has to be dragged in Etsy.
+// The Cards tab is this same list filtered, so a card's place here IS its place
+// there: Magic Rituals sits above the apothecary/mineralogy set so that it
+// leads the Cards tab (Sophie: "at the top of the cards tab, the first one"),
+// which costs that set one place in All.
+const SHOP_PINNED = [
+  'huge-witchcraft-kit-witch-alter-sets-86658',      // Witchcraft Kit
+  'witchy-essential-43160',                          // Witchy Essential Oils
+  'witchcraft-apothecary-w-mortar-and-54053',        // the apothecary kit
+  'magic-rituals-card-deck-217746',                  // first card in the Cards tab
+  'witchcraft-cards-apothecary-crystal-19221',       // apothecary + mineralogy, set of 2
+  'boo-boo-doll-healing-witchcraft-magic-kiss-band-aid-457217',  // near the top, not at it
+];
+function shopApplyPins(products) {
+  const rank = new Map(SHOP_PINNED.map((h, i) => [h, i]));
+  const pinned = [], rest = [];
+  for (const p of products) (rank.has(p.handle) ? pinned : rest).push(p);
+  pinned.sort((a, b) => rank.get(a.handle) - rank.get(b.handle));
+  return pinned.concat(rest);
+}
 // Evaluation order — deliberately NOT the display order above. Changing how
 // the bar reads must never change which bucket a product lands in.
 const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
@@ -3703,6 +3799,9 @@ async function buildShopPayload(debug) {
       products = products.map(p => ({ ...p, title: shopShortName(p.title, p.handle), fullTitle: p.title }));
       if (debug) dbg = { error: e.message };
     }
+
+    // Sophie's pinned picks lead the shelf, whatever Etsy's featured order said.
+    products = shopApplyPins(products);
 
     // Tag each product with its category, and report only the categories that
     // actually have stock so the filter bar never shows an empty tab.
@@ -4223,6 +4322,25 @@ app.get('/api/promptlab/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
     const d = snap.data();
     res.json({ ...d, createdAt: d.createdAt?.toMillis?.() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ♥/✕ on one image of a run (votes: { <imageIndex>: 'like'|'dislike' } on the
+// doc). Sending the same vote again clears it — the page's toggles.
+app.post('/api/promptlab/:id/vote', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const i = Number(req.body.image);
+    if (!Number.isInteger(i) || i < 0 || i > 3) return res.status(400).json({ error: 'image index 0-3 required' });
+    const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
+    res.json({ ok: true, image: i, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

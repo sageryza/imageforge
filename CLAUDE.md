@@ -1205,6 +1205,45 @@ lifted into a standalone tool later.
     `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
+- **Synchronicities order by SLOT, not by timestamp (Aug 2026).** A day's
+  coincidences in the Book of Shadows read in the order Sophie WROTE them —
+  Home's three boxes are slots 0-1-2, anything added later from inside the book
+  takes 3, 4, … Timestamps record when each DRAWING finished and disagree
+  constantly (a box typed first can be drawn hours later; a redraw restamps its
+  entry), which is what had 24 July reading box 1, 0, 2 in the book while Home
+  showed 0, 1, 2. `syncSlotOf()` reads the slot off the archive id
+  (`coin_<day>_<i>`) or an explicit `slot` field. `newestFirst` now reverses the
+  DAYS only — inside a day the order never flips.
+- **Moments can be added from inside the book, not just Home (Aug 2026).** An
+  empty cell on a Synchronicities page IS a Home coincidence box — same square,
+  same border, same place in the grid, contenteditable, with "Draw it!" under it
+  where the caption goes. NOT a dashed placeholder and NOT an "Add a moment"
+  label (both shipped once and Sophie rejected them: "go look at what it looks
+  like on the home screen"). A day that exactly fills a page turns onto a fresh
+  blank page of four more boxes, the way paper does. Two gotchas: the book
+  stage's tap-to-turn handler must skip `[contenteditable="true"]` or a tap into
+  the box turns the page instead of focusing it, and text typed but not yet
+  drawn lives in `syncDrafts` so a repaint can't eat it. The pending job lives
+  in `witch_sync_jobs`
+  (localStorage, deliberately NOT cloud-synced — a half-finished draw is one
+  device's business); `resumeSyncJobs()` picks it up on return, same as the Home
+  boxes. A moment added to an old day is stamped at that day's noon so it can't
+  hijack "the newest page".
+- **The book shows a moment in HER OWN WORDS, three lines (Aug 2026).** The
+  short AI label is the HOME screen's caption; on a book page (two columns, room
+  to spare) showing only the label threw most of what she wrote away. The cap is
+  `-webkit-line-clamp: 3` over `desc`, and `more…` is appended AFTER layout only
+  where the clamp really cut the text — and OUTSIDE the cap, since a
+  line-clamp box clips anything following the clamped text. `more…` is not
+  underlined.
+- **A saved bookmark can carry a word to its left** (`.bm-save.has-lbl` +
+  `.bm-lbl`, hidden until `.filled`) — the tarot one says "see in book", so the
+  second tap (jump to the page in the book) isn't a secret. Opt-in per bookmark:
+  only markup that includes the span gets one.
+- **No "A gentle nudge" advice box on tarot readings (Aug 2026, Sophie).** The
+  reading ends on the reading. Removed from the saved-reading render and the
+  Ask-the-cards result, and from both server tarot prompts. Old saved readings
+  still carry an `advice` string on the doc; it is simply not rendered.
 - **The Shop tab sells IN the app (July 2026):** product bottom-sheet →
   cart → hand off to Shopify checkout only for the pay screen. Storefront
   API via server proxy — `GET /api/witch/shop/product/:handle`,
@@ -1220,17 +1259,41 @@ lifted into a standalone tool later.
   needs Sophie's `@handle` pasted in.
 
 ## Design rules (forever)
-- **One header pattern for every Deck Factory tool screen (Aug 2026).** Apply
-  `.forgeToolBar("<Tool title>")` (ForgeNavTitle.swift) on every tool root: the
-  eyebrow title in the nav bar + a back chevron top-left that returns to the
-  PREVIOUS screen (RootView keeps a screen history and injects `\.goBack`; the
-  bottom bar, home grid, corner icons, and deep links all feed it). Per-screen
-  actions go top-right. NO in-content `StarTitle` rows on tool roots (the Home
-  grid keeps the serif masthead) — an in-content title under the bar reads as
-  a double header with the title stranded mid-screen. Web-wrapped tools keep
-  the chevron native and ask their page first (`__navBack` steps one in-page
-  level), then step the web view's OWN history (`canGoBack` — how the
-  Characters page returns to the Story Room shelf), then leave the tool.
+- **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
+  decision — REVERSES the earlier "forgeToolBar on every tool root" rule for
+  web tools).** For any tool that is a WKWebView on a served page, the header
+  is built in the page's own HTML/CSS (the Chats/Writing Room pattern), NOT a
+  native SwiftUI bar. Two reasons, both Sophie's: full design control (the
+  rename pencil, Archive, tabs, toggles, search — none of it fits a native
+  bar) and shipping speed (a page header changes with a Render deploy; a
+  native bar needs a TestFlight build). The native wrapper stays a bare
+  WKWebView host — no `.forgeToolBar`, no in-app title on web tool roots.
+  - **One look, shared code.** Pages must still MATCH each other: build page
+    headers to one shared pattern the way the autoscroll pill is shared (ONE
+    source — `scripts/pill.py` — imported by every gen script / injected by
+    the server), not a fresh hand-rolled header per page. When adding or
+    changing a page header, reuse/extract the shared pieces (the eyebrow
+    title style, the back control, the pill-corner reservation) instead of
+    copying variants around. The Chats header is the reference look.
+  - **Reserve the pill's top-right corner on every header row** (see the
+    `/chats` section — `padding-right:56px`): with no native bar the page's
+    pill floats high over its own header, so no control may live in that
+    corner.
+  - **A page with inner levels draws its own back affordance** (Story Room's
+    in-page back row is the model). Where a native chevron exists on current
+    builds it asks the page first (`window.__navBack` steps one in-page
+    level, then the web view's own history via `canGoBack`, then leaves the
+    tool) — keep that contract working on pages that have it.
+  - **PURE-NATIVE tools (no web page — Test Station, Dump, Lessons, My
+    Creations, etc.) still use `.forgeToolBar("<Tool title>")`**
+    (ForgeNavTitle.swift): eyebrow title in the nav bar, back chevron
+    top-left to the PREVIOUS screen (RootView keeps the screen history and
+    injects `\.goBack`), per-screen actions top-right, NO in-content
+    `StarTitle` rows (the Home grid keeps the serif masthead). There's no
+    page to own a header there, so the native pattern stays right.
+  - Web tools that shipped WITH a native bar (Playground, Episode Editor,
+    Story Room's title/chevron) keep working as-is; move each to a
+    page-owned header at its next real redesign, not as churn.
 - **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
   to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
   button stays visible and taps do nothing. Every page that toggles the
