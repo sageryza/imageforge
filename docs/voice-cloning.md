@@ -82,3 +82,38 @@ UI hasn't already started it. Training itself runs 2–6 hours.
 
 Training chunks are archived at `voice-training/morning-2026-08/` in membry
 Storage, so the set can be re-uploaded without rebuilding it.
+
+## Instant clones (IVC) — the cheap path
+
+The Creator plan carries **30 instant-clone slots** alongside the single PVC
+slot (checked live Aug 2026: `voice_limit: 30`, `professional_voice_limit: 1`),
+so an instant clone costs nothing and never touches the trained voice. That is
+the right tool for trying a *register* — the on-camera voice, the tired voice,
+the reading voice — before deciding anything is worth the one PVC slot.
+
+Screening still applies. The same **-30 LUFS** floor from the section above is
+what separates a clone that sounds like her from one that sounds like a room:
+
+    ffmpeg -i clip.mov -af ebur128=peak=true -f null -
+
+**Phone videos fail that screen far more often than voice memos do** — the mic
+is an arm's length away instead of at her mouth. Of the five talking-to-camera
+videos banked as of Aug 2026, only two passed:
+
+- `IMG_9836` (dump, Aug 4) — -21.9 LUFS, 14s
+- `IMG_3429` (`lib` bundle, Jul 28) — -28.7 LUFS, 44s
+- `IMG_3210` -33.6, `lib-1` -35.3, `IMG_3201` **-59.8** — all failed; the last
+  is effectively inaudible.
+
+Prep is the same `scripts/prep-voice-training.sh` chain, then concatenate with
+0.3s of silence between clips and encode mono 192k mp3. Upload is a single
+multipart `POST /v1/voices/add` with `remove_background_noise=false` (same
+reasoning as the PVC — a denoiser smears timbre and the clone learns the smear).
+
+**Sophie — on camera (video audio, Aug 4)** = `9gQM1c8mBSukTkMzn6Eh`, built from
+those two clips (58s). Source and comparison renders are archived at
+`voice-training/on-camera-2026-08/` in membry Storage.
+
+ElevenLabs wants 1–3 minutes for an instant clone and treats ~30s as the floor,
+so 58s is thin — it clones, but the range is narrow. More usable video audio is
+the fix, not different processing.
