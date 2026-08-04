@@ -1179,6 +1179,14 @@ lifted into a standalone tool later.
   keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
+- **School + quiz art is served as WEBP, never the PNG originals (Aug 2026).**
+  `SW_IMG` points at `witch-school/webp/` and every reference goes through
+  `SW_EXT`, never a hard-coded `.png`; `QZ_IMG` is the SAME folder (the `qz-*`
+  quiz cards have always lived in `witch-school/assets/` — `witch-quiz/assets/`
+  is the videos). The lesson preload waits for the School tab instead of firing
+  at boot on the Home screen. **Anyone adding or replacing cards must run
+  `node scripts/webp-assets.js` and then `node scripts/webp-assets-verify.js`
+  BEFORE deploying** — see the image-weight rule under Design rules.
 - **Witch School lessons: the complete creation workflow is documented in
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
@@ -1338,6 +1346,35 @@ lifted into a standalone tool later.
   so she sees the whole thing in order in the Compare tab. Mentioning an image
   inline in prose is fine — the rule is that link dumps are not the delivery
   mechanism.
+- **NEVER serve a raw generated PNG to a page — ship webp display copies
+  (Aug 2026).** gpt-image-2 writes 1024² PNGs at **~1MB each**, and a page that
+  points straight at them is unusably slow on a phone. This was measured, not
+  guessed: the Witch School Lessons tab served five ~1.1MB PNGs as small tiles
+  (~5.8MB), one lesson's deck ran ~10MB, and the app preloaded the first card of
+  all 16 lessons **at boot on the HOME screen** (~16MB) so the tab you'd just
+  opened queued behind it. The same image as webp is ~50KB — **about 22×**.
+  - **`node scripts/webp-assets.js [set]`** converts a Storage folder into a
+    `…/webp/` folder beside it. It does **not resize** (the sources are already
+    display-sized, so the whole win is the format and nothing is lost), and it
+    uploads with a **one-year immutable** cache header — Firebase hands PNGs
+    back as `max-age=3600`, so a repeat visit re-downloaded everything. Safe
+    because a changed picture is a new id in these pipelines, never new bytes at
+    an existing name. The originals are never touched; the generators keep
+    writing them.
+  - **`node scripts/webp-assets-verify.js` is the deploy gate.** It collects
+    every image id the page can ask for and fails if any lacks a webp. There is
+    deliberately **no PNG fallback** (a fallback would re-download the megabyte
+    this removes), so a missing copy is a broken picture in a live lesson.
+  - **A page must reach its art through a base + extension constant**
+    (`SW_IMG` + `SW_EXT`), never a hard-coded `.png`, so one edit moves a whole
+    set.
+  - **Adding a new image set:** add it to `SETS` in `webp-assets.js`, add its
+    page constant to the verifier's id sweep, point the page at the webp folder,
+    run both scripts, then deploy. **Regenerating or replacing existing art:
+    re-run both scripts before deploying** — a new card with no webp is a
+    visibly broken picture.
+  - Same idea as `scripts/selfcare-thumbs.js`, which does this for the sticker
+    and stamp art.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
