@@ -62,23 +62,32 @@ def dur(path):
                       "-of", "csv=p=0", path]).stdout.strip())
 
 
-def tts(text, voice, out, whisper=True):
-    """One narration line, through the exact editor.js path."""
-    body = json.dumps({
-        "text": (PREFIX if whisper else "") + text,
-        "model_id": MODEL,
-        "voice_settings": SETTINGS,
-    }).encode()
+def tts(text, voice, out, whisper=True, plain=False, raw=False):
+    """One narration line. Default = the exact editor.js path. `plain` strips
+    the choices about how the narrator sounds (whisper tag, voice-settings
+    override, speed-up) and leaves only the loudness match, so a film still
+    mixes at the same level as the interview clips. `raw` keeps the untouched
+    bytes ElevenLabs returned — nothing applied at all."""
+    payload = {"text": ("" if plain else (PREFIX if whisper else "")) + text,
+               "model_id": MODEL}
+    if not plain:
+        payload["voice_settings"] = SETTINGS
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(
         f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128",
         data=body, headers={"xi-api-key": KEY, "content-type": "application/json",
                             "accept": "audio/mpeg"})
-    raw = out + ".raw.mp3"
-    with urllib.request.urlopen(req, timeout=180) as r, open(raw, "wb") as f:
+    tmp = out + ".raw.mp3"
+    with urllib.request.urlopen(req, timeout=180) as r, open(tmp, "wb") as f:
         f.write(r.read())
-    run(["ffmpeg", "-y", "-i", raw, "-af", f"atempo={TEMPO},loudnorm=I=-16:TP=-1.5:LRA=11",
+    if raw:
+        os.replace(tmp, out)
+        return out
+    chain = "loudnorm=I=-16:TP=-1.5:LRA=11" if plain else \
+            f"atempo={TEMPO},loudnorm=I=-16:TP=-1.5:LRA=11"
+    run(["ffmpeg", "-y", "-i", tmp, "-af", chain,
          "-ar", "44100", "-ac", "1", "-c:a", "libmp3lame", "-q:a", "2", out])
-    os.remove(raw)
+    os.remove(tmp)
     return out
 
 
@@ -87,6 +96,10 @@ def main():
     ap.add_argument("--voice", required=True)
     ap.add_argument("--tag", required=True, help="filename tag for this voice")
     ap.add_argument("--samples-only", action="store_true")
+    ap.add_argument("--plain", action="store_true",
+                    help="no whisper tag, no voice-settings override, no speed-up")
+    ap.add_argument("--raw", action="store_true",
+                    help="with --samples-only: no loudness match either — untouched bytes")
     ap.add_argument("--outdir", default=f"{EP}/revoice")
     args = ap.parse_args()
     if not KEY:
@@ -97,10 +110,15 @@ def main():
     # A/B samples: the opening line both ways, to sit beside the saved originals
     # (norm-n00-open.mp3 = old voice plain, norm-q00-open.mp3 = old voice whispered).
     text0 = LINES[0][1]
-    plain = tts(text0, args.voice, f"{O}/sample-{args.tag}-plain.mp3", whisper=False)
-    quiet = tts(text0, args.voice, f"{O}/sample-{args.tag}-quiet.mp3", whisper=True)
-    print(f"sample plain   {dur(plain):.2f}s  {plain}")
-    print(f"sample whisper {dur(quiet):.2f}s  {quiet}")
+    if args.plain:
+        one = tts(text0, args.voice, f"{O}/sample-{args.tag}.mp3",
+                  plain=True, raw=args.raw)
+        print(f"sample {'raw' if args.raw else 'plain'} {dur(one):.2f}s  {one}")
+    else:
+        plain = tts(text0, args.voice, f"{O}/sample-{args.tag}-plain.mp3", whisper=False)
+        quiet = tts(text0, args.voice, f"{O}/sample-{args.tag}-quiet.mp3", whisper=True)
+        print(f"sample plain   {dur(plain):.2f}s  {plain}")
+        print(f"sample whisper {dur(quiet):.2f}s  {quiet}")
     if args.samples_only:
         return
 
@@ -109,7 +127,7 @@ def main():
     for key, text in LINES:
         out = f"{O}/{args.tag}-{key}.mp3"
         if not os.path.exists(out):
-            tts(text, args.voice, out)
+            tts(text, args.voice, out, plain=args.plain)
         narr[key] = out
         print(f"  narration {key}: {dur(out):.2f}s (was {dur(f'{EP}/norm-{key}.mp3'):.2f}s)")
 
