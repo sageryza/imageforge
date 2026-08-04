@@ -4065,7 +4065,9 @@ async function loadHouseRef(storagePath) {
   return buf;
 }
 // Multi-reference gpt-image-2 edit (accepts several image[] style anchors).
-async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024' } = {}, retries = 2) {
+// `timeout` is per attempt — a medium 1024x1536 render can run well past the
+// 90s that suits the low-quality square calls, so callers can raise it.
+async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000 } = {}, retries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -4081,7 +4083,7 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
         body: form,
-        timeout: 90000,
+        timeout,
       });
       return await res.json();
     } catch (err) {
@@ -4260,6 +4262,64 @@ app.post('/api/generate/replicate', async (req, res) => {
 // POST returns the id in ~0.2s and the page polls GET /:id, resuming from
 // localStorage if it was closed mid-run.
 const PROMPTLAB = 'forge-promptlab';
+
+// ─── The Playground's 3rd style: gpt-image-2 + Sophie's style reference ──
+// Not a LoRA. Her own scanned ink-and-watercolour page is attached to
+// gpt-image-2's EDITS endpoint as a pure STYLE reference at quality MEDIUM,
+// 2:3 portrait — the recipe settled in docs/evan-film-style.md. The prefix
+// below is baked in server-side and her typed words follow it verbatim,
+// separated by a blank line; the page prints the whole thing in its "Sent as"
+// line, so nothing about the prompt is hidden from her.
+// The scan is the same file the Evan film uses (refs/evan-film-style.png =
+// "datescan0013" — the page she attached when asking for this option).
+const PL_GPT = {
+  id: 'gpt-image-2', label: 'ChatGPT', quality: 'medium',
+  size: '1024x1536', aspectRatio: '2:3', outputs: 4, refFile: 'evan-film-style.png',
+  // Keep in sync with STYLES.chatgpt.prefix in public/promptlab.html (the page
+  // only uses its copy to PREVIEW the prompt; this one is what gets sent).
+  prefix: 'Use only the style of the attached style reference and ignore its ' +
+    'content — do not copy anything depicted in it. You can choose your own ' +
+    'colors rather than copying the colors of the style reference.',
+};
+let plStyleRef = null;
+function playgroundStyleRef() {
+  if (!plStyleRef) plStyleRef = fs.readFileSync(path.join(__dirname, 'refs', PL_GPT.refFile));
+  return plStyleRef;
+}
+
+// One run = `outputs` independent edits calls (the LoRA runs give four options,
+// so this does too). They're fired together and each lands on the doc as it
+// finishes — status flips to 'ready' on the first, 'done' when all are in — so
+// the grid fills in instead of waiting on the slowest render. A single failed
+// call costs its image, not the run; only an empty result fails the job.
+async function runPromptLabGptJob(docRef, cfg) {
+  try {
+    const ref = playgroundStyleRef();
+    const images = [];
+    let failed = 0;
+    await Promise.all(Array.from({ length: PL_GPT.outputs }, async () => {
+      try {
+        const data = await openaiImageEditRefs(cfg.fullPrompt, [ref], {
+          quality: PL_GPT.quality, size: PL_GPT.size, timeout: 300000,
+        });
+        if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error('gpt-image-2 returned no image');
+        images.push(await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'promptlab'));
+        await docRef.update({ status: 'ready', images: images.slice() });
+      } catch (err) {
+        failed++;
+        console.warn('promptlab gpt-image render failed:', err.message);
+      }
+    }));
+    if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
+    await docRef.update({ status: 'done', images, failedRenders: failed });
+  } catch (err) {
+    console.warn('promptlab gpt job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
 async function runPromptLabJob(docRef, cfg) {
   try {
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
@@ -4305,9 +4365,27 @@ app.post('/api/promptlab', async (req, res) => {
   }
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
-    const content = String(req.body.prompt || '').trim().replace(/\.+$/, '');
-    if (!content) return res.status(400).json({ error: 'prompt required' });
+    const typed = String(req.body.prompt || '').trim();
+    if (!typed) return res.status(400).json({ error: 'prompt required' });
     const modelId = req.body.model || 'sageryza/watercolordrawings';
+
+    // The gpt-image-2 style: her words go through UNTOUCHED (no trigger word,
+    // no trailing-period trim, no suffix) after the baked style-ref prefix.
+    if (modelId === PL_GPT.id) {
+      if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+      const fullPrompt = `${PL_GPT.prefix}\n\n${typed}`;
+      const docRef = admin.firestore().collection(PROMPTLAB).doc();
+      await docRef.set({
+        id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
+        model: PL_GPT.id, quality: PL_GPT.quality, size: PL_GPT.size,
+        aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile,
+        images: [], createdAt: admin.firestore.Timestamp.now(),
+      });
+      runPromptLabGptJob(docRef, { fullPrompt });
+      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+    }
+
+    const content = typed.replace(/\.+$/, '');
     const known = MODELS.replicate.find(m => m.id === modelId);
     if (!known) return res.status(400).json({ error: `unknown model ${modelId}` });
     const suffix = String(req.body.suffix ?? 'White background').trim();
@@ -4322,7 +4400,7 @@ app.post('/api/promptlab', async (req, res) => {
     const version = `${known.id}:${await resolveReplicateVersion(known)}`;
     const docRef = admin.firestore().collection(PROMPTLAB).doc();
     await docRef.set({
-      id: docRef.id, status: 'running', prompt: content, fullPrompt, suffix,
+      id: docRef.id, status: 'running', engine: 'replicate', prompt: content, fullPrompt, suffix,
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });

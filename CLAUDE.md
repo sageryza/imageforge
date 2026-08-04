@@ -304,6 +304,28 @@ lifted into a standalone tool later.
   keys in the environment; writes only key names to the log, never values).
 - So keys can live in Render env vars, all in Firestore, or a mix.
 
+## Playground (`/playground`, iOS tile "Playground") — prompt tester
+- `public/promptlab.html` + `/api/promptlab` (inline in server.js), Firestore
+  `forge-promptlab`. Fixed recipe per style so runs stay comparable: 4 outputs,
+  2:3. Background job on the doc; the page polls and resumes from
+  `localStorage`. ♥/✕ per image in the lightbox.
+- **Three styles.** Watercolor (`wtr`) and Hoonie linocut are Replicate LoRAs —
+  trigger word prepended, suffix appended, LoRA scale + seed + ×3 ladder.
+  **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
+  gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
+  page attached as a pure STYLE reference (`refs/evan-film-style.png` =
+  "datescan0013", the same file the Evan film uses), **quality medium**,
+  **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
+  equivalents.
+- **Its prefix is baked in server-side** (`PL_GPT.prefix`) and her typed words
+  follow it verbatim after a blank line — no trigger word, no trailing-period
+  trim, no appended tail. The page's `STYLES.chatgpt.prefix` is a COPY used
+  only to preview the prompt in the "Sent as" line; **keep the two identical**.
+  ~$0.06 an image at medium, so ~$0.24 a 4-up run (the LoRA runs are ~2¢).
+- Each of the 4 renders is its own call and lands on the doc as it finishes
+  (`status:'ready'` on the first, `'done'` when all are in), so the grid fills
+  in progressively; one failed call costs its image, not the run.
+
 ## Writing Room (dating-book drafts on the phone)
 - `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —
   the dating-book working drafts as a reviewable module. Every date in two
