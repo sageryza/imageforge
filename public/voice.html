@@ -26,13 +26,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em; padding
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
   font-family:'EBGaramond',Georgia,serif; font-size:1.05em; padding:10px 12px; cursor:pointer;}
 .voice .vcat{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin-left:auto; flex:none;}
-.voice.on{border-color:var(--chg); color:var(--chg);}
-.voice.on .vcat{color:var(--chg);}
+.voice.on{border:1.5px solid var(--ink); font-weight:600;}
 .voice:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
 textarea{display:block; width:100%; box-sizing:border-box; min-height:7.5em; resize:vertical;
   font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.45;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:10px 12px;}
-textarea:focus{outline:2px solid var(--rose); outline-offset:1px;}
+textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .renderrow{display:flex; align-items:center; gap:12px; margin-top:10px;}
 .gobtn{border:1.5px solid var(--ink); border-radius:6px; background:var(--barbg); color:var(--ink);
   font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; padding:9px 22px; cursor:pointer;
@@ -44,8 +43,6 @@ textarea:focus{outline:2px solid var(--rose); outline-offset:1px;}
 .render{border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:12px; margin-bottom:12px;}
 .render .rtext{font-size:1.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
 .render .rmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin:6px 0 8px; display:flex; gap:8px; align-items:center;}
-.render .rmeta .rx{margin-left:auto; border:none; background:none; color:var(--ink2); cursor:pointer; padding:2px; display:flex;}
-.render .rmeta .rx svg{width:14px; height:14px;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
 .render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
@@ -77,7 +74,6 @@ textarea:focus{outline:2px solid var(--rose); outline-offset:1px;}
 <script>
 var API='/api/voicelab';
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-var XICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 
 // ── credits line: what a render spends, against what's left ──
 fetch(API+'/status').then(function(r){return r.json()}).then(function(s){
@@ -131,21 +127,17 @@ function card(r){
     var st=rbox.querySelector('.state'); if(st) st.remove();
     rbox.insertBefore(el, first||null);
   }
+  // No delete button on a render — Sophie's request (an accidental tap could
+  // lose one; a chat can still remove strays via DELETE /render/:id).
   var meta=[esc(r.voiceName||''), (r.chars||0).toLocaleString()+' chars'];
   var body='<div class="rtext">'+esc(r.text)+'</div>'
     +'<div class="rmeta"><span>'+meta.join(' · ')+'</span>'
     +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
-    +'<button class="rx" aria-label="Delete this render">'+XICON+'</button></div>';
+    +'</div>';
   if(r.status==='done' && r.url) body+='<audio controls preload="metadata" src="'+esc(r.url)+'"></audio>';
   if(r.status==='failed') body+='<div class="rerr">'+esc(r.error||'render failed')+'</div>';
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
-  el.querySelector('.rx').onclick=function(){
-    fetch(API+'/render/'+r.id,{method:'DELETE'}).catch(function(){});
-    el.remove(); delete cards[r.id];
-    setPending(pendingIds().filter(function(x){ return x!==r.id; }));
-    if(!rbox.querySelector('.render')) rbox.innerHTML='<div class="state">Nothing rendered yet.</div>';
-  };
 }
 function poll(id){
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
