@@ -42,6 +42,12 @@ const MODEL_ID = 'eleven_multilingual_v2';
 const VOICE_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 const MAX_CHARS = 5000;
 const EL_BASE = 'https://api.elevenlabs.io/v1';
+// Every finished render also saves itself into a chat's Assets tab (Sophie's
+// request — the studio page is the workbench, Assets is where audio lives).
+// The exact spoken text + settings ride along as the PROMPT split.
+const ASSETS_CHAT = process.env.VOICELAB_ASSETS_CHAT || 'professional-voice-plan-review';
+const STYLE_LINE = 'ElevenLabs professional voice clone · model eleven_multilingual_v2 · '
+  + 'stability 0.5, similarity_boost 0.75, style 0, speaker boost on · output mp3_44100_192 · Voice Studio render';
 
 const router = express.Router();
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -126,11 +132,21 @@ async function renderJob(id, voiceId, voiceName, text) {
     await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
     await bucket.file(dest).makePublic();
     fs.unlink(tmp, () => {});
-    await doc.update({
-      status: 'done',
-      url: `https://storage.googleapis.com/${bucket.name}/${dest}`,
-      doneAt: new Date().toISOString(),
-    });
+    const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    await doc.update({ status: 'done', url, doneAt: new Date().toISOString() });
+    // Save it into the Assets tab: label = her words, PROMPT = the exact text
+    // and settings. Best-effort — a filing hiccup must not fail a done render.
+    try {
+      const label = text.length > 90 ? `${text.slice(0, 90).trim()}…` : text;
+      await admin.firestore().collection('forge-chat-assets').add({
+        chat: ASSETS_CHAT, url, urlKey: url, kind: 'audio',
+        prompt: 'elevenlabs · eleven_multilingual_v2 · voice studio',
+        description: label,
+        promptStyle: `${STYLE_LINE} · voice "${voiceName}" (${voiceId})`,
+        promptContent: text.slice(0, 6000),
+        created: new Date().toISOString(), wip: true,
+      });
+    } catch (e) { /* the render itself is safe either way */ }
   } catch (err) {
     await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
   }
