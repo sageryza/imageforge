@@ -2362,6 +2362,8 @@ app.get('/api/witch/blog', async (req, res) => {
       title: p.title,
       excerpt: p.metaDescription,
       image: p.image || null,
+      // Which part of the square hero survives the feature card's 16:9 crop.
+      focal: p.focal,
       date: p.publishedAt ? p.publishedAt.toISOString() : null,
     }));
     res.json({ posts });

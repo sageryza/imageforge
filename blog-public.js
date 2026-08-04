@@ -23,6 +23,18 @@ function siteOrigin() {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// ─── Focal point ────────────────────────────────────────────────────
+// The heroes are SQUARE but every slot that shows them is a wide banner, so
+// something always gets cropped. `siteFocal` is which part survives — the same
+// idea as Shopify's focal point, and literally a CSS `object-position` pair.
+// These illustrations put the witch's face high in the frame, so a plain centre
+// crop decapitates most of them; the stored values pull the crop up just enough
+// to keep the face without losing the crystals/cards/cauldron underneath.
+// Whitelisted to two percentages before it reaches a style attribute — the
+// value comes from a Firestore doc, and anything else is dropped for centre.
+const FOCAL_OK = /^\d{1,3}% \d{1,3}%$/;
+const focal = (v) => (typeof v === 'string' && FOCAL_OK.test(v.trim()) ? v.trim() : '50% 50%');
+
 // ─── Posts (cached — the blog is small and read-heavy) ──────────────
 let CACHE = { at: 0, posts: null };
 function bust() { CACHE = { at: 0, posts: null }; }
@@ -44,6 +56,7 @@ async function sitePosts() {
       metaDescription: v.metaDescription || v.excerpt || '',
       bodyHtml: v.siteBodyHtml || v.bodyHtml || '',
       image: v.siteImage || (Array.isArray(v.images) && v.images[0]) || null,
+      focal: focal(v.siteFocal),
       tags: Array.isArray(v.tags) ? v.tags : [],
       publishedAt: v.sitePublishedAt && v.sitePublishedAt.toDate ? v.sitePublishedAt.toDate() : null,
       updatedAt: v.siteUpdatedAt && v.siteUpdatedAt.toDate ? v.siteUpdatedAt.toDate() : null,
@@ -170,14 +183,17 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
 
   h1 { font-family: var(--serif); font-size: 32px; font-weight: 600; line-height: 1.18; margin-bottom: 8px; }
   .date { font-size: 12.5px; color: var(--text-faint); letter-spacing: .4px; text-transform: uppercase; margin-bottom: 20px; }
-  .hero { width: 100%; border-radius: 6px; border: 1px solid var(--border-soft); display: block; margin: 0 0 22px; }
+  /* Both hero slots are 16:9 banners cropped from a square source, so both need
+     object-position — see the focal-point note in this file. */
+  .hero { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px;
+          border: 1px solid var(--border-soft); display: block; margin: 0 0 22px; }
   article h2 { font-family: var(--serif); font-size: 24px; font-weight: 600; margin: 26px 0 8px; }
   article h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; margin: 18px 0 6px; }
   article p { margin: 10px 0; } article ul, article ol { margin: 10px 0 10px 22px; }
   article a { color: var(--gold); } article img { max-width: 100%; border-radius: 6px; }
   article strong { font-weight: 600; }
   .card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; text-decoration: none; color: var(--text); margin-bottom: 16px; }
-  .card img { width: 100%; display: block; border-bottom: 1px solid var(--border-soft); }
+  .card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border-bottom: 1px solid var(--border-soft); }
   .card .cb { padding: 14px 16px 16px; }
   .card h2 { font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1.2; }
   .card .cd { font-size: 11.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .4px; margin: 5px 0 7px; }
@@ -239,7 +255,7 @@ async function renderIndex(req, res) {
     const n = nav(req);
     const items = posts.length ? posts.map((p) => `
 <a class="card" href="${esc(n.post(p.slug))}">
-  ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
+  ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" style="object-position:${esc(p.focal)}">` : ''}
   <div class="cb">
     <h2>${esc(p.title)}</h2>
     <div class="cd">${esc(fmtDate(p.publishedAt))}</div>
@@ -287,7 +303,7 @@ async function renderPost(req, res) {
       bodyHtml: `<article>
 <h1>${esc(post.title)}</h1>
 <div class="date">${esc(fmtDate(post.publishedAt))}</div>
-${post.image ? `<img class="hero" src="${esc(post.image)}" alt="${esc(post.title)}">` : ''}
+${post.image ? `<img class="hero" src="${esc(post.image)}" alt="${esc(post.title)}" style="object-position:${esc(post.focal)}">` : ''}
 ${post.bodyHtml}
 <a class="back" href="${esc(n.blog)}">← All posts</a>
 </article>`,

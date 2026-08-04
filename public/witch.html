@@ -6930,9 +6930,14 @@
       const d = new Date(iso);
       return isNaN(d) ? '' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
-    // No picture yet → no <img>, and the card is just its words. That is what
-    // every post looks like until the hero images are chosen.
-    const pic = (p) => (p.image ? `<img class="bimg" src="${esc(p.image)}" alt="" loading="lazy">` : '');
+    // No picture → no <img>, and the card is just its words.
+    // The heroes are SQUARE: they sit uncropped in the three small square
+    // slots, but the feature card is 16:9, so that one needs the post's focal
+    // point or the witch loses her head (these illustrations put her face high
+    // in the frame). Server-validated to two percentages; see blog-public.js.
+    const pic = (p) => (p.image
+      ? `<img class="bimg" src="${esc(p.image)}" alt="" loading="lazy" style="object-position:${esc(p.focal || '50% 50%')}">`
+      : '');
     const feat = posts[0];
     const fa = $('blog-feat');
     fa.href = blogPostUrl(feat.slug);
