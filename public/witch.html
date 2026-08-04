@@ -571,9 +571,12 @@
        ask your own question. Icon above label so both fit an iPhone 13 width
        without the labels crowding each other. */
     .tarot-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    /* Text only, no icon above the label (Sophie, Aug 2026) — so these are a
+       single short row rather than a two-line stacked tile, and sized down to
+       match. */
     .tarot-opts .btn-ghost {
-      flex-direction: column; gap: 7px; width: 100%; min-width: 0;
-      padding: 12px 8px; font-size: 12.5px; letter-spacing: 0.2px;
+      width: 100%; min-width: 0;
+      padding: 8px 8px; font-size: 12px; letter-spacing: 0.2px;
       line-height: 1.2; text-align: center; white-space: nowrap;
     }
     .advice-box { background: rgba(230,194,129,0.08); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; }
@@ -1533,8 +1536,8 @@
                ONLY thing below the daily pull — free is the inline per-card
                meanings above it, and nothing deeper. -->
           <div class="tarot-opts" id="daily-opts" style="display:none;">
-            <button class="btn-ghost" id="daily-learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg> Learn to read tarot</button>
-            <button class="btn-ghost" id="daily-ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Ask a question</button>
+            <button class="btn-ghost" id="daily-learn">Learn to read tarot</button>
+            <button class="btn-ghost" id="daily-ask">Ask a question</button>
           </div>
         </div>
 
@@ -4371,37 +4374,47 @@
   /* ══════════ QUIZ: Are you secretly a witch? — full-screen app ══════════ */
   // Real questions → after answering, a reveal screen (image/film + the sign
   // explained). Own full-screen overlay; the page behind is scroll-locked.
+  /* ── School art: the WEBP display copies, not the PNG originals ──────────
+     Every card is a 1024² PNG at ~1MB. Five of them on the Lessons tab is
+     ~5.8MB, and one lesson's deck is ~10MB — which is the whole reason that tab
+     used to crawl. `scripts/witch-school-webp.js` writes a same-size webp
+     beside each PNG (~50KB, about 22× smaller, no downscaling so nothing is
+     lost) with a one-year immutable cache header; the PNGs stay put as the
+     untouched originals. Anything referencing SW_IMG must use SW_EXT, never a
+     hard-coded '.png'. */
+  const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/webp/';
+  const SW_EXT = '.webp';
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
   // House-style question + reveal illustrations (same pipeline as the School
   // lessons — scripts/witch-school-cards.js, spec qz-*). bg = sampled corner
   // hex; the quiz stage tints to it so the art floats with no box.
-  const QZ_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
+  const QZ_IMG = SW_IMG;   // the qz-* cards live in the SAME folder as the school art
   const QUIZ = [
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#fdf8f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1' + SW_EXT, bg: '#fdf8f1' },
       media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#fdf8f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2' + SW_EXT, bg: '#fdf8f1' },
       media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#fef5ea' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3' + SW_EXT, bg: '#fef5ea' },
       media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#fbf4ec' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#fdf7f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4' + SW_EXT, bg: '#fbf4ec' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4' + SW_EXT, bg: '#fdf7f1' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5.png', bg: '#fefbf7' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r5.png', bg: '#fefaf5' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5' + SW_EXT, bg: '#fefbf7' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r5' + SW_EXT, bg: '#fefaf5' },
       reveal: { name: 'You were never meant to fit', body: "Standing just outside the circle, feeling more than the people around you — that was never a flaw. It was the mark." } },
   ];
   function quizMediaHTML(m) {
@@ -5482,16 +5495,6 @@
     </svg>`;
   }
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
-  /* ── School art: the WEBP display copies, not the PNG originals ──────────
-     Every card is a 1024² PNG at ~1MB. Five of them on the Lessons tab is
-     ~5.8MB, and one lesson's deck is ~10MB — which is the whole reason that tab
-     used to crawl. `scripts/witch-school-webp.js` writes a same-size webp
-     beside each PNG (~50KB, about 22× smaller, no downscaling so nothing is
-     lost) with a one-year immutable cache header; the PNGs stay put as the
-     untouched originals. Anything referencing SW_IMG must use SW_EXT, never a
-     hard-coded '.png'. */
-  const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/webp/';
-  const SW_EXT = '.webp';
   // The next sabbat from today — computed at load so the Wheel lesson's last
   // card never goes stale. Fixed calendar approximations are fine here.
   function nextSabbat() {
