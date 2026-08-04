@@ -91,29 +91,32 @@ so an instant clone costs nothing and never touches the trained voice. That is
 the right tool for trying a *register* — the on-camera voice, the tired voice,
 the reading voice — before deciding anything is worth the one PVC slot.
 
-Screening still applies. The same **-30 LUFS** floor from the section above is
-what separates a clone that sounds like her from one that sounds like a room:
+Upload is a single multipart `POST /v1/voices/add` with
+`remove_background_noise=false` (same reasoning as the PVC — a denoiser smears
+timbre and the clone learns the smear). ElevenLabs wants 1–3 minutes; past
+that, more source stops helping an IVC and the answer is a PVC instead.
 
-    ffmpeg -i clip.mov -af ebur128=peak=true -f null -
+## The video-audio pool — look in `compare-audio/`, not the Dump
 
-**Phone videos fail that screen far more often than voice memos do** — the mic
-is an arm's length away instead of at her mouth. Of the five talking-to-camera
-videos banked as of Aug 2026, only two passed:
+**Audio pulled off Sophie's own videos lives in membry Storage at
+`compare-audio/`** — 24 named `.m4a` files, **2.6 hours** as of Aug 2026
+(`harry-potter-1/2`, `morning-rituals`, `envelope-gap-shirt`, `plants-heal`,
+`good-vs-god-1/2`, …), plus whichever ones are attached to a Story Room story
+as its `voiceover.url`. That is a **PVC-sized** pool, not just an IVC one.
 
-- `IMG_9836` (dump, Aug 4) — -21.9 LUFS, 14s
-- `IMG_3429` (`lib` bundle, Jul 28) — -28.7 LUFS, 44s
-- `IMG_3210` -33.6, `lib-1` -35.3, `IMG_3201` **-59.8** — all failed; the last
-  is effectively inaudible.
+Do not go looking for this material in `/api/drop` or `/api/audio`. The `.MOV`
+files sitting in the Dump are the phone's originals, mostly recorded at arm's
+length, and they measure far worse than the extracted set — three of the five
+banked there fail the -30 LUFS screen, one at -58 LUFS. The `compare-audio`
+files are the same voice recorded close, and 21 of the 24 pass comfortably
+(-18 to -28 LUFS; only `morning-rituals`, `spiritual-books` and
+`thanks-for-watching` fall below).
 
-Prep is the same `scripts/prep-voice-training.sh` chain, then concatenate with
-0.3s of silence between clips and encode mono 192k mp3. Upload is a single
-multipart `POST /v1/voices/add` with `remove_background_noise=false` (same
-reasoning as the PVC — a denoiser smears timbre and the clone learns the smear).
-
-**Sophie — on camera (video audio, Aug 4)** = `9gQM1c8mBSukTkMzn6Eh`, built from
-those two clips (58s). Source and comparison renders are archived at
-`voice-training/on-camera-2026-08/` in membry Storage.
-
-ElevenLabs wants 1–3 minutes for an instant clone and treats ~30s as the floor,
-so 58s is thin — it clones, but the range is narrow. More usable video audio is
-the fix, not different processing.
+**Prep is not automatically the right call for this set.** The PVC chain in
+`scripts/prep-voice-training.sh` was tuned for phone voice memos that vary
+wildly file to file; the video audio is already close-mic'd and consistently
+levelled, so the two-pass loudnorm has much less to correct and the pause trim
+changes her natural on-camera timing. A/B before assuming it helps —
+`voice-training/video-audio-2026-08/` holds the same 3 minutes both ways
+(`source-RAW-3min.mp3` / `source-PREPPED-3min.mp3`) and the clones built from
+each: RAW `DUXcVGz5LgXD9sHeMeQ3`, PREPPED `kDyY3bsMGLB2Aq4haSD2`.
