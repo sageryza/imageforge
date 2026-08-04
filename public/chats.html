@@ -105,6 +105,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 #clightbox .clwrap.audw .abig{color:#b9b2a4;}
 #clightbox .clwrap.audw .abig svg{width:64px; height:64px;}
 #clightbox .clwrap.audw audio{width:100%;}
+/* Save/share under the player — the iOS share sheet with the actual file, so
+   a voice render saves straight to Files. Rounded rectangle, no pills. */
+#clightbox .clwrap.audw .asave{display:flex; align-items:center; gap:8px; border:1px solid #5a5346;
+  border-radius:6px; background:none; color:#b9b2a4; font-family:'EBGaramond',Georgia,serif;
+  font-size:15px; padding:8px 18px; cursor:pointer;}
+#clightbox .clwrap.audw .asave svg{width:16px; height:16px;}
 /* the prompt behind the image: covers it completely (that's the point — you
    read the words instead of the picture), Style on the left of the toggle,
    Content on the right. .clwrap only wraps the img so the overlay lands on
@@ -1517,7 +1523,25 @@ function lightbox(url, asset){
     // Where the picture would be: a flat panel with the glyph and the native
     // player. The prompt overlay, ♥/✕ row and note thread attach the same way.
     lb.innerHTML='<div class="clwrap audw"><span class="abig">'+AUDIOLINES+'</span>'
-      +'<audio controls preload="metadata" src="'+url.replace(/"/g,'&quot;')+'"></audio></div>';
+      +'<audio controls preload="metadata" src="'+url.replace(/"/g,'&quot;')+'"></audio>'
+      +'<button class="asave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M20 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/></svg><span>Save</span></button></div>';
+    // Save = the iOS share sheet holding the real FILE (Save to Files, AirDrop,
+    // Messages…). If file-sharing isn't available, open the mp3 in a tab where
+    // Safari's own share/download works.
+    var sv=lb.querySelector('.asave');
+    sv.onclick=function(e){
+      e.stopPropagation();
+      var label=sv.querySelector('span'); label.textContent='Preparing…';
+      var fname=decodeURIComponent(url.split('?')[0].split('/').pop()||'audio.mp3');
+      fetch(url).then(function(r){ return r.blob(); }).then(function(b){
+        var f=new File([b], fname, {type:b.type||'audio/mpeg'});
+        if(navigator.canShare && navigator.canShare({files:[f]})){
+          return navigator.share({files:[f]}).catch(function(){ /* she closed the sheet */ });
+        }
+        window.open(url, '_blank');
+      }).catch(function(){ window.open(url, '_blank'); })
+        .then(function(){ label.textContent='Save'; });
+    };
   } else {
     lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
   }
