@@ -1616,6 +1616,9 @@ async function findChatAsset(chat, { hash, url } = {}) {
   }
   return null;
 }
+// Audio assets (Aug 2026): the Assets tab holds sound too. An asset is audio
+// when the chat filing it says so (kind:'audio') or its url plainly is.
+const AUDIO_URL_RE = /\.(mp3|m4a|wav|ogg|aac|flac)([?#]|$)/i;
 app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1647,6 +1650,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         ? String(url) : null;
       if (!wipUrl) return res.status(400).json({ error: 'assetsOnly requires a hosted url' });
       if (!chatName || !admin.apps.length) return res.json({ ok: true, skipped: 'no chat/admin' });
+      const kind = (req.body.kind === 'audio' || AUDIO_URL_RE.test(wipUrl)) ? 'audio' : '';
       const acol = admin.firestore().collection('forge-chat-assets');
       const existing = await findChatAsset(chatName, { url: wipUrl });
       if (existing) {
@@ -1660,6 +1664,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           patch.prompt = curated.slice(0, 500);
         }
         if (description && description !== existing.data().description) patch.description = description;
+        if (kind && !existing.data().kind) patch.kind = kind;
         if (Object.keys(patch).length) {
           await existing.ref.update(patch);
           return res.json({ ok: true, updated: true, deduped: true, url: wipUrl, description: description || existing.data().description || '' });
@@ -1671,6 +1676,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         prompt: String(prompt || '').slice(0, 500),
         created: new Date(createdMs).toISOString(), wip: true,
       };
+      if (kind) wipDoc.kind = kind;
       if (description) wipDoc.description = description;
       await acol.add(wipDoc);
       return res.json({ ok: true, assetsOnly: true, url: wipUrl, description });
@@ -1796,15 +1802,19 @@ app.get('/api/gallery/assets', async (req, res) => {
       const base = decodeURIComponent(clean.split('/').pop() || '').toLowerCase();
       return base || clean;
     };
-    const add = (url, ms, prompt, description, style, content) => {
+    const add = (url, ms, prompt, description, style, content, kind) => {
       if (!url) return;
+      // Audio rides the same records as images; an untagged doc (filed before
+      // the kind field existed) is still recognised by its url.
+      if (!kind && AUDIO_URL_RE.test(String(url))) kind = 'audio';
       const k = keyOf(url);
       const existing = seen.get(k);
       if (!existing) {
         seen.set(k, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
-          promptStyle: style || '', promptContent: content || '', alts: [] });
+          promptStyle: style || '', promptContent: content || '', kind: kind || '', alts: [] });
         return;
       }
+      if (kind && !existing.kind) existing.kind = kind;
       // Same picture arriving by its other path: keep every field that has
       // something in it, whichever copy carried it.
       if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
@@ -1848,7 +1858,7 @@ app.get('/api/gallery/assets', async (req, res) => {
           .where('chat', '==', chat).get();
         asnap.docs.forEach((d) => {
           const a = d.data();
-          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent);
+          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent, a.kind);
         });
       } catch (e) { /* best effort */ }
     }
@@ -1859,6 +1869,7 @@ app.get('/api/gallery/assets', async (req, res) => {
         const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
         if (a.alts.length) o.alts = a.alts;   // the same picture's other path(s)
         if (a.description) o.description = a.description;   // what this image IS, when a chat said so
+        if (a.kind) o.kind = a.kind;   // 'audio' → the client renders a player tile, no thumb
         // The generating prompt, split (see POST /api/gallery/assets/prompt).
         if (a.promptStyle) o.promptStyle = a.promptStyle;
         if (a.promptContent) o.promptContent = a.promptContent;
@@ -1874,6 +1885,7 @@ app.get('/api/gallery/assets', async (req, res) => {
       const bucket = admin.storage().bucket();
       const warm = [];
       assets.forEach((a) => {
+        if (a.kind === 'audio') return;   // no thumbnail to make for a sound
         if (!THUMB_HOSTS.test(a.url)) return;
         a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
         warm.push(a.url);
