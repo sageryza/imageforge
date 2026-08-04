@@ -2349,6 +2349,27 @@ app.get('/blog', (req, res) => {
   return serveGated('blog.html')(req, res);
 });
 app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
+
+// The witch app's Home screen ends with a "From the blog" section, and this is
+// where it reads from. PUBLIC and deliberately tiny — no body HTML, just what a
+// card needs. blogPublic.sitePosts() is cached for 5 minutes, so Home asking on
+// every load costs no Firestore reads.
+app.get('/api/witch/blog', async (req, res) => {
+  try {
+    const limit = Math.min(12, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const posts = (await blogPublic.sitePosts()).slice(0, limit).map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.metaDescription,
+      image: p.image || null,
+      date: p.publishedAt ? p.publishedAt.toISOString() : null,
+    }));
+    res.json({ posts });
+  } catch (err) {
+    res.status(502).json({ error: String((err && err.message) || err) });
+  }
+});
+
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));

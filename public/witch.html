@@ -814,6 +814,30 @@
     .pnew svg { width: 10px; height: 10px; }
     @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
 
+    /* ── From the blog (bottom of Home) ──────────────────────────────────
+       The newest post as a wide feature, then the three before it across one
+       row — same 3-column rhythm as the product rows above, so the bottom of
+       Home doesn't change shape. Cards with no picture yet simply drop the
+       image and keep their text, which is what the blog looks like until the
+       hero images are chosen. */
+    .bfeat { display: block; text-decoration: none; color: var(--text); margin-bottom: 22px; }
+    .bfeat .bimg { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
+                   background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+    .bfeat .bdate { font-size: 9.5px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase;
+                    color: var(--gold-dim); margin-top: 11px; }
+    .bfeat .btitle { font-family: var(--serif); font-size: 23px; font-weight: 500; line-height: 1.2; margin-top: 3px; }
+    .bfeat .bex { font-size: 13.5px; color: var(--text-dim); line-height: 1.55; margin-top: 6px; }
+    .brow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-bottom: 16px; }
+    .bmini { display: block; text-decoration: none; color: var(--text); }
+    .bmini .bimg { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                   background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+    .bmini .btitle { font-family: var(--serif); font-size: 13.5px; font-weight: 500; line-height: 1.18; margin-top: 7px;
+                     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bmini .bex { font-size: 11px; color: var(--text-dim); line-height: 1.45; margin-top: 4px;
+                  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .blog-all { display: inline-block; font-size: 12.5px; letter-spacing: .4px; color: var(--gold); text-decoration: none; margin-bottom: 26px; }
+    @media (max-width: 360px) { .brow { gap: 8px; } .bmini .btitle { font-size: 12.5px; } .bmini .bex { display: none; } }
+
     /* ── Zodiac system toggle (Tropical / Astronomical) ── */
     .zodiac-bar { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 14px 0 16px; }
     .zseg { display: inline-flex; border: 1px solid var(--gold); border-radius: var(--radius); overflow: hidden; }
@@ -1678,6 +1702,19 @@
           <div class="mcal-legend"><span>🌑 New</span><span>🌓 Quarter</span><span>🌕 Full</span></div>
         </div>
 
+        <!-- ═══ From the blog — the LAST thing on Home ═══
+             Newest post as a wide feature, then the three before it in one
+             row. Filled by loadBlog(); the whole block stays hidden until
+             there's something real to show, so a cold server or an empty
+             blog never leaves a bare heading behind. -->
+        <div id="blog-home" style="display:none;">
+          <div class="section-title">From the blog</div>
+          <div class="section-sub">Witchcraft, tarot &amp; everyday magic — the newest writing.</div>
+          <a class="bfeat" id="blog-feat" href="#"></a>
+          <div class="brow" id="blog-row"></div>
+          <a class="blog-all" id="blog-all" href="#">All posts <span aria-hidden="true">→</span></a>
+        </div>
+
       </section>
 
       <!-- ═══════════ SCHOOL ═══════════ -->
@@ -2046,6 +2083,15 @@
   const PAID_KEY = 'witch_is_paid';    // cached entitlement ("1"/"0") from the server
   const PAID_TEST = 'witch_test_paid'; // dev/QA override
   const IS_APP = new URLSearchParams(location.search).has('app'); // iOS webview wrapper
+  // ── The blog (blog-public.js) ──────────────────────────────────────────
+  // On secretlyawitch.com /blog IS the site blog. On the studio host
+  // (imageforge-q125.onrender.com) that path is the GATED Blog Studio, so a
+  // preview needs ?public=1. `app=1` rides along inside the iOS web view so
+  // the blog page keeps answering the native tab bar (see blog-public.js).
+  const ON_WITCH_HOST = /(^|\.)secretlyawitch\.com$/i.test(location.hostname);
+  const blogQS = [ON_WITCH_HOST ? '' : 'public=1', IS_APP ? 'app=1' : ''].filter(Boolean).join('&');
+  const BLOG_URL = '/blog' + (blogQS ? '?' + blogQS : '');
+  const blogPostUrl = (slug) => '/blog/' + slug + (blogQS ? '?' + blogQS : '');
   let pendingSubscribe = false, subJustSucceeded = false;
   (function () { const m = /[?&]paid=([01])/.exec(location.search); if (m) { try { localStorage.setItem(PAID_TEST, m[1]); } catch (e) {} } })();
   // Handle the Stripe return + the external-browser subscribe entry point.
@@ -2232,6 +2278,12 @@
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
   if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
   window.__setTab = go;
+  // ?tab=<view> lands on a tab directly — how the blog's header menu gets back
+  // into the app (a blog page is a real navigation, not a tab switch).
+  (() => {
+    const t = new URLSearchParams(location.search).get('tab');
+    if (t && views.includes(t)) go(t);
+  })();
   // Screenshot helper: ?shot=<elementId> scrolls that section into view on
   // load (used by the CI App Store screenshot capture).
   (() => {
@@ -6747,9 +6799,12 @@
     { label: 'Witch School', view: 'school' },
     { label: 'Book of Shadows', view: 'book' },
     { label: 'Shop', view: 'shop' },
+    { label: 'The blog', href: () => BLOG_URL },
   ];
   function jumpTo(item) {
     closeJump();
+    // The blog is a server-rendered page, not a tab — leave the app for it.
+    if (item.href) { location.href = item.href(); return; }
     const active = views.find(v => $('view-' + v).classList.contains('active'));
     if (item.view && item.view !== active) go(item.view);
     if (!item.el) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
@@ -6797,6 +6852,46 @@
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  /* ── From the blog ─────────────────────────────────────────────────────
+     Home's last section: the newest post as a wide feature, the three before
+     it in a row. /api/witch/blog is a cached, body-less read, so asking on
+     every Home load costs nothing. Anything that goes wrong — cold server,
+     no posts yet — leaves the block hidden instead of showing an empty
+     shelf under a heading. */
+  async function loadBlog() {
+    const wrap = $('blog-home');
+    if (!wrap || wrap.dataset.loaded === '1') return;
+    let posts = [];
+    try {
+      const r = await fetch('/api/witch/blog?limit=4');
+      if (!r.ok) return;
+      posts = (await r.json()).posts || [];
+    } catch (e) { return; }
+    if (!posts.length) return;
+    wrap.dataset.loaded = '1';
+    const fmt = (iso) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return isNaN(d) ? '' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+    // No picture yet → no <img>, and the card is just its words. That is what
+    // every post looks like until the hero images are chosen.
+    const pic = (p) => (p.image ? `<img class="bimg" src="${esc(p.image)}" alt="" loading="lazy">` : '');
+    const feat = posts[0];
+    const fa = $('blog-feat');
+    fa.href = blogPostUrl(feat.slug);
+    fa.innerHTML = `${pic(feat)}<div class="bdate">${esc(fmt(feat.date))}</div>`
+      + `<div class="btitle">${esc(feat.title)}</div><div class="bex">${esc(feat.excerpt)}</div>`;
+    $('blog-row').innerHTML = posts.slice(1, 4).map((p) => `<a class="bmini" href="${esc(blogPostUrl(p.slug))}">`
+      + `${pic(p)}<div class="btitle">${esc(p.title)}</div><div class="bex">${esc(p.excerpt)}</div></a>`).join('');
+    $('blog-all').href = BLOG_URL;
+    wrap.style.display = '';
+  }
+  // Home is the landing tab, so this section is on screen from the start —
+  // but it's the LAST thing down the page, so it loads after the app has
+  // settled rather than competing with the first paint.
+  setTimeout(() => { try { loadBlog(); } catch (e) {} }, 1200);
+
   // Warm the shelf while the app is idle on Home, so tapping Shop paints from
   // memory instead of waiting on the first fetch.
   setTimeout(() => { const g = $('shop-grid'); if (g && g.dataset.loaded !== '1') { try { loadShop(); } catch (e) {} } }, 1500);
