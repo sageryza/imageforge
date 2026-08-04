@@ -860,12 +860,26 @@
     .dream-dive { margin-top: 14px; }
     .dread p { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
     .dread p + p { margin-top: 10px; }
-    .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; margin-bottom: 14px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
+    /* The dream card has no title row, so its bookmark can't hang in the card's
+       absolute top-right corner the way the tarot one does — on the dream's own
+       page (where .card loses its padding and Past readings is hidden) that
+       corner IS the textarea, and the bookmark sat inside the text box. It
+       lives in a real row above the box instead: Past readings on the left,
+       the bookmark on the right, and the row keeps its height when Past
+       readings is hidden so the bookmark stays put. */
+    .dream-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; margin-bottom: 14px; }
+    .dream-head .bm-save { position: static; margin-left: auto; padding: 0; }
+    .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
     .dream-past:hover { color: var(--gold); }
     .dream-past svg { width: 15px; height: 15px; }
     .dpast-head { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 12px; }
     .dpast-item { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 9px; cursor: pointer; font-family: inherit; transition: border-color 0.15s ease; }
     .dpast-item:hover { border-color: var(--gold-dim); }
+    /* A dream that was illustrated but never unlocked is still a past reading —
+       its picture is what identifies it in the list. */
+    .dpast-item.has-img { display: flex; align-items: flex-start; gap: 11px; }
+    .dpast-thumb { flex: 0 0 auto; width: 54px; height: 54px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+    .dpast-txt { min-width: 0; }
     .dpast-t { font-family: var(--serif); font-size: 16px; color: var(--text); line-height: 1.2; }
     .dpast-d { font-size: 11px; color: var(--gold-dim); margin-top: 3px; }
     .dpast-s { font-size: 12.5px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
@@ -876,6 +890,9 @@
     .dpage { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--panel); aspect-ratio: 3/4; }
     .dpage img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .dpage.locked img { filter: blur(9px); transform: scale(1.08); }
+    /* The saved dream's page, shown whole — not cropped to the grid's tile shape. */
+    .dread-page { aspect-ratio: auto; margin-bottom: 16px; }
+    .dread-page img { height: auto; object-fit: contain; }
     .dpage .dfree { position: absolute; top: 7px; left: 7px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: var(--gold); color: var(--surface); padding: 3px 7px; border-radius: 5px; }
     .dpage .dlock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--surface); }
     .dpage .dlock svg { width: 26px; height: 26px; opacity: 0.9; }
@@ -1604,8 +1621,10 @@
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div id="dream-home-slot">
         <div class="card has-bm" id="dream-card">
-          <button class="bm-save" id="dream-bm" type="button" style="display:none;" aria-label="Save this dream to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
+          <div class="dream-head">
+            <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
+            <button class="bm-save has-lbl" id="dream-bm" type="button" style="display:none;" aria-label="Save this dream to your Book of Shadows"><span class="bm-lbl">see in book</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
           <div class="dream-ta-wrap">
             <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
           </div>
@@ -5272,7 +5291,7 @@
   let lastDreamRead = null;   // the live reading's data, for the teaser's Dive-deeper button
   // The dream's bookmark keeps whatever you actually made — the illustration,
   // the symbolism, or both. Reset whenever a fresh result lands.
-  let lastDreamPage = null, lastDreamText = '', dreamSaved = false;
+  let lastDreamPage = null, lastDreamText = '', dreamSaved = false, dreamSavedId = null;
   function dreamBmRefresh() {
     if (!lastDreamPage && !lastDreamRead) { bmHide('dream-bm'); return; }
     bmShow('dream-bm', dreamSaved, false);
@@ -5281,6 +5300,23 @@
   const DREAM_STORE = 'witch_dream_readings';
   function loadDreams() { try { return JSON.parse(localStorage.getItem(DREAM_STORE) || '[]'); } catch { return []; } }
   function saveDreams(a) { try { localStorage.setItem(DREAM_STORE, JSON.stringify(a.slice(0, 60))); } catch {} }
+  // A dream is kept in Past readings the moment she asks for ANYTHING to be
+  // done with it — the symbolism, the picture, either alone. It used to be
+  // written only when a reading came back, so an illustrated-but-never-
+  // unlocked dream vanished the moment the page was left. Book of Shadows is
+  // still opt-in: that's the bookmark, and this is not it.
+  // Unlocking and illustrating the SAME dream fill in two halves of ONE past
+  // reading — matched on the dream's own words, so a resumed job after a
+  // reload finds its entry again instead of starting a second stub.
+  function dreamStoreSave(dream, patch) {
+    const text = (dream || '').trim(); if (!text) return null;
+    const all = loadDreams();
+    let i = all.findIndex(r => (r.dream || '').trim() === text);
+    if (i < 0) { all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream: text }); i = 0; }
+    Object.assign(all[i], patch || {});
+    saveDreams(all);
+    return all[i].id;
+  }
   function fmtDreamDate(ts) {
     const d = new Date(ts);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -5295,11 +5331,12 @@
     const app = $('dreampast-app'); app.style.display = ''; app.scrollTop = 0;
     const all = loadDreams();
     const list = !all.length
-      ? `<div class="dread-fail">No saved readings yet — unlock a dream and it'll be kept here.</div>`
+      ? `<div class="dread-fail">No dreams here yet — write one down and it'll be kept.</div>`
       : all.map((r, i) => {
           const title = (r.data && (r.data.claude?.title || r.data.gpt?.title)) || 'A dream';
           const snip = esc((r.dream || '').slice(0, 90)) + ((r.dream || '').length > 90 ? '…' : '');
-          return `<button class="dpast-item" data-past="${i}"><div class="dpast-t">${esc(title)}</div><div class="dpast-d">${fmtDreamDate(r.ts)}</div><div class="dpast-s">${snip}</div></button>`;
+          const thumb = r.url ? `<img class="dpast-thumb" src="${esc(r.url)}" alt="">` : '';
+          return `<button class="dpast-item${r.url ? ' has-img' : ''}" data-past="${i}">${thumb}<div class="dpast-txt"><div class="dpast-t">${esc(title)}</div><div class="dpast-d">${fmtDreamDate(r.ts)}</div><div class="dpast-s">${snip}</div></div></button>`;
         }).join('');
     $('dreampast-stage').innerHTML = `<div class="quiz-kicker">Your dream journal</div><div class="dpast-head">Past readings</div>${list}`;
   }
@@ -5310,7 +5347,7 @@
   }
   function showDreamDetail(i) {
     const r = loadDreams()[i]; if (!r) return;
-    openDreamReadDeep(r.data);   // opens on top of the list — Back reveals it again
+    openDreamReadDeep(r.data, r);   // opens on top of the list — Back reveals it again
   }
   // Inline = a QUICK teaser (title + symbols only, like the tarot quick
   // read) + a Dive deeper button. The full message lives on its own
@@ -5351,11 +5388,22 @@
       : [{ src: null, r: (data && data.claude) || (data && data.gpt) }];
   }
   let dreamReadDeepOpen = false;
-  function openDreamReadDeep(data) {
+  // `entry` is a saved past reading: it may carry the illustration and, when
+  // the symbolism was never unlocked, is the only thing there is to show — so
+  // the page falls back to the dream in her own words rather than opening blank.
+  function openDreamReadDeep(data, entry) {
     dreamReadDeepOpen = true;
     document.body.style.overflow = 'hidden';
     const app = $('dreamread-app'); app.style.display = ''; app.scrollTop = 0;
-    $('dreamread-stage').innerHTML = `<div class="quiz-kicker">Your dream, read</div>${renderDreamFull(dreamReadingsFor(data))}`;
+    const url = entry && entry.url;
+    const read = renderDreamFull(dreamReadingsFor(data));
+    const words = (!data || !(data.claude || data.gpt)) && entry && entry.dream
+      ? `<div class="dread">${String(entry.dream).split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}</div>` : '';
+    $('dreamread-stage').innerHTML = `<div class="quiz-kicker">Your dream, read</div>`
+      + (url ? `<div class="dpage dread-page" style="cursor:zoom-in;"><img src="${esc(url)}" alt="Your dream, illustrated"></div>` : '')
+      + read + words;
+    const pg = $('dreamread-stage').querySelector('.dread-page');
+    if (pg) pg.addEventListener('click', () => openImgLightbox(url));
   }
   function closeDreamReadDeep() {
     dreamReadDeepOpen = false;
@@ -5401,10 +5449,10 @@
         pendSet(DREAMREAD_PEND, null); finish();
         const data = d.result || {};
         lastDreamRead = data;
-        lastDreamText = dream; dreamSaved = false; dreamBmRefresh();
+        lastDreamText = dream; dreamSaved = false; dreamSavedId = null; dreamBmRefresh();
         out.style.display = '';
         out.innerHTML = renderDreamTeaser(data);
-        if (data.claude || data.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: data.claude, gpt: data.gpt } }); saveDreams(all); }
+        if (data.claude || data.gpt) dreamStoreSave(dream, { data: { claude: data.claude, gpt: data.gpt } });
       },
       onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
     });
@@ -5434,6 +5482,8 @@
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
     openDreamPage();
+    lastDreamText = dream;
+    dreamStoreSave(dream);   // the dream itself is kept from the moment she asks
     dreamReadSpinner();
     try {
       const id = await withRetry(() => startWitchJob('dream-read', { dream }));
@@ -5483,11 +5533,14 @@
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
     const p1 = document.getElementById('dream-page1');
     if (p1) p1.addEventListener('click', () => openImgLightbox(url));
-    lastDreamPage = url; dreamSaved = false; dreamBmRefresh();
+    lastDreamPage = url; dreamSaved = false; dreamSavedId = null; dreamBmRefresh();
+    dreamStoreSave(lastDreamText, { url });   // the picture rides on the dream's past reading
   }
   // Keeps whichever halves exist: the illustration, the symbolism, or both.
   $('dream-bm').addEventListener('click', () => {
-    if (dreamSaved) { go('book'); openBook('dream'); return; }
+    // Second tap = "see in book", the tarot bookmark's pattern: it opens on the
+    // page this dream was filed on, not the oldest one in the section.
+    if (dreamSaved) { go('book'); openBook('dream', { entry: dreamSavedId, newest: true }); return; }
     if (!lastDreamPage && !lastDreamRead) return;
     const r = lastDreamRead && (lastDreamRead.claude || lastDreamRead.gpt);
     let text = lastDreamText || '';
@@ -5495,7 +5548,8 @@
       const syms = (r.symbols || []).map(s => `${s.symbol} — ${s.meaning}`).join('\n');
       text = [text, syms, r.message].filter(Boolean).join('\n\n');
     }
-    journalSave([{ id: 'dream_' + Date.now(), ts: Date.now(), type: 'dream',
+    dreamSavedId = 'dream_' + Date.now();
+    journalSave([{ id: dreamSavedId, ts: Date.now(), type: 'dream',
       title: (r && r.title) || 'A dream', text, url: lastDreamPage || null }].concat(journalLoad()));
     dreamSaved = true; bmShow('dream-bm', true, true);
     toast('Saved to your Book of Shadows ✦');
@@ -5508,7 +5562,7 @@
     lb.appendChild(im);
     lb.addEventListener('click', () => {
       lb.remove();
-      document.body.style.overflow = (dreamPageOpen || deepOpen) ? 'hidden' : '';
+      document.body.style.overflow = (dreamPageOpen || deepOpen || dreamReadDeepOpen || dreamPastOpen) ? 'hidden' : '';
     });
     document.body.appendChild(lb);
     document.body.style.overflow = 'hidden';
@@ -5556,6 +5610,7 @@
   async function startDreamIllustrate(people) {
     const dream = dreamText();
     lastDreamText = dream;
+    dreamStoreSave(dream);   // kept even if the symbolism is never unlocked
     dreamIllusSpinner();
     try {
       const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream, people }));
@@ -5575,6 +5630,7 @@
   function resumeDreamIllus() {
     const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;
     const inp = $('dream-input'); if (inp && !inp.value && p.dream) inp.value = p.dream;
+    lastDreamText = p.dream || lastDreamText;   // so the finished page files onto the right past reading
     dreamIllusSpinner();
     watchDreamIllus(p.id);
   }
