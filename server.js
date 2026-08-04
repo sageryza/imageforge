@@ -4314,6 +4314,34 @@ function playgroundStyleRef() {
 // instance). Replicate runs only; see the /cancel route.
 const plCancelled = new Set();
 
+// Every finished Playground image also lands in the iOS "My Creations" gallery
+// (Sophie asked, Aug 2026) so she can browse them as thumbnails on the phone —
+// the same `users/{uid}/creations` collection in membry that POST /api/gallery
+// writes, with `source:'playground'` so they're identifiable. De-dupes by url.
+// Best-effort by design: a gallery hiccup must never fail a run whose images
+// are already saved and on the page.
+async function fileRunToCreations(images, { prompt, style } = {}) {
+  try {
+    if (!images || !images.length) return;
+    await storyDb();
+    if (!storyApp) return;
+    const uid = await galleryUid();
+    const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
+    for (const url of images) {
+      const dup = await col.where('url', '==', url).limit(1).get();
+      if (!dup.empty) continue;
+      const doc = {
+        type: 'image', url, prompt: String(prompt || '').slice(0, 500), stickers: null,
+        createdAt: admin.firestore.Timestamp.now(), source: 'playground',
+      };
+      if (style) doc.style = String(style).slice(0, 80);
+      await col.add(doc);
+    }
+  } catch (err) {
+    console.warn('promptlab → My Creations failed:', err.message);
+  }
+}
+
 // One run = `outputs` independent edits calls, all sent together, each landing
 // on the doc as it finishes (status 'ready' on the first, 'done' when all are
 // in) so the grid fills in as they arrive. A single failed call costs its
@@ -4344,6 +4372,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
     await docRef.update({ status: 'done', images, failedRenders: failed });
+    fileRunToCreations(images, { prompt: cfg.prompt, style: `ChatGPT · ${cfg.quality}` });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
@@ -4392,6 +4421,7 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
+    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
     plCancelled.delete(docRef.id);
@@ -4423,7 +4453,7 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile, outputs,
         images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -4446,7 +4476,7 @@ app.post('/api/promptlab', async (req, res) => {
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, prompt: content, styleLabel: known.name });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import UIKit
 
 /// Playground — try prompts against the house LoRA styles with the fixed
 /// comparable recipe (4 images a run, seed 85, 2:3, guidance 3, 28 steps).
@@ -90,6 +91,11 @@ private struct PlaygroundWebView: UIViewRepresentable {
         config.userContentController.addUserScript(WKUserScript(
             source: "window.__nativeNavBar = true",
             injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // Save to Photos has to happen natively. The page's share-sheet path
+        // works in a browser but not reliably inside a WKWebView, so the page
+        // hands the image url over here instead and we write it to the photo
+        // library the same way the Dream page viewer does.
+        config.userContentController.add(context.coordinator, name: "forgeSave")
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
@@ -106,9 +112,32 @@ private struct PlaygroundWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let parent: PlaygroundWebView
         init(_ parent: PlaygroundWebView) { self.parent = parent }
+
+        /// The page's Save button: `forgeSave.postMessage(<image url>)`. Fetch
+        /// it, write it to Photos, and tell the page how it went so its toast
+        /// is the truth rather than a guess.
+        func userContentController(_ controller: WKUserContentController,
+                                   didReceive message: WKScriptMessage) {
+            guard message.name == "forgeSave",
+                  let raw = message.body as? String,
+                  let url = URL(string: raw) else { return }
+            let web = message.webView
+            Task {
+                var ok = false
+                if let (data, _) = try? await URLSession.shared.data(from: url),
+                   let image = UIImage(data: data) {
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    ok = true
+                }
+                let msg = ok ? "Saved to Photos" : "Couldn’t save that image"
+                await MainActor.run {
+                    web?.evaluateJavaScript("window.__saveResult && window.__saveResult(\(ok), '\(msg)')")
+                }
+            }
+        }
 
         // The /playground page sits behind HTTP Basic (any user, password = token).
         func webView(_ webView: WKWebView,

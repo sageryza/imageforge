@@ -34,9 +34,15 @@
   button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
-  .run { margin-bottom: 18px; }
+  /* One box per run, so a prompt is unmistakably attached to its own pictures. */
+  .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-  .runhead .p { font-size: 14px; font-weight: 600; }
+  .runhead .p { font-size: 14px; font-weight: 600; width: 100%; }
+  /* A long prompt is capped at two lines. The "…" that opens it is added AFTER
+     layout, and OUTSIDE the capped box — anything inside a line-clamp box after
+     the clamped text gets clipped away with it. */
+  .runhead .p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
   .cell { position: relative; }
@@ -45,9 +51,12 @@
   .badge.like { background: #c25a72; color: #fff; }
   .badge.dislike { background: #9a938a; color: #fff; }
   .badge svg { width: 12px; height: 12px; }
-  .pending { font-size: 13px; color: #6f675e; background: #f6f1e9; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px; }
-  .pending b { color: #2b2622; font-weight: 600; }
-  .pending .what { flex: 1; }
+  /* A run being drawn looks like the run it will become — same head, same
+     grid — with an empty slot per picture that fills in as they land. Pressing
+     Generate therefore always adds something visible at the TOP, which is what
+     keeps "newest first" true while a slow run is still going. */
+  .runhead .waiting { margin-left: auto; }
+  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: 2 / 3; }
   .killbtn { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e; display: flex; align-items: center; justify-content: center; }
   .killbtn svg { width: 14px; height: 14px; }
   /* Cancel confirmation. Flat, no gradients; buttons are rounded rectangles. */
@@ -70,6 +79,9 @@
   .lbbtn svg { width: 21px; height: 21px; }
   .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
   .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
+  /* Above the lightbox — the Save button lives in there. */
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
+  #toast.on { opacity: 1; }
 </style></head><body>
 <h1>Playground</h1>
 
@@ -91,6 +103,8 @@
 
 <div id="pendings"></div>
 <div id="runs"></div>
+
+<div id="toast"></div>
 
 <div id="ask">
   <div class="askbox">
@@ -119,6 +133,7 @@
   var swapping = {};      // id -> true while a 'ready' run waits for permanent urls
   var runsById = {};      // id -> run doc from the last list load
   var lbCur = null;       // { id, i } while the lightbox is open
+  var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
 
   // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
   var ICONS = {
@@ -304,22 +319,32 @@
       .finally(function () { btn.disabled = false; });
   });
 
+  // A pending run renders as the run it is becoming: the same head and the same
+  // grid, with one empty slot per picture. Newest is at the top of #pendings,
+  // which sits above #runs, so a fresh Generate is always the first thing on the
+  // page — never a finished older run sitting where the new one should be. Any
+  // image that has already landed is shown in its slot.
   function renderPendings() {
-    var list = pendingList();
+    var list = pendingList().slice().reverse();
     document.getElementById('pendings').innerHTML = list.map(function (p) {
-      var what = p.prompt
-        ? '<b>“' + esc(p.prompt) + '”</b> · ' + esc(p.style || '') +
-          (p.count != null ? ' · ' + p.count + (p.count === 1 ? ' image' : ' images') : '') +
-          (p.quality ? ' · ' + esc(p.quality) : '') +
-          (p.scale != null ? ' · scale ' + p.scale : '') +
-          (p.seed ? ' · seed ' + p.seed : '')
-        : 'Drawing…';
+      var slots = p.count || 4;
+      var tags = [p.style || ''];
+      if (p.quality) tags.push(p.quality);
+      if (p.scale != null) tags.push('scale ' + p.scale);
+      if (p.seed) tags.push('seed ' + p.seed);
       // No X on a ChatGPT run: OpenAI bills an image the moment it's requested,
       // so there is nothing a cancel could save. Replicate runs can really stop.
       var kill = p.engine === 'gptimage' ? ''
         : '<button class="killbtn" data-kill="' + p.id + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
-      return '<div class="pending"><span class="what">' + what + '</span>' + kill + '</div>';
+      var cells = '';
+      for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
+      return '<div class="run"><div class="runhead">' +
+        '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
+        tags.filter(Boolean).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+        '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
+        '<div class="grid">' + cells + '</div></div>';
     }).join('');
+    applyClamps(document.getElementById('pendings'));
   }
 
   // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
@@ -413,11 +438,11 @@
       document.getElementById('runs').innerHTML = runs.map(function (r) {
         runsById[r.id] = r;
         if (r.status === 'failed') {
-          return '<div class="run"><div class="runhead"><span class="p failed">' + esc(r.prompt) + '</span>' +
+          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(r.prompt) + '</span>' +
             '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
         }
         var votes = r.votes || {};
-        return '<div class="run"><div class="runhead"><span class="p">' + esc(r.prompt) + '</span>' +
+        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(r.prompt) + '</span>' +
           runParts(r).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="grid">' + runImages(r).map(function (u, i) {
             var v = votes[i];
@@ -425,6 +450,7 @@
             return '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
           }).join('') + '</div></div>';
       }).join('');
+      applyClamps(document.getElementById('runs'));
     }).catch(function () {});
   }
 
@@ -434,6 +460,26 @@
     if (!img) return;
     openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
   });
+
+  // The "…" opener for a prompt the two-line cap really cut. Added after layout
+  // (scrollHeight vs clientHeight is the only honest test) and as a SIBLING of
+  // the capped box, never inside it.
+  function applyClamps(root) {
+    var ps = root.querySelectorAll('.p.clamp');
+    for (var i = 0; i < ps.length; i++) {
+      (function (el) {
+        if (el.scrollHeight - el.clientHeight <= 1) return;
+        var btn = document.createElement('button');
+        btn.className = 'morebtn';
+        btn.textContent = '…';
+        btn.addEventListener('click', function () {
+          var open = el.classList.toggle('clamp') === false;
+          btn.textContent = open ? 'less' : '…';
+        });
+        el.parentNode.insertBefore(btn, el.nextSibling);
+      })(ps[i]);
+    }
+  }
 
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -448,7 +494,14 @@
     // time the image is closed.
     if (window.__scrollStop) window.__scrollStop();
     lbCur = { id: id, i: i };
-    document.getElementById('lbimg').src = runImages(r)[i];
+    var src = runImages(r)[i];
+    document.getElementById('lbimg').src = src;
+    // Fetched now so the Save tap can hand the file straight to the share
+    // sheet without an await in between (iOS revokes the gesture across one).
+    lbBlob = null;
+    fetch(src).then(function (res) { return res.blob(); })
+      .then(function (b) { lbBlob = { url: src, blob: b }; })
+      .catch(function () {});
     document.getElementById('lbcap').textContent =
       [r.prompt].concat(runParts(r)).join(' · ') + ' · image ' + (i + 1);
     syncLbVotes();
@@ -487,22 +540,53 @@
   document.getElementById('lblike').addEventListener('click', function () { vote('like'); });
   document.getElementById('lbx').addEventListener('click', function () { vote('dislike'); });
 
-  // Save to Photos: share the image file so iOS offers "Save Image". Where the
-  // share sheet isn't available, fall back to a plain download.
+  // Save to Photos. Three paths, in order:
+  //   1. The app's native bridge (writes straight to the photo library and
+  //      answers on window.__saveResult) — the only reliable one in a WKWebView.
+  //   2. The share sheet, which offers "Save Image". It MUST be called inside
+  //      the tap: iOS drops the user activation across an await, so awaiting the
+  //      image download first made navigator.share reject silently — which is
+  //      exactly the "nothing happens" she hit. The blob is fetched when the
+  //      lightbox opens instead, so the tap has it ready.
+  //   3. A plain download, for a desktop browser.
+  // Every path says what happened — a failure is never silence.
+  function nativeSaver() {
+    try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; }
+  }
+  window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
+
   document.getElementById('lbsave').addEventListener('click', function () {
     if (!lbCur) return;
     var url = document.getElementById('lbimg').src;
-    fetch(url).then(function (r) { return r.blob(); }).then(function (blob) {
-      var file = new File([blob], 'playground.webp', { type: blob.type || 'image/webp' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        return navigator.share({ files: [file] }).catch(function () {});
-      }
+    var native = nativeSaver();
+    if (native) { native.postMessage(url); toast('Saving…'); return; }
+    var file = null;
+    if (lbBlob && lbBlob.url === url) {
+      try { file = new File([lbBlob.blob], 'playground.webp', { type: lbBlob.blob.type || 'image/webp' }); } catch (e) {}
+    }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] })
+        .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn’t open the share sheet'); });
+      return;
+    }
+    if (lbBlob && lbBlob.url === url) {
       var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = URL.createObjectURL(lbBlob.blob);
       a.download = 'playground.webp';
       document.body.appendChild(a); a.click(); a.remove();
-    }).catch(function () {});
+      return;
+    }
+    toast('Still loading that image — try again');
   });
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
+  }
 
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.
