@@ -1264,6 +1264,20 @@ lifted into a standalone tool later.
   device's business); `resumeSyncJobs()` picks it up on return, same as the Home
   boxes. A moment added to an old day is stamped at that day's noon so it can't
   hijack "the newest page".
+- **Writing a page happens ON A LEAF, never in a pop-up (Aug 2026, Sophie).**
+  "Add to your book" turns the book to a blank writing leaf at the BACK (last
+  page, so no existing page number moves and the contents is untouched) —
+  date eyebrow, an **illuminated capital** opening the heading, the type
+  picker set in the book's serif, then the paper you write on. The leaf is a
+  real page of `bosPages()` (`{page:'write'}`), pushed only while `bosWriting`
+  is set; turn away with nothing written and it's gone the way an unwritten
+  page is, turn away WITH writing and it stays at the back so nothing typed
+  can be lost (the draft lives in `bosWriteDraft`, same contract as
+  `syncDrafts`). A tap on the leaf never turns the page — only the arrows do.
+  Saving lands on the page the entry is actually on; "how did it turn out?"
+  is the same leaf and lands back on the spell. The illuminated cap is one
+  inline vine path mirrored into four corners inside its OWN `<svg>` — never
+  a `<use>` of `#bos-corner`, which lives in a tab that can be `display:none`.
 - **The book shows a moment in HER OWN WORDS, three lines (Aug 2026).** The
   short AI label is the HOME screen's caption; on a book page (two columns, room
   to spare) showing only the label threw most of what she wrote away. The cap is

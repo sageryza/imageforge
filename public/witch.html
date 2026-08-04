@@ -1350,10 +1350,45 @@
     .bos-index-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; border-bottom: 1px dashed #d9cbb4; cursor: pointer; }
     .bos-index-row .n { font-family: var(--serif); font-size: 17px; color: #221c14; }
     .bos-index-row .c { font-size: 12px; color: #a08f74; }
-    /* Composer (in modal) */
+    /* ── The writing leaf ────────────────────────────────────────────────
+       Writing a page happens IN the book: "Add to your book" turns to a
+       blank leaf at the back instead of opening a modal on top of it, so
+       the thing you write on is a page of the same book you're reading. */
     .bos-typepick { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
     .bos-typepick button { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; }
     .bos-typepick button.on { border-color: var(--gold); color: var(--gold); }
+    /* On paper the type picker is set in the book's own serif, unfilled —
+       the panel-grey chip look belongs to the app UI, not to a page. */
+    .bos-page .bos-typepick { margin: 12px 0 2px; }
+    .bos-page .bos-typepick button { font-family: var(--serif); font-size: 14.5px; padding: 5px 11px; background: none; border-color: #d9cbb4; color: #6d5c3f; }
+    .bos-page .bos-typepick button.on { border-color: var(--gold); color: var(--gold); }
+    .bos-write { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    .bos-write-head { margin: 8px 0 0; }
+    .bos-write-head::after { content: ''; display: block; clear: both; }
+    .bos-write-head h3 { font-family: var(--serif); font-size: 23px; font-weight: 500; line-height: 1.2; color: #221c14; margin: 4px 0 0; }
+    /* The illuminated capital. The letter sits in a double-ruled square with
+       a vine spraying out of every corner — ONE inline path set, mirrored
+       four ways inside its own <svg>, so it costs no request, stays sharp at
+       any size, and doesn't depend on a symbol defined in another tab. */
+    .bos-dropcap { position: relative; float: left; width: 56px; height: 56px; margin: 4px 15px 4px 2px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--gold); border-radius: 2px; }
+    .bos-dropcap::before { content: ''; position: absolute; inset: 3px; border: 1px solid #d9cbb4; border-radius: 1px; }
+    .bos-dropcap .cap-l { position: relative; font-family: var(--serif); font-size: 40px; line-height: 1; color: var(--gold); }
+    /* The vines run OUTSIDE the frame, along its edges — inside they'd crowd
+       the letter, which is the one thing the square is there to hold. */
+    .bos-dropcap .cap-orn { position: absolute; left: -14px; top: -14px; width: 84px; height: 84px; color: var(--gold); pointer-events: none; }
+    /* A textarea, not a contenteditable: line breaks, placeholder and restore
+       all come free, and what's typed survives a repaint via bosWriteDraft.
+       It grows with the writing (bosWriteGrow) so the question line and the
+       button follow the words instead of stranding at the foot of the leaf. */
+    .bos-write-area { flex: 0 0 auto; width: 100%; min-height: 122px; margin-top: 12px; padding: 0; background: none; border: none; resize: none; outline: none; overflow: hidden; font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.65; color: #221c14; }
+    .bos-write-area::placeholder { color: #a08f74; font-style: italic; }
+    .bos-write-ctx { width: 100%; margin-top: 10px; padding: 6px 0; background: none; border: none; border-bottom: 1px solid #d9cbb4; outline: none; font-family: var(--serif); font-size: 15.5px; font-style: italic; color: #6d5c3f; }
+    .bos-write-ctx::placeholder { color: #a08f74; }
+    /* Blank paper under the writing: tapping it puts the cursor back in the
+       page rather than doing nothing (it can't turn the leaf — see the stage
+       handler), so the empty half of the leaf is still part of the writing. */
+    .bos-write-rest { flex: 1 1 auto; min-height: 20px; cursor: text; }
+    .bos-write-go { align-self: flex-end; margin: 14px 0 0; }
 
     /* ── Bottom nav ── */
     nav {
@@ -3556,6 +3591,10 @@
   };
   const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
+  // The leaf being written on, if any (see "Writing a page" below) — declared
+  // up here because bosPages() puts it at the back of the book.
+  let bosWriting = null;                       // null | { outcome: bool }
+  let bosWriteDraft = { text: '', context: '' };
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function tsOf(id) { const m = String(id || '').match(/(\d{13})/); return m ? +m[1] : 0; }
@@ -3652,6 +3691,11 @@
       if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
       pages.forEach(p => out.push(p));
     }
+    // The writing leaf — a real page of the book, only while one is being
+    // written. It goes at the BACK (the way you'd flip to the end of a paper
+    // journal to write), so no existing page number ever moves under it, and
+    // it belongs to no section, so the contents is unchanged too.
+    if (bosWriting) out.push({ sect: 'write', page: 'write' });
     return out;
   }
   /* ── Warm a page's pictures before you turn to it ──────────────────────
@@ -3849,8 +3893,20 @@
     document.body.classList.add('book-open');
     renderBosPage();
   }
-  function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
+  function closeBook() {
+    // A blank writing leaf doesn't survive shutting the book; one with writing
+    // on it does, and is still there at the back when you open it again.
+    if (bosWriting && !bosWriteDraft.text.trim()) bosWriting = null;
+    $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open');
+  }
   function renderBosPage() {
+    // A writing leaf you turned away from with nothing on it is gone, the way
+    // an unwritten page is. One with writing on it STAYS at the back of the
+    // book, so turning away can never lose what's been typed.
+    if (bosWriting && !bosWriteDraft.text.trim()) {
+      const cur = bosPages()[bosPageIdx - 1];
+      if (!cur || cur.page !== 'write') bosWriting = null;
+    }
     const pages = bosPages(), total = pages.length;
     if (bosPageIdx <= 0) { renderBosSpread(); return; }
     if (bosPageIdx > total) bosPageIdx = total;
@@ -3869,6 +3925,9 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    // The nav's "Add to your book" is what got you here — on the leaf itself
+    // it would just be a second button saying the same thing.
+    $('bos-write').style.display = p && p.page === 'write' ? 'none' : '';
     bosWarmPages([bosPageIdx + 1, bosPageIdx - 1, bosPageIdx + 2]);
     if (p.page === 'sectcover') {
       const c = BOS_SECT_COVERS[p.sect] || {};
@@ -3894,6 +3953,7 @@
       }
       return;   // a part-title carries no page number, like a real book
     }
+    if (p.page === 'write') { renderWriteLeaf(); return; }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
       // When the caption is the short AI label, the FULL original moment text
@@ -4022,6 +4082,7 @@
   // spread) — a small title up top, then gold section names, dot leaders,
   // black page numbers below.
   function renderBosSpread() {
+    const wr = $('bos-write'); if (wr) wr.style.display = '';
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
     book.style.removeProperty('--surface');
@@ -4054,67 +4115,140 @@
     const gl = e.target.closest('[data-lsnap]');
     if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
-    if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
+    if (oc) { bosOutcomeFor = oc.dataset.outcome; openWritePage('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
     // Images (tarot cards) turn the page too. A box you can type into must NOT
     // — the Synchronicities write-a-moment cell is a contenteditable, and
     // without this a tap into it turned the page instead of giving it focus.
-    if (e.target.closest('a, button, [contenteditable="true"]')) return;
+    if (e.target.closest('a, button, [contenteditable="true"], textarea, input')) return;
+    // The writing leaf never turns by tap — half a page of writing must not be
+    // one stray tap away from being left behind. The arrows still turn it.
+    const cur = bosPages()[bosPageIdx - 1];
+    if (cur && cur.page === 'write') return;
     // Tap zones: right side turns forward, left edge turns back.
     if (e.clientX < window.innerWidth * 0.28) { bosBack(); }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
-  /* Composer */
+  /* ── Writing a page (the leaf itself, not a pop-up) ─────────────────────
+     "Add to your book" turns the book to a blank leaf at the back and you
+     write on it there. What's typed lives in `bosWriteDraft`, so a repaint —
+     or turning away and back — can't eat it, the same contract the
+     Synchronicities write-boxes keep. */
   let bosComposeType = 'sign', bosOutcomeFor = null;
-  function openComposer(mode) {
-    const isOutcome = mode === 'outcome';
-    openModal(`<h2 style="margin-bottom:4px;">${isOutcome ? 'How did it turn out?' : 'Write a page'}</h2>
-      ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
-        ${['sign', 'spell', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
-      </div>`}
-      <textarea id="bos-compose-text" rows="6" placeholder="${isOutcome ? 'The candle burned clean, and two days later…' : 'Write it as it happened…'}" style="width:100%;"></textarea>
-      <div id="bos-context-wrap" style="display:${!isOutcome && bosComposeType === 'sign' ? '' : 'none'}; margin-top:10px;">
-        <input type="text" id="bos-compose-context" placeholder="What was happening when it appeared?" style="width:100%;">
+  // The vine that sprays from each corner of the illuminated capital: one
+  // quarter, mirrored across both axes, so the four corners match exactly.
+  const CAP_ORN = `<svg class="cap-orn" viewBox="0 0 84 84" fill="currentColor" aria-hidden="true">
+    <defs><g id="bos-cap-spray">
+      <circle cx="10" cy="10" r="2.4"/>
+      <path d="M12.6 8.6c9-.5 15.6 1 20.4 4.4-5.4-1.9-11.6-2.6-20.2-1.5z"/>
+      <path d="M8.6 12.6c-.5 9 1 15.6 4.4 20.4-1.9-5.4-2.6-11.6-1.5-20.2z"/>
+      <circle cx="34.5" cy="13.6" r="1.2"/><circle cx="13.6" cy="34.5" r="1.2"/>
+    </g></defs>
+    <use href="#bos-cap-spray"/>
+    <use href="#bos-cap-spray" transform="translate(84,0) scale(-1,1)"/>
+    <use href="#bos-cap-spray" transform="translate(0,84) scale(1,-1)"/>
+    <use href="#bos-cap-spray" transform="translate(84,84) scale(-1,-1)"/>
+  </svg>`;
+  function bosWriteSync() {
+    const ta = $('bos-write-area'), cx = $('bos-write-ctx');
+    if (ta) bosWriteDraft.text = ta.value;
+    if (cx) bosWriteDraft.context = cx.value;
+  }
+  const WRITE_PLACEHOLDER = {
+    sign: 'The magpie was on the rail again…',
+    spell: 'What you cast, what you used, and when…',
+    dream: 'I was back in the house with the green door…',
+    outcome: 'The candle burned clean, and two days later…',
+  };
+  function renderWriteLeaf() {
+    const isOutcome = !!(bosWriting && bosWriting.outcome);
+    // The heading opens with an illuminated capital, so the leaf reads as a
+    // page of the book rather than a form dropped on top of one.
+    const head = isOutcome ? 'How did it turn out?' : 'Write it as it happened';
+    const wantsCtx = !isOutcome && bosComposeType === 'sign';
+    $('bos-pagewrap').innerHTML = `<div class="bos-page"><div class="bos-write">
+      <div class="bos-date">${esc(bosDate(Date.now()))}</div>
+      <div class="bos-write-head">
+        <span class="bos-dropcap">${CAP_ORN}<span class="cap-l">${esc(head[0])}</span></span>
+        <h3>${esc(head.slice(1))}</h3>
       </div>
-      <button class="btn" id="bos-compose-save" style="margin-top:14px;">${isOutcome ? 'Save the outcome' : 'Add to the book'} <span class="js-star"></span></button>
-      <button class="close-x" id="bos-compose-close">close</button>`);
+      ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
+        ${['sign', 'spell', 'dream'].map(t => `<button type="button" data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
+      </div>`}
+      <textarea class="bos-write-area" id="bos-write-area" placeholder="${esc(WRITE_PLACEHOLDER[isOutcome ? 'outcome' : bosComposeType] || '')}">${esc(bosWriteDraft.text)}</textarea>
+      ${wantsCtx ? `<input type="text" class="bos-write-ctx" id="bos-write-ctx" placeholder="What was happening when it appeared?" value="${esc(bosWriteDraft.context)}">` : ''}
+      <div class="bos-write-rest" id="bos-write-rest"></div>
+      <button type="button" class="btn bos-write-go" id="bos-write-go">${isOutcome ? 'Save the outcome' : 'Add to the book'} <span class="js-star"></span></button>
+    </div><div class="bos-pagefoot">${bosPageIdx}</div></div>`;
     renderStars();
+    const ta = $('bos-write-area');
+    const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    ta.addEventListener('input', () => { bosWriteDraft.text = ta.value; grow(); });
+    grow();
+    $('bos-write-rest').addEventListener('click', () => {
+      ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch {}
+    });
+    // The keyboard covers the foot of the leaf on a phone, so bring what
+    // you're writing into view rather than leaving it under the keys.
+    ta.addEventListener('focus', () => setTimeout(() => { try { ta.scrollIntoView({ block: 'center' }); } catch {} }, 250));
+    const cx = $('bos-write-ctx');
+    if (cx) cx.addEventListener('input', () => { bosWriteDraft.context = cx.value; });
     const tp = $('bos-typepick');
     if (tp) tp.addEventListener('click', (e) => {
       const b = e.target.closest('[data-t]'); if (!b) return;
+      bosWriteSync();                       // keep what's already written
       bosComposeType = b.dataset.t;
-      tp.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      $('bos-context-wrap').style.display = bosComposeType === 'sign' ? '' : 'none';
+      renderWriteLeaf();                    // the context line belongs to signs only
+      const t2 = $('bos-write-area'); if (t2) { t2.focus(); t2.setSelectionRange(t2.value.length, t2.value.length); }
     });
-    $('bos-compose-close').addEventListener('click', closeModal);
-    $('bos-compose-save').addEventListener('click', () => {
-      const text = $('bos-compose-text').value.trim(); if (!text) return;
+    $('bos-write-go').addEventListener('click', (e) => {
+      e.stopPropagation();
+      bosWriteSync();
+      const text = bosWriteDraft.text.trim();
+      if (!text) { ta.focus(); return; }
       const all = journalLoad();
-      let wrote = null;
+      let landOn = 0, landSect = '';
       if (isOutcome && bosOutcomeFor) {
-        const e = all.find(x => x.id === bosOutcomeFor); if (e) e.outcome = text;
+        const ent = all.find(x => x.id === bosOutcomeFor); if (ent) ent.outcome = text;
+        landOn = bosOutcomeFor;
       } else {
-        const ctx = $('bos-compose-context') ? $('bos-compose-context').value.trim() : '';
+        const ctx = bosWriteDraft.context.trim();
         const id = 'j_' + Date.now();
-        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
-        wrote = { id, sect: bosSectOf(bosComposeType) };
+        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(wantsCtx && ctx ? { context: ctx } : {}) });
+        landOn = id; landSect = bosSectOf(bosComposeType);
       }
-      journalSave(all); bosOutcomeFor = null; closeModal();
-      // Land on the page the new entry is actually ON. This used to jump to the
-      // LAST page of the whole book, which was already the wrong section and is
-      // now doubly wrong: a new sign goes to the FRONT of Synchronicities. A sign
-      // has no page of its own (it joins a day's grid), so fall back to that
-      // section's newest page; an outcome edit stays where it was.
-      if (wrote && $('bos-reader').style.display !== 'none') {
-        bosPageIdx = bosPageOfEntry(wrote.id) || bosSectNewest(wrote.sect, todayISO()) || bosPages().length;
-        renderBosPage();
-      }
+      journalSave(all);
+      bosOutcomeFor = null; bosWriting = null; bosWriteDraft = { text: '', context: '' };
+      // Land on the page the entry is actually ON — the leaf you were writing
+      // on is gone now, and a new sign goes to the FRONT of Synchronicities,
+      // not the back of the book. A sign has no page of its own (it joins a
+      // day's grid), so fall back to that section's newest page.
+      bosPageIdx = bosPageOfEntry(landOn) || (landSect && bosSectNewest(landSect, todayISO())) || bosPages().length;
+      renderBosPage();
       updateBosCoverSub();
     });
   }
-  $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openComposer(); });
-  $('bos-quickwrite').addEventListener('click', () => openComposer());
+  // Turn to a fresh leaf and write on it. Tapping "Add to your book" again
+  // while one is already open just returns to it — it never wipes a draft.
+  function openWritePage(mode) {
+    const outcome = mode === 'outcome';
+    if (!bosWriting || bosWriting.outcome !== outcome) {
+      bosWriting = { outcome };
+      bosWriteDraft = { text: '', context: '' };
+    }
+    if ($('bos-reader').style.display === 'none') {
+      $('bos-reader').style.display = '';
+      document.body.classList.add('book-open');
+      try { bosWarmSectCovers(); } catch {}
+    }
+    bosPageIdx = bosPages().length;   // the writing leaf is the last one
+    renderBosPage();
+    // Focused synchronously inside the tap, or iOS won't raise the keyboard.
+    const ta = $('bos-write-area'); if (ta) ta.focus();
+  }
+  $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openWritePage(); });
+  $('bos-quickwrite').addEventListener('click', () => openWritePage());
   function updateBosCoverSub() {
     const el = $('bos-cover-sub'); if (!el) return;   // page count removed from the cover
     const n = bosAllPages().length;
