@@ -1033,13 +1033,15 @@
        so it reads as a little screenshot of the page rather than as a cropped
        illustration with a caption. `.lsnap-stage` is a phone-shaped box (360x620)
        and shares #deck-stage's own rule above, so a snapshot always looks like
-       what the lesson reader actually renders. The frame is shorter than the
-       stage, so the bottom is cropped the way a screenshot would be. */
-    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+       what the lesson reader actually renders. */
+    .bos-lesson-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
     .bos-lsnap { cursor: pointer; }
-    /* 432 of the 620-tall stage: the crop lands just ABOVE the body copy, so the
-       thumbnail ends cleanly instead of slicing a line of text in half. */
-    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 432; overflow: hidden;
+    /* The WHOLE card, 360x620 — kicker, title, art AND the words under it. The
+       frame used to be 432 tall so the crop landed just above the body copy,
+       which meant a saved lesson only ever showed as a picture with a title;
+       the one thing a snapshot is for (what did this page SAY) was the part
+       cut off. Matching the stage exactly means nothing is cropped. */
+    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 620; overflow: hidden;
                    border: 1px solid var(--border); border-radius: 4px; }
     .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: 620px;
                    transform: scale(var(--s, 0.46)); transform-origin: top left; }
@@ -3486,9 +3488,13 @@
   function lessonMarkPages() {
     const marks = marksLoad().slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
     const out = [];
-    // Four to a page (2×2). Six overflowed the page on a phone, and a page you
-    // have to scroll is the thing this whole pass was fixing.
-    for (let k = 0; k < marks.length; k += 4) out.push({ sect: 'lesson', page: 'lesson', marks: marks.slice(k, k + 4) });
+    // ONE to a page. A snapshot has to be READABLE to be worth keeping — the
+    // words under the picture are the part you saved — and four to a page put
+    // the card at 140px wide, which renders that body copy about 5px tall.
+    // Full page width is ~294px, so the card lands near phone size and the
+    // whole thing fits without scrolling. (Six, then four, both failed the
+    // same test for the same reason.)
+    for (let k = 0; k < marks.length; k += 1) out.push({ sect: 'lesson', page: 'lesson', marks: marks.slice(k, k + 1) });
     return out;
   }
   const bosSectOf = kind => (BOS_SECTS.find(s => s.kinds.includes(kind)) || BOS_SECTS[1]).key;
