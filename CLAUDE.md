@@ -321,10 +321,36 @@ lifted into a standalone tool later.
   follow it verbatim after a blank line — no trigger word, no trailing-period
   trim, no appended tail. The page's `STYLES.chatgpt.prefix` is a COPY used
   only to preview the prompt in the "Sent as" line; **keep the two identical**.
-  ~$0.06 an image at medium, so ~$0.24 a 4-up run (the LoRA runs are ~2¢).
-- Each of the 4 renders is its own call and lands on the doc as it finishes
-  (`status:'ready'` on the first, `'done'` when all are in), so the grid fills
-  in progressively; one failed call costs its image, not the run.
+  ~$0.06 an image at medium (the LoRA runs are ~2¢ for four).
+- **Two ChatGPT-only controls, in the space the LoRA knobs vacate:**
+  - **How many images — a STICKY 1/2/3/4 toggle** (`promptlab_count` in
+    localStorage, sent as `outputs`, clamped to `PL_GPT.maxOutputs`). Whatever
+    is lit stays lit for every later run and across reloads — not a one-shot
+    button. The LoRAs stay at four options a run.
+  - **Quality — a dropdown, low/medium/high, default medium** (sent as
+    `quality`, validated against `PL_GPT.qualities`). **Deliberately NOT
+    persisted:** it's a plain JS variable, so it holds while the page is open
+    and every fresh load is back to medium — localStorage would carry an
+    expensive `high` into next time without her meaning it. Roughly 2¢ / 6¢ /
+    25¢ an image, so a 4-up at high is ~$1.
+- **Cancel is REPLICATE-ONLY, on purpose (Aug 2026, Sophie's call).** The X on
+  a running job → "Are you sure you want to cancel?" → `POST
+  /api/promptlab/:id/cancel` → status `cancelled`.
+  - **Replicate** has a real cancel endpoint (`predictionId` is stored on the
+    doc when the prediction is created) — the run stops and only the compute
+    already spent is billed. The poll loop treats `canceled` as terminal, which
+    it previously did NOT (that would have spun forever).
+  - **A ChatGPT run gets NO X and the route refuses it (400).** OpenAI has no
+    cancel for image generation — an image is billed the moment it's requested
+    — so a cancel there would save nothing and only look like it did. Don't
+    "improve" this by making the renders sequential to claw back the unsent
+    ones: that was built, and Sophie rejected it (it slows every run down to
+    buy a cancel she doesn't want).
+  - Cancellation is an in-process `Set` (`plCancelled`) plus `cancelRequested`
+    on the doc.
+- A ChatGPT run's images are requested in parallel and each lands on the doc as
+  it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
+  arrive. One failed call costs its image, not the run.
 
 ## Writing Room (dating-book drafts on the phone)
 - `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —

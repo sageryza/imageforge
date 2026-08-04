@@ -4294,8 +4294,10 @@ const PROMPTLAB = 'forge-promptlab';
 // The scan is the same file the Evan film uses (refs/evan-film-style.png =
 // "datescan0013" — the page she attached when asking for this option).
 const PL_GPT = {
-  id: 'gpt-image-2', label: 'ChatGPT', quality: 'medium',
-  size: '1024x1536', aspectRatio: '2:3', outputs: 4, refFile: 'evan-film-style.png',
+  id: 'gpt-image-2', label: 'ChatGPT',
+  quality: 'medium', qualities: ['low', 'medium', 'high'],
+  size: '1024x1536', aspectRatio: '2:3', outputs: 1, maxOutputs: 4,
+  refFile: 'evan-film-style.png',
   // Keep in sync with STYLES.chatgpt.prefix in public/promptlab.html (the page
   // only uses its copy to PREVIEW the prompt; this one is what gets sent).
   prefix: 'Use only the style of the attached style reference and ignore its ' +
@@ -4308,20 +4310,27 @@ function playgroundStyleRef() {
   return plStyleRef;
 }
 
-// One run = `outputs` independent edits calls (the LoRA runs give four options,
-// so this does too). They're fired together and each lands on the doc as it
-// finishes — status flips to 'ready' on the first, 'done' when all are in — so
-// the grid fills in instead of waiting on the slowest render. A single failed
-// call costs its image, not the run; only an empty result fails the job.
+// Cancelled run ids (in-process — the job and the cancel route are the same
+// instance). Replicate runs only; see the /cancel route.
+const plCancelled = new Set();
+
+// One run = `outputs` independent edits calls, all sent together, each landing
+// on the doc as it finishes (status 'ready' on the first, 'done' when all are
+// in) so the grid fills in as they arrive. A single failed call costs its
+// image, not the run; only an empty result fails the job.
+// NOT cancellable, by nature: OpenAI has no cancel for image generation, so
+// every image here is billed the moment it's requested. Nothing in the flow
+// pretends otherwise — the page shows no X on these runs.
 async function runPromptLabGptJob(docRef, cfg) {
   try {
     const ref = playgroundStyleRef();
     const images = [];
     let failed = 0;
-    await Promise.all(Array.from({ length: PL_GPT.outputs }, async () => {
+    const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
+    await Promise.all(Array.from({ length: want }, async () => {
       try {
         const data = await openaiImageEditRefs(cfg.fullPrompt, [ref], {
-          quality: PL_GPT.quality, size: PL_GPT.size, timeout: 300000,
+          quality: cfg.quality, size: PL_GPT.size, timeout: 300000,
         });
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
         const b64 = data.data?.[0]?.b64_json;
@@ -4360,10 +4369,18 @@ async function runPromptLabJob(docRef, cfg) {
     let prediction = await createRes.json();
     if (prediction.error) throw new Error(String(prediction.error));
     if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
-    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+    // The prediction id is what /cancel needs — Replicate stops charging for
+    // the compute it hasn't run yet.
+    if (prediction.id) await docRef.update({ predictionId: prediction.id }).catch(() => {});
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
       await new Promise(r => setTimeout(r, 1500));
       const poll = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
       prediction = await poll.json();
+    }
+    if (prediction.status === 'canceled' || plCancelled.has(docRef.id)) {
+      plCancelled.delete(docRef.id);
+      await docRef.update({ status: 'cancelled' });
+      return;
     }
     if (prediction.status === 'failed') throw new Error(prediction.error || 'generation failed');
     const urls = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
@@ -4373,9 +4390,11 @@ async function runPromptLabJob(docRef, cfg) {
     // copies are what keep the run history browsable.
     await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
+    plCancelled.delete(docRef.id);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
   }
 }
@@ -4395,14 +4414,16 @@ app.post('/api/promptlab', async (req, res) => {
     if (modelId === PL_GPT.id) {
       if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
       const fullPrompt = `${PL_GPT.prefix}\n\n${typed}`;
+      const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
+      const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
-        model: PL_GPT.id, quality: PL_GPT.quality, size: PL_GPT.size,
-        aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile,
+        model: PL_GPT.id, quality, size: PL_GPT.size,
+        aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile, outputs,
         images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -4439,6 +4460,43 @@ app.get('/api/promptlab/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
     const d = snap.data();
     res.json({ ...d, createdAt: d.createdAt?.toMillis?.() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cancel a running job — Replicate (the LoRAs) ONLY. Replicate has a cancel
+// endpoint: the prediction stops and only the compute already run is billed.
+// OpenAI has no cancel for image generation — a requested image is billed
+// whether or not anyone waits for the response — so a ChatGPT run is refused
+// here rather than offered a cancel that saves nothing (and the page shows no
+// X on those runs).
+app.post('/api/promptlab/:id/cancel', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    if (d.engine === 'gptimage') {
+      return res.status(400).json({ error: 'gpt-image-2 renders cannot be cancelled — OpenAI bills an image as soon as it is requested' });
+    }
+    if (d.status !== 'running' && d.status !== 'ready') {
+      return res.json({ ok: true, status: d.status, note: 'already finished' });
+    }
+    plCancelled.add(req.params.id);
+    await ref.update({ cancelRequested: true });
+    if (d.predictionId && REPLICATE_API_TOKEN) {
+      try {
+        await fetch(`https://api.replicate.com/v1/predictions/${d.predictionId}/cancel`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` },
+        });
+      } catch (err) { console.warn('promptlab replicate cancel failed:', err.message); }
+    }
+    res.json({ ok: true, status: 'cancelling' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
