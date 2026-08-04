@@ -46,6 +46,11 @@ const NARRATION_VOICE = process.env.EDITOR_NARRATION_VOICE || 'UTkHGl2ImiT6gwtAF
 const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_v3';
 const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1.12);
 const NARRATION_PREFIX = '[quietly] ';
+// Retraining a professional voice clone keeps its voice_id, so the narration
+// cache key (voice + model + settings + text) can't tell the new model from
+// the old one and would serve pre-retrain takes forever. Bump this — or set
+// EDITOR_NARRATION_REV — after any retrain to re-voice everything.
+const NARRATION_REV = process.env.EDITOR_NARRATION_REV || '2026-08-04';
 
 const COLLECTION = process.env.EDITOR_COLLECTION || 'forge-editor';
 const NDE_COLLECTION = process.env.NDE_COLLECTION || 'forge-nde-videos';
@@ -672,7 +677,7 @@ async function buildClip(snippet, source, ctx) {
 // for) exactly once, however many renders reuse them.
 function narrCachePath(text) {
   const cacheKey = crypto.createHash('sha1')
-    .update([NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
+    .update([NARRATION_REV, NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
     .digest('hex');
   return `${NARR_CACHE_FOLDER}/${cacheKey}.mp3`;
 }
