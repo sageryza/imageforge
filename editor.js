@@ -40,17 +40,20 @@ const admin = require('firebase-admin');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
-// Narration voice: Sophie's chosen narrator, spoken quietly and nudged ~12%
-// faster so the fills sit under the interview clips instead of on top of them.
+// Narration voice: Sophie's professional voice clone, PLAIN by request
+// (Aug 2026, Sophie): no "[quietly]" whisper direction, no tempo nudge, no
+// style tuning — stock ElevenLabs defaults, the same settings her approved
+// clone comparison samples used. Only loudnorm remains (level-matching to the
+// interview clips, not a voice setting).
 const NARRATION_VOICE = process.env.EDITOR_NARRATION_VOICE || 'UTkHGl2ImiT6gwtAFCql';
-const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_v3';
-const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1.12);
-const NARRATION_PREFIX = '[quietly] ';
+const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_multilingual_v2';
+const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1);
+const NARRATION_PREFIX = '';
 // Retraining a professional voice clone keeps its voice_id, so the narration
 // cache key (voice + model + settings + text) can't tell the new model from
 // the old one and would serve pre-retrain takes forever. Bump this — or set
 // EDITOR_NARRATION_REV — after any retrain to re-voice everything.
-const NARRATION_REV = process.env.EDITOR_NARRATION_REV || '2026-08-04';
+const NARRATION_REV = process.env.EDITOR_NARRATION_REV || '2026-08-04-plain';
 
 const COLLECTION = process.env.EDITOR_COLLECTION || 'forge-editor';
 const NDE_COLLECTION = process.env.NDE_COLLECTION || 'forge-nde-videos';
@@ -672,7 +675,7 @@ async function buildClip(snippet, source, ctx) {
   return out;
 }
 
-// A narration card: ElevenLabs, spoken quietly, then nudged faster + levelled.
+// A narration card: ElevenLabs at stock settings, then levelled.
 // Cached like clips — the same words in the same voice are voiced (and paid
 // for) exactly once, however many renders reuse them.
 function narrCachePath(text) {
@@ -693,13 +696,14 @@ async function buildNarration(text, ctx) {
 
   const key = process.env.ELEVENLABS_API_KEY || '';
   if (!key) throw new Error('ELEVENLABS_API_KEY is not set on the server — narration cards cannot be rendered');
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_128`, {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_192`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
     body: JSON.stringify({
       text: NARRATION_PREFIX + String(text || '').trim(),
       model_id: NARRATION_MODEL,
-      voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true },
+      // Stock defaults — Sophie's "no settings" rule for her clone's narration.
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
     }),
     timeout: 180000,
   });
