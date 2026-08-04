@@ -2692,7 +2692,7 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
     const db = admin.firestore();
     const ref = db.collection('forge-witch-dream-illus').doc();
     await ref.set({
-      status: 'running', label: 'reading your dream', dream, people: people || null,
+      status: 'running', label: 'illustrating your dream', dream, people: people || null,
       page1: null, totalPages: 0, title: null, error: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
