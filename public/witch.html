@@ -1034,19 +1034,28 @@
        illustration with a caption. `.lsnap-stage` is a card-shaped box
        (360 x --lsnap-h) and shares #deck-stage's own rule above, so a snapshot
        always looks like what the lesson reader actually renders.
-       `--lsnap-h` is the ONE place the height is set: the frame's aspect ratio,
-       the stage's height and the enlarged view's maths all read it. */
-    :root { --lsnap-h: 470; }
-    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+       The card has NO fixed height: `lsnapFit()` measures the leaf and makes
+       the rows fill it, so the cards end where the paper does and the page
+       number sits right under them. `--lsnap-min` / `--lsnap-max` are the only
+       two numbers — the floor is the shortest card that still fits the longest
+       body on file (340px of words), the ceiling is roughly the proportions of
+       a real phone screen, so a page holding one or two snapshots doesn't blow
+       them up bigger than the lesson they came from. */
+    :root { --lsnap-min: 470; --lsnap-max: 680; }
+    /* The grid takes the leaf: .bos-page is a flex column with the page number
+       pinned under it, so `flex: 1` here is what hands the rows the free paper. */
+    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1 1 auto; min-height: 0; }
     .bos-lsnap { cursor: pointer; }
     /* The WHOLE card — kicker, title, art AND the words under it. The frame
        used to be 432 tall so the crop landed just above the body copy, which
        meant a saved lesson only ever showed as a picture with a title; the one
        thing a snapshot is for (what did this page SAY) was the part cut off.
-       Matching the stage exactly means nothing is cropped. */
-    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / var(--lsnap-h); overflow: hidden;
+       Matching the stage exactly means nothing is cropped. Both heights are
+       set by lsnapFit() — the frame in real px, the stage in the replica's own
+       units, so scaling the one lands exactly on the other. */
+    .lsnap-frame { position: relative; width: 100%; overflow: hidden;
                    border: 1px solid var(--border); border-radius: 4px; }
-    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: calc(var(--lsnap-h) * 1px);
+    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px;
                    transform: scale(var(--s, 0.46)); transform-origin: top left; }
     .lsnap-stage .tcard { animation: none; }   /* a snapshot doesn't slide in */
     /* A snapshot packs its card TIGHT. The live deck spreads one card over a
@@ -1056,10 +1065,10 @@
        between the picture and the words. That padding is why a saved lesson
        was 620 tall, why four of them overran the leaf, and why the page number
        got shoved off the bottom. So here the three parts sit directly on top of
-       each other and the ART absorbs the difference: every snapshot is exactly
-       the same size, none of them has a gap in it, and no card's words are cut
-       off (the tallest body on file needs 340px, which still leaves the picture
-       room at this height). */
+       each other and the ART absorbs the difference — both the difference
+       between one card's words and another's, and whatever height the leaf
+       hands the row. Every snapshot on a page is exactly the same size, none of
+       them has a gap in it, and no card's words are cut off. */
     .lsnap-stage .tcard-img, .lsnap-stage .tcard-html { flex: 1 1 0; min-height: 0; max-height: none; }
     .lsnap-stage .deck-text { flex: 0 0 auto; padding: 8px 24px 12px; overflow: hidden; }
     .lsnap-stage .deck-text > :first-child { margin-top: 0; }
@@ -3715,10 +3724,11 @@
      lsnapStage() writes the lesson reader's OWN card markup (minus the live CTA
      button and the "tap to continue" hint — the parts of a screenshot you would
      have cropped off) into a phone-shaped stage on that card's own background. */
-  // The card's height lives in CSS (`--lsnap-h`) so the frame, the stage and
-  // the enlarged view can never drift apart.
-  function lsnapH() {
-    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lsnap-h')) || 470;
+  // How tall a snapshot may be, in the replica's own units. The bounds live in
+  // CSS so the book page and the enlarged view can never drift apart.
+  function lsnapBounds() {
+    const v = n => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n));
+    return { min: v('--lsnap-min') || 470, max: v('--lsnap-max') || 680 };
   }
   function lsnapStage(c) {
     const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`;
@@ -3733,13 +3743,29 @@
       </div>
     </div>`;
   }
-  // The stage is a fixed 360px-wide replica, so it is SCALED to whatever width
-  // it landed in — measured, not guessed, so it fits the book page and the
-  // enlarged view with the same code.
+  // The stage is a 360px-wide replica, so it is SCALED to whatever width it
+  // landed in, and then made as TALL as the leaf can give it: the rows share
+  // the free paper between the last card and the page number, so the spread
+  // ends where the page does instead of stranding a blank band at the bottom.
+  // Measured, never guessed — the leaf is a different height on every phone.
   function lsnapFit() {
-    document.querySelectorAll('#bos-pagewrap .lsnap-frame').forEach(f => {
+    const grid = document.querySelector('#bos-pagewrap .bos-lesson-grid');
+    if (!grid) return;
+    const frames = [...grid.querySelectorAll('.lsnap-frame')];
+    if (!frames.length || !frames[0].clientWidth) return;
+    const s = frames[0].clientWidth / 360;
+    // Clear first: on a re-fit the frames' own heights ARE the grid's height,
+    // so measuring without collapsing them would just re-measure last time.
+    frames.forEach(f => { f.style.height = ''; });
+    const rows = Math.ceil(frames.length / 2);
+    const gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+    const per = (grid.clientHeight - gap * (rows - 1)) / rows;
+    const b = lsnapBounds();
+    const H = Math.max(b.min, Math.min(b.max, per / s));
+    frames.forEach(f => {
+      f.style.height = Math.round(H * s) + 'px';
       const st = f.querySelector('.lsnap-stage');
-      if (st && f.clientWidth) st.style.setProperty('--s', (f.clientWidth / 360).toFixed(4));
+      if (st) { st.style.height = H + 'px'; st.style.setProperty('--s', s.toFixed(4)); }
     });
   }
   let lsnapOpen = null;   // { lesson, card } — what the Back link returns to
@@ -3749,14 +3775,23 @@
     lsnapOpen = { lesson, card };
     const view = $('lsnap-view');
     // As big as fits, whole card visible — no cropping in the enlarged view.
-    const H = lsnapH();
-    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / H);
+    // Same rule as the book page: fill the height that's actually there, within
+    // the same bounds, so an enlarged card reads like the tile it came from.
+    const b = lsnapBounds();
+    const availH = window.innerHeight - 150, sW = (window.innerWidth - 34) / 360;
+    const H = Math.max(b.min, Math.min(b.max, availH / sW));
+    const s = Math.min(sW, availH / H);
     view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(H * s)}px;">${lsnapStage(c)}</div>
       <div class="lsnap-actions">
         <button type="button" id="lsnap-back">Back to the lesson</button>
         <button type="button" class="plain" id="lsnap-close">close</button>
       </div>`;
-    view.querySelector('.lsnap-stage').style.setProperty('--s', s.toFixed(4));
+    // The stage carries no height of its own (the book page measures one per
+    // leaf), so the enlarged view sets its own — without it the card's parts
+    // stack at their natural height and float in the top of the box.
+    const bigStage = view.querySelector('.lsnap-stage');
+    bigStage.style.height = H + 'px';
+    bigStage.style.setProperty('--s', s.toFixed(4));
     view.style.display = ''; view.classList.add('show');
     document.body.style.overflow = 'hidden';   // house rule: freeze the page behind
     $('lsnap-close').addEventListener('click', closeLsnap);
