@@ -387,7 +387,9 @@ lifted into a standalone tool later.
   equivalents. **"Scarry"** (Aug 2026, shortened from "Richard Scarry") is a
   second gpt-image-2 style: same recipe, but the attached style references are
   THREE of Sophie's saved busy-animal picture-book pages
-  (`refs/richard-scarry-1..3.png`, all three attach); its prefix has NO colors
+  (`refs/richard-scarry-1..3.png` — TWO of the three attach, the mouse in bed
+  and the taxi jam; `-2.png`, the mouse at the table, was taken out Aug 2026 at
+  Sophie's ask and the file kept in case she puts it back); its prefix has NO colors
   line (that belonged to the watercolor reference) and it is `noCharacter` —
   the Sophie toggle is hidden and the server refuses the card even if sent,
   because her character card is the watercolor look. **"Pastel"** (Aug 2026) is

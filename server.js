@@ -4384,16 +4384,19 @@ const PL_GPT_STYLES = {
     prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
     suffix: 'Do not include any text in the image.',
   },
-  // "Richard Scarry" (Sophie's name for it): three Instagram saves she sent
-  // (busy-animal picture-book pages — mouse in bed / at the table / hailing a
-  // taxi), cropped to the artwork and banked in refs/. All three attach.
+  // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
+  // picture-book pages), cropped to the artwork and banked in refs/. TWO of
+  // the three attach — the mouse in bed and the taxi jam. The third,
+  // `richard-scarry-2.png` (mouse at the table), was taken OUT Aug 2026 at
+  // her ask; the file stays in refs/ because she may put it back, so adding
+  // it here again is the whole job (mind the "two"/"three" in the prefix).
   // No colors line (that belonged to the watercolor reference) and NO Sophie
   // character card (her card is the watercolor look — wrong reference here),
   // both Sophie's call Aug 2026.
   scarry: {
     label: 'Scarry',
-    refFiles: ['richard-scarry-1.png', 'richard-scarry-2.png', 'richard-scarry-3.png'],
-    prefix: 'Use only the style of the three attached style reference images and ' +
+    refFiles: ['richard-scarry-1.png', 'richard-scarry-3.png'],
+    prefix: 'Use only the style of the two attached style reference images and ' +
       'ignore their content — do not copy anything depicted in them.',
     suffix: 'Do not include any text in the image.',
     noCharacter: true,
