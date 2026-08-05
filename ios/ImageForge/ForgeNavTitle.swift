@@ -8,12 +8,21 @@ import UIKit
 ///
 /// It keeps a real `navigationTitle` underneath (for the a11y label and the
 /// back-button text on pushed children) and overrides only the *visible* title
-/// via a principal toolbar item, so backgrounds and back buttons are untouched.
+/// via a principal toolbar item, so back buttons are untouched. It also paints
+/// the bar with the screen's paper — see `paper` below.
 extension View {
-    func forgeTitle(_ text: String) -> some View {
+    /// `paper` is the screen's own background. The nav bar is painted with it so
+    /// the page colour runs to the very top edge — left to the system default
+    /// the bar keeps its own material, which reads as a white strip above the
+    /// cream (Home has no strip only because it isn't in a NavigationStack at
+    /// all). Pass a screen's paper whenever it isn't the house `Theme.bg`; the
+    /// web-wrapped tools each match their page's CSS paper.
+    func forgeTitle(_ text: String, paper: Color = Theme.bg) -> some View {
         self
             .navigationTitle(text)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(paper, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(text.uppercased())
@@ -71,8 +80,9 @@ extension View {
     /// bar + the back chevron top-left (previous screen). Trailing controls
     /// stay per-screen. This is THE pattern — don't hand-roll tool headers.
     func forgeToolBar(_ title: String, tint: Color = Theme.text,
+                      paper: Color = Theme.bg,
                       back: (() -> Void)? = nil) -> some View {
-        self.forgeTitle(title)
+        self.forgeTitle(title, paper: paper)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     ForgeBackButton(tint: tint, action: back)

@@ -101,10 +101,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
-                             .forgeTitle("Story Room")
-                             .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
-                             .toolbarBackground(.visible, for: .navigationBar)
-        case .lessons:   LessonsView().forgeToolBar("Lessons")
+                             .forgeTitle("Story Room", paper: StoryRoomView.paper)
+        case .lessons:   LessonsView().forgeToolBar("Lessons", paper: LessonsView.paper)
         case .writing:   WritingRoomView()
         case .editor:    EpisodeEditorView()
         case .chats:     ChatFeedView()
