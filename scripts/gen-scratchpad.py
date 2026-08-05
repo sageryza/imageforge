@@ -219,19 +219,22 @@ document.getElementById('micbtn').onclick=function(ev){
     recorder.onstop=function(){
       recStream.getTracks().forEach(function(t){t.stop();});
       btn.classList.remove('rec'); btn.classList.add('busy');
-      var blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});
+      // Strip any ";codecs=…" — the server keys on the base mime.
+      var baseMime=(recorder.mimeType||'audio/mp4').split(';')[0]||'audio/mp4';
+      var blob=new Blob(chunks,{type:baseMime});
       var fr=new FileReader();
       fr.onload=function(){
         api('/voice',{method:'POST',body:JSON.stringify({id:b.id,audio:fr.result})})
           .then(function(r){return r.json()})
           .then(function(d){
             btn.classList.remove('busy');
+            if(d.error){ alert('Recording didn’t save: '+d.error); return; }
             if(d.beats){ beats=d.beats; render(); }
             var fresh=beats.find(function(x){return x.id===b.id;});
             if(fresh&&popBeat&&popBeat.id===b.id){ popBeat=fresh; btn.classList.toggle('on',Boolean(fresh.voiceUrl)); }
             if(d.url){ player.pause(); player.src=d.url; player.play(); }
           })
-          .catch(function(){ btn.classList.remove('busy'); });
+          .catch(function(){ btn.classList.remove('busy'); alert('Recording didn’t save — network hiccup. Try again.'); });
       };
       fr.readAsDataURL(blob);
     };
