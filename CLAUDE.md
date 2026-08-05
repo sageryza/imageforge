@@ -1614,7 +1614,12 @@ lifted into a standalone tool later.
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
   close. The page must never scroll or jump while you're looking at an image.
-  Applies to every app and every gallery.
+  Applies to every app and every gallery. **AND save `window.scrollY` on open,
+  `window.scrollTo(0, savedY)` on close (Aug 2026)** — pausing alone is not
+  enough (`overflow:hidden` does not stop `window.scrollBy`, so anything that
+  restarts the autoscroll under the overlay moves the page; this bit Sophie
+  repeatedly on Compare pages). Restoring the saved position guarantees she
+  closes the image exactly where she opened it, whatever happened behind it.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
