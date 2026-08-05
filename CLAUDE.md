@@ -1940,10 +1940,10 @@ slots are short centered dashes.
   rides on EVERY request — `?pad=` on GETs, `pad` in the body on POSTs
   (`GET /pads`, `POST /pads {title}`).
 - **The film (Aug 2026) — a play button at the TOP of the pad.** `POST
-  /film` stitches the story: units in order (a chunk is ONE unit), each held
-  for exactly its audio's length — her recording first, else the line's
-  cached TTS, else `FILM.silent` (2s) of quiet — hard cuts, 1080x1620 (2:3),
-  pure ffmpeg, no video model, free. A chunk's members split its time. It's
+  /film` stitches the story: every beat with art is its own shot (CHUNKS ARE
+  DISPLAY-ONLY — Sophie), each held for exactly its own audio's length —
+  her recording first, else the line's cached TTS, else `FILM.silent` (2s)
+  of quiet — hard cuts, 1000x1500 (2:3), pure ffmpeg, no video model, free. It's
   a background job on `pad.film` (`status` making/done/failed); the page
   polls and resumes on return; every previous cut is kept in `pad.films`.
   **The per-unit audio is PCM, never aac:** concatenating aac adds encoder
