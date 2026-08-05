@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad
     var id: String { rawValue }
 
     var title: String {
@@ -18,6 +18,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
         case .blog:      return "Blog Studio"
+        case .product:   return "Product Creator"
         case .story:     return "Story Room"
         case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
@@ -42,6 +43,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .blog:      return "Turn a topic into an SEO post — then publish it."
+        case .product:   return "An idea → designs → real products, as Etsy drafts."
         case .story:     return "Every story in one room — words, voice, art, films."
         case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
@@ -62,19 +64,20 @@ enum Tool: String, CaseIterable, Identifiable {
         case .coloring:  return "pencil.and.outline"
         case .storybook: return "book"
         case .greeting:  return "envelope"
-        case .dreams:    return "moon.stars"
+        case .dreams:    return "cloud"
         case .instagram: return "camera"
         case .ads:       return "megaphone"
         case .story:     return "books.vertical"
         case .lessons:   return "rectangle.grid.2x2"
         case .writing:   return "text.book.closed"
-        case .editor:    return "waveform"
+        case .editor:    return "slider.horizontal.3"
         case .cutroom:   return "scissors"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
         case .blog:      return "newspaper"
+        case .product:   return "shippingbox"
         case .playground: return "paintpalette" // fallback; .playground uses a custom asset (see customIcon)
         // The pad IS the Story Room now, so it wears the Story Room's books —
         // the old dashed placement slot read as a different tool in the bar.
@@ -106,6 +109,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: InstagramView()
         case .ads:       AdsView()
         case .blog:      BlogView().forgeToolBar("Blog Studio")
+        case .product:   ProductCreatorView().forgeToolBar("Product Creator")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -138,14 +142,18 @@ struct ToolGlyph: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                // Custom art fills less of its box than an SF Symbol fills its
-                // cap-height, so scale up to sit at the same optical size as the
-                // symbols beside it (e.g. the Chats bubble in the other corner).
-                .frame(width: size * 1.35, height: size * 1.35)
-                // …but keep the LAYOUT box the height an SF Symbol of this size
-                // would take, so the bigger drawing overflows visually instead
-                // of pushing whatever sits under it (the home grid stacks a
-                // title right below the icon) out of line with its neighbours.
+                // An SF Symbol at point size S draws only about 0.75·S of ink —
+                // it sits on a text baseline, so the glyph is roughly cap
+                // height, not the full box. Custom art fills ~0.9 of whatever
+                // frame it gets, so matching that ink means a frame SMALLER
+                // than S, not bigger. (This used to scale UP by 1.35, which is
+                // why the Test Station's tubes read half again the size of
+                // every symbol beside them.)
+                .frame(width: size * 0.86, height: size * 0.86)
+                // …in a LAYOUT box the height an SF Symbol of this size would
+                // take, so a custom glyph never nudges whatever sits under it
+                // (the home grid stacks a title right below the icon) out of
+                // line with its neighbours.
                 .frame(height: size * 1.2)
         } else {
             Image(systemName: tool.icon)
@@ -165,7 +173,7 @@ extension Tool {
     /// the other, never both, so each home stays a short scannable list.
     var isBusiness: Bool {
         switch self {
-        case .instagram, .ads, .blog: return true
+        case .instagram, .ads, .blog, .product: return true
         default: return false
         }
     }

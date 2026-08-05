@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Studio · ImageForge</title>
+<title>Product Creator · ImageForge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -68,11 +68,12 @@
 <body>
 <header class="app-header">
   <div class="brand" onclick="location.href='/'"><span class="brand-mark">◆</span><h1>ImageForge</h1></div>
-  <nav class="app-nav"><span class="tool-name">Studio</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
+  <nav class="app-nav"><span class="tool-name">Product Creator</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
 </header>
 
 <main class="studio">
   <!-- Brief bar -->
+  <p class="muted" style="margin:0 0 12px">Start from an idea and end on reviewable Etsy drafts. Selling something you already <b>made</b> (a real object you photographed)? Use the <a class="link" href="/photo">Photo studio</a> instead.</p>
   <section class="brief">
     <label class="lab" style="margin-top:0">Not sure yet? Describe the vibe and I'll plan it</label>
     <div class="row">
@@ -329,51 +330,51 @@
     if(etsyItems.length && !shop){ setStatus(st,'err','Art print / card need an Etsy shop id (set ETSY_SHOP_ID or type one).'); return; }
 
     btn.disabled=true;
-    const results=[];
-
-    // ── Printify (apparel/mugs) → Etsy draft ──
-    for(const p of pod){
-      setStatus(st,'work',`Creating ${p.label} on Printify → Etsy draft…`);
-      const r=await api('/api/pipeline/pod-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        product_type:p.key,
-        variant_ids: selectedVariant[p.key]?[selectedVariant[p.key]]:undefined,
-        image:{url:activeDesign, fileName:'design.png'},
-        title:hasCopy?title:undefined, description:hasCopy?description:undefined, tags:hasCopy?tags:undefined,
-        generateContent:!hasCopy, theme, productType:p.key,
-        price:Math.round(priceDollars*100),
-        removeBackground:true,
-        publish:true, goLive:false,   // → Etsy DRAFT, not live
-      })});
-      results.push({label:p.label, ok:r.ok&&r.body&&r.body.ok, detail:(r.body&&(r.body.error||(r.body.body&&r.body.body.error)))||''});
-    }
-
-    // ── Etsy draft (art print / card) ──
-    if(etsyItems.length){
-      setStatus(st,'work','Fetching Etsy shop defaults…');
-      const def=await api('/api/etsy/defaults?shop_id='+encodeURIComponent(shop));
-      if(!def.ok){ btn.disabled=false; setStatus(st,'err','Etsy defaults failed: '+((def.body&&def.body.error)||def.status)); return; }
-      for(const p of etsyItems){
-        setStatus(st,'work',`Creating ${p.label} Etsy draft…`);
-        const r=await api('/api/pipeline/publish-draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-          shop_id:Number(shop), images:[activeDesign],
-          title:hasCopy?title:undefined, description:hasCopy?description:undefined, tags:hasCopy?tags:undefined,
-          generateContent:!hasCopy, theme, productType:p.key,
-          price:priceDollars,
-          shipping_profile_id:def.body.shipping_profile_id,
-          return_policy_id:def.body.return_policy_id, readiness_state_id:def.body.readiness_state_id,
-          // taxonomy_id intentionally omitted — the server maps it from productType
-        })});
-        results.push({label:p.label, ok:r.ok&&r.body&&r.body.ok, detail:(r.body&&(r.body.error||(r.body.body&&r.body.body.error)))||''});
-      }
-    }
-
-    btn.disabled=false;
-    const okCount=results.filter(r=>r.ok).length;
-    const link='<a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review in Etsy drafts</a>';
-    if(okCount===results.length) setStatus(st,'ok',`${okCount} draft${okCount>1?'s':''} created ✓ — ${link}.`);
-    else if(okCount) setStatus(st,'ok',`${okCount}/${results.length} created — ${link}. Failed: ${results.filter(r=>!r.ok).map(r=>r.label+(r.detail?' ('+r.detail+')':'')).join(', ')}`);
-    else setStatus(st,'err','Failed: '+(results.map(r=>r.label+(r.detail?' ('+r.detail+')':'')).join(', ')||'unknown error'));
+    setStatus(st,'work','Starting…');
+    // ONE server call — the whole routed batch runs as a background job on the
+    // server (apparel/mug → Printify→Etsy draft, print/card → plain Etsy
+    // draft), so leaving the app mid-run loses nothing. The job id is kept in
+    // localStorage and polling resumes on return.
+    const r=await api('/api/pipeline/make',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      design:activeDesign,
+      products:chosen.map(p=>({key:p.key, variant_id:selectedVariant[p.key]||undefined})),
+      price:priceDollars, shop_id:shop||undefined, theme,
+      title:hasCopy?title:undefined, description:hasCopy?description:undefined,
+      tags:hasCopy&&tags.length?tags:undefined,
+    })});
+    if(!r.ok){ btn.disabled=false; setStatus(st,'err','Failed to start: '+((r.body&&r.body.error)||r.status)); return; }
+    localStorage.setItem('product_make_job', r.body.id);
+    pollMake(r.body.id);
   }
+
+  // Poll a make job until it lands; survives leaving the page (resumed below).
+  const LABELS = Object.fromEntries(PRODUCTS.map(p=>[p.key,p.label]));
+  async function pollMake(id){
+    const st=document.getElementById('draftStatus'); const btn=document.getElementById('draftBtn');
+    btn.disabled=true;
+    const r=await api('/api/pipeline/make/'+id);
+    if(!r.ok){ // job unknown (old id / server restart mid-poll) — stop quietly
+      btn.disabled=false; localStorage.removeItem('product_make_job');
+      if(r.status!==404) setStatus(st,'err','Lost the job: '+((r.body&&r.body.error)||r.status));
+      return;
+    }
+    const job=r.body;
+    const doneList=(job.results||[]).map(x=>(LABELS[x.key]||x.key)+(x.ok?' ✓':' ✕'+(x.detail?' ('+x.detail+')':''))).join(' · ');
+    if(job.status==='making'){
+      setStatus(st,'work',(job.stage||'working')+(doneList?' — '+doneList:''));
+      setTimeout(()=>pollMake(id),2500);
+      return;
+    }
+    btn.disabled=false; localStorage.removeItem('product_make_job');
+    const okCount=(job.results||[]).filter(x=>x.ok).length, total=(job.results||[]).length;
+    const link='<a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review in Etsy drafts</a>';
+    if(job.status==='done'&&okCount===total) setStatus(st,'ok',`${okCount} draft${okCount>1?'s':''} created ✓ — ${link}.`);
+    else if(okCount) setStatus(st,'ok',`${okCount}/${total} created — ${link}. ${doneList}`);
+    else setStatus(st,'err','Failed: '+(job.error||doneList||'unknown error'));
+  }
+  // Resume a run that was in flight when the page was left.
+  (function(){ const id=localStorage.getItem('product_make_job'); if(id){ document.getElementById('side').hidden=false; document.getElementById('work').classList.add('has-sel'); pollMake(id); } })();
+
   function setStatus(el,k,html){ el.className='status '+k; el.innerHTML=(k==='work'?'<span class="spin"></span>':'')+html; el.hidden=false; }
 </script>
 </body>
