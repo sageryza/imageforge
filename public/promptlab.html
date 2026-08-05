@@ -261,12 +261,22 @@
                   trigger: 'wtr', suffix: 'White background', baked: '' },
     hoonie:     { model: 'sageryza/hoonie', label: 'Hoonie linocut', engine: 'replicate',
                   trigger: 'HOONIE', suffix: '', baked: 'linocut relief print, white background' },
-    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage',
+    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan',
                   prefix: 'Use only the style of the attached style reference and ignore its ' +
                     'content — do not copy anything depicted in it. You can choose your own ' +
                     'colors rather than copying the colors of the style reference.',
                   // COPY of PL_GPT.characterLine in server.js — preview only.
                   characterLine: ' Use the second attached image as a character reference. ' +
+                    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.' },
+    // Same engine as ChatGPT, different attachments: Sophie's three saved
+    // busy-animal picture-book pages ride along as the style references
+    // (refs/richard-scarry-1..3.png). `gptStyle` picks the set server-side;
+    // prefix/characterLine are COPIES of PL_GPT_STYLES.scarry — preview only.
+    scarry:     { model: 'gpt-image-2', label: 'Richard Scarry', engine: 'gptimage', gptStyle: 'scarry',
+                  prefix: 'Use only the style of the three attached style reference images and ' +
+                    'ignore their content — do not copy anything depicted in them. You can ' +
+                    'choose your own colors rather than copying the colors of the style references.',
+                  characterLine: ' Use the last attached image as a character reference. ' +
                     'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.' },
   };
   var styleKey = localStorage.getItem('promptlab_style');
@@ -350,6 +360,16 @@
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
     return model ? model.split('/').pop() : '';
   }
+  // Two ChatGPT-engine styles share one model id, so a gpt run's label comes
+  // from the doc's `gptStyle` (older docs have none → the original ChatGPT).
+  function runStyleLabel(r) {
+    if (r.engine === 'gptimage') {
+      for (var k in STYLES) {
+        if (STYLES[k].engine === 'gptimage' && STYLES[k].gptStyle === (r.gptStyle || 'evan')) return STYLES[k].label;
+      }
+    }
+    return styleLabelFor(r.model);
+  }
 
   function updateShape() {
     var S = STYLES[styleKey];
@@ -419,7 +439,7 @@
     var qual = q || quality;
     var key = plannedKey(S, prompt, scale, seed);
     var body = gpt
-      ? { prompt: prompt, model: S.model, outputs: OUTPUTS, quality: qual, character: charOn }
+      ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual, character: charOn }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -637,7 +657,7 @@
   // What a run is labelled with. LoRA runs carry scale + seed; a gpt-image-2
   // run carries its quality and shape instead (it has neither of the others).
   function runParts(r) {
-    var parts = [styleLabelFor(r.model)];
+    var parts = [runStyleLabel(r)];
     if (r.engine === 'gptimage') {
       if (r.quality) parts.push(r.quality);
       if (r.aspectRatio) parts.push(r.aspectRatio);
@@ -658,7 +678,7 @@
       // its own — so it keys on its id and stays alone.
       var groups = groupBy(runs, function (r) {
         if (r.status === 'failed') return 'failed|' + r.id;
-        return sameRunKey([r.engine, r.model, (r.prompt || '').trim(), r.status,
+        return sameRunKey([r.engine, r.model, r.gptStyle, (r.prompt || '').trim(), r.status,
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
       document.getElementById('runs').innerHTML = groups.map(function (g) {

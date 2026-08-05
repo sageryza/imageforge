@@ -4330,15 +4330,35 @@ const PL_GPT = {
   characterLine: ' Use the second attached image as a character reference. ' +
     'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
 };
-let plStyleRef = null;
-function playgroundStyleRef() {
-  if (!plStyleRef) plStyleRef = fs.readFileSync(path.join(__dirname, 'refs', PL_GPT.refFile));
-  return plStyleRef;
-}
-let plCharRef = null;
-function playgroundCharacterRef() {
-  if (!plCharRef) plCharRef = fs.readFileSync(path.join(__dirname, 'refs', PL_GPT.characterFile));
-  return plCharRef;
+// The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
+// — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
+// from PL_GPT — differing only in which ref images ride along and the prefix
+// wording (singular vs several references). 'evan' is the original ChatGPT
+// style and the default when the page sends no `style`, so older pages and
+// the Scratch Pad's copies keep working unchanged. The page's STYLES entries
+// preview these prefixes in the "Sent as" line — keep the copies identical.
+const PL_GPT_STYLES = {
+  evan: {
+    label: 'ChatGPT', refFiles: [PL_GPT.refFile],
+    prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
+  },
+  // "Richard Scarry" (Sophie's name for it): three Instagram saves she sent
+  // (busy-animal picture-book pages — mouse in bed / at the table / hailing a
+  // taxi), cropped to the artwork and banked in refs/. All three attach.
+  scarry: {
+    label: 'Richard Scarry',
+    refFiles: ['richard-scarry-1.png', 'richard-scarry-2.png', 'richard-scarry-3.png'],
+    prefix: 'Use only the style of the three attached style reference images and ' +
+      'ignore their content — do not copy anything depicted in them. You can ' +
+      'choose your own colors rather than copying the colors of the style references.',
+    characterLine: ' Use the last attached image as a character reference. ' +
+      'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+  },
+};
+const plRefCache = {};
+function playgroundRef(file) {
+  if (!plRefCache[file]) plRefCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
+  return plRefCache[file];
 }
 
 // Cancelled run ids (in-process — the job and the cancel route are the same
@@ -4409,9 +4429,11 @@ async function fileRunToCreations(images, { prompt, style, model, quality } = {}
 // pretends otherwise — the page shows no X on these runs.
 async function runPromptLabGptJob(docRef, cfg) {
   try {
-    // Style ref first; the Sophie character card rides second when toggled on
-    // (the prompt's characterLine numbers them that way).
-    const refs = cfg.character ? [playgroundStyleRef(), playgroundCharacterRef()] : [playgroundStyleRef()];
+    // Style refs first; the Sophie character card rides LAST when toggled on
+    // (each style's characterLine points at it that way).
+    const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+    const refs = st.refFiles.map(playgroundRef);
+    if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
     const images = [];
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
@@ -4433,7 +4455,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
     await docRef.update({ status: 'done', images, failedRenders: failed });
     fileRunToCreations(images, {
-      prompt: cfg.prompt, style: `ChatGPT · ${cfg.quality}`,
+      prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
       model: PL_GPT.id, quality: cfg.quality,
     });
   } catch (err) {
@@ -4507,17 +4529,21 @@ app.post('/api/promptlab', async (req, res) => {
     if (modelId === PL_GPT.id) {
       if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
       const character = Boolean(req.body.character);
-      const fullPrompt = `${PL_GPT.prefix}${character ? PL_GPT.characterLine : ''}\n\n${typed}`;
+      // Which ChatGPT-engine style: an unknown/absent `style` falls back to
+      // the original ('evan'), so older pages keep working.
+      const styleId = Object.hasOwn(PL_GPT_STYLES, String(req.body.style || '')) ? String(req.body.style) : 'evan';
+      const st = PL_GPT_STYLES[styleId];
+      const fullPrompt = `${st.prefix}${character ? st.characterLine : ''}\n\n${typed}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
-        model: PL_GPT.id, quality, size: PL_GPT.size,
-        aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile, outputs,
+        model: PL_GPT.id, gptStyle: styleId, quality, size: PL_GPT.size,
+        aspectRatio: PL_GPT.aspectRatio, styleRef: st.refFiles.join(','), outputs,
         character, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 

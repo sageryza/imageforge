@@ -369,14 +369,22 @@ lifted into a standalone tool later.
   LIST/TILES pair**, never a single icon that scrolls away (the first version
   did, and stranded her in a one-image-per-row view with no way back), and it
   sits on the **LEFT** because the autoscroll pill owns the top-right corner.
-- **Three styles.** Watercolor (`wtr`) and Hoonie linocut are Replicate LoRAs —
+- **Four styles.** Watercolor (`wtr`) and Hoonie linocut are Replicate LoRAs —
   trigger word prepended, suffix appended, LoRA scale + seed + ×3 ladder.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
   page attached as a pure STYLE reference (`refs/evan-film-style.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
   **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
-  equivalents.
+  equivalents. **"Richard Scarry"** (Aug 2026) is a second gpt-image-2 style:
+  same recipe, but the attached style references are THREE of Sophie's saved
+  busy-animal picture-book pages (`refs/richard-scarry-1..3.png`, all three
+  attach). ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed
+  `evan` / `scarry`; the page sends `style`, absent/unknown → `evan` so old
+  pages keep working) — adding another different-reference style = drop the
+  image(s) in `refs/`, add a `PL_GPT_STYLES` entry + a matching `STYLES`
+  entry in promptlab.html (prefix/characterLine are preview COPIES — keep
+  them identical).
 - **Its prefix is baked in server-side** (`PL_GPT.prefix`) and her typed words
   follow it verbatim after a blank line — no trigger word, no trailing-period
   trim, no appended tail. The page's `STYLES.chatgpt.prefix` is a COPY used
