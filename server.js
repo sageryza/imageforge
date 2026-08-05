@@ -4352,11 +4352,28 @@ const PL_GPT_STYLES = {
   // character card (her card is the watercolor look — wrong reference here),
   // both Sophie's call Aug 2026.
   scarry: {
-    label: 'Richard Scarry',
+    label: 'Scarry',
     refFiles: ['richard-scarry-1.png', 'richard-scarry-2.png', 'richard-scarry-3.png'],
     prefix: 'Use only the style of the three attached style reference images and ' +
       'ignore their content — do not copy anything depicted in them.',
     suffix: 'Do not include any text in the image.',
+    noCharacter: true,
+  },
+  // "Pastel" (Aug 2026, Sophie) — the pastel-variant-2 house look, the same
+  // recipe MODELS.house['house-pastel'] renders (Witch School style refs +
+  // its written style line + the whiten pass), offered here as a Playground
+  // tile. Its refs live in STORAGE, not refs/, so they load through
+  // loadHouseRef; `storageRefs` is what marks that. NO Sophie character card:
+  // hers is the watercolor look, the wrong reference for this line.
+  pastel: {
+    label: 'Pastel',
+    storageRefs: ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'],
+    prefix: 'Use the attached images ONLY as a STYLE reference for the linework: ' +
+      'bold confident black ink outlines, flat colors with NO gradients and minimal ' +
+      'shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, ' +
+      'on a plain white background, playful modern editorial illustration.',
+    suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
+    whiten: true,
     noCharacter: true,
   },
 };
@@ -4364,6 +4381,14 @@ const plRefCache = {};
 function playgroundRef(file) {
   if (!plRefCache[file]) plRefCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
   return plRefCache[file];
+}
+// A style's reference images, wherever they live: `refFiles` are banked in
+// refs/ (read once, cached), `storageRefs` are Firebase Storage paths shared
+// with the house styles (downloaded once, cached by loadHouseRef).
+async function playgroundRefs(st) {
+  const local = (st.refFiles || []).map(playgroundRef);
+  const remote = await Promise.all((st.storageRefs || []).map(loadHouseRef));
+  return local.concat(remote);
 }
 
 // Cancelled run ids (in-process — the job and the cancel route are the same
@@ -4437,7 +4462,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     // Style refs first; the Sophie character card rides LAST when toggled on
     // (each style's characterLine points at it that way).
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
-    const refs = st.refFiles.map(playgroundRef);
+    const refs = await playgroundRefs(st);
     if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
     const images = [];
     let failed = 0;
@@ -4450,7 +4475,12 @@ async function runPromptLabGptJob(docRef, cfg) {
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error('gpt-image-2 returned no image');
-        images.push(await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'promptlab'));
+        let buf = Buffer.from(b64, 'base64');
+        // The pastel line is defined on a plain white ground, so it gets the
+        // same flood-fill whiten the house style does. Best-effort: a failed
+        // whiten keeps the picture rather than losing a paid render.
+        if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
+        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
         await docRef.update({ status: 'ready', images: images.slice() });
       } catch (err) {
         failed++;
@@ -4547,7 +4577,8 @@ app.post('/api/promptlab', async (req, res) => {
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: PL_GPT.size,
-        aspectRatio: PL_GPT.aspectRatio, styleRef: st.refFiles.join(','), outputs,
+        aspectRatio: PL_GPT.aspectRatio,
+        styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
       runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId });
