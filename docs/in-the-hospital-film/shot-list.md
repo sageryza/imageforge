@@ -22,10 +22,17 @@ re-roll freely; the numbering is chronological with the text.
   "three nurses" in a hospital scene gets three women in the same blue
   patient pajamas as everyone else — name the uniform ("nurses in scrubs, not
   patient pajamas") or the scene reads wrong.
-- **Never invent a prop.** Every object in a prompt has to be traceable to a
-  line in the manuscript. The soup containers, masking tape, butter pats and
-  sugar packets are all verbatim from the story — check before adding
-  anything that isn't.
+- **Never invent a prop** — every object has to be traceable to a line in the
+  manuscript (soup containers, masking tape, butter pats, sugar packets all
+  are).
+- **And name the prop the way SHE described it, not by its generic noun.**
+  This is the rule that actually matters and it was broken: the prompt said
+  "an empty white soup container" when the manuscript says "a sweet long
+  white plastic **rounded rectangle** with a cover that had **two holes** in
+  it". Given only the noun, the model drew cones and cups — the specific
+  shape is the whole point of the object, and it was already written down.
+  Before writing any prompt, go find the sentence where she describes the
+  thing and carry its physical detail across.
 
 ## Production notes (learned the hard way, Aug 2026)
 
