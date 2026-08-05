@@ -95,9 +95,9 @@ function artRef(file) {
 // beat's own audio says so — HER recording when she made one, otherwise the
 // cached TTS of its line. So the film is pure ffmpeg (free, seconds, no
 // video model): one segment per beat at its audio's real length, hard cuts,
-// 2:3 portrait. A beat with no words holds for FILM.silent seconds. A chunk
-// shares its audio, its members splitting that time equally — the animate-
-// between-panels version of a chunk is the paid follow-up, not this.
+// 2:3 portrait. A beat with no words holds for FILM.silent seconds. Chunks
+// are DISPLAY-ONLY — every member is an ordinary shot with its own audio;
+// the animate-between-panels treatment is the paid follow-up, not this.
 const { execFile } = require('child_process');
 // 1000x1500 (2:3), not 1080x1620: the free instance has 512MB for the whole
 // app, and the bigger frame's x264 buffers pushed encodes over the OOM line —
@@ -506,22 +506,14 @@ router.post('/voice', async (req, res) => {
 });
 
 // ── Render the film ─────────────────────────────────────────────────
-// Units in order (a chunk is one unit): each gets its audio's real length —
-// her recording first, else the line's TTS, else FILM.silent of quiet — and
-// the pictures hold for exactly that. Hard cuts. Background job: the POST
-// returns at once, the page polls the pad, leaving the app loses nothing.
-// Every render is kept, so an old cut is never overwritten.
-function filmUnits(beats) {
-  const units = [];
-  for (let i = 0; i < beats.length;) {
-    const b = beats[i];
-    const members = [b];
-    if (b.chunk) while (i + members.length < beats.length && beats[i + members.length].chunk === b.chunk) members.push(beats[i + members.length]);
-    units.push(members);
-    i += members.length;
-  }
-  return units;
-}
+// Every beat with art is its own shot, with its OWN audio — her recording
+// first, else the line's TTS, else FILM.silent of quiet — held for exactly
+// that audio's length. Hard cuts. CHUNKS ARE DISPLAY-ONLY (Sophie, Aug
+// 2026): the shared frame is for reading the pad, and the film treats the
+// members as ordinary beats — the first cut that merged a chunk's audio
+// swallowed every member's recording but the first. Background job: the
+// POST returns at once, the page polls the pad, leaving the app loses
+// nothing. Every render is kept, so an old cut is never overwritten.
 
 async function runFilmJob(padId) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
@@ -529,17 +521,16 @@ async function runFilmJob(padId) {
   try {
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
-    const units = filmUnits(pad.beats).filter((m) => m.some((b) => b.url));
-    if (!units.length) throw new Error('draw some art first — the film is made of the pictures');
+    const shots = pad.beats.filter((b) => b.url);
+    if (!shots.length) throw new Error('draw some art first — the film is made of the pictures');
 
     const segs = [];      // { file } per picture
-    const auds = [];      // { file, seconds } per unit
-    const notes = [];     // which audio each unit used — the render's receipt
+    const auds = [];      // { file, seconds } per shot
+    const notes = [];     // which audio each shot used — the render's receipt
     let total = 0;
-    for (let u = 0; u < units.length; u++) {
-      const members = units[u];
-      const lead = members[0];
-      // The unit's voice: her take wins; then the line read aloud; else quiet.
+    for (let u = 0; u < shots.length; u++) {
+      const lead = shots[u];
+      // The shot's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
       let audioKind = audio ? 'her voice' : 'quiet';
       if (!audio && String(lead.text || '').trim()) {
@@ -574,13 +565,13 @@ async function runFilmJob(padId) {
           '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
       }
       seconds = (await mediaSeconds(aFile)) || seconds;
-      notes.push(`unit ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
+      notes.push(`shot ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
       auds.push(aFile);
       total += seconds;
 
-      // The unit's pictures split its time (a lone beat simply gets all of it).
-      const pics = members.filter((b) => b.url);
-      const each = seconds / pics.length;
+      // One picture per shot, held for its whole audio.
+      const pics = [lead];
+      const each = seconds;
       for (let p = 0; p < pics.length; p++) {
         const seg = path.join(dir, `s${u}-${p}.mp4`);
         // The SEGMENT CACHE — the whole reason a re-render is fast. Encoding
