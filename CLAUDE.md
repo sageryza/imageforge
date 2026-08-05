@@ -1899,9 +1899,18 @@ lifted into a standalone tool later.
   ART.prefix / ART.characterLine in scratchpad.js are COPIES of
   PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
   identical. `/scratchpad-sophie.png` serves the character card to the
-  toggle (refs/ is otherwise never web-served). Regenerate/versions
-  will live in that popup later (deliberately unbuilt; design flexible —
-  all versions same size, ordered by recency). iOS: home-grid tile
+  toggle (refs/ is otherwise never web-served). **Versions (Aug 2026):** once a
+  beat has more than one generation, the popup shows every one as same-size
+  thumbnails, newest first, current ringed — tap for the lightbox
+  (`beat.imageHistory` + current). **Delete a beat** from its popup's trash
+  icon, behind an are-you-sure; the record moves to `pad.trash` (capped 50,
+  never surfaced) and its images stay in Storage / My Creations
+  (`POST /remove {id}`; a chunk left with one member un-chunks).
+  **My Creations → "Open in Playground"** (iOS): a button on a plain-image
+  creation jumps to the Playground with prompt/style/quality prefilled —
+  `/playground?prompt=&style=&quality=&character=1` params, handled at the
+  end of promptlab.html; iOS side = `PlaygroundPrefill.pending` +
+  screen-change reload in PlaygroundView. iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
   header rule).
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a

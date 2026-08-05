@@ -306,6 +306,23 @@
     document.getElementById('backchip').classList.add('on');
   }
 
+  // Arrived with a generation's settings (the gallery's "open in Playground"):
+  // ?prompt=…&style=watercolor|hoonie|chatgpt&quality=…&character=1&scale=…
+  // Everything lands prefilled so she can re-run it as-is or nudge one thing.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (!q.get('prompt') && !q.get('style')) return;
+    var st = q.get('style');
+    if (st && STYLES[st]) setStyle(st);
+    if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
+    var qq = q.get('quality');
+    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; document.getElementById('qpick').value = qq; }
+    if (q.get('character') === '1' && isGpt(styleKey)) { charOn = true; document.getElementById('charpick').classList.add('on'); }
+    var sc = parseFloat(q.get('scale'));
+    if (!isNaN(sc)) document.getElementById('scale').value = sc;
+    updateShape();
+  })();
+
   function renderStyles() {
     document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
       return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
