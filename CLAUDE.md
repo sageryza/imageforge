@@ -1797,7 +1797,14 @@ lifted into a standalone tool later.
   note, but v3 has NO `<break time>` tags — pauses come from punctuation;
   cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
   free). Tapping the popup thumbnail opens a lightbox. Placement slots are
-  slim dashed LINES between beats, not full dashed tiles. An EMPTY beat's
+  slim dashed LINES between beats, not full dashed tiles. **Chunks (Aug
+  2026):** the popup's chain icon links a beat's unit with the NEXT unit —
+  unbounded (2, 3, 4… beats). A chunk is contiguous beats sharing `chunk`
+  id, drawn in ONE tile's width as side-by-side slices in a shared frame
+  (one color chunk-wide — /color applies to all members; caption = first
+  member's first line; tapping a slice opens that member's popup). Slots
+  never appear inside a chunk. The lit chain icon dissolves the WHOLE
+  chunk (`POST /chunk {id}` / `POST /unchunk {id}`). An EMPTY beat's
   popup shows two icons in the blank tile: palette → `/playground?from=
   scratchpad` (the in-popup generator's stand-in) and inbox → pick a hearted
   image straight INTO that beat (`POST /image {id, url, src?}`). Regenerate/versions

@@ -49,6 +49,14 @@ header{display:block; text-align:center; padding:6px 0 0;}
 .beat.c-green{border:3px solid var(--green);}
 .beat.c-blue{border:3px solid var(--blue);}
 .beat.c-pink{border:3px solid var(--pink);}
+/* A chunk: linked beats in ONE tile's width — side-by-side slices sharing a
+   frame (and a color). Tapping a slice opens that member's popup. */
+.chunk{display:flex; gap:1px; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
+  background:var(--barbg); overflow:hidden;}
+.chunk.c-mustard{border:3px solid var(--mustard);} .chunk.c-green{border:3px solid var(--green);}
+.chunk.c-blue{border:3px solid var(--blue);} .chunk.c-pink{border:3px solid var(--pink);}
+.slice{position:relative; flex:1; min-width:0; background:var(--barbg); border:none; padding:0; cursor:pointer;}
+.slice img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 /* A placement slot is a slim dashed LINE between beats (a full dashed tile
    per gap ate the whole row — Sophie). The button is 14px of tap target with
    the line drawn up its middle. */
@@ -78,10 +86,13 @@ header{display:block; text-align:center; padding:6px 0 0;}
 #pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
-#speak{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
+.poprow{display:flex; gap:14px;}
+#speak,#linkbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
-#speak svg{width:17px; height:17px;}
+#speak svg,#linkbtn svg{width:17px; height:17px;}
 #speak.busy{opacity:.45;}
+/* Lit = this beat is part of a chunk (tap dissolves the whole chunk). */
+#linkbtn.on{background:#fff; color:#26221c; border-color:#fff;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
@@ -133,7 +144,10 @@ header{display:block; text-align:center; padding:6px 0 0;}
     <button class="chip pink" data-c="pink"></button>
   </div>
   <textarea id="pnote" rows="3"></textarea>
-  <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
+  <div class="poprow">
+    <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
+    <button id="linkbtn" hidden aria-label="Link with the next beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+  </div>
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
@@ -161,6 +175,25 @@ function speakBeat(b, el){
     .catch(function(){ if(el)el.classList.remove('busy'); });
 }
 
+/* The pad renders UNITS: a lone beat, or a CHUNK — contiguous beats sharing
+   a chunk id, drawn in one tile's width as side-by-side slices in a shared
+   frame. Slots (and placement) happen between units, never inside one. */
+function padUnits(){
+  var units=[], i=0;
+  while(i<beats.length){
+    var b=beats[i], members=[b];
+    if(b.chunk){ while(i+members.length<beats.length && beats[i+members.length].chunk===b.chunk) members.push(beats[i+members.length]); }
+    units.push({members:members, at:i});
+    i+=members.length;
+  }
+  return units;
+}
+function capFor(wrap, b){
+  if(!b.text)return;
+  var cap=document.createElement('button'); cap.className='bcap'; cap.textContent=b.text;
+  cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
+  wrap.appendChild(cap);
+}
 function render(){
   var pad=document.getElementById('pad'); pad.innerHTML='';
   document.getElementById('empty').hidden=Boolean(beats.length||pending);
@@ -169,17 +202,27 @@ function render(){
     s.onclick=function(ev){ev.stopPropagation(); place(at);};
     pad.appendChild(s);
   }
-  beats.forEach(function(b,i){
-    if(pending) slot(i);
+  var units=padUnits();
+  units.forEach(function(u){
+    if(pending) slot(u.at);
     var wrap=document.createElement('div'); wrap.className='beatwrap';
-    var el=document.createElement('button'); el.className='beat'+(b.color?' c-'+b.color:'');
-    if(b.url){ var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im); }
-    el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
-    wrap.appendChild(el);
-    if(b.text){
-      var cap=document.createElement('button'); cap.className='bcap'; cap.textContent=b.text;
-      cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
-      wrap.appendChild(cap);
+    if(u.members.length===1){
+      var b=u.members[0];
+      var el=document.createElement('button'); el.className='beat'+(b.color?' c-'+b.color:'');
+      if(b.url){ var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im); }
+      el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
+      wrap.appendChild(el);
+      capFor(wrap, b);
+    } else {
+      var ck=document.createElement('div'); ck.className='chunk'+(u.members[0].color?' c-'+u.members[0].color:'');
+      u.members.forEach(function(m){
+        var sl=document.createElement('button'); sl.className='slice';
+        if(m.url){ var mi=document.createElement('img'); mi.src=m.url; mi.alt=''; sl.appendChild(mi); }
+        sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(m);};
+        ck.appendChild(sl);
+      });
+      wrap.appendChild(ck);
+      capFor(wrap, u.members[0]);
     }
     pad.appendChild(wrap);
   });
@@ -296,8 +339,28 @@ function openBeat(b){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
+  // The link icon: lit = in a chunk (tap dissolves it); dim = tap links this
+  // beat's unit with the next one. Hidden when there's nothing to link with.
+  var lb=document.getElementById('linkbtn');
+  var units=padUnits();
+  var myUnit=-1; units.forEach(function(u,ui){ if(u.members.indexOf(b)>=0) myUnit=ui; });
+  var canLink=myUnit>=0 && myUnit<units.length-1;
+  lb.hidden=!(b.chunk||canLink);
+  lb.classList.toggle('on',Boolean(b.chunk));
   document.getElementById('beatpop').hidden=false; lock(true);
 }
+document.getElementById('linkbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var b=popBeat; if(!b)return;
+  saveNote();
+  api(b.chunk?'/unchunk':'/chunk',{method:'POST',body:JSON.stringify({id:b.id})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.beats){ beats=d.beats; render(); }
+      var fresh=beats.find(function(x){return x.id===b.id;});
+      if(fresh){ popBeat=fresh; openBeat(fresh); }
+    });
+};
 /* The blank tile's two icons: make new art in the Playground, or pick from
    the inbox straight into THIS beat. */
 document.getElementById('pbplay').onclick=function(ev){
