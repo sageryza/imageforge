@@ -39,6 +39,19 @@ header{display:block; text-align:center; padding:6px 0 0;}
 .titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
 .sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
+.sheethead .no{flex:1;}
+/* The shelf: every story as a row — its first picture, its name, how many
+   beats. The one you're in is marked with a rule, not a label. */
+#storylist{margin-top:1.2em;}
+.srow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none;
+  border:none; border-bottom:1px solid var(--line); padding:10px 0; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; color:var(--ink);}
+.srow .sc{width:38px; height:57px; flex:none; border:1px solid var(--line); border-radius:4px;
+  background:var(--barbg); object-fit:cover;}
+.srow .sn{flex:1; min-width:0; font-size:1.15em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.srow .sn.blank{color:var(--ink2); font-style:italic;}
+.srow .sb{font-size:.8em; color:var(--ink2); flex:none;}
+.srow.cur .sn{font-weight:600;}
 .iconbtn{width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:0;}
 .iconbtn svg{width:17px; height:17px;}
@@ -162,11 +175,23 @@ header{display:block; text-align:center; padding:6px 0 0;}
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
+    <button class="iconbtn" id="storiesbtn" aria-label="Your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
+</div>
+
+<div class="sheet" id="stories" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="storiesclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <div class="no">Your stories</div>
+      <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+    </div>
+    <div id="storylist"></div>
+  </div>
 </div>
 
 <div class="sheet" id="inbox" hidden>
@@ -221,8 +246,19 @@ header{display:block; text-align:center; padding:6px 0 0;}
 
 <script>
 var TOKEN='__STUDIO_TOKEN__';
-function api(p,opts){opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
-  if(TOKEN)opts.headers['x-studio-token']=TOKEN;return fetch('/api/scratchpad'+p,opts);}
+/* Which story is open. Remembered per device, so the pad reopens where she
+   left it; every request carries it (query for GETs, body for POSTs). */
+var padId=localStorage.getItem('scratchpad_pad')||'pad';
+function api(p,opts){
+  opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
+  if(TOKEN)opts.headers['x-studio-token']=TOKEN;
+  if(opts.body){
+    try{var b=JSON.parse(opts.body); if(b.pad===undefined){b.pad=padId; opts.body=JSON.stringify(b);}}catch(e){}
+  } else if(p.indexOf('/pads')!==0){
+    p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
+  }
+  return fetch('/api/scratchpad'+p,opts);
+}
 var beats=[], inboxItems=[], pending=null, popBeat=null, padTitle='';
 var player=new Audio();
 
@@ -371,6 +407,45 @@ function load(){
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
   });
 }
+
+/* ── the shelf: every story, newest-touched first ─────────────────── */
+document.getElementById('storiesbtn').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('stories').hidden=false; lock(true);
+  api('/pads').then(function(r){return r.json()}).then(function(d){
+    var list=document.getElementById('storylist'); list.innerHTML='';
+    (d.pads||[]).forEach(function(p){
+      var row=document.createElement('button'); row.className='srow'+(p.id===padId?' cur':'');
+      var cov;
+      if(p.cover){ cov=document.createElement('img'); cov.src=p.cover; cov.alt=''; cov.loading='lazy'; }
+      else { cov=document.createElement('div'); }
+      cov.className='sc'; row.appendChild(cov);
+      var nm=document.createElement('div'); nm.className='sn'+(p.title?'':' blank');
+      nm.textContent=p.title||'Untitled'; row.appendChild(nm);
+      var ct=document.createElement('div'); ct.className='sb';
+      ct.textContent=p.beats+(p.beats===1?' beat':' beats'); row.appendChild(ct);
+      row.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+      list.appendChild(row);
+    });
+  });
+};
+document.getElementById('storiesclose').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('stories').hidden=true; lock(false);
+};
+function openPad(id){
+  padId=id; localStorage.setItem('scratchpad_pad',id);
+  if(genTimer){ clearInterval(genTimer); genTimer=null; }
+  document.getElementById('stories').hidden=true; lock(false);
+  beats=[]; padTitle=''; render();
+  load();
+}
+document.getElementById('newstory').onclick=function(ev){
+  ev.stopPropagation();
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(d.pad) openPad(d.pad); });
+};
 
 /* ── the inbox: hearted Playground images, 4 to a row ──────────────
    Two ways in: the header button (pick → place on the pad) and the empty

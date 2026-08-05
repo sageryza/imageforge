@@ -1861,7 +1861,14 @@ lifted into a standalone tool later.
   canvas; everything operational lives in popups or off-canvas). Iterating
   fast on this module with her is expected — check the chat before assuming
   the current shape is settled.
-- Data: ONE doc `forge-scratchpad/pad` (deckfactory) — `{ beats:[{id, url,
+- **More than one story (Aug 2026):** every story is its own doc in
+  `forge-scratchpad`; the original keeps doc id `pad` and is just one of the
+  list. The book icon in the title row opens the shelf (cover = first art,
+  name, beat count, newest-touched first); + there starts a new one. The
+  open story is remembered per device (`scratchpad_pad` in localStorage) and
+  rides on EVERY request — `?pad=` on GETs, `pad` in the body on POSTs
+  (`GET /pads`, `POST /pads {title}`).
+- Data: one doc PER STORY in `forge-scratchpad` (deckfactory) — `{ beats:[{id, url,
   color, src:{runId,i,prompt,model,engine,quality}, addedAt}] }`; `src` is
   carried so the later regenerate knows how each image was made. Routes:
   `GET /` (pad), `GET /inbox`, `POST /add {url, at?, src?}`,

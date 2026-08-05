@@ -91,15 +91,19 @@ function artRef(file) {
 }
 
 const db = () => admin.firestore();
-const padRef = () => db().collection(COL).doc(DOC);
+const padRef = (id) => db().collection(COL).doc(id || DOC);
+// Which STORY a request is about. `pad` rides in the body or the query, and
+// the legacy single-pad doc id is the default, so the first story (and any
+// old link) keeps working untouched.
+const padIdOf = (req) => String((req.body && req.body.pad) || req.query.pad || DOC);
 
 function fail(res, e) {
   console.warn('scratchpad:', e.message);
   res.status(500).json({ error: e.message });
 }
 
-async function readPad() {
-  const snap = await padRef().get();
+async function readPad(padId) {
+  const snap = await padRef(padId).get();
   const v = snap.exists ? snap.data() : {};
   return { title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [] };
 }
@@ -121,8 +125,38 @@ router.get('/status', (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     res.set('Cache-Control', 'no-store');
-    res.json(await readPad());
+    res.json({ ...(await readPad(pid)), pad: pid });
+  } catch (e) { fail(res, e); }
+});
+
+// ── More than one story ─────────────────────────────────────────────
+// Every story is its own doc in the same collection; the original single
+// pad keeps the doc id 'pad' and simply becomes one of the list.
+router.get('/pads', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const snap = await db().collection(COL).get();
+    const pads = snap.docs.map((d) => {
+      const v = d.data() || {};
+      const beats = Array.isArray(v.beats) ? v.beats : [];
+      const withArt = beats.find((b) => b.url);
+      return {
+        id: d.id, title: v.title || '', beats: beats.length,
+        cover: withArt ? withArt.url : null, updatedAt: v.updatedAt || 0,
+      };
+    }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    res.json({ count: pads.length, pads });
+  } catch (e) { fail(res, e); }
+});
+
+router.post('/pads', async (req, res) => {
+  try {
+    const title = String(req.body.title || '').slice(0, 200).trim();
+    const ref = db().collection(COL).doc();
+    await ref.set({ title, beats: [], updatedAt: Date.now() });
+    res.json({ ok: true, pad: ref.id, title });
   } catch (e) { fail(res, e); }
 });
 
@@ -153,6 +187,7 @@ router.get('/inbox', async (req, res) => {
 
 router.post('/add', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     // No url = an EMPTY beat (blank tile; its art comes later).
     const url = String(req.body.url || '').trim();
     if (url && !/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url must be http(s)' });
@@ -164,12 +199,12 @@ router.post('/add', async (req, res) => {
     // Single-user tool, but the read-modify-write still goes through a
     // transaction so two quick adds can't drop each other.
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       let at = Number(req.body.at);
       if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
       cur.splice(at, 0, beat);
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beat, beats });
@@ -180,19 +215,20 @@ router.post('/add', async (req, res) => {
 // (choosing from there fills THAT beat instead of adding a new one).
 router.post('/image', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     const url = String(req.body.url || '').trim();
     if (!id) return res.status(400).json({ error: 'beat id required' });
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
       b.url = url;
       if (src) b.src = src;
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beats });
@@ -201,14 +237,14 @@ router.post('/image', async (req, res) => {
 
 // Patch one beat inside a transaction (the pad is one doc, so every write
 // is read-modify-write).
-async function patchBeat(id, fn) {
+async function patchBeat(padId, id, fn) {
   return db().runTransaction(async (tx) => {
-    const snap = await tx.get(padRef());
+    const snap = await tx.get(padRef(padId));
     const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
     const b = cur.find((x) => x.id === id);
     if (!b) throw new Error('no such beat');
     fn(b, cur);
-    tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    tx.set(padRef(padId), { beats: cur, updatedAt: Date.now() }, { merge: true });
     return cur;
   });
 }
@@ -217,7 +253,7 @@ async function patchBeat(id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(id, { prompt, quality, character }) {
+async function runArtJob(padId, id, { prompt, quality, character }) {
   try {
     const refs = [artRef(ART.styleFile)];
     if (character) refs.push(artRef(ART.characterFile));
@@ -248,7 +284,7 @@ async function runArtJob(id, { prompt, quality, character }) {
     await bucket.file(dest).makePublic();
     fs.unlink(tmp, () => {});
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
-    await patchBeat(id, (b) => {
+    await patchBeat(padId, id, (b) => {
       if (b.url && b.url !== url) b.imageHistory = (b.imageHistory || []).concat([{ url: b.url, at: Date.now() }]);
       b.url = url;
       b.src = { engine: 'gptimage', model: 'gpt-image-2', prompt, quality, character: Boolean(character), promptUsed: full };
@@ -256,12 +292,13 @@ async function runArtJob(id, { prompt, quality, character }) {
     });
   } catch (err) {
     console.warn('scratchpad art:', err.message);
-    await patchBeat(id, (b) => { b.gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() }; }).catch(() => {});
+    await patchBeat(padId, id, (b) => { b.gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() }; }).catch(() => {});
   }
 }
 
 router.post('/generate', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY is not set' });
     const id = String(req.body.id || '');
     const prompt = String(req.body.prompt || '').trim();
@@ -270,10 +307,10 @@ router.post('/generate', async (req, res) => {
     const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : ART.quality;
     // Sophie's character card rides along unless explicitly turned off.
     const character = req.body.character === false ? false : true;
-    const beats = await patchBeat(id, (b) => {
+    const beats = await patchBeat(pid, id, (b) => {
       b.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
     });
-    runArtJob(id, { prompt, quality, character });   // fire and forget
+    runArtJob(pid, id, { prompt, quality, character });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -286,6 +323,7 @@ router.post('/generate', async (req, res) => {
 // (the takes stay).
 router.post('/voice', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
     let url = null;
@@ -308,7 +346,7 @@ router.post('/voice', async (req, res) => {
       url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     }
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
@@ -316,7 +354,7 @@ router.post('/voice', async (req, res) => {
         b.voiceUrl = url; b.voiceAt = Date.now();
         b.voiceTakes = (b.voiceTakes || []).concat([{ url, at: b.voiceAt }]);
       } else { delete b.voiceUrl; delete b.voiceAt; }
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, url, beats });
@@ -339,10 +377,11 @@ function membersOf(beats, beat) {
 // Link this beat's unit with the NEXT unit on the pad (they become one chunk).
 router.post('/chunk', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
@@ -353,7 +392,7 @@ router.post('/chunk', async (req, res) => {
       const theirs = membersOf(cur, next);
       const chunkId = b.chunk || next.chunk || db().collection(COL).doc().id;
       mine.concat(theirs).forEach((m) => { m.chunk = chunkId; });
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beats });
@@ -363,15 +402,16 @@ router.post('/chunk', async (req, res) => {
 // Dissolve the whole chunk this beat belongs to.
 router.post('/unchunk', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
       membersOf(cur, b).forEach((m) => { delete m.chunk; });
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beats });
@@ -381,8 +421,9 @@ router.post('/unchunk', async (req, res) => {
 // The story's name — "Untitled" on the page until Sophie changes it.
 router.post('/title', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const title = String(req.body.title ?? '').slice(0, 200).trim();
-    await padRef().set({ title, updatedAt: Date.now() }, { merge: true });
+    await padRef(pid).set({ title, updatedAt: Date.now() }, { merge: true });
     res.json({ ok: true, title });
   } catch (e) { fail(res, e); }
 });
@@ -392,10 +433,11 @@ router.post('/title', async (req, res) => {
 // replaying costs nothing and an edited note renders fresh on next play.
 router.post('/tts', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     if (!process.env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'ELEVENLABS_API_KEY is not set' });
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
-    const pad = await readPad();
+    const pad = await readPad(pid);
     const beat = pad.beats.find((b) => b.id === id);
     if (!beat) return res.status(404).json({ error: 'no such beat' });
     const text = String(beat.text || '').trim();
@@ -432,11 +474,11 @@ router.post('/tts', async (req, res) => {
     }
 
     await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (b) { b.ttsUrl = url; b.ttsHash = hash; }
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
     });
     res.json({ ok: true, url });
   } catch (e) { fail(res, e); }
@@ -444,16 +486,17 @@ router.post('/tts', async (req, res) => {
 
 router.post('/text', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
     const text = String(req.body.text ?? '').slice(0, 5000);
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
       b.text = text;
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beats });
@@ -462,6 +505,7 @@ router.post('/text', async (req, res) => {
 
 router.post('/color', async (req, res) => {
   try {
+    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     const color = req.body.color === null ? null : String(req.body.color || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
@@ -469,13 +513,13 @@ router.post('/color', async (req, res) => {
       return res.status(400).json({ error: `color must be one of ${COLORS.join('/')} or null` });
     }
     const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef());
+      const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
       // A chunk shares one frame, so it shares one color.
       membersOf(cur, b).forEach((m) => { m.color = color; });
-      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
     res.json({ ok: true, beats });
