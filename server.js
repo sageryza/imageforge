@@ -4334,6 +4334,29 @@ function playgroundCharacterRef() {
 // instance). Replicate runs only; see the /cancel route.
 const plCancelled = new Set();
 
+// Deploys restart the server mid-generation, and an in-flight run's doc is
+// then stuck status:'running' forever — a zombie "drawing…" pinned to the top
+// of the Playground (happened for real: "I was always bored as a child",
+// orphaned by the 2026-08-04 deploy). No legitimate run outlives its 5-minute
+// API timeout, so anything 'running' past 10 minutes is dead: sweep it into
+// 'failed' shortly after boot and every 10 minutes after.
+async function sweepStuckPromptlabRuns() {
+  try {
+    if (!admin.apps.length) return;
+    const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const d of q.docs) {
+      const at = d.data().createdAt?.toMillis?.() || 0;
+      if (at && at < cutoff) {
+        await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
+        console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
+      }
+    }
+  } catch (e) { console.warn('promptlab sweep:', e.message); }
+}
+setTimeout(sweepStuckPromptlabRuns, 90 * 1000);
+setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
+
 // Every finished Playground image also lands in the iOS "My Creations" gallery
 // (Sophie asked, Aug 2026) so she can browse them as thumbnails on the phone —
 // the same `users/{uid}/creations` collection in membry that POST /api/gallery

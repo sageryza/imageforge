@@ -12,14 +12,16 @@
 html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 [hidden]{display:none !important;}
-.wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
+.wrap{max-width:34em; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 8px) 5vw 16vh;}
 .no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase;}
-/* The floating autoscroll pill is fixed over the top-right corner, so the
-   header row stops 56px short of it — the buttons sit left of that. The word
-   SCRATCH PAD is the header, centered across the very top; the buttons ride
-   the same row at its right. */
-header{display:flex; align-items:center; justify-content:flex-end; gap:10px; padding-right:56px; min-height:34px; position:relative;}
-header .no{position:absolute; left:0; right:0; text-align:center; pointer-events:none;}
+/* SCRATCH PAD is the header: centered on its own line at the VERY top (the
+   old 5vh wrap padding left it stranded mid-page in the app — Sophie's
+   screenshot). The buttons live on the title row below, right-aligned and
+   stopping 56px short of the pill's corner, so nothing overlaps the word. */
+header{display:block; text-align:center; padding:6px 0 0;}
+.titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;}
+.titlerow #title{flex:1; min-width:0; margin:0;}
+.sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
 .iconbtn{width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:0;}
 .iconbtn svg{width:17px; height:17px;}
@@ -87,20 +89,22 @@ header .no{position:absolute; left:0; right:0; text-align:center; pointer-events
 <div class="wrap">
   <header>
     <div class="no">Scratch pad</div>
+  </header>
+  <div class="titlerow">
+    <div id="title" contenteditable="true" spellcheck="false"></div>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </header>
-  <div id="title" contenteditable="true" spellcheck="false"></div>
+  </div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
 </div>
 
 <div class="sheet" id="inbox" hidden>
   <div class="wrap">
-    <header>
+    <div class="sheethead">
       <button class="iconbtn" id="inboxclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       <div class="no">From the Playground</div>
-    </header>
+    </div>
     <div id="inboxgrid"></div>
     <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
   </div>
