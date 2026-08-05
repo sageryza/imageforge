@@ -239,13 +239,21 @@ each opens a focused workflow that shares the same house styles.
   (~1hr) Replicate/OpenAI URLs.
 
 ## Product pipeline
-- **NOT BUILT — "Product Creator" (Sophie's idea, Aug 2026).** There is no
-  module that starts from "I want to sell a thing" and walks it through to a
-  product: today the pieces exist separately (`pipeline.js` routes a design to
-  a POD service, `photostudio.js` turns a photo of something she already made
-  into a draft listing, `printify`/`printful`/`lulu` do fulfilment) but nothing
-  fronts them as one make-a-product flow. She asked for it to be written down,
-  NOT built yet — design it with her before writing any of it.
+- **The "Product Creator" IS `/studio` (`public/studio.html`) — iOS tile
+  "Product Creator" on the BUSINESS home (Aug 2026).** One make-a-product
+  flow over the pipeline: describe a vibe → `/api/pipeline/brief` plans
+  theme/styles/products → generate designs in the house styles → tap one →
+  real Printify mockups with garment-color swatches → AI listing copy →
+  **one Create tap runs the whole routed batch as a server BACKGROUND job**
+  (`POST /api/pipeline/make` → poll `GET /make/:id`; job doc mirrored to
+  Firestore `forge-products`, page resumes from
+  `localStorage['product_make_job']`) — apparel/mug → Printify product
+  published to Etsy as a DRAFT (auto-fulfils once she publishes), art
+  print/card → plain Etsy draft. Nothing goes live from here, ever. Things
+  she already MADE (photographed objects) are the separate `/photo` track
+  (`photostudio.js`); the page links over. (An earlier note here claimed no
+  such front existed — wrong, `/studio` already did; Aug 2026 gave it the
+  background-job Create, the rename, and the app tile.)
 
 The full pipeline lives in five self-contained modules wired into `server.js`:
 generated design → POD product → **draft Etsy listing** Sophie reviews before
@@ -1716,7 +1724,19 @@ lifted into a standalone tool later.
   popup) and `ICONS.sparkles` in `promptlab.html` (the Playground's Generate).
   Deliberate exceptions, because they say something the star can't: the pad's
   **wand** (draw every beat that's missing art — a bulk action) and the
-  Playground's **pyramid** (low·low·medium, a picture of how many).
+  Playground's **pyramid** (low·low·medium, a picture of how many — an actual
+  tiered pyramid, two cells along the base for the lows and the filled top
+  tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
+  that says nothing about how many).
+- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
+  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
+  ink — it sits on a text baseline, so the glyph is about cap height, not the
+  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
+  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
+  time, which is why the Test Station's tubes read half again the size of
+  every symbol beside them. Bundled glyph SVGs should fill ~0.9 of their own
+  viewBox, centred (both `TestTube` and `Playground` do) so one rule sizes
+  them all.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
