@@ -395,7 +395,10 @@ private struct HomeGrid: View {
         let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
         // Chats and Test Station aren't grid cards — they live as the corner
         // icons in the header (chats top-right, test station top-left).
-        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && !pinnedBottom.contains($0) }
+        // .scratchpad is hidden: the pad IS the Story Room now (the .story
+        // tile's /storyroom page serves it), so two tiles would be the same
+        // tool twice. The case and view stay for deep links and history.
+        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return [.story] + ranked + rest + pinnedBottom

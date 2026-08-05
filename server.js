@@ -2336,8 +2336,12 @@ app.get('/wall', serveGated('wall.html'));
 // Story Room: the movie asset boards in the Writing Room's frame — narration
 // with the art in place, live from /api/story (no deploy needed for content),
 // notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
-// Regenerate with scripts/gen-storyroom.py. Same gate as the Studio.
-app.get('/storyroom', serveGated('storyroom.html'));
+// THE Story Room is the pad now (Sophie, Aug 2026): /storyroom serves the
+// same page as /scratchpad, so the app's Story Room tile opens the pad with
+// no build. The OLD board page (storyroom.html + gen-storyroom.py + the
+// /api/story routes) is kept in the repo but no longer pointed at — restore
+// this line to serveGated('storyroom.html') to bring it back.
+app.get('/storyroom', serveGated('scratchpad.html', { pill: true }));
 
 // Writing Room: the dating-book working drafts — every date in two versions
 // (Sophie's original journal + the current draft with Claude's changes in

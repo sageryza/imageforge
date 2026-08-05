@@ -18,7 +18,7 @@ font = base64.b64encode(open(os.path.join(ROOT, 'ios', 'ImageForge', 'EBGaramond
 page = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Scratch Pad</title>
+<title>Story Room</title>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7;
@@ -39,7 +39,11 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
    leaving a story feels like going back. */
 header{display:block; text-align:center; padding:6px 0 0; position:relative;}
 header #storiesbtn{position:absolute; left:0; top:2px;}
-.titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;}
+/* The title row PINS to the top while she scrolls a long story, so film /
+   play / add / inbox are always a thumb away (Sophie). Paper background so
+   beats slide beneath it, under the overlays' z-indexes. */
+.titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;
+  position:sticky; top:0; z-index:30; background:var(--paper); padding-top:6px; padding-bottom:6px;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
 .sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
 .sheethead .no{flex:1;}
@@ -101,9 +105,13 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 /* A placement slot is a slim dashed LINE between beats (a full dashed tile
    per gap ate the whole row — Sophie). The button is 14px of tap target with
    the line drawn up its middle. */
-.slot{position:relative; width:14px; min-height:110px; align-self:stretch; border:none; border-radius:0;
+/* A placement slot: a few short dashes centered vertically in the gap —
+   an explicit height, because align-self:stretch collapsed to a dot in the
+   wrapping flex row (Sophie saw a dot, not a line). */
+.slot{position:relative; width:16px; height:120px; border:none; border-radius:0;
   background:none; padding:0; cursor:pointer;}
-.slot::before{content:''; position:absolute; left:50%; top:2px; bottom:2px; width:0; border-left:1.5px dashed var(--ink2);}
+.slot::before{content:''; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
 .sheet .wrap{padding-top:3vh;}
@@ -208,7 +216,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 <div class="wrap">
   <header>
     <button class="iconbtn" id="storiesbtn" aria-label="Your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></button>
-    <div class="no">Scratch pad</div>
+    <div class="no">Story room</div>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>

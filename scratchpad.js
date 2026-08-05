@@ -534,15 +534,19 @@ async function runFilmJob(padId) {
 
     const segs = [];      // { file } per picture
     const auds = [];      // { file, seconds } per unit
+    const notes = [];     // which audio each unit used — the render's receipt
     let total = 0;
     for (let u = 0; u < units.length; u++) {
       const members = units[u];
       const lead = members[0];
       // The unit's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
+      let audioKind = audio ? 'her voice' : 'quiet';
       if (!audio && String(lead.text || '').trim()) {
-        try { audio = await ttsFor(padId, lead); } catch (e) { console.warn('film tts:', e.message); }
+        try { audio = await ttsFor(padId, lead); if (audio) audioKind = 'tts'; }
+        catch (e) { console.warn('film tts:', e.message); }
       }
+      notes.push(`unit ${u + 1}: ${audioKind}`);
       let seconds = FILM.silent;
       // The per-unit audio is PCM, not aac: concatenating aac adds a few ms of
       // encoder priming to EVERY file, and across a long story that drift
@@ -629,7 +633,7 @@ async function runFilmJob(padId) {
       const films = Array.isArray(v.films) ? v.films : [];
       const prev = v.film && v.film.url ? [{ url: v.film.url, at: v.film.at, seconds: v.film.seconds }] : [];
       tx.set(padRef(padId), {
-        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length },
+        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes },
         films: prev.concat(films).slice(0, 12),   // older cuts are kept, never overwritten
         updatedAt: Date.now(),
       }, { merge: true });
