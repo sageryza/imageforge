@@ -17,7 +17,19 @@
 //
 // The archive lives in membry-df528 Storage: memo-audio/<id>.m4a plus
 // memo-audio/manifest.json, which is the file everything else reads.
+//
+// ONE LIBRARY (Aug 2026, Sophie's rule): every way a recording can arrive —
+// the Mac push, the iOS share sheet (audio.js), a Story Room voiceover paste,
+// a chat with a pasted file — files into THIS archive, through
+// fileIntoArchive() below. Transcription is unconditional (no toggle), and
+// dedupe is belt AND braces: the md5 of the bytes (`hash` on every record)
+// plus the local wall-clock stamp. Stamp alone is fragile — a caller that
+// isn't the Mac has to reconstruct it from the file's internal timestamp,
+// which is the moment the recording STOPPED and can be minutes off (learned
+// live 2026-08-05: filed _1330, phone said 1:28). md5 alone breaks if a path
+// re-encodes. Together they hold.
 const express = require('express');
+const crypto = require('crypto');
 
 const router = express.Router();
 // Storage prefix. Overridable ONLY so the write path can be rehearsed against
@@ -69,6 +81,35 @@ const VALID_CATS = new Set(CATEGORIES.map(c => c[0]));
 const STAMP = /^\d{4}-\d{2}-\d{2}_\d{4}$/;
 const stampOf = (s) => { const m = /^\d{4}-\d{2}-\d{2}_\d{4}/.exec(String(s || '')); return m ? m[0] : null; };
 
+const md5Of = (buf) => crypto.createHash('md5').update(buf).digest('hex');
+
+// Sophie's phone lives in Pacific time; the stamp is HER wall clock.
+const MEMO_TZ = process.env.MEMO_TZ || 'America/Los_Angeles';
+function stampInTz(date) {
+  const dtf = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MEMO_TZ, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+  const p = Object.fromEntries(dtf.formatToParts(date).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}_${p.hour}${p.minute}`;
+}
+
+// The m4a's mvhd creation time (QuickTime epoch, 1904-01-01 UTC). This is the
+// moment the recording was FINALIZED — i.e. when it stopped — so callers
+// subtract the duration to approximate the start, which is the time Voice
+// Memos displays. Best effort only; md5 is the real dedupe key for anything
+// stamped this way.
+function mvhdDate(buf) {
+  const i = buf.indexOf('mvhd');
+  if (i < 0 || i + 24 > buf.length) return null;
+  const ver = buf[i + 4];
+  const secs = ver === 1 ? Number(buf.readBigUInt64BE(i + 8)) : buf.readUInt32BE(i + 8);
+  if (!secs) return null;
+  const d = new Date((secs - 2082844800) * 1000);
+  const y = d.getUTCFullYear();
+  return y > 2000 && y < 2100 ? d : null;
+}
+
 // The membry app is initialised lazily, so the getter is async.
 async function bucket() {
   if (!deps.bucket) throw new Error('membry credential not configured');
@@ -88,11 +129,17 @@ async function readManifest() {
 }
 
 // Append one record. Re-reads and retries on a generation conflict so two
-// uploads landing together can't silently drop one of them.
-async function appendToManifest(record) {
+// uploads landing together can't silently drop one of them. trustStamp=false
+// (a stamp the SERVER derived from the file, not one the Mac read off the
+// Voice Memos database) means a stamp collision does NOT skip — two different
+// recordings can honestly share a minute, and a derived stamp can be wrong by
+// one — only a hash match does.
+async function appendToManifest(record, { trustStamp = true } = {}) {
   for (let attempt = 1; attempt <= 5; attempt++) {
     const { manifest, generation } = await readManifest();
-    if (manifest.memos.some(m => stampOf(m.id) === stampOf(record.id))) return { skipped: true, count: manifest.count };
+    const dup = manifest.memos.find(m => (record.hash && m.hash === record.hash)
+      || (trustStamp && stampOf(m.id) === stampOf(record.id)));
+    if (dup) return { skipped: true, memo: dup, count: manifest.count };
     manifest.memos.push(record);
     manifest.memos.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
     manifest.count = manifest.memos.length;
@@ -133,6 +180,100 @@ async function classify(transcript, spokenTitle) {
   }
 }
 
+// ── fileIntoArchive — THE one way a recording enters the library ───────────
+//
+// Every entry point (the /ingest route, audio.js's drop, the Story Room
+// voiceover paste, a backfill script) funnels through here. Contract:
+//
+//   BANK FIRST, ENRICH AFTER. The audio is stored and the record appended even
+//   when transcription fails (cat 'note' + enrichError on the record) — a
+//   Whisper blip must never lose a recording. Transcription is unconditional
+//   otherwise (no toggle; Sophie 2026-08-05).
+//
+//   stamp: pass it when you truly know it (the Mac reads it off the Voice
+//   Memos database). Leave it null otherwise — it's derived from the file's
+//   mvhd time minus the duration, marked untrusted, and md5 does the deduping.
+//
+//   transcript: pass it if the caller already paid Whisper for these bytes
+//   (audio.js does) so the same audio is never transcribed twice.
+//
+// Returns { skipped, reason?, memo, count }.
+async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = null, iso = '', transcript = null, source = null }) {
+  if (!buf || !buf.length) throw new Error('empty audio');
+  if (!/^[a-z0-9]{2,4}$/i.test(ext)) ext = 'm4a';
+  const hash = md5Of(buf);
+  dur = Math.max(0, Math.round(Number(dur) || 0));
+
+  const trustStamp = Boolean(stamp);
+  let recordedAt = null;
+  if (!stamp) {
+    const end = mvhdDate(buf);
+    recordedAt = end ? new Date(end.getTime() - Math.min(dur, 6 * 3600) * 1000) : new Date();
+    stamp = stampInTz(recordedAt);
+  }
+  if (!STAMP.test(stamp)) throw new Error('stamp must look like 2026-07-15_0812');
+
+  // Cheap check before doing any paid work.
+  const { manifest } = await readManifest();
+  const dupHash = manifest.memos.find(m => m.hash === hash);
+  if (dupHash) return { skipped: true, reason: 'same audio already archived', memo: dupHash, count: manifest.count };
+  if (trustStamp) {
+    const dupStamp = manifest.memos.find(m => stampOf(m.id) === stamp);
+    if (dupStamp) return { skipped: true, reason: 'already in the archive', memo: dupStamp, count: manifest.count };
+  }
+
+  const isoStr = iso || (recordedAt ? recordedAt.toISOString() : '');
+  let id = isoStr ? `${stamp}_${String(isoStr).replace(/[:.]/g, '_').replace(/_\d+Z$/, 'Z')}` : stamp;
+  // A derived stamp comes from the file's own clock, so two different
+  // recordings can honestly derive the SAME id — and the second would save
+  // over the first's audio at memo-audio/<id>. A slice of the hash keeps
+  // derived ids unique per content (caught in rehearsal, 2026-08-05).
+  if (!trustStamp) id += '_' + hash.slice(0, 6);
+  const date = stamp.slice(0, 10);
+
+  let cat = 'toolong', sort = null, enrichError = null;
+  transcript = transcript == null ? null : String(transcript).trim();
+  const tooBig = buf.length > MAX_BYTES;
+  if (dur / 60 <= MAX_MIN && !tooBig) {
+    try {
+      if (transcript == null) {
+        const t = await deps.transcribe(buf, 'memo.' + ext);
+        transcript = String((t && t.text) || '').trim();
+      }
+      if (transcript.length < 8) { cat = 'empty'; transcript = null; }
+      else { sort = await classify(transcript, title); cat = (sort && sort.category) || 'other'; }
+    } catch (err) {
+      // Bank it anyway — enrichable later, never lost.
+      console.warn('memo enrich failed (banking anyway) —', err.message);
+      cat = 'note'; transcript = null;
+      enrichError = String(err.message || err).slice(0, 300);
+    }
+  }
+
+  await (await bucket()).file(`${PREFIX}/${id}.${ext}`).save(buf, {
+    contentType: ext === 'm4a' || ext === 'mp4' ? 'audio/mp4' : 'audio/' + ext,
+  });
+
+  const record = {
+    id, file: `${id}.${ext}`, date, cat,
+    title: (sort && sort.title) || title || null,
+    desc: (sort && sort.description) || null,
+    keywords: (sort && sort.keywords) || [],
+    dur, transcript: transcript || null,
+    hash,
+  };
+  if (source) record.source = source;
+  if (enrichError) record.enrichError = enrichError;
+  const merged = await appendToManifest(record, { trustStamp });
+  return {
+    skipped: !!merged.skipped,
+    reason: merged.skipped ? 'landed concurrently' : undefined,
+    memo: merged.memo || record,
+    count: merged.count,
+    tooBig: tooBig || undefined,
+  };
+}
+
 // ── routes ─────────────────────────────────────────────────────────────────
 // Open, like the other /status endpoints: it reveals counts and stamps, not
 // transcripts, and the Mac script needs it before it has anything to send.
@@ -147,6 +288,9 @@ router.get('/status', async (req, res) => {
       newest: manifest.memos.map(m => m.date).filter(Boolean).sort().pop() || null,
       maxMinutes: MAX_MIN,
       stamps,
+      // Content hashes, so a caller can skip a big upload it already knows is
+      // archived (the backfill script reads this).
+      hashes: manifest.memos.map(m => m.hash).filter(Boolean),
     });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
@@ -162,11 +306,17 @@ const gate = (req, res, next) => {
 
 // POST /ingest?stamp=2026-07-15_0812&iso=...&title=...&dur=95&ext=m4a
 // Body: the raw audio bytes.
-// transcribe=0 (Aug 2026, the share sheet's Whisper toggle turned off) files
-// the recording into the archive WITHOUT the paid transcribe/classify pass —
-// cat 'note', enrichable later. The 120mb cap (was 30mb) lets long
-// saved-from-video audio archive at all; anything over Whisper's 24MB still
-// files as 'toolong' with no transcript rather than bouncing.
+//
+// This is also THE documented call for a chat with a pasted recording: POST
+// the bytes with just title/dur/ext — `stamp` is OPTIONAL now (Aug 2026).
+// Without it the server derives one from the file's own timestamp and the md5
+// carries the dedupe, so a chat never has to reconstruct wall-clock time
+// (which went wrong for real — see the module header).
+//
+// transcribe=0 is IGNORED (Aug 2026, Sophie: transcription is unconditional).
+// The 120mb cap lets long saved-from-video audio archive at all; anything
+// over Whisper's 24MB still files as 'toolong' with no transcript rather
+// than bouncing.
 router.post('/ingest', gate, express.raw({ type: '*/*', limit: '120mb' }), async (req, res) => {
   try {
     if (!deps.bucket) return res.status(503).json({ error: 'membry credential not configured' });
@@ -175,47 +325,20 @@ router.post('/ingest', gate, express.raw({ type: '*/*', limit: '120mb' }), async
 
     const q = req.query || {};
     const stamp = String(q.stamp || '');
-    if (!STAMP.test(stamp)) return res.status(400).json({ error: 'stamp must look like 2026-07-15_0812' });
-    const dur = Math.max(0, Math.round(Number(q.dur) || 0));
-    const ext = /^[a-z0-9]{2,4}$/i.test(String(q.ext || '')) ? String(q.ext).toLowerCase() : 'm4a';
-    const title = String(q.title || '').slice(0, 200);
-    const iso = String(q.iso || '');
+    if (stamp && !STAMP.test(stamp)) return res.status(400).json({ error: 'stamp must look like 2026-07-15_0812' });
     const buf = req.body;
     if (!buf || !buf.length) return res.status(400).json({ error: 'empty body — POST the audio as the request body' });
 
-    // Cheap check before doing any paid work.
-    const { manifest } = await readManifest();
-    if (manifest.memos.some(m => stampOf(m.id) === stamp)) {
-      return res.json({ ok: true, skipped: true, reason: 'already in the archive', count: manifest.count });
-    }
-
-    const id = iso ? `${stamp}_${iso.replace(/[:.]/g, '_').replace(/_\d+Z$/, 'Z')}` : stamp;
-    const date = stamp.slice(0, 10);
-
-    let cat = 'toolong', transcript = null, sort = null;
-    const tooBig = buf.length > MAX_BYTES;
-    if (q.transcribe === '0') {
-      cat = 'note';   // filed quietly; a later pass can transcribe + re-sort it
-    } else if (dur / 60 <= MAX_MIN && !tooBig) {
-      const t = await deps.transcribe(buf, 'memo.' + ext);
-      transcript = String((t && t.text) || '').trim();
-      if (transcript.length < 8) { cat = 'empty'; transcript = null; }
-      else { sort = await classify(transcript, title); cat = (sort && sort.category) || 'other'; }
-    }
-
-    await (await bucket()).file(`${PREFIX}/${id}.${ext}`).save(buf, {
-      contentType: ext === 'm4a' || ext === 'mp4' ? 'audio/mp4' : 'audio/' + ext,
+    const out = await fileIntoArchive({
+      buf,
+      ext: String(q.ext || '').toLowerCase(),
+      title: String(q.title || '').slice(0, 200),
+      dur: q.dur,
+      stamp: stamp || null,
+      iso: String(q.iso || ''),
+      source: String(q.source || '').slice(0, 40) || null,
     });
-
-    const record = {
-      id, file: `${id}.${ext}`, date, cat,
-      title: (sort && sort.title) || title || null,
-      desc: (sort && sort.description) || null,
-      keywords: (sort && sort.keywords) || [],
-      dur, transcript: transcript || null,
-    };
-    const merged = await appendToManifest(record);
-    res.json({ ok: true, skipped: !!merged.skipped, count: merged.count, memo: record, tooBig: tooBig || undefined });
+    res.json({ ok: true, skipped: out.skipped, reason: out.reason, count: out.count, memo: out.memo, tooBig: out.tooBig });
   } catch (err) {
     console.warn('memo ingest failed —', err.message);
     res.status(502).json({ error: err.message });
@@ -277,4 +400,4 @@ router.get('/audio/:id', gate, async (req, res) => {
   }
 });
 
-module.exports = { router, init };
+module.exports = { router, init, fileIntoArchive, md5Of };

@@ -17,6 +17,12 @@
 // a batch name (which defaults to the date). `name`, `notes`, `tags` and `track`
 // are all fillable later, by her from the page or by a chat.
 //
+// ONE LIBRARY (Aug 2026): every recording that lands here is ALSO filed into
+// the Voice Memo archive (memos.fileIntoArchive — md5-deduped, so nothing
+// lands twice however it travels), and every recording is transcribed —
+// unconditionally, no toggle. The forge-audio doc stays as this surface's own
+// copy, carrying `memoId`/`memoStatus` as the reference into the archive.
+//
 // Two things make re-uploading safe:
 //
 //   1. FILES ARE KEYED BY THE MD5 OF THEIR BYTES. A recording already in the
@@ -344,40 +350,96 @@ router.get('/items/:id', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// Whisper the recording in the BACKGROUND and write the words onto its doc —
-// the ?transcribe=1 path (the share sheet's toggle, Aug 2026). House rule: the
-// upload response never waits on this; clients read `transcript` /
+// Whisper the recording in the BACKGROUND and write the words onto its doc.
+// UNCONDITIONAL since Aug 2026 (Sophie: no transcribe toggle — every recording
+// gets its words; the share sheet's ?transcribe param is ignored). House rule:
+// the upload response never waits on this; clients read `transcript` /
 // `transcribeStatus` off the doc later. Whisper's hard cap is 25MB, so bigger
-// files record a clear error instead of a hung status.
+// files record a clear error instead of a hung status. Returns the transcript
+// (or null) so the memo-archive filing below can reuse it — the same audio is
+// never paid for twice.
 const WHISPER_CAP = 24 * 1024 * 1024;
-function transcribeItem(id, buf, ext) {
+async function transcribeItem(id, buf, ext) {
+  const ref = db().collection(COL).doc(String(id));
+  try {
+    await ref.set({ transcribeStatus: 'transcribing', updatedAt: Date.now() }, { merge: true });
+    const { transcribeAudio } = require('./movies');
+    const t = await transcribeAudio(buf, 'recording.' + (ext || 'm4a'));
+    await ref.set({
+      transcript: String(t.text || ''),
+      transcribeStatus: admin.firestore.FieldValue.delete(),
+      transcribedAt: Date.now(),
+      updatedAt: Date.now(),
+    }, { merge: true });
+    return String(t.text || '');
+  } catch (e) {
+    await ref.set({
+      transcribeStatus: 'failed',
+      transcribeError: String(e.message || e).slice(0, 300),
+      updatedAt: Date.now(),
+    }, { merge: true }).catch(() => {});
+    return null;
+  }
+}
+
+// Every NEW recording that lands here also files into the Voice Memo archive
+// (memos.js — one library, Aug 2026). Runs in the background after the upload
+// response: transcribe first (words onto this doc), then hand bytes +
+// transcript to fileIntoArchive, which md5-dedupes — so a recording that
+// already reached the archive by another path (the Mac push, a chat) lands
+// once. The forge-audio doc keeps `memoId`/`memoStatus` as the reference back.
+function enrichItem(item, buf) {
+  if (!item || !item.id) return;
+  if (item.duplicate) {
+    // Already stored once — just top up missing words.
+    if (!item.transcript && item.transcribeStatus !== 'transcribing'
+        && process.env.OPENAI_API_KEY && buf.length <= WHISPER_CAP) {
+      transcribeItem(item.id, buf, item.ext).catch(() => {});
+    }
+    return;
+  }
   (async () => {
-    const ref = db().collection(COL).doc(String(id));
+    const ref = db().collection(COL).doc(String(item.id));
+    let transcript = item.transcript || null;
+    if (!transcript) {
+      if (!process.env.OPENAI_API_KEY) {
+        await ref.set({ transcribeStatus: 'failed', transcribeError: 'OPENAI_API_KEY not configured' }, { merge: true }).catch(() => {});
+      } else if (buf.length > WHISPER_CAP) {
+        await ref.set({
+          transcribeStatus: 'failed',
+          transcribeError: 'file is over Whisper’s 25MB cap — transcribe it via a pipeline that chunks',
+        }, { merge: true }).catch(() => {});
+      } else {
+        transcript = await transcribeItem(item.id, buf, item.ext);
+      }
+    }
     try {
-      await ref.set({ transcribeStatus: 'transcribing', updatedAt: Date.now() }, { merge: true });
-      const { transcribeAudio } = require('./movies');
-      const t = await transcribeAudio(buf, 'recording.' + (ext || 'm4a'));
+      const memos = require('./memos');
+      const r = await memos.fileIntoArchive({
+        buf, ext: item.ext, title: item.name || '',
+        dur: Math.round(item.seconds || 0),
+        transcript, source: 'audio-drop',
+      });
       await ref.set({
-        transcript: String(t.text || ''),
-        transcribeStatus: admin.firestore.FieldValue.delete(),
-        transcribedAt: Date.now(),
+        memoId: (r.memo && r.memo.id) || null,
+        memoStatus: r.skipped ? 'duplicate' : 'filed',
         updatedAt: Date.now(),
       }, { merge: true });
     } catch (e) {
       await ref.set({
-        transcribeStatus: 'failed',
-        transcribeError: String(e.message || e).slice(0, 300),
+        memoStatus: 'failed',
+        memoError: String(e.message || e).slice(0, 300),
         updatedAt: Date.now(),
       }, { merge: true }).catch(() => {});
     }
-  })();
+  })().catch(() => {});
 }
 
-// POST /upload-file?batch=&filename=&name=&transcribe= — ONE recording as the
-// raw request body. This is what the page and the share sheet use: no base64
-// inflating the file by a third, and XHR can report real upload progress on a
-// phone connection. transcribe=1 queues a background Whisper pass onto the doc
-// (a duplicate that already has words keeps them; one without gets them now).
+// POST /upload-file?batch=&filename=&name= — ONE recording as the raw request
+// body. This is what the page and the share sheet use: no base64 inflating
+// the file by a third, and XHR can report real upload progress on a phone
+// connection. Transcription + memo-archive filing happen unconditionally in
+// the background (the old ?transcribe toggle is ignored — Aug 2026).
 router.post('/upload-file',
   express.raw({ type: () => true, limit: '300mb' }),
   async (req, res) => {
@@ -395,23 +457,9 @@ router.post('/upload-file',
       if (!ct || /octet-stream/i.test(ct)) ct = ctForName(filename);
 
       const item = await storeOne({ bucket, batch, buf: req.body, ct, filename, name });
-      let transcribing = false;
-      if (req.query.transcribe === '1' && item.id && !item.transcript
-          && item.transcribeStatus !== 'transcribing') {
-        if (!process.env.OPENAI_API_KEY) {
-          await db().collection(COL).doc(String(item.id)).set({
-            transcribeStatus: 'failed', transcribeError: 'OPENAI_API_KEY not configured',
-          }, { merge: true }).catch(() => {});
-        } else if (req.body.length > WHISPER_CAP) {
-          await db().collection(COL).doc(String(item.id)).set({
-            transcribeStatus: 'failed',
-            transcribeError: 'file is over Whisper’s 25MB cap — transcribe it via a pipeline that chunks',
-          }, { merge: true }).catch(() => {});
-        } else {
-          transcribing = true;
-          transcribeItem(item.id, req.body, item.ext);
-        }
-      }
+      const transcribing = !item.duplicate && !item.transcript
+        && Boolean(process.env.OPENAI_API_KEY) && req.body.length <= WHISPER_CAP;
+      enrichItem(item, req.body);
       res.json({ ok: true, batch, duplicate: Boolean(item.duplicate), transcribing, item });
     } catch (e) { fail(res, e); }
   });
@@ -434,10 +482,12 @@ router.post('/upload', async (req, res) => {
         || (typeof ref === 'string' && !ref.startsWith('data:') ? ref.split('/').pop() : '');
       const raw = await toBuffer(ref);
       const ct = /octet-stream/i.test(raw.ct) ? ctForName(filename) : raw.ct;
-      items.push(await storeOne({
+      const item = await storeOne({
         bucket, batch, buf: raw.buf, ct, filename,
         name: typeof f === 'object' ? f.name : '',
-      }));
+      });
+      enrichItem(item, raw.buf);   // words + memo archive, in the background
+      items.push(item);
     }
     res.json({
       ok: true,
