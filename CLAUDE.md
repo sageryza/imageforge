@@ -306,9 +306,25 @@ lifted into a standalone tool later.
 
 ## Playground (`/playground`, iOS tile "Playground") — prompt tester
 - `public/promptlab.html` + `/api/promptlab` (inline in server.js), Firestore
-  `forge-promptlab`. Fixed recipe per style so runs stay comparable: 4 outputs,
-  2:3. Background job on the doc; the page polls and resumes from
-  `localStorage`. ♥/✕ per image in the lightbox.
+  `forge-promptlab`. Fixed recipe per style so runs stay comparable: **ONE
+  image a run**, 2:3. Background job on the doc; the page polls and resumes
+  from `localStorage`. ♥/✕ per image in the lightbox.
+- **Generate is the stars icon, and a run makes ONE picture (Aug 2026,
+  Sophie).** The button is a Lucide `sparkles` glyph with no word on it, and
+  there is no how-many picker at all — every style draws one image per tap
+  (the LoRAs used to hard-code `num_outputs: 4` server-side; that is now
+  `cfg.outputs`, and `POST /api/promptlab` clamps `outputs` to 1-4 with a
+  default of 1). The page's `OUTPUTS` const is the other half of the pair —
+  move both if this ever changes.
+- **The feed has TWO views: LIST and TILES** (`promptlab_view` in
+  localStorage, default list). List = a box per run, prompt above its
+  pictures. Tiles = every picture from every run as uniform SQUARE thumbnails
+  **four to a row** (the My Creations look), no prompt on the page — tapping
+  one opens the lightbox, which is where the prompt and the model · quality ·
+  seed line live. Two gotchas, both earned: the switch is a **sticky labelled
+  LIST/TILES pair**, never a single icon that scrolls away (the first version
+  did, and stranded her in a one-image-per-row view with no way back), and it
+  sits on the **LEFT** because the autoscroll pill owns the top-right corner.
 - **Three styles.** Watercolor (`wtr`) and Hoonie linocut are Replicate LoRAs —
   trigger word prepended, suffix appended, LoRA scale + seed + ×3 ladder.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
@@ -321,7 +337,7 @@ lifted into a standalone tool later.
   follow it verbatim after a blank line — no trigger word, no trailing-period
   trim, no appended tail. The page's `STYLES.chatgpt.prefix` is a COPY used
   only to preview the prompt in the "Sent as" line; **keep the two identical**.
-  ~$0.06 an image at medium (the LoRA runs are ~2¢ for four).
+  ~$0.06 an image at medium (a LoRA image is well under a cent).
 - **The Sophie character toggle (Aug 2026, ChatGPT style only):** her picture
   as a small button on the controls row (dim = off, lit = on; a plain
   variable like quality, so every load starts OFF). On, the run attaches
@@ -334,17 +350,13 @@ lifted into a standalone tool later.
 - **`/playground?from=scratchpad` shows a "‹ Scratch Pad" chip** (fixed
   top-left) — the way back when the Scratch Pad's empty-beat popup sends her
   over; without it the pad's WKWebView strands her on the Playground.
-- **Two ChatGPT-only controls, in the space the LoRA knobs vacate:**
-  - **How many images — a STICKY 1/2/3/4 toggle** (`promptlab_count` in
-    localStorage, sent as `outputs`, clamped to `PL_GPT.maxOutputs`). Whatever
-    is lit stays lit for every later run and across reloads — not a one-shot
-    button. The LoRAs stay at four options a run.
-  - **Quality — a dropdown, low/medium/high, default medium** (sent as
-    `quality`, validated against `PL_GPT.qualities`). **Deliberately NOT
-    persisted:** it's a plain JS variable, so it holds while the page is open
-    and every fresh load is back to medium — localStorage would carry an
-    expensive `high` into next time without her meaning it. Roughly 2¢ / 6¢ /
-    25¢ an image, so a 4-up at high is ~$1.
+- **One ChatGPT-only control, in the space the LoRA knobs vacate: quality — a
+  dropdown, low/medium/high, default medium** (sent as `quality`, validated
+  against `PL_GPT.qualities`). **Deliberately NOT persisted:** it's a plain JS
+  variable, so it holds while the page is open and every fresh load is back to
+  medium — localStorage would carry an expensive `high` into next time without
+  her meaning it. Roughly 2¢ / 6¢ / 25¢ an image. (The old sticky 1/2/3/4
+  count toggle is gone — see the one-image rule above.)
 - **Cancel is REPLICATE-ONLY, on purpose (Aug 2026, Sophie's call).** The X on
   a running job → "Are you sure you want to cancel?" → `POST
   /api/promptlab/:id/cancel` → status `cancelled`.

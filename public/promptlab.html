@@ -22,16 +22,12 @@
   .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
-  /* How many images a ChatGPT run makes — a sticky 1/2/3/4 toggle, not a
-     one-shot button: whatever is lit stays lit for every run after it. */
-  .countpick { display: flex; align-items: center; gap: 7px; }
-  .countpick #countbtns { display: flex; gap: 4px; }
-  .cntbtn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e; font: inherit; font-size: 13.5px; }
-  .cntbtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; font-weight: 600; }
   /* Quality — 16px so iOS doesn't zoom the page when it opens the picker. */
   #qpick { border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 6px; font: inherit; font-size: 16px; background: #fdfcf9; color: #2b2622; }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
-  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; }
+  /* Generate is the stars icon, not the word — one image, one tap. */
+  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 9px 15px; font: inherit; display: flex; align-items: center; justify-content: center; }
+  button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
@@ -45,6 +41,21 @@
   .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
+     and TILES (every picture as a thumbnail, four to a row, prompt in the
+     lightbox). The switch is STICKY so it is reachable from anywhere in a long
+     feed — the first version scrolled away and left no way back — and it sits
+     on the LEFT because the autoscroll pill owns the top-right corner. */
+  .feedbar { position: sticky; top: 0; z-index: 20; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
+  .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
+  .viewtog button + button { border-left: 1px solid #d8d0c4; }
+  .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
+  /* Tiles: uniform squares four to a row, the My Creations look — small on
+     purpose, so the wall stays scannable. Tapping one opens the lightbox,
+     which is where the prompt, model and quality live. */
+  #tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  #tiles .cell img { aspect-ratio: 1 / 1; }
   .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
   .copybtn svg { width: 14px; height: 14px; }
@@ -76,7 +87,10 @@
   #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
   #lb.on { display: flex; }
   #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
-  #lb .cap { color: #ddd; font-size: 13px; margin-top: 10px; text-align: center; }
+  /* What made this picture: her words, then the model and its settings. */
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; max-height: 14vh; overflow-y: auto; }
+  #lb .cap .capp { color: #eee; font-size: 13.5px; }
+  #lb .cap .capm { color: #9a938a; font-size: 12px; margin-top: 5px; }
   .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
@@ -109,16 +123,21 @@
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
     <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
     <span class="seedtag" id="seedtag"></span>
-    <span class="countpick" id="countpick"><span id="countbtns"></span></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
     <select id="qpick" aria-label="Quality"></select>
-    <button class="go" id="go" onclick="go()">Generate</button>
+    <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
   </div>
   <div class="err" id="err" hidden></div>
 </div>
 
+<div class="feedbar">
+  <div class="viewtog">
+    <button id="v-list">List</button><button id="v-tiles">Tiles</button>
+  </div>
+</div>
 <div id="pendings"></div>
 <div id="runs"></div>
+<div id="tiles"></div>
 
 <div id="toast"></div>
 
@@ -135,7 +154,7 @@
 
 <div id="lb">
   <img id="lbimg" src="">
-  <div class="cap" id="lbcap"></div>
+  <div class="cap"><div class="capp" id="lbcapp"></div><div class="capm" id="lbcapm"></div></div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
@@ -158,7 +177,25 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
   };
+  document.getElementById('go').innerHTML = ICONS.sparkles;
+
+  // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
+  // Both buttons are always on screen and always labelled — the switch can
+  // never strand her in a view she can't leave.
+  function curView() { return localStorage.getItem('promptlab_view') === 'tiles' ? 'tiles' : 'list'; }
+  function applyView() {
+    var tiles = curView() === 'tiles';
+    document.getElementById('v-list').classList.toggle('on', !tiles);
+    document.getElementById('v-tiles').classList.toggle('on', tiles);
+    document.getElementById('runs').hidden = tiles;
+    document.getElementById('tiles').hidden = !tiles;
+    if (tiles) renderTiles();
+  }
+  function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
+  document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
+  document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
@@ -214,22 +251,11 @@
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
 
-  // How many images a ChatGPT run makes (1-4). Sticky across runs AND across
-  // page loads — set it once and every later run uses it. The LoRAs are fixed
-  // at four options per run.
-  var MAXCOUNT = 4;
-  function curCount() {
-    var n = parseInt(localStorage.getItem('promptlab_count') || '1', 10);
-    return (n >= 1 && n <= MAXCOUNT) ? n : 1;
-  }
-  function renderCount() {
-    var cur = curCount(), html = '';
-    for (var n = 1; n <= MAXCOUNT; n++) {
-      html += '<button class="cntbtn' + (n === cur ? ' on' : '') + '" onclick="setCount(' + n + ')">' + n + '</button>';
-    }
-    document.getElementById('countbtns').innerHTML = html;
-  }
-  function setCount(n) { localStorage.setItem('promptlab_count', String(n)); renderCount(); }
+  // ONE image a run, every style, no picker (Aug 2026, Sophie): tapping the
+  // stars draws one picture. The old 1/2/3/4 toggle is gone and the LoRAs no
+  // longer come back with four options either — the server sends the same
+  // count. Change it in both places if that ever moves.
+  var OUTPUTS = 1;
 
   // Quality — deliberately NOT persisted: it lives in a plain variable, so it
   // holds for as long as the page is open and every fresh load is back to
@@ -277,7 +303,6 @@
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
-    document.getElementById('countpick').hidden = !gpt;   // their place on the row
     document.getElementById('charpick').hidden = !gpt;
     document.getElementById('qpick').hidden = !gpt;
   }
@@ -317,7 +342,7 @@
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
     var body = gpt
-      ? { prompt: prompt, model: S.model, outputs: curCount(), quality: quality, character: charOn }
+      ? { prompt: prompt, model: S.model, outputs: OUTPUTS, quality: quality, character: charOn }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -326,8 +351,8 @@
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
-        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: curCount(), quality: quality }
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', seed: seed });
+        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: quality }
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed });
       setPending(list);
       renderPendings(); startPolling();
     });
@@ -371,7 +396,7 @@
   function renderPendings() {
     var list = pendingList().slice().reverse();
     document.getElementById('pendings').innerHTML = list.map(function (p) {
-      var slots = p.count || 4;
+      var slots = p.count || OUTPUTS;
       var tags = [p.style || ''];
       if (p.quality) tags.push(p.quality);
       if (p.scale != null) tags.push('scale ' + p.scale);
@@ -511,7 +536,26 @@
           }).join('') + '</div></div>';
       }).join('');
       applyClamps(document.getElementById('runs'));
+      if (curView() === 'tiles') renderTiles();
     }).catch(function () {});
+  }
+
+  // The tiles view: every picture from every run, newest first, as one wall of
+  // uniform thumbnails. No prompt on the page — that's what the lightbox is
+  // for, so tapping a tile is how you find out what made it.
+  function renderTiles() {
+    var html = '';
+    Object.keys(runsById).forEach(function (id) {
+      var r = runsById[id];
+      if (r.status === 'failed') return;
+      var votes = r.votes || {};
+      runImages(r).forEach(function (u, i) {
+        var v = votes[i];
+        var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
+        html += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+      });
+    });
+    document.getElementById('tiles').innerHTML = html;
   }
 
   // One delegated handler for every tile.
@@ -522,6 +566,11 @@
       if (r) copyPromptIn(r.prompt);
       return;
     }
+    var img = e.target.closest('img[data-run]');
+    if (!img) return;
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+  });
+  document.getElementById('tiles').addEventListener('click', function (e) {
     var img = e.target.closest('img[data-run]');
     if (!img) return;
     openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
@@ -568,8 +617,13 @@
     fetch(src).then(function (res) { return res.blob(); })
       .then(function (b) { lbBlob = { url: src, blob: b }; })
       .catch(function () {});
-    document.getElementById('lbcap').textContent =
-      [r.prompt].concat(runParts(r)).join(' · ') + ' · image ' + (i + 1);
+    // Her words above, then what drew them — model, quality/scale, seed. In
+    // the tiles view this is the ONLY place the prompt appears, so it says
+    // everything about the picture.
+    document.getElementById('lbcapp').textContent = r.prompt || '';
+    var meta = runParts(r);
+    if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    document.getElementById('lbcapm').textContent = meta.join(' · ');
     syncLbVotes();
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
@@ -663,7 +717,7 @@
   };
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); renderCount(); syncControls(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>
