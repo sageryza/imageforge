@@ -66,6 +66,21 @@ struct Creation: Identifiable, Hashable {
     let type: String
     let url: URL
     let prompt: String?
+    /// What made the picture. `model`/`quality` are the structured fields the
+    /// generators write now; `style` is the older single label ("ChatGPT ·
+    /// medium", "Watercolor Drawings") that everything filed before them carries.
+    var model: String? = nil
+    var quality: String? = nil
+    var style: String? = nil
+
+    /// The line shown under a creation when you open it — model · quality.
+    var madeWith: String? {
+        let parts = [model, quality].compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if !parts.isEmpty { return parts.joined(separator: " · ") }
+        let s = style?.trimmingCharacters(in: .whitespaces)
+        return (s?.isEmpty == false) ? s : nil
+    }
 }
 
 /// A generated educational carousel: ordered slide images plus a suggested

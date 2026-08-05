@@ -183,6 +183,18 @@ each opens a focused workflow that shares the same house styles.
 - **Images must live at a public URL** the app can fetch (Firebase Storage in
   either project, made public). Temporary Replicate/OpenAI URLs expire — upload
   to Storage first (`saveToFirebase()` in `server.js`, or `bucket.upload()`).
+- **Opening a creation shows MODEL · QUALITY at the top of its caption (Aug
+  2026).** The doc carries `model` + `quality` as separate fields (older docs
+  have only the single `style` label, "ChatGPT · medium" — the app falls back
+  to it), so anything filing a creation should write both. `prompt` stays the
+  line underneath.
+- **Saving to Photos hands over a FILE, not a UIImage or a data resource**
+  (`PhotoSaver`): the original PNG/JPEG/HEIC bytes when the download already is
+  one (sniffed by magic number — webp is excluded, Photos rejects it), else a
+  PNG re-encode, staged in tmp and added with `shouldMoveFile`. Photos' own
+  error text is shown in the toast, and a refused permission raises an alert
+  with **Open Settings** — `requestAuthorization` never re-prompts after a
+  "Don't Allow", so a toast there was a dead end.
 
 ## Stack
 - Single-file Node/Express backend: `server.js` (~"v11").

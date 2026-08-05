@@ -410,7 +410,10 @@ final class ForgeService {
                 id: doc.documentID,
                 type: (data["type"] as? String) ?? "image",
                 url: url,
-                prompt: data["prompt"] as? String
+                prompt: data["prompt"] as? String,
+                model: data["model"] as? String,
+                quality: data["quality"] as? String,
+                style: data["style"] as? String
             )
         }
     }

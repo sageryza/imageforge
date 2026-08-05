@@ -2,28 +2,74 @@ import SwiftUI
 import UIKit
 import Photos
 
+/// What a save attempt actually did. `failed` carries Photos' own words — a
+/// silent "Couldn't save" is undiagnosable, so the real message is surfaced.
+enum PhotoSaveOutcome {
+    case saved
+    case denied                 // permission is off; only Settings can turn it on
+    case failed(String)
+}
+
 /// Saves an image to the user's photo library, requesting add-only permission
 /// first (needs NSPhotoLibraryAddUsageDescription in Info.plist). Reports back
-/// on the main thread: (saved, deniedPermission).
+/// on the main thread.
 final class PhotoSaver {
     static let shared = PhotoSaver()
-    func save(_ image: UIImage, _ done: @escaping (_ ok: Bool, _ denied: Bool) -> Void) {
-        let finish: (Bool, Bool) -> Void = { ok, denied in DispatchQueue.main.async { done(ok, denied) } }
+
+    /// `data` is the ORIGINAL downloaded bytes when we have them (that's what
+    /// Photos is happiest with); `image` is the decoded fallback for formats it
+    /// won't take — the gallery serves webp, which Photos rejects outright.
+    func save(data: Data?, image: UIImage?, _ done: @escaping (PhotoSaveOutcome) -> Void) {
+        let finish: (PhotoSaveOutcome) -> Void = { r in DispatchQueue.main.async { done(r) } }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-            guard status == .authorized || status == .limited else { finish(false, true); return }
-            // Photos rejects some decoder-backed UIImages outright — the
-            // gallery's webp downloads failed with "Couldn't save" for real —
-            // so hand it flat encoded bytes instead of the UIImage.
-            let data = image.pngData() ?? image.jpegData(compressionQuality: 0.95)
+            guard status == .authorized || status == .limited else { finish(.denied); return }
+            guard let (bytes, ext) = Self.acceptableBytes(data: data, image: image) else {
+                finish(.failed("that image couldn't be converted")); return
+            }
+            // Photos takes a FILE far more reliably than a raw data resource
+            // (a data resource fails without a useful reason on some formats),
+            // so stage the bytes in tmp and hand over the URL. shouldMoveFile
+            // lets Photos consume the file, so there's nothing to clean up.
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("save-\(UUID().uuidString).\(ext)")
+            do { try bytes.write(to: tmp, options: .atomic) }
+            catch { finish(.failed(error.localizedDescription)); return }
+            let opts = PHAssetResourceCreationOptions()
+            opts.shouldMoveFile = true
             PHPhotoLibrary.shared().performChanges {
-                if let data {
-                    let req = PHAssetCreationRequest.forAsset()
-                    req.addResource(with: .photo, data: data, options: nil)
-                } else {
-                    PHAssetChangeRequest.creationRequestForAsset(from: image)
-                }
-            } completionHandler: { ok, _ in finish(ok, false) }
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, fileURL: tmp, options: opts)
+            } completionHandler: { ok, error in
+                try? FileManager.default.removeItem(at: tmp)   // no-op once moved
+                finish(ok ? .saved : .failed(error?.localizedDescription ?? "Photos refused the image"))
+            }
         }
+    }
+
+    /// The first form of the picture Photos will actually accept: the original
+    /// bytes when they're already PNG/JPEG/HEIC, otherwise a PNG (then JPEG)
+    /// re-encode of the decoded image.
+    private static func acceptableBytes(data: Data?, image: UIImage?) -> (Data, String)? {
+        if let data, let ext = nativeExtension(of: data) { return (data, ext) }
+        guard let image else { return nil }
+        if let png = image.pngData() { return (png, "png") }
+        if let jpg = image.jpegData(compressionQuality: 0.95) { return (jpg, "jpg") }
+        return nil
+    }
+
+    /// Sniff the container from its magic bytes — the URL's extension lies often
+    /// enough (Storage serves plenty of `.png` names that aren't).
+    private static func nativeExtension(of data: Data) -> String? {
+        let b = [UInt8](data.prefix(12))
+        guard b.count >= 12 else { return nil }
+        if b[0] == 0x89, b[1] == 0x50, b[2] == 0x4E, b[3] == 0x47 { return "png" }
+        if b[0] == 0xFF, b[1] == 0xD8, b[2] == 0xFF { return "jpg" }
+        // ftyp box: HEIC/HEIF. RIFF….WEBP is deliberately NOT here — Photos
+        // rejects webp, so it falls through to the re-encode.
+        if b[4] == 0x66, b[5] == 0x74, b[6] == 0x79, b[7] == 0x70 {
+            let brand = String(bytes: b[8..<12], encoding: .ascii) ?? ""
+            if brand.hasPrefix("hei") || brand.hasPrefix("mif") || brand.hasPrefix("msf") { return "heic" }
+        }
+        return nil
     }
 }
 
@@ -39,6 +85,7 @@ struct CreationsView: View {
     @State private var editable: EditableSheet?
     @State private var openingEditor = false
     @State private var toast: String?
+    @State private var photosDenied = false
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 10)]
 
@@ -109,6 +156,17 @@ struct CreationsView: View {
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
+        // Permission was refused at some point: the request returns instantly
+        // from then on and never shows the system prompt again, so the only way
+        // back is Settings.
+        .alert("Photos access is off", isPresented: $photosDenied) {
+            Button("Open Settings") {
+                if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }
+            }
+            Button("Not now", role: .cancel) { }
+        } message: {
+            Text("Turn on “Add Photos Only” for ImageForge to save pictures to your library.")
+        }
         .overlay { previewPopup }
         .overlay(alignment: .bottom) { toastView }
         .fullScreenCover(item: $editable) { e in
@@ -218,6 +276,14 @@ struct CreationsView: View {
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
 
+                    // What made it — model · quality. First line of the caption,
+                    // because it's the thing she's checking when she opens one.
+                    if let made = c.madeWith {
+                        Text(made)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Theme.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     if let p = c.prompt, !p.isEmpty {
                         Text(p).font(.caption).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -261,24 +327,42 @@ struct CreationsView: View {
     /// Download the image (from cache when we have it) and save it to Photos.
     /// Requests add-only permission if needed; reports the real outcome.
     private func savePreview(_ c: Creation) {
+        // Say something the instant it's tapped: the download + the permission
+        // round trip take a moment, and a silent button reads as a dead one.
+        showToast("Saving…", seconds: 20)
         Task {
+            // Prefer the bytes exactly as they were downloaded — Photos takes a
+            // real PNG/JPEG straight, and re-encoding is only a fallback.
+            var bytes = ImageCache.data(for: c.url)
             var image = ImageCache.image(for: c.url)
-            if image == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
+            if bytes == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
+                bytes = data
                 image = UIImage(data: data)
                 if let image { ImageCache.store(data, image, for: c.url) }
             }
-            guard let image else { showToast("Couldn’t load that image"); return }
-            PhotoSaver.shared.save(image) { ok, denied in
-                showToast(ok ? "Saved to Photos" : (denied ? "Allow Photos access in Settings" : "Couldn’t save"))
+            if image == nil, let bytes { image = UIImage(data: bytes) }
+            guard bytes != nil || image != nil else {
+                await MainActor.run { showToast("Couldn’t load that image") }
+                return
+            }
+            PhotoSaver.shared.save(data: bytes, image: image) { outcome in
+                switch outcome {
+                case .saved:            showToast("Saved to Photos")
+                // A toast for this was too easy to miss — once permission is
+                // off, nothing inside the app can turn it back on, so say so
+                // and offer the one door that works.
+                case .denied:           withAnimation { toast = nil }; photosDenied = true
+                case .failed(let why):  showToast("Couldn’t save — \(why)", seconds: 4)
+                }
             }
         }
     }
 
-    private func showToast(_ message: String) {
+    private func showToast(_ message: String, seconds: Double = 1.8) {
         withAnimation { toast = message }
-        Task {
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
-            withAnimation { toast = nil }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            withAnimation { if toast == message { toast = nil } }
         }
     }
 
@@ -341,6 +425,12 @@ enum ImageCache {
         var h: UInt64 = 1469598103934665603
         for b in url.absoluteString.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
         return dir.appendingPathComponent(String(h, radix: 16))
+    }
+
+    /// The bytes exactly as they were downloaded, if this URL is on disk. Saving
+    /// to Photos wants the original container, not a re-encode of the decode.
+    static func data(for url: URL) -> Data? {
+        try? Data(contentsOf: fileURL(for: url))
     }
 
     /// Look up an image: memory first, then disk (promoting it back to memory).
