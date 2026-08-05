@@ -99,7 +99,7 @@ function artRef(file) {
 // shares its audio, its members splitting that time equally — the animate-
 // between-panels version of a chunk is the paid follow-up, not this.
 const { execFile } = require('child_process');
-const FILM = { w: 1080, h: 1620, fps: 24, tail: 0.35, silent: 2.0, min: 0.6 };
+const FILM = { w: 1080, h: 1620, fps: 24, tail: 0.35, silent: 2.0, min: 0.6, segVersion: 1 };
 function tryRequire(name) { try { return require(name); } catch { return null; } }
 function firstOnPath(bin) {
   for (const dir of (process.env.PATH || '').split(path.delimiter)) {
@@ -487,11 +487,29 @@ async function runFilmJob(padId) {
       const pics = members.filter((b) => b.url);
       const each = seconds / pics.length;
       for (let p = 0; p < pics.length; p++) {
-        const img = await fetchTo(pics[p].url, path.join(dir, `i${u}-${p}`));
         const seg = path.join(dir, `s${u}-${p}.mp4`);
-        await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
-          '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
-          '-r', String(FILM.fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+        // The SEGMENT CACHE — the whole reason a re-render is fast. Encoding
+        // stills into h264 is the only part of a film that burns this
+        // server's own (small) CPU, and a beat that didn't change encodes to
+        // identical bytes: same picture, same length, same recipe. So each
+        // segment is banked by that key, and a tweaked story only re-encodes
+        // the beats the tweak touched; everything else is a small download.
+        // Bump FILM.segVersion whenever the encode recipe changes.
+        const segKey = crypto.createHash('sha1')
+          .update(`${FILM.segVersion}|${pics[p].url}|${each.toFixed(3)}|${FILM.w}x${FILM.h}@${FILM.fps}`).digest('hex');
+        const cached = admin.storage().bucket().file(`scratchpad/film-cache/${segKey}.mp4`);
+        let fromCache = false;
+        try {
+          if ((await cached.exists())[0]) { await cached.download({ destination: seg }); fromCache = true; }
+        } catch { /* a cache miss is just an encode */ }
+        if (!fromCache) {
+          const img = await fetchTo(pics[p].url, path.join(dir, `i${u}-${p}`));
+          await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
+            '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
+            '-r', String(FILM.fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+          try { await admin.storage().bucket().upload(seg, { destination: `scratchpad/film-cache/${segKey}.mp4`, metadata: { contentType: 'video/mp4' } }); }
+          catch (e) { console.warn('film seg-cache save:', e.message); }
+        }
         segs.push(seg);
       }
     }
