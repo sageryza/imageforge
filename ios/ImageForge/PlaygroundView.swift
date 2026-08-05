@@ -80,7 +80,9 @@ final class PlaygroundWebRef: ObservableObject { weak var web: WKWebView? }
 /// A one-shot query string another tool wants the Playground opened with —
 /// the gallery's "open in Playground with these settings". Set it, then
 /// openTool(.playground): a fresh web view builds its URL from it, and an
-/// already-alive one reloads on the screen-change notification. Cleared on use.
+/// already-alive one reloads on the screen-change notification. Cleared on
+/// use. MainActor because serverURL is (and every touch is UI-side anyway).
+@MainActor
 enum PlaygroundPrefill {
     static var pending: String?
     static func url() -> URL? {
@@ -138,8 +140,10 @@ private struct PlaygroundWebView: UIViewRepresentable {
         func watchForPrefill(_ web: WKWebView) {
             screenChangeObserver = NotificationCenter.default.addObserver(
                 forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
-                    if let url = PlaygroundPrefill.url() {
-                        web?.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30))
+                    Task { @MainActor in
+                        if let url = PlaygroundPrefill.url() {
+                            web?.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30))
+                        }
                     }
             }
         }
