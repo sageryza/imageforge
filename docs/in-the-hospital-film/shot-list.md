@@ -6,6 +6,30 @@ hospital"). Narrated at a gentle pace, 3,000 words runs right around 20
 minutes — 91 core shots means each picture holds ~13 seconds. Cut, hold, or
 re-roll freely; the numbering is chronological with the text.
 
+## Production notes (learned the hard way, Aug 2026)
+
+- **Every prompt must say it is a drawing.** `wtr` alone at `lora_scale 1` does
+  NOT beat Flux's photographic prior when the sentence reads like a photo
+  brief — the first character-reference run came back as glossy photographs of
+  a woman in pajamas. Prefixing the content with **"an ink and watercolor
+  drawing of"** and running **`lora_scale 1.2`** fixes it completely. Keep both.
+- **The 2x2 grid trick works, with a caveat.** Asking for "a comic page of
+  exactly four rectangular panels in a two by two grid, every panel fully
+  enclosed by a heavy hand-drawn black ink rectangle border, wide clean white
+  gutters" reliably produces four separate, sliceable panels — and, because the
+  panel-border language forces illustration, those runs never came out
+  photographic. Soft wording ("a two by two grid of four comic panels") is
+  unreliable: one test lost its borders entirely and merged two panels.
+  Generate grids at **4:3** so each sliced panel lands closest to the film's
+  aspect. `scripts/hospital-film-gen.js` slices at exact quarters with a 3.5%
+  inset; panel art occasionally bleeds past a gutter and mis-cuts.
+- **Grids barely save money on THIS style.** A single WTR image is ~1.2¢, so all
+  91 shots cost ~$1.10 as singles vs ~28¢ as grids — under a dollar saved, and
+  a sliced panel is 544x416 against 832x1216 for a single (a quarter of the
+  pixels, landscape instead of portrait). Draw the film as singles. The grid
+  trick is worth real money on the gpt-image-2 styles (~6¢ an image) and is
+  worth keeping for pages where a comic grid is the intended look.
+
 ## How to produce these
 
 - Playground, **WTR** style: https://imageforge-q125.onrender.com/playground?style=watercolor
