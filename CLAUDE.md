@@ -328,6 +328,20 @@ lifted into a standalone tool later.
   `cfg.outputs`, and `POST /api/promptlab` clamps `outputs` to 1-4 with a
   default of 1). The page's `OUTPUTS` const is the other half of the pair —
   move both if this ever changes.
+- **Identical runs share ONE box (Aug 2026, Sophie).** Tapping the stars twice
+  on the same prompt is one job as far as she's concerned, so the feed merges
+  runs whose prompt AND settings match — engine, model, status, quality,
+  aspect, character toggle, LoRA scale, seed — into a single box: one prompt
+  head, the pictures side by side **oldest-first** (the second tap lands to
+  the RIGHT of the first). Anything that differs (a different quality, a
+  nudged seed) stays its own box, because the head's tags could no longer
+  describe every picture under it; failed runs never merge (each carries its
+  own error). It is purely a DISPLAY grouping — every cell still points at its
+  own run doc, so the lightbox shows that picture's real settings and a ♥
+  writes to the right doc. Runs still drawing group the same way, and the one
+  X on a merged box cancels every run in it (`data-kill` holds a comma list).
+  `groupBy`/`sameRunKey` in `promptlab.html` do it; the server knows nothing
+  about it.
 - **The feed has TWO views: LIST and TILES** (`promptlab_view` in
   localStorage, default list). List = a box per run, prompt above its
   pictures. Tiles = every picture from every run as uniform SQUARE thumbnails

@@ -388,23 +388,50 @@
       .finally(function () { btn.disabled = false; });
   });
 
+  // Tapping Generate twice on the same prompt is ONE job as far as she's
+  // concerned, so identical runs share a box: same prompt, same style, same
+  // settings, same status → one head, and the pictures sit side by side in the
+  // order they were made. Anything that differs — a different quality, a
+  // nudged seed, another LoRA scale — stays its own run, because the head's
+  // tags could no longer describe every picture under it.
+  function sameRunKey(parts) {
+    return parts.map(function (v) { return v == null ? '' : String(v); }).join('|');
+  }
+  // Groups a newest-first list, keeping first-appearance order — so a group
+  // sits where its NEWEST member would have, and a fresh Generate is still the
+  // first thing on the page.
+  function groupBy(list, keyOf) {
+    var byKey = {}, out = [];
+    list.forEach(function (item) {
+      var k = keyOf(item);
+      if (!byKey[k]) { byKey[k] = { key: k, items: [] }; out.push(byKey[k]); }
+      byKey[k].items.push(item);
+    });
+    return out;
+  }
+
   // A pending run renders as the run it is becoming: the same head and the same
   // grid, with one empty slot per picture. Newest is at the top of #pendings,
   // which sits above #runs, so a fresh Generate is always the first thing on the
-  // page — never a finished older run sitting where the new one should be. Any
-  // image that has already landed is shown in its slot.
+  // page — never a finished older run sitting where the new one should be.
   function renderPendings() {
     var list = pendingList().slice().reverse();
-    document.getElementById('pendings').innerHTML = list.map(function (p) {
-      var slots = p.count || OUTPUTS;
+    var groups = groupBy(list, function (p) {
+      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
+    });
+    document.getElementById('pendings').innerHTML = groups.map(function (g) {
+      var p = g.items[0];
+      var slots = g.items.reduce(function (n, x) { return n + (x.count || OUTPUTS); }, 0);
       var tags = [p.style || ''];
       if (p.quality) tags.push(p.quality);
       if (p.scale != null) tags.push('scale ' + p.scale);
       if (p.seed) tags.push('seed ' + p.seed);
       // No X on a ChatGPT run: OpenAI bills an image the moment it's requested,
       // so there is nothing a cancel could save. Replicate runs can really stop.
+      // One X per box — it stops every run in the box, since the box is the job.
+      var ids = g.items.map(function (x) { return x.id; }).join(',');
       var kill = p.engine === 'gptimage' ? ''
-        : '<button class="killbtn" data-kill="' + p.id + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
+        : '<button class="killbtn" data-kill="' + ids + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
       var cells = '';
       for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
       return '<div class="run"><div class="runhead">' +
@@ -443,13 +470,12 @@
   }
   document.getElementById('askno').addEventListener('click', closeAsk);
   document.getElementById('askyes').addEventListener('click', function () {
-    var id = askId;
+    var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
     closeAsk();
-    if (!id) return;
-    fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' })
-      .then(function (r) { return r.json(); })
-      .then(function () { poll(); })
-      .catch(showErr);
+    if (!ids.length) return;
+    Promise.all(ids.map(function (id) {
+      return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
+    })).then(function () { poll(); }).catch(showErr);
   });
 
   function startPolling() {
@@ -519,21 +545,36 @@
     fetch('/api/promptlab?limit=40').then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
       runsById = {};
-      document.getElementById('runs').innerHTML = runs.map(function (r) {
-        runsById[r.id] = r;
-        var cp = '<button class="copybtn" data-copy="' + r.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
-        if (r.status === 'failed') {
-          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(r.prompt) + '</span>' + cp +
-            '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
+      runs.forEach(function (r) { runsById[r.id] = r; });
+      // Identical runs share a box. A failed run never joins one — its error is
+      // its own — so it keys on its id and stays alone.
+      var groups = groupBy(runs, function (r) {
+        if (r.status === 'failed') return 'failed|' + r.id;
+        return sameRunKey([r.engine, r.model, (r.prompt || '').trim(), r.status,
+          r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
+      });
+      document.getElementById('runs').innerHTML = groups.map(function (g) {
+        var head = g.items[0];
+        var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
+        if (head.status === 'failed') {
+          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
+            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div></div>';
         }
-        var votes = r.votes || {};
-        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(r.prompt) + '</span>' + cp +
-          runParts(r).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
-          '<div class="grid">' + runImages(r).map(function (u, i) {
+        // Oldest first, so a second tap's picture lands to the RIGHT of the
+        // first. Every cell still points at its OWN run, so the lightbox shows
+        // that picture's real settings and a ♥ goes on the right doc.
+        var cells = '';
+        g.items.slice().reverse().forEach(function (r) {
+          var votes = r.votes || {};
+          runImages(r).forEach(function (u, i) {
             var v = votes[i];
             var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
-            return '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
-          }).join('') + '</div></div>';
+            cells += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+          });
+        });
+        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
+          runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
+          '<div class="grid">' + cells + '</div></div>';
       }).join('');
       applyClamps(document.getElementById('runs'));
       if (curView() === 'tiles') renderTiles();
