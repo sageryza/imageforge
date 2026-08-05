@@ -3245,7 +3245,7 @@
     let shownAt = 0;
     const t = setTimeout(() => {
       shownAt = Date.now();
-      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; ${label}</div>`;
+      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading-clear.gif" alt="">&nbsp; ${label}</div>`;
     }, SPIN_DELAY);
     // Await the returned function before drawing real content.
     return async () => {
@@ -4048,7 +4048,7 @@
         }
         const art = it.url
           ? `<img src="${esc(it.url)}" alt="">`
-          : (it.pending ? `<img class="bos-sync-load" src="/hoonie-loading.gif" alt="drawing…">` : '');
+          : (it.pending ? `<img class="bos-sync-load" src="/hoonie-loading-clear.gif" alt="drawing…">` : '');
         // The book shows the moment in HER OWN WORDS, up to three lines — the
         // short AI label is the Home screen's caption, and on a page this wide
         // it left most of what she wrote invisible. `more…` is added after
@@ -4840,7 +4840,7 @@
       // Wait for the video to actually load before showing the screen, so it
       // never flashes text-without-video.
       if (it.media && it.media.type === 'video') {
-        stage.innerHTML = `<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>`;
+        stage.innerHTML = `<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading-clear.gif" alt="loading…"></div>`;
         const v = document.createElement('video');
         v.className = 'quiz-media'; v.src = it.media.url; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
         let done = false;
@@ -4988,7 +4988,7 @@
     }
     let data = skyChart();
     if (!data) {
-      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>' }];
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading-clear.gif" alt="loading…"></div>' }];
       renderDeckCard();
       if (skyBusy) return; skyBusy = true;
       try {
@@ -5251,7 +5251,7 @@
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
   function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
+  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading-clear.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
   // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
@@ -5762,7 +5762,7 @@
     // loader inside it — the drawing visibly "happening" — and the caption
     // UNDER the frame, never inside it (Sophie, Aug 2026).
     const book = $('dream-book'); book.style.display = '';
-    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading.gif" alt=""></div>`
+    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading-clear.gif" alt=""></div>`
       + `<div class="dframe-cap" id="dream-illus-label">Illustrating your dream…</div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
@@ -6539,7 +6539,7 @@
       async function send() {
         const q = ta.value.trim(); if (!q) { ta.focus(); return; }
         add('me', esc(q)); ta.value = ''; ta.style.height = 'auto';
-        const wait = add('witch', '<img class="hl-inline" src="/hoonie-loading.gif" alt="">');
+        const wait = add('witch', '<img class="hl-inline" src="/hoonie-loading-clear.gif" alt="">');
         try {
           const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards: lessonCards() }) });
           const j = await r.json();
@@ -6576,7 +6576,7 @@
         const t = $('nletter-text').value.trim(); if (!t) { $('nletter-text').focus(); return; }
         const email = $('nletter-email') ? $('nletter-email').value.trim() : '';
         const btn = $('nletter-send'); btn.disabled = true;
-        out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
+        out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading-clear.gif" alt="loading…"></div>';
         try {
           const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t, email }) });
           const j = await r.json();
