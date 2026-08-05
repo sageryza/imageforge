@@ -22,12 +22,22 @@ header .no{flex:1;}
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:0;}
 .iconbtn svg{width:17px; height:17px;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 1em; line-height:1.5;}
+/* The story's name sits where the eyebrow used to — the normal serif, a
+   touch bigger, "Untitled" until Sophie renames it (tap to edit). */
+#title{font-size:1.45em; font-weight:600; line-height:1.15; margin:.45em 0 0; padding:2px 0; min-height:1.15em; outline:none;}
+#title.blank{color:var(--ink2); font-style:italic; font-weight:400;}
 /* Four to a row; incomplete rows CENTER (Sophie: the first beat lands in the
    middle of the top, not the left — flex + justify-content does exactly that,
-   and a full row still fills the width). */
-#pad{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:1.4em;}
-.beat{position:relative; width:calc(25% - 9px); aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
+   and a full row still fills the width). Rows top-align so a beat's caption
+   below the tile never pushes its neighbours around. */
+#pad{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:16px 12px; margin-top:1.3em;}
+.beatwrap{width:calc(25% - 9px); display:flex; flex-direction:column; gap:5px;}
+.beat{position:relative; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
+/* The beat's words, small, under the tile — tap to hear them in her voice. */
+.bcap{font-size:.72em; line-height:1.3; color:var(--ink); background:none; border:none; padding:0;
+  font-family:'EBGaramond',Georgia,serif; text-align:left; cursor:pointer; overflow-wrap:break-word;}
+.bcap.busy{opacity:.45;}
 .beat img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 .beat.c-mustard{border:3px solid var(--mustard);}
 .beat.c-green{border:3px solid var(--green);}
@@ -57,12 +67,20 @@ header .no{flex:1;}
 #pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
+#speak{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
+  border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
+#speak svg{width:17px; height:17px;}
+#speak.busy{opacity:.45;}
+#lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  background:rgba(20,17,12,.94); padding:3vw;}
+#lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
 </style>
 <div class="wrap">
   <header>
     <div class="no">Scratch pad</div>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </header>
+  <div id="title" contenteditable="true" spellcheck="false"></div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
 </div>
@@ -88,15 +106,33 @@ header .no{flex:1;}
     <button class="chip pink" data-c="pink"></button>
   </div>
   <textarea id="pnote" rows="3"></textarea>
+  <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
 </div>
+
+<div id="lightbox" hidden><img id="lbimg" alt=""></div>
 
 <script>
 var TOKEN='__STUDIO_TOKEN__';
 function api(p,opts){opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
   if(TOKEN)opts.headers['x-studio-token']=TOKEN;return fetch('/api/scratchpad'+p,opts);}
-var beats=[], inboxItems=[], pending=null, popBeat=null;
+var beats=[], inboxItems=[], pending=null, popBeat=null, padTitle='';
+var player=new Audio();
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
+
+/* One shared player so a new tap replaces what's speaking, never stacks. */
+function speakBeat(b, el){
+  if(el)el.classList.add('busy');
+  api('/tts',{method:'POST',body:JSON.stringify({id:b.id})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(el)el.classList.remove('busy');
+      if(!d.url)return;
+      b.ttsUrl=d.url;
+      player.pause(); player.src=d.url; player.play();
+    })
+    .catch(function(){ if(el)el.classList.remove('busy'); });
+}
 
 function render(){
   var pad=document.getElementById('pad'); pad.innerHTML='';
@@ -108,16 +144,46 @@ function render(){
   }
   beats.forEach(function(b,i){
     if(pending) slot(i);
+    var wrap=document.createElement('div'); wrap.className='beatwrap';
     var el=document.createElement('button'); el.className='beat'+(b.color?' c-'+b.color:'');
     var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im);
     el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
-    pad.appendChild(el);
+    wrap.appendChild(el);
+    if(b.text){
+      var cap=document.createElement('button'); cap.className='bcap'; cap.textContent=b.text;
+      cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
+      wrap.appendChild(cap);
+    }
+    pad.appendChild(wrap);
   });
   if(pending&&beats.length) slot(beats.length);
 }
 
+function renderTitle(){
+  var t=document.getElementById('title');
+  if(document.activeElement===t)return;
+  t.textContent=padTitle||'Untitled';
+  t.className=padTitle?'':'blank';
+}
+(function(){
+  var t=document.getElementById('title');
+  t.onfocus=function(){ if(!padTitle){t.textContent=''; t.className='';} };
+  t.onblur=function(){
+    var v=t.textContent.replace(/\n/g,' ').trim().slice(0,200);
+    if(v!==padTitle){
+      padTitle=v;
+      api('/title',{method:'POST',body:JSON.stringify({title:v})});
+    }
+    renderTitle();
+  };
+  t.onkeydown=function(ev){ if(ev.key==='Enter'){ev.preventDefault(); t.blur();} };
+})();
+
 function load(){
-  api('').then(function(r){return r.json()}).then(function(d){beats=d.beats||[];render();});
+  api('').then(function(r){return r.json()}).then(function(d){
+    beats=d.beats||[]; padTitle=d.title||'';
+    renderTitle(); render();
+  });
 }
 
 /* ── the inbox: hearted Playground images, 4 to a row ─────────────── */
@@ -190,15 +256,38 @@ document.querySelectorAll('.chip').forEach(function(c){
   };
 });
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
+/* Returns a promise so the speech icon can wait for a fresh note to land
+   server-side before asking for its audio. */
 function saveNote(){
-  if(!popBeat)return;
+  if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
-  if(t===(popBeat.text||''))return;
+  if(t===(popBeat.text||''))return Promise.resolve();
   popBeat.text=t;
-  api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
+  return api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats)beats=d.beats;});
+    .then(function(d){if(d.beats){
+      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+    }});
 }
+/* The speech icon: her words in her voice ("Sophie — morning"). Saves the
+   note first so what plays is what's written. */
+document.getElementById('speak').onclick=function(ev){
+  ev.stopPropagation();
+  var btn=this, b=popBeat; if(!b)return;
+  btn.classList.add('busy');
+  saveNote().then(function(){ speakBeat(b, btn); });
+};
+/* Tapping the thumbnail opens it big — a lightbox over the popup. */
+document.getElementById('popimg').onclick=function(ev){
+  ev.stopPropagation();
+  if(!popBeat)return;
+  document.getElementById('lbimg').src=popBeat.url;
+  document.getElementById('lightbox').hidden=false;
+};
+document.getElementById('lightbox').onclick=function(ev){
+  ev.stopPropagation();
+  this.hidden=true;
+};
 function closeBeat(){saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 document.getElementById('beatpop').onclick=function(ev){ if(ev.target===this)closeBeat(); };
 

@@ -27,7 +27,11 @@
 //
 // Routes:
 //   GET  /status         → { ok, firebase }
-//   GET  /               → { beats }
+//   GET  /               → { title, beats }
+//   POST /title          → { title } — the story's name ("Untitled" until set)
+//   POST /tts            → { id } → { url } — the beat's note in Sophie's
+//                          voice (ElevenLabs "Sophie — morning", cached by
+//                          text hash at scratchpad/tts/<hash>.mp3)
 //   GET  /inbox          → { items:[{url, runId, i, prompt, model, engine,
 //                          quality, at}] } — hearted Playground images, newest first
 //   POST /add            → { url, at?, src? } — insert a beat at index `at`
@@ -39,11 +43,22 @@
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
+const fetch = require('node-fetch');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const COL = 'forge-scratchpad';
 const DOC = 'pad';
 const PROMPTLAB = 'forge-promptlab';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
+
+// A beat's note read aloud — Sophie's professional ElevenLabs clone
+// ("Sophie — morning", the same voice + recipe the Voice Studio offers).
+const TTS_VOICE_ID = 'UTkHGl2ImiT6gwtAFCql';
+const TTS_MODEL = 'eleven_multilingual_v2';
+const TTS_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 
 const db = () => admin.firestore();
 const padRef = () => db().collection(COL).doc(DOC);
@@ -56,7 +71,7 @@ function fail(res, e) {
 async function readPad() {
   const snap = await padRef().get();
   const v = snap.exists ? snap.data() : {};
-  return { beats: Array.isArray(v.beats) ? v.beats : [] };
+  return { title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [] };
 }
 
 const router = express.Router();
@@ -127,6 +142,68 @@ router.post('/add', async (req, res) => {
       return cur;
     });
     res.json({ ok: true, beat, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// The story's name — "Untitled" on the page until Sophie changes it.
+router.post('/title', async (req, res) => {
+  try {
+    const title = String(req.body.title ?? '').slice(0, 200).trim();
+    await padRef().set({ title, updatedAt: Date.now() }, { merge: true });
+    res.json({ ok: true, title });
+  } catch (e) { fail(res, e); }
+});
+
+// A beat's note as audio in Sophie's voice. Cached by the text itself
+// (sha1 of voice|model|text → Storage scratchpad/tts/<hash>.mp3), so
+// replaying costs nothing and an edited note renders fresh on next play.
+router.post('/tts', async (req, res) => {
+  try {
+    if (!process.env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'ELEVENLABS_API_KEY is not set' });
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const pad = await readPad();
+    const beat = pad.beats.find((b) => b.id === id);
+    if (!beat) return res.status(404).json({ error: 'no such beat' });
+    const text = String(beat.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'this beat has no words yet' });
+
+    const hash = crypto.createHash('sha1')
+      .update(`${TTS_VOICE_ID}|${TTS_MODEL}|${text}`).digest('hex');
+    if (beat.ttsHash === hash && beat.ttsUrl) return res.json({ ok: true, url: beat.ttsUrl, cached: true });
+
+    const bucket = admin.storage().bucket();
+    const dest = `scratchpad/tts/${hash}.mp3`;
+    const file = bucket.file(dest);
+    let url;
+    if ((await file.exists())[0]) {
+      url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    } else {
+      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${TTS_VOICE_ID}?output_format=mp3_44100_192`, {
+        method: 'POST',
+        headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'content-type': 'application/json', accept: 'audio/mpeg' },
+        body: JSON.stringify({ text, model_id: TTS_MODEL, voice_settings: TTS_SETTINGS }),
+        timeout: 120000,
+      });
+      if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      const audio = await r.buffer();
+      if (!audio.length) throw new Error('ElevenLabs returned empty audio');
+      const tmp = path.join(os.tmpdir(), `sp-${hash}.mp3`);
+      fs.writeFileSync(tmp, audio);
+      await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
+      await file.makePublic();
+      fs.unlink(tmp, () => {});
+      url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    }
+
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (b) { b.ttsUrl = url; b.ttsHash = hash; }
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    });
+    res.json({ ok: true, url });
   } catch (e) { fail(res, e); }
 });
 
