@@ -6,6 +6,27 @@ hospital"). Narrated at a gentle pace, 3,000 words runs right around 20
 minutes — 91 core shots means each picture holds ~13 seconds. Cut, hold, or
 re-roll freely; the numbering is chronological with the text.
 
+## Prompt rules from Sophie (Aug 2026 — do not break these)
+
+- **NEVER describe anything you are already attaching an image of.** If a
+  character reference is attached, the prompt says "the girl" and nothing
+  else — no hair colour, no build, no "short wavy brown hair". Describing it
+  in words fights the picture and lets the model drift toward the words.
+  This was broken once: the character line read "the woman with short wavy
+  brown hair", which is exactly the thing the attached photo was there to
+  say.
+- **Do not add "same face and same hair"** (or any preserve-list wording) when
+  a character reference is attached. It over-weights the face and hair
+  specifically instead of letting the whole reference carry.
+- **Say what people are WEARING when their role matters.** A prompt that says
+  "three nurses" in a hospital scene gets three women in the same blue
+  patient pajamas as everyone else — name the uniform ("nurses in scrubs, not
+  patient pajamas") or the scene reads wrong.
+- **Never invent a prop.** Every object in a prompt has to be traceable to a
+  line in the manuscript. The soup containers, masking tape, butter pats and
+  sugar packets are all verbatim from the story — check before adding
+  anything that isn't.
+
 ## Production notes (learned the hard way, Aug 2026)
 
 - **Every prompt must say it is a drawing.** `wtr` alone at `lora_scale 1` does
