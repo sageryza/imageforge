@@ -725,7 +725,16 @@ lifted into a standalone tool later.
   next to your assets. Design the HTML however the comparison needs (mobile
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
-  your own scroll pill. List your
+  your own scroll pill.
+  **ANY tap pauses the autoscroll (Aug 2026, Sophie's rule — every Compare
+  page MUST have this).** While she's interacting with a page — voting,
+  typing a name, tapping anything at all — the page must not keep creeping
+  underneath her. Add this one line to every Compare page's script:
+  `document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);`
+  (capture phase, so it fires even when the tap lands on a button or form
+  field; the pill's own play button starts scrolling again). This is on top
+  of the existing image-lightbox rule below — opening an image still locks
+  background scroll too. List your
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
