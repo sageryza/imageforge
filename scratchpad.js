@@ -362,6 +362,55 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
   }
 }
 
+// Speech-only markup has no business in an image prompt: [pause]-style
+// tags and <break time="1s" /> are directions for the VOICE. The bulk pass
+// strips them; the single-beat draw box leaves her words alone (she can see
+// and edit those herself).
+function drawablePrompt(text) {
+  return String(text || '')
+    .replace(/<break[^>]*>/gi, ' ')
+    .replace(/\[[^\]\n]{1,40}\]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+// The one-tap outline pass: draw every beat that has its OWN words but no
+// art. Chunk siblings without text are skipped on purpose (their art is a
+// hand decision — the literal→metaphorical pair), as is anything already
+// drawing or already pictured. Naturally safe to re-tap: it only ever draws
+// what is still missing. Two at a time so a big pad doesn't trip rate limits.
+router.post('/drawall', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY is not set' });
+    const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : 'low';
+    const pad = await readPad(pid);
+    const targets = pad.beats
+      .filter((b) => !b.url && !(b.gen && b.gen.status === 'drawing') && drawablePrompt(b.text))
+      .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
+    if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
+    const ids = new Set(targets.map((t) => t.id));
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      cur.forEach((b) => {
+        if (ids.has(b.id)) b.gen = { status: 'drawing', prompt: drawablePrompt(b.text), quality, character: true, at: Date.now() };
+      });
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    (async () => {
+      const queue = targets.slice();
+      await Promise.all(Array.from({ length: 2 }, async () => {
+        while (queue.length) {
+          const t = queue.shift();
+          await runArtJob(pid, t.id, { prompt: t.prompt, quality, character: true });
+        }
+      }));
+    })();
+    res.json({ ok: true, count: targets.length, beats });
+  } catch (e) { fail(res, e); }
+});
+
 router.post('/generate', async (req, res) => {
   try {
     const pid = padIdOf(req);

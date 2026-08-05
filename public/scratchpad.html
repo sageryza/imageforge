@@ -54,6 +54,10 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 .beatwrap{width:calc(25% - 9px); display:flex; flex-direction:column; gap:5px;}
 .beat{position:relative; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
+/* A blank beat whose picture is on its way breathes, so it reads as coming
+   rather than broken (flat colors trading places — not a gradient). */
+.beat.drawing{animation:spwait 1.5s ease-in-out infinite;}
+@keyframes spwait{0%,100%{background:var(--barbg);}50%{background:var(--line);}}
 /* The beat's words, small, under the tile — FIRST LINE only (the rest lives
    in the popup). Tap to hear them in her voice.
    MUST NOT be a <button>: WebKit gives buttons their own internal layout and
@@ -149,6 +153,19 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 #dgo:disabled{opacity:.5;}
 /* A beat being drawn (or a failed draw) says so on its own line. */
 #genstate{color:#fff; font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
+/* Draw-the-missing confirm: what it will draw and what it will cost, before
+   a cent is spent. Flat, 6px corners, no gradients. */
+#bulkask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
+  background:rgba(20,17,12,.55); padding:24px;}
+.bulkbox{background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:18px;
+  max-width:320px; width:100%; display:flex; flex-direction:column; gap:12px;}
+.bulkbox p{font-size:1.05em; line-height:1.4; margin:0;}
+#bq{font-family:-apple-system,sans-serif; font-size:16px; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink); padding:7px 8px; align-self:flex-start;}
+.bulkrow{display:flex; gap:8px;}
+.bulkrow button{flex:1; border-radius:6px; padding:10px; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+  border:1px solid var(--line); background:var(--barbg); color:var(--ink); cursor:pointer;}
+.bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
@@ -171,6 +188,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
     <div id="title" contenteditable="true" spellcheck="false"></div>
     <button class="iconbtn" id="filmbtn" aria-label="Make the film"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Play the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
+    <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
@@ -239,6 +257,17 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
+
+<div id="bulkask" hidden>
+  <div class="bulkbox">
+    <p id="bulkline"></p>
+    <select id="bq" aria-label="Quality"><option value="low" selected>low</option><option value="medium">medium</option><option value="high">high</option></select>
+    <div class="bulkrow">
+      <button id="bulkno">Not now</button>
+      <button id="bulkyes">Draw them</button>
+    </div>
+  </div>
+</div>
 <div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
 
 <script>
@@ -356,7 +385,8 @@ function render(){
     var wrap=document.createElement('div'); wrap.className='beatwrap';
     if(u.members.length===1){
       var b=u.members[0];
-      var el=document.createElement('button'); el.className='beat'+(b.color?' c-'+b.color:'');
+      var el=document.createElement('button');
+      el.className='beat'+(b.color?' c-'+b.color:'')+((b.gen&&b.gen.status==='drawing')?' drawing':'');
       if(b.url){ var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im); }
       el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
       wrap.appendChild(el);
@@ -375,6 +405,7 @@ function render(){
     pad.appendChild(wrap);
   });
   if(pending&&beats.length) slot(beats.length);
+  renderDrawall();
 }
 
 function renderTitle(){
@@ -439,6 +470,51 @@ document.getElementById('filmplay').onclick=function(ev){
     this.hidden=true; lock(false);
   }
 };
+/* ── draw the missing pictures: count → cost → are you sure → go ──── */
+var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
+function stripSpeech(t){
+  return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
+}
+function drawables(){
+  return beats.filter(function(b){ return !b.url && !(b.gen&&b.gen.status==='drawing') && stripSpeech(b.text); });
+}
+function renderDrawall(){
+  document.getElementById('drawallbtn').hidden=!drawables().length;
+}
+function bulkLine(){
+  var n=drawables().length;
+  var cents=n*BULK_PRICE[document.getElementById('bq').value];
+  var cost=cents>=100?('$'+(cents/100).toFixed(2)):(cents+'¢');
+  document.getElementById('bulkline').textContent=
+    'Draw '+n+(n===1?' picture':' pictures')+' · about '+cost+'. Sure?';
+}
+document.getElementById('drawallbtn').onclick=function(ev){
+  ev.stopPropagation();
+  if(!drawables().length)return;
+  bulkLine();
+  document.getElementById('bulkask').hidden=false; lock(true);
+};
+document.getElementById('bq').onchange=bulkLine;
+document.getElementById('bulkno').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('bulkask').hidden=true; lock(false);
+};
+document.getElementById('bulkask').onclick=function(ev){ if(ev.target===this){this.hidden=true; lock(false);} };
+document.getElementById('bulkyes').onclick=function(ev){
+  ev.stopPropagation();
+  var btn=this; btn.disabled=true;
+  api('/drawall',{method:'POST',body:JSON.stringify({quality:document.getElementById('bq').value})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      btn.disabled=false;
+      document.getElementById('bulkask').hidden=true; lock(false);
+      if(d.error){ alert(d.error); return; }
+      if(d.beats){ beats=d.beats; render(); }
+      startGenPoll();
+    })
+    .catch(function(){ btn.disabled=false; });
+};
+
 /* Rendering is a background job — poll the pad, and resume on return. */
 var filmTimer=null;
 function startFilmPoll(){
