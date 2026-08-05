@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, story, lessons, writing, editor, chats, test, dump, playground, scratchpad
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, story, lessons, writing, editor, chats, test, dump, playground, scratchpad
     var id: String { rawValue }
 
     var title: String {
@@ -18,6 +18,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
         case .blog:      return "Blog Studio"
+        case .product:   return "Product Creator"
         case .story:     return "Story Room"
         case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
@@ -41,6 +42,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .blog:      return "Turn a topic into an SEO post — then publish it."
+        case .product:   return "An idea → designs → real products, as Etsy drafts."
         case .story:     return "Every story in one room — words, voice, art, films."
         case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
@@ -72,6 +74,7 @@ enum Tool: String, CaseIterable, Identifiable {
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
         case .blog:      return "newspaper"
+        case .product:   return "shippingbox"
         case .playground: return "paintpalette" // fallback; .playground uses a custom asset (see customIcon)
         // The pad IS the Story Room now, so it wears the Story Room's books —
         // the old dashed placement slot read as a different tool in the bar.
@@ -103,6 +106,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .instagram: InstagramView()
         case .ads:       AdsView()
         case .blog:      BlogView().forgeToolBar("Blog Studio")
+        case .product:   ProductCreatorView().forgeToolBar("Product Creator")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -165,7 +169,7 @@ extension Tool {
     /// the other, never both, so each home stays a short scannable list.
     var isBusiness: Bool {
         switch self {
-        case .instagram, .ads, .blog: return true
+        case .instagram, .ads, .blog, .product: return true
         default: return false
         }
     }
