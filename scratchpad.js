@@ -45,6 +45,7 @@ const express = require('express');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
+const FormData = require('form-data');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -63,6 +64,31 @@ const COLORS = ['mustard', 'green', 'blue', 'pink'];
 const TTS_VOICE_ID = 'UTkHGl2ImiT6gwtAFCql';
 const TTS_MODEL = 'eleven_multilingual_v2';
 const TTS_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
+
+// ── Drawing a beat's art IN the pad ─────────────────────────────────
+// One style per story, so nothing here asks which: the pad draws in the
+// Playground's ChatGPT recipe (gpt-image-2 edits with Sophie's scanned page
+// as a pure STYLE reference, 2:3 portrait), and her character card rides
+// along by default so "Sophie" in a prompt is that girl. The two prompt
+// strings are COPIES of PL_GPT.prefix / PL_GPT.characterLine in server.js —
+// keep all three identical.
+const ART = {
+  size: '1024x1536',
+  qualities: ['low', 'medium', 'high'],
+  quality: 'medium',
+  styleFile: 'evan-film-style.png',
+  characterFile: 'sophie-character.png',
+  prefix: 'Use only the style of the attached style reference and ignore its ' +
+    'content — do not copy anything depicted in it. You can choose your own ' +
+    'colors rather than copying the colors of the style reference.',
+  characterLine: ' Use the second attached image as a character reference. ' +
+    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+};
+const refCache = {};
+function artRef(file) {
+  if (!refCache[file]) refCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
+  return refCache[file];
+}
 
 const db = () => admin.firestore();
 const padRef = () => db().collection(COL).doc(DOC);
@@ -169,6 +195,85 @@ router.post('/image', async (req, res) => {
       tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// Patch one beat inside a transaction (the pad is one doc, so every write
+// is read-modify-write).
+async function patchBeat(id, fn) {
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(padRef());
+    const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+    const b = cur.find((x) => x.id === id);
+    if (!b) throw new Error('no such beat');
+    fn(b, cur);
+    tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    return cur;
+  });
+}
+
+// Draw a beat's art in place. BACKGROUND JOB (house rule): the POST returns
+// at once with the beat marked drawing, the page polls the pad, and leaving
+// the app can't lose the picture. Superseded art is never deleted — it goes
+// to beat.imageHistory.
+async function runArtJob(id, { prompt, quality, character }) {
+  try {
+    const refs = [artRef(ART.styleFile)];
+    if (character) refs.push(artRef(ART.characterFile));
+    const full = `${ART.prefix}${character ? ART.characterLine : ''}\n\n${prompt}`;
+    const form = new FormData();
+    form.append('model', 'gpt-image-2');
+    form.append('prompt', full);
+    form.append('size', ART.size);
+    form.append('quality', quality);
+    form.append('output_format', 'webp');
+    form.append('output_compression', '80');
+    refs.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
+    const r = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...form.getHeaders() },
+      body: form,
+      timeout: 300000,
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) throw new Error('gpt-image-2 returned no image');
+    const bucket = admin.storage().bucket();
+    const dest = `scratchpad/art/${id}-${Date.now()}.webp`;
+    const tmp = path.join(os.tmpdir(), `spa-${id}.webp`);
+    fs.writeFileSync(tmp, Buffer.from(b64, 'base64'));
+    await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'image/webp' } });
+    await bucket.file(dest).makePublic();
+    fs.unlink(tmp, () => {});
+    const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    await patchBeat(id, (b) => {
+      if (b.url && b.url !== url) b.imageHistory = (b.imageHistory || []).concat([{ url: b.url, at: Date.now() }]);
+      b.url = url;
+      b.src = { engine: 'gptimage', model: 'gpt-image-2', prompt, quality, character: Boolean(character), promptUsed: full };
+      b.gen = { status: 'done', at: Date.now() };
+    });
+  } catch (err) {
+    console.warn('scratchpad art:', err.message);
+    await patchBeat(id, (b) => { b.gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() }; }).catch(() => {});
+  }
+}
+
+router.post('/generate', async (req, res) => {
+  try {
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY is not set' });
+    const id = String(req.body.id || '');
+    const prompt = String(req.body.prompt || '').trim();
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    if (!prompt) return res.status(400).json({ error: 'say what to draw first' });
+    const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : ART.quality;
+    // Sophie's character card rides along unless explicitly turned off.
+    const character = req.body.character === false ? false : true;
+    const beats = await patchBeat(id, (b) => {
+      b.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+    });
+    runArtJob(id, { prompt, quality, character });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });

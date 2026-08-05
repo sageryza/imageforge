@@ -1834,10 +1834,21 @@ lifted into a standalone tool later.
   (one color chunk-wide — /color applies to all members; caption = first
   member's first line; tapping a slice opens that member's popup). Slots
   never appear inside a chunk. The lit chain icon dissolves the WHOLE
-  chunk (`POST /chunk {id}` / `POST /unchunk {id}`). An EMPTY beat's
-  popup shows two icons in the blank tile: palette → `/playground?from=
-  scratchpad` (the in-popup generator's stand-in) and inbox → pick a hearted
-  image straight INTO that beat (`POST /image {id, url, src?}`). Regenerate/versions
+  chunk (`POST /chunk {id}` / `POST /unchunk {id}`). A beat's art is
+  made or swapped from the SAME two-or-three icons — centered in the blank
+  tile when empty, in a row ABOVE the picture when it already has one:
+  **sparkles = draw it here** (`POST /generate {id, prompt, quality,
+  character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
+  with `refs/evan-film-style.png` as the style ref and, by default,
+  `refs/sophie-character.png` as the character card; the prompt defaults to
+  the beat's own words, quality low/medium/high default medium, NO style
+  picker — one style per story; superseded art goes to `beat.imageHistory`,
+  never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
+  hearted image straight INTO that beat (`POST /image {id, url, src?}`).
+  ART.prefix / ART.characterLine in scratchpad.js are COPIES of
+  PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
+  identical. `/scratchpad-sophie.png` serves the character card to the
+  toggle (refs/ is otherwise never web-served). Regenerate/versions
   will live in that popup later (deliberately unbuilt; design flexible —
   all versions same size, ordered by recency). iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
