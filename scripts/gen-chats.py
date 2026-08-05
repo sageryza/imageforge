@@ -142,6 +142,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); font-weight:600;}
 .m-chat.sophie{color:var(--rose);}
 .m-time{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
+/* A live draft — the turn is still running; the hook posted the prose written
+   so far and the message grows in place until the reply finishes. Gentle
+   breathing so it reads as "in motion", same idiom as the tiles placeholder. */
+.m-working{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--rose); animation:mworking 1.6s ease-in-out infinite;}
+@keyframes mworking{0%,100%{opacity:1;} 50%{opacity:.45;}}
 .m-preview{font-size:16.5px; line-height:1.5; cursor:pointer;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
 .m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
@@ -768,6 +773,7 @@ function renderMsg(m){
   var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
+    +(m.working?'<span class="m-working">still writing…</span>':'')
     +'<span class="m-close">close &#9650;</span></div>'
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
     +'<div class="m-full">'+foldBody(m.text)+'</div>';
@@ -782,7 +788,9 @@ function renderMsg(m){
   });
   var tools=document.createElement('div'); tools.className='m-tools';
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
-  else if(m.from!=='sophie'){
+  else if(m.from!=='sophie' && !m.working){
+    // no Play on a live draft — the voice render would freeze a half-written
+    // reply; the button appears when the message finishes
     // Play = generate the neural voice on demand (~1¢), cached forever after.
     // Sophie taps it when she wants to listen — she stays in control.
     var PLAY='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
@@ -1747,6 +1755,18 @@ document.getElementById('newbar').onclick=function(){
   if(cur){ curTab='chat'; openChat(cur,false,null,true); }
   else { renderHome(); window.scrollTo(0,0); }
 };
+// Re-render one message row in the open thread after its doc changed (a live
+// draft grew, or finished and gained its Play button). A full node swap keeps
+// renderMsg the single source of message markup; the open/closed state is the
+// only thing carried over. Rows outside the open thread just wait for the next
+// natural render.
+function refreshDraft(m){
+  var row=document.querySelector('#thread .msg[data-mid="'+String(m.id).replace(/"/g,'')+'"]');
+  if(!row) return;
+  var nr=renderMsg(m);
+  if(row.classList.contains('open')) nr.classList.add('open');
+  row.parentNode.replaceChild(nr,row);
+}
 function poll(){
   var since=newestCreated();
   if(!since) return load();   // nothing yet (empty/failed first paint)
@@ -1761,14 +1781,35 @@ function poll(){
       // cache is so far behind (a long-untouched install) that messages fell
       // off the far end — a merge would leave holes, so start over clean.
       if(incoming.length>=200) return load();
-      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
-      var added=0, mine=0;
+      var have={}; msgs.forEach(function(m,i){ have[m.id]=i+1; });
+      var added=0, mine=0, grew=0;
       incoming.forEach(function(m){
-        if(have[m.id]) return;
-        msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
+        var at=have[m.id];
+        if(at){
+          // A message we already hold, re-delivered: normally identical (the
+          // postedAt delta query re-serves recent docs — skip), but a LIVE
+          // DRAFT grows in place server-side, so changed text/tldr/working
+          // means the draft got longer or finished. Swap the copy and refresh
+          // its row quietly — it already pinged once when it first appeared,
+          // so growth never counts as a new message.
+          var old=msgs[at-1];
+          if((old.text||'')!==(m.text||'')||(old.tldr||'')!==(m.tldr||'')||!!old.working!==!!m.working){
+            msgs[at-1]=m; grew++;
+            if(cur && m.chat===cur) refreshDraft(m);
+          }
+          return;
+        }
+        msgs.push(m); have[m.id]=msgs.length; added++;    // groups() re-sorts by created
         if(cur && m.chat===cur) mine++;
       });
-      if(!added) return;                        // never re-render for nothing
+      if(!added){
+        if(!grew) return;                       // never re-render for nothing
+        saveCache();
+        // a draft changed but nothing new arrived: thread rows swapped above;
+        // the home grid repaints only when she's at the top with no place to lose
+        if(!cur && window.scrollY<8) renderHome();
+        return;
+      }
       saveCache();
       // Sitting at the very top of the feed there's no place to lose and nothing
       // expanded, so just show them — that's also the app-just-opened case.
