@@ -4433,7 +4433,7 @@ async function runPromptLabJob(docRef, cfg) {
         version: cfg.version,
         input: {
           prompt: cfg.fullPrompt, model: 'dev', go_fast: false,
-          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: 4,
+          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: cfg.outputs,
           aspect_ratio: cfg.aspectRatio, output_format: 'webp',
           guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
           num_inference_steps: cfg.steps, seed: cfg.seed,
@@ -4513,16 +4513,19 @@ app.post('/api/promptlab', async (req, res) => {
     // Per-model extras so the other house styles work here too: HOONIE's
     // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
     const steps = known.defaultSteps ?? 28;
+    // ONE image a run (Aug 2026, Sophie) — the LoRAs used to come back with a
+    // hard-coded four. The page sends 1; anything else is clamped to 1-4.
+    const outputs = Math.min(Math.max(Number(req.body.outputs) || 1, 1), 4);
     const tail = [known.promptSuffix, suffix].filter(Boolean).join(', ');
     const fullPrompt = `${known.trigger} ${content}.${tail ? ` ${tail} ` : ' '}`;
     const version = `${known.id}:${await resolveReplicateVersion(known)}`;
     const docRef = admin.firestore().collection(PROMPTLAB).doc();
     await docRef.set({
       id: docRef.id, status: 'running', engine: 'replicate', prompt: content, fullPrompt, suffix,
-      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
+      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, prompt: content, styleLabel: known.name });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs, prompt: content, styleLabel: known.name });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
