@@ -11,8 +11,17 @@ final class PhotoSaver {
         let finish: (Bool, Bool) -> Void = { ok, denied in DispatchQueue.main.async { done(ok, denied) } }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { finish(false, true); return }
+            // Photos rejects some decoder-backed UIImages outright — the
+            // gallery's webp downloads failed with "Couldn't save" for real —
+            // so hand it flat encoded bytes instead of the UIImage.
+            let data = image.pngData() ?? image.jpegData(compressionQuality: 0.95)
             PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
+                if let data {
+                    let req = PHAssetCreationRequest.forAsset()
+                    req.addResource(with: .photo, data: data, options: nil)
+                } else {
+                    PHAssetChangeRequest.creationRequestForAsset(from: image)
+                }
             } completionHandler: { ok, _ in finish(ok, false) }
         }
     }

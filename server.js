@@ -4305,16 +4305,29 @@ const PL_GPT = {
   quality: 'medium', qualities: ['low', 'medium', 'high'],
   size: '1024x1536', aspectRatio: '2:3', outputs: 1, maxOutputs: 4,
   refFile: 'evan-film-style.png',
-  // Keep in sync with STYLES.chatgpt.prefix in public/promptlab.html (the page
-  // only uses its copy to PREVIEW the prompt; this one is what gets sent).
+  // The Sophie character toggle (Aug 2026): when a run sends character:true,
+  // this image rides along as the SECOND attachment and characterLine is
+  // appended to the prefix, so "Sophie" in her prompt draws this girl. The
+  // file is her hearted Playground render ("girl placing her book face down",
+  // run AD3NW4comO2TZYRFjZoD) banked into refs/.
+  characterFile: 'sophie-character.png',
+  // Keep BOTH in sync with STYLES.chatgpt in public/promptlab.html (the page
+  // only uses its copies to PREVIEW the prompt; these are what gets sent).
   prefix: 'Use only the style of the attached style reference and ignore its ' +
     'content — do not copy anything depicted in it. You can choose your own ' +
     'colors rather than copying the colors of the style reference.',
+  characterLine: ' Use the second attached image as a character reference. ' +
+    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
 };
 let plStyleRef = null;
 function playgroundStyleRef() {
   if (!plStyleRef) plStyleRef = fs.readFileSync(path.join(__dirname, 'refs', PL_GPT.refFile));
   return plStyleRef;
+}
+let plCharRef = null;
+function playgroundCharacterRef() {
+  if (!plCharRef) plCharRef = fs.readFileSync(path.join(__dirname, 'refs', PL_GPT.characterFile));
+  return plCharRef;
 }
 
 // Cancelled run ids (in-process — the job and the cancel route are the same
@@ -4358,13 +4371,15 @@ async function fileRunToCreations(images, { prompt, style } = {}) {
 // pretends otherwise — the page shows no X on these runs.
 async function runPromptLabGptJob(docRef, cfg) {
   try {
-    const ref = playgroundStyleRef();
+    // Style ref first; the Sophie character card rides second when toggled on
+    // (the prompt's characterLine numbers them that way).
+    const refs = cfg.character ? [playgroundStyleRef(), playgroundCharacterRef()] : [playgroundStyleRef()];
     const images = [];
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
       try {
-        const data = await openaiImageEditRefs(cfg.fullPrompt, [ref], {
+        const data = await openaiImageEditRefs(cfg.fullPrompt, refs, {
           quality: cfg.quality, size: PL_GPT.size, timeout: 300000,
         });
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
@@ -4450,7 +4465,8 @@ app.post('/api/promptlab', async (req, res) => {
     // no trailing-period trim, no suffix) after the baked style-ref prefix.
     if (modelId === PL_GPT.id) {
       if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
-      const fullPrompt = `${PL_GPT.prefix}\n\n${typed}`;
+      const character = Boolean(req.body.character);
+      const fullPrompt = `${PL_GPT.prefix}${character ? PL_GPT.characterLine : ''}\n\n${typed}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
@@ -4458,9 +4474,9 @@ app.post('/api/promptlab', async (req, res) => {
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, quality, size: PL_GPT.size,
         aspectRatio: PL_GPT.aspectRatio, styleRef: PL_GPT.refFile, outputs,
-        images: [], createdAt: admin.firestore.Timestamp.now(),
+        character, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 

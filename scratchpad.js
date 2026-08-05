@@ -55,9 +55,13 @@ const PROMPTLAB = 'forge-promptlab';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
-// ("Sophie — morning", the same voice + recipe the Voice Studio offers).
+// ("Sophie — morning") on eleven_v3 (her call, Aug 2026): the expressive
+// model, so bracketed stage directions like [quietly] / [laughs] work in a
+// note. NOTE v3 has no <break time> tags — pauses come from punctuation and
+// tags instead. Takes vary more run to run than v2; the text-hash cache means
+// a kept take stays kept.
 const TTS_VOICE_ID = 'UTkHGl2ImiT6gwtAFCql';
-const TTS_MODEL = 'eleven_multilingual_v2';
+const TTS_MODEL = 'eleven_v3';
 const TTS_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 
 const db = () => admin.firestore();
