@@ -546,7 +546,7 @@ async function runFilmJob(padId) {
         try { audio = await ttsFor(padId, lead); if (audio) audioKind = 'tts'; }
         catch (e) { console.warn('film tts:', e.message); }
       }
-      notes.push(`unit ${u + 1}: ${audioKind}`);
+
       let seconds = FILM.silent;
       // The per-unit audio is PCM, not aac: concatenating aac adds a few ms of
       // encoder priming to EVERY file, and across a long story that drift
@@ -556,17 +556,25 @@ async function runFilmJob(padId) {
       const aFile = path.join(dir, `a${u}.wav`);
       if (audio) {
         const raw = await fetchTo(audio, path.join(dir, `a${u}-raw`));
-        const spoken = await mediaSeconds(raw);
-        seconds = Math.max(FILM.min, (spoken || FILM.silent) + FILM.tail);
-        // One rate/layout for every unit, with the tail padded in silence so a
-        // line never runs into the next picture.
-        await run(FFMPEG, ['-y', '-i', raw, '-af', `apad=pad_dur=${FILM.tail + 0.05}`, '-t', seconds.toFixed(3),
-          '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
+        // DECODE FIRST, MEASURE THE WAV. iOS MediaRecorder writes fragmented
+        // mp4 whose duration is NOT in the metadata, so probing the raw file
+        // returned 0 — her recordings were treated as silent 2s holds and her
+        // voice never made the film (Sophie caught it by the timing pattern).
+        // A decoded WAV's duration is always exact, whatever the source was.
+        const dec = path.join(dir, `a${u}-dec.wav`);
+        await run(FFMPEG, ['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', dec]);
+        const spoken = await mediaSeconds(dec);
+        if (!spoken) throw new Error(`could not read the audio for unit ${u + 1}`);
+        seconds = Math.max(FILM.min, spoken + FILM.tail);
+        // Pad the tail with silence so a line never runs into the next picture.
+        await run(FFMPEG, ['-y', '-i', dec, '-af', `apad=pad_dur=${FILM.tail + 0.05}`, '-t', seconds.toFixed(3),
+          '-c:a', 'pcm_s16le', aFile]);
       } else {
         await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
           '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
       }
       seconds = (await mediaSeconds(aFile)) || seconds;
+      notes.push(`unit ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
       auds.push(aFile);
       total += seconds;
 
