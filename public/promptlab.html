@@ -258,26 +258,33 @@
   });
 
   // The styles on offer. The server owns the real presets (trigger word,
-  // baked suffix, steps — HOONIE gets 40 automatically); `suffix` here is the
-  // page-level tail: Watercolor keeps the "White background" convention,
-  // Hoonie sends none because its baked suffix already ends in one.
-  // The first two are Replicate LoRAs. The gptimage pair is a different
-  // engine: gpt-image-2's edits endpoint with reference images attached
-  // (`gptStyle` picks the set server-side — see PL_GPT_STYLES in server.js,
-  // which owns the whole sent prompt; the page no longer previews it, the
-  // "Sent as" line was removed Aug 2026 at Sophie's ask). LoRA scale and
-  // seed don't apply to gpt styles, so those controls are hidden; a
-  // `noCharacter` gpt style also hides the Sophie toggle (her card is the
-  // watercolor look — the wrong reference for a different style).
+  // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
+  // "White background" convention.
+  // WTR is the one Replicate LoRA left on the picker (the Hoonie linocut tile
+  // came off Aug 2026 at Sophie's ask — the model itself is untouched and
+  // still serves the Test Station and the house styles, so old Hoonie runs
+  // stay in the feed and keep their label via RETIRED below). The three
+  // gptimage styles are a different engine: gpt-image-2's edits endpoint with
+  // reference images attached (`gptStyle` picks the set server-side — see
+  // PL_GPT_STYLES in server.js, which owns the whole sent prompt; the page no
+  // longer previews it, the "Sent as" line was removed Aug 2026 at Sophie's
+  // ask). LoRA scale and seed don't apply to gpt styles, so those controls are
+  // hidden; a `noCharacter` gpt style also hides the Sophie toggle (her card is
+  // the watercolor look — the wrong reference for a different style).
+  // The KEY `watercolor` is deliberately unchanged though its label is now WTR:
+  // it's what's saved in localStorage and what ?style= deep links send.
   var STYLES = {
-    watercolor: { model: 'sageryza/watercolordrawings', label: 'Watercolor', engine: 'replicate',
+    watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
-    hoonie:     { model: 'sageryza/hoonie', label: 'Hoonie linocut', engine: 'replicate',
-                  trigger: 'HOONIE', suffix: '', baked: 'linocut relief print, white background' },
     chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
-    scarry:     { model: 'gpt-image-2', label: 'Richard Scarry', engine: 'gptimage', gptStyle: 'scarry',
+    scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
+                  noCharacter: true },
+    pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
                   noCharacter: true },
   };
+  // Styles retired from the picker still have runs in the feed — keep their
+  // labels readable instead of falling back to the bare model id.
+  var RETIRED = { 'sageryza/hoonie': 'Hoonie linocut' };
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
@@ -316,7 +323,9 @@
   }
 
   // Arrived with a generation's settings (the gallery's "open in Playground"):
-  // ?prompt=…&style=watercolor|hoonie|chatgpt&quality=…&character=1&scale=…
+  // ?prompt=…&style=watercolor|chatgpt|scarry|pastel&quality=…&character=1&scale=…
+  // An unknown style (an old link saying `hoonie`) is simply ignored — the
+  // prompt still lands, on whatever style is current.
   // Everything lands prefilled so she can re-run it as-is or nudge one thing.
   (function () {
     var q = new URLSearchParams(location.search);
@@ -357,9 +366,10 @@
   }
   function styleLabelFor(model) {
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
+    if (RETIRED[model]) return RETIRED[model];
     return model ? model.split('/').pop() : '';
   }
-  // Two ChatGPT-engine styles share one model id, so a gpt run's label comes
+  // The ChatGPT-engine styles share one model id, so a gpt run's label comes
   // from the doc's `gptStyle` (older docs have none → the original ChatGPT).
   function runStyleLabel(r) {
     if (r.engine === 'gptimage') {

@@ -371,26 +371,39 @@ lifted into a standalone tool later.
   LIST/TILES pair**, never a single icon that scrolls away (the first version
   did, and stranded her in a one-image-per-row view with no way back), and it
   sits on the **LEFT** because the autoscroll pill owns the top-right corner.
-- **Four styles.** Watercolor (`wtr`) and Hoonie linocut are Replicate LoRAs —
-  trigger word prepended, suffix appended, LoRA scale + seed + ×3 ladder.
+- **Four styles: WTR, ChatGPT, Scarry, Pastel (Aug 2026, Sophie).** **WTR**
+  (`wtr`, the watercolor LoRA — the tile is labelled WTR, but its STYLES key is
+  still `watercolor`, which is what localStorage and `?style=` deep links carry)
+  is the only Replicate LoRA on the picker: trigger word prepended, suffix
+  appended, LoRA scale + seed + ×3 ladder. **The Hoonie linocut tile was
+  removed** at the same time — the model is untouched and still serves the Test
+  Station / house styles, and old Hoonie runs keep their label in the feed via
+  `RETIRED` in promptlab.html.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
   page attached as a pure STYLE reference (`refs/evan-film-style.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
   **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
-  equivalents. **"Richard Scarry"** (Aug 2026) is a second gpt-image-2 style:
-  same recipe, but the attached style references are THREE of Sophie's saved
-  busy-animal picture-book pages (`refs/richard-scarry-1..3.png`, all three
-  attach); its prefix has NO colors line (that belonged to the watercolor
-  reference) and it is `noCharacter` — the Sophie toggle is hidden and the
-  server refuses the card even if sent, because her character card is the
-  watercolor look. Both gpt styles append a `suffix` at the VERY END of the
-  sent prompt, after her words: "Do not include any text in the image."
+  equivalents. **"Scarry"** (Aug 2026, shortened from "Richard Scarry") is a
+  second gpt-image-2 style: same recipe, but the attached style references are
+  THREE of Sophie's saved busy-animal picture-book pages
+  (`refs/richard-scarry-1..3.png`, all three attach); its prefix has NO colors
+  line (that belonged to the watercolor reference) and it is `noCharacter` —
+  the Sophie toggle is hidden and the server refuses the card even if sent,
+  because her character card is the watercolor look. **"Pastel"** (Aug 2026) is
+  the third: the pastel-variant-2 house look, the same recipe as
+  `MODELS.house['house-pastel']` — the two Witch School style refs (which live
+  in **Storage**, `witch-school/refs/style-*.png`, loaded via `loadHouseRef`,
+  not in `refs/`), that style's written linework/palette line as the prefix, and
+  the `whiten` flood-fill pass on every finished image. Also `noCharacter`.
+  Every gpt style appends a `suffix` at the VERY END of the sent prompt, after
+  her words (the no-text rule; Pastel's is the house style's longer wording).
   ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed `evan` /
-  `scarry`; the page sends `style`, absent/unknown → `evan` so old pages keep
-  working) — adding another different-reference style = drop the image(s) in
-  `refs/`, add a `PL_GPT_STYLES` entry + a one-line `STYLES` entry in
-  promptlab.html (the page holds NO prompt copies anymore — see below).
+  `scarry` / `pastel`; the page sends `style`, absent/unknown → `evan` so old
+  pages keep working) — adding another different-reference style = drop the
+  image(s) in `refs/` (or point `storageRefs` at Storage), add a
+  `PL_GPT_STYLES` entry + a one-line `STYLES` entry in promptlab.html (the page
+  holds NO prompt copies anymore — see below).
 - **Its prompt is baked in server-side** (`PL_GPT_STYLES`) and her typed words
   sit between the style's prefix and its no-text suffix verbatim — no trigger
   word, no trailing-period trim. **The "Sent as" preview line is GONE (Aug
