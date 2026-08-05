@@ -45,12 +45,6 @@
   .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  /* List view: one image per row, big. Toggled by the button above the feed. */
-  body.plist .grid { grid-template-columns: 1fr; gap: 10px; }
-  .feedbar { display: flex; justify-content: flex-end; margin: 2px 0 8px; }
-  .viewtog { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0;
-    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; }
-  .viewtog svg { width: 15px; height: 15px; }
   .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
   .copybtn svg { width: 14px; height: 14px; }
@@ -123,7 +117,6 @@
   <div class="err" id="err" hidden></div>
 </div>
 
-<div class="feedbar"><button class="viewtog" id="viewtog" aria-label="Switch view"></button></div>
 <div id="pendings"></div>
 <div id="runs"></div>
 
@@ -165,23 +158,7 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
-    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>',
-    gridicon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
   };
-
-  // Grid (4-up tiles) vs list (one big image per row). Sticky across loads.
-  function applyView() {
-    var list = localStorage.getItem('promptlab_view') === 'list';
-    document.body.classList.toggle('plist', list);
-    // The button shows where a tap takes you — the OTHER view.
-    document.getElementById('viewtog').innerHTML = list ? ICONS.gridicon : ICONS.list;
-  }
-  document.getElementById('viewtog').addEventListener('click', function () {
-    var list = localStorage.getItem('promptlab_view') === 'list';
-    localStorage.setItem('promptlab_view', list ? 'grid' : 'list');
-    applyView();
-  });
-  applyView();
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
