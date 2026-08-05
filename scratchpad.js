@@ -90,6 +90,50 @@ function artRef(file) {
   return refCache[file];
 }
 
+// ── The film ────────────────────────────────────────────────────────
+// The pad already knows how long every picture should be on screen: each
+// beat's own audio says so — HER recording when she made one, otherwise the
+// cached TTS of its line. So the film is pure ffmpeg (free, seconds, no
+// video model): one segment per beat at its audio's real length, hard cuts,
+// 2:3 portrait. A beat with no words holds for FILM.silent seconds. A chunk
+// shares its audio, its members splitting that time equally — the animate-
+// between-panels version of a chunk is the paid follow-up, not this.
+const { execFile } = require('child_process');
+const FILM = { w: 1080, h: 1620, fps: 24, tail: 0.35, silent: 2.0, min: 0.6 };
+function tryRequire(name) { try { return require(name); } catch { return null; } }
+function firstOnPath(bin) {
+  for (const dir of (process.env.PATH || '').split(path.delimiter)) {
+    const p = path.join(dir, bin);
+    try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { /* keep looking */ }
+  }
+  return null;
+}
+function usable(p) { if (!p) return null; try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { return null; } }
+const FFMPEG = process.env.FFMPEG_PATH || usable(tryRequire('ffmpeg-static')) || firstOnPath('ffmpeg');
+const FFPROBE = process.env.FFPROBE_PATH || usable((tryRequire('ffprobe-static') || {}).path) || firstOnPath('ffprobe');
+
+function run(bin, args, timeoutMs = 300000) {
+  return new Promise((resolve, reject) => {
+    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) reject(new Error(`${path.basename(bin)} failed: ${(stderr || err.message).slice(-400)}`));
+      else resolve({ stdout, stderr });
+    });
+  });
+}
+async function mediaSeconds(file) {
+  if (!FFPROBE) return 0;
+  try {
+    const { stdout } = await run(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], 60000);
+    return parseFloat(stdout.trim()) || 0;
+  } catch { return 0; }
+}
+async function fetchTo(url, file) {
+  const r = await fetch(url, { redirect: 'follow', timeout: 300000 });
+  if (!r.ok) throw new Error(`fetch ${r.status} for ${url.slice(0, 80)}`);
+  fs.writeFileSync(file, await r.buffer());
+  return file;
+}
+
 const db = () => admin.firestore();
 const padRef = (id) => db().collection(COL).doc(id || DOC);
 // Which STORY a request is about. `pad` rides in the body or the query, and
@@ -105,7 +149,10 @@ function fail(res, e) {
 async function readPad(padId) {
   const snap = await padRef(padId).get();
   const v = snap.exists ? snap.data() : {};
-  return { title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [] };
+  return {
+    title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
+    film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
+  };
 }
 
 const router = express.Router();
@@ -361,6 +408,129 @@ router.post('/voice', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── Render the film ─────────────────────────────────────────────────
+// Units in order (a chunk is one unit): each gets its audio's real length —
+// her recording first, else the line's TTS, else FILM.silent of quiet — and
+// the pictures hold for exactly that. Hard cuts. Background job: the POST
+// returns at once, the page polls the pad, leaving the app loses nothing.
+// Every render is kept, so an old cut is never overwritten.
+function filmUnits(beats) {
+  const units = [];
+  for (let i = 0; i < beats.length;) {
+    const b = beats[i];
+    const members = [b];
+    if (b.chunk) while (i + members.length < beats.length && beats[i + members.length].chunk === b.chunk) members.push(beats[i + members.length]);
+    units.push(members);
+    i += members.length;
+  }
+  return units;
+}
+
+async function runFilmJob(padId) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
+  const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  try {
+    if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
+    const pad = await readPad(padId);
+    const units = filmUnits(pad.beats).filter((m) => m.some((b) => b.url));
+    if (!units.length) throw new Error('draw some art first — the film is made of the pictures');
+
+    const segs = [];      // { file } per picture
+    const auds = [];      // { file, seconds } per unit
+    let total = 0;
+    for (let u = 0; u < units.length; u++) {
+      const members = units[u];
+      const lead = members[0];
+      // The unit's voice: her take wins; then the line read aloud; else quiet.
+      let audio = lead.voiceUrl || null;
+      if (!audio && String(lead.text || '').trim()) {
+        try { audio = await ttsFor(padId, lead); } catch (e) { console.warn('film tts:', e.message); }
+      }
+      let seconds = FILM.silent;
+      // The per-unit audio is PCM, not aac: concatenating aac adds a few ms of
+      // encoder priming to EVERY file, and across a long story that drift
+      // walks the voice out from under the pictures (measured: ~24ms per two
+      // units). WAV concatenates sample-exact, and the whole track is encoded
+      // once at the mux.
+      const aFile = path.join(dir, `a${u}.wav`);
+      if (audio) {
+        const raw = await fetchTo(audio, path.join(dir, `a${u}-raw`));
+        const spoken = await mediaSeconds(raw);
+        seconds = Math.max(FILM.min, (spoken || FILM.silent) + FILM.tail);
+        // One rate/layout for every unit, with the tail padded in silence so a
+        // line never runs into the next picture.
+        await run(FFMPEG, ['-y', '-i', raw, '-af', `apad=pad_dur=${FILM.tail + 0.05}`, '-t', seconds.toFixed(3),
+          '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
+      } else {
+        await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+          '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
+      }
+      seconds = (await mediaSeconds(aFile)) || seconds;
+      auds.push(aFile);
+      total += seconds;
+
+      // The unit's pictures split its time (a lone beat simply gets all of it).
+      const pics = members.filter((b) => b.url);
+      const each = seconds / pics.length;
+      for (let p = 0; p < pics.length; p++) {
+        const img = await fetchTo(pics[p].url, path.join(dir, `i${u}-${p}`));
+        const seg = path.join(dir, `s${u}-${p}.mp4`);
+        await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
+          '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
+          '-r', String(FILM.fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+        segs.push(seg);
+      }
+    }
+
+    const vList = path.join(dir, 'v.txt');
+    fs.writeFileSync(vList, segs.map((f) => `file '${f}'`).join('\n'));
+    const silentFilm = path.join(dir, 'v.mp4');
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000);
+
+    const aList = path.join(dir, 'a.txt');
+    fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
+    const track = path.join(dir, 'a.wav');
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000);
+
+    const out = path.join(dir, 'film.mp4');
+    await run(FFMPEG, ['-y', '-i', silentFilm, '-i', track, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+      '-shortest', '-movflags', '+faststart', out], 600000);
+
+    const bucket = admin.storage().bucket();
+    const dest = `scratchpad/films/${padId}-${Date.now()}.mp4`;
+    await bucket.upload(out, { destination: dest, metadata: { contentType: 'video/mp4' } });
+    await bucket.file(dest).makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    const seconds = Math.round(await mediaSeconds(out)) || Math.round(total);
+
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(padId));
+      const v = snap.exists ? snap.data() : {};
+      const films = Array.isArray(v.films) ? v.films : [];
+      const prev = v.film && v.film.url ? [{ url: v.film.url, at: v.film.at, seconds: v.film.seconds }] : [];
+      tx.set(padRef(padId), {
+        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length },
+        films: prev.concat(films).slice(0, 12),   // older cuts are kept, never overwritten
+        updatedAt: Date.now(),
+      }, { merge: true });
+    });
+  } catch (err) {
+    console.warn('scratchpad film:', err.message);
+    await padRef(padId).set({ film: { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() } }, { merge: true }).catch(() => {});
+  } finally { clean(); }
+}
+
+router.post('/film', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const pad = await readPad(pid);
+    if (!pad.beats.some((b) => b.url)) return res.status(400).json({ error: 'draw some art first' });
+    await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
+    runFilmJob(pid);   // fire and forget — the page polls the pad
+    res.json({ ok: true, status: 'making' });
+  } catch (e) { fail(res, e); }
+});
+
 // ── Chunks: beats linked so they always travel together ─────────────
 // A chunk is contiguous beats sharing a `chunk` id. On the pad it renders in
 // ONE tile's width (the members as side-by-side slices in a shared frame),
@@ -431,23 +601,18 @@ router.post('/title', async (req, res) => {
 // A beat's note as audio in Sophie's voice. Cached by the text itself
 // (sha1 of voice|model|text → Storage scratchpad/tts/<hash>.mp3), so
 // replaying costs nothing and an edited note renders fresh on next play.
-router.post('/tts', async (req, res) => {
-  try {
-    const pid = padIdOf(req);
-    if (!process.env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'ELEVENLABS_API_KEY is not set' });
-    const id = String(req.body.id || '');
-    if (!id) return res.status(400).json({ error: 'beat id required' });
-    const pad = await readPad(pid);
-    const beat = pad.beats.find((b) => b.id === id);
-    if (!beat) return res.status(404).json({ error: 'no such beat' });
-    const text = String(beat.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'this beat has no words yet' });
-
+// Her line in her voice, cached by the text itself — the film reuses this,
+// so rendering a film costs nothing for lines that have already been heard.
+// Returns the url, or null when the beat has no words.
+async function ttsFor(padId, beat) {
+  const text = String((beat && beat.text) || '').trim();
+  if (!text) return null;
+  if (!process.env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not set');
     // Settings ride in the cache key so a changed voice mode (Natural →
     // Robust) re-renders existing notes instead of replaying the old sound.
     const hash = crypto.createHash('sha1')
       .update(`${TTS_VOICE_ID}|${TTS_MODEL}|s${TTS_SETTINGS.stability}|${text}`).digest('hex');
-    if (beat.ttsHash === hash && beat.ttsUrl) return res.json({ ok: true, url: beat.ttsUrl, cached: true });
+    if (beat.ttsHash === hash && beat.ttsUrl) return beat.ttsUrl;
 
     const bucket = admin.storage().bucket();
     const dest = `scratchpad/tts/${hash}.mp3`;
@@ -473,13 +638,20 @@ router.post('/tts', async (req, res) => {
       url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     }
 
-    await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef(pid));
-      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
-      const b = cur.find((x) => x.id === id);
-      if (b) { b.ttsUrl = url; b.ttsHash = hash; }
-      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
-    });
+    await patchBeat(padId, beat.id, (b) => { b.ttsUrl = url; b.ttsHash = hash; }).catch(() => {});
+  return url;
+}
+
+router.post('/tts', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const pad = await readPad(pid);
+    const beat = pad.beats.find((b) => b.id === id);
+    if (!beat) return res.status(404).json({ error: 'no such beat' });
+    if (!String(beat.text || '').trim()) return res.status(400).json({ error: 'this beat has no words yet' });
+    const url = await ttsFor(pid, beat);
     res.json({ ok: true, url });
   } catch (e) { fail(res, e); }
 });
