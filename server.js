@@ -4418,6 +4418,29 @@ const PL_GPT_STYLES = {
     whiten: true,
     noCharacter: true,
   },
+  // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
+  // app's loading animation cycles (Dump album "hoonies", #228). Four of them
+  // attach, picked for the thing she wants out of this style: two subjects
+  // grown into ONE object (a face in an open book, an eye inside a vase, a
+  // face as a jug, a face as a candle) — which is what a coincidence looks
+  // like, two halves melted together. Refs live in STORAGE, not refs/.
+  // The prefix carries NO engraving vocabulary ON PURPOSE: tested side by side,
+  // adding a written style description pulled the line finer and more modern,
+  // away from the hoonies' blunt woodcut feel (same finding as the Evan style).
+  // Everything it does say is composition, not style. NO Sophie character card:
+  // hers is the watercolor look, the wrong reference here.
+  hoonies: {
+    label: 'Hoonies',
+    storageRefs: [
+      'hoonies/refs/style-1.png', 'hoonies/refs/style-2.png',
+      'hoonies/refs/style-3.png', 'hoonies/refs/style-4.png',
+    ],
+    prefix: 'Use the attached images ONLY as a style reference — copy their ' +
+      'drawing style, not their content. Draw the subject below in that exact ' +
+      'style, alone on a plain white background, no border, no frame, no text.',
+    suffix: 'Do not include any text in the image.',
+    noCharacter: true,
+  },
 };
 const plRefCache = {};
 function playgroundRef(file) {
