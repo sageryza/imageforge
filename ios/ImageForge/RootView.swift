@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, story, lessons, writing, editor, chats, test, dump, playground, scratchpad
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, story, lessons, writing, editor, chats, test, dump, playground, scratchpad
     var id: String { rawValue }
 
     var title: String {
@@ -17,6 +17,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Dreams"
         case .instagram: return "Instagram"
         case .ads:       return "Ads"
+        case .blog:      return "Blog Studio"
         case .story:     return "Story Room"
         case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
@@ -39,6 +40,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "Illustrate last night's dream — and keep a journal."
         case .instagram: return "Make on-brand posts — product flat-lays & witchy memes."
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
+        case .blog:      return "Turn a topic into an SEO post — then publish it."
         case .story:     return "Every story in one room — words, voice, art, films."
         case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
@@ -69,9 +71,11 @@ enum Tool: String, CaseIterable, Identifiable {
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
+        case .blog:      return "newspaper"
         case .playground: return "paintpalette" // fallback; .playground uses a custom asset (see customIcon)
-        // The dashed placement slot is the pad's own signature shape.
-        case .scratchpad: return "square.dashed"
+        // The pad IS the Story Room now, so it wears the Story Room's books —
+        // the old dashed placement slot read as a different tool in the bar.
+        case .scratchpad: return "books.vertical"
         }
     }
 
@@ -98,6 +102,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
+        case .blog:      BlogView().forgeToolBar("Blog Studio")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -145,8 +150,22 @@ struct ToolGlyph: View {
     }
 }
 
-/// Which screen the bottom bar is showing.
-enum Screen: Hashable { case home, tool(Tool), gallery }
+/// Which screen the bottom bar is showing. There are TWO home grids: the
+/// making one (`.home`) and the business one (`.business`), reached by the
+/// briefcase beside the test tube.
+enum Screen: Hashable { case home, business, tool(Tool), gallery }
+
+extension Tool {
+    /// The tools that live on the BUSINESS home grid instead of the making one
+    /// — running the shop rather than making the work. They're on one grid or
+    /// the other, never both, so each home stays a short scannable list.
+    var isBusiness: Bool {
+        switch self {
+        case .instagram, .ads, .blog: return true
+        default: return false
+        }
+    }
+}
 
 /// Lets any tool screen pop back to the Home grid (the back arrow in a
 /// tool's top-left corner). RootView injects the real action.
@@ -228,7 +247,8 @@ struct RootView: View {
             NotificationCenter.default.post(name: .forgeScreenChanged, object: nil)
         }
         // Deep links: deckfactory://writing, ://chats, ://story, ://dreams,
-        // ://movie, … (any Tool rawValue), plus ://gallery and ://home. Opens
+        // ://movie, … (any Tool rawValue), plus ://gallery, ://home and
+        // ://business (the second home grid). Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
         // CI screenshot hook: launch with FORGE_SCREEN=<dest> to open straight
@@ -255,6 +275,8 @@ struct RootView: View {
             setScreen(.home)
         case "gallery", "creations":
             setScreen(.gallery)
+        case "business":
+            setScreen(.business)
         default:
             if let t = Tool(rawValue: dest) { open(t) }
         }
@@ -278,9 +300,12 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open, recents: recents)
+            HomeGrid(open: open, openBusiness: { setScreen(.business) }, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
+            BusinessGrid(open: open, goHome: { setScreen(.home) })
+                .opacity(screen == .business ? 1 : 0)
+                .allowsHitTesting(screen == .business)
             ForEach(recents.recentThree.filter { $0 != .chats }) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { setScreen(.home) })
@@ -315,7 +340,7 @@ struct RootView: View {
 
     private var showAutoScroll: Bool {
         switch screen {
-        case .home: return false
+        case .home, .business: return false
         case .gallery: return true
         case .tool(let t):
             // Story Room is a web page with its own in-page pill.
@@ -391,6 +416,7 @@ private struct BottomBar: View {
 /// into the recent slots).
 private struct HomeGrid: View {
     var open: (Tool) -> Void
+    var openBusiness: () -> Void
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
 
@@ -404,7 +430,9 @@ private struct HomeGrid: View {
         // .scratchpad is hidden: the pad IS the Story Room now (the .story
         // tile's /storyroom page serves it), so two tiles would be the same
         // tool twice. The case and view stay for deep links and history.
-        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad && !pinnedBottom.contains($0) }
+        // Business tools live on the other home grid, behind the briefcase.
+        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
+                                            && !$0.isBusiness && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return [.story] + ranked + rest + pinnedBottom
@@ -417,19 +445,92 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
-            // Test Station isn't a grid card — it's this test-tube icon in the
-            // top-left corner.
+            // Two corner icons on the left, neither a grid card: the Test
+            // Station's test tube, and the briefcase across to the BUSINESS
+            // home (Instagram, ads, the blog — running the shop rather than
+            // making the work).
             .overlay(alignment: .leading) {
-                Button { open(.test) } label: {
-                    ToolGlyph(tool: .test, size: 20)
+                HStack(spacing: 0) {
+                    Button { open(.test) } label: {
+                        ToolGlyph(tool: .test, size: 20)
+                            .foregroundColor(Theme.accent)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: openBusiness) {
+                        Image(systemName: "briefcase")
+                            .font(.system(size: 20))
+                            .foregroundColor(Theme.accent)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Business")
+                }
+                .padding(.leading, 4)
+            }
+            // Chats isn't a grid card — it's this icon in the top-right corner.
+            .overlay(alignment: .trailing) {
+                Button { open(.chats) } label: {
+                    Image(systemName: Tool.chats.icon)
+                        .font(.system(size: 20))
                         .foregroundColor(Theme.accent)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(.trailing, 12)
+            }
+            ScrollView {
+                LazyVGrid(columns: grid, spacing: 14) {
+                    ForEach(tools) { t in
+                        Button { open(t) } label: {
+                            HubCard(tool: t, title: t.title, desc: t.desc)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding()
+            }
+        }
+        .background(Theme.bg.ignoresSafeArea())
+    }
+}
+
+/// The BUSINESS home — the second grid, behind the briefcase. Everything for
+/// running the shop rather than making the work. Deliberately not a tool
+/// screen: it's a home, so it has no back chevron and no bottom-bar slot — the
+/// house in the top-left is the way back to the making home.
+private struct BusinessGrid: View {
+    var open: (Tool) -> Void
+    var goHome: () -> Void
+    private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    private var tools: [Tool] { Tool.allCases.filter { $0.isBusiness } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                StarTitle(text: "Business")
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+            // The way back to the making home — the mirror of the briefcase
+            // that got you here, in the same corner.
+            .overlay(alignment: .leading) {
+                Button(action: goHome) {
+                    Image(systemName: "house")
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Home")
                 .padding(.leading, 12)
             }
-            // Chats isn't a grid card — it's this icon in the top-right corner.
+            // Chats stays reachable from both homes, same corner as on the other.
             .overlay(alignment: .trailing) {
                 Button { open(.chats) } label: {
                     Image(systemName: Tool.chats.icon)
