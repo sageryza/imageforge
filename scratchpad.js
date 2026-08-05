@@ -157,6 +157,7 @@ async function readPad(padId) {
   return {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
+    updatedAt: v.updatedAt || 0,
   };
 }
 
