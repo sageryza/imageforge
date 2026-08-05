@@ -168,6 +168,12 @@ header{display:block; text-align:center; padding:6px 0 0;}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* The film lives at the TOP of the pad: make it, then play it. */
+#filmrow{display:flex; align-items:center; gap:10px; margin-top:1.1em;}
+.filmnote{font-size:.85em; font-style:italic; color:var(--ink2);}
+#filmplay{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
+  background:#000; padding:0;}
+#filmplay video{max-width:100vw; max-height:100vh; background:#000;}
 </style>
 <div class="wrap">
   <header>
@@ -178,6 +184,11 @@ header{display:block; text-align:center; padding:6px 0 0;}
     <button class="iconbtn" id="storiesbtn" aria-label="Your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
+  <div id="filmrow">
+    <button class="iconbtn" id="filmbtn" aria-label="Make the film"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg></button>
+    <button class="iconbtn" id="playbtn" hidden aria-label="Play the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
+    <span class="filmnote" id="filmnote"></span>
   </div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
@@ -243,6 +254,7 @@ header{display:block; text-align:center; padding:6px 0 0;}
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
+<div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
 
 <script>
 var TOKEN='__STUDIO_TOKEN__';
@@ -400,11 +412,64 @@ function renderTitle(){
   t.onkeydown=function(ev){ if(ev.key==='Enter'){ev.preventDefault(); t.blur();} };
 })();
 
+/* ── the film: made from the beats, timed by their own audio ──────── */
+var film=null;
+function renderFilm(){
+  var note=document.getElementById('filmnote');
+  var play=document.getElementById('playbtn');
+  var make=document.getElementById('filmbtn');
+  var making=Boolean(film&&film.status==='making');
+  make.disabled=making;
+  make.style.opacity=making?'.45':'';
+  play.hidden=!(film&&film.url);
+  note.textContent=making?'making the film…'
+    :(film&&film.status==='failed'?(film.error||'the film failed'):'');
+}
+document.getElementById('filmbtn').onclick=function(ev){
+  ev.stopPropagation();
+  if(film&&film.status==='making')return;
+  film={status:'making'}; renderFilm();
+  api('/film',{method:'POST',body:JSON.stringify({})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.error){ film={status:'failed',error:d.error}; renderFilm(); return; }
+      startFilmPoll();
+    })
+    .catch(function(){ film={status:'failed',error:'could not start'}; renderFilm(); });
+};
+document.getElementById('playbtn').onclick=function(ev){
+  ev.stopPropagation();
+  if(!film||!film.url)return;
+  var v=document.getElementById('filmvid');
+  v.src=film.url;
+  document.getElementById('filmplay').hidden=false; lock(true);
+  window.__scrollStop&&window.__scrollStop();
+  v.play();
+};
+document.getElementById('filmplay').onclick=function(ev){
+  if(ev.target===this){
+    var v=document.getElementById('filmvid'); v.pause();
+    this.hidden=true; lock(false);
+  }
+};
+/* Rendering is a background job — poll the pad, and resume on return. */
+var filmTimer=null;
+function startFilmPoll(){
+  if(filmTimer)return;
+  filmTimer=setInterval(function(){
+    api('').then(function(r){return r.json()}).then(function(d){
+      film=d.film||null; renderFilm();
+      if(!film||film.status!=='making'){ clearInterval(filmTimer); filmTimer=null; }
+    }).catch(function(){});
+  },5000);
+}
+
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
-    beats=d.beats||[]; padTitle=d.title||'';
-    renderTitle(); render();
+    beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
+    renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
+    if(film&&film.status==='making') startFilmPoll();
   });
 }
 
@@ -436,6 +501,8 @@ document.getElementById('storiesclose').onclick=function(ev){
 function openPad(id){
   padId=id; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
+  if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
+  film=null; renderFilm();
   document.getElementById('stories').hidden=true; lock(false);
   beats=[]; padTitle=''; render();
   load();
