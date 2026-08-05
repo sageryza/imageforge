@@ -1788,15 +1788,19 @@ lifted into a standalone tool later.
   three-line text box (`beat.text`, saved on close). The story TITLE sits
   under the eyebrow in the serif ("Untitled" until she renames it — tap to
   edit, `pad.title`, `POST /title`); a beat with words shows them SMALL
-  under its tile, and tapping those words (or the popup speech icon) plays
-  them in her ElevenLabs professional clone "Sophie — morning"
-  (`POST /tts {id}` — voice UTkHGl2ImiT6gwtAFCql, **eleven_v3** (Sophie's
-  call, Aug 2026): bracketed stage directions like `[quietly]` work in a
+  under its tile — FIRST LINE only, the rest lives in the popup — and
+  tapping those words (or the popup speech icon) plays them in her ElevenLabs
+  professional clone "Sophie — morning" (`POST /tts {id}` — voice
+  UTkHGl2ImiT6gwtAFCql, **eleven_v3 at stability 1.0 = Robust** (Sophie's
+  call, Aug 2026 — most consistent, closest to her v2 sound; settings ride
+  in the cache key): bracketed stage directions like `[quietly]` work in a
   note, but v3 has NO `<break time>` tags — pauses come from punctuation;
   cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
-  free). Tapping the popup thumbnail opens a lightbox. An EMPTY beat's popup
-  shows one palette icon centered in the blank tile → `/playground?from=
-  scratchpad` (the in-popup art generator's stand-in). Regenerate/versions
+  free). Tapping the popup thumbnail opens a lightbox. Placement slots are
+  slim dashed LINES between beats, not full dashed tiles. An EMPTY beat's
+  popup shows two icons in the blank tile: palette → `/playground?from=
+  scratchpad` (the in-popup generator's stand-in) and inbox → pick a hearted
+  image straight INTO that beat (`POST /image {id, url, src?}`). Regenerate/versions
   will live in that popup later (deliberately unbuilt; design flexible —
   all versions same size, ordered by recency). iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-

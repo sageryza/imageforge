@@ -62,7 +62,10 @@ const COLORS = ['mustard', 'green', 'blue', 'pink'];
 // a kept take stays kept.
 const TTS_VOICE_ID = 'UTkHGl2ImiT6gwtAFCql';
 const TTS_MODEL = 'eleven_v3';
-const TTS_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
+// v3 reads stability as a mode: 0.0 Creative / 0.5 Natural / 1.0 Robust.
+// Robust is Sophie's pick (Aug 2026) — the most consistent, closest to how
+// her v2 renders sounded.
+const TTS_SETTINGS = { stability: 1.0, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 
 const db = () => admin.firestore();
 const padRef = () => db().collection(COL).doc(DOC);
@@ -150,6 +153,29 @@ router.post('/add', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// Give an EXISTING beat its picture — the empty-beat popup's inbox path
+// (choosing from there fills THAT beat instead of adding a new one).
+router.post('/image', async (req, res) => {
+  try {
+    const id = String(req.body.id || '');
+    const url = String(req.body.url || '').trim();
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
+    const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      b.url = url;
+      if (src) b.src = src;
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
 // The story's name — "Untitled" on the page until Sophie changes it.
 router.post('/title', async (req, res) => {
   try {
@@ -173,8 +199,10 @@ router.post('/tts', async (req, res) => {
     const text = String(beat.text || '').trim();
     if (!text) return res.status(400).json({ error: 'this beat has no words yet' });
 
+    // Settings ride in the cache key so a changed voice mode (Natural →
+    // Robust) re-renders existing notes instead of replaying the old sound.
     const hash = crypto.createHash('sha1')
-      .update(`${TTS_VOICE_ID}|${TTS_MODEL}|${text}`).digest('hex');
+      .update(`${TTS_VOICE_ID}|${TTS_MODEL}|s${TTS_SETTINGS.stability}|${text}`).digest('hex');
     if (beat.ttsHash === hash && beat.ttsUrl) return res.json({ ok: true, url: beat.ttsUrl, cached: true });
 
     const bucket = admin.storage().bucket();
