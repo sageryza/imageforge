@@ -362,6 +362,35 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
   }
 }
 
+// Delete a beat — from its popup, behind an are-you-sure. The beat leaves
+// the pad but nothing is destroyed: its full record (art, history, takes,
+// words) moves to pad.trash, and every drawn image is already in Storage /
+// My Creations regardless.
+router.post('/remove', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const v = snap.exists ? snap.data() : {};
+      const cur = Array.isArray(v.beats) ? v.beats : [];
+      const idx = cur.findIndex((x) => x.id === id);
+      if (idx < 0) throw new Error('no such beat');
+      const [gone] = cur.splice(idx, 1);
+      // A chunk of one is just a beat again.
+      if (gone.chunk) {
+        const rest = cur.filter((b) => b.chunk === gone.chunk);
+        if (rest.length === 1) delete rest[0].chunk;
+      }
+      const trash = (Array.isArray(v.trash) ? v.trash : []).concat([{ ...gone, removedAt: Date.now() }]).slice(-50);
+      tx.set(padRef(pid), { beats: cur, trash, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
 // Speech-only markup has no business in an image prompt: [pause]-style
 // tags and <break time="1s" /> are directions for the VOICE. The bulk pass
 // strips them; the single-beat draw box leaves her words alone (she can see

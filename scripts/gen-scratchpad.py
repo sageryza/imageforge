@@ -128,9 +128,18 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
   line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{display:flex; gap:14px;}
-#speak,#linkbtn,#micbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
+#speak,#linkbtn,#micbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
-#speak svg,#linkbtn svg,#micbtn svg{width:17px; height:17px;}
+#speak svg,#linkbtn svg,#micbtn svg,#delbtn svg{width:17px; height:17px;}
+/* Every generation this beat has had, all the same size, newest first; the
+   one currently on the pad wears the dark ring. Tap one to see it big. */
+#verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
+#verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid rgba(255,255,255,.4); border-radius:4px;
+  overflow:hidden; background:var(--barbg); cursor:pointer;}
+#verrow button.cur{border:2.5px solid #fff;}
+#verrow img{width:100%; height:100%; object-fit:cover; display:block;}
+#delask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
+  background:rgba(20,17,12,.55); padding:24px;}
 #speak.busy,#micbtn.busy{opacity:.45;}
 /* Lit = this beat is part of a chunk (tap dissolves the whole chunk). */
 #linkbtn.on{background:#fff; color:#26221c; border-color:#fff;}
@@ -243,6 +252,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
     <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <img id="popimg" alt="">
+  <div id="verrow" hidden></div>
   <div id="popblank" hidden>
     <button id="pbdraw" aria-label="Draw it here"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z"/></svg></button>
     <button id="pbplay" aria-label="Make its art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
@@ -270,10 +280,21 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button id="linkbtn" hidden aria-label="Link with the next beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
     <button id="unlinkbtn" hidden aria-label="Break this chunk apart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></button>
+    <button id="delbtn" aria-label="Delete this beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></button>
   </div>
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
+
+<div id="delask" hidden>
+  <div class="bulkbox">
+    <p>Delete this beat? Its pictures are already saved in your galleries.</p>
+    <div class="bulkrow">
+      <button id="delno">Not now</button>
+      <button id="delyes">Delete it</button>
+    </div>
+  </div>
+</div>
 
 <div id="bulkask" hidden>
   <div class="bulkbox">
@@ -678,6 +699,23 @@ function openBeat(b){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
+  // Every generation this beat has had — thumbnails, newest first, current
+  // ringed. Only shows once there is more than the current picture.
+  var vr=document.getElementById('verrow'); vr.innerHTML='';
+  var vers=(b.url?[b.url]:[]).concat((b.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  vr.hidden=vers.length<2;
+  if(vers.length>1){
+    vers.forEach(function(u,i){
+      var t=document.createElement('button'); if(i===0&&b.url)t.className='cur';
+      var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
+      t.onclick=function(ev){
+        ev.stopPropagation();
+        document.getElementById('lbimg').src=u;
+        document.getElementById('lightbox').hidden=false;
+      };
+      vr.appendChild(t);
+    });
+  }
   // Two separate icons so a chunk can grow past two: link = add the NEXT
   // unit to this one (tap again and again for 3, 4, n), unlink = break the
   // whole chunk apart. One button that meant both made chains impossible.
@@ -852,6 +890,31 @@ document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
   this.hidden=true;
 };
+/* Delete, behind an are-you-sure. The beat leaves the pad; its pictures are
+   already in Storage and My Creations, and its record moves to pad.trash. */
+document.getElementById('delbtn').onclick=function(ev){
+  ev.stopPropagation();
+  if(!popBeat)return;
+  document.getElementById('delask').hidden=false;
+};
+document.getElementById('delno').onclick=function(ev){ ev.stopPropagation(); document.getElementById('delask').hidden=true; };
+document.getElementById('delask').onclick=function(ev){ if(ev.target===this)this.hidden=true; };
+document.getElementById('delyes').onclick=function(ev){
+  ev.stopPropagation();
+  var b=popBeat; if(!b)return;
+  var btn=this; btn.disabled=true;
+  api('/remove',{method:'POST',body:JSON.stringify({id:b.id})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      btn.disabled=false;
+      document.getElementById('delask').hidden=true;
+      if(d.error){ alert(d.error); return; }
+      if(d.beats)beats=d.beats;
+      document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();
+    })
+    .catch(function(){ btn.disabled=false; });
+};
+
 function closeBeat(){stopRec(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 document.getElementById('beatpop').onclick=function(ev){ if(ev.target===this)closeBeat(); };
 

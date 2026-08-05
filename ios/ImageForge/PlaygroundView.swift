@@ -77,6 +77,19 @@ struct PlaygroundView: View {
 /// can talk to the page.
 final class PlaygroundWebRef: ObservableObject { weak var web: WKWebView? }
 
+/// A one-shot query string another tool wants the Playground opened with —
+/// the gallery's "open in Playground with these settings". Set it, then
+/// openTool(.playground): a fresh web view builds its URL from it, and an
+/// already-alive one reloads on the screen-change notification. Cleared on use.
+enum PlaygroundPrefill {
+    static var pending: String?
+    static func url() -> URL? {
+        guard let q = pending else { return nil }
+        pending = nil
+        return URL(string: MovieService.serverURL + "/playground?" + q)
+    }
+}
+
 /// WKWebView host: answers the studio gate's HTTP Basic challenge with the
 /// stored token, same pattern as the Episode Editor.
 private struct PlaygroundWebView: UIViewRepresentable {
@@ -102,9 +115,12 @@ private struct PlaygroundWebView: UIViewRepresentable {
         web.backgroundColor = UIColor(red: 0.980, green: 0.969, blue: 0.949, alpha: 1) // page --paper #FAF7F2
         web.allowsBackForwardNavigationGestures = false
         webRef.web = web
-        if let url = URL(string: MovieService.serverURL + "/playground") {
+        if let url = PlaygroundPrefill.url() ?? URL(string: MovieService.serverURL + "/playground") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
+        // The tool stays alive between visits, so a prefill sent while this
+        // web view already exists arrives via the screen-change notification.
+        context.coordinator.watchForPrefill(web)
         return web
     }
 
@@ -114,7 +130,23 @@ private struct PlaygroundWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let parent: PlaygroundWebView
+        private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: PlaygroundWebView) { self.parent = parent }
+
+        /// An alive web view picks a pending prefill up when the screen
+        /// changes (the gallery sets it, then jumps to the Playground).
+        func watchForPrefill(_ web: WKWebView) {
+            screenChangeObserver = NotificationCenter.default.addObserver(
+                forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
+                    if let url = PlaygroundPrefill.url() {
+                        web?.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30))
+                    }
+            }
+        }
+
+        deinit {
+            if let o = screenChangeObserver { NotificationCenter.default.removeObserver(o) }
+        }
 
         /// The page's Save button: `forgeSave.postMessage(<image url>)`. Fetch
         /// it, write it to Photos, and tell the page how it went so its toast

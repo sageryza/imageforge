@@ -86,6 +86,7 @@ struct CreationsView: View {
     @State private var openingEditor = false
     @State private var toast: String?
     @State private var photosDenied = false
+    @Environment(\.openTool) private var openTool
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 10)]
 
@@ -288,6 +289,23 @@ struct CreationsView: View {
                         Text(p).font(.caption).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // Re-run or remix: jump to the Playground with this
+                    // generation's prompt, style and quality already set.
+                    if let q = playgroundQuery(c) {
+                        Button {
+                            PlaygroundPrefill.pending = q
+                            preview = nil
+                            openTool(.playground)
+                        } label: {
+                            Label("Open in Playground", systemImage: "paintpalette")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 46)
+                                .background(Theme.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                        }
+                        .buttonStyle(.plain)
+                    }
                     if c.type == "sticker" {
                         Button { openForEdit(c) } label: {
                             Label("Edit stickers", systemImage: "wand.and.stars")
@@ -356,6 +374,28 @@ struct CreationsView: View {
                 }
             }
         }
+    }
+
+    /// The generation's settings as a Playground query, so "Open in
+    /// Playground" lands with prompt, style and quality prefilled. Only for
+    /// plain images with a prompt on file — sticker sheets, dreams and the
+    /// rest have their own tools.
+    private func playgroundQuery(_ c: Creation) -> String? {
+        guard c.type == "image", let prompt = c.prompt, !prompt.isEmpty else { return nil }
+        let made = [c.model, c.style].compactMap { $0 }.joined(separator: " ").lowercased()
+        let style = made.contains("hoonie") ? "hoonie"
+            : (made.contains("watercolor") || made.contains("wtr")) ? "watercolor"
+            : "chatgpt"
+        var items = [URLQueryItem(name: "prompt", value: prompt),
+                     URLQueryItem(name: "style", value: style)]
+        var quality = c.quality
+        if quality == nil, let s = c.style?.lowercased() {
+            quality = ["low", "medium", "high"].first { s.contains($0) }
+        }
+        if let q = quality { items.append(URLQueryItem(name: "quality", value: q)) }
+        var comp = URLComponents()
+        comp.queryItems = items
+        return comp.percentEncodedQuery
     }
 
     private func showToast(_ message: String, seconds: Double = 1.8) {
