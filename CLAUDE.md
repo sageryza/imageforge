@@ -1838,6 +1838,17 @@ lifted into a standalone tool later.
   re-dispatch from your branch (`imageforge_ref` input) if a main build
   buries it.
 
+## Scratch Pad — now THE Story Room (Aug 2026)
+**The pad IS the Story Room now**: `/storyroom` serves the pad page, the
+app's Story Room tile opens it, the page header says STORY ROOM, and the
+Scratch Pad home tile is hidden (case + view kept). The OLD board surface
+(`storyroom.html`, `gen-storyroom.py`, `/api/story/*`) stays in the repo,
+unpointed — restore `serveGated('storyroom.html')` on the `/storyroom`
+route to bring it back. Film renders record per-unit audio receipts on
+`film.notes` ('her voice' / 'tts' / 'quiet') — read them before debugging
+any "it used the wrong voice" report. The title row is sticky; placement
+slots are short centered dashes.
+
 ## Scratch Pad (stage ONE of a story — before the Story Room)
 - `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by
   `scripts/gen-scratchpad.py`) — thinking with pictures before the Story Room
