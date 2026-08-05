@@ -1773,7 +1773,14 @@ lifted into a standalone tool later.
   spec). Tapping a beat opens a popup: the art at THUMBNAIL size (never
   blown up — Sophie's spec), five bare color chips (gray/mustard/green/
   blue/pink) that set the FRAME color and keep the popup open, and a
-  three-line text box (`beat.text`, saved on close). Regenerate/versions
+  three-line text box (`beat.text`, saved on close). The story TITLE sits
+  under the eyebrow in the serif ("Untitled" until she renames it — tap to
+  edit, `pad.title`, `POST /title`); a beat with words shows them SMALL
+  under its tile, and tapping those words (or the popup speech icon) plays
+  them in her ElevenLabs professional clone "Sophie — morning"
+  (`POST /tts {id}` — voice UTkHGl2ImiT6gwtAFCql, eleven_multilingual_v2,
+  cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
+  free). Tapping the popup thumbnail opens a lightbox. Regenerate/versions
   will live in that popup later (deliberately unbuilt; design flexible —
   all versions same size, ordered by recency). iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
