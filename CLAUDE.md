@@ -1888,6 +1888,14 @@ lifted into a standalone tool later.
   picker — one style per story; superseded art goes to `beat.imageHistory`,
   never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
   hearted image straight INTO that beat (`POST /image {id, url, src?}`).
+  **Draw-the-missing (Aug 2026):** a wand icon on the title row (visible
+  only when some beat has words but no art) → a confirm box stating count
+  and cost (`POST /drawall {quality}`, default LOW) → every such beat draws,
+  two at a time. Chunk siblings without their own text are deliberately
+  skipped (their art is the hand-made literal→metaphorical pair), and
+  speech-only markup ([pause], <break/>) is STRIPPED from bulk prompts —
+  the single-beat draw box still sends her words untouched. Safe to re-tap:
+  it only ever draws what is still missing.
   ART.prefix / ART.characterLine in scratchpad.js are COPIES of
   PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
   identical. `/scratchpad-sophie.png` serves the character card to the
