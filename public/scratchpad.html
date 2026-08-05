@@ -15,9 +15,11 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase;}
 /* The floating autoscroll pill is fixed over the top-right corner, so the
-   header row stops 56px short of it — the inbox button sits left of that. */
-header{display:flex; align-items:center; gap:10px; padding-right:56px; min-height:34px;}
-header .no{flex:1;}
+   header row stops 56px short of it — the buttons sit left of that. The word
+   SCRATCH PAD is the header, centered across the very top; the buttons ride
+   the same row at its right. */
+header{display:flex; align-items:center; justify-content:flex-end; gap:10px; padding-right:56px; min-height:34px; position:relative;}
+header .no{position:absolute; left:0; right:0; text-align:center; pointer-events:none;}
 .iconbtn{width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:0;}
 .iconbtn svg{width:17px; height:17px;}
@@ -71,6 +73,13 @@ header .no{flex:1;}
   border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
 #speak svg{width:17px; height:17px;}
 #speak.busy{opacity:.45;}
+/* An empty beat's popup: same blank paper tile, and the Playground shortcut
+   (the in-popup art generator comes later). */
+#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--barbg);}
+#popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
+#popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
+#pgo{font-family:'EBGaramond',Georgia,serif; font-size:15px; color:#fff; background:none;
+  border:1.5px solid rgba(255,255,255,.55); border-radius:6px; padding:8px 14px; cursor:pointer;}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
@@ -78,6 +87,7 @@ header .no{flex:1;}
 <div class="wrap">
   <header>
     <div class="no">Scratch pad</div>
+    <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </header>
   <div id="title" contenteditable="true" spellcheck="false"></div>
@@ -98,6 +108,7 @@ header .no{flex:1;}
 
 <div id="beatpop" hidden>
   <img id="popimg" alt="">
+  <div id="popblank" hidden></div>
   <div class="chips">
     <button class="chip gray" data-c=""></button>
     <button class="chip mustard" data-c="mustard"></button>
@@ -107,6 +118,7 @@ header .no{flex:1;}
   </div>
   <textarea id="pnote" rows="3"></textarea>
   <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
+  <button id="pgo" hidden>Open the Playground</button>
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
@@ -146,7 +158,7 @@ function render(){
     if(pending) slot(i);
     var wrap=document.createElement('div'); wrap.className='beatwrap';
     var el=document.createElement('button'); el.className='beat'+(b.color?' c-'+b.color:'');
-    var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im);
+    if(b.url){ var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im); }
     el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
     wrap.appendChild(el);
     if(b.text){
@@ -215,29 +227,47 @@ function pick(it){
 }
 function place(at, it){
   it=it||pending; if(!it)return; pending=null;
-  var src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
-  api('/add',{method:'POST',body:JSON.stringify({url:it.url,at:at,src:src})})
+  var body={at:at};
+  if(!it.empty){
+    body.url=it.url;
+    body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+  }
+  api('/add',{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
     .then(function(d){if(d.beats)beats=d.beats;render();});
   render();
 }
+/* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
+   the Playground shortcut for now). Same placement flow as the inbox. */
+document.getElementById('addbtn').onclick=function(ev){
+  ev.stopPropagation();
+  if(!beats.length){ place(0, {empty:true}); return; }
+  pending={empty:true}; render();
+};
 /* tapping anywhere that is not a slot quietly cancels placing */
 document.addEventListener('click',function(){ if(pending){pending=null;render();} });
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
 function openBeat(b){
   popBeat=b;
-  var im=document.getElementById('popimg');
+  var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   // Same size as it sits on the pad — the popup never blows the art up.
   var tile=document.querySelector('#pad .beat');
-  im.style.width=(tile?tile.offsetWidth:90)+'px';
-  im.src=b.url; im.className=b.color?'c-'+b.color:'';
+  var w=(tile?tile.offsetWidth:90)+'px';
+  im.hidden=!b.url; bl.hidden=Boolean(b.url);
+  document.getElementById('pgo').hidden=Boolean(b.url);
+  if(b.url){ im.style.width=w; im.src=b.url; im.className=b.color?'c-'+b.color:''; }
+  else { bl.style.width=w; bl.className=b.color?'c-'+b.color:''; }
   document.querySelectorAll('.chip').forEach(function(c){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
   document.getElementById('beatpop').hidden=false; lock(true);
 }
+document.getElementById('pgo').onclick=function(ev){
+  ev.stopPropagation();
+  location.href='/playground';
+};
 /* A chip sets the frame color and the popup STAYS open (there's a text box
    here now); tapping the scrim is what closes it. */
 document.querySelectorAll('.chip').forEach(function(c){
@@ -246,7 +276,7 @@ document.querySelectorAll('.chip').forEach(function(c){
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
-    document.getElementById('popimg').className=col?'c-'+col:'';
+    document.getElementById(popBeat.url?'popimg':'popblank').className=col?'c-'+col:'';
     document.querySelectorAll('.chip').forEach(function(x){
       x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
     });

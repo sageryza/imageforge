@@ -123,11 +123,12 @@ router.get('/inbox', async (req, res) => {
 
 router.post('/add', async (req, res) => {
   try {
+    // No url = an EMPTY beat (blank tile; its art comes later).
     const url = String(req.body.url || '').trim();
-    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
+    if (url && !/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url must be http(s)' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
     const beat = {
-      id: db().collection(COL).doc().id, url, color: null, src,
+      id: db().collection(COL).doc().id, url: url || null, color: null, src,
       addedAt: Date.now(),
     };
     // Single-user tool, but the read-modify-write still goes through a
