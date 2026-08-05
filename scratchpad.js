@@ -87,7 +87,7 @@ router.use((req, res, next) => {
   if (req.get('x-studio-token') === token || req.query.token === token) return next();
   return res.status(401).json({ error: 'unauthorized' });
 });
-router.use(express.json({ limit: '1mb' }));
+router.use(express.json({ limit: '25mb' })); // /voice carries a recording as a data URL
 
 router.get('/status', (req, res) => {
   res.json({ ok: true, firebase: admin.apps.length > 0 });
@@ -170,6 +170,44 @@ router.post('/image', async (req, res) => {
       return cur;
     });
     res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// Her OWN reading of a beat's words (the popup's mic icon): stored on the
+// beat as voiceUrl, and it beats TTS everywhere — the caption and speech
+// icon play the recording when one exists. Re-recording replaces it;
+// audio:null clears it back to TTS.
+router.post('/voice', async (req, res) => {
+  try {
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    let url = null;
+    if (req.body.audio !== null && req.body.audio !== undefined) {
+      const m = String(req.body.audio).match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
+      if (!m) return res.status(400).json({ error: 'audio must be an audio data URL (or null to clear)' });
+      const ext = m[1].includes('mp4') ? 'm4a' : (m[1].includes('webm') ? 'webm' : 'audio');
+      const buf = Buffer.from(m[2], 'base64');
+      if (!buf.length) return res.status(400).json({ error: 'empty recording' });
+      const bucket = admin.storage().bucket();
+      const dest = `scratchpad/voice/${id}-${Date.now()}.${ext}`;
+      const tmp = path.join(os.tmpdir(), `spv-${id}.${ext}`);
+      fs.writeFileSync(tmp, buf);
+      await bucket.upload(tmp, { destination: dest, metadata: { contentType: m[1] } });
+      await bucket.file(dest).makePublic();
+      fs.unlink(tmp, () => {});
+      url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+    }
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      if (url) { b.voiceUrl = url; b.voiceAt = Date.now(); }
+      else { delete b.voiceUrl; delete b.voiceAt; }
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, url, beats });
   } catch (e) { fail(res, e); }
 });
 
