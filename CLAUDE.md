@@ -320,7 +320,9 @@ lifted into a standalone tool later.
 - `public/promptlab.html` + `/api/promptlab` (inline in server.js), Firestore
   `forge-promptlab`. Fixed recipe per style so runs stay comparable: **ONE
   image a run**, 2:3. Background job on the doc; the page polls and resumes
-  from `localStorage`. ♥/✕ per image in the lightbox.
+  from `localStorage`. ♥/✕ per image in the lightbox, plus a copy button
+  (Aug 2026) that closes the lightbox and puts that picture's prompt back in
+  the prompt box — the tiles-view route to the list boxes' copy button.
 - **Generate is the stars icon, and a run makes ONE picture (Aug 2026,
   Sophie).** The button is a Lucide `sparkles` glyph with no word on it, and
   there is no how-many picker at all — every style draws one image per tap
@@ -379,26 +381,34 @@ lifted into a standalone tool later.
   equivalents. **"Richard Scarry"** (Aug 2026) is a second gpt-image-2 style:
   same recipe, but the attached style references are THREE of Sophie's saved
   busy-animal picture-book pages (`refs/richard-scarry-1..3.png`, all three
-  attach). ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed
-  `evan` / `scarry`; the page sends `style`, absent/unknown → `evan` so old
-  pages keep working) — adding another different-reference style = drop the
-  image(s) in `refs/`, add a `PL_GPT_STYLES` entry + a matching `STYLES`
-  entry in promptlab.html (prefix/characterLine are preview COPIES — keep
-  them identical).
-- **Its prefix is baked in server-side** (`PL_GPT.prefix`) and her typed words
-  follow it verbatim after a blank line — no trigger word, no trailing-period
-  trim, no appended tail. The page's `STYLES.chatgpt.prefix` is a COPY used
-  only to preview the prompt in the "Sent as" line; **keep the two identical**.
+  attach); its prefix has NO colors line (that belonged to the watercolor
+  reference) and it is `noCharacter` — the Sophie toggle is hidden and the
+  server refuses the card even if sent, because her character card is the
+  watercolor look. Both gpt styles append a `suffix` at the VERY END of the
+  sent prompt, after her words: "Do not include any text in the image."
+  ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed `evan` /
+  `scarry`; the page sends `style`, absent/unknown → `evan` so old pages keep
+  working) — adding another different-reference style = drop the image(s) in
+  `refs/`, add a `PL_GPT_STYLES` entry + a one-line `STYLES` entry in
+  promptlab.html (the page holds NO prompt copies anymore — see below).
+- **Its prompt is baked in server-side** (`PL_GPT_STYLES`) and her typed words
+  sit between the style's prefix and its no-text suffix verbatim — no trigger
+  word, no trailing-period trim. **The "Sent as" preview line is GONE (Aug
+  2026, Sophie — "just the text box is fine")**, and with it the page's prompt
+  copies: promptlab.html's STYLES entries carry no prefix/characterLine
+  anymore (updateShape is a stub kept for its old call sites). The ONLY copies
+  left to keep in sync with `PL_GPT.prefix`/`PL_GPT.characterLine` are the
+  Scratch Pad's (ART.* in scratchpad.js).
   ~$0.06 an image at medium (a LoRA image is well under a cent).
-- **The Sophie character toggle (Aug 2026, ChatGPT style only):** her picture
-  as a small button on the controls row (dim = off, lit = on; a plain
-  variable like quality, so every load starts OFF). On, the run attaches
-  `refs/sophie-character.png` (her hearted "girl placing her book face down"
-  render) as the SECOND image and appends `PL_GPT.characterLine` to the
-  prefix — "Use the second attached image as a character reference. Her name
-  is Sophie. Whenever the prompt mentions Sophie, draw her as that girl." —
-  so typing "Sophie" in a prompt draws that girl. The page's
-  `STYLES.chatgpt.characterLine` is a preview COPY; keep both in sync.
+- **The Sophie character toggle (Aug 2026, ChatGPT style only — a
+  `noCharacter` style like Richard Scarry hides it and the server refuses the
+  card):** her picture as a small button on the controls row (dim = off, lit
+  = on; a plain variable like quality, so every load starts OFF). On, the run
+  attaches `refs/sophie-character.png` (her hearted "girl placing her book
+  face down" render) as the SECOND image and appends `PL_GPT.characterLine`
+  to the prefix — "Use the second attached image as a character reference.
+  Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that
+  girl." — so typing "Sophie" in a prompt draws that girl.
 - **`/playground?from=scratchpad` shows a "‹ Scratch Pad" chip** (fixed
   top-left) — the way back when the Scratch Pad's empty-beat popup sends her
   over; without it the pad's WKWebView strands her on the Playground.

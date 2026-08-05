@@ -4337,22 +4337,27 @@ const PL_GPT = {
 // style and the default when the page sends no `style`, so older pages and
 // the Scratch Pad's copies keep working unchanged. The page's STYLES entries
 // preview these prefixes in the "Sent as" line — keep the copies identical.
+// `suffix` (Aug 2026, Sophie) rides at the VERY END of the sent prompt, after
+// her words — the no-text rule reads last so the model can't bury it.
 const PL_GPT_STYLES = {
   evan: {
     label: 'ChatGPT', refFiles: [PL_GPT.refFile],
     prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
+    suffix: 'Do not include any text in the image.',
   },
   // "Richard Scarry" (Sophie's name for it): three Instagram saves she sent
   // (busy-animal picture-book pages — mouse in bed / at the table / hailing a
   // taxi), cropped to the artwork and banked in refs/. All three attach.
+  // No colors line (that belonged to the watercolor reference) and NO Sophie
+  // character card (her card is the watercolor look — wrong reference here),
+  // both Sophie's call Aug 2026.
   scarry: {
     label: 'Richard Scarry',
     refFiles: ['richard-scarry-1.png', 'richard-scarry-2.png', 'richard-scarry-3.png'],
     prefix: 'Use only the style of the three attached style reference images and ' +
-      'ignore their content — do not copy anything depicted in them. You can ' +
-      'choose your own colors rather than copying the colors of the style references.',
-    characterLine: ' Use the last attached image as a character reference. ' +
-      'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+      'ignore their content — do not copy anything depicted in them.',
+    suffix: 'Do not include any text in the image.',
+    noCharacter: true,
   },
 };
 const plRefCache = {};
@@ -4528,12 +4533,14 @@ app.post('/api/promptlab', async (req, res) => {
     // no trailing-period trim, no suffix) after the baked style-ref prefix.
     if (modelId === PL_GPT.id) {
       if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
-      const character = Boolean(req.body.character);
       // Which ChatGPT-engine style: an unknown/absent `style` falls back to
       // the original ('evan'), so older pages keep working.
       const styleId = Object.hasOwn(PL_GPT_STYLES, String(req.body.style || '')) ? String(req.body.style) : 'evan';
       const st = PL_GPT_STYLES[styleId];
-      const fullPrompt = `${st.prefix}${character ? st.characterLine : ''}\n\n${typed}`;
+      // A noCharacter style never attaches the Sophie card, whatever the page
+      // sends — her card is the watercolor look, the wrong reference there.
+      const character = Boolean(req.body.character) && !st.noCharacter;
+      const fullPrompt = `${st.prefix}${character ? st.characterLine : ''}\n\n${typed}${st.suffix ? `\n\n${st.suffix}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       const docRef = admin.firestore().collection(PROMPTLAB).doc();

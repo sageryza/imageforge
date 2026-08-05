@@ -14,8 +14,6 @@
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
   textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 16px; background: #fdfcf9; resize: vertical; }
-  .shape { font-size: 11.5px; color: #8a8177; margin: 6px 0 10px; }
-  .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; white-space: pre-wrap; }
   .controls { display: flex; align-items: center; gap: 10px; }
   .controls label { font-size: 12.5px; color: #6f675e; }
   .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
@@ -128,7 +126,6 @@
 <div class="panel">
   <div class="styles" id="styles"></div>
   <textarea id="prompt"></textarea>
-  <div class="shape">Sent as: <code id="shape"></code></div>
   <div class="controls">
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
@@ -170,6 +167,7 @@
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
+    <button class="lbbtn" id="lbcopy" aria-label="Put this prompt back in the box"></button>
     <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
   </div>
 </div>
@@ -245,39 +243,36 @@
   document.getElementById('lblike').innerHTML = ICONS.heart;
   document.getElementById('lbx').innerHTML = ICONS.x;
   document.getElementById('lbsave').innerHTML = ICONS.download;
+  document.getElementById('lbcopy').innerHTML = ICONS.copy;
+  // The same put-it-back-in-the-box button the list boxes have, but reachable
+  // from TILES view (Aug 2026, Sophie): a tile opens the lightbox, and this
+  // closes it and lands the picture's prompt in the prompt box.
+  document.getElementById('lbcopy').addEventListener('click', function () {
+    var r = lbCur && runsById[lbCur.id];
+    closeLB();
+    if (r) copyPromptIn(r.prompt);
+  });
 
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps — HOONIE gets 40 automatically); `suffix` here is the
   // page-level tail: Watercolor keeps the "White background" convention,
   // Hoonie sends none because its baked suffix already ends in one.
-  // The first two are Replicate LoRAs. ChatGPT is a different engine:
-  // gpt-image-2's edits endpoint with Sophie's scanned style reference
-  // attached, quality medium, 2:3 — so LoRA scale and seed don't apply to it
-  // and its controls are hidden. `prefix` is a COPY of PL_GPT.prefix in
-  // server.js purely so the "Sent as" line can preview the real prompt; the
-  // server's copy is the one that gets sent. Keep the two identical.
+  // The first two are Replicate LoRAs. The gptimage pair is a different
+  // engine: gpt-image-2's edits endpoint with reference images attached
+  // (`gptStyle` picks the set server-side — see PL_GPT_STYLES in server.js,
+  // which owns the whole sent prompt; the page no longer previews it, the
+  // "Sent as" line was removed Aug 2026 at Sophie's ask). LoRA scale and
+  // seed don't apply to gpt styles, so those controls are hidden; a
+  // `noCharacter` gpt style also hides the Sophie toggle (her card is the
+  // watercolor look — the wrong reference for a different style).
   var STYLES = {
     watercolor: { model: 'sageryza/watercolordrawings', label: 'Watercolor', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
     hoonie:     { model: 'sageryza/hoonie', label: 'Hoonie linocut', engine: 'replicate',
                   trigger: 'HOONIE', suffix: '', baked: 'linocut relief print, white background' },
-    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan',
-                  prefix: 'Use only the style of the attached style reference and ignore its ' +
-                    'content — do not copy anything depicted in it. You can choose your own ' +
-                    'colors rather than copying the colors of the style reference.',
-                  // COPY of PL_GPT.characterLine in server.js — preview only.
-                  characterLine: ' Use the second attached image as a character reference. ' +
-                    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.' },
-    // Same engine as ChatGPT, different attachments: Sophie's three saved
-    // busy-animal picture-book pages ride along as the style references
-    // (refs/richard-scarry-1..3.png). `gptStyle` picks the set server-side;
-    // prefix/characterLine are COPIES of PL_GPT_STYLES.scarry — preview only.
+    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
     scarry:     { model: 'gpt-image-2', label: 'Richard Scarry', engine: 'gptimage', gptStyle: 'scarry',
-                  prefix: 'Use only the style of the three attached style reference images and ' +
-                    'ignore their content — do not copy anything depicted in them. You can ' +
-                    'choose your own colors rather than copying the colors of the style references.',
-                  characterLine: ' Use the last attached image as a character reference. ' +
-                    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.' },
+                  noCharacter: true },
   };
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
@@ -327,7 +322,7 @@
     if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
     var qq = q.get('quality');
     if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; document.getElementById('qpick').value = qq; }
-    if (q.get('character') === '1' && isGpt(styleKey)) { charOn = true; document.getElementById('charpick').classList.add('on'); }
+    if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
     updateShape();
@@ -352,7 +347,7 @@
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
-    document.getElementById('charpick').hidden = !gpt;
+    document.getElementById('charpick').hidden = !gpt || !!STYLES[styleKey].noCharacter;
     document.getElementById('qpick').hidden = !gpt;
     document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
   }
@@ -371,20 +366,9 @@
     return styleLabelFor(r.model);
   }
 
-  function updateShape() {
-    var S = STYLES[styleKey];
-    if (S.engine === 'gptimage') {
-      // Her words go after the baked prefix exactly as typed — no trigger
-      // word, no trimmed period, no appended tail.
-      var w = document.getElementById('prompt').value.trim() || 'your words';
-      document.getElementById('shape').textContent = S.prefix + (charOn ? S.characterLine : '') + '\n\n' + w;
-      return;
-    }
-    var v = document.getElementById('prompt').value.trim().replace(/\.+$/, '') || 'your words';
-    var tail = [S.baked, S.suffix].filter(Boolean).join(', ');
-    document.getElementById('shape').textContent = S.trigger + ' ' + v + '.' + (tail ? ' ' + tail : '');
-  }
-  document.getElementById('prompt').addEventListener('input', updateShape);
+  // The "Sent as" preview is gone (Aug 2026, Sophie — just the text box).
+  // The stub stays so its old call sites are harmless.
+  function updateShape() {}
 
   // Pending entries carry what's being drawn so the card can say so.
   // Older saved entries may be plain id strings — normalize on read.
@@ -439,7 +423,8 @@
     var qual = q || quality;
     var key = plannedKey(S, prompt, scale, seed);
     var body = gpt
-      ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual, character: charOn }
+      ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual,
+          character: charOn && !S.noCharacter }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
