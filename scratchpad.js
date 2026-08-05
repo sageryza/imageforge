@@ -55,17 +55,14 @@ const PROMPTLAB = 'forge-promptlab';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
-// ("Sophie — morning") on eleven_v3 (her call, Aug 2026): the expressive
-// model, so bracketed stage directions like [quietly] / [laughs] work in a
-// note. NOTE v3 has no <break time> tags — pauses come from punctuation and
-// tags instead. Takes vary more run to run than v2; the text-hash cache means
-// a kept take stays kept.
+// ("Sophie — morning") on eleven_multilingual_v2, the Voice Studio recipe.
+// v3 was tried (Aug 2026) and REVERTED: professional clones aren't optimized
+// for v3 and the likeness drops badly ("a cousin doing an impression") —
+// v2 is the model that actually sounds like her. <break time="1.0s" /> tags
+// work in a note for pauses; v3's [quietly]-style acting tags do not.
 const TTS_VOICE_ID = 'UTkHGl2ImiT6gwtAFCql';
-const TTS_MODEL = 'eleven_v3';
-// v3 reads stability as a mode: 0.0 Creative / 0.5 Natural / 1.0 Robust.
-// Robust is Sophie's pick (Aug 2026) — the most consistent, closest to how
-// her v2 renders sounded.
-const TTS_SETTINGS = { stability: 1.0, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
+const TTS_MODEL = 'eleven_multilingual_v2';
+const TTS_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 
 const db = () => admin.firestore();
 const padRef = () => db().collection(COL).doc(DOC);
