@@ -99,7 +99,12 @@ function artRef(file) {
 // shares its audio, its members splitting that time equally — the animate-
 // between-panels version of a chunk is the paid follow-up, not this.
 const { execFile } = require('child_process');
-const FILM = { w: 1080, h: 1620, fps: 24, tail: 0.35, silent: 2.0, min: 0.6, segVersion: 1 };
+// 1000x1500 (2:3), not 1080x1620: the free instance has 512MB for the whole
+// app, and the bigger frame's x264 buffers pushed encodes over the OOM line —
+// jobs died SILENTLY (no catch runs when the process is killed), which is
+// exactly how Sophie's first films vanished. Draft films prove 1000-wide
+// encodes survive here. ref=1 + short lookahead keep the encoder lean.
+const FILM = { w: 1000, h: 1500, fps: 24, tail: 0.35, silent: 2.0, min: 0.6, segVersion: 2 };
 function tryRequire(name) { try { return require(name); } catch { return null; } }
 function firstOnPath(bin) {
   for (const dir of (process.env.PATH || '').split(path.delimiter)) {
@@ -506,11 +511,16 @@ async function runFilmJob(padId) {
           const img = await fetchTo(pics[p].url, path.join(dir, `i${u}-${p}`));
           await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
             '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
-            '-r', String(FILM.fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+            '-r', String(FILM.fps), '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
           try { await admin.storage().bucket().upload(seg, { destination: `scratchpad/film-cache/${segKey}.mp4`, metadata: { contentType: 'video/mp4' } }); }
           catch (e) { console.warn('film seg-cache save:', e.message); }
         }
         segs.push(seg);
+        // Progress heartbeat: the page shows it, and refreshing `at` means the
+        // stuck-job sweep measures STALLED time, not total time — a long story
+        // that is genuinely moving is never mistaken for a zombie.
+        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `picture ${segs.length}` } }, { merge: true }).catch(() => {});
       }
     }
 

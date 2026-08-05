@@ -424,7 +424,7 @@ function renderFilm(){
   make.disabled=making;
   make.style.opacity=making?'.45':'';
   play.hidden=!(film&&film.url);
-  var msg=making?'making the film…'
+  var msg=making?('making the film… '+(film.progress||''))
     :(film&&film.status==='failed'?(film.error||'the film failed'):'');
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
