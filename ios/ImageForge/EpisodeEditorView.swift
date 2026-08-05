@@ -56,9 +56,7 @@ struct EpisodeEditorView: View {
         // The standard tool header, Story Room pattern: the nav-bar chevron is
         // THE back arrow — inside an episode the page consumes it and returns
         // to the episode list (__navBack); on the list it leaves the tool.
-        .forgeToolBar("Episode Editor", tint: Self.ink, back: navBack)
-        .toolbarBackground(Self.paper, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .forgeToolBar("Episode Editor", tint: Self.ink, paper: Self.paper, back: navBack)
     }
 
     /// Ask the page to step back one level; when it's already on the episode

@@ -56,9 +56,7 @@ struct PlaygroundView: View {
         .background(Self.paper.ignoresSafeArea())
         // Standard tool header: the nav-bar chevron is THE back arrow — the
         // page consumes it while its lightbox is open, then it leaves the tool.
-        .forgeToolBar("Playground", tint: Self.ink, back: navBack)
-        .toolbarBackground(Self.paper, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .forgeToolBar("Playground", tint: Self.ink, paper: Self.paper, back: navBack)
     }
 
     /// Ask the page to step back one level (close its lightbox); when there is

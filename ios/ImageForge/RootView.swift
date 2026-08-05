@@ -61,15 +61,15 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    return "moon.stars"
         case .instagram: return "camera"
         case .ads:       return "megaphone"
-        case .story:     return "rectangle.grid.2x2"
-        case .lessons:   return "books.vertical"
+        case .story:     return "books.vertical"
+        case .lessons:   return "rectangle.grid.2x2"
         case .writing:   return "text.book.closed"
         case .editor:    return "waveform"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
         case .dump:      return "tray.and.arrow.down"
-        case .playground: return "paintpalette"
+        case .playground: return "paintpalette" // fallback; .playground uses a custom asset (see customIcon)
         // The dashed placement slot is the pad's own signature shape.
         case .scratchpad: return "square.dashed"
         }
@@ -77,11 +77,14 @@ enum Tool: String, CaseIterable, Identifiable {
 
     /// A few tools ship a bundled custom icon (template-rendered so it still
     /// takes the foreground color) because their look isn't in SF Symbols.
-    /// Test Station uses a hand-drawn twin-test-tube glyph.
+    /// Test Station uses a hand-drawn twin-test-tube glyph; the Playground uses
+    /// Sophie's drawing of the wire-loop toy (little trains riding sprung wires
+    /// out of a flat base).
     var customIcon: String? {
         switch self {
-        case .test: return "TestTube"
-        default:    return nil
+        case .test:       return "TestTube"
+        case .playground: return "Playground"
+        default:          return nil
         }
     }
 
@@ -98,10 +101,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
-                             .forgeTitle("Story Room")
-                             .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
-                             .toolbarBackground(.visible, for: .navigationBar)
-        case .lessons:   LessonsView().forgeToolBar("Lessons")
+                             .forgeTitle("Story Room", paper: StoryRoomView.paper)
+        case .lessons:   LessonsView().forgeToolBar("Lessons", paper: LessonsView.paper)
         case .writing:   WritingRoomView()
         case .editor:    EpisodeEditorView()
         case .chats:     ChatFeedView()
@@ -132,6 +133,11 @@ struct ToolGlyph: View {
                 // cap-height, so scale up to sit at the same optical size as the
                 // symbols beside it (e.g. the Chats bubble in the other corner).
                 .frame(width: size * 1.35, height: size * 1.35)
+                // …but keep the LAYOUT box the height an SF Symbol of this size
+                // would take, so the bigger drawing overflows visually instead
+                // of pushing whatever sits under it (the home grid stacks a
+                // title right below the icon) out of line with its neighbours.
+                .frame(height: size * 1.2)
         } else {
             Image(systemName: tool.icon)
                 .font(.system(size: size, weight: weight))
@@ -439,7 +445,7 @@ private struct HomeGrid: View {
                 LazyVGrid(columns: grid, spacing: 14) {
                     ForEach(tools) { t in
                         Button { open(t) } label: {
-                            HubCard(icon: t.icon, title: t.title, desc: t.desc)
+                            HubCard(tool: t, title: t.title, desc: t.desc)
                         }
                         .buttonStyle(.plain)
                     }
@@ -452,13 +458,15 @@ private struct HomeGrid: View {
 }
 
 private struct HubCard: View {
-    let icon: String
+    // The tool, not a symbol name: a card must draw a bundled custom glyph
+    // (Playground) the same way the bottom bar does.
+    let tool: Tool
     let title: String
     let desc: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon).font(.system(size: 26)).foregroundColor(Theme.accent)
+            ToolGlyph(tool: tool, size: 26).foregroundColor(Theme.accent)
             Text(title).font(.headline).foregroundColor(Theme.text)
             Text(desc).font(.caption).foregroundColor(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
