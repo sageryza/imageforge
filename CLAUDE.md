@@ -1716,7 +1716,19 @@ lifted into a standalone tool later.
   popup) and `ICONS.sparkles` in `promptlab.html` (the Playground's Generate).
   Deliberate exceptions, because they say something the star can't: the pad's
   **wand** (draw every beat that's missing art — a bulk action) and the
-  Playground's **pyramid** (low·low·medium, a picture of how many).
+  Playground's **pyramid** (low·low·medium, a picture of how many — an actual
+  tiered pyramid, two cells along the base for the lows and the filled top
+  tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
+  that says nothing about how many).
+- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
+  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
+  ink — it sits on a text baseline, so the glyph is about cap height, not the
+  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
+  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
+  time, which is why the Test Station's tubes read half again the size of
+  every symbol beside them. Bundled glyph SVGs should fill ~0.9 of their own
+  viewBox, centred (both `TestTube` and `Playground` do) so one rule sizes
+  them all.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
