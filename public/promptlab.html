@@ -346,11 +346,45 @@
   }
   function setPending(list) { localStorage.setItem(LSKEY, JSON.stringify(list)); }
 
+  // ─── "I already have that one" ───────────────────────────────────────────
+  // A Replicate run is DETERMINISTIC: same prompt, same scale, same seed gives
+  // back the same picture, so re-running it spends money to draw a duplicate.
+  // Those runs are skipped before anything is sent.
+  //
+  // ChatGPT is deliberately NOT deduped: an identical run there draws a
+  // DIFFERENT picture every time, which is the whole point of tapping the
+  // stars twice — so `recipeKey` answers null for it and nothing is blocked.
+  //
+  // The prompt is normalized the way the server does it (trim, then drop
+  // trailing periods) or a typed "." would look like a different run.
+  function recipeKey(model, prompt, scale, seed) {
+    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed]);
+  }
+  function plannedKey(S, prompt, scale, seed) {
+    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed);
+  }
+  function runKey(r) {
+    return r.engine === 'gptimage' ? null : recipeKey(r.model, r.prompt, r.loraScale, r.seed);
+  }
+  // Only a run that actually produced a picture blocks a repeat — a failed or
+  // cancelled one has to stay retryable. A run still drawing blocks too: it is
+  // about to become that picture.
+  function alreadyRun(key) {
+    if (!key) return false;
+    var hit = pendingList().some(function (p) { return p.key === key; });
+    if (hit) return true;
+    return Object.keys(runsById).some(function (id) {
+      var r = runsById[id];
+      return runImages(r).length > 0 && runKey(r) === key;
+    });
+  }
+
   function startRun(scale) {
     var prompt = document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
+    var key = plannedKey(S, prompt, scale, seed);
     var body = gpt
       ? { prompt: prompt, model: S.model, outputs: OUTPUTS, quality: quality, character: charOn }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
@@ -362,7 +396,9 @@
       var list = pendingList();
       list.push(gpt
         ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: quality }
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed });
+        // `key` rides along so a second tap can see this one is already on its
+        // way, before it has any images to be recognised by.
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key });
       setPending(list);
       renderPendings(); startPolling();
     });
@@ -384,17 +420,32 @@
   function go() {
     if (!checkPrompt()) return;
     var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var prompt = document.getElementById('prompt').value.trim();
+    if (alreadyRun(plannedKey(STYLES[styleKey], prompt, scale, curSeed()))) {
+      toast('You already have that one — tap the sprout for a new seed');
+      return;
+    }
     var btn = document.getElementById('go');
     btn.disabled = true;
     startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
   }
 
   // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
+  // Whichever rungs she already has are skipped, so running ×3 after a single
+  // scale-1 run only draws the two that are missing.
   document.getElementById('xthree').addEventListener('click', function () {
     if (!checkPrompt()) return;
+    var prompt = document.getElementById('prompt').value.trim();
+    var S = STYLES[styleKey], seed = curSeed();
+    var todo = [], have = [];
+    [1, 1.2, 1.4].forEach(function (s) {
+      (alreadyRun(plannedKey(S, prompt, s, seed)) ? have : todo).push(s);
+    });
+    if (!todo.length) { toast('You already have all three — tap the sprout for a new seed'); return; }
+    if (have.length) toast('Drawing scale ' + todo.join(' and ') + ' — you already have ' + have.join(' and '));
     var btn = document.getElementById('xthree');
     btn.disabled = true;
-    Promise.all([1, 1.2, 1.4].map(function (s) { return startRun(s).catch(showErr); }))
+    Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
       .finally(function () { btn.disabled = false; });
   });
 

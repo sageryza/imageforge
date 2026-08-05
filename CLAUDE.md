@@ -328,6 +328,21 @@ lifted into a standalone tool later.
   `cfg.outputs`, and `POST /api/promptlab` clamps `outputs` to 1-4 with a
   default of 1). The page's `OUTPUTS` const is the other half of the pair —
   move both if this ever changes.
+- **A Replicate run she already has is never sent again (Aug 2026, Sophie).**
+  Flux with a fixed seed is deterministic — same prompt + same LoRA scale +
+  same seed draws the SAME picture — so re-running one only spends money on a
+  duplicate. `alreadyRun()` checks the planned recipe against the runs on the
+  page and the ones still drawing, and Generate stops with a toast instead of
+  posting. **×3 sends only the rungs she's missing** ("Drawing scale 1.2 and
+  1.4 — you already have 1"), so ×3 after a single scale-1 run costs two
+  images, not three. Two deliberate exceptions: **ChatGPT is never deduped**
+  (an identical run there draws a DIFFERENT picture — that's the point of
+  tapping the stars twice, so `plannedKey` answers null for it), and a run
+  that **failed or was cancelled never blocks a retry** (only one that really
+  produced a picture counts). The prompt is normalized the way the server
+  does it — trimmed, trailing periods dropped — or a typed "." reads as a
+  different run. The check sees the loaded feed (40 runs) plus anything in
+  flight, so a duplicate of something much older still gets through.
 - **Identical runs share ONE box (Aug 2026, Sophie).** Tapping the stars twice
   on the same prompt is one job as far as she's concerned, so the feed merges
   runs whose prompt AND settings match — engine, model, status, quality,
