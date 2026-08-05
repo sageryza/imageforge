@@ -1878,10 +1878,14 @@ slots are short centered dashes.
   already down, dashed slots appear (front / between / behind) and she taps
   where it goes. **The pad is four to a row and incomplete rows CENTER**
   (flex, not grid — the first beat sits in the middle of the top, Sophie's
-  spec). Tapping a beat opens a popup: the art at THUMBNAIL size (never
-  blown up — Sophie's spec), five bare color chips (gray/mustard/green/
-  blue/pink) that set the FRAME color and keep the popup open, and a
-  three-line text box (`beat.text`, saved on close). The story TITLE sits
+  spec). Tapping a beat opens a popup: **an opaque cream/white CARD with a
+  light border that nearly fills the screen but leaves a sliver of the pad
+  visible around its edges (Aug 2026, Sophie) — NOT a dark lightbox scrim;
+  everything lives ON the card** (`#beatcard`, controls styled ink-on-cream,
+  tap the edge or the card's empty cream to close) — the art at THUMBNAIL
+  size (never blown up — Sophie's spec), five bare color chips (gray/
+  mustard/green/blue/pink) that set the FRAME color and keep the popup
+  open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
   under the eyebrow in the serif ("Untitled" until she renames it — tap to
   edit, `pad.title`, `POST /title`); a beat with words shows them SMALL
   under its tile — FIRST LINE only, the rest lives in the popup — and

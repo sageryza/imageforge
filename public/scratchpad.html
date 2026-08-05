@@ -107,73 +107,85 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
   padding:0; overflow:hidden; cursor:pointer;}
 #inboxgrid button img{width:100%; height:100%; object-fit:cover; display:block;}
 #inboxgrid button.used{opacity:.35;}
-#beatpop{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:20px; background:rgba(20,17,12,.82); padding:5vw;}
+/* The beat popup is an opaque cream CARD, not a dark lightbox: it nearly
+   fills the screen but leaves a little of the pad showing around its edges,
+   white/cream paper with a light border (Sophie, Aug 2026). Everything —
+   art, versions, chips, note, icons — lives ON the card. No scrim. */
+#beatpop{position:fixed; inset:0; z-index:50; background:none;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);}
+#beatcard{width:100%; height:100%; box-sizing:border-box; background:var(--barbg);
+  border:1.5px solid var(--line); border-radius:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column;}
+/* margin:auto centers the content when it's shorter than the card and lets
+   it scroll normally when it's taller (justify-content:center would clip
+   the top of overflowing content). */
+#cardin{margin:auto; width:100%; box-sizing:border-box; padding:22px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:20px;}
 /* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
    big) — openBeat() copies the pad tile's pixel width onto it. */
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
 .chips{display:flex; gap:16px;}
-.chip{width:36px; height:36px; border-radius:50%; border:1.5px solid rgba(255,255,255,.55); padding:0; cursor:pointer;}
-.chip.on{outline:2.5px solid #fff; outline-offset:3px;}
+.chip{width:36px; height:36px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
+.chip.on{outline:2.5px solid var(--ink); outline-offset:3px;}
 .chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
 .chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
 #pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
-  line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
+  line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{display:flex; gap:14px;}
 #speak,#linkbtn,#micbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
-  border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
+  border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
 #speak svg,#linkbtn svg,#micbtn svg,#delbtn svg{width:17px; height:17px;}
 /* Every generation this beat has had, all the same size, newest first; the
    one currently on the pad wears the dark ring. Tap one to see it big. */
 #verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
-#verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid rgba(255,255,255,.4); border-radius:4px;
-  overflow:hidden; background:var(--barbg); cursor:pointer;}
-#verrow button.cur{border:2.5px solid #fff;}
+#verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid var(--line); border-radius:4px;
+  overflow:hidden; background:var(--paper); cursor:pointer;}
+#verrow button.cur{border:2.5px solid var(--ink);}
 #verrow img{width:100%; height:100%; object-fit:cover; display:block;}
 #delask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.55); padding:24px;}
 #speak.busy,#micbtn.busy{opacity:.45;}
 /* Lit = this beat is part of a chunk (tap dissolves the whole chunk). */
-#linkbtn.on{background:#fff; color:#26221c; border-color:#fff;}
+#linkbtn.on{background:var(--ink); color:var(--barbg); border-color:var(--ink);}
 /* Mic: lit = a recording exists (her reading is what plays); red = recording
    right now, tap again to stop. */
-#micbtn.on{background:#fff; color:#26221c; border-color:#fff;}
+#micbtn.on{background:var(--ink); color:var(--barbg); border-color:var(--ink);}
 #micbtn.rec{background:#c25a72; border-color:#c25a72; color:#fff;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
-#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--barbg);
+#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--paper);
   display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
 #popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
 #popblank svg{width:24px; height:24px;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
 #artrow{display:flex; gap:14px; justify-content:center;}
-#artrow button{background:none; border:1.5px solid rgba(255,255,255,.55); border-radius:6px; padding:6px 8px;
-  color:#fff; cursor:pointer; display:flex;}
+#artrow button{background:none; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
+  color:var(--ink); cursor:pointer; display:flex;}
 #artrow svg{width:17px; height:17px;}
 /* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
    quality, Draw. The STYLE is never asked — one style per story. */
 #drawbox{width:min(80vw,22em); display:flex; flex-direction:column; gap:8px;}
 #dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
-  line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line);
+  line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
 .drawrow{display:flex; align-items:center; gap:10px;}
-#dchar{width:34px; height:34px; flex:none; padding:0; border:1.5px solid rgba(255,255,255,.55); border-radius:6px;
+#dchar{width:34px; height:34px; flex:none; padding:0; border:1.5px solid var(--line); border-radius:6px;
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
-#dchar.on{opacity:1; border-color:#fff;}
+#dchar.on{opacity:1; border-color:var(--ink);}
 #dchar img{width:100%; height:100%; object-fit:cover; display:block;}
-#dq{font-family:-apple-system,sans-serif; font-size:16px; border:1.5px solid rgba(255,255,255,.55);
-  border-radius:6px; background:none; color:#fff; padding:6px 8px;}
+#dq{font-family:-apple-system,sans-serif; font-size:16px; border:1px solid var(--line);
+  border-radius:6px; background:var(--paper); color:var(--ink); padding:6px 8px;}
 #dq option{color:#26221c;}
-#dgo{margin-left:auto; font-family:'EBGaramond',Georgia,serif; font-size:16px; background:#fff; color:#26221c;
+#dgo{margin-left:auto; font-family:'EBGaramond',Georgia,serif; font-size:16px; background:var(--ink); color:var(--paper);
   border:none; border-radius:6px; padding:8px 18px; cursor:pointer;}
 #dgo:disabled{opacity:.5;}
 /* A beat being drawn (or a failed draw) says so on its own line. */
-#genstate{color:#fff; font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
+#genstate{color:var(--ink2); font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
 /* Draw-the-missing confirm: what it will draw and what it will cost, before
    a cent is spent. Flat, 6px corners, no gradients. */
 #bulkask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
@@ -240,6 +252,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
 </div>
 
 <div id="beatpop" hidden>
+  <div id="beatcard"><div id="cardin">
   <div id="artrow" hidden>
     <button id="ardraw" aria-label="Draw it again here"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z"/></svg></button>
     <button id="arplay" aria-label="Make different art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
@@ -276,6 +289,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
     <button id="unlinkbtn" hidden aria-label="Break this chunk apart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></button>
     <button id="delbtn" aria-label="Delete this beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></button>
   </div>
+  </div></div>
 </div>
 
 <div id="lightbox" hidden><img id="lbimg" alt=""></div>
@@ -851,7 +865,7 @@ document.getElementById('arplay').onclick=function(ev){
   location.href='/playground?from=scratchpad';
 };
 /* A chip sets the frame color and the popup STAYS open (there's a text box
-   here now); tapping the scrim is what closes it. */
+   here now); tapping outside the controls is what closes it. */
 document.querySelectorAll('.chip').forEach(function(c){
   c.onclick=function(ev){
     ev.stopPropagation();
@@ -926,7 +940,12 @@ document.getElementById('delyes').onclick=function(ev){
 };
 
 function closeBeat(){stopRec(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
-document.getElementById('beatpop').onclick=function(ev){ if(ev.target===this)closeBeat(); };
+/* Close on the edge around the card OR on the card's own empty cream — the
+   same "tap anywhere that isn't a control" contract the old scrim had. */
+document.getElementById('beatpop').onclick=function(ev){
+  var t=ev.target;
+  if(t===this||t.id==='beatcard'||t.id==='cardin')closeBeat();
+};
 
 load();
 </script>
