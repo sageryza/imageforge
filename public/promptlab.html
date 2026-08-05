@@ -37,7 +37,7 @@
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
   .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-  .runhead .p { font-size: 14px; font-weight: 600; width: 100%; }
+  .runhead .p { font-size: 14px; font-weight: 600; flex: 1; min-width: 70%; }
   /* A long prompt is capped at two lines. The "…" that opens it is added AFTER
      layout, and OUTSIDE the capped box — anything inside a line-clamp box after
      the clamped text gets clipped away with it. */
@@ -45,6 +45,15 @@
   .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  /* List view: one image per row, big. Toggled by the button above the feed. */
+  body.plist .grid { grid-template-columns: 1fr; gap: 10px; }
+  .feedbar { display: flex; justify-content: flex-end; margin: 2px 0 8px; }
+  .viewtog { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; }
+  .viewtog svg { width: 15px; height: 15px; }
+  .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
+  .copybtn svg { width: 14px; height: 14px; }
   .cell { position: relative; }
   .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
   .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
@@ -114,6 +123,7 @@
   <div class="err" id="err" hidden></div>
 </div>
 
+<div class="feedbar"><button class="viewtog" id="viewtog" aria-label="Switch view"></button></div>
 <div id="pendings"></div>
 <div id="runs"></div>
 
@@ -154,7 +164,33 @@
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>',
+    gridicon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
   };
+
+  // Grid (4-up tiles) vs list (one big image per row). Sticky across loads.
+  function applyView() {
+    var list = localStorage.getItem('promptlab_view') === 'list';
+    document.body.classList.toggle('plist', list);
+    // The button shows where a tap takes you — the OTHER view.
+    document.getElementById('viewtog').innerHTML = list ? ICONS.gridicon : ICONS.list;
+  }
+  document.getElementById('viewtog').addEventListener('click', function () {
+    var list = localStorage.getItem('promptlab_view') === 'list';
+    localStorage.setItem('promptlab_view', list ? 'grid' : 'list');
+    applyView();
+  });
+  applyView();
+
+  // The copy button beside a run's words: puts that prompt back into the box.
+  function copyPromptIn(text) {
+    var box = document.getElementById('prompt');
+    box.value = text || '';
+    updateShape();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Prompt is back in the box');
+  }
   document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
   // The seed: starts at 85 (the test convention), the sprout button steps it
@@ -371,6 +407,7 @@
       for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
       return '<div class="run"><div class="runhead">' +
         '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
+        '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
         tags.filter(Boolean).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
         '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
         '<div class="grid">' + cells + '</div></div>';
@@ -382,6 +419,13 @@
   // stops the prediction and only bills the compute already run.
   var askId = null;
   document.getElementById('pendings').addEventListener('click', function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (cp) {
+      var pid = cp.getAttribute('data-copy');
+      var pend = pendingList().filter(function (x) { return x.id === pid; })[0];
+      if (pend) copyPromptIn(pend.prompt);
+      return;
+    }
     var btn = e.target.closest('[data-kill]');
     if (!btn) return;
     askId = btn.getAttribute('data-kill');
@@ -419,6 +463,13 @@
     if (!list.length) { clearInterval(timer); timer = null; renderPendings(); return; }
     list.forEach(function (p) {
       fetch('/api/promptlab/' + p.id).then(function (r) { return r.json(); }).then(function (d) {
+        // A run whose doc is GONE (deleted server-side) must not haunt the
+        // top of the page forever — drop it from the pending list too.
+        if (d.error || !d.status) {
+          setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
+          renderPendings();
+          return;
+        }
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
           setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
           // 'ready' = the first images are in, the rest still landing: the swap
@@ -468,12 +519,13 @@
       runsById = {};
       document.getElementById('runs').innerHTML = runs.map(function (r) {
         runsById[r.id] = r;
+        var cp = '<button class="copybtn" data-copy="' + r.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
         if (r.status === 'failed') {
-          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(r.prompt) + '</span>' +
+          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(r.prompt) + '</span>' + cp +
             '<span class="tag">failed</span></div><div class="note">' + esc(r.error || 'generation failed') + '</div></div>';
         }
         var votes = r.votes || {};
-        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(r.prompt) + '</span>' +
+        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(r.prompt) + '</span>' + cp +
           runParts(r).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="grid">' + runImages(r).map(function (u, i) {
             var v = votes[i];
@@ -487,6 +539,12 @@
 
   // One delegated handler for every tile.
   document.getElementById('runs').addEventListener('click', function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (cp) {
+      var r = runsById[cp.getAttribute('data-copy')];
+      if (r) copyPromptIn(r.prompt);
+      return;
+    }
     var img = e.target.closest('img[data-run]');
     if (!img) return;
     openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
