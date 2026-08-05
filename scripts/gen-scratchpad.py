@@ -220,8 +220,7 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
-    <button class="iconbtn" id="filmbtn" aria-label="Make the film"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg></button>
-    <button class="iconbtn" id="playbtn" hidden aria-label="Play the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
+    <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
@@ -326,6 +325,7 @@ function api(p,opts){
   if(TOKEN)opts.headers['x-studio-token']=TOKEN;
   if(opts.body){
     try{var b=JSON.parse(opts.body); if(b.pad===undefined){b.pad=padId; opts.body=JSON.stringify(b);}}catch(e){}
+    if(p!=='/film'&&p.indexOf('/pads')!==0&&p!=='/tts') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -474,25 +474,42 @@ function renderTitle(){
   t.onkeydown=function(ev){ if(ev.key==='Enter'){ev.preventDefault(); t.blur();} };
 })();
 
-/* ── the film: made from the beats, timed by their own audio ──────── */
-var film=null;
+/* ── the film: ONE button that always means "watch my film" ────────
+   Up-to-date film → plays. Missing or stale (the story was touched after
+   the render) → the tap renders first, then auto-plays when it lands if
+   she's still here. A failed render re-arms the button — the backend keeps
+   remaking possible always (failed state + the stuck-job sweep). */
+var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
+function filmFresh(){
+  // Server-clock to server-clock only — never compare against the phone's.
+  return Boolean(film&&film.url&&film.status==='done'&&!dirtySinceFilm&&(film.at||0)>=(padUpdated-2500));
+}
 function renderFilm(){
   var note=document.getElementById('filmnote');
   var play=document.getElementById('playbtn');
-  var make=document.getElementById('filmbtn');
   var making=Boolean(film&&film.status==='making');
-  make.disabled=making;
-  make.style.opacity=making?'.45':'';
-  play.hidden=!(film&&film.url);
+  play.hidden=!beats.some(function(b){return b.url;});
+  play.disabled=making;
+  play.style.opacity=making?'.45':'';
   var msg=making?('making the film… '+(film.progress||''))
     :(film&&film.status==='failed'?(film.error||'the film failed'):'');
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
-document.getElementById('filmbtn').onclick=function(ev){
+function playFilm(){
+  if(!film||!film.url)return;
+  var v=document.getElementById('filmvid');
+  v.src=film.url;
+  document.getElementById('filmplay').hidden=false; lock(true);
+  window.__scrollStop&&window.__scrollStop();
+  v.play();
+}
+document.getElementById('playbtn').onclick=function(ev){
   ev.stopPropagation();
   if(film&&film.status==='making')return;
-  film={status:'making'}; renderFilm();
+  if(filmFresh()){ playFilm(); return; }
+  autoplayWanted=true;
+  film=Object.assign({},film,{status:'making',progress:''}); renderFilm();
   api('/film',{method:'POST',body:JSON.stringify({})})
     .then(function(r){return r.json()})
     .then(function(d){
@@ -500,15 +517,6 @@ document.getElementById('filmbtn').onclick=function(ev){
       startFilmPoll();
     })
     .catch(function(){ film={status:'failed',error:'could not start'}; renderFilm(); });
-};
-document.getElementById('playbtn').onclick=function(ev){
-  ev.stopPropagation();
-  if(!film||!film.url)return;
-  var v=document.getElementById('filmvid');
-  v.src=film.url;
-  document.getElementById('filmplay').hidden=false; lock(true);
-  window.__scrollStop&&window.__scrollStop();
-  v.play();
 };
 document.getElementById('filmplay').onclick=function(ev){
   if(ev.target===this){
@@ -567,8 +575,14 @@ function startFilmPoll(){
   if(filmTimer)return;
   filmTimer=setInterval(function(){
     api('').then(function(r){return r.json()}).then(function(d){
-      film=d.film||null; renderFilm();
-      if(!film||film.status!=='making'){ clearInterval(filmTimer); filmTimer=null; }
+      film=d.film||null; padUpdated=d.updatedAt||padUpdated; renderFilm();
+      if(!film||film.status!=='making'){
+        clearInterval(filmTimer); filmTimer=null;
+        if(film&&film.status==='done'){
+          dirtySinceFilm=false;
+          if(autoplayWanted){ autoplayWanted=false; playFilm(); }
+        }
+      }
     }).catch(function(){});
   },5000);
 }
@@ -576,6 +590,7 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
+    padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
@@ -611,7 +626,7 @@ function openPad(id){
   padId=id; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
-  film=null; renderFilm();
+  film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   document.getElementById('stories').hidden=true; lock(false);
   beats=[]; padTitle=''; render();
   load();
