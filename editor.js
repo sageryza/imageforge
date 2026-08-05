@@ -326,6 +326,34 @@ async function deleteEpisode(id) {
   else memStore.delete(id);
 }
 
+// Drop a snippet cut elsewhere (the Cutting Room) into an episode: register the
+// recording as a source, add the snippet card, and append it to the sequence.
+// The editor's own render path then cuts it natively — same whisper fallback,
+// same clip cache — so a hand-off is words + an anchor, never a pre-cut file.
+async function addExternalSnippet({ episodeId, episodeTitle, name, videoId, audioUrl, text, timeSec, experiencer }) {
+  let ep = episodeId ? await loadEpisode(episodeId) : null;
+  if (!ep) {
+    ep = normalizeEpisode({
+      id: `cr-${crypto.randomBytes(6).toString('hex')}`,
+      title: episodeTitle || 'From the Cutting Room',
+      sources: [], snippets: [], sequence: [], renders: [],
+      createdAt: new Date().toISOString(),
+    });
+  }
+  if (!ep.sources.find(s => s.videoId === videoId)) {
+    ep.sources.push({ videoId, experiencer: experiencer || 'Sophie', timeSec: Math.round(timeSec) || 0, audioUrl });
+  }
+  const snip = {
+    id: `sn-${crypto.randomBytes(5).toString('hex')}`,
+    name: name || String(text || '').split(/\s+/).slice(0, 6).join(' '),
+    videoId, text: String(text || ''), timeSec: Math.round(timeSec) || 0,
+  };
+  ep.snippets.push(snip);
+  ep.sequence.push({ type: 'clip', snippetId: snip.id });
+  await saveEpisode(ep);
+  return { id: ep.id, title: ep.title, snippetId: snip.id };
+}
+
 async function uploadPublic(localFile, storagePath, contentType, cacheControl) {
   const b = bucket();
   if (!b) throw new Error('Firebase Storage unavailable — cannot publish the render');
@@ -1243,4 +1271,8 @@ module.exports = {
   // exported so scripts/warm-clip-cache.js can pre-cut clips into the clip
   // cache from anywhere (the identical code path a server render runs)
   buildClip, sourceFor, clipCachePath, defaultAudioUrl,
+  // exported for the Cutting Room (cuttingroom.js) — the same cutting
+  // primitives, so its cuts sound identical to an episode's
+  detectSilences, whisperWords, extractWindow, audioDuration, uploadPublic,
+  listEpisodes, addExternalSnippet,
 };

@@ -276,6 +276,7 @@ loadConfig().then(() => {
   const tarotEmail = require('./tarot-email');
   const nde = require('./nde');
   const editor = require('./editor');
+  const cuttingroom = require('./cuttingroom');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -344,6 +345,7 @@ loadConfig().then(() => {
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
   app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
+  app.use('/api/cutroom', cuttingroom.router); // Cutting Room: mark her own recordings on the transcript — cut pauses, save/send sections
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -2451,6 +2453,12 @@ app.get('/voice', serveGated('voice.html', { pill: true }));
 // autoscroll pill — the native EpisodeEditorView deliberately ships no pill of
 // its own, so this is the only one.
 app.get('/editor', serveGated('editor.html', { pill: true }));
+
+// Cutting Room: one of Sophie's OWN recordings marked on its transcript —
+// tap words to cut pauses and slice sections off to save or send on (Episode
+// Editor / Story Room). Engine is /api/cutroom (cuttingroom.js). Same gate;
+// long transcripts get the shared autoscroll pill.
+app.get('/cuttingroom', serveGated('cuttingroom.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

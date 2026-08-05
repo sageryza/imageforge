@@ -856,4 +856,20 @@ router.post('/color', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-module.exports = { router };
+// Attach an already-hosted recording to a beat as its voice — the Cutting
+// Room's hand-off. Same contract as POST /voice: voiceUrl is the latest,
+// EVERY take is kept in voiceTakes (Sophie's rule), nothing is deleted.
+async function attachVoiceUrl(padId, beatId, url) {
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(padRef(padId));
+    const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+    const b = cur.find((x) => x.id === beatId);
+    if (!b) throw new Error('no such beat');
+    b.voiceUrl = url; b.voiceAt = Date.now();
+    b.voiceTakes = (b.voiceTakes || []).concat([{ url, at: b.voiceAt }]);
+    tx.set(padRef(padId), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    return b;
+  });
+}
+
+module.exports = { router, attachVoiceUrl };

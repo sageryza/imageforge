@@ -1975,6 +1975,67 @@ lifted into a standalone tool later.
   It pauses the page's audio on a screen change so a preview never keeps playing
   from a hidden tab. Page changes ship via Render deploy — no TestFlight build.
 
+## Cutting Room (her recordings → marked on the transcript → cut/sent)
+- `cuttingroom.js` (`/api/cutroom`, page at `/cuttingroom`, iOS tile "Cutting
+  Room", SF Symbol `scissors`, deep link `deckfactory://cutroom`) — Sophie
+  opens one of her OWN recordings (the audio-drop list, i.e. everything shared
+  off Voice Memos), marks it on its **transcript** — never a waveform — cuts
+  pauses out, and slices sections off to save or send on. The hallway between
+  Voice Memos and the rooms that use her voice. Designed around her wrist
+  (tendinitis): **everything is a tap, nothing drags, scrubs, or scrolls**
+  (playback follows itself — current word highlighted, page auto-centers).
+- **Design (Aug 2026, Sophie): icon-first, gold-on-cream.** Buttons are GOLD
+  outline + GOLD icon on CREAM (never white/text on the accent), words only
+  where unavoidable (sheet rows, confirms). Send = the Apple share glyph, cut
+  out = scissors, MARK = bookmark, tighten = chevrons pointing inward, render
+  = arrow-down-to-line. Same paper/gold palette as editor.html — sibling tools.
+- **Marking model:** tap first word, tap last word → a section (bar appears:
+  cut out / save-send). Tap a pause chip → cut it (rose, struck; tap again to
+  keep). "Tighten" cuts every pause in one tap. MARK drops a pin at the word
+  being spoken. Cut-out words show struck-through; tapping them offers restore.
+- **Cuts are the Episode Editor's cutter** (imported from editor.js —
+  `clampBounds` + `detectSilences` + `snapToSilence`, ONE implementation): a
+  tap never needs to be precise, edges land in real silences. **A planned
+  "manual mode" (cut at the exact tapped millisecond, no snapping) is PARKED
+  by request — not in v1.**
+- **Pause detection = vo-remove-pauses.js's two passes** (word-timing +
+  relative-energy breath pauses, room-tone runs — silencedetect alone CANNOT
+  find noisy pauses, see docs/nde-precise-cutting.md). Detection only; nothing
+  is removed until she taps. A removed pause is COMPRESSED to ~0.28s (KEEP),
+  never deleted outright. The RMS profile is folded streaming off the decoded
+  PCM (an hour of 16k s16le is ~115MB — never read into one Buffer on the
+  512MB instance).
+- **HER VOICE IS NEVER LOUDNORMED** (the Episode Editor narration finding —
+  she rejected dynamic squeezing). Renders and clips are cuts of the original
+  bytes; clips get micro-fades on the edges only.
+- **Hand-offs:** save → clip file + a `forge-audio` doc (batch
+  `cutting-room`, track `cutroom`, content-hash deduped, no second copy of
+  bytes) so it lists on `/audio`; **Story Room** → clip cut here, then
+  `scratchpad.attachVoiceUrl(padId, beatId, url)` (a normal voice take —
+  every take kept); **Episode Editor** → NO audio is cut: the recording gets
+  a `forge-nde-videos` doc (`cr-<id>`, segments grouped from our words) and
+  `editor.addExternalSnippet()` adds source + snippet card + sequence entry —
+  the editor re-cuts it natively (same whisper fallback, same clip cache).
+- **Data:** one doc per recording in `forge-cutroom` (deckfactory),
+  content-addressed by sha1 of the audio URL (reopening resumes). Word
+  timestamps live in Storage `cutroom/<id>/words.json` (chunked whisper-1,
+  75s chunks — the honest-on-long-files finding), NOT on the doc. Doc holds
+  `pauses` (s/e keep-adjusted + removed flag), `cuts` (word-index spans),
+  `pins`, `clips` (saved/sent sections), `renders` (capped 8 — every render a
+  NEW file, originals untouched), `job`. All slow steps are background jobs on
+  the doc; the page polls and resumes from `localStorage` (`cutroom_open`).
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /sources` (audio
+  drop items + project states), `POST /open {url,name}` (starts the listen
+  job: transcribe + find pauses), `GET /:id`, `POST /:id/{pause,tighten,pin,
+  cutout,uncut,title}`, `POST /:id/section {wi0,wi1,action:'save'|'story'|
+  'editor',…}`, `POST /:id/render`, `GET /:id/job`, `DELETE /:id`.
+- Transcription cost ≈ $0.006/min of recording (whisper), paid once per
+  recording. Caps at 90 min.
+- iOS: `CuttingRoomView.swift` = bare WKWebView on `/cuttingroom` answering
+  the studio gate (page-owns-header rule; page changes ship via Render
+  deploy). The page carries the injected shared pill, so the native pill is
+  suppressed for the tool (`showAutoScroll`).
+
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
   incaseofamnesia.com; Firebase Cloud Functions that read API keys from
