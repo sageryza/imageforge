@@ -173,6 +173,61 @@ router.post('/image', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── Chunks: beats linked so they always travel together ─────────────
+// A chunk is contiguous beats sharing a `chunk` id. On the pad it renders in
+// ONE tile's width (the members as side-by-side slices in a shared frame),
+// and placement slots only appear between units — never inside a chunk.
+// Linking is unbounded: chunk with the next unit again and again (2, 3, 4…).
+// Unlinking dissolves the WHOLE chunk back into single beats (predictable
+// for any length). Colors apply chunk-wide (see /color).
+
+function membersOf(beats, beat) {
+  if (!beat.chunk) return [beat];
+  return beats.filter((b) => b.chunk === beat.chunk);
+}
+
+// Link this beat's unit with the NEXT unit on the pad (they become one chunk).
+router.post('/chunk', async (req, res) => {
+  try {
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      const mine = membersOf(cur, b);
+      const lastIdx = cur.indexOf(mine[mine.length - 1]);
+      const next = cur[lastIdx + 1];
+      if (!next) throw new Error('nothing after this beat to link with');
+      const theirs = membersOf(cur, next);
+      const chunkId = b.chunk || next.chunk || db().collection(COL).doc().id;
+      mine.concat(theirs).forEach((m) => { m.chunk = chunkId; });
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// Dissolve the whole chunk this beat belongs to.
+router.post('/unchunk', async (req, res) => {
+  try {
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef());
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      membersOf(cur, b).forEach((m) => { delete m.chunk; });
+      tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
 // The story's name — "Untitled" on the page until Sophie changes it.
 router.post('/title', async (req, res) => {
   try {
@@ -268,7 +323,8 @@ router.post('/color', async (req, res) => {
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
-      b.color = color;
+      // A chunk shares one frame, so it shares one color.
+      membersOf(cur, b).forEach((m) => { m.color = color; });
       tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
