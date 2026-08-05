@@ -55,16 +55,23 @@ header{display:block; text-align:center; padding:6px 0 0;}
 .beatwrap{width:calc(25% - 9px); display:flex; flex-direction:column; gap:5px;}
 .beat{position:relative; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
-/* The beat's words, small, under the tile — tap to hear them in her voice. */
+/* The beat's words, small, under the tile — FIRST LINE only (the rest lives
+   in the popup). Tap to hear them in her voice. */
 .bcap{font-size:.72em; line-height:1.3; color:var(--ink); background:none; border:none; padding:0;
-  font-family:'EBGaramond',Georgia,serif; text-align:left; cursor:pointer; overflow-wrap:break-word;}
+  font-family:'EBGaramond',Georgia,serif; text-align:left; cursor:pointer; overflow-wrap:break-word;
+  display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;}
 .bcap.busy{opacity:.45;}
 .beat img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 .beat.c-mustard{border:3px solid var(--mustard);}
 .beat.c-green{border:3px solid var(--green);}
 .beat.c-blue{border:3px solid var(--blue);}
 .beat.c-pink{border:3px solid var(--pink);}
-.slot{width:calc(25% - 9px); aspect-ratio:2/3; border:1.5px dashed var(--ink2); border-radius:4px; background:none; padding:0; cursor:pointer;}
+/* A placement slot is a slim dashed LINE between beats (a full dashed tile
+   per gap ate the whole row — Sophie). The button is 14px of tap target with
+   the line drawn up its middle. */
+.slot{position:relative; width:14px; min-height:110px; align-self:stretch; border:none; border-radius:0;
+  background:none; padding:0; cursor:pointer;}
+.slot::before{content:''; position:absolute; left:50%; top:2px; bottom:2px; width:0; border-left:1.5px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
 .sheet .wrap{padding-top:3vh;}
@@ -92,11 +99,13 @@ header{display:block; text-align:center; padding:6px 0 0;}
   border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
 #speak svg{width:17px; height:17px;}
 #speak.busy{opacity:.45;}
-/* An empty beat's popup: the blank paper tile with ONE icon in its middle —
-   tap it for the Playground (the in-popup art generator comes later). */
+/* An empty beat's popup: the blank paper tile with two quiet icons in its
+   middle — the Playground (make new art) and the inbox (pick from what's
+   hearted, straight into THIS beat). */
 #popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--barbg);
-  display:flex; align-items:center; justify-content:center; color:var(--ink2); padding:0; cursor:pointer;}
-#popblank svg{width:26px; height:26px;}
+  display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
+#popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
+#popblank svg{width:24px; height:24px;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
@@ -129,7 +138,10 @@ header{display:block; text-align:center; padding:6px 0 0;}
 
 <div id="beatpop" hidden>
   <img id="popimg" alt="">
-  <button id="popblank" hidden aria-label="Make its art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
+  <div id="popblank" hidden>
+    <button id="pbplay" aria-label="Make its art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
+    <button id="pbinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
   <div class="chips">
     <button class="chip gray" data-c=""></button>
     <button class="chip mustard" data-c="mustard"></button>
@@ -218,8 +230,12 @@ function load(){
   });
 }
 
-/* ── the inbox: hearted Playground images, 4 to a row ─────────────── */
-document.getElementById('inboxbtn').onclick=function(){
+/* ── the inbox: hearted Playground images, 4 to a row ──────────────
+   Two ways in: the header button (pick → place on the pad) and the empty
+   beat popup's inbox icon (fillBeat set → the choice becomes THAT beat's
+   art, no placement step). */
+var fillBeat=null;
+function openInbox(){
   document.getElementById('inbox').hidden=false; lock(true);
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
@@ -235,13 +251,29 @@ document.getElementById('inboxbtn').onclick=function(){
       g.appendChild(el);
     });
   });
-};
+}
+document.getElementById('inboxbtn').onclick=function(){ fillBeat=null; openInbox(); };
 document.getElementById('inboxclose').onclick=function(){
-  document.getElementById('inbox').hidden=true; lock(false);
+  document.getElementById('inbox').hidden=true;
+  if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); return; }
+  lock(false);
 };
 
 function pick(it){
-  document.getElementById('inbox').hidden=true; lock(false);
+  document.getElementById('inbox').hidden=true;
+  if(fillBeat){
+    var target=fillBeat; fillBeat=null;
+    var src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+    api('/image',{method:'POST',body:JSON.stringify({id:target.id,url:it.url,src:src})})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(d.beats){ beats=d.beats; render(); }
+        var fresh=beats.find(function(x){return x.id===target.id;});
+        if(fresh) openBeat(fresh); else lock(false);
+      });
+    return;
+  }
+  lock(false);
   if(!beats.length){ place(0, it); return; }
   pending=it; render();
 }
@@ -283,11 +315,19 @@ function openBeat(b){
   document.getElementById('pnote').value=b.text||'';
   document.getElementById('beatpop').hidden=false; lock(true);
 }
-/* The blank tile's icon: make its art in the Playground. ?from=scratchpad
-   tells that page to show a way back here. */
-document.getElementById('popblank').onclick=function(ev){
+/* The blank tile's two icons: make new art in the Playground, or pick from
+   the inbox straight into THIS beat. */
+document.getElementById('pbplay').onclick=function(ev){
   ev.stopPropagation();
   location.href='/playground?from=scratchpad';
+};
+document.getElementById('pbinbox').onclick=function(ev){
+  ev.stopPropagation();
+  if(!popBeat)return;
+  saveNote();
+  fillBeat=popBeat;
+  document.getElementById('beatpop').hidden=true; popBeat=null;
+  openInbox();
 };
 /* A chip sets the frame color and the popup STAYS open (there's a text box
    here now); tapping the scrim is what closes it. */
