@@ -394,6 +394,17 @@ lifted into a standalone tool later.
 - **`/playground?from=scratchpad` shows a "‹ Scratch Pad" chip** (fixed
   top-left) — the way back when the Scratch Pad's empty-beat popup sends her
   over; without it the pad's WKWebView strands her on the Playground.
+- **Low · low · medium in one tap (Aug 2026, Sophie) — the pyramid button,
+  ChatGPT only.** Fires THREE runs from one tap: two at `low` and one at
+  `medium`, so she gets two cheap looks at a prompt plus a better one without
+  three taps and two trips to the dropdown. ~10¢ a tap. `startRun(scale, q)`
+  takes a per-run quality override, so the dropdown is left exactly as she set
+  it. ChatGPT is never deduped, so the two lows are two DIFFERENT pictures —
+  they merge into one box side by side, and the medium is its own box (its
+  tags differ). The icon is NOT a Lucide glyph: Lucide's `pyramid` is a solid
+  3D shape that says nothing about how many, so it's three circles in the
+  Lucide idiom — two outlined at the base for the lows, one filled on top for
+  the better one. The button is a picture of what the tap draws.
 - **One ChatGPT-only control, in the space the LoRA knobs vacate: quality — a
   dropdown, low/medium/high, default medium** (sent as `quality`, validated
   against `PL_GPT.qualities`). **Deliberately NOT persisted:** it's a plain JS

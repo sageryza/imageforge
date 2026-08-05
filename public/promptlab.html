@@ -18,7 +18,12 @@
   .shape code { background: #f0ebe3; border-radius: 6px; padding: 1px 5px; font-size: 11px; white-space: pre-wrap; }
   .controls { display: flex; align-items: center; gap: 10px; }
   .controls label { font-size: 12.5px; color: #6f675e; }
-  .xthree { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
+  .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
+  /* The low·low·medium button: a pyramid of three, two at the base and the
+     better one on top — the shape of what the tap draws. */
+  .stepbtn { display: flex; align-items: center; justify-content: center; padding: 7px 9px; }
+  .stepbtn svg { width: 18px; height: 18px; display: block; }
+  .stepbtn:disabled { opacity: .5; }
   .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
@@ -131,6 +136,7 @@
     <span class="seedtag" id="seedtag"></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
     <select id="qpick" aria-label="Quality"></select>
+    <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
     <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
   </div>
   <div class="err" id="err" hidden></div>
@@ -184,8 +190,14 @@
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
+    // Not a Lucide glyph — Lucide's `pyramid` is a solid 3D shape and says
+    // nothing about how many. Three circles in the Lucide idiom instead: two
+    // at the base for the two low draws, the filled one on top for the better
+    // one, so the button is a picture of what the tap does.
+    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6.2" r="3.2" fill="currentColor"/><circle cx="6.6" cy="17.2" r="3.2"/><circle cx="17.4" cy="17.2" r="3.2"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
+  document.getElementById('lowmed').innerHTML = ICONS.pyramid;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
@@ -315,6 +327,7 @@
     });
     document.getElementById('charpick').hidden = !gpt;
     document.getElementById('qpick').hidden = !gpt;
+    document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
   }
   function styleLabelFor(model) {
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
@@ -379,14 +392,17 @@
     });
   }
 
-  function startRun(scale) {
+  // `q` overrides the quality dropdown for one run — the low·low·medium button
+  // draws its own ladder without touching what the dropdown says.
+  function startRun(scale, q) {
     var prompt = document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
+    var qual = q || quality;
     var key = plannedKey(S, prompt, scale, seed);
     var body = gpt
-      ? { prompt: prompt, model: S.model, outputs: OUTPUTS, quality: quality, character: charOn }
+      ? { prompt: prompt, model: S.model, outputs: OUTPUTS, quality: qual, character: charOn }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -395,7 +411,7 @@
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
-        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: quality }
+        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key });
@@ -446,6 +462,18 @@
     var btn = document.getElementById('xthree');
     btn.disabled = true;
     Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  });
+
+  // Low · low · medium in one tap (ChatGPT only): two cheap looks at the
+  // prompt and one better one. ChatGPT is never deduped, so the two lows are
+  // two DIFFERENT pictures — they land side by side in one box, and the
+  // medium is its own box because its tags differ. ~10¢ a tap.
+  document.getElementById('lowmed').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    var btn = this;
+    btn.disabled = true;
+    Promise.all(['low', 'low', 'medium'].map(function (q) { return startRun(1, q).catch(showErr); }))
       .finally(function () { btn.disabled = false; });
   });
 
