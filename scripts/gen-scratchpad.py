@@ -56,7 +56,11 @@ header{display:block; text-align:center; padding:6px 0 0;}
 .beat{position:relative; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
 /* The beat's words, small, under the tile — FIRST LINE only (the rest lives
-   in the popup). Tap to hear them in her voice. */
+   in the popup). Tap to hear them in her voice.
+   MUST NOT be a <button>: WebKit gives buttons their own internal layout and
+   ignores display:-webkit-box on them, so the line clamp silently did
+   nothing and full paragraphs kept showing (Sophie caught it). A div clamps
+   correctly. */
 .bcap{font-size:.72em; line-height:1.3; color:var(--ink); background:none; border:none; padding:0;
   font-family:'EBGaramond',Georgia,serif; text-align:left; cursor:pointer; overflow-wrap:break-word;
   display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;}
@@ -121,6 +125,31 @@ header{display:block; text-align:center; padding:6px 0 0;}
   display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
 #popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
 #popblank svg{width:24px; height:24px;}
+/* The same two ways to art, ABOVE a beat that already has a picture — so it
+   can be swapped for another (Sophie, Aug 2026). */
+#artrow{display:flex; gap:14px; justify-content:center;}
+#artrow button{background:none; border:1.5px solid rgba(255,255,255,.55); border-radius:6px; padding:6px 8px;
+  color:#fff; cursor:pointer; display:flex;}
+#artrow svg{width:17px; height:17px;}
+/* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
+   quality, Draw. The STYLE is never asked — one style per story. */
+#drawbox{width:min(80vw,22em); display:flex; flex-direction:column; gap:8px;}
+#dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+  line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line);
+  border-radius:6px; padding:10px 12px; resize:none;}
+.drawrow{display:flex; align-items:center; gap:10px;}
+#dchar{width:34px; height:34px; flex:none; padding:0; border:1.5px solid rgba(255,255,255,.55); border-radius:6px;
+  overflow:hidden; background:none; opacity:.4; cursor:pointer;}
+#dchar.on{opacity:1; border-color:#fff;}
+#dchar img{width:100%; height:100%; object-fit:cover; display:block;}
+#dq{font-family:-apple-system,sans-serif; font-size:16px; border:1.5px solid rgba(255,255,255,.55);
+  border-radius:6px; background:none; color:#fff; padding:6px 8px;}
+#dq option{color:#26221c;}
+#dgo{margin-left:auto; font-family:'EBGaramond',Georgia,serif; font-size:16px; background:#fff; color:#26221c;
+  border:none; border-radius:6px; padding:8px 18px; cursor:pointer;}
+#dgo:disabled{opacity:.5;}
+/* A beat being drawn (or a failed draw) says so on its own line. */
+#genstate{color:#fff; font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
@@ -152,8 +181,14 @@ header{display:block; text-align:center; padding:6px 0 0;}
 </div>
 
 <div id="beatpop" hidden>
+  <div id="artrow" hidden>
+    <button id="ardraw" aria-label="Draw it again here"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z"/></svg></button>
+    <button id="arplay" aria-label="Make different art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
+    <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
   <img id="popimg" alt="">
   <div id="popblank" hidden>
+    <button id="pbdraw" aria-label="Draw it here"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z"/></svg></button>
     <button id="pbplay" aria-label="Make its art in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
     <button id="pbinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
@@ -164,11 +199,21 @@ header{display:block; text-align:center; padding:6px 0 0;}
     <button class="chip blue" data-c="blue"></button>
     <button class="chip pink" data-c="pink"></button>
   </div>
+  <div id="genstate" hidden></div>
+  <div id="drawbox" hidden>
+    <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+    <div class="drawrow">
+      <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
+      <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+      <button id="dgo">Draw</button>
+    </div>
+  </div>
   <textarea id="pnote" rows="3"></textarea>
   <div class="poprow">
     <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button id="linkbtn" hidden aria-label="Link with the next beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+    <button id="unlinkbtn" hidden aria-label="Break this chunk apart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></button>
   </div>
 </div>
 
@@ -260,7 +305,7 @@ function padUnits(){
 }
 function capFor(wrap, b){
   if(!b.text)return;
-  var cap=document.createElement('button'); cap.className='bcap'; cap.textContent=b.text;
+  var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=b.text;
   cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
   wrap.appendChild(cap);
 }
@@ -323,6 +368,7 @@ function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||'';
     renderTitle(); render();
+    if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
   });
 }
 
@@ -403,50 +449,127 @@ function openBeat(b){
   var tile=document.querySelector('#pad .beat');
   var w=(tile?tile.offsetWidth:90)+'px';
   im.hidden=!b.url; bl.hidden=Boolean(b.url);
+  bl.style.width=w;
   if(b.url){ im.style.width=w; im.src=b.url; im.className=b.color?'c-'+b.color:''; }
-  else { bl.style.width=w; bl.className=b.color?'c-'+b.color:''; }
+  else { bl.className=b.color?'c-'+b.color:''; }
   document.querySelectorAll('.chip').forEach(function(c){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
-  // The link icon: lit = in a chunk (tap dissolves it); dim = tap links this
-  // beat's unit with the next one. Hidden when there's nothing to link with.
-  var lb=document.getElementById('linkbtn');
+  // Two separate icons so a chunk can grow past two: link = add the NEXT
+  // unit to this one (tap again and again for 3, 4, n), unlink = break the
+  // whole chunk apart. One button that meant both made chains impossible.
+  var lb=document.getElementById('linkbtn'), ub=document.getElementById('unlinkbtn');
   var units=padUnits();
   var myUnit=-1; units.forEach(function(u,ui){ if(u.members.indexOf(b)>=0) myUnit=ui; });
-  var canLink=myUnit>=0 && myUnit<units.length-1;
-  lb.hidden=!(b.chunk||canLink);
-  lb.classList.toggle('on',Boolean(b.chunk));
+  lb.hidden=!(myUnit>=0 && myUnit<units.length-1);
+  ub.hidden=!b.chunk;
+  // The two ways to (re)make art: above the picture when there is one, in
+  // the blank tile when there isn't.
+  document.getElementById('artrow').hidden=!b.url;
+  // Drawing here: the prompt starts as the beat's own words.
+  var db_=document.getElementById('drawbox');
+  db_.hidden=true;
+  document.getElementById('dprompt').value=b.text||'';
+  // Drawing (or a failure) is said in its own line — never by rewriting the
+  // blank tile, whose children are the buttons.
+  var st=document.getElementById('genstate');
+  var drawing=Boolean(b.gen&&b.gen.status==='drawing');
+  st.hidden=!(drawing||(b.gen&&b.gen.status==='failed'));
+  st.textContent=drawing?'drawing…':((b.gen&&b.gen.error)||'');
+  if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
   var mb=document.getElementById('micbtn');
   mb.classList.remove('rec','busy');
   mb.classList.toggle('on',Boolean(b.voiceUrl));
   document.getElementById('beatpop').hidden=false; lock(true);
 }
-document.getElementById('linkbtn').onclick=function(ev){
-  ev.stopPropagation();
+function chunkAction(pathname){
   var b=popBeat; if(!b)return;
   saveNote();
-  api(b.chunk?'/unchunk':'/chunk',{method:'POST',body:JSON.stringify({id:b.id})})
+  api(pathname,{method:'POST',body:JSON.stringify({id:b.id})})
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.beats){ beats=d.beats; render(); }
       var fresh=beats.find(function(x){return x.id===b.id;});
       if(fresh){ popBeat=fresh; openBeat(fresh); }
     });
+}
+document.getElementById('linkbtn').onclick=function(ev){ ev.stopPropagation(); chunkAction('/chunk'); };
+document.getElementById('unlinkbtn').onclick=function(ev){ ev.stopPropagation(); chunkAction('/unchunk'); };
+
+/* ── drawing a beat's art right here ──────────────────────────────── */
+function openDraw(ev){
+  ev.stopPropagation();
+  if(!popBeat)return;
+  var box=document.getElementById('drawbox');
+  box.hidden=!box.hidden;
+  if(!box.hidden) document.getElementById('dprompt').focus();
+}
+document.getElementById('pbdraw').onclick=openDraw;
+document.getElementById('ardraw').onclick=openDraw;
+document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
+document.getElementById('dchar').onclick=function(ev){
+  ev.stopPropagation();
+  this.classList.toggle('on');
 };
+document.getElementById('dgo').onclick=function(ev){
+  ev.stopPropagation();
+  var b=popBeat; if(!b)return;
+  var prompt=document.getElementById('dprompt').value.trim();
+  if(!prompt){ document.getElementById('dprompt').focus(); return; }
+  var btn=this; btn.disabled=true;
+  saveNote();
+  api('/generate',{method:'POST',body:JSON.stringify({
+    id:b.id, prompt:prompt,
+    quality:document.getElementById('dq').value,
+    character:document.getElementById('dchar').classList.contains('on'),
+  })}).then(function(r){return r.json()}).then(function(d){
+    btn.disabled=false;
+    if(d.error){ alert(d.error); return; }
+    if(d.beats){ beats=d.beats; render(); }
+    var fresh=beats.find(function(x){return x.id===b.id;});
+    if(fresh){ popBeat=fresh; openBeat(fresh); }
+    startGenPoll();
+  }).catch(function(){ btn.disabled=false; });
+};
+/* A draw is a background job: poll the pad while any beat is drawing, and
+   resume that poll on return, so leaving the app never loses a picture. */
+var genTimer=null;
+function anyDrawing(){ return beats.some(function(b){ return b.gen&&b.gen.status==='drawing'; }); }
+function startGenPoll(){
+  if(genTimer)return;
+  genTimer=setInterval(function(){
+    if(!anyDrawing()){ clearInterval(genTimer); genTimer=null; return; }
+    api('').then(function(r){return r.json()}).then(function(d){
+      beats=d.beats||beats; render();
+      if(popBeat){
+        var fresh=beats.find(function(x){return x.id===popBeat.id;});
+        if(fresh&&(!fresh.gen||fresh.gen.status!=='drawing')&&popBeat.gen&&popBeat.gen.status==='drawing'){
+          popBeat=fresh; openBeat(fresh);
+        } else if(fresh){ popBeat=fresh; }
+      }
+    }).catch(function(){});
+  },4000);
+}
 /* The blank tile's two icons: make new art in the Playground, or pick from
    the inbox straight into THIS beat. */
 document.getElementById('pbplay').onclick=function(ev){
   ev.stopPropagation();
   location.href='/playground?from=scratchpad';
 };
-document.getElementById('pbinbox').onclick=function(ev){
+function inboxIntoBeat(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   saveNote();
   fillBeat=popBeat;
   document.getElementById('beatpop').hidden=true; popBeat=null;
   openInbox();
+}
+document.getElementById('pbinbox').onclick=inboxIntoBeat;
+document.getElementById('arinbox').onclick=inboxIntoBeat;
+document.getElementById('arplay').onclick=function(ev){
+  ev.stopPropagation();
+  location.href='/playground?from=scratchpad';
 };
 /* A chip sets the frame color and the popup STAYS open (there's a text box
    here now); tapping the scrim is what closes it. */

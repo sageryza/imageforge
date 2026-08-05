@@ -628,6 +628,13 @@ app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
 // beats with unlabelled color frames (thinking on paper; Story Room is stage
 // two). Deliberately minimal; see scratchpad.js.
 app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
+// The Sophie character card, for the pad's draw-here toggle (refs/ is not
+// web-served, so this one file is exposed deliberately — it's her own
+// hearted render, and the page behind the gate is the only thing asking).
+app.get('/scratchpad-sophie.png', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.type('png').send(fs.readFileSync(path.join(__dirname, 'refs', 'sophie-character.png')));
+});
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
