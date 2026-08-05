@@ -4363,7 +4363,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality } = {}) {
   try {
     if (!images || !images.length) return;
     await storyDb();
@@ -4378,6 +4378,10 @@ async function fileRunToCreations(images, { prompt, style } = {}) {
         createdAt: admin.firestore.Timestamp.now(), source: 'playground',
       };
       if (style) doc.style = String(style).slice(0, 80);
+      // What made the picture, as separate fields — the gallery popup shows
+      // "model · quality" and shouldn't have to parse a label back apart.
+      if (model) doc.model = String(model).slice(0, 80);
+      if (quality) doc.quality = String(quality).slice(0, 40);
       await col.add(doc);
     }
   } catch (err) {
@@ -4417,7 +4421,10 @@ async function runPromptLabGptJob(docRef, cfg) {
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
     await docRef.update({ status: 'done', images, failedRenders: failed });
-    fileRunToCreations(images, { prompt: cfg.prompt, style: `ChatGPT · ${cfg.quality}` });
+    fileRunToCreations(images, {
+      prompt: cfg.prompt, style: `ChatGPT · ${cfg.quality}`,
+      model: PL_GPT.id, quality: cfg.quality,
+    });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
@@ -4466,7 +4473,7 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
-    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel });
+    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
     plCancelled.delete(docRef.id);
