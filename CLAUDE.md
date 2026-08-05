@@ -239,6 +239,14 @@ each opens a focused workflow that shares the same house styles.
   (~1hr) Replicate/OpenAI URLs.
 
 ## Product pipeline
+- **NOT BUILT — "Product Creator" (Sophie's idea, Aug 2026).** There is no
+  module that starts from "I want to sell a thing" and walks it through to a
+  product: today the pieces exist separately (`pipeline.js` routes a design to
+  a POD service, `photostudio.js` turns a photo of something she already made
+  into a draft listing, `printify`/`printful`/`lulu` do fulfilment) but nothing
+  fronts them as one make-a-product flow. She asked for it to be written down,
+  NOT built yet — design it with her before writing any of it.
+
 The full pipeline lives in five self-contained modules wired into `server.js`:
 generated design → POD product → **draft Etsy listing** Sophie reviews before
 publishing. Each module is a router + exported helpers, decoupled enough to be
@@ -1699,6 +1707,28 @@ lifted into a standalone tool later.
   keyboard covers it, while each screen's own `ScrollView` still lifts its text
   fields. Any app with a persistent bottom bar MUST have this — add it when you
   build the shell, and check for it whenever a keyboard-over-bar bug appears.
+- **ONE generate glyph, everywhere (Aug 2026, Sophie).** Any control that
+  makes something with AI wears the hand-fitted **star** — the witch app's
+  `STAR` const in `witch.html`, an exact bezier match of SF Symbols
+  `sparkles`. Not Lucide's `sparkles`, not a wand, not a per-page variant: a
+  button that spends a model call must read the same in every surface. Live
+  copies: `ICON_STAR` in `scripts/gen-scratchpad.py` (the Story Room's beat
+  popup) and `ICONS.sparkles` in `promptlab.html` (the Playground's Generate).
+  Deliberate exceptions, because they say something the star can't: the pad's
+  **wand** (draw every beat that's missing art — a bulk action) and the
+  Playground's **pyramid** (low·low·medium, a picture of how many).
+- **A button that opens another tool wears THAT tool's icon.** The Story
+  Room's "make its art in the Playground" is the Playground's own wire-loop
+  drawing, not a generic palette — same vector as the iOS tile
+  (`Assets.xcassets/Playground.imageset`, mirrored as `ICON_PLAY` in
+  `gen-scratchpad.py`). Keep the copies in step.
+- **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
+  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
+  latter behind the **briefcase** beside the test tube, holding Instagram,
+  Ads and Blog Studio. `Tool.isBusiness` decides which grid a tool lands on;
+  a tool is on ONE grid, never both, so each home stays scannable. The
+  business home's top-left is a **house** back to the making home; Chats
+  keeps its top-right corner on both. Deep link: `deckfactory://business`.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
