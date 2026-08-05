@@ -545,6 +545,40 @@ router.post('/film', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// Deploys restart the server mid-job and orphan in-flight work: a film stuck
+// 'making' forever, a beat stuck 'drawing…' (happened for real — Sophie's
+// first film died under the next deploy). No legitimate film or draw outlives
+// 15 minutes, so sweep older ones into 'failed' at boot and on an interval.
+async function sweepStuckJobs() {
+  try {
+    if (!admin.apps.length) return;
+    const cutoff = Date.now() - 15 * 60 * 1000;
+    const snap = await db().collection(COL).get();
+    for (const d of snap.docs) {
+      const v = d.data();
+      const patch = {};
+      if (v.film && v.film.status === 'making' && (v.film.at || 0) < cutoff) {
+        patch.film = { status: 'failed', error: 'interrupted by a server restart — tap to make it again', at: Date.now() };
+      }
+      let beatsChanged = false;
+      const beats = Array.isArray(v.beats) ? v.beats : [];
+      beats.forEach((b) => {
+        if (b.gen && b.gen.status === 'drawing' && (b.gen.at || 0) < cutoff) {
+          b.gen = { status: 'failed', error: 'interrupted by a server restart', at: Date.now() };
+          beatsChanged = true;
+        }
+      });
+      if (beatsChanged) patch.beats = beats;
+      if (Object.keys(patch).length) {
+        await d.ref.set(patch, { merge: true });
+        console.log(`scratchpad sweep: cleared stuck job(s) on ${d.id}`);
+      }
+    }
+  } catch (e) { console.warn('scratchpad sweep:', e.message); }
+}
+setTimeout(sweepStuckJobs, 90 * 1000);
+setInterval(sweepStuckJobs, 10 * 60 * 1000);
+
 // ── Chunks: beats linked so they always travel together ─────────────
 // A chunk is contiguous beats sharing a `chunk` id. On the pad it renders in
 // ONE tile's width (the members as side-by-side slices in a shared frame),
