@@ -1823,7 +1823,8 @@ lifted into a standalone tool later.
   free). **Her OWN recording wins over TTS:** the popup's mic icon records
   her reading the line (MediaRecorder → `POST /voice {id, audio:dataURL}` →
   Storage scratchpad/voice/, `beat.voiceUrl`); wherever a recording exists
-  the caption and speech icon play IT, re-recording replaces it, and
+  the caption and speech icon play IT. EVERY take is kept in
+  `beat.voiceTakes` (Sophie's rule) — voiceUrl is just the latest — and
   `audio:null` clears back to TTS. Tapping the popup thumbnail opens a
   lightbox. Placement slots are
   slim dashed LINES between beats, not full dashed tiles. **Chunks (Aug

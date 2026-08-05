@@ -175,15 +175,20 @@ router.post('/image', async (req, res) => {
 
 // Her OWN reading of a beat's words (the popup's mic icon): stored on the
 // beat as voiceUrl, and it beats TTS everywhere — the caption and speech
-// icon play the recording when one exists. Re-recording replaces it;
-// audio:null clears it back to TTS.
+// icon play the recording when one exists. EVERY take is kept in
+// beat.voiceTakes (Sophie's rule — re-recording never deletes a take);
+// voiceUrl is simply the latest. audio:null clears voiceUrl back to TTS
+// (the takes stay).
 router.post('/voice', async (req, res) => {
   try {
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
     let url = null;
     if (req.body.audio !== null && req.body.audio !== undefined) {
-      const m = String(req.body.audio).match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
+      // iOS reports recordings as e.g. "audio/mp4;codecs=mp4a.40.2" — the
+      // mime can carry params before ";base64", so match them (this exact
+      // regex rejecting params is what silently ate her first take).
+      const m = String(req.body.audio).match(/^data:(audio\/[\w.+-]+)(?:;[^,]*?)?;base64,(.+)$/);
       if (!m) return res.status(400).json({ error: 'audio must be an audio data URL (or null to clear)' });
       const ext = m[1].includes('mp4') ? 'm4a' : (m[1].includes('webm') ? 'webm' : 'audio');
       const buf = Buffer.from(m[2], 'base64');
@@ -202,8 +207,10 @@ router.post('/voice', async (req, res) => {
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
-      if (url) { b.voiceUrl = url; b.voiceAt = Date.now(); }
-      else { delete b.voiceUrl; delete b.voiceAt; }
+      if (url) {
+        b.voiceUrl = url; b.voiceAt = Date.now();
+        b.voiceTakes = (b.voiceTakes || []).concat([{ url, at: b.voiceAt }]);
+      } else { delete b.voiceUrl; delete b.voiceAt; }
       tx.set(padRef(), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
