@@ -48,8 +48,12 @@
      and TILES (every picture as a thumbnail, four to a row, prompt in the
      lightbox). The switch is STICKY so it is reachable from anywhere in a long
      feed — the first version scrolled away and left no way back — and it sits
-     on the LEFT because the autoscroll pill owns the top-right corner. */
-  .feedbar { position: sticky; top: 0; z-index: 20; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
+     on the LEFT because the autoscroll pill owns the top-right corner. Its
+     z-index stays BELOW the pill's 9 (the house pattern — /writing and
+     /editor do the same at 5): at 20 the bar's paper background painted over
+     the pill's top button. Full-screen overlays (lightbox, ask, toast) stay
+     ABOVE 9 — they are meant to cover the pill. */
+  .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
   .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }

@@ -24,9 +24,13 @@ header{display:block; text-align:center; padding:6px 0 0; position:relative;}
 header #storiesbtn{position:absolute; left:0; top:2px;}
 /* The title row PINS to the top while she scrolls a long story, so film /
    play / add / inbox are always a thumb away (Sophie). Paper background so
-   beats slide beneath it, under the overlays' z-indexes. */
+   beats slide beneath it. Its z-index stays BELOW the pill's 9 (the house
+   pattern — /writing and /editor sit at 5): at 30 the row's paper background
+   painted over the autoscroll pill's top button. Full-screen overlays (sheet
+   40, beatpop 50, lightbox 60, filmplay 70) stay ABOVE 9 — they are meant to
+   cover the pill. */
 .titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;
-  position:sticky; top:0; z-index:30; background:var(--paper); padding-top:6px; padding-bottom:6px;}
+  position:sticky; top:0; z-index:5; background:var(--paper); padding-top:6px; padding-bottom:6px;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
 .sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
 .sheethead .no{flex:1;}
