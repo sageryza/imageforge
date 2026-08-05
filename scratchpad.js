@@ -337,6 +337,20 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
       b.src = { engine: 'gptimage', model: 'gpt-image-2', prompt, quality, character: Boolean(character), promptUsed: full };
       b.gen = { status: 'done', at: Date.now() };
     });
+    // Every draw also lands in My Creations (house rule — the gallery is the
+    // hand-off surface for every image made for Sophie). Through the server's
+    // own gallery route so the de-dupe and membry wiring stay in one place.
+    try {
+      await fetch(`http://localhost:${process.env.PORT || 3001}/api/gallery`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(process.env.STUDIO_TOKEN ? { 'x-studio-token': process.env.STUDIO_TOKEN } : {}),
+        },
+        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${quality}` }),
+        timeout: 30000,
+      });
+    } catch (e) { console.warn('scratchpad → creations:', e.message); }
   } catch (err) {
     console.warn('scratchpad art:', err.message);
     await patchBeat(padId, id, (b) => { b.gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() }; }).catch(() => {});

@@ -645,7 +645,16 @@ function openDraw(ev){
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
   box.hidden=!box.hidden;
-  if(!box.hidden) document.getElementById('dprompt').focus();
+  if(!box.hidden){
+    // The prompt starts as whatever the text box says RIGHT NOW — not the
+    // beat's last SAVED text. Words typed seconds ago aren't saved until the
+    // popup closes, and the stale prefill was drawing the old line (Sophie:
+    // "it doesn't take the words I put in").
+    var live=document.getElementById('pnote').value.trim();
+    document.getElementById('dprompt').value=live||(popBeat.text||'');
+    saveNote();
+    document.getElementById('dprompt').focus();
+  }
 }
 document.getElementById('pbdraw').onclick=openDraw;
 document.getElementById('ardraw').onclick=openDraw;
