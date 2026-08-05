@@ -1029,6 +1029,24 @@ app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, re
         await ref.set(d);
       } catch (e) { console.error('story voiceover update failed:', e.message); }
     };
+    // A pasted/uploaded RECORDING also files into the Voice Memo archive (one
+    // library, Aug 2026) — md5-deduped there, so a memo that already arrived
+    // another way lands once. TTS renders are not memos and stay out. Reuses
+    // the transcript when this call produced one, so Whisper runs once.
+    const fileMemoCopy = async (buffer, transcript, duration, mime) => {
+      try {
+        const sub = ((String(mime || (newAudio && newAudio.mime) || '').split('/')[1] || 'm4a').split(';')[0] || 'm4a');
+        const r = await require('./memos').fileIntoArchive({
+          buf: buffer,
+          ext: sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub,
+          title: data.title || `Story voiceover ${projectId}`,
+          dur: duration, transcript, source: 'story-voiceover',
+        });
+        if (r.memo && r.memo.id) {
+          await ref.set({ voiceover: { memoId: r.memo.id } }, { merge: true }).catch(() => {});
+        }
+      } catch (e) { console.warn('voiceover memo filing failed:', e.message); }
+    };
     if (wantTts) {
       (async () => {
         try {
@@ -1039,20 +1057,41 @@ app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, re
       })();
     } else if (wantTranscribe) {
       (async () => {
+        let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
         try {
-          let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
           if (!buffer) {
             const r = await fetch(vo.url);
             if (!r.ok) throw new Error('audio fetch ' + r.status);
             buffer = await r.buffer();
             mime = r.headers.get('content-type') || '';
           }
+        } catch (e) { return finish({ error: 'transcription failed: ' + e.message }); }
+        let words = null, duration = null;
+        try {
           const { transcribeAudio } = require('./movies');
           const sub = ((String(mime).split('/')[1] || 'm4a').split(';')[0] || 'm4a');
           const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
           const t = await transcribeAudio(buffer, 'voiceover.' + ext);
+          words = t.text; duration = t.duration;
           await finish({ text: t.text, duration: t.duration });
         } catch (e) { await finish({ error: 'transcription failed: ' + e.message }); }
+        // Archive the recording either way — a Whisper blip must not lose it
+        // (fileIntoArchive will retry the words itself when passed none).
+        await fileMemoCopy(buffer, words, duration, mime);
+      })();
+    } else if (newAudio || url) {
+      // Recording arrived with its words already known (or transcription was
+      // explicitly declined) — still belongs in the archive.
+      (async () => {
+        try {
+          let buffer = newAudio && newAudio.buffer;
+          if (!buffer) {
+            const r = await fetch(vo.url);
+            if (!r.ok) throw new Error('audio fetch ' + r.status);
+            buffer = await r.buffer();
+          }
+          await fileMemoCopy(buffer, vo.text || null, null);
+        } catch (e) { console.warn('voiceover memo filing failed:', e.message); }
       })();
     }
   } catch (err) {

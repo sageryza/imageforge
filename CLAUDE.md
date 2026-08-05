@@ -1076,6 +1076,33 @@ lifted into a standalone tool later.
   `POST /upload-file` (raw body — the iOS path), `POST /upload-zip`,
   `PATCH /bundle` (label a whole album at once), `DELETE /items/:id`.
 
+## Voice Memos — ONE library, every path files into it (Aug 2026)
+- **The library** = membry Storage `memo-audio/<id>.m4a` + `manifest.json`
+  (`memos.js`, `/api/memos`) — the stamped 1100+ recording archive. Every way
+  audio arrives now funnels into it through `memos.fileIntoArchive()`: the
+  Mac push (`scripts/push-memos.mjs`), the iOS share sheet / audio drop
+  (`audio.js` auto-files each new recording, keeping its own `forge-audio`
+  doc with `memoId` as the reference), Story Room voiceover pastes
+  (recordings only — TTS renders stay out), and a chat with a pasted file.
+- **A chat files a pasted recording with ONE call — never reconstruct the
+  stamp by hand:** `POST /api/memos/ingest?title=…&dur=…&ext=m4a` with the
+  raw bytes as the body. `stamp` is optional; without it the server derives
+  one from the file's internal clock and the **md5 of the bytes** does the
+  real deduping (every manifest record carries `hash`). The internal clock
+  is the moment recording STOPPED, which is why hand-built stamps went wrong
+  (2026-08-05: filed `_1330`, her phone said 1:28) — don't guess it.
+- **Transcription is UNCONDITIONAL** (Sophie 2026-08-05) — no toggles;
+  `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
+  Whisper failure files the audio with `enrichError` on the record instead
+  of losing the recording.
+- Dedupe is belt and braces: hash match always skips; a caller-supplied
+  (trusted) stamp match skips; a server-derived stamp never skips on its own
+  and gets a hash suffix in the id so two same-minute recordings can't
+  collide. `GET /api/memos/status` returns `stamps` + `hashes`.
+- One-time repairs (both ran 2026-08-05): `scripts/memo-unify-backfill.js`
+  — phase A stamped `hash` onto existing records from Storage md5 metadata,
+  phase B merged strays from `forge-audio` into the archive.
+
 ## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
 - `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for
   audio. Nothing else did that job: `/api/story/voiceover` attaches ONE
@@ -1085,10 +1112,10 @@ lifted into a standalone tool later.
   Files app had nowhere to go.
 - **The iOS Share sheet IS a way in (Aug 2026).** `DumpShare` activates for
   files too and routes audio extensions here (`POST /upload-file`, one
-  date-stamped batch per share) — with a **"Transcribe the recordings"
-  toggle** on the sheet that passes `?transcribe=1` (background Whisper onto
-  the doc: `transcript` / `transcribeStatus`; over-25MB files record a clear
-  error). Uploads are a BACKGROUND URLSession via the
+  date-stamped batch per share). The sheet's old "Transcribe the recordings"
+  toggle is now a NO-OP — the server transcribes every recording
+  unconditionally and also files it into the Voice Memo library (see the
+  section above); over-25MB files record a clear error on the doc. Uploads are a BACKGROUND URLSession via the
   `group.com.sageryza.imageforge` App Group — the sheet stages files in the
   shared container, queues the tasks, and dismisses; fire-and-forget, the md5
   dedupe means re-sharing heals a lost upload. Other ways in: the `/audio`
