@@ -104,12 +104,16 @@ header{display:block; text-align:center; padding:6px 0 0;}
   line-height:1.4; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{display:flex; gap:14px;}
-#speak,#linkbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
+#speak,#linkbtn,#micbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1.5px solid rgba(255,255,255,.55); border-radius:6px; background:none; color:#fff; cursor:pointer;}
-#speak svg,#linkbtn svg{width:17px; height:17px;}
-#speak.busy{opacity:.45;}
+#speak svg,#linkbtn svg,#micbtn svg{width:17px; height:17px;}
+#speak.busy,#micbtn.busy{opacity:.45;}
 /* Lit = this beat is part of a chunk (tap dissolves the whole chunk). */
 #linkbtn.on{background:#fff; color:#26221c; border-color:#fff;}
+/* Mic: lit = a recording exists (her reading is what plays); red = recording
+   right now, tap again to stop. */
+#micbtn.on{background:#fff; color:#26221c; border-color:#fff;}
+#micbtn.rec{background:#c25a72; border-color:#c25a72; color:#fff;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
@@ -163,6 +167,7 @@ header{display:block; text-align:center; padding:6px 0 0;}
   <textarea id="pnote" rows="3"></textarea>
   <div class="poprow">
     <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
+    <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button id="linkbtn" hidden aria-label="Link with the next beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
   </div>
 </div>
@@ -178,8 +183,10 @@ var player=new Audio();
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
 
-/* One shared player so a new tap replaces what's speaking, never stacks. */
+/* One shared player so a new tap replaces what's speaking, never stacks.
+   Her OWN recording of the line (the popup's mic) always wins over TTS. */
 function speakBeat(b, el){
+  if(b.voiceUrl){ player.pause(); player.src=b.voiceUrl; player.play(); return; }
   if(el)el.classList.add('busy');
   api('/tts',{method:'POST',body:JSON.stringify({id:b.id})})
     .then(function(r){return r.json()})
@@ -191,6 +198,49 @@ function speakBeat(b, el){
     })
     .catch(function(){ if(el)el.classList.remove('busy'); });
 }
+
+/* ── the mic: record her reading the line; that becomes the beat's audio ── */
+var recorder=null, recStream=null;
+function stopRec(){
+  if(recorder&&recorder.state!=='inactive')recorder.stop();
+}
+document.getElementById('micbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var btn=this, b=popBeat; if(!b)return;
+  if(recorder&&recorder.state==='recording'){ stopRec(); return; }
+  saveNote();
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    recStream=stream;
+    var mime='';
+    ['audio/mp4','audio/webm'].forEach(function(m){ if(!mime&&window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) mime=m; });
+    recorder=new MediaRecorder(stream, mime?{mimeType:mime}:undefined);
+    var chunks=[];
+    recorder.ondataavailable=function(e){ if(e.data&&e.data.size)chunks.push(e.data); };
+    recorder.onstop=function(){
+      recStream.getTracks().forEach(function(t){t.stop();});
+      btn.classList.remove('rec'); btn.classList.add('busy');
+      var blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});
+      var fr=new FileReader();
+      fr.onload=function(){
+        api('/voice',{method:'POST',body:JSON.stringify({id:b.id,audio:fr.result})})
+          .then(function(r){return r.json()})
+          .then(function(d){
+            btn.classList.remove('busy');
+            if(d.beats){ beats=d.beats; render(); }
+            var fresh=beats.find(function(x){return x.id===b.id;});
+            if(fresh&&popBeat&&popBeat.id===b.id){ popBeat=fresh; btn.classList.toggle('on',Boolean(fresh.voiceUrl)); }
+            if(d.url){ player.pause(); player.src=d.url; player.play(); }
+          })
+          .catch(function(){ btn.classList.remove('busy'); });
+      };
+      fr.readAsDataURL(blob);
+    };
+    recorder.start();
+    btn.classList.add('rec');
+  }).catch(function(){
+    alert('The microphone is not available here.');
+  });
+};
 
 /* The pad renders UNITS: a lone beat, or a CHUNK — contiguous beats sharing
    a chunk id, drawn in one tile's width as side-by-side slices in a shared
@@ -364,6 +414,9 @@ function openBeat(b){
   var canLink=myUnit>=0 && myUnit<units.length-1;
   lb.hidden=!(b.chunk||canLink);
   lb.classList.toggle('on',Boolean(b.chunk));
+  var mb=document.getElementById('micbtn');
+  mb.classList.remove('rec','busy');
+  mb.classList.toggle('on',Boolean(b.voiceUrl));
   document.getElementById('beatpop').hidden=false; lock(true);
 }
 document.getElementById('linkbtn').onclick=function(ev){
@@ -442,7 +495,7 @@ document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
   this.hidden=true;
 };
-function closeBeat(){saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+function closeBeat(){stopRec(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 document.getElementById('beatpop').onclick=function(ev){ if(ev.target===this)closeBeat(); };
 
 load();

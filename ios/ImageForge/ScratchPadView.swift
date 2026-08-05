@@ -56,8 +56,14 @@ private struct ScratchPadWebView: UIViewRepresentable {
     @Binding var failed: Bool
 
     func makeUIView(context: Context) -> WKWebView {
-        let web = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        let config = WKWebViewConfiguration()
+        // The beat popup's mic records her reading a line; playback of notes
+        // shouldn't demand a gesture-per-play either.
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
+        web.uiDelegate = context.coordinator
         web.isOpaque = false
         web.backgroundColor = UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1) // page --paper #f6f2e9
         web.allowsBackForwardNavigationGestures = false
@@ -71,9 +77,18 @@ private struct ScratchPadWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: ScratchPadWebView
         init(_ parent: ScratchPadWebView) { self.parent = parent }
+
+        // The mic icon records via getUserMedia — grant the capture request
+        // (the OS mic permission prompt still applies the first time).
+        @available(iOS 15.0, *)
+        func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+                     initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType,
+                     decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+            decisionHandler(type == .microphone ? .grant : .deny)
+        }
 
         // The /scratchpad page sits behind HTTP Basic (any user, password = token).
         func webView(_ webView: WKWebView,

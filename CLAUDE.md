@@ -1796,7 +1796,12 @@ lifted into a standalone tool later.
   in the cache key): bracketed stage directions like `[quietly]` work in a
   note, but v3 has NO `<break time>` tags — pauses come from punctuation;
   cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
-  free). Tapping the popup thumbnail opens a lightbox. Placement slots are
+  free). **Her OWN recording wins over TTS:** the popup's mic icon records
+  her reading the line (MediaRecorder → `POST /voice {id, audio:dataURL}` →
+  Storage scratchpad/voice/, `beat.voiceUrl`); wherever a recording exists
+  the caption and speech icon play IT, re-recording replaces it, and
+  `audio:null` clears back to TTS. Tapping the popup thumbnail opens a
+  lightbox. Placement slots are
   slim dashed LINES between beats, not full dashed tiles. **Chunks (Aug
   2026):** the popup's chain icon links a beat's unit with the NEXT unit —
   unbounded (2, 3, 4… beats). A chunk is contiguous beats sharing `chunk`
