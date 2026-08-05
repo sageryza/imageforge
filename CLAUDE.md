@@ -491,6 +491,29 @@ lifted into a standalone tool later.
   `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
   **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
   chat's tile appeared on its own (verified live).
+- **LIVE DRAFTS (Aug 2026, hook v7):** the same hook is also registered on
+  **PostToolUse**, so the prose a chat writes BEFORE/BETWEEN tool calls
+  reaches the Chats app while the turn is still running — a long coding turn
+  no longer means silence until the very end (Sophie's ask: "it would be nice
+  if I could see that before they start coding"). Mechanics: the draft pass
+  posts the turn's text-so-far with `{turn, working:true}` (`turn` = the
+  transcript uuid of the user message that started the turn); the server
+  UPSERTS one message per turn onto a deterministic doc id keyed
+  session|turn — NOT the chat slug, so renames/slug re-resolution can't fork
+  a draft — and the app shows it as "still writing…" (breathing rose marker,
+  no Play button yet). The end-of-turn Stop post carries the same `turn` and
+  finalizes the SAME message (TLDR set, marker cleared) — one message per
+  turn, never a duplicate. The unread dot pings ONCE when the draft first
+  appears (Sophie's choice), never again as it grows/finishes. The whole
+  draft pass runs backgrounded (adds zero latency to tool calls), posts only
+  when the turn's prose actually GREW (state: `forge-draft-<sid>`), and skips
+  turns under 60 chars. An interrupted turn's draft is finalized by the
+  UserPromptSubmit sweep. After ANY edit to the hook, run
+  `python3 scripts/build-chats-setup.py` — it rebuilds
+  `docs/chats-autopost-setup-script.sh` + `public/setup.sh` with the hook
+  body verbatim-embedded; never hand-edit those two copies. Existing
+  environments pick v7 up automatically (the setup script re-runs each
+  session start and appends the missing PostToolUse registration).
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old
