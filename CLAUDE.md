@@ -347,7 +347,10 @@ lifted into a standalone tool later.
   pictures. Tiles = every picture from every run as uniform SQUARE thumbnails
   **four to a row** (the My Creations look), no prompt on the page — tapping
   one opens the lightbox, which is where the prompt and the model · quality ·
-  seed line live. Two gotchas, both earned: the switch is a **sticky labelled
+  seed line live. **A run still drawing holds its own empty square at the
+  FRONT of the tile wall** (`#tiles .cell.ph`, breathing so it doesn't read as
+  a broken image) and the list view's "drawing…" box is hidden in tiles, so
+  nothing appears twice — cancelling a run therefore lives in LIST view. Two gotchas, both earned: the switch is a **sticky labelled
   LIST/TILES pair**, never a single icon that scrolls away (the first version
   did, and stranded her in a one-image-per-row view with no way back), and it
   sits on the **LEFT** because the autoscroll pill owns the top-right corner.

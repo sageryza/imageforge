@@ -56,6 +56,12 @@
      which is where the prompt, model and quality live. */
   #tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
   #tiles .cell img { aspect-ratio: 1 / 1; }
+  /* A picture still being drawn holds its square at the front of the wall, so
+     the tiles view shows the whole feed and not just what has landed. It
+     breathes, because a flat empty box in a wall of pictures reads as a
+     broken image rather than as one on its way. */
+  #tiles .cell.ph { aspect-ratio: 1 / 1; animation: plwait 1.5s ease-in-out infinite; }
+  @keyframes plwait { 0%, 100% { background: #f0ebe3; } 50% { background: #e4dbcd; } }
   .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
   .copybtn svg { width: 14px; height: 14px; }
@@ -191,6 +197,10 @@
     document.getElementById('v-tiles').classList.toggle('on', tiles);
     document.getElementById('runs').hidden = tiles;
     document.getElementById('tiles').hidden = !tiles;
+    // The drawing-runs box is a LIST-view thing: in tiles those runs hold
+    // their own squares at the front of the wall instead, so nothing is
+    // shown twice. (Cancelling a run therefore lives in list view.)
+    document.getElementById('pendings').hidden = tiles;
     if (tiles) renderTiles();
   }
   function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
@@ -442,6 +452,8 @@
         '<div class="grid">' + cells + '</div></div>';
     }).join('');
     applyClamps(document.getElementById('pendings'));
+    // The same runs are squares at the front of the tile wall — keep it current.
+    if (curView() === 'tiles') renderTiles();
   }
 
   // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
@@ -583,9 +595,15 @@
 
   // The tiles view: every picture from every run, newest first, as one wall of
   // uniform thumbnails. No prompt on the page — that's what the lightbox is
-  // for, so tapping a tile is how you find out what made it.
+  // for, so tapping a tile is how you find out what made it. Runs still being
+  // drawn hold an empty square each at the FRONT, so the wall is the whole
+  // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
     var html = '';
+    pendingList().slice().reverse().forEach(function (p) {
+      var slots = p.count || OUTPUTS;
+      for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
+    });
     Object.keys(runsById).forEach(function (id) {
       var r = runsById[id];
       if (r.status === 'failed') return;
