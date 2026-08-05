@@ -64,3 +64,36 @@ then build it and check it off here.
 - [x] **Take THE FILMS section off the Story Room home.** (Done Aug
   2026.) Unmatched films (dream experiments, tests) wait behind the
   home's Films button; the button only shows when any exist.
+
+## Voice Memos
+
+- [ ] **ONE path into the Voice Memo library — always transcribed,
+  never doubled, never lost.** (Sophie, 2026-08-05.) Today a recording
+  can enter four different ways and only one of them files it into the
+  archive: `scripts/push-memos.mjs` on her Mac → `POST
+  /api/memos/ingest` (the real library — membry Storage
+  `memo-audio/` + `manifest.json`, transcribed + categorised, deduped
+  by the `YYYY-MM-DD_HHMM` local stamp); the iOS share sheet →
+  `POST /api/audio/upload-file` (a *different* collection,
+  `forge-audio` in deckfactory, deduped by md5, transcribed only if
+  she taps the toggle); Story Room "Paste a recording" →
+  `/api/story/voiceover` (transcribed, but attached to one story and
+  nowhere else); and pasting it into a chat, where it only lands
+  because a chat curls the ingest route by hand. Wanted shape:
+  - every one of those entry points ends up in the SAME library, with
+    the other surfaces keeping their own copy/reference if they need
+    one (the share sheet and Story Room shouldn't lose what they do
+    today — they should also file);
+  - transcription is automatic and unconditional, not a toggle;
+  - dedupe is **belt and braces**: the content md5 *and* the local
+    wall-clock stamp, so the same recording arriving by two different
+    routes (or re-encoded on the way) still lands once. Stamp alone
+    is fragile — a chat has to reconstruct it from the file's mvhd
+    time and guess the timezone; md5 alone breaks if any path
+    re-encodes.
+  - nothing is dropped when a route can't reach the archive — the
+    audio is banked first, enriched after.
+  Worth doing at the same time: backfill/merge whatever is sitting in
+  `forge-audio` that never made it into the archive, and give a chat
+  ONE documented call to file a pasted recording instead of the
+  hand-built curl used on 2026-08-05.
