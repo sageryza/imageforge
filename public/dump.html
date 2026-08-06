@@ -63,11 +63,12 @@
   .hint{ font-size:12px; color:var(--dim); }
   .empty{ text-align:center; color:var(--dim); padding:44px 20px; font-size:14px; }
 
-  /* Select mode: every album open to just its thumbs, tap to pick. */
-  .files .f.picked{ outline:3px solid var(--accent); outline-offset:-3px; }
-  .files .f.picked::before{ content:'✓'; position:absolute; top:3px; right:3px; z-index:1;
-    width:18px; height:18px; border-radius:50%; background:var(--accent); color:#fff;
-    font-size:12px; display:flex; align-items:center; justify-content:center; }
+  /* Select mode: tap whole album cards; the folder is a label on the album,
+     so nothing inside it moves. */
+  .card.picked{ outline:2px solid var(--accent); }
+  .card.picked .head::after{ content:'✓'; width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:13px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; }
   #movebar{ position:fixed; left:0; right:0; bottom:0; z-index:15;
     display:flex; gap:10px; align-items:center; padding:10px 14px calc(10px + env(safe-area-inset-bottom));
     background:var(--surface); border-top:1px solid var(--border); }
@@ -112,15 +113,15 @@
 <div id="movebar" hidden>
   <span class="n" id="mvcount">0 picked</span>
   <button id="mvcancel">Cancel</button>
-  <button id="mvgo" disabled>Move to…</button>
+  <button id="mvgo" disabled>File into…</button>
 </div>
 
 <div id="sheet" hidden>
   <div id="sheetin">
-    <div class="lab2">Move into</div>
+    <div class="lab2">File into folder</div>
     <div id="alblist"></div>
-    <div class="lab2">Or a new album</div>
-    <div id="newrow"><input type="text" id="newname" placeholder="album name"><button id="newgo">Move</button></div>
+    <div class="lab2">Or a new folder</div>
+    <div id="newrow"><input type="text" id="newname" placeholder="folder name"><button id="newgo">Move</button></div>
   </div>
 </div>
 
@@ -145,10 +146,13 @@ const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok
 // The known tracks; "other…" reveals a free-text box. Deliberately few — a
 // track is a project, not a tag cloud.
 const TRACKS=['crystals','story-art','hoonies','reference','product'];
-let sessions=[], curSession='', onlyUnlabelled=false, bundles=[];
+let sessions=[], curSession='', curFolder='', onlyUnlabelled=false, bundles=[];
 
+let folders=[];
 async function load(){
   const s=await api('/sessions'); sessions=(s.ok&&s.body.sessions)||[];
+  const all=await api('/bundles');
+  folders=[...new Set(((all.ok&&all.body.bundles)||[]).map(b=>b.track).filter(Boolean))].sort();
   renderFilters(); await loadBundles();
 }
 async function loadBundles(){
@@ -156,6 +160,11 @@ async function loadBundles(){
   if(onlyUnlabelled)q.push('untracked=1');
   const r=await api('/bundles'+(q.length?'?'+q.join('&'):''));
   bundles=(r.ok&&r.body.bundles)||[];
+  // Newest album first — the default, because the thing she just dumped is
+  // the thing she wants to label. (seq is arrival order across ALL albums, so
+  // it can't answer this; `newest` is the album's latest file.)
+  bundles.sort((x,y)=>(y.newest||0)-(x.newest||0));
+  if(curFolder) bundles=bundles.filter(b=>(b.track||'')===curFolder);
   const files=(r.ok&&r.body.files)||0;
   const un=bundles.filter(b=>!b.track).length;
   document.getElementById('counts').textContent=
@@ -167,23 +176,26 @@ function renderFilters(){
   el.innerHTML=
     '<span class="chip'+(selectMode?' on':'')+'" data-sel="1">Select</span>'+
     '<span class="chip'+(curSession?'':' on')+'" data-s="">All</span>'+
-    '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unlabelled</span>'+
+    '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unfiled</span>'+
+    folders.map(f=>'<span class="chip fold'+(curFolder===f?' on':'')+'" data-f="'+esc(f)+'">'
+      +esc(f)+'</span>').join('')+
     sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'">'
       +esc(s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
   el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
     if(c.dataset.sel){ setSelectMode(!selectMode); return; }
-    if(c.dataset.un){ onlyUnlabelled=!onlyUnlabelled; }
-    else curSession=c.dataset.s;
+    if(c.dataset.f!==undefined){ curFolder=(curFolder===c.dataset.f)?'':c.dataset.f; }
+    else if(c.dataset.un){ onlyUnlabelled=!onlyUnlabelled; }
+    else { curSession=c.dataset.s; curFolder=''; }
     renderFilters(); loadBundles();
   });
 }
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-// Select mode: pick files across ANY album, then move the lot into one —
-// "select a bunch and put them all in a folder" (Sophie). Every card opens to
-// just its thumbs (no label editor), taps pick instead of opening the lightbox,
-// and the fixed bottom bar does the move.
-let selectMode=false; const picked=new Map(); // id -> url (for order + count)
+// Select mode: pick whole ALBUMS, then file the lot into a folder. Sophie's
+// rule — "don't take it out of the sub folders it's already in": a folder
+// CONTAINS albums, it never merges them, so this only writes each album's
+// folder label and never touches a single file's place.
+let selectMode=false; const picked=new Map(); // bundle key -> the bundle
 function setSelectMode(on){
   selectMode=on;
   if(!on) picked.clear();
@@ -192,9 +204,10 @@ function setSelectMode(on){
   renderFilters(); renderList();
 }
 function updateMoveBar(){
-  document.getElementById('mvcount').textContent=picked.size+' picked';
+  document.getElementById('mvcount').textContent=picked.size+' album'+(picked.size===1?'':'s');
   document.getElementById('mvgo').disabled=!picked.size;
 }
+const bKey=b=>b.bundle?(b.session+'/'+b.bundle):('loose:'+b.files[0].id);
 
 function renderList(){
   const el=document.getElementById('list');
@@ -202,25 +215,20 @@ function renderList(){
   el.innerHTML=bundles.map((b,i)=>{
     const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
     const tk=b.track?'<span class="tk set">'+esc(b.track)+'</span>':'<span class="tk un">unlabelled</span>';
-    const files=selectMode
-      ? '<div class="body"><div class="files">'+b.files.map(f=>{
-          const src=f.media==='video'?(f.posterUrl||''):f.url;
-          return '<button class="f'+(f.media==='video'?' vid':'')+(picked.has(f.id)?' picked':'')+'" data-pick="'+esc(f.id)+'">'+
-            '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
-        }).join('')+'</div></div>'
-      : '<div class="body" id="body'+i+'" hidden></div>';
-    return '<div class="card" data-i="'+i+'">'+
-      '<div class="head"'+(selectMode?'':' onclick="toggle('+i+')"')+'>'+
+    const on=selectMode&&picked.has(bKey(b));
+    return '<div class="card'+(on?' picked':'')+'" data-i="'+i+'">'+
+      '<div class="head"'+(selectMode?' data-pick="'+i+'"':' onclick="toggle('+i+')"')+'>'+
         '<img class="cover" src="'+esc(b.cover||'')+'" loading="lazy" alt="">'+
         '<div class="meta"><div class="nm">'+esc(nm)+'</div>'+
         '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.session)+'</div></div>'+
-        tk+'</div>'+files+'</div>';
+        tk+'</div>'+
+      '<div class="body" id="body'+i+'" hidden></div></div>';
   }).join('');
   if(selectMode){
-    el.querySelectorAll('[data-pick]').forEach(f=>f.onclick=()=>{
-      const id=f.dataset.pick;
-      if(picked.has(id)){ picked.delete(id); f.classList.remove('picked'); }
-      else{ picked.set(id,1); f.classList.add('picked'); }
+    el.querySelectorAll('[data-pick]').forEach(h=>h.onclick=()=>{
+      const b=bundles[Number(h.dataset.pick)], k=bKey(b);
+      if(picked.has(k)){ picked.delete(k); h.closest('.card').classList.remove('picked'); }
+      else{ picked.set(k,b); h.closest('.card').classList.add('picked'); }
       updateMoveBar();
     });
     updateMoveBar();
@@ -239,7 +247,7 @@ function toggle(i){
         '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
     }).join('')+'</div>'+
     '<label>Name</label><input type="text" id="nm'+i+'" value="'+esc(b.bundleName||b.name||'')+'">'+
-    '<label>Track — what project is this?</label>'+
+    '<label>Folder — what project is this?</label>'+
     '<div class="tracks" id="tr'+i+'">'+TRACKS.map(t=>
       '<span class="chip'+(b.track===t?' on':'')+'" data-t="'+t+'">'+t+'</span>').join('')+
       '<span class="chip'+(other?' on':'')+'" data-t="__other">other…</span></div>'+
@@ -285,12 +293,9 @@ function toggle(i){
 document.getElementById('mvcancel').onclick=()=>setSelectMode(false);
 document.getElementById('mvgo').onclick=()=>{
   const list=document.getElementById('alblist');
-  list.innerHTML=bundles.filter(b=>b.bundle).map(b=>{
-    const nm=b.bundleName||b.bundle.replace(/-/g,' ');
-    return '<button class="alb" data-mv="'+esc(nm)+'">'+
-      '<img src="'+esc(b.cover||'')+'" loading="lazy" alt=""><span class="an">'+esc(nm)+'</span>'+
-      '<span class="ac">'+b.files.length+'</span></button>';
-  }).join('')||'<div class="empty" style="padding:14px">No albums yet — name a new one below.</div>';
+  list.innerHTML=folders.map(f=>
+    '<button class="alb" data-mv="'+esc(f)+'"><span class="an">'+esc(f)+'</span></button>').join('')
+    ||'<div class="empty" style="padding:14px">No folders yet — name one below.</div>';
   list.querySelectorAll('[data-mv]').forEach(a=>a.onclick=()=>doMove(a.dataset.mv));
   document.getElementById('newname').value='';
   document.getElementById('sheet').hidden=false;
@@ -300,15 +305,24 @@ document.getElementById('newgo').onclick=()=>{
   const nm=document.getElementById('newname').value.trim();
   if(nm) doMove(nm);
 };
-async function doMove(bundleName){
+// One PATCH per album — each writes the folder onto every file of that album,
+// which is what makes the folder a property of the album rather than a move.
+async function doMove(folder){
   document.getElementById('sheet').hidden=true;
-  const ids=[...picked.keys()];
-  document.getElementById('mvcount').textContent='moving '+ids.length+'…';
-  const r=await api('/move',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ids, bundleName})});
-  if(!r.ok){ document.getElementById('mvcount').textContent='failed: '+((r.body&&r.body.error)||r.status); return; }
+  const list=[...picked.values()];
+  let done=0, failed=0;
+  for(const b of list){
+    document.getElementById('mvcount').textContent='filing '+(done+1)+' of '+list.length+'…';
+    const r=b.bundle
+      ? await api('/bundle',{method:'PATCH',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({session:b.session, bundle:b.bundle, track:folder})})
+      : await api('/items/'+b.files[0].id,{method:'PATCH',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({track:folder})});
+    r.ok?done++:failed++;
+  }
   setSelectMode(false);
-  await load();          // sessions + bundles both changed
+  await load();
+  if(failed) document.getElementById('counts').textContent+=' · '+failed+" couldn't be filed";
 }
 
 // Lightbox — freeze the page behind it AND restore the exact scroll position
