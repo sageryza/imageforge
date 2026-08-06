@@ -1757,13 +1757,18 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
-  latter behind the **briefcase** beside the test tube, holding Instagram,
-  Ads, Blog Studio, the Product Creator and the Shop Report. `Tool.isBusiness` decides which grid a tool lands on;
-  a tool is on ONE grid, never both, so each home stays scannable. The
-  business home's top-left is a **house** back to the making home; Chats
-  keeps its top-right corner on both. Deep link: `deckfactory://business`.
+- **Three home screens (Aug 2026, Sophie).** The making home (`.home`), the
+  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) behind
+  the **briefcase** beside the test tube — Instagram, Ads, Blog Studio, the
+  Product Creator and the Shop Report — and the **old fashioned** home
+  (`.crafts`, `CraftsGrid`) behind the hand-drawn **quilt** beside the
+  briefcase: the original staples (stickers, storybooks, coloring pages,
+  greeting cards) plus the Writing Room, per Sophie. `Tool.isBusiness` /
+  `Tool.isCraft` decide which grid a tool lands on; a tool is on ONE grid,
+  never two, so each home stays scannable. The second and third homes'
+  top-left is a **house** back to the making home; Chats keeps its top-right
+  corner on all three. Deep links: `deckfactory://business`,
+  `deckfactory://crafts` (alias `://quilt`).
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not

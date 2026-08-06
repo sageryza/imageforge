@@ -185,7 +185,7 @@ struct ToolGlyph: View {
 /// Which screen the bottom bar is showing. There are TWO home grids: the
 /// making one (`.home`) and the business one (`.business`), reached by the
 /// briefcase beside the test tube.
-enum Screen: Hashable { case home, business, tool(Tool), gallery }
+enum Screen: Hashable { case home, business, crafts, tool(Tool), gallery }
 
 extension Tool {
     /// The tools that live on the BUSINESS home grid instead of the making one
@@ -194,6 +194,16 @@ extension Tool {
     var isBusiness: Bool {
         switch self {
         case .instagram, .ads, .blog, .product, .report: return true
+        default: return false
+        }
+    }
+
+    /// The OLD FASHIONED grid, behind the quilt beside the briefcase — the
+    /// original staples Sophie named: stickers, storybooks, coloring pages,
+    /// greeting cards (same family, my call) and the Writing Room.
+    var isCraft: Bool {
+        switch self {
+        case .sticker, .storybook, .coloring, .greeting, .writing: return true
         default: return false
         }
     }
@@ -309,6 +319,8 @@ struct RootView: View {
             setScreen(.gallery)
         case "business":
             setScreen(.business)
+        case "crafts", "quilt":
+            setScreen(.crafts)
         default:
             if let t = Tool(rawValue: dest) { open(t) }
         }
@@ -332,12 +344,15 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open, openBusiness: { setScreen(.business) }, recents: recents)
+            HomeGrid(open: open, openBusiness: { setScreen(.business) }, openCrafts: { setScreen(.crafts) }, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
             BusinessGrid(open: open, goHome: { setScreen(.home) })
                 .opacity(screen == .business ? 1 : 0)
                 .allowsHitTesting(screen == .business)
+            CraftsGrid(open: open, goHome: { setScreen(.home) })
+                .opacity(screen == .crafts ? 1 : 0)
+                .allowsHitTesting(screen == .crafts)
             ForEach(recents.recentThree.filter { $0 != .chats }) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { setScreen(.home) })
@@ -372,7 +387,7 @@ struct RootView: View {
 
     private var showAutoScroll: Bool {
         switch screen {
-        case .home, .business: return false
+        case .home, .business, .crafts: return false
         case .gallery: return true
         case .tool(let t):
             // Story Room is a web page with its own in-page pill.
@@ -451,6 +466,7 @@ private struct BottomBar: View {
 private struct HomeGrid: View {
     var open: (Tool) -> Void
     var openBusiness: () -> Void
+    var openCrafts: () -> Void
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
 
@@ -458,10 +474,10 @@ private struct HomeGrid: View {
     // storybooks, and coloring pages pinned last; everything in between rotates
     // by most-recent use.
     private var tools: [Tool] {
-        // Voice Studio, Song Station, Characters and Films sit BELOW the four
-        // making staples — Sophie's call: present, but at the end of the list.
-        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring,
-                                    .voice, .song, .character, .films]
+        // Voice Studio, Song Station, Characters and Films at the end of the
+        // list — Sophie's call: present, but at the bottom. (The four staples
+        // that used to be pinned here live on the quilt grid now.)
+        let pinnedBottom: [Tool] = [.voice, .song, .character, .films]
         // Chats and Test Station aren't grid cards — they live as the corner
         // icons in the header (chats top-right, test station top-left).
         // .scratchpad is hidden: the pad IS the Story Room now (the .story
@@ -469,7 +485,7 @@ private struct HomeGrid: View {
         // tool twice. The case and view stay for deep links and history.
         // Business tools live on the other home grid, behind the briefcase.
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
-                                            && !$0.isBusiness && !pinnedBottom.contains($0) }
+                                            && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return [.story] + ranked + rest + pinnedBottom
@@ -482,16 +498,16 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
-            // Two corner icons on the left, neither a grid card: the Test
-            // Station's test tube, and the briefcase across to the BUSINESS
-            // home (Instagram, ads, the blog — running the shop rather than
-            // making the work).
+            // Three corner icons on the left, none a grid card: the Test
+            // Station's test tube, the briefcase across to the BUSINESS home,
+            // and the quilt across to the OLD FASHIONED home (the original
+            // staples). 40pt slots so three still clear the centred masthead.
             .overlay(alignment: .leading) {
                 HStack(spacing: 0) {
                     Button { open(.test) } label: {
                         ToolGlyph(tool: .test, size: 20)
                             .foregroundColor(Theme.accent)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 40, height: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -499,11 +515,25 @@ private struct HomeGrid: View {
                         Image(systemName: "briefcase")
                             .font(.system(size: 20))
                             .foregroundColor(Theme.accent)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 40, height: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Business")
+                    Button(action: openCrafts) {
+                        // Hand-drawn quilt glyph — sized by the custom-icon rule
+                        // (~0.86 of the SF point size beside it).
+                        Image("Quilt")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 17.2, height: 17.2)
+                            .foregroundColor(Theme.accent)
+                            .frame(width: 40, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Old fashioned")
                 }
                 .padding(.leading, 4)
             }
@@ -568,6 +598,64 @@ private struct BusinessGrid: View {
                 .padding(.leading, 12)
             }
             // Chats stays reachable from both homes, same corner as on the other.
+            .overlay(alignment: .trailing) {
+                Button { open(.chats) } label: {
+                    Image(systemName: Tool.chats.icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 12)
+            }
+            ScrollView {
+                LazyVGrid(columns: grid, spacing: 14) {
+                    ForEach(tools) { t in
+                        Button { open(t) } label: {
+                            HubCard(tool: t, title: t.title, desc: t.desc)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding()
+            }
+        }
+        .background(Theme.bg.ignoresSafeArea())
+    }
+}
+
+/// The OLD FASHIONED home — the third grid, behind the quilt. The original
+/// staples: stickers, storybooks, coloring pages, greeting cards, and the
+/// Writing Room. Same shape as BusinessGrid: a home, not a tool screen — the
+/// house top-left goes back to the making home.
+private struct CraftsGrid: View {
+    var open: (Tool) -> Void
+    var goHome: () -> Void
+    private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    private var tools: [Tool] { Tool.allCases.filter { $0.isCraft } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                StarTitle(text: "Old Fashioned")
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+            .overlay(alignment: .leading) {
+                Button(action: goHome) {
+                    Image(systemName: "house")
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Home")
+                .padding(.leading, 12)
+            }
+            // Chats keeps its corner on every home.
             .overlay(alignment: .trailing) {
                 Button { open(.chats) } label: {
                     Image(systemName: Tool.chats.icon)
