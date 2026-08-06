@@ -488,6 +488,29 @@ lifted into a standalone tool later.
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
+- `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
+  surface with **no opinion**. Every other one wraps her words in a house style
+  (Playground prepends `PL_GPT.prefix`, the Scratch Pad locks a style per story,
+  the passport paints pastel); here the prompt is sent to gpt-image-2 **verbatim**
+  — no prefix, no suffix, no trigger word, not even a trailing-period trim. If the
+  prompt should mention a style, SHE says it. `promptSent` is stored on every run
+  so the page (and any later reader) can verify nothing was added — this is the
+  "if you add anything to a prompt Sophie gave, tell her" rule made structural.
+- **References are a LIBRARY, not a per-run upload** (`forge-freeform-refs`):
+  upload once, attach to any later run and to several at a time — the point is
+  trying the same references against different words. Bytes at
+  `freeform/refs/<id>.<ext>` + a 512px webp display copy; deleting a ref drops
+  the record but KEEPS the bytes, or a finished run's history would break.
+- **Quality low / medium / high** (~2¢ / 6¢ / 25¢), size portrait 2:3 (default) /
+  square / landscape, 1-4 images a run. With refs attached it calls the **edits**
+  endpoint; with none it calls **generations** (edits requires an image).
+- Background job on the doc (`forge-freeform`), each output lands as it finishes
+  so one failed call costs its image not the run; the page polls, remembers
+  pending ids in `localStorage`, and resumes on return. STUDIO_TOKEN-gated
+  (only `GET /status` open). Routes: `/status`, `POST/GET/PATCH/DELETE /refs`,
+  `POST /run`, `GET /runs`, `GET/DELETE /run/:id`.
+
 ## Writing Room (dating-book drafts on the phone)
 - `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —
   the dating-book working drafts as a reviewable module. Every date in two
@@ -1466,6 +1489,22 @@ lifted into a standalone tool later.
   endpoints + a small set of stateless AI endpoints in `server.js`:
   `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
   `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **The blog is a real NAVIGATION out of the app page, and the tab re-assert
+  must not follow it (Aug 2026 — this bug made the blog unreachable in the
+  app: tapping "The blog" bounced to Home instantly).** In the iOS app the
+  witch page and the blog share ONE web view, so opening `/blog?app=1`
+  replaces the app. The blog page therefore installs its own `window.__setTab`
+  shim (`blog-public.js`) that answers the native tab bar by navigating BACK
+  into the app — but `WitchWebView`'s `didFinish` also re-asserts the current
+  tab on every load, to keep bar and page in step after a reload. That
+  re-assert fired the moment the blog finished loading and the shim did what it
+  was told: straight back to Home. Fixed on BOTH sides, and both are load-
+  bearing — `didFinish` now re-asserts only on the app page (`isAppPage`,
+  path `/witch`), and the shim ignores the first call inside a 2s grace window
+  (a finger can't beat the page's own load event) so ALREADY-INSTALLED builds
+  are fixed by a Render deploy alone. A tab tap from a blog page still works:
+  it arrives via `updateUIView`, not `didFinish`. Anything else the app ever
+  navigates to in that web view needs the same treatment.
 - **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
   - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
     epoch, client-side), a deterministic **Card of the Day** (per-day hash into

@@ -262,6 +262,14 @@
 
 <div id="toast"></div>
 
+<!-- Persistent, DOM-ATTACHED players. iOS WebKit suspends an Audio object
+     created in JS but never attached to the document a few seconds into
+     playback (this bit Sophie for real: a rendered cut "stopped after the
+     seventh word" — the file was fine, the detached player died). One element
+     for the recording (the transport), one for renders/clips. -->
+<audio id="player" preload="metadata" hidden></audio>
+<audio id="player2" preload="none" hidden></audio>
+
 <script>
 // ANY tap pauses the shared autoscroll pill (house rule).
 document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
@@ -300,10 +308,20 @@ let doc = null;        // the project doc
 let words = [];        // [{word,start,end}]
 let sel = { a: null, b: null };
 let curWord = -1;
-let audio = null;
 let sectionStop = null;   // stop playback at this time (section preview)
 let docPoll = null, jobPoll = null;
 let lastFollow = 0;
+
+// The two persistent players (see the elements' comment above) — listeners
+// attach ONCE here; opening another recording only swaps `src`.
+const audio = $('player');   // the transport: the open recording
+const outP = $('player2');   // renders + saved clips
+audio.addEventListener('timeupdate', onTick);
+audio.addEventListener('play', () => setPlayIcon(true));
+audio.addEventListener('pause', () => setPlayIcon(false));
+audio.addEventListener('ended', () => setPlayIcon(false));
+audio.addEventListener('error', () => { if (audio.getAttribute('src')) toast('couldn’t play the recording'); });
+outP.addEventListener('error', () => { if (outP.getAttribute('src')) toast('couldn’t play — tap it again'); });
 
 // ── home ────────────────────────────────────────────────────────────
 async function showHome() {
@@ -605,7 +623,6 @@ const DESTICON = {
 const PLAYSVG = '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
 const OPENSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
 
-let outAudio = null;
 function renderOuts() {
   const renders = doc.renders || [];
   $('rendersWrap').hidden = !renders.length;
@@ -630,11 +647,11 @@ function renderOuts() {
   $('outs').onclick = (e) => {
     const p = e.target.closest('[data-play]');
     if (p) {
-      stopAudio();
-      if (outAudio && outAudio.src === p.dataset.play && !outAudio.paused) { outAudio.pause(); outAudio = null; return; }
-      if (outAudio) outAudio.pause();
-      outAudio = new Audio(p.dataset.play);
-      outAudio.play().catch(() => toast('couldn’t play'));
+      const url = p.dataset.play;
+      if (outP.src === url && !outP.paused) { outP.pause(); return; }
+      audio.pause();
+      if (outP.src !== url) outP.src = url;
+      outP.play().catch(() => toast('couldn’t play'));
       return;
     }
     const o = e.target.closest('[data-open]');
@@ -645,18 +662,14 @@ function renderOuts() {
 // ── playback + follow ───────────────────────────────────────────────
 function setupAudio() {
   stopAudio();
-  audio = new Audio(doc.source.url);
-  audio.preload = 'metadata';
+  if (audio.getAttribute('src') !== doc.source.url) audio.src = doc.source.url;
   curWord = -1;
+  sectionStop = null;
   $('time').innerHTML = '<b>0:00</b> / ' + fmt(doc.seconds);
-  audio.addEventListener('timeupdate', onTick);
-  audio.addEventListener('ended', () => setPlayIcon(false));
-  audio.addEventListener('pause', () => setPlayIcon(false));
-  audio.addEventListener('play', () => setPlayIcon(true));
 }
 function stopAudio() {
-  if (audio) { audio.pause(); audio = null; }
-  if (outAudio) { outAudio.pause(); outAudio = null; }
+  audio.pause();
+  outP.pause();
 }
 function setPlayIcon(on) {
   $('play').innerHTML = on
@@ -665,9 +678,9 @@ function setPlayIcon(on) {
   $('play').classList.toggle('on', on);
 }
 $('play').onclick = () => {
-  if (!audio) return;
+  if (!doc || !audio.getAttribute('src')) return;
   if (!audio.paused) { audio.pause(); sectionStop = null; return; }
-  if (outAudio) { outAudio.pause(); outAudio = null; }
+  outP.pause();
   if (sel.a !== null && sel.b !== null) {
     // with a section picked, play button plays JUST that section
     audio.currentTime = Math.max(0, words[sel.a].start - 0.15);
@@ -677,7 +690,6 @@ $('play').onclick = () => {
 };
 
 function onTick() {
-  if (!audio) return;
   const t = audio.currentTime;
   if (sectionStop != null && t >= sectionStop) { audio.pause(); sectionStop = null; }
   $('time').innerHTML = '<b>' + fmt(t) + '</b> / ' + fmt(doc.seconds);
