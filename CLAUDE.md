@@ -1659,6 +1659,16 @@ lifted into a standalone tool later.
     and stamp art.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
+- **Sophie's voice renders on `eleven_multilingual_v2` — NEVER `eleven_v3`
+  (Aug 2026, Sophie: "no one uses v3 ever again").** Her professional clone
+  ("Sophie — morning", `UTkHGl2ImiT6gwtAFCql`) is not optimized for v3 and
+  the likeness collapses — "a cousin doing an impression". v3 was tried and
+  REVERTED in the pad and the editor, but stale doc notes kept saying v3 and
+  a chat followed one, shipping a 15-minute film in the wrong voice: **when a
+  doc and the code disagree about her voice, trust the code** (scratchpad.js
+  / editor.js are the live copies). Settings of record:
+  `stability 0.5, similarity_boost 0.75, style 0, use_speaker_boost true`.
+  `<break time>` tags work on v2; v3's `[quietly]`-style acting tags do not.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
   product listings — anything Sophie's readers see). People shouldn't be able
   to tell it's AI-written. Banned: mic-drop closers ("That's the whole
@@ -1985,8 +1995,12 @@ lifted into a standalone tool later.
   immediately, the page polls `GET /:id/job`, records the pending render in
   `localStorage` and RESUMES polling on return — leaving the page never loses it.
   Each UNIQUE snippet is cut once no matter how many times it appears in the
-  sequence. Narration = ElevenLabs voice `UTkHGl2ImiT6gwtAFCql`, model
-  `eleven_v3`, text prefixed `[quietly] `, then `atempo=1.12` + loudnorm.
+  sequence. Narration = ElevenLabs voice `UTkHGl2ImiT6gwtAFCql` on
+  `eleven_multilingual_v2` (**NEVER `eleven_v3`** — voice rule under Design
+  rules), no whisper prefix, no tempo nudge, ONE constant gain instead of
+  loudnorm (Aug 2026, Sophie — she rejected the dynamic squeezing;
+  editor.js is the live copy of all of this, `docs/narration-voice-settings.md`
+  the human record).
   `ELEVENLABS_API_KEY` is in config-loader `MANAGED_KEYS` (Render env or
   `config/pipeline`) — **without it narration cards FAIL the render with a clear
   job error, they are never silently skipped**. Output: one 44.1k mono mp3 at
@@ -2116,12 +2130,12 @@ slots are short centered dashes.
   under its tile — FIRST LINE only, the rest lives in the popup — and
   tapping those words (or the popup speech icon) plays them in her ElevenLabs
   professional clone "Sophie — morning" (`POST /tts {id}` — voice
-  UTkHGl2ImiT6gwtAFCql, **eleven_v3 at stability 1.0 = Robust** (Sophie's
-  call, Aug 2026 — most consistent, closest to her v2 sound; settings ride
-  in the cache key): bracketed stage directions like `[quietly]` work in a
-  note, but v3 has NO `<break time>` tags — pauses come from punctuation;
-  cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
-  free). **Her OWN recording wins over TTS:** the popup's mic icon records
+  UTkHGl2ImiT6gwtAFCql on **`eleven_multilingual_v2`, NEVER `eleven_v3`**
+  (see the voice rule under Design rules) at stability 0.5, similarity_boost
+  0.75, style 0, use_speaker_boost true — the Voice Studio recipe in
+  scratchpad.js, which is the live copy; `<break time="1.0s" />` tags work
+  in a note for pauses, v3-style `[quietly]` acting tags do NOT; cached by
+  text hash at Storage scratchpad/tts/<hash>.mp3, so replays are free). **Her OWN recording wins over TTS:** the popup's mic icon records
   her reading the line (MediaRecorder → `POST /voice {id, audio:dataURL}` →
   Storage scratchpad/voice/, `beat.voiceUrl`); wherever a recording exists
   the caption and speech icon play IT. EVERY take is kept in
