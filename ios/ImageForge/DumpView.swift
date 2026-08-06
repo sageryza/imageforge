@@ -66,13 +66,60 @@ struct DumpView: View {
 
     private let grid = [GridItem(.adaptive(minimum: 104), spacing: 10)]
 
+    /// The two halves of the Dump, as tabs: sending albums in, and sorting out
+    /// what's already there. Sophie's ask — they were one screen and a pushed
+    /// page, which read as two separate tools.
+    private enum Tab: String { case send, sort }
+    @State private var tab: Tab = .send
+    // Bumped on every switch to Sort, so the page re-reads the inbox — an
+    // album dumped from the Send tab must appear without a manual reload.
+    @State private var sortTick = 0
+
     var body: some View {
         VStack(spacing: 0) {
+            // Progress sits ABOVE the tabs: an upload keeps running while she's
+            // sorting, so its state belongs to the screen, not to one tab.
             if uploader.isRunning || uploader.done > 0 { progressBar }
-            content
+            tabBar
+            // Both stay alive — switching tabs must not reload the sort page
+            // (it would lose her scroll position and the album she had open).
+            ZStack {
+                VStack(spacing: 0) { content }
+                    .opacity(tab == .send ? 1 : 0)
+                    .allowsHitTesting(tab == .send)
+                GatedWebTool(path: "/dump?embed=1", name: "the sort & label page",
+                             icon: "tray.full", refreshOnAppear: "window.__dumpRefresh",
+                             refreshTick: sortTick)
+                    .opacity(tab == .sort ? 1 : 0)
+                    .allowsHitTesting(tab == .sort)
+            }
         }
         .background(Theme.bg.ignoresSafeArea())
         .task { await library.load() }
+    }
+
+    /// Labelled pair, never a bare icon — the Chats list/tiles lesson: an
+    /// unlabelled switch strands you with no way to read where you are.
+    private var tabBar: some View {
+        HStack(spacing: 8) {
+            ForEach([Tab.send, Tab.sort], id: \.self) { t in
+                Button { tab = t; if t == .sort { sortTick += 1 } } label: {
+                    Text(t == .send ? "SEND" : "SORT")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundColor(tab == t ? .white : Theme.textDim)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(tab == t ? Theme.accent : Theme.surface)
+                        .cornerRadius(Theme.radius)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                            .stroke(tab == t ? Theme.accent : Theme.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Progress
@@ -153,29 +200,6 @@ struct DumpView: View {
 
     private var albumGrid: some View {
         VStack(spacing: 0) {
-            // The other half of "dump first, label afterwards": the /dump web
-            // page, where what's already in the inbox gets named, tracked and
-            // pruned. Pushed, so the native back chevron returns here.
-            NavigationLink {
-                GatedWebTool(path: "/dump", name: "the sort & label page", icon: "tray.full")
-                    .forgeTitle("Sort & label")
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "tray.full").font(.system(size: 15))
-                    Text("Sort & label what's already in")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Theme.textDim)
-                }
-                .foregroundColor(Theme.accent)
-                .padding(.horizontal, 14).padding(.vertical, 11)
-                .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
-                .cornerRadius(Theme.radiusLg)
-                .padding(.horizontal, 12).padding(.top, 10)
-            }
-            .buttonStyle(.plain)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 10) {
                     ForEach(library.albums) { album in
