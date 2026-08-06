@@ -1188,6 +1188,17 @@ lifted into a standalone tool later.
   a newly named one (`POST /api/drop/move {ids, bundleName}`; placeIn()'s
   registry transaction numbers them in, the target album's session and
   track/name labels win, files placed in the order she picked them).
+- **FOLDERS CONTAIN ALBUMS — they never merge them (Aug 2026, Sophie: "don't
+  take it out of the sub folders it's already in").** A folder is the `track`
+  field, shown as "Folder" in the UI: filing an album writes the label onto
+  its files and nothing inside it moves, so one crystal stays one album stays
+  one Etsy listing. The sort page's Select mode picks whole album CARDS (not
+  files) and files the lot in one tap; the filter row carries a chip per
+  folder in use, so tapping "Crystals" shows exactly those albums. Albums
+  sort **newest first** by `newest` (the album's latest file — `seq` is
+  arrival order across ALL albums and can't answer freshness).
+  `POST /move` (file-level, above) is still there for a chat, but the page
+  never merges albums.
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
