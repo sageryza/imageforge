@@ -293,6 +293,30 @@ def download_audio(binary, video_id, workdir, audio_format):
 
 # ── Firebase ───────────────────────────────────────────────────────────
 
+# Every Storage upload goes up as a RESUMABLE upload in 512KB chunks. The
+# library's defaults send anything under 8MiB as ONE multipart POST (and
+# resumable chunks default to 100MiB), and on a home connection a single
+# request body past ~512KB to storage.googleapis.com can stall until the
+# client's retry deadline — measured on Sophie's Mac with plain curl: 512KB
+# returned in 0.33s, 1MB hung forever. That's exactly the size of an
+# audiobook transcript, so both the transcript and audio paths were exposed.
+# Chunking costs nothing on a healthy connection; don't revert to
+# upload_from_string()/upload_from_filename() even if the network heals.
+UPLOAD_CHUNK = 512 * 1024
+
+
+def upload_bytes(bucket, dest, data, content_type):
+    blob = bucket.blob(dest, chunk_size=UPLOAD_CHUNK)
+    blob.upload_from_string(data, content_type=content_type)
+    return blob
+
+
+def upload_file(bucket, dest, path, content_type):
+    blob = bucket.blob(dest, chunk_size=UPLOAD_CHUNK)
+    blob.upload_from_filename(path, content_type=content_type)
+    return blob
+
+
 def find_key_file():
     """No env vars set? Look for the Deck Factory key file in the obvious Mac
     spots — an AirDropped file lands in ~/Downloads. Filename just has to look
@@ -460,8 +484,8 @@ def grab_one(video_id, ctx):
             payload = json.dumps(transcript, ensure_ascii=False).encode("utf-8")
             if len(payload) > 850_000:
                 dest = f"nde-transcripts/{video_id}.json"
-                ctx["bucket"].blob(dest).upload_from_string(
-                    payload, content_type="application/json")
+                upload_bytes(ctx["bucket"], dest, payload,
+                             content_type="application/json")
                 update["transcript"] = {
                     "storage": dest,
                     "segmentsCount": len(transcript["segments"]),
@@ -482,8 +506,8 @@ def grab_one(video_id, ctx):
         path, ext = download_audio(ctx["ytdlp"], video_id, ctx["workdir"], ctx["audio_format"])
         size = os.path.getsize(path)
         dest = f"{AUDIO_PREFIX}{video_id}.{ext}"
-        target = ctx["bucket"].blob(dest)
-        target.upload_from_filename(path, content_type=CONTENT_TYPES.get(ext, "application/octet-stream"))
+        target = upload_file(ctx["bucket"], dest, path,
+                             content_type=CONTENT_TYPES.get(ext, "application/octet-stream"))
         target.make_public()
         update["audioUrl"] = f"https://storage.googleapis.com/{ctx['bucket'].name}/{dest}"
         update["audioBytes"] = size
