@@ -15,6 +15,12 @@ struct GatedWebTool: View {
     let icon: String
     /// Grant the page microphone capture (Song Station records her singing).
     var mic: Bool = false
+    /// JS to run whenever `refreshTick` changes — for a page kept alive behind
+    /// a tab, which must re-read its data when she switches back to it.
+    var refreshOnAppear: String? = nil
+    /// Bump to fire `refreshOnAppear`. (A plain counter, not onAppear: a view
+    /// held alive in a ZStack only ever appears once.)
+    var refreshTick: Int = 0
 
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
@@ -46,7 +52,9 @@ struct GatedWebTool: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                GatedWebView(path: path, token: studioToken, mic: mic, failed: $loadFailed)
+                GatedWebView(path: path, token: studioToken, mic: mic,
+                             refreshJS: refreshOnAppear, refreshTick: refreshTick,
+                             failed: $loadFailed)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -59,6 +67,8 @@ private struct GatedWebView: UIViewRepresentable {
     let path: String
     let token: String
     let mic: Bool
+    let refreshJS: String?
+    let refreshTick: Int
     @Binding var failed: Bool
 
     func makeUIView(context: Context) -> WKWebView {
@@ -79,12 +89,18 @@ private struct GatedWebView: UIViewRepresentable {
         return web
     }
 
-    func updateUIView(_ web: WKWebView, context: Context) {}
+    func updateUIView(_ web: WKWebView, context: Context) {
+        guard let js = refreshJS, refreshTick != context.coordinator.lastTick else { return }
+        context.coordinator.lastTick = refreshTick
+        // Guarded: the page may still be loading when the tab is first shown.
+        web.evaluateJavaScript("if (\(js)) \(js)()", completionHandler: nil)
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: GatedWebView
+        var lastTick = 0
         init(_ parent: GatedWebView) { self.parent = parent }
 
         // The pages sit behind HTTP Basic (any user, password = studio token).

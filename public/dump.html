@@ -17,6 +17,11 @@
     border-bottom:1px solid var(--border); }
   .eyebrow{ font-size:12px; font-weight:600; letter-spacing:2.5px; color:#8a8377; }
   .counts{ font-size:12px; color:var(--dim); margin-top:3px; }
+  /* ?embed=1 — hosted as the Dump tile's Sort tab, where the native screen
+     already carries the title and the safe-area inset. Keep the counts line
+     (it's live data, not chrome); drop the eyebrow and the top padding. */
+  body.embed header{ padding:8px 56px 8px 16px; }
+  body.embed .eyebrow{ display:none; }
 
   .chips{ display:flex; gap:6px; overflow-x:auto; padding:10px 16px 4px;
     -webkit-overflow-scrolling:touch; }
@@ -86,6 +91,10 @@
 
 <script>
 const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
+if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
+// The Sort tab stays alive behind the Send tab, so a dump that finished while
+// it was hidden must show up when she switches back — the host calls this.
+window.__dumpRefresh = () => { if(typeof loadBundles==='function') loadBundles(); };
 const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok};
   return fetch('/api/drop'+p,o).then(async r=>({ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))})); };
 

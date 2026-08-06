@@ -1122,9 +1122,16 @@ lifted into a standalone tool later.
   album (filter by session / unlabelled-only), name it, set its `track` (chips
   for the known tracks + free text; tapping the lit chip clears back to
   unlabelled), notes, per-file lightbox with delete. Saves via
-  `PATCH /api/drop/bundle` (loose files via `PATCH /items/:id`). The native
-  Dump tile links to it ("Sort & label what's already in", pushed
-  `GatedWebTool`).
+  `PATCH /api/drop/bundle` (loose files via `PATCH /items/:id`). **The native
+  Dump tile is two tabs — SEND and SORT (Aug 2026, Sophie)**: sending albums
+  in and sorting out what's already there are one tool, not a screen plus a
+  pushed page. Both halves stay ALIVE behind the switch (a reload would lose
+  her place), so the page exposes `window.__dumpRefresh` and `GatedWebTool`'s
+  `refreshOnAppear`/`refreshTick` fires it on every switch to SORT —
+  `onAppear` can't do this, a view held in a ZStack only appears once. The
+  page hides its own eyebrow under `?embed=1` (the native bar already titles
+  the screen) and the upload progress bar sits ABOVE the tabs, since an
+  upload keeps running while she sorts.
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
