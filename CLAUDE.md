@@ -2071,6 +2071,28 @@ lifted into a standalone tool later.
     and deletes its stranded local branch. This is exactly how the chunking
     fix itself landed — written on the Mac as local commit dd3edc0,
     un-pushable, recreated from the cloud as #836.
+- **Pulling short CLIPS out of a YouTube video: `./scripts/clip` (Aug 2026).**
+  A different job from the grabber above — that banks WHOLE interviews (audio +
+  captions) into Firebase; this one saves short **video** clips as files on her
+  Mac. `cd ~/imageforge && ./scripts/clip "<youtube url>"`, then paste one line
+  per clip (`00:25:48-00:26:06 mailbox`) and Return on an empty line → numbered
+  files in `clips/<videoId>/` (gitignored). Re-running skips clips already
+  downloaded. `--spans`, `--dry-run` (needs no yt-dlp and no network),
+  `--format`, `--out`, `--cookies`, `--browser`, `--no-cookies`.
+  This replaces hand-pasted `yt-dlp … --download-sections` one-liners — the old
+  way meant re-typing the whole command per clip with new timestamps, which is
+  where the mistakes came from. `--force-keyframes-at-cuts` is baked in: without
+  it yt-dlp snaps to the nearest keyframe and the clip loses a second or two off
+  the front.
+  - **COOKIES are the whole game for age-gated videos** ("sign in to confirm
+    your age"). The script tries an exported cookies file FIRST — any
+    `~/Downloads/*cookies*.txt`, from the Chrome extension "Get cookies.txt
+    LOCALLY" — and only falls back to `--cookies-from-browser chrome`. That
+    order is deliberate and earned: reading Chrome's cookies directly raises a
+    macOS keychain prompt ("Chrome Safe Storage") that accepts ONLY her Mac
+    **login** password, and hers has drifted out of sync, so that path dead-ends
+    for her. The exported file skips the keychain entirely. It IS her live
+    YouTube session — tell her to delete it when a batch is done.
 - **Ingesting one of Sophie's OWN videos (not YouTube), July 2026.** For a video
   she made herself — no captions, no YouTube id — `POST /videos/from-video`
   `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
