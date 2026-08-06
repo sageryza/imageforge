@@ -1117,6 +1117,14 @@ lifted into a standalone tool later.
   metadata — no downloads — then removes in-album duplicates, renumbers, seeds
   the registry). `--dry-run` prints the plan. Ran once on 2026-07-28: 2,717
   files → 2,594, 123 exact duplicates removed (~327 MB), 58 albums renumbered.
+- **Sort & label page (Aug 2026, Sophie's ask): `/dump`** (`public/dump.html`,
+  serveGated) — the other half of "dump first, label afterwards". Browse every
+  album (filter by session / unlabelled-only), name it, set its `track` (chips
+  for the known tracks + free text; tapping the lit chip clears back to
+  unlabelled), notes, per-file lightbox with delete. Saves via
+  `PATCH /api/drop/bundle` (loose files via `PATCH /items/:id`). The native
+  Dump tile links to it ("Sort & label what's already in", pushed
+  `GatedWebTool`).
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
@@ -1832,13 +1840,18 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
-  latter behind the **briefcase** beside the test tube, holding Instagram,
-  Ads, Blog Studio, the Product Creator and the Shop Report. `Tool.isBusiness` decides which grid a tool lands on;
-  a tool is on ONE grid, never both, so each home stays scannable. The
-  business home's top-left is a **house** back to the making home; Chats
-  keeps its top-right corner on both. Deep link: `deckfactory://business`.
+- **Three home screens (Aug 2026, Sophie).** The making home (`.home`), the
+  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) behind
+  the **briefcase** beside the test tube — Instagram, Ads, Blog Studio, the
+  Product Creator and the Shop Report — and the **old fashioned** home
+  (`.crafts`, `CraftsGrid`) behind the hand-drawn **quilt** beside the
+  briefcase: the original staples (stickers, storybooks, coloring pages,
+  greeting cards) plus the Writing Room, per Sophie. `Tool.isBusiness` /
+  `Tool.isCraft` decide which grid a tool lands on; a tool is on ONE grid,
+  never two, so each home stays scannable. The second and third homes'
+  top-left is a **house** back to the making home; Chats keeps its top-right
+  corner on all three. Deep links: `deckfactory://business`,
+  `deckfactory://crafts` (alias `://quilt`).
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
