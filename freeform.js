@@ -41,7 +41,7 @@ const QUALITIES = ['low', 'medium', 'high'];
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };
 
 const MAX_PROMPT = 4000;
-const MAX_REFS = 8;                 // the edits endpoint's practical ceiling
+const MAX_REFS = 12;                // the edits endpoint accepts up to 16 images
 const MAX_OUTPUTS = 4;
 
 const db = () => admin.firestore();
