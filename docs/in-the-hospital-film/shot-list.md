@@ -46,6 +46,12 @@ earlier shot.
 - The 2x2 panel trick works on this engine (hard-border language, slice at
   quarters) and at high quality matches the singles' hand. Whether the film
   uses panels, singles, or both is Sophie's call.
+- **Narration: Sophie — morning (`UTkHGl2ImiT6gwtAFCql`) on
+  `eleven_multilingual_v2` — NEVER `eleven_v3`** (Aug 2026, Sophie; film v1
+  shipped on v3 by mistake and was re-rendered). Settings: stability 0.5,
+  similarity_boost 0.75, style 0, use_speaker_boost true. Pad-style timing:
+  each shot holds for exactly its own slice's audio length, per-unit audio as
+  PCM WAV, one encode at the mux.
 
 ## Prompt rules from Sophie (Aug 2026 — do not break these)
 
