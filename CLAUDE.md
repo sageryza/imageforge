@@ -1013,14 +1013,27 @@ lifted into a standalone tool later.
   ~65s of backoff and reported "3 rounds of retries", which reads like a network
   fault. Now `isSafetyRefusal()` short-circuits every retry ladder
   (`openaiPanel`, `openaiPanelEdit`, `drawPagesResilient`'s rounds), and the page
-  gets exactly ONE redraw with its NARRATIVE softened — `softenRefusedNarrative`
+  gets redrawn with its NARRATIVE softened — `softenRefusedNarrative`
   (gpt-4o-mini) rewords only the page's slice of the dream, its captions and the
   context line, and the structural half of the prompt (style ref, continuity
   clauses, attachment numbering) is rebuilt untouched around it, so softening
   can't scramble the references. **Rewording Sophie's own sentences to get past
   the filter is allowed — she asked for it (2026-08-06).** A page that lands
-  softened is marked `softened:true`. Two refusals in a row give up with a plain
-  reason instead of a retry count. Tests: `node scripts/test-dream-refusal.js`.
+  softened is marked `softened:true`. Softening escalates over TWO passes (pass 2
+  rewrites pass 1's output), then gives up with a plain reason instead of a retry
+  count. Refused requests are rejected before generation and cost nothing, so the
+  extra pass only ever spends a few seconds.
+  **`SOFTEN_SYSTEM` is empirically calibrated — don't reword it casually.**
+  Probed live against the filter on the refused page (2026-08-06): `feed it milk
+  from her breasts`, `breastfeed the baby` and even the VAGUER `feed it milk from
+  her body` are all REFUSED; `nurse the baby`, `feed the baby` and `hold the baby
+  close and feed it` are ACCEPTED. So being vaguer does not help and euphemism is
+  the wrong move — the first version of the prompt said "rephrase only what is
+  likely to trip it" and the model produced "from her body", which was refused
+  again. The prompt now tells it to REFRAME THE ACTION in ordinary everyday
+  verbs, with that worked example baked in; verified end-to-end (pass 1 →
+  "Then she went to nurse the baby." → page drawn).
+  Tests: `node scripts/test-dream-refusal.js`.
   **The page must not re-render while she scrolls.** `dreams.html` polls every
   3.2s during a render and used to call `render()` each tick, reassigning
   `root.innerHTML` — which re-decodes every image and drops scroll position.
