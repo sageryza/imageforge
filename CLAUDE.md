@@ -1198,7 +1198,17 @@ lifted into a standalone tool later.
   sort **newest first** by `newest` (the album's latest file — `seq` is
   arrival order across ALL albums and can't answer freshness).
   `POST /move` (file-level, above) is still there for a chat, but the page
-  never merges albums.
+  never merges albums. The page's whole control strip (title, counts, filter
+  + Select chips) is ONE sticky header, and a back-to-top button floats
+  bottom-LEFT past 400px of scroll — with 100 albums, reaching Select must
+  never mean scrolling back to the top.
+- **`DumpView` must RE-READ the Photos albums, not load them once.** Its
+  `.task` fires a single time because RootView holds the view alive in a
+  ZStack, so an album created in Photos after launch never appeared in SEND —
+  and it read as the Dump having lost it (Sophie made "character references"
+  and "style references", didn't see them, and made them again). It now
+  reloads on `.forgeScreenChanged`, on `willEnterForeground`, and on every
+  switch back to the SEND tab.
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
