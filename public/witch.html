@@ -73,8 +73,11 @@
       display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       /* First number = how far down the title sits. It has ~13px of slack
          before it crowds the top edge; below that you're into the status
-         bar / notch, which the header deliberately stays clear of. */
-      padding: 13px 20px 14px;
+         bar / notch, which the header deliberately stays clear of.
+         Sophie found 13px read as "low on the screen" — 5px is the top of
+         that slack, so the title sits as high as it can without touching
+         the notch. */
+      padding: 5px 20px 10px;
       background: rgba(245,239,226,0.92);
       backdrop-filter: blur(10px);
     }
@@ -234,15 +237,42 @@
     .bm-save.filled { color: var(--gold); }
     .bm-save.filled svg { fill: var(--gold); }
     .bm-save.just svg { animation: bmPop 0.5s ease; }
+    /* A saved bookmark can carry a word to its LEFT ("see in book") so the
+       second tap — the one that jumps to the page in the Book of Shadows — is
+       discoverable instead of secret. Opt-in per bookmark: only a button whose
+       markup includes the .bm-lbl span gets one, and it stays hidden until the
+       reading is actually saved. line-height is reset because .bm-save zeroes
+       it for the bare icon. */
+    .bm-save.has-lbl { display: inline-flex; align-items: center; gap: 6px; line-height: 1; }
+    .bm-lbl { display: none; font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+    .bm-save.filled .bm-lbl { display: inline; }
     .card.has-bm { position: relative; }
     .card.has-bm .cards-title, .card.has-bm .kicker { padding-right: 30px; }
+    .bm-save.has-lbl ~ .cards-title { padding-right: 108px; }   /* the label needs the room */
     /* Book of Shadows — Synchronicities: 4 boxes a page (Little Book of Miracles look) */
     .bos-sync-date { text-align: right; font-family: var(--serif); font-size: 18px; color: #221c14; margin-bottom: 16px; }
     .bos-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
     .bos-sync-box { width: 100%; aspect-ratio: 1; border: 1px solid #d9cbb4; border-radius: 3px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
     .bos-sync-box img { width: 100%; height: 100%; object-fit: contain; }
-    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; }
-    .bos-sync-more { background: none; border: none; padding: 0; margin-left: 4px; font: inherit; font-size: 11px; color: #8a7a5e; text-decoration: underline; cursor: pointer; }
+    /* The caption runs to THREE lines here. The home screen's is clamped to two
+       because three boxes share a phone width, but a book page has two columns
+       and room to spare — a one-line clamp was throwing away most of what
+       Sophie wrote. */
+    .bos-sync-cap { margin-top: 7px; font-size: 12px; line-height: 1.35; color: #221c14; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bos-sync-more { display: block; background: none; border: none; padding: 0; margin-top: 2px; font: inherit; font-size: 11px; color: #8a7a5e; cursor: pointer; }
+    .bos-sync-box img.bos-sync-load { width: auto; height: 46%; opacity: 0.75; }
+    /* ── Writing a new moment straight onto the page ──────────────────────
+       An empty cell is the SAME box as a drawn one — same square, same border,
+       same place in the grid — that you type into, with "Draw it!" under it
+       where the caption goes. Deliberately the Home coincidence box's
+       behaviour (.coin-box / .coin-btn) in the book's own ink: nothing dashed,
+       nothing offset, no extra label. 16px text because iOS auto-zooms the
+       page on focus below that. */
+    .bos-sync-box.write { display: block; text-align: left; padding: 8px; box-sizing: border-box; overflow: auto; color: #221c14; font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; }
+    .bos-sync-box.write:focus { border-color: #b99a5e; }
+    .bos-sync-draw { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; margin-top: 7px; padding: 0; background: none; border: none; font-family: var(--serif); font-size: 13.5px; font-weight: 500; color: #9c6f33; cursor: pointer; }
+    .bos-sync-draw svg { width: 13px; height: 13px; }
+    .bos-sync-draw:disabled { opacity: 0.6; cursor: not-allowed; }
     .coin-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
     .coin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
     .coin-box { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; overflow: hidden; text-align: left; padding: 8px; box-sizing: border-box; color: var(--text); font-size: 16px; line-height: 1.3; word-break: break-word; cursor: text; outline: none; } /* 16px: below that iOS auto-zooms on focus */
@@ -541,9 +571,12 @@
        ask your own question. Icon above label so both fit an iPhone 13 width
        without the labels crowding each other. */
     .tarot-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    /* Text only, no icon above the label (Sophie, Aug 2026) — so these are a
+       single short row rather than a two-line stacked tile, and sized down to
+       match. */
     .tarot-opts .btn-ghost {
-      flex-direction: column; gap: 7px; width: 100%; min-width: 0;
-      padding: 12px 8px; font-size: 12.5px; letter-spacing: 0.2px;
+      width: 100%; min-width: 0;
+      padding: 8px 8px; font-size: 12px; letter-spacing: 0.2px;
       line-height: 1.2; text-align: center; white-space: nowrap;
     }
     .advice-box { background: rgba(230,194,129,0.08); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; }
@@ -781,6 +814,30 @@
     .pnew svg { width: 10px; height: 10px; }
     @media (max-width: 360px) { .prow { gap: 8px; } .pname { font-size: 12.5px; } .pbadge { font-size: 8.5px; } }
 
+    /* ── From the blog (bottom of Home) ──────────────────────────────────
+       The newest post as a wide feature, then the three before it across one
+       row — same 3-column rhythm as the product rows above, so the bottom of
+       Home doesn't change shape. Cards with no picture yet simply drop the
+       image and keep their text, which is what the blog looks like until the
+       hero images are chosen. */
+    .bfeat { display: block; text-decoration: none; color: var(--text); margin-bottom: 22px; }
+    .bfeat .bimg { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
+                   background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+    .bfeat .bdate { font-size: 9.5px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase;
+                    color: var(--gold-dim); margin-top: 11px; }
+    .bfeat .btitle { font-family: var(--serif); font-size: 23px; font-weight: 500; line-height: 1.2; margin-top: 3px; }
+    .bfeat .bex { font-size: 13.5px; color: var(--text-dim); line-height: 1.55; margin-top: 6px; }
+    .brow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-bottom: 16px; }
+    .bmini { display: block; text-decoration: none; color: var(--text); }
+    .bmini .bimg { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                   background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+    .bmini .btitle { font-family: var(--serif); font-size: 13.5px; font-weight: 500; line-height: 1.18; margin-top: 7px;
+                     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bmini .bex { font-size: 11px; color: var(--text-dim); line-height: 1.45; margin-top: 4px;
+                  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .blog-all { display: inline-block; font-size: 12.5px; letter-spacing: .4px; color: var(--gold); text-decoration: none; margin-bottom: 26px; }
+    @media (max-width: 360px) { .brow { gap: 8px; } .bmini .btitle { font-size: 12.5px; } .bmini .bex { display: none; } }
+
     /* ── Zodiac system toggle (Tropical / Astronomical) ── */
     .zodiac-bar { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 14px 0 16px; }
     .zseg { display: inline-flex; border: 1px solid var(--gold); border-radius: var(--radius); overflow: hidden; }
@@ -810,7 +867,8 @@
     /* The drawing-in-progress frame: a page-shaped placeholder the finished
        art replaces, with the linocut loader living inside it. */
     .dframe { width: min(68%, 230px); aspect-ratio: 2 / 3; margin: 4px auto 0; border: 1px solid var(--border); border-radius: var(--radius); background: #fdfbf7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; box-sizing: border-box; }
-    .dframe-cap { font-size: 12.5px; color: var(--text-dim); font-style: italic; text-align: center; }
+    /* Sits UNDER the frame, not inside it. */
+    .dframe-cap { margin-top: 10px; font-size: 12.5px; color: var(--text-dim); font-style: italic; text-align: center; }
     /* Tap-to-enlarge lightbox (page one) */
     .img-lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(24,19,28,0.93); display: flex; align-items: center; justify-content: center; padding: 18px; }
     .img-lightbox img { max-width: 94vw; max-height: 86vh; border-radius: 6px; }
@@ -826,12 +884,26 @@
     .dream-dive { margin-top: 14px; }
     .dread p { font-size: 14.5px; line-height: 1.66; margin-top: 14px; }
     .dread p + p { margin-top: 10px; }
-    .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; margin-bottom: 14px; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
+    /* The dream card has no title row, so its bookmark can't hang in the card's
+       absolute top-right corner the way the tarot one does — on the dream's own
+       page (where .card loses its padding and Past readings is hidden) that
+       corner IS the textarea, and the bookmark sat inside the text box. It
+       lives in a real row above the box instead: Past readings on the left,
+       the bookmark on the right, and the row keeps its height when Past
+       readings is hidden so the bookmark stays put. */
+    .dream-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; margin-bottom: 14px; }
+    .dream-head .bm-save { position: static; margin-left: auto; padding: 0; }
+    .dream-past { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0; color: var(--text-dim); font-family: inherit; font-size: 13px; cursor: pointer; }
     .dream-past:hover { color: var(--gold); }
     .dream-past svg { width: 15px; height: 15px; }
     .dpast-head { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 12px; }
     .dpast-item { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 9px; cursor: pointer; font-family: inherit; transition: border-color 0.15s ease; }
     .dpast-item:hover { border-color: var(--gold-dim); }
+    /* A dream that was illustrated but never unlocked is still a past reading —
+       its picture is what identifies it in the list. */
+    .dpast-item.has-img { display: flex; align-items: flex-start; gap: 11px; }
+    .dpast-thumb { flex: 0 0 auto; width: 54px; height: 54px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+    .dpast-txt { min-width: 0; }
     .dpast-t { font-family: var(--serif); font-size: 16px; color: var(--text); line-height: 1.2; }
     .dpast-d { font-size: 11px; color: var(--gold-dim); margin-top: 3px; }
     .dpast-s { font-size: 12.5px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
@@ -842,6 +914,9 @@
     .dpage { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--panel); aspect-ratio: 3/4; }
     .dpage img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .dpage.locked img { filter: blur(9px); transform: scale(1.08); }
+    /* The saved dream's page, shown whole — not cropped to the grid's tile shape. */
+    .dread-page { aspect-ratio: auto; margin-bottom: 16px; }
+    .dread-page img { height: auto; object-fit: contain; }
     .dpage .dfree { position: absolute; top: 7px; left: 7px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: var(--gold); color: var(--surface); padding: 3px 7px; border-radius: 5px; }
     .dpage .dlock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--surface); }
     .dpage .dlock svg { width: 26px; height: 26px; opacity: 0.9; }
@@ -995,21 +1070,56 @@
        tapping one jumps back to that exact card in the lesson. */
     .bos-lpk { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 4px; }
     /* A saved lesson page is a SNAPSHOT of the card it came from — the same
-       markup, the same per-card background, scaled down inside a cropped frame,
-       so it reads as a little screenshot of the page rather than as a cropped
-       illustration with a caption. `.lsnap-stage` is a phone-shaped box (360x620)
-       and shares #deck-stage's own rule above, so a snapshot always looks like
-       what the lesson reader actually renders. The frame is shorter than the
-       stage, so the bottom is cropped the way a screenshot would be. */
-    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+       markup, the same per-card background, scaled down inside a frame, so it
+       reads as a little screenshot of the page rather than as a cropped
+       illustration with a caption. `.lsnap-stage` is a card-shaped box
+       (360 x --lsnap-h) and shares #deck-stage's own rule above, so a snapshot
+       always looks like what the lesson reader actually renders.
+       The card has NO fixed height: `lsnapFit()` measures the leaf and makes
+       the rows fill it, so the cards end where the paper does and the page
+       number sits right under them. Its floor is measured too — the wordiest
+       card actually ON that page, plus `--lsnap-art-min` so the picture is
+       still a picture. (A fixed floor set for the worst card in the whole
+       school forced a few px of overflow on a short leaf, which is the very
+       thing that shoves the page number off the bottom.) `--lsnap-max` is the
+       ceiling: roughly the proportions of a real phone screen, so a page
+       holding one or two snapshots doesn't blow them up bigger than the
+       lesson they came from. */
+    :root { --lsnap-art-min: 110; --lsnap-max: 680; }
+    /* The grid takes the leaf: .bos-page is a flex column with the page number
+       pinned under it, so `flex: 1` here is what hands the rows the free paper. */
+    .bos-lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1 1 auto; min-height: 0; }
     .bos-lsnap { cursor: pointer; }
-    /* 432 of the 620-tall stage: the crop lands just ABOVE the body copy, so the
-       thumbnail ends cleanly instead of slicing a line of text in half. */
-    .lsnap-frame { position: relative; width: 100%; aspect-ratio: 360 / 432; overflow: hidden;
+    /* The WHOLE card — kicker, title, art AND the words under it. The frame
+       used to be 432 tall so the crop landed just above the body copy, which
+       meant a saved lesson only ever showed as a picture with a title; the one
+       thing a snapshot is for (what did this page SAY) was the part cut off.
+       Matching the stage exactly means nothing is cropped. Both heights are
+       set by lsnapFit() — the frame in real px, the stage in the replica's own
+       units, so scaling the one lands exactly on the other. */
+    .lsnap-frame { position: relative; width: 100%; overflow: hidden;
                    border: 1px solid var(--border); border-radius: 4px; }
-    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px; height: 620px;
+    .lsnap-stage { position: absolute; top: 0; left: 0; width: 360px;
                    transform: scale(var(--s, 0.46)); transform-origin: top left; }
     .lsnap-stage .tcard { animation: none; }   /* a snapshot doesn't slide in */
+    /* A snapshot packs its card TIGHT. The live deck spreads one card over a
+       whole phone screen — the art grows into whatever is spare and the words
+       float centred in what's left — and copying that geometry into the book
+       put a band of blank paper between the title and the picture and again
+       between the picture and the words. That padding is why a saved lesson
+       was 620 tall, why four of them overran the leaf, and why the page number
+       got shoved off the bottom. So here the three parts sit directly on top of
+       each other and the ART absorbs the difference — both the difference
+       between one card's words and another's, and whatever height the leaf
+       hands the row. Every snapshot on a page is exactly the same size, none of
+       them has a gap in it, and no card's words are cut off. */
+    .lsnap-stage .tcard-img, .lsnap-stage .tcard-html { flex: 1 1 0; min-height: 0; max-height: none; }
+    /* The words need a real margin under them or they read as sitting ON the
+       card's bottom edge. It has to be generous in the replica's units because
+       everything here is drawn at ~0.38 and then scaled down with it. */
+    .lsnap-stage .deck-text { flex: 0 0 auto; padding: 8px 24px 34px; overflow: hidden; }
+    .lsnap-stage .deck-text > :first-child { margin-top: 0; }
+    .lsnap-stage .deck-text > :last-child { margin-bottom: 0; }
     .bos-lsnap .t { font-family: var(--serif); font-size: 13.5px; line-height: 1.3; color: #221c14; margin-top: 6px; }
     /* Tapping a snapshot ENLARGES it (it no longer jumps you into the lesson —
        the small link under it does that, deliberately). */
@@ -1125,7 +1235,12 @@
        you see of it is a cream band along the fore-edge and the tail. Two flat
        strips sitting just proud of the board edge — not a filled rectangle,
        which would bury the leather. */
-    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: 9px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
+    /* The fore-edge runs all the way DOWN to the tail's own bottom. It used to
+       stop 9px short, so the two strips never met and the corner showed a notch
+       of background between them — which read as a second, broken page poking
+       out at the bottom right (Sophie spotted it). They now share a bottom edge
+       and overlap for the last 7px, so the block reads as one wrapped page. */
+    .bos-leaves { position: absolute; right: -5px; top: 14px; bottom: -5px; width: 7px; background: #e6d9bd; border-radius: 0 3px 3px 0; border: 1px solid #cbb994; border-left: none; }
     .bos-leaves.tail { top: auto; right: -5px; bottom: -5px; left: 34px; width: auto; height: 6px; border-radius: 0 0 3px 3px; border: 1px solid #cbb994; border-top: none; }
     /* Spine: a darker band down the hinge, with five raised sewing bands. */
     .bos-spine-b { position: absolute; top: 0; bottom: 0; left: 0; width: 26px; background: var(--leather-dk); border-radius: 3px 0 0 3px; }
@@ -1170,7 +1285,10 @@
        keep in sync here. */
     .bos-head .les-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
     /* The page number lives at the BOTTOM of the page, serif, like a book. */
-    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: 20px; }
+    /* Pinned to the bottom of the leaf. It used to sit right under whatever
+       content the page had, so a short page (a 2x2 lesson spread) left the
+       number stranded halfway up with blank paper below it. */
+    .bos-pagefoot { text-align: center; font-family: var(--serif); font-size: 14px; color: var(--text-dim); margin-top: auto; padding-top: 20px; }
     .bos-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 10px 0 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
     /* Like a real open book: the page you're NOT reading is still there — a
        slab of page running clean off the screen edge — and it alternates
@@ -1201,8 +1319,11 @@
     .bos-title-page .star { color: var(--gold); line-height: 0; display: inline-block; margin-bottom: 8px; }
     .bos-title-page .star svg { width: 15px; height: 15px; }
     .bos-title-page .t { font-family: var(--serif); font-size: 21px; color: #221c14; line-height: 1.25; }
-    /* Contents: gold section names, dot leaders, black page numbers. */
-    .bos-toc-h { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; margin-bottom: 10px; }
+    /* Contents: gold section names, dot leaders, black page numbers.
+       "Contents" is set in the title's own serif, not the uppercase sans
+       eyebrow it used to be, and the star above the title is gone
+       (Sophie, Aug 2026). */
+    .bos-toc-h { font-family: var(--serif); font-size: 17px; color: #221c14; margin-bottom: 10px; }
     .bos-toc-row { display: flex; align-items: baseline; gap: 6px; padding: 9px 0; cursor: pointer; }
     .bos-toc-row .n { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9c6f33; white-space: nowrap; }
     .bos-toc-row .dots { flex: 1; border-bottom: 2px dotted #c9bba0; transform: translateY(-3px); min-width: 14px; }
@@ -1210,7 +1331,18 @@
     /* Section title page: the art on its own tinted leaf, section name under it. */
     /* Centred in the leaf — a part-title sits in the middle of its page. */
     .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
-    .bos-sectcover img { display: block; width: 86%; max-width: 330px; max-height: 46vh; margin: 0 auto 10px; border-radius: 0; }
+    /* The art's box is SIZED BEFORE THE PICTURE ARRIVES (`aspect-ratio`, and a
+       width that folds the old max-width/max-height into one min()), so the
+       name sits where it will finally sit instead of being centred alone and
+       then shoved down when the image lands. The covers are square 1024s;
+       object-fit keeps a non-square one honest rather than stretching it. */
+    .bos-sectcover img { display: block; width: min(86%, 330px, 46vh); aspect-ratio: 1; object-fit: contain; margin: 0 auto 10px; border-radius: 0; }
+    /* …and the leaf reveals as ONE thing: while the art is still coming, the
+       whole part-title is held back (a blank tinted leaf), then art and words
+       fade in together. Held for at most BOS_COVER_HOLD ms, so a slow or dead
+       network still gets the words. */
+    .bos-sectcover.warming > * { opacity: 0; }
+    .bos-sectcover > * { transition: opacity 0.18s ease; }
     .bos-sectcover .sc-name { font-family: var(--serif); font-size: 30px; line-height: 1.15; color: #221c14; }
     .bos-sectcover .sc-line { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: #6d5c3f; margin-top: 8px; padding: 0 10px; }
     /* Reading pages: the pulled cards first, reading text behind an expand. */
@@ -1222,9 +1354,9 @@
     .bos-cardslot .co { font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
     .bos-cardph { width: 100%; aspect-ratio: 3 / 5; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gold); margin-bottom: 6px; }
     .bos-cardph svg { width: 18px; height: 18px; }
-    .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; }
+    .bos-pagewrap { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 22px 18px; color: #221c14; display: flex; flex-direction: column; }
     @keyframes bosPageIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
-    .bos-page { animation: bosPageIn 0.2s ease; }
+    .bos-page { animation: bosPageIn 0.2s ease; flex: 1 0 auto; display: flex; flex-direction: column; }
     .bos-date { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: #9c6f33; }
     .bos-type { display: inline-block; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #6d5c3f; border: 1px solid #d9cbb4; border-radius: 6px; padding: 2px 8px; margin-left: 8px; }
     .bos-page h3 { font-family: var(--serif); font-size: 22px; font-weight: 500; color: #221c14; margin: 10px 0 8px; }
@@ -1259,10 +1391,45 @@
     .bos-index-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; border-bottom: 1px dashed #d9cbb4; cursor: pointer; }
     .bos-index-row .n { font-family: var(--serif); font-size: 17px; color: #221c14; }
     .bos-index-row .c { font-size: 12px; color: #a08f74; }
-    /* Composer (in modal) */
+    /* ── The writing leaf ────────────────────────────────────────────────
+       Writing a page happens IN the book: "Add to your book" turns to a
+       blank leaf at the back instead of opening a modal on top of it, so
+       the thing you write on is a page of the same book you're reading. */
     .bos-typepick { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
     .bos-typepick button { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; }
     .bos-typepick button.on { border-color: var(--gold); color: var(--gold); }
+    /* On paper the type picker is set in the book's own serif, unfilled —
+       the panel-grey chip look belongs to the app UI, not to a page. */
+    .bos-page .bos-typepick { margin: 12px 0 2px; }
+    .bos-page .bos-typepick button { font-family: var(--serif); font-size: 14.5px; padding: 5px 11px; background: none; border-color: #d9cbb4; color: #6d5c3f; }
+    .bos-page .bos-typepick button.on { border-color: var(--gold); color: var(--gold); }
+    .bos-write { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    .bos-write-head { margin: 8px 0 0; }
+    .bos-write-head::after { content: ''; display: block; clear: both; }
+    .bos-write-head h3 { font-family: var(--serif); font-size: 23px; font-weight: 500; line-height: 1.2; color: #221c14; margin: 4px 0 0; }
+    /* The illuminated capital. The letter sits in a double-ruled square with
+       a vine spraying out of every corner — ONE inline path set, mirrored
+       four ways inside its own <svg>, so it costs no request, stays sharp at
+       any size, and doesn't depend on a symbol defined in another tab. */
+    .bos-dropcap { position: relative; float: left; width: 56px; height: 56px; margin: 4px 15px 4px 2px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--gold); border-radius: 2px; }
+    .bos-dropcap::before { content: ''; position: absolute; inset: 3px; border: 1px solid #d9cbb4; border-radius: 1px; }
+    .bos-dropcap .cap-l { position: relative; font-family: var(--serif); font-size: 40px; line-height: 1; color: var(--gold); }
+    /* The vines run OUTSIDE the frame, along its edges — inside they'd crowd
+       the letter, which is the one thing the square is there to hold. */
+    .bos-dropcap .cap-orn { position: absolute; left: -14px; top: -14px; width: 84px; height: 84px; color: var(--gold); pointer-events: none; }
+    /* A textarea, not a contenteditable: line breaks, placeholder and restore
+       all come free, and what's typed survives a repaint via bosWriteDraft.
+       It grows with the writing (bosWriteGrow) so the question line and the
+       button follow the words instead of stranding at the foot of the leaf. */
+    .bos-write-area { flex: 0 0 auto; width: 100%; min-height: 122px; margin-top: 12px; padding: 0; background: none; border: none; resize: none; outline: none; overflow: hidden; font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.65; color: #221c14; }
+    .bos-write-area::placeholder { color: #a08f74; font-style: italic; }
+    .bos-write-ctx { width: 100%; margin-top: 10px; padding: 6px 0; background: none; border: none; border-bottom: 1px solid #d9cbb4; outline: none; font-family: var(--serif); font-size: 15.5px; font-style: italic; color: #6d5c3f; }
+    .bos-write-ctx::placeholder { color: #a08f74; }
+    /* Blank paper under the writing: tapping it puts the cursor back in the
+       page rather than doing nothing (it can't turn the leaf — see the stage
+       handler), so the empty half of the leaf is still part of the writing. */
+    .bos-write-rest { flex: 1 1 auto; min-height: 20px; cursor: text; }
+    .bos-write-go { align-self: flex-end; margin: 14px 0 0; }
 
     /* ── Bottom nav ── */
     nav {
@@ -1494,7 +1661,7 @@
 
         <!-- Today's cards (tarot) -->
         <div class="card has-bm" id="tarot-card" style="display:none;">
-          <button class="bm-save" id="tarot-bm" type="button" style="display:none;" aria-label="Save this reading to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          <button class="bm-save has-lbl" id="tarot-bm" type="button" style="display:none;" aria-label="Save this reading to your Book of Shadows"><span class="bm-lbl">see in book</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <div class="cards-title">Today's Cards</div>
           <p class="hint">Three cards drawn just for you today — tap each one to reveal. From the Rider-Waite deck.</p>
           <div id="daily-backs" class="backs"></div>
@@ -1503,8 +1670,8 @@
                ONLY thing below the daily pull — free is the inline per-card
                meanings above it, and nothing deeper. -->
           <div class="tarot-opts" id="daily-opts" style="display:none;">
-            <button class="btn-ghost" id="daily-learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg> Learn to read tarot</button>
-            <button class="btn-ghost" id="daily-ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Ask a question</button>
+            <button class="btn-ghost" id="daily-learn">Learn to read tarot</button>
+            <button class="btn-ghost" id="daily-ask">Ask a question</button>
           </div>
         </div>
 
@@ -1513,8 +1680,10 @@
         <div class="section-sub">Unlock the messages your subconscious is trying to send you.</div>
         <div id="dream-home-slot">
         <div class="card has-bm" id="dream-card">
-          <button class="bm-save" id="dream-bm" type="button" style="display:none;" aria-label="Save this dream to your Book of Shadows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-          <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
+          <div class="dream-head">
+            <button class="dream-past" id="dream-past" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Past readings</button>
+            <button class="bm-save has-lbl" id="dream-bm" type="button" style="display:none;" aria-label="Save this dream to your Book of Shadows"><span class="bm-lbl">see in book</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
           <div class="dream-ta-wrap">
             <textarea id="dream-input" rows="3" placeholder="I dreamt…"></textarea>
           </div>
@@ -1550,6 +1719,19 @@
           </div>
           <div class="mcal-grid" id="mcal-grid"></div>
           <div class="mcal-legend"><span>🌑 New</span><span>🌓 Quarter</span><span>🌕 Full</span></div>
+        </div>
+
+        <!-- ═══ From the blog — the LAST thing on Home ═══
+             Newest post as a wide feature, then the three before it in one
+             row. Filled by loadBlog(); the whole block stays hidden until
+             there's something real to show, so a cold server or an empty
+             blog never leaves a bare heading behind. -->
+        <div id="blog-home" style="display:none;">
+          <div class="section-title">From the blog</div>
+          <div class="section-sub">Witchcraft, tarot &amp; everyday magic — the newest writing.</div>
+          <a class="bfeat" id="blog-feat" href="#"></a>
+          <div class="brow" id="blog-row"></div>
+          <a class="blog-all" id="blog-all" href="#">All posts <span aria-hidden="true">→</span></a>
         </div>
 
       </section>
@@ -1784,7 +1966,6 @@
 
       <!-- ═══════════ SHOP ═══════════ -->
       <section class="view" id="view-shop">
-        <div class="kicker">The apothecary</div>
         <div class="shop-head">
           <div class="section-title">Shop</div>
           <button class="cart-btn" onclick="openCartSheet()" aria-label="Open cart">
@@ -1792,7 +1973,7 @@
             <span>Cart</span><span class="cbadge" id="cart-badge" style="display:none;">0</span>
           </button>
         </div>
-        <div class="section-sub">Tools for the curious. Step into your power. ✦</div>
+        <div class="section-sub">Tools for the curious. Step into your power.</div>
         <div id="shop-cats" class="shop-cats"></div>
         <div id="shop-grid" class="shop-grid"></div>
       </section>
@@ -1921,6 +2102,15 @@
   const PAID_KEY = 'witch_is_paid';    // cached entitlement ("1"/"0") from the server
   const PAID_TEST = 'witch_test_paid'; // dev/QA override
   const IS_APP = new URLSearchParams(location.search).has('app'); // iOS webview wrapper
+  // ── The blog (blog-public.js) ──────────────────────────────────────────
+  // On secretlyawitch.com /blog IS the site blog. On the studio host
+  // (imageforge-q125.onrender.com) that path is the GATED Blog Studio, so a
+  // preview needs ?public=1. `app=1` rides along inside the iOS web view so
+  // the blog page keeps answering the native tab bar (see blog-public.js).
+  const ON_WITCH_HOST = /(^|\.)secretlyawitch\.com$/i.test(location.hostname);
+  const blogQS = [ON_WITCH_HOST ? '' : 'public=1', IS_APP ? 'app=1' : ''].filter(Boolean).join('&');
+  const BLOG_URL = '/blog' + (blogQS ? '?' + blogQS : '');
+  const blogPostUrl = (slug) => '/blog/' + slug + (blogQS ? '?' + blogQS : '');
   let pendingSubscribe = false, subJustSucceeded = false;
   (function () { const m = /[?&]paid=([01])/.exec(location.search); if (m) { try { localStorage.setItem(PAID_TEST, m[1]); } catch (e) {} } })();
   // Handle the Stripe return + the external-browser subscribe entry point.
@@ -2096,8 +2286,8 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     if (view === 'shop') loadShop();
-    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} }
-    if (view === 'school') { try { renderSchoolPath(); } catch {} }
+    if (view === 'book') { try { updateBosCoverSub(); requestAnimationFrame(sizeBosCover); } catch {} try { bosWarmSectCovers(); bosWarmPages([1, 2, 3, 4]); } catch {} }
+    if (view === 'school') { try { renderSchoolPath(); } catch {} try { warmSchoolCovers(); } catch {} }
   }
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
@@ -2107,6 +2297,12 @@
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
   if (new URLSearchParams(location.search).has('app')) document.documentElement.classList.add('in-app');
   window.__setTab = go;
+  // ?tab=<view> lands on a tab directly — how the blog's header menu gets back
+  // into the app (a blog page is a real navigation, not a tab switch).
+  (() => {
+    const t = new URLSearchParams(location.search).get('tab');
+    if (t && views.includes(t)) go(t);
+  })();
   // Screenshot helper: ?shot=<elementId> scrolls that section into view on
   // load (used by the CI App Store screenshot capture).
   (() => {
@@ -2206,11 +2402,11 @@
      same per-day seed the pull uses, so today's read is stable all day and
      tomorrow's is different. If the corpus is missing (or a card isn't in it),
      the deck's own up/rev strings stand in. */
-  let TAROT_TEXT = { cards: {}, advice: [] };
+  let TAROT_TEXT = { cards: {} };
   async function loadTarotReadings() {
     try {
       const j = await apiGet('/api/witch/tarot-readings');
-      if (j && j.cards) TAROT_TEXT = { cards: j.cards || {}, advice: Array.isArray(j.advice) ? j.advice : [] };
+      if (j && j.cards) TAROT_TEXT = { cards: j.cards || {} };
     } catch {}
   }
   // The daily seed — the SAME string dailyPull() draws from, so the words and
@@ -2226,7 +2422,6 @@
     return (t && pickVariant(t.meanings, seed + '|' + card.name + '|v'))
       || (orientation === 'reversed' ? card.rev : card.up);
   }
-  function dailyAdvice(seed) { return pickVariant(TAROT_TEXT.advice, seed + '|adv') || ''; }
 
   function tarotCardHtml(card, orientation, position) {
     const rev = orientation === 'reversed';
@@ -2259,7 +2454,9 @@
       html += '<h3>The reading</h3>';
       String(data.reading).split(/\n\n+/).forEach(p => { if (p.trim()) html += `<p>${esc(p.trim())}</p>`; });
     }
-    if (data.advice) html += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(data.advice)}</p></div>`;
+    // No closing "gentle nudge" advice box — the reading ends on the reading
+    // (Sophie's call, Aug 2026). Older saved readings still carry an `advice`
+    // string on the doc; it is simply not rendered.
     return html;
   }
 
@@ -2717,7 +2914,6 @@
         name: p.card.name, position: p.position, orientation: p.orientation,
         meaning: cardMeaning(p.card, p.orientation, seed),
       })),
-      advice: dailyAdvice(seed),
     };
   }
   // The free daily reading, whole: a short line per card, inline, the moment
@@ -2871,7 +3067,6 @@
           String(r.reading).split(/\n\n+/).forEach(p => { if (p.trim()) h += `<p class="glance-p">${esc(p.trim())}</p>`; });
           h += `</div>`;
         }
-        if (r.advice) h += `<div class="advice-box"><div class="k">A gentle nudge</div><p>${esc(r.advice)}</p></div>`;
         h += `<div class="glance-sec"><div class="tfun">
           <button class="tfun-tile" id="ask-save" type="button"><span class="tfun-ti">${T_ICON.save}</span><span><span class="tfun-tt">${askState.saved ? 'Saved to your Book of Shadows' : 'Save this reading'}</span><span class="tfun-td">Keep it in your Book of Shadows to revisit anytime.</span></span></button>
           <button class="tfun-tile" id="ask-again" type="button"><span class="tfun-ti">${T_ICON.ask}</span><span><span class="tfun-tt">Ask something else</span><span class="tfun-td">A new question, a new spread, a fresh draw.</span></span></button>
@@ -3050,7 +3245,7 @@
     let shownAt = 0;
     const t = setTimeout(() => {
       shownAt = Date.now();
-      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading.gif" alt="">&nbsp; ${label}</div>`;
+      el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:30px 0;text-align:center;"><img class="hl-inline" src="/hoonie-loading-clear.gif" alt="">&nbsp; ${label}</div>`;
     }, SPIN_DELAY);
     // Await the returned function before drawing real content.
     return async () => {
@@ -3443,8 +3638,11 @@
   function lessonMarkPages() {
     const marks = marksLoad().slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
     const out = [];
-    // Four to a page (2×2). Six overflowed the page on a phone, and a page you
-    // have to scroll is the thing this whole pass was fixing.
+    // FOUR to a page (2x2) — Sophie's call, small text and all: seeing four
+    // saved lessons at once beats reading one. At ~140px wide the card scales
+    // to 0.39 and the body copy lands around 5px, which she has accepted.
+    // Six overflowed the page, and a page you have to scroll is the thing this
+    // whole pass was fixing — so four is the ceiling, not a preference.
     for (let k = 0; k < marks.length; k += 4) out.push({ sect: 'lesson', page: 'lesson', marks: marks.slice(k, k + 4) });
     return out;
   }
@@ -3462,7 +3660,12 @@
     dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
     lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
+  const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
+  // The leaf being written on, if any (see "Writing a page" below) — declared
+  // up here because bosPages() puts it at the back of the book.
+  let bosWriting = null;                       // null | { outcome: bool }
+  let bosWriteDraft = { text: '', context: '' };
   function journalLoad() { try { return JSON.parse(localStorage.getItem('witch_journal') || '[]'); } catch { return []; } }
   function journalSave(a) { try { localStorage.setItem('witch_journal', JSON.stringify(a)); } catch {} cloudSyncSoon(); }
   function tsOf(id) { const m = String(id || '').match(/(\d{13})/); return m ? +m[1] : 0; }
@@ -3476,19 +3679,51 @@
   }
   function isoOfTs(ts) { if (!ts) return '0000-00-00'; const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
   function syncDateLabel(iso) { const p = iso.split('-').map(Number); const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[p[1] - 1] ? `${M[p[1] - 1]} ${p[2]}` : ''; }
+  // ── A coincidence's SLOT is what orders a day (NOT its timestamp) ────────
+  // The slot is which box the moment was written in: Home's three boxes read
+  // left→right as 0-1-2, and anything added later from inside the book takes
+  // 3, 4, … So a day in the book reads in the order Sophie wrote it, which is
+  // the order she sees on Home.
+  // Timestamps can't do this job — they record when each DRAWING happened to
+  // finish, and that disagrees with the writing order constantly: a box typed
+  // first can be drawn hours later, and a redraw restamps its entry. Real data
+  // had 24 July as box 2 (9:24 am), box 0 (5:46 pm), box 1 (5:47 pm) and 30
+  // July as 1, 0, 2 — both scrambled against the boxes on screen.
+  // Legacy hand-written entries (signs, notes, miracles) carry no slot; they
+  // sort after the day's drawn boxes, chronologically among themselves.
+  const SYNC_NO_SLOT = 1e9;
+  function syncSlotOf(e) {
+    if (typeof e.slot === 'number') return e.slot;
+    // 'coin_2026-07-24_1', 'coin_2026-07-24_1_ported', 'coin_keep_0'
+    const m = String(e.id || '').match(/_(\d+)(?:_[a-z]+)?$/);
+    return m ? +m[1] : SYNC_NO_SLOT;
+  }
   // Synchronicities = the drawn coincidences (archived daily) + any legacy
   // hand-written sign/note/miracle entries — grouped by day, 4 to a page.
+  // A `pending` entry is one whose drawing is still being generated: it holds
+  // its cell (with the spinner) so the moment is never lost if the app is left.
   function syncItems() {
     const out = [];
-    syncArchLoad().forEach(e => { if (e && e.url) out.push({ dateISO: e.dateISO, ts: e.ts || 0, url: e.url, desc: e.desc || '', label: e.label || null }); });
-    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: null, desc: e.text || '' }); } });
-    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ dateISO: isoOfTs(ts), ts, url: e.url || null, desc: e.text || e.title || '' }); });
-    return out.sort((a, b) => a.ts - b.ts);
+    syncArchLoad().forEach(e => {
+      if (!e || (!e.url && !e.pending)) return;
+      out.push({ id: e.id, dateISO: e.dateISO, ts: e.ts || 0, slot: syncSlotOf(e), url: e.url || null, desc: e.desc || '', label: e.label || null, pending: !e.url && !!e.pending });
+    });
+    journalLoad().forEach(e => { if (e.type === 'sign' || e.type === 'note') { const ts = e.ts || tsOf(e.id); out.push({ id: e.id, dateISO: isoOfTs(ts), ts, slot: SYNC_NO_SLOT, url: null, desc: e.text || '' }); } });
+    (loadBook().entries || []).forEach(e => { const ts = tsOf(e.id); out.push({ id: e.id, dateISO: isoOfTs(ts), ts, slot: SYNC_NO_SLOT, url: e.url || null, desc: e.text || e.title || '' }); });
+    // Moments added from inside the book whose drawing is still being made —
+    // they hold their cell (with the spinner) so nothing typed is ever lost.
+    const pend = syncPendAll();
+    Object.keys(pend).forEach(id => { const p = pend[id]; if (p) out.push({ id, dateISO: p.dateISO, ts: p.ts || 0, slot: typeof p.slot === 'number' ? p.slot : SYNC_NO_SLOT, url: null, desc: p.desc || '', label: null, pending: true }); });
+    return out.sort((a, b) =>
+      (a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0)
+      || (a.slot - b.slot)
+      || (a.ts - b.ts));
   }
-  // newestFirst reverses BOTH the days and the coincidences within a day, so the
-  // first cell of the first page is the most recent thing drawn (reversing whole
-  // pages only would leave a 5-draw day reading 5, then 1-4). Each page carries
-  // the newest ts on it, which is how "the newest page" is found.
+  // newestFirst reverses the DAYS only — you open the section on the most recent
+  // day. Inside a day the moments keep their written order (slot), so a page
+  // reads the way the boxes read on Home, and a 5-moment day pages as 1-4 then
+  // 5 rather than backwards. Each page carries the newest ts on it, which is how
+  // "the newest page" is found.
   function syncPages(newestFirst) {
     const byDay = {};
     syncItems().forEach(e => { (byDay[e.dateISO] = byDay[e.dateISO] || []).push(e); });
@@ -3496,11 +3731,16 @@
     if (newestFirst) days.reverse();
     const out = [];
     days.forEach(d => {
-      const items = newestFirst ? byDay[d].slice().reverse() : byDay[d];
+      const items = byDay[d];
       for (let k = 0; k < items.length; k += 4) {
         const chunk = items.slice(k, k + 4);
         out.push({ sect: 'sync', page: 'sync', dateISO: d, items: chunk, ts: Math.max(0, ...chunk.map(x => x.ts || 0)) });
       }
+      // A day that exactly fills its last page turns onto a fresh one, the way a
+      // paper book does — otherwise there'd be nowhere left to write that day's
+      // next moment. (Never for a part-full page: its own empty cells are the
+      // place to write.)
+      if (items.length % 4 === 0) out.push({ sect: 'sync', page: 'sync', dateISO: d, items: [], ts: 0 });
     });
     return out;
   }
@@ -3522,7 +3762,54 @@
       if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
       pages.forEach(p => out.push(p));
     }
+    // The writing leaf — a real page of the book, only while one is being
+    // written. It goes at the BACK (the way you'd flip to the end of a paper
+    // journal to write), so no existing page number ever moves under it, and
+    // it belongs to no section, so the contents is unchanged too.
+    if (bosWriting) out.push({ sect: 'write', page: 'write' });
     return out;
+  }
+  /* ── Warm a page's pictures before you turn to it ──────────────────────
+     Every page's art is a network fetch, so a turn used to land on the words
+     and then pop the pictures in a beat later: the Synchronicities part-title
+     showed its name before the moths arrived, and a saved reading turned to
+     three empty card slots that filled afterwards. Turning BACK looked fine
+     only because the browser had cached them by then.
+     Nothing here changes what a page renders — it just asks for the images of
+     the pages either side of the one you're on (and the first few when the
+     Shadows tab opens), so by the time you get there they're already in cache.
+     Cheap now that the art is webp: a page is tens of KB, not megabytes. */
+  const bosWarmed = new Map();   // url → the Image warming it, so readiness is knowable
+  function bosImgReady(u) { const im = bosWarmed.get(u); return !!(im && im.complete && im.naturalWidth); }
+  function bosPageImages(p) {
+    if (!p) return [];
+    if (p.page === 'sectcover') { const c = BOS_SECT_COVERS[p.sect]; return c && c.img ? [SW_IMG + c.img + SW_EXT] : []; }
+    if (p.page === 'sync') return (p.items || []).map(it => it && it.url).filter(Boolean);
+    if (p.page === 'lesson') return (p.marks || []).map(m => (LESSONS[m.lesson] || []).find(x => x.img === m.card))
+      .filter(Boolean).map(c => SW_IMG + c.img + SW_EXT);
+    const e = p.e;
+    if (!e) return [];
+    if (p.src === 'reading') return (e.cards || []).map(c => DECK_IMG[c.name]).filter(Boolean);
+    return e.url ? [e.url] : [];
+  }
+  function bosWarm(urls) {
+    urls.forEach(u => {
+      if (bosWarmed.has(u)) return;
+      const im = new Image(); im.decoding = 'async'; im.src = u;
+      bosWarmed.set(u, im);
+    });
+  }
+  function bosWarmPages(idxs) {
+    const pages = bosPages();
+    idxs.forEach(i => bosWarm(bosPageImages(pages[i - 1])));
+  }
+  /* The five section title pages are the pages you JUMP to — from the contents,
+     from a school CTA, from a bookmark — and a jump skips the neighbour warming
+     entirely, so those landings were always a cold fetch. There are only five of
+     them and they're webp (~170KB for the set), so the Shadows tab warms them
+     all at once and every jump lands on art that's already in cache. */
+  function bosWarmSectCovers() {
+    bosWarm(Object.values(BOS_SECT_COVERS).filter(c => c && c.img).map(c => SW_IMG + c.img + SW_EXT));
   }
   // 1-based page number where a section starts — the contents' page numbers.
   function bosSectStart(key) {
@@ -3558,8 +3845,23 @@
      lsnapStage() writes the lesson reader's OWN card markup (minus the live CTA
      button and the "tap to continue" hint — the parts of a screenshot you would
      have cropped off) into a phone-shaped stage on that card's own background. */
+  // How tall a snapshot may be, in the replica's own units. The bounds live in
+  // CSS so the book page and the enlarged view can never drift apart.
+  function lsnapBounds() {
+    const v = n => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n));
+    return { artMin: v('--lsnap-art-min') || 110, max: v('--lsnap-max') || 680 };
+  }
+  // The shortest this particular card can be without cutting its words off:
+  // its title block + its words + enough left for a picture. Measured with the
+  // stage at its natural height, so both parts report their own real size.
+  function lsnapNeed(stage, artMin) {
+    if (!stage) return 0;
+    stage.style.height = '';
+    const head = stage.querySelector('.deck-head'), txt = stage.querySelector('.deck-text');
+    return (head ? head.offsetHeight : 0) + (txt ? txt.offsetHeight : 0) + artMin;
+  }
   function lsnapStage(c) {
-    const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">`;
+    const art = c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`;
     return `<div class="lsnap-stage" style="background:${esc(c.bg || '#fdf9f3')};">
       <div class="tcard">
         <div class="deck-head">
@@ -3571,13 +3873,33 @@
       </div>
     </div>`;
   }
-  // The stage is a fixed 360px-wide replica, so it is SCALED to whatever width
-  // it landed in — measured, not guessed, so it fits the book page and the
-  // enlarged view with the same code.
+  // The stage is a 360px-wide replica, so it is SCALED to whatever width it
+  // landed in, and then made as TALL as the leaf can give it: the rows share
+  // the free paper between the last card and the page number, so the spread
+  // ends where the page does instead of stranding a blank band at the bottom.
+  // Measured, never guessed — the leaf is a different height on every phone.
   function lsnapFit() {
-    document.querySelectorAll('#bos-pagewrap .lsnap-frame').forEach(f => {
+    const grid = document.querySelector('#bos-pagewrap .bos-lesson-grid');
+    if (!grid) return;
+    const frames = [...grid.querySelectorAll('.lsnap-frame')];
+    if (!frames.length || !frames[0].clientWidth) return;
+    const s = frames[0].clientWidth / 360;
+    // Clear first: on a re-fit the frames' own heights ARE the grid's height,
+    // so measuring without collapsing them would just re-measure last time.
+    frames.forEach(f => { f.style.height = ''; });
+    const b = lsnapBounds();
+    // The floor comes from the wordiest card on THIS page, not from the whole
+    // school — every snapshot is the same size, so one long card sets it.
+    let need = 0;
+    frames.forEach(f => { need = Math.max(need, lsnapNeed(f.querySelector('.lsnap-stage'), b.artMin)); });
+    const rows = Math.ceil(frames.length / 2);
+    const gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+    const per = (grid.clientHeight - gap * (rows - 1)) / rows;
+    const H = Math.max(need, Math.min(b.max, per / s));
+    frames.forEach(f => {
+      f.style.height = Math.round(H * s) + 'px';
       const st = f.querySelector('.lsnap-stage');
-      if (st && f.clientWidth) st.style.setProperty('--s', (f.clientWidth / 360).toFixed(4));
+      if (st) { st.style.height = H + 'px'; st.style.setProperty('--s', s.toFixed(4)); }
     });
   }
   let lsnapOpen = null;   // { lesson, card } — what the Back link returns to
@@ -3586,15 +3908,28 @@
     if (!c) { closeBook(); go('school'); openLesson(lesson, card); return; }   // art changed: just go
     lsnapOpen = { lesson, card };
     const view = $('lsnap-view');
-    // As big as fits, whole card visible — no cropping in the enlarged view.
-    const s = Math.min((window.innerWidth - 34) / 360, (window.innerHeight - 150) / 620);
-    view.innerHTML = `<div class="lsnap-big" style="width:${Math.round(360 * s)}px;height:${Math.round(620 * s)}px;">${lsnapStage(c)}</div>
+    view.innerHTML = `<div class="lsnap-big">${lsnapStage(c)}</div>
       <div class="lsnap-actions">
         <button type="button" id="lsnap-back">Back to the lesson</button>
         <button type="button" class="plain" id="lsnap-close">close</button>
       </div>`;
-    view.querySelector('.lsnap-stage').style.setProperty('--s', s.toFixed(4));
-    view.style.display = ''; view.classList.add('show');
+    view.style.display = ''; view.classList.add('show');   // shown BEFORE measuring: a hidden card measures 0
+    // As big as fits, whole card visible — no cropping in the enlarged view.
+    // Same rule as the book page: fill the height that's actually there, down
+    // to what this card's own words need, so an enlarged card reads like the
+    // tile it came from. The stage carries no height of its own (the page
+    // measures one per leaf), so this sets it — without it the card's parts
+    // stack at their natural height and float in the top of the box.
+    const b = lsnapBounds();
+    const bigStage = view.querySelector('.lsnap-stage');
+    const availH = window.innerHeight - 150, sW = (window.innerWidth - 34) / 360;
+    const H = Math.max(lsnapNeed(bigStage, b.artMin), Math.min(b.max, availH / sW));
+    const s = Math.min(sW, availH / H);
+    bigStage.style.height = H + 'px';
+    bigStage.style.setProperty('--s', s.toFixed(4));
+    const big = view.querySelector('.lsnap-big');
+    big.style.width = Math.round(360 * s) + 'px';
+    big.style.height = Math.round(H * s) + 'px';
     document.body.style.overflow = 'hidden';   // house rule: freeze the page behind
     $('lsnap-close').addEventListener('click', closeLsnap);
     $('lsnap-back').addEventListener('click', () => {
@@ -3617,6 +3952,7 @@
     // `opts.newest` (the newest page in the section, narrowed by `dateISO`), so
     // tapping it shows the thing you just saved — not the oldest page down there.
     bosPageIdx = 0;
+    try { bosWarmSectCovers(); } catch {}   // openBook can be reached without the tab (a bookmark, a CTA)
     if (filter && filter !== 'all') {
       const sect = bosSectOf(filter);
       const idx = (opts && bosPageOfEntry(opts.entry))
@@ -3628,8 +3964,20 @@
     document.body.classList.add('book-open');
     renderBosPage();
   }
-  function closeBook() { $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open'); }
+  function closeBook() {
+    // A blank writing leaf doesn't survive shutting the book; one with writing
+    // on it does, and is still there at the back when you open it again.
+    if (bosWriting && !bosWriteDraft.text.trim()) bosWriting = null;
+    $('bos-reader').style.display = 'none'; document.body.classList.remove('book-open');
+  }
   function renderBosPage() {
+    // A writing leaf you turned away from with nothing on it is gone, the way
+    // an unwritten page is. One with writing on it STAYS at the back of the
+    // book, so turning away can never lose what's been typed.
+    if (bosWriting && !bosWriteDraft.text.trim()) {
+      const cur = bosPages()[bosPageIdx - 1];
+      if (!cur || cur.page !== 'write') bosWriting = null;
+    }
     const pages = bosPages(), total = pages.length;
     if (bosPageIdx <= 0) { renderBosSpread(); return; }
     if (bosPageIdx > total) bosPageIdx = total;
@@ -3648,40 +3996,103 @@
       return;
     }
     const p = pages[bosPageIdx - 1];
+    // The nav's "Add to your book" is what got you here — on the leaf itself
+    // it would just be a second button saying the same thing.
+    $('bos-write').style.display = p && p.page === 'write' ? 'none' : '';
+    bosWarmPages([bosPageIdx + 1, bosPageIdx - 1, bosPageIdx + 2]);
     if (p.page === 'sectcover') {
       const c = BOS_SECT_COVERS[p.sect] || {};
       // The whole leaf takes the art's OWN sampled background colour, so the
       // drawing floats with no box around it — the lesson-card trick.
       if (c.bg) book.style.setProperty('--surface', c.bg);
-      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover">
-        ${c.img ? `<img src="${SW_IMG}${c.img}.png" alt="">` : ''}
+      const src = c.img ? SW_IMG + c.img + SW_EXT : '';
+      // Warm but not yet arrived → hold the words with it, so the leaf never
+      // shows a name floating on its own above where the drawing will be.
+      const hold = !!src && !bosImgReady(src);
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-sectcover${hold ? ' warming' : ''}">
+        ${src ? `<img src="${src}" alt="">` : ''}
         <div class="sc-name">${esc(p.name || '')}</div>
         ${c.line ? `<div class="sc-line">${esc(c.line)}</div>` : ''}
       </div>`;
+      if (hold) {
+        const leaf = $('bos-pagewrap').querySelector('.bos-sectcover'), im = leaf.querySelector('img');
+        const show = () => leaf.classList.remove('warming');
+        im.addEventListener('load', show, { once: true });
+        im.addEventListener('error', show, { once: true });
+        if (im.complete) show();
+        setTimeout(show, BOS_COVER_HOLD);   // a slow or dead network still gets the words
+      }
       return;   // a part-title carries no page number, like a real book
     }
+    if (p.page === 'write') { renderWriteLeaf(); return; }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
       // When the caption is the short AI label, the FULL original moment text
       // stays reachable behind a tiny "more…" link (never deleted, just tucked
       // away — Sophie's call; Home shows only the caption).
       let g = `<div class="bos-sync-date">${esc(syncDateLabel(p.dateISO))}</div><div class="bos-sync-grid">`;
+      // Every empty cell is a box you write in, exactly like Home's — the day's
+      // next free slots, left to right, so a moment stays in the cell it was
+      // written in once it's drawn.
+      let nextSlot = syncNextSlot(p.dateISO);
       for (let k = 0; k < 4; k++) {
         const it = p.items[k];
-        const hasMore = it && it.label && it.desc && it.desc !== it.label;
+        if (!it) {
+          const slot = nextSlot++;
+          const draft = syncDrafts[p.dateISO + '#' + slot] || '';
+          g += `<div class="bos-sync-cell">
+            <div class="bos-sync-box write" contenteditable="true" data-sync-slot="${slot}">${esc(draft)}</div>
+            <button type="button" class="bos-sync-draw" data-sync-draw="${slot}">Draw it! <span class="js-star"></span></button>
+          </div>`;
+          continue;
+        }
+        const art = it.url
+          ? `<img src="${esc(it.url)}" alt="">`
+          : (it.pending ? `<img class="bos-sync-load" src="/hoonie-loading-clear.gif" alt="drawing…">` : '');
+        // The book shows the moment in HER OWN WORDS, up to three lines — the
+        // short AI label is the Home screen's caption, and on a page this wide
+        // it left most of what she wrote invisible. `more…` is added after
+        // layout, only when the text really was cut off (below).
         g += `<div class="bos-sync-cell">
-          <div class="bos-sync-box">${it && it.url ? `<img src="${esc(it.url)}" alt="">` : ''}</div>
-          <div class="bos-sync-cap">${it ? esc(it.label || it.desc || '') : ''}${hasMore ? `<button type="button" class="bos-sync-more" data-more="${k}">more…</button>` : ''}</div>
+          <div class="bos-sync-box">${art}</div>
+          <div class="bos-sync-cap" data-cap="${k}">${esc(it.desc || it.label || '')}</div>
         </div>`;
       }
       g += `</div>`;
       $('bos-pagewrap').innerHTML = `<div class="bos-page">${g}<div class="bos-pagefoot">${bosPageIdx}</div></div>`;
+      renderStars();
       const items = p.items;
+      // `more…` only where the three-line clamp actually cut the text off —
+      // measured, not guessed from a character count.
+      document.querySelectorAll('#bos-pagewrap .bos-sync-cap').forEach(cap => {
+        if (cap.scrollHeight <= cap.clientHeight + 1) return;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'bos-sync-more'; b.dataset.more = cap.dataset.cap; b.textContent = 'more…';
+        // NOT inside the cap: it's a -webkit-line-clamp box, so anything after
+        // the clamped text is clipped away with it.
+        cap.parentNode.appendChild(b);
+      });
       document.querySelectorAll('.bos-sync-more').forEach(b => b.addEventListener('click', (e) => {
         e.stopPropagation();
         const it = items[+b.dataset.more]; if (!it) return;
         openModal(`<h2 style="margin-bottom:10px;">${esc(it.label || 'The moment')}</h2><p class="sub" style="text-align:left; white-space:pre-wrap;">${esc(it.desc)}</p><button class="close-x" id="sync-more-x">close</button>`);
         $('sync-more-x').addEventListener('click', closeModal);
+      }));
+      // Keep what's been typed but not yet drawn, so a page turn (or another
+      // cell's drawing finishing and repainting the page) can't eat it.
+      const addDay = p.dateISO;
+      document.querySelectorAll('#bos-pagewrap .bos-sync-box.write').forEach(box => {
+        box.addEventListener('input', () => { syncDrafts[addDay + '#' + box.dataset.syncSlot] = box.textContent || ''; });
+      });
+      document.querySelectorAll('#bos-pagewrap [data-sync-draw]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const slot = +b.dataset.syncDraw;
+        const box = document.querySelector('#bos-pagewrap .bos-sync-box.write[data-sync-slot="' + slot + '"]');
+        const desc = ((box && box.textContent) || '').trim();
+        if (!desc) { if (box) box.focus(); return; }
+        delete syncDrafts[addDay + '#' + slot];
+        b.disabled = true; b.textContent = '…';
+        syncAddMoment(addDay, desc, slot);
       }));
       return;
     }
@@ -3742,6 +4153,7 @@
   // spread) — a small title up top, then gold section names, dot leaders,
   // black page numbers below.
   function renderBosSpread() {
+    const wr = $('bos-write'); if (wr) wr.style.display = '';
     const book = document.querySelector('#bos-stage .bos-book');
     book.classList.remove('spread');
     book.style.removeProperty('--surface');
@@ -3756,8 +4168,7 @@
     const rows = BOS_SECTS.filter(s => s.key !== 'lesson' || lessonMarkPages().length).map(s =>
       `<div class="bos-toc-row" data-sect="${s.key}"><span class="n">${s.name}</span><span class="dots"></span><span class="p">${bosSectStart(s.key)}</span></div>`).join('');
     $('bos-pagewrap').innerHTML = `<div class="bos-page">
-      <div class="bos-title-page"><div class="star">${STAR}</div><div class="t">Book of Shadows</div></div>
-      <div class="bos-toc-h">Contents</div>
+      <div class="bos-title-page"><div class="t">Contents</div></div>
       ${rows}
       </div>`;
   }
@@ -3775,64 +4186,140 @@
     const gl = e.target.closest('[data-lsnap]');
     if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
-    if (oc) { bosOutcomeFor = oc.dataset.outcome; openComposer('outcome'); return; }
+    if (oc) { bosOutcomeFor = oc.dataset.outcome; openWritePage('outcome'); return; }
     const del = e.target.closest('[data-jdel]');
     if (del) { journalSave(journalLoad().filter(x => x.id !== del.dataset.jdel)); bosPageIdx = Math.max(0, bosPageIdx - 1); renderBosPage(); updateBosCoverSub(); return; }
-    if (e.target.closest('a, button')) return;   // images (tarot cards) turn the page too
+    // Images (tarot cards) turn the page too. A box you can type into must NOT
+    // — the Synchronicities write-a-moment cell is a contenteditable, and
+    // without this a tap into it turned the page instead of giving it focus.
+    if (e.target.closest('a, button, [contenteditable="true"], textarea, input')) return;
+    // The writing leaf never turns by tap — half a page of writing must not be
+    // one stray tap away from being left behind. The arrows still turn it.
+    const cur = bosPages()[bosPageIdx - 1];
+    if (cur && cur.page === 'write') return;
     // Tap zones: right side turns forward, left edge turns back.
     if (e.clientX < window.innerWidth * 0.28) { bosBack(); }
     else if (bosPageIdx < bosPages().length) { bosPageIdx++; renderBosPage(); }
   });
-  /* Composer */
+  /* ── Writing a page (the leaf itself, not a pop-up) ─────────────────────
+     "Add to your book" turns the book to a blank leaf at the back and you
+     write on it there. What's typed lives in `bosWriteDraft`, so a repaint —
+     or turning away and back — can't eat it, the same contract the
+     Synchronicities write-boxes keep. */
   let bosComposeType = 'sign', bosOutcomeFor = null;
-  function openComposer(mode) {
-    const isOutcome = mode === 'outcome';
-    openModal(`<h2 style="margin-bottom:4px;">${isOutcome ? 'How did it turn out?' : 'Write a page'}</h2>
-      ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
-        ${['sign', 'spell', 'dream'].map(t => `<button data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
-      </div>`}
-      <textarea id="bos-compose-text" rows="6" placeholder="${isOutcome ? 'The candle burned clean, and two days later…' : 'Write it as it happened…'}" style="width:100%;"></textarea>
-      <div id="bos-context-wrap" style="display:${!isOutcome && bosComposeType === 'sign' ? '' : 'none'}; margin-top:10px;">
-        <input type="text" id="bos-compose-context" placeholder="What was happening when it appeared?" style="width:100%;">
+  // The vine that sprays from each corner of the illuminated capital: one
+  // quarter, mirrored across both axes, so the four corners match exactly.
+  const CAP_ORN = `<svg class="cap-orn" viewBox="0 0 84 84" fill="currentColor" aria-hidden="true">
+    <defs><g id="bos-cap-spray">
+      <circle cx="10" cy="10" r="2.4"/>
+      <path d="M12.6 8.6c9-.5 15.6 1 20.4 4.4-5.4-1.9-11.6-2.6-20.2-1.5z"/>
+      <path d="M8.6 12.6c-.5 9 1 15.6 4.4 20.4-1.9-5.4-2.6-11.6-1.5-20.2z"/>
+      <circle cx="34.5" cy="13.6" r="1.2"/><circle cx="13.6" cy="34.5" r="1.2"/>
+    </g></defs>
+    <use href="#bos-cap-spray"/>
+    <use href="#bos-cap-spray" transform="translate(84,0) scale(-1,1)"/>
+    <use href="#bos-cap-spray" transform="translate(0,84) scale(1,-1)"/>
+    <use href="#bos-cap-spray" transform="translate(84,84) scale(-1,-1)"/>
+  </svg>`;
+  function bosWriteSync() {
+    const ta = $('bos-write-area'), cx = $('bos-write-ctx');
+    if (ta) bosWriteDraft.text = ta.value;
+    if (cx) bosWriteDraft.context = cx.value;
+  }
+  const WRITE_PLACEHOLDER = {
+    sign: 'The magpie was on the rail again…',
+    spell: 'What you cast, what you used, and when…',
+    dream: 'I was back in the house with the green door…',
+    outcome: 'The candle burned clean, and two days later…',
+  };
+  function renderWriteLeaf() {
+    const isOutcome = !!(bosWriting && bosWriting.outcome);
+    // The heading opens with an illuminated capital, so the leaf reads as a
+    // page of the book rather than a form dropped on top of one.
+    const head = isOutcome ? 'How did it turn out?' : 'Write it as it happened';
+    const wantsCtx = !isOutcome && bosComposeType === 'sign';
+    $('bos-pagewrap').innerHTML = `<div class="bos-page"><div class="bos-write">
+      <div class="bos-date">${esc(bosDate(Date.now()))}</div>
+      <div class="bos-write-head">
+        <span class="bos-dropcap">${CAP_ORN}<span class="cap-l">${esc(head[0])}</span></span>
+        <h3>${esc(head.slice(1))}</h3>
       </div>
-      <button class="btn" id="bos-compose-save" style="margin-top:14px;">${isOutcome ? 'Save the outcome' : 'Add to the book'} <span class="js-star"></span></button>
-      <button class="close-x" id="bos-compose-close">close</button>`);
+      ${isOutcome ? '' : `<div class="bos-typepick" id="bos-typepick">
+        ${['sign', 'spell', 'dream'].map(t => `<button type="button" data-t="${t}" class="${t === bosComposeType ? 'on' : ''}">${BOS_TYPES[t]}</button>`).join('')}
+      </div>`}
+      <textarea class="bos-write-area" id="bos-write-area" placeholder="${esc(WRITE_PLACEHOLDER[isOutcome ? 'outcome' : bosComposeType] || '')}">${esc(bosWriteDraft.text)}</textarea>
+      ${wantsCtx ? `<input type="text" class="bos-write-ctx" id="bos-write-ctx" placeholder="What was happening when it appeared?" value="${esc(bosWriteDraft.context)}">` : ''}
+      <div class="bos-write-rest" id="bos-write-rest"></div>
+      <button type="button" class="btn bos-write-go" id="bos-write-go">${isOutcome ? 'Save the outcome' : 'Add to the book'} <span class="js-star"></span></button>
+    </div><div class="bos-pagefoot">${bosPageIdx}</div></div>`;
     renderStars();
+    const ta = $('bos-write-area');
+    const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    ta.addEventListener('input', () => { bosWriteDraft.text = ta.value; grow(); });
+    grow();
+    $('bos-write-rest').addEventListener('click', () => {
+      ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch {}
+    });
+    // The keyboard covers the foot of the leaf on a phone, so bring what
+    // you're writing into view rather than leaving it under the keys.
+    ta.addEventListener('focus', () => setTimeout(() => { try { ta.scrollIntoView({ block: 'center' }); } catch {} }, 250));
+    const cx = $('bos-write-ctx');
+    if (cx) cx.addEventListener('input', () => { bosWriteDraft.context = cx.value; });
     const tp = $('bos-typepick');
     if (tp) tp.addEventListener('click', (e) => {
       const b = e.target.closest('[data-t]'); if (!b) return;
+      bosWriteSync();                       // keep what's already written
       bosComposeType = b.dataset.t;
-      tp.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      $('bos-context-wrap').style.display = bosComposeType === 'sign' ? '' : 'none';
+      renderWriteLeaf();                    // the context line belongs to signs only
+      const t2 = $('bos-write-area'); if (t2) { t2.focus(); t2.setSelectionRange(t2.value.length, t2.value.length); }
     });
-    $('bos-compose-close').addEventListener('click', closeModal);
-    $('bos-compose-save').addEventListener('click', () => {
-      const text = $('bos-compose-text').value.trim(); if (!text) return;
+    $('bos-write-go').addEventListener('click', (e) => {
+      e.stopPropagation();
+      bosWriteSync();
+      const text = bosWriteDraft.text.trim();
+      if (!text) { ta.focus(); return; }
       const all = journalLoad();
-      let wrote = null;
+      let landOn = 0, landSect = '';
       if (isOutcome && bosOutcomeFor) {
-        const e = all.find(x => x.id === bosOutcomeFor); if (e) e.outcome = text;
+        const ent = all.find(x => x.id === bosOutcomeFor); if (ent) ent.outcome = text;
+        landOn = bosOutcomeFor;
       } else {
-        const ctx = $('bos-compose-context') ? $('bos-compose-context').value.trim() : '';
+        const ctx = bosWriteDraft.context.trim();
         const id = 'j_' + Date.now();
-        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(ctx ? { context: ctx } : {}) });
-        wrote = { id, sect: bosSectOf(bosComposeType) };
+        all.push({ id, type: bosComposeType, ts: Date.now(), text, ...(wantsCtx && ctx ? { context: ctx } : {}) });
+        landOn = id; landSect = bosSectOf(bosComposeType);
       }
-      journalSave(all); bosOutcomeFor = null; closeModal();
-      // Land on the page the new entry is actually ON. This used to jump to the
-      // LAST page of the whole book, which was already the wrong section and is
-      // now doubly wrong: a new sign goes to the FRONT of Synchronicities. A sign
-      // has no page of its own (it joins a day's grid), so fall back to that
-      // section's newest page; an outcome edit stays where it was.
-      if (wrote && $('bos-reader').style.display !== 'none') {
-        bosPageIdx = bosPageOfEntry(wrote.id) || bosSectNewest(wrote.sect, todayISO()) || bosPages().length;
-        renderBosPage();
-      }
+      journalSave(all);
+      bosOutcomeFor = null; bosWriting = null; bosWriteDraft = { text: '', context: '' };
+      // Land on the page the entry is actually ON — the leaf you were writing
+      // on is gone now, and a new sign goes to the FRONT of Synchronicities,
+      // not the back of the book. A sign has no page of its own (it joins a
+      // day's grid), so fall back to that section's newest page.
+      bosPageIdx = bosPageOfEntry(landOn) || (landSect && bosSectNewest(landSect, todayISO())) || bosPages().length;
+      renderBosPage();
       updateBosCoverSub();
     });
   }
-  $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openComposer(); });
-  $('bos-quickwrite').addEventListener('click', () => openComposer());
+  // Turn to a fresh leaf and write on it. Tapping "Add to your book" again
+  // while one is already open just returns to it — it never wipes a draft.
+  function openWritePage(mode) {
+    const outcome = mode === 'outcome';
+    if (!bosWriting || bosWriting.outcome !== outcome) {
+      bosWriting = { outcome };
+      bosWriteDraft = { text: '', context: '' };
+    }
+    if ($('bos-reader').style.display === 'none') {
+      $('bos-reader').style.display = '';
+      document.body.classList.add('book-open');
+      try { bosWarmSectCovers(); } catch {}
+    }
+    bosPageIdx = bosPages().length;   // the writing leaf is the last one
+    renderBosPage();
+    // Focused synchronously inside the tap, or iOS won't raise the keyboard.
+    const ta = $('bos-write-area'); if (ta) ta.focus();
+  }
+  $('bos-write').addEventListener('click', (e) => { e.stopPropagation(); openWritePage(); });
+  $('bos-quickwrite').addEventListener('click', () => openWritePage());
   function updateBosCoverSub() {
     const el = $('bos-cover-sub'); if (!el) return;   // page count removed from the cover
     const n = bosAllPages().length;
@@ -4257,37 +4744,47 @@
   /* ══════════ QUIZ: Are you secretly a witch? — full-screen app ══════════ */
   // Real questions → after answering, a reveal screen (image/film + the sign
   // explained). Own full-screen overlay; the page behind is scroll-locked.
+  /* ── School art: the WEBP display copies, not the PNG originals ──────────
+     Every card is a 1024² PNG at ~1MB. Five of them on the Lessons tab is
+     ~5.8MB, and one lesson's deck is ~10MB — which is the whole reason that tab
+     used to crawl. `scripts/witch-school-webp.js` writes a same-size webp
+     beside each PNG (~50KB, about 22× smaller, no downscaling so nothing is
+     lost) with a one-year immutable cache header; the PNGs stay put as the
+     untouched originals. Anything referencing SW_IMG must use SW_EXT, never a
+     hard-coded '.png'. */
+  const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/webp/';
+  const SW_EXT = '.webp';
   const QUIZ_ASSETS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-quiz/assets/';
   // House-style question + reveal illustrations (same pipeline as the School
   // lessons — scripts/witch-school-cards.js, spec qz-*). bg = sampled corner
   // hex; the quiz stage tints to it so the art floats with no box.
-  const QZ_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
+  const QZ_IMG = SW_IMG;   // the qz-* cards live in the SAME folder as the school art
   const QUIZ = [
     { q: 'You know what’s going to happen before it does.',
       sub: 'Sometimes you just get a small intuitive sense that something’s going to take place — an event, a miracle, a chance encounter… You just have a feeling.',
       a: ['Almost every day', 'Once in a while', "That's never happened to me"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1.png', bg: '#fdf8f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q1' + SW_EXT, bg: '#fdf8f1' },
       media: { type: 'video', url: QUIZ_ASSETS + 'intuition.mp4' },
       reveal: { name: 'Clear knowing', body: "That flicker of knowing before it happens has a name — claircognizance. If you've felt it even once, the gift is already awake in you." } },
     { q: 'When your emotions run high, does the world around you ever seem to respond?',
       a: ['Yes, more than once', 'Maybe once', "Never"],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2.png', bg: '#fdf8f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q2' + SW_EXT, bg: '#fdf8f1' },
       media: { type: 'video', url: QUIZ_ASSETS + 'strong-emotion.mp4' },
       reveal: { name: 'Raw power', body: "Big emotion is energy moving through you. A light that flickers, a room gone cold — witches were the ones who could feel it and send it somewhere." } },
     { q: 'How connected do you feel to animals and the natural world?',
       a: ['Deeply', 'Somewhat', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3.png', bg: '#fef5ea' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q3' + SW_EXT, bg: '#fef5ea' },
       media: { type: 'video', url: QUIZ_ASSETS + 'nature.mp4' },
       reveal: { name: 'The old kinship', body: "Animals that come close, the pull of the moon and the trees — this is the witch's oldest inheritance. The land still speaks to you." } },
     { q: 'Do you notice the same numbers or signs appearing again and again?',
       a: ['Constantly', 'Now and then', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4.png', bg: '#fbf4ec' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r4.png', bg: '#fdf7f1' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q4' + SW_EXT, bg: '#fbf4ec' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r4' + SW_EXT, bg: '#fdf7f1' },
       reveal: { name: 'The signs are speaking', body: "11:11. A name three times in a day. Not coincidence — the world getting your attention. You simply started listening." } },
     { q: 'For as long as you can remember, have you felt different from everyone around you?',
       a: ['My whole life', 'Sometimes', 'Not really'],
-      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5.png', bg: '#fefbf7' },
-      media: { type: 'image', url: QZ_IMG + 'qz-r5.png', bg: '#fefaf5' },
+      qmedia: { type: 'image', url: QZ_IMG + 'qz-q5' + SW_EXT, bg: '#fefbf7' },
+      media: { type: 'image', url: QZ_IMG + 'qz-r5' + SW_EXT, bg: '#fefaf5' },
       reveal: { name: 'You were never meant to fit', body: "Standing just outside the circle, feeling more than the people around you — that was never a flaw. It was the mark." } },
   ];
   function quizMediaHTML(m) {
@@ -4343,7 +4840,7 @@
       // Wait for the video to actually load before showing the screen, so it
       // never flashes text-without-video.
       if (it.media && it.media.type === 'video') {
-        stage.innerHTML = `<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>`;
+        stage.innerHTML = `<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading-clear.gif" alt="loading…"></div>`;
         const v = document.createElement('video');
         v.className = 'quiz-media'; v.src = it.media.url; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
         let done = false;
@@ -4491,7 +4988,7 @@
     }
     let data = skyChart();
     if (!data) {
-      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading.gif" alt="loading…"></div>' }];
+      deckCards = [{ kicker: 'Your Sky, Read', h: 'Reading your sky…', bg: '#fdf9f3', body: '<div class="quiz-loading"><img class="hl-block" src="/hoonie-loading-clear.gif" alt="loading…"></div>' }];
       renderDeckCard();
       if (skyBusy) return; skyBusy = true;
       try {
@@ -4599,6 +5096,87 @@
   function syncArchLoad() { try { return JSON.parse(localStorage.getItem(SYNC_ARCH) || '[]'); } catch { return []; } }
   function syncArchSave(a) { try { localStorage.setItem(SYNC_ARCH, JSON.stringify(a)); } catch {} try { cloudSyncSoon(); } catch (e) {} }
   function syncArchUpsert(entry) { const a = syncArchLoad(); const i = a.findIndex(x => x.id === entry.id); if (i >= 0) a[i] = { ...a[i], ...entry }; else a.push(entry); syncArchSave(a); }
+
+  /* ── Adding a moment from INSIDE the book ────────────────────────────────
+     Home has three boxes and they reset at midnight, so it can only ever hold
+     three of a day's coincidences. The Synchronicities pages take as many as a
+     day actually had: an empty cell on a page IS a box you write in — the same
+     square, in the same place in the grid, with "Draw it!" under it — and what
+     you draw is filed against THAT page's day in the next free slot after
+     Home's 0-1-2.
+     The pending job lives in localStorage, NOT in the synced archive — a
+     half-finished draw is this device's business, and `resumeSyncJobs()` picks
+     it back up on return exactly the way the Home boxes do. */
+  const syncDrafts = {};                 // 'YYYY-MM-DD#<slot>' -> text typed, not yet drawn
+  const SYNC_PEND = 'witch_sync_jobs';   // { entryId: { job, dateISO, desc, slot, ts } }
+  function syncPendAll() { return pendGet(SYNC_PEND) || {}; }
+  function syncPendSet(id, v) { const m = syncPendAll(); if (v) m[id] = v; else delete m[id]; pendSet(SYNC_PEND, Object.keys(m).length ? m : null); }
+  // Home owns slots 0-2 for every day even if a box was left empty, so a book
+  // moment never steals a place the three boxes still read from.
+  function syncNextSlot(dateISO) {
+    let max = 2;
+    syncItems().forEach(e => { if (e.dateISO === dateISO && e.slot < SYNC_NO_SLOT) max = Math.max(max, e.slot); });
+    return max + 1;
+  }
+  // A moment added to an OLD day is stamped at that day's noon, so it sorts into
+  // its own day and can't hijack "the newest page" of the section.
+  function syncStampFor(dateISO) {
+    if (dateISO === todayISO()) return Date.now();
+    const p = String(dateISO).split('-').map(Number);
+    const t = new Date(p[0], (p[1] || 1) - 1, p[2] || 1, 12, 0, 0).getTime();
+    return isNaN(t) ? Date.now() : t;
+  }
+  function syncBookOpen() { return $('bos-reader').style.display !== 'none'; }
+  function syncRepaint() {
+    if (!syncBookOpen()) return;
+    const p = bosPages()[bosPageIdx - 1];
+    if (p && p.page === 'sync') renderBosPage();
+  }
+  // Adding can push a day onto a NEW page, so land on the page the moment is
+  // actually on rather than assuming the index held still.
+  function syncGoToEntry(id) {
+    if (!syncBookOpen()) return;
+    const i = bosPages().findIndex(p => p.page === 'sync' && p.items.some(x => x.id === id));
+    if (i >= 0) bosPageIdx = i + 1;
+    renderBosPage();
+  }
+  function syncWatch(id) {
+    const p = syncPendAll()[id]; if (!p || !p.job) return;
+    pollJob('/api/witch/job/' + p.job, {
+      key: 'sync' + id,
+      onDone: (d) => {
+        const cur = syncPendAll()[id];
+        const url = d.result && d.result.url;
+        const label = (d.result && d.result.label) || null;   // AI-written ≤6-word caption
+        syncPendSet(id, null);
+        if (url && cur) syncArchUpsert({ id, dateISO: cur.dateISO, ts: cur.ts, slot: cur.slot, url, desc: cur.desc, label });
+        else toast('Couldn\'t draw that one — try rewording it ✦');
+        syncRepaint();
+      },
+      onError: () => { syncPendSet(id, null); syncRepaint(); toast('Couldn\'t draw that one — try rewording it ✦'); },
+    });
+  }
+  function resumeSyncJobs() {
+    const all = syncPendAll();
+    Object.keys(all).forEach(id => { if (all[id] && all[id].job) syncWatch(id); });
+  }
+  async function syncAddMoment(dateISO, desc, slotArg) {
+    const slot = typeof slotArg === 'number' ? slotArg : syncNextSlot(dateISO);
+    const id = 'sync_' + dateISO + '_' + slot;
+    const ts = syncStampFor(dateISO);
+    syncPendSet(id, { dateISO, desc, slot, ts });
+    syncGoToEntry(id);   // the placeholder cell + its spinner are on screen at once
+    try {
+      // Same distillation the Home boxes use: raw note → one pastel spot drawing.
+      const job = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
+      const cur = syncPendAll()[id]; if (!cur) return;
+      syncPendSet(id, { ...cur, job });
+      syncWatch(id);
+    } catch (e) {
+      syncPendSet(id, null); syncRepaint();
+      toast('Couldn\'t start the drawing — ' + e.message);
+    }
+  }
   // The day key is stored via pendGet/pendSet (JSON) so it survives the cloud
   // round-trip — the old plain-string value made pushCloud's JSON.parse throw,
   // so the cloud never knew which day the draws belonged to and a pull could
@@ -4673,7 +5251,7 @@
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
   function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading.gif" alt="drawing…">'; }
+  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading-clear.gif" alt="drawing…">'; }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
   // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
@@ -4899,7 +5477,7 @@
   let lastDreamRead = null;   // the live reading's data, for the teaser's Dive-deeper button
   // The dream's bookmark keeps whatever you actually made — the illustration,
   // the symbolism, or both. Reset whenever a fresh result lands.
-  let lastDreamPage = null, lastDreamText = '', dreamSaved = false;
+  let lastDreamPage = null, lastDreamText = '', dreamSaved = false, dreamSavedId = null;
   function dreamBmRefresh() {
     if (!lastDreamPage && !lastDreamRead) { bmHide('dream-bm'); return; }
     bmShow('dream-bm', dreamSaved, false);
@@ -4908,6 +5486,23 @@
   const DREAM_STORE = 'witch_dream_readings';
   function loadDreams() { try { return JSON.parse(localStorage.getItem(DREAM_STORE) || '[]'); } catch { return []; } }
   function saveDreams(a) { try { localStorage.setItem(DREAM_STORE, JSON.stringify(a.slice(0, 60))); } catch {} }
+  // A dream is kept in Past readings the moment she asks for ANYTHING to be
+  // done with it — the symbolism, the picture, either alone. It used to be
+  // written only when a reading came back, so an illustrated-but-never-
+  // unlocked dream vanished the moment the page was left. Book of Shadows is
+  // still opt-in: that's the bookmark, and this is not it.
+  // Unlocking and illustrating the SAME dream fill in two halves of ONE past
+  // reading — matched on the dream's own words, so a resumed job after a
+  // reload finds its entry again instead of starting a second stub.
+  function dreamStoreSave(dream, patch) {
+    const text = (dream || '').trim(); if (!text) return null;
+    const all = loadDreams();
+    let i = all.findIndex(r => (r.dream || '').trim() === text);
+    if (i < 0) { all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream: text }); i = 0; }
+    Object.assign(all[i], patch || {});
+    saveDreams(all);
+    return all[i].id;
+  }
   function fmtDreamDate(ts) {
     const d = new Date(ts);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -4922,11 +5517,12 @@
     const app = $('dreampast-app'); app.style.display = ''; app.scrollTop = 0;
     const all = loadDreams();
     const list = !all.length
-      ? `<div class="dread-fail">No saved readings yet — unlock a dream and it'll be kept here.</div>`
+      ? `<div class="dread-fail">No dreams here yet — write one down and it'll be kept.</div>`
       : all.map((r, i) => {
           const title = (r.data && (r.data.claude?.title || r.data.gpt?.title)) || 'A dream';
           const snip = esc((r.dream || '').slice(0, 90)) + ((r.dream || '').length > 90 ? '…' : '');
-          return `<button class="dpast-item" data-past="${i}"><div class="dpast-t">${esc(title)}</div><div class="dpast-d">${fmtDreamDate(r.ts)}</div><div class="dpast-s">${snip}</div></button>`;
+          const thumb = r.url ? `<img class="dpast-thumb" src="${esc(r.url)}" alt="">` : '';
+          return `<button class="dpast-item${r.url ? ' has-img' : ''}" data-past="${i}">${thumb}<div class="dpast-txt"><div class="dpast-t">${esc(title)}</div><div class="dpast-d">${fmtDreamDate(r.ts)}</div><div class="dpast-s">${snip}</div></div></button>`;
         }).join('');
     $('dreampast-stage').innerHTML = `<div class="quiz-kicker">Your dream journal</div><div class="dpast-head">Past readings</div>${list}`;
   }
@@ -4937,7 +5533,7 @@
   }
   function showDreamDetail(i) {
     const r = loadDreams()[i]; if (!r) return;
-    openDreamReadDeep(r.data);   // opens on top of the list — Back reveals it again
+    openDreamReadDeep(r.data, r);   // opens on top of the list — Back reveals it again
   }
   // Inline = a QUICK teaser (title + symbols only, like the tarot quick
   // read) + a Dive deeper button. The full message lives on its own
@@ -4978,11 +5574,22 @@
       : [{ src: null, r: (data && data.claude) || (data && data.gpt) }];
   }
   let dreamReadDeepOpen = false;
-  function openDreamReadDeep(data) {
+  // `entry` is a saved past reading: it may carry the illustration and, when
+  // the symbolism was never unlocked, is the only thing there is to show — so
+  // the page falls back to the dream in her own words rather than opening blank.
+  function openDreamReadDeep(data, entry) {
     dreamReadDeepOpen = true;
     document.body.style.overflow = 'hidden';
     const app = $('dreamread-app'); app.style.display = ''; app.scrollTop = 0;
-    $('dreamread-stage').innerHTML = `<div class="quiz-kicker">Your dream, read</div>${renderDreamFull(dreamReadingsFor(data))}`;
+    const url = entry && entry.url;
+    const read = renderDreamFull(dreamReadingsFor(data));
+    const words = (!data || !(data.claude || data.gpt)) && entry && entry.dream
+      ? `<div class="dread">${String(entry.dream).split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}</div>` : '';
+    $('dreamread-stage').innerHTML = `<div class="quiz-kicker">Your dream, read</div>`
+      + (url ? `<div class="dpage dread-page" style="cursor:zoom-in;"><img src="${esc(url)}" alt="Your dream, illustrated"></div>` : '')
+      + read + words;
+    const pg = $('dreamread-stage').querySelector('.dread-page');
+    if (pg) pg.addEventListener('click', () => openImgLightbox(url));
   }
   function closeDreamReadDeep() {
     dreamReadDeepOpen = false;
@@ -5028,10 +5635,10 @@
         pendSet(DREAMREAD_PEND, null); finish();
         const data = d.result || {};
         lastDreamRead = data;
-        lastDreamText = dream; dreamSaved = false; dreamBmRefresh();
+        lastDreamText = dream; dreamSaved = false; dreamSavedId = null; dreamBmRefresh();
         out.style.display = '';
         out.innerHTML = renderDreamTeaser(data);
-        if (data.claude || data.gpt) { const all = loadDreams(); all.unshift({ id: 'd_' + Date.now(), ts: Date.now(), dream, data: { claude: data.claude, gpt: data.gpt } }); saveDreams(all); }
+        if (data.claude || data.gpt) dreamStoreSave(dream, { data: { claude: data.claude, gpt: data.gpt } });
       },
       onError: (e) => { pendSet(DREAMREAD_PEND, null); finish(); out.style.display = ''; out.innerHTML = `<div class="dread-fail">The reading didn't come through — ${esc(e.message)}. Try again in a moment.</div>`; },
     });
@@ -5061,6 +5668,8 @@
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me a little about the dream first ✦'); return; }
     openDreamPage();
+    lastDreamText = dream;
+    dreamStoreSave(dream);   // the dream itself is kept from the moment she asks
     dreamReadSpinner();
     try {
       const id = await withRetry(() => startWitchJob('dream-read', { dream }));
@@ -5110,11 +5719,14 @@
     if (sub) sub.addEventListener('click', () => toast('Full dream books are coming soon ✦'));
     const p1 = document.getElementById('dream-page1');
     if (p1) p1.addEventListener('click', () => openImgLightbox(url));
-    lastDreamPage = url; dreamSaved = false; dreamBmRefresh();
+    lastDreamPage = url; dreamSaved = false; dreamSavedId = null; dreamBmRefresh();
+    dreamStoreSave(lastDreamText, { url });   // the picture rides on the dream's past reading
   }
   // Keeps whichever halves exist: the illustration, the symbolism, or both.
   $('dream-bm').addEventListener('click', () => {
-    if (dreamSaved) { go('book'); openBook('dream'); return; }
+    // Second tap = "see in book", the tarot bookmark's pattern: it opens on the
+    // page this dream was filed on, not the oldest one in the section.
+    if (dreamSaved) { go('book'); openBook('dream', { entry: dreamSavedId, newest: true }); return; }
     if (!lastDreamPage && !lastDreamRead) return;
     const r = lastDreamRead && (lastDreamRead.claude || lastDreamRead.gpt);
     let text = lastDreamText || '';
@@ -5122,7 +5734,8 @@
       const syms = (r.symbols || []).map(s => `${s.symbol} — ${s.meaning}`).join('\n');
       text = [text, syms, r.message].filter(Boolean).join('\n\n');
     }
-    journalSave([{ id: 'dream_' + Date.now(), ts: Date.now(), type: 'dream',
+    dreamSavedId = 'dream_' + Date.now();
+    journalSave([{ id: dreamSavedId, ts: Date.now(), type: 'dream',
       title: (r && r.title) || 'A dream', text, url: lastDreamPage || null }].concat(journalLoad()));
     dreamSaved = true; bmShow('dream-bm', true, true);
     toast('Saved to your Book of Shadows ✦');
@@ -5135,7 +5748,7 @@
     lb.appendChild(im);
     lb.addEventListener('click', () => {
       lb.remove();
-      document.body.style.overflow = (dreamPageOpen || deepOpen) ? 'hidden' : '';
+      document.body.style.overflow = (dreamPageOpen || deepOpen || dreamReadDeepOpen || dreamPastOpen) ? 'hidden' : '';
     });
     document.body.appendChild(lb);
     document.body.style.overflow = 'hidden';
@@ -5146,9 +5759,11 @@
   function dreamIllusSpinner() {
     // Doesn't touch #dream-out — see the note in dreamReadSpinner().
     // A page-shaped frame where the finished art will land, with the linocut
-    // loader living inside it — the drawing visibly "happening".
+    // loader inside it — the drawing visibly "happening" — and the caption
+    // UNDER the frame, never inside it (Sophie, Aug 2026).
     const book = $('dream-book'); book.style.display = '';
-    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading.gif" alt=""><div class="dframe-cap" id="dream-illus-label">Reading your dream…</div></div>`;
+    book.innerHTML = `<div class="dframe"><img class="hl-block" src="/hoonie-loading-clear.gif" alt=""></div>`
+      + `<div class="dframe-cap" id="dream-illus-label">Illustrating your dream…</div>`;
     const btn = $('dream-illustrate'); if (btn) btn.disabled = true;
   }
   function watchDreamIllus(id) {
@@ -5169,28 +5784,19 @@
   // else in the dream) so the main character actually resembles them. Saved on
   // the device and pre-filled next time; skipping draws a generic young woman.
   const DREAM_PEOPLE_KEY = 'witch_dream_people';
-  function renderDescribeStep() {
-    const book = $('dream-book'); book.style.display = '';
+  // There is deliberately NO second step between Illustrate and illustrating
+  // (Sophie, Aug 2026) — the describe-yourself screen that used to sit here is
+  // gone. Anything she typed into it before is still honoured, so a saved
+  // description keeps working; otherwise the same default the old Skip button
+  // used stands in.
+  function dreamPeople() {
     let saved = ''; try { saved = localStorage.getItem(DREAM_PEOPLE_KEY) || ''; } catch {}
-    book.innerHTML = `<div class="dpeople">
-        <div class="dpeople-label">Describe yourself — and anyone else in the dream <span class="dpeople-opt">(optional)</span></div>
-        <textarea id="dream-people" rows="2" placeholder="young woman, bangs, pierced nose">${esc(saved)}</textarea>
-        <div class="dream-btns">
-          <button class="btn-ghost" id="dream-people-skip">Just make my dream</button>
-          <button class="btn" id="dream-people-go">Draw my dream <span class="js-star"></span></button>
-        </div>
-      </div>`;
-    renderStars();
-    $('dream-people-go').addEventListener('click', () => {
-      const people = ($('dream-people').value || '').trim();
-      if (people) try { localStorage.setItem(DREAM_PEOPLE_KEY, people); } catch {}
-      startDreamIllustrate(people || 'a young woman');
-    });
-    $('dream-people-skip').addEventListener('click', () => startDreamIllustrate('a young woman'));
+    return saved.trim() || 'a young woman';
   }
   async function startDreamIllustrate(people) {
     const dream = dreamText();
     lastDreamText = dream;
+    dreamStoreSave(dream);   // kept even if the symbolism is never unlocked
     dreamIllusSpinner();
     try {
       const { id } = await withRetry(() => api('/api/witch/dream-illustrate', { dream, people }));
@@ -5205,11 +5811,12 @@
     const dream = dreamText();
     if (dream.length < 8) { $('dream-input').focus(); toast('Tell me the dream first, then I\'ll illustrate it ✦'); return; }
     openDreamPage();
-    renderDescribeStep();
+    startDreamIllustrate(dreamPeople());
   });
   function resumeDreamIllus() {
     const p = pendGet(DREAMILLUS_PEND); if (!p || !p.id) return;
     const inp = $('dream-input'); if (inp && !inp.value && p.dream) inp.value = p.dream;
+    lastDreamText = p.dream || lastDreamText;   // so the finished page files onto the right past reading
     dreamIllusSpinner();
     watchDreamIllus(p.id);
   }
@@ -5287,7 +5894,6 @@
     </svg>`;
   }
   /* ══════════ Witch School — tap-based lesson deck ══════════ */
-  const SW_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
   // The next sabbat from today — computed at load so the Wheel lesson's last
   // card never goes stale. Fixed calendar approximations are fine here.
   function nextSabbat() {
@@ -5597,7 +6203,7 @@
     wrap.innerHTML = '<div class="cat">' + SCHOOL_COURSES.map(c => {
       const p = courseProgress(c);
       return `<div class="wcourse" data-course="${c.id}" role="button">
-        <img class="cv" src="${SW_IMG}${c.cover}.png" alt="" loading="lazy">
+        <img class="cv" src="${SW_IMG}${c.cover}${SW_EXT}" alt="" loading="lazy">
         <div class="meta">
           <div class="t">${esc(c.title)} ${courseMoon(p.done, p.total, 15)}</div>
           <div class="s">${esc(c.sub)}</div>
@@ -5704,12 +6310,21 @@
     if (e.target.closest('#school-back')) { schoolCourse = null; renderSchoolPath(); }
   }); }
   let deckCards = SPELL_CARDS, deckIdx = 0;
-  // Preload each lesson's FIRST image up front (instant cover when a lesson
-  // opens); the rest of a lesson preloads the moment it's opened, so we never
-  // pull all ~20 card images on page load.
+  // Preload each lesson's FIRST image (instant cover when a lesson opens); the
+  // rest of a lesson preloads the moment it's opened, so we never pull all ~20
+  // card images at once.
+  // This used to run AT BOOT, on the Home screen — 16 lessons of PNG pulled
+  // before you had even tapped School, and the Lessons tab's own covers then
+  // queued behind it. It now waits for the School tab to be opened, and runs
+  // once. (Cheap either way as webp, but it must never race the screen you are
+  // actually looking at.)
   const preloaded = new Set();
-  const preload = (cards) => cards.forEach(c => { if (preloaded.has(c.img)) return; preloaded.add(c.img); const im = new Image(); im.src = SW_IMG + c.img + '.png'; });
-  Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
+  const preload = (cards) => cards.forEach(c => { if (preloaded.has(c.img)) return; preloaded.add(c.img); const im = new Image(); im.src = SW_IMG + c.img + SW_EXT; });
+  let schoolWarmed = false;
+  function warmSchoolCovers() {
+    if (schoolWarmed) return; schoolWarmed = true;
+    Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
+  }
   const TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   /* ── Lesson quizzes (from Sophie's quiz-ideas notes). House rules: no
      timers, no lives, no streak-shaming, nothing red — a wrong pick just
@@ -5743,7 +6358,7 @@
       <div class="brew">
         <div class="brew-lead"><b>${esc(b.goal)}.</b> ${esc(b.lead)}</div>
         <div class="brew-pot" id="brew-pot">${BREW_POT_SVG}</div>
-        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button"><img src="${SW_IMG}ing2-${esc(s.k)}.png" alt="" loading="lazy"><span>${esc(s.t)}</span></button>`).join('')}</div>
+        <div class="brew-shelf">${b.shelf.map((s, i) => `<button class="brew-ing" data-bi="${i}" type="button"><img src="${SW_IMG}ing2-${esc(s.k)}${SW_EXT}" alt="" loading="lazy"><span>${esc(s.t)}</span></button>`).join('')}</div>
         <div class="brew-line" id="brew-line">Tap an ingredient to add it to the pot.</div>
       </div>
     </div>`;
@@ -5830,7 +6445,7 @@
         <div class="tcard-kicker">${esc(c.kicker)}</div>
         <div class="tcard-h">${esc(c.h)}</div>
       </div>
-      ${c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}.png" alt="">`}
+      ${c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`}
       <div class="deck-text">
         <div class="tcard-body">${c.body}</div>
         ${c.cta ? `<button class="btn deck-cta" id="deck-cta" style="margin:16px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button>` : ''}
@@ -5924,7 +6539,7 @@
       async function send() {
         const q = ta.value.trim(); if (!q) { ta.focus(); return; }
         add('me', esc(q)); ta.value = ''; ta.style.height = 'auto';
-        const wait = add('witch', '<img class="hl-inline" src="/hoonie-loading.gif" alt="">');
+        const wait = add('witch', '<img class="hl-inline" src="/hoonie-loading-clear.gif" alt="">');
         try {
           const r = await fetch('/api/witch/lesson-question', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, question: q, cards: lessonCards() }) });
           const j = await r.json();
@@ -5961,7 +6576,7 @@
         const t = $('nletter-text').value.trim(); if (!t) { $('nletter-text').focus(); return; }
         const email = $('nletter-email') ? $('nletter-email').value.trim() : '';
         const btn = $('nletter-send'); btn.disabled = true;
-        out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading.gif" alt="loading…"></div>';
+        out.innerHTML = '<div class="note-wait"><img class="hl-inline" src="/hoonie-loading-clear.gif" alt="loading…"></div>';
         try {
           const r = await fetch('/api/witch/lesson-note', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lesson: deckKey, lessonTitle: LESSON_TITLES[deckKey] || deckKey, text: t, email }) });
           const j = await r.json();
@@ -6240,9 +6855,12 @@
     { label: 'Witch School', view: 'school' },
     { label: 'Book of Shadows', view: 'book' },
     { label: 'Shop', view: 'shop' },
+    { label: 'The blog', href: () => BLOG_URL },
   ];
   function jumpTo(item) {
     closeJump();
+    // The blog is a server-rendered page, not a tab — leave the app for it.
+    if (item.href) { location.href = item.href(); return; }
     const active = views.find(v => $('view-' + v).classList.contains('active'));
     if (item.view && item.view !== active) go(item.view);
     if (!item.el) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
@@ -6290,6 +6908,51 @@
   registerFullPage('bos-reader', closeBook);        // Book of Shadows reader
   registerFullPage('school-lesson', closeLesson);   // School lesson deck
   registerFullPage('quiz-app', closeQuiz);          // the witch quiz
+  /* ── From the blog ─────────────────────────────────────────────────────
+     Home's last section: the newest post as a wide feature, the three before
+     it in a row. /api/witch/blog is a cached, body-less read, so asking on
+     every Home load costs nothing. Anything that goes wrong — cold server,
+     no posts yet — leaves the block hidden instead of showing an empty
+     shelf under a heading. */
+  async function loadBlog() {
+    const wrap = $('blog-home');
+    if (!wrap || wrap.dataset.loaded === '1') return;
+    let posts = [];
+    try {
+      const r = await fetch('/api/witch/blog?limit=4');
+      if (!r.ok) return;
+      posts = (await r.json()).posts || [];
+    } catch (e) { return; }
+    if (!posts.length) return;
+    wrap.dataset.loaded = '1';
+    const fmt = (iso) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return isNaN(d) ? '' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+    // No picture → no <img>, and the card is just its words.
+    // The heroes are SQUARE: they sit uncropped in the three small square
+    // slots, but the feature card is 16:9, so that one needs the post's focal
+    // point or the witch loses her head (these illustrations put her face high
+    // in the frame). Server-validated to two percentages; see blog-public.js.
+    const pic = (p) => (p.image
+      ? `<img class="bimg" src="${esc(p.image)}" alt="" loading="lazy" style="object-position:${esc(p.focal || '50% 50%')}">`
+      : '');
+    const feat = posts[0];
+    const fa = $('blog-feat');
+    fa.href = blogPostUrl(feat.slug);
+    fa.innerHTML = `${pic(feat)}<div class="bdate">${esc(fmt(feat.date))}</div>`
+      + `<div class="btitle">${esc(feat.title)}</div><div class="bex">${esc(feat.excerpt)}</div>`;
+    $('blog-row').innerHTML = posts.slice(1, 4).map((p) => `<a class="bmini" href="${esc(blogPostUrl(p.slug))}">`
+      + `${pic(p)}<div class="btitle">${esc(p.title)}</div><div class="bex">${esc(p.excerpt)}</div></a>`).join('');
+    $('blog-all').href = BLOG_URL;
+    wrap.style.display = '';
+  }
+  // Home is the landing tab, so this section is on screen from the start —
+  // but it's the LAST thing down the page, so it loads after the app has
+  // settled rather than competing with the first paint.
+  setTimeout(() => { try { loadBlog(); } catch (e) {} }, 1200);
+
   // Warm the shelf while the app is idle on Home, so tapping Shop paints from
   // memory instead of waiting on the first fetch.
   setTimeout(() => { const g = $('shop-grid'); if (g && g.dataset.loaded !== '1') { try { loadShop(); } catch (e) {} } }, 1500);
@@ -6319,6 +6982,7 @@
   // Resume any background jobs that were mid-flight when the app was left.
   function resumePendingJobs() {
     try { resumeCoinJobs(); } catch (e) {}
+    try { resumeSyncJobs(); } catch (e) {}
     try { resumeDreamRead(); } catch (e) {}
     try { resumeDreamIllus(); } catch (e) {}
     try { resumeAskReading(); } catch (e) {}
@@ -6333,10 +6997,22 @@
     if (document.visibilityState === 'visible') resumePendingJobs();
   });
   window.addEventListener('pageshow', (e) => { if (e.persisted) resumePendingJobs(); });
-  // Load the real Rider-Waite art + the written card meanings first, then
-  // render the home state (which calls the daily reading once signed in +
-  // birthday is set).
-  Promise.all([loadDeckImages(), loadTarotReadings()]).finally(() => renderHome());
+  // ── Home paints IMMEDIATELY — nothing here waits on the network ──
+  // This used to be `Promise.all([loadDeckImages(), loadTarotReadings()])
+  // .finally(renderHome)`, which held the ENTIRE tarot section (and the daily
+  // reading state) behind two fetches — one of them the ~190KB written-meanings
+  // corpus. Everything else on Home renders synchronously, so the tarot was
+  // visibly the last thing to appear on every open. Neither fetch is needed for
+  // the first paint: the three card BACKS are pure markup, the deck art is only
+  // needed once a card is flipped, and the corpus only once all three are.
+  renderHome();
+  loadDeckImages().then(() => {
+    // If a card was already flipped before the art landed (or a saved Ask
+    // reading resumed), repaint it now that DECK_IMG has the real faces.
+    if (tarotRevealed.size) renderDailyTarot();
+    if (askState.status === 'working' || askState.status === 'done') renderAsk();
+  });
+  loadTarotReadings();
   </script>
 </body>
 </html>

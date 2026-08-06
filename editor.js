@@ -40,12 +40,23 @@ const admin = require('firebase-admin');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
-// Narration voice: Sophie's chosen narrator, spoken quietly and nudged ~12%
-// faster so the fills sit under the interview clips instead of on top of them.
+// Narration voice: Sophie's professional voice clone, PLAIN by request
+// (Aug 2026, Sophie): no "[quietly]" whisper direction, no tempo nudge, no
+// style tuning — stock ElevenLabs defaults, the same settings her approved
+// clone comparison samples used. NO loudnorm either — she A/B'd raw vs
+// levelled narration, rejected the dynamic squeezing, and asked to "just
+// change the volume" instead: the take's loudness is measured once and ONE
+// constant gain is applied (capped below clipping) so it sits at the clips'
+// level with its dynamics untouched. Interview clips keep their own loudnorm.
 const NARRATION_VOICE = process.env.EDITOR_NARRATION_VOICE || 'UTkHGl2ImiT6gwtAFCql';
-const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_v3';
-const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1.12);
-const NARRATION_PREFIX = '[quietly] ';
+const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_multilingual_v2';
+const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1);
+const NARRATION_PREFIX = '';
+// Retraining a professional voice clone keeps its voice_id, so the narration
+// cache key (voice + model + settings + text) can't tell the new model from
+// the old one and would serve pre-retrain takes forever. Bump this — or set
+// EDITOR_NARRATION_REV — after any retrain to re-voice everything.
+const NARRATION_REV = process.env.EDITOR_NARRATION_REV || '2026-08-04-gain';
 
 const COLLECTION = process.env.EDITOR_COLLECTION || 'forge-editor';
 const NDE_COLLECTION = process.env.NDE_COLLECTION || 'forge-nde-videos';
@@ -313,6 +324,34 @@ async function deleteEpisode(id) {
   const db = firestore();
   if (db) await db.collection(COLLECTION).doc(id).delete();
   else memStore.delete(id);
+}
+
+// Drop a snippet cut elsewhere (the Cutting Room) into an episode: register the
+// recording as a source, add the snippet card, and append it to the sequence.
+// The editor's own render path then cuts it natively — same whisper fallback,
+// same clip cache — so a hand-off is words + an anchor, never a pre-cut file.
+async function addExternalSnippet({ episodeId, episodeTitle, name, videoId, audioUrl, text, timeSec, experiencer }) {
+  let ep = episodeId ? await loadEpisode(episodeId) : null;
+  if (!ep) {
+    ep = normalizeEpisode({
+      id: `cr-${crypto.randomBytes(6).toString('hex')}`,
+      title: episodeTitle || 'From the Cutting Room',
+      sources: [], snippets: [], sequence: [], renders: [],
+      createdAt: new Date().toISOString(),
+    });
+  }
+  if (!ep.sources.find(s => s.videoId === videoId)) {
+    ep.sources.push({ videoId, experiencer: experiencer || 'Sophie', timeSec: Math.round(timeSec) || 0, audioUrl });
+  }
+  const snip = {
+    id: `sn-${crypto.randomBytes(5).toString('hex')}`,
+    name: name || String(text || '').split(/\s+/).slice(0, 6).join(' '),
+    videoId, text: String(text || ''), timeSec: Math.round(timeSec) || 0,
+  };
+  ep.snippets.push(snip);
+  ep.sequence.push({ type: 'clip', snippetId: snip.id });
+  await saveEpisode(ep);
+  return { id: ep.id, title: ep.title, snippetId: snip.id };
 }
 
 async function uploadPublic(localFile, storagePath, contentType, cacheControl) {
@@ -667,12 +706,13 @@ async function buildClip(snippet, source, ctx) {
   return out;
 }
 
-// A narration card: ElevenLabs, spoken quietly, then nudged faster + levelled.
+// A narration card: ElevenLabs at stock settings, then a single measured
+// volume change to sit at the clips' level — never compression/limiting.
 // Cached like clips — the same words in the same voice are voiced (and paid
 // for) exactly once, however many renders reuse them.
 function narrCachePath(text) {
   const cacheKey = crypto.createHash('sha1')
-    .update([NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
+    .update([NARRATION_REV, NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
     .digest('hex');
   return `${NARR_CACHE_FOLDER}/${cacheKey}.mp3`;
 }
@@ -688,13 +728,14 @@ async function buildNarration(text, ctx) {
 
   const key = process.env.ELEVENLABS_API_KEY || '';
   if (!key) throw new Error('ELEVENLABS_API_KEY is not set on the server — narration cards cannot be rendered');
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_128`, {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_192`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
     body: JSON.stringify({
       text: NARRATION_PREFIX + String(text || '').trim(),
       model_id: NARRATION_MODEL,
-      voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true },
+      // Stock defaults — Sophie's "no settings" rule for her clone's narration.
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
     }),
     timeout: 180000,
   });
@@ -705,9 +746,33 @@ async function buildNarration(text, ctx) {
   const raw = path.join(ctx.dir, `nar-raw-${tag}.mp3`);
   fs.writeFileSync(raw, buf);
   const out = path.join(ctx.dir, `nar-${tag}.mp3`);
-  await run(FFMPEG, ['-y', '-i', raw, '-af',
-    `atempo=${NARRATION_TEMPO},loudnorm=I=-16:TP=-1.5:LRA=11`,
-    '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
+  // Measure the take once, then apply a single constant gain toward the clips'
+  // -16 LUFS — Sophie's "just change the volume": the whole take moves up or
+  // down together, dynamics untouched. The gain is capped so the loudest peak
+  // stays under -1 dBTP (a boost can never clip), and a failed measurement
+  // falls back to no gain rather than failing the render.
+  let gainDb = 0;
+  try {
+    const { stderr } = await run(FFMPEG, ['-i', raw, '-af',
+      'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], 120000);
+    const m = stderr.match(/\{[\s\S]*\}/);
+    const stats = m ? JSON.parse(m[0]) : null;
+    const inI = parseFloat(stats && stats.input_i);
+    const inTp = parseFloat(stats && stats.input_tp);
+    if (Number.isFinite(inI)) {
+      gainDb = -16 - inI;
+      if (Number.isFinite(inTp)) gainDb = Math.min(gainDb, -1 - inTp);
+      gainDb = Math.round(gainDb * 10) / 10;
+    }
+  } catch (e) { /* no measurement → ship the take as-is */ }
+  const filters = [];
+  if (NARRATION_TEMPO !== 1) filters.push(`atempo=${NARRATION_TEMPO}`);
+  if (gainDb) filters.push(`volume=${gainDb}dB`);
+  const args = ['-y', '-i', raw];
+  if (filters.length) args.push('-af', filters.join(','));
+  args.push('-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out);
+  await run(FFMPEG, args, 180000);
+  ctx.log.push(`narration volume ${gainDb >= 0 ? '+' : ''}${gainDb}dB (plain gain, no loudnorm)`);
   await toCache(out, cachePath);
   return out;
 }
@@ -1206,4 +1271,8 @@ module.exports = {
   // exported so scripts/warm-clip-cache.js can pre-cut clips into the clip
   // cache from anywhere (the identical code path a server render runs)
   buildClip, sourceFor, clipCachePath, defaultAudioUrl,
+  // exported for the Cutting Room (cuttingroom.js) — the same cutting
+  // primitives, so its cuts sound identical to an episode's
+  detectSilences, whisperWords, extractWindow, audioDuration, uploadPublic,
+  listEpisodes, addExternalSnippet,
 };

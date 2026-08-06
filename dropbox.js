@@ -500,9 +500,15 @@ router.get('/bundles', async (req, res) => {
           qty: it.qty, origin: it.origin, kind: it.kind, count: it.count,
           listingId: it.listingId, listingUrl: it.listingUrl,
           cover: it.posterUrl || it.url,
+          // When the newest file in this album landed — what the sort page
+          // orders by (newest first), since seq is arrival order across ALL
+          // albums and says nothing about a re-dumped album's freshness.
+          newest: 0,
           files: [],
         });
       }
+      const at = Number(it.createdAt) || 0;
+      if (at > out[index.get(key)].newest) out[index.get(key)].newest = at;
       out[index.get(key)].files.push({
         id: it.id, url: it.url, media: it.media || 'image',
         posterUrl: it.posterUrl || null, photoIndex: it.photoIndex || 0,
@@ -686,6 +692,54 @@ async function dropDoc(d, bucket) {
     try { await bucket.file(p).delete(); } catch { /* already gone */ }
   }
 }
+
+// Move files into an album — the sort page's "select a bunch and put them all
+// in a folder". Body: { ids:[docId…], bundleName } — the target is named, not
+// slugged, so "New album" and "existing album" are the same call: placeIn()
+// continues an album that exists and registers one that doesn't, and its
+// transaction hands each file the next photoIndex so order stays sane under
+// concurrency (the photoIndex lesson in the header). Files are placed
+// SEQUENTIALLY, in the order she picked them.
+router.post('/move', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const ids = Array.isArray(b.ids) ? b.ids.map(String).filter(Boolean) : [];
+    const bundleName = String(b.bundleName || '').trim();
+    if (!ids.length) return res.status(400).json({ error: 'ids required' });
+    if (!bundleName) return res.status(400).json({ error: 'bundleName required' });
+
+    // The target album's existing labels win — a file moved into "Pink quartz"
+    // is a Pink quartz photo now. Read them off any file already there.
+    const key = slug(bundleName);
+    const existing = await db().collection(COL).where('bundle', '==', key).limit(1).get();
+    const target = existing.docs[0];
+    const inherit = target
+      ? { track: target.get('track') || null, name: target.get('name') || null }
+      : {};
+
+    let moved = 0;
+    let placedIn = null;
+    for (const id of ids) {
+      const ref = db().collection(COL).doc(id);
+      const doc = await ref.get();
+      if (!doc.exists) continue;
+      const p = await placeIn(bundleName, doc.get('session'));
+      placedIn = p;
+      await ref.set({
+        bundle: p.bundle, bundleName: p.bundleName, seq: p.seq,
+        photoIndex: p.photoIndex,
+        // The album groups by session+bundle, so a moved file takes the
+        // album's session — otherwise it would render as a second copy of
+        // the album under its old session.
+        session: p.session,
+        ...inherit,
+        updatedAt: Date.now(),
+      }, { merge: true });
+      moved += 1;
+    }
+    res.json({ ok: true, moved, bundle: placedIn && placedIn.bundle, bundleName: placedIn && placedIn.bundleName });
+  } catch (e) { fail(res, e); }
+});
 
 router.delete('/bundle', async (req, res) => {
   try {

@@ -99,6 +99,60 @@ async function job(id) {
   };
 }
 
+// ─── Seedance video (image-to-video) ────────────────────────────────
+// APIFRAME also fronts ByteDance's Seedance video models, and its cheapest
+// tier undercuts Replicate for the same job (seedance-1.5-pro: 1 credit =
+// $0.01 per 480p second, vs Replicate's seedance-1-lite at about the same
+// per-second price for an older model — checked Aug 2026).
+// GOTCHAS (both verified live Aug 2026): the docs' v1 route
+// (api.apiframe.pro/seedance-imagine) rejects `afk_` keys — v2 accounts must
+// use v2's POST /videos/generate. And v2 wants the video options NESTED under
+// `seedanceParams` (like `midjourneyParams` for MJ) — sent flat they fail
+// with "Unrecognized keys". v2 model ids use dashes ("seedance-1-5-pro").
+// Cheapest tier: seedance-1-lite at 480p. Poll GET /v2/jobs/:id like MJ.
+async function seedanceVideo(prompt, opts = {}) {
+  if (!APIFRAME_KEY) throw new Error('APIFRAME_KEY not configured');
+  const params = { resolution: opts.resolution || '480p' };
+  if (opts.imageUrl) params.start_image = opts.imageUrl;
+  if (opts.endImageUrl) params.end_image = opts.endImageUrl;
+  if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
+  if (opts.seed != null) params.seed = Number(opts.seed);
+  const body = {
+    prompt,
+    model: String(opts.model || 'seedance-1-lite').replace(/\./g, '-'),
+    seedanceParams: params,
+  };
+  const r = await api('/videos/generate', { method: 'POST', body });
+  const id = r.jobId || r.id || r.task_id;
+  if (!id) throw new Error('APIFRAME gave no job id: ' + JSON.stringify(r).slice(0, 200));
+  return id;
+}
+
+// Pull the video URL out of a completed job — result shapes vary a little
+// between models, so check the likely fields rather than one.
+function videoUrlOf(result) {
+  if (!result) return null;
+  return result.video_url || result.videoUrl || result.url
+    || (Array.isArray(result.videos) && result.videos[0])
+    || (Array.isArray(result.output) && result.output[0])
+    || (typeof result.video === 'string' ? result.video : null);
+}
+
+// Mirror a finished clip to Firebase (APIFRAME/CDN URLs can expire).
+async function saveVideoToFirebase(url, folder = 'apiframe-video') {
+  const bucket = bucketOrNull();
+  if (!bucket || !url) return url;
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, agent: proxyAgent || undefined });
+    const buf = await r.buffer();
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`;
+    const file = bucket.file(filename);
+    await file.save(buf, { metadata: { contentType: 'video/mp4' } });
+    await file.makePublic();
+    return `https://storage.googleapis.com/${bucket.name}/${filename}`;
+  } catch { return url; }
+}
+
 // Mirror MJ CDN images to Firebase (their CDN URLs can expire). Falls back to the
 // original URLs when Firebase isn't configured.
 async function saveImagesToFirebase(images, folder = 'deck-cards') {
@@ -129,7 +183,36 @@ router.use((req, res, next) => {
 });
 
 router.get('/status', (req, res) => {
-  res.json({ ok: true, configured: Boolean(APIFRAME_KEY), model: 'midjourney', base: BASE });
+  res.json({ ok: true, configured: Boolean(APIFRAME_KEY), model: 'midjourney', video: true, base: BASE });
+});
+
+// POST /video — start a Seedance video generation (image-to-video or text-to-
+// video). Body: { prompt, imageUrl?, endImageUrl?, model?, resolution?,
+// cameraFixed?, seed? }. Defaults are the cheapest tier: seedance-1-lite, 480p.
+router.post('/video', async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.prompt) return res.status(400).json({ error: 'prompt is required' });
+    const jobId = await seedanceVideo(b.prompt, b);
+    res.status(202).json({ ok: true, jobId, poll: `/api/apiframe/video-job/${jobId}` });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
+});
+
+// GET /video-job/:id — poll a video generation. When COMPLETED, mirror the
+// clip to Firebase (pass ?save=0 for the raw CDN URL).
+router.get('/video-job/:id', async (req, res) => {
+  try {
+    const j = await api(`/jobs/${req.params.id}`);
+    let video = videoUrlOf(j.result);
+    if (j.status === 'COMPLETED' && video && req.query.save !== '0') {
+      video = await saveVideoToFirebase(video);
+    }
+    res.json({ id: req.params.id, status: j.status, video, raw: j });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
 });
 
 // POST /generate — start a deck-card generation.
@@ -164,5 +247,6 @@ module.exports = {
   router,
   configured: () => Boolean(APIFRAME_KEY),
   imagine, job, deckCardPrompt, saveImagesToFirebase,
+  seedanceVideo, saveVideoToFirebase,
   STYLE_SUFFIX,
 };

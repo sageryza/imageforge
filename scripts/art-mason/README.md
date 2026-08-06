@@ -54,3 +54,33 @@ exact-prompt patterns from the witch-school `na-*` noise-art set:
 
 `render-panels-v2.js` + `panels-v2.json`; images at
 `story-shorts/art-mason/v2/`. v1 tiles stay in Assets labeled superseded.
+
+## Watercolor style test (2026-08-03)
+
+New style direction Sophie is testing: the loose ink-and-watercolor
+sketchbook look. Ref = `datescan0013.png` (membry
+`claude-deliveries/refs/`, one of her date-journal scan pages; the same
+family as the "style-references-for-ai" Dump album's portrait cluster).
+Formula from her `chatgpt-image-style-reference` test chat — the plain
+wrapper WON over every styled prompt, so add NO style description:
+
+    Use the attached image only as the style reference — do not copy its
+    content. Draw: <content>
+
+Quality via `WC_QUALITY` env (`high` default, `medium` → `-med` ids; both rendered 2026-08-03, high-vs-medium Compare page filed). 1024x1536, no whiten (the
+paper look must survive). Mason is a poet-philosopher with round glasses
+— NOT a Viking. `render-wc-test.js` + `panels-wc.json`; images at
+`story-shorts/art-mason/wc-test/`.
+
+### Compare pages need DISPLAY COPIES, not the originals
+
+The watercolor renders are full-res PNGs (~2–3MB each). Eight of them on one
+Compare page was **20MB** — unusable on a phone. Same lesson as
+`scripts/selfcare-thumbs.js`: serve a resized webp and keep the original as
+the untouched full-res file (Assets tiles still point at the originals).
+
+    sharp(file).resize({ width: 720 }).webp({ quality: 82 })
+    → story-shorts/art-mason/wc-test/thumbs/<id>-<tier>.webp   (~90–200KB)
+
+720px wide is plenty for a two-per-row layout on an iPhone 13. That took the
+high-vs-medium page from 20MB to 1.1MB.

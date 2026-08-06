@@ -276,6 +276,8 @@ loadConfig().then(() => {
   const tarotEmail = require('./tarot-email');
   const nde = require('./nde');
   const editor = require('./editor');
+  const cuttingroom = require('./cuttingroom');
+  const cutmarks = require('./cutmarks');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -302,11 +304,22 @@ loadConfig().then(() => {
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
+  app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
+  // Freeform — your own reference images + your own words, sent verbatim. The
+  // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
+  app.use('/api/freeform', require('./freeform').router);
+  // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
+  // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
+  app.use('/api/voicelab', require('./voicelab').router);
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
   // rate-limited per IP inside the module, since it spends on image gen.
   app.use('/api/selfcare', require('./selfcare').router);
+  // Dream Draw — dream text → drawn comic pages (the dream app's "draw it"
+  // backend). PUBLIC + rate-limited per IP like /api/selfcare; spends on
+  // image gen. Mounted here so movies.js has its keys hydrated.
+  app.use('/api/dreamdraw', require('./dreamdraw').router);
   // Voice-memo ingest. The Mac holds only the audio; the membry credential and
   // the OpenAI key live here, so the laptop command needs no secrets at all.
   const memos = require('./memos');
@@ -340,6 +353,8 @@ loadConfig().then(() => {
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
   app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
+  app.use('/api/cutroom', cuttingroom.router); // Cutting Room: mark her own recordings on the transcript — cut pauses, save/send sections
+  app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -582,6 +597,9 @@ function serveGated(file, opts = {}) {
   };
 }
 app.get('/studio', serveGated('studio.html'));
+// The Dump's sort & label page — browse what the inbox holds, name albums,
+// set their track, delete strays. The native Dump tile links here.
+app.get('/dump', serveGated('dump.html'));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
 app.get('/photo', serveGated('photo.html'));
@@ -614,10 +632,26 @@ app.get('/report', serveGated('report.html'));
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
 app.get('/character', serveGated('character.html'));
-// Prompt Lab: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
-// runs, background jobs on /api/promptlab). A real route so the iOS app can
-// wrap it in a WKWebView tile later, same pattern as /writing and /editor.
-app.get('/promptlab', serveGated('promptlab.html'));
+// Playground: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
+// runs, background jobs on /api/promptlab), iOS tile "Playground"
+// (PlaygroundView.swift wraps /playground, same pattern as /writing and
+// /editor). /promptlab is the original alias, kept for links already shared.
+app.get('/playground', serveGated('promptlab.html', { pill: true }));
+app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
+// Scratch Pad: stage ONE of a story — hearted Playground images arranged as
+// beats with unlabelled color frames (thinking on paper; Story Room is stage
+// two). Deliberately minimal; see scratchpad.js.
+app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
+// Freeform: upload your own references, type your own words, pick the quality.
+// Nothing is added to the prompt here — that's the whole point of the page.
+app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// The Sophie character card, for the pad's draw-here toggle (refs/ is not
+// web-served, so this one file is exposed deliberately — it's her own
+// hearted render, and the page behind the gate is the only thing asking).
+app.get('/scratchpad-sophie.png', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.type('png').send(fs.readFileSync(path.join(__dirname, 'refs', 'sophie-character.png')));
+});
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
 app.get('/story', (req, res) => res.redirect('/storyroom'));
@@ -1012,6 +1046,24 @@ app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, re
         await ref.set(d);
       } catch (e) { console.error('story voiceover update failed:', e.message); }
     };
+    // A pasted/uploaded RECORDING also files into the Voice Memo archive (one
+    // library, Aug 2026) — md5-deduped there, so a memo that already arrived
+    // another way lands once. TTS renders are not memos and stay out. Reuses
+    // the transcript when this call produced one, so Whisper runs once.
+    const fileMemoCopy = async (buffer, transcript, duration, mime) => {
+      try {
+        const sub = ((String(mime || (newAudio && newAudio.mime) || '').split('/')[1] || 'm4a').split(';')[0] || 'm4a');
+        const r = await require('./memos').fileIntoArchive({
+          buf: buffer,
+          ext: sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub,
+          title: data.title || `Story voiceover ${projectId}`,
+          dur: duration, transcript, source: 'story-voiceover',
+        });
+        if (r.memo && r.memo.id) {
+          await ref.set({ voiceover: { memoId: r.memo.id } }, { merge: true }).catch(() => {});
+        }
+      } catch (e) { console.warn('voiceover memo filing failed:', e.message); }
+    };
     if (wantTts) {
       (async () => {
         try {
@@ -1022,20 +1074,41 @@ app.post('/api/story/voiceover', express.json({ limit: '40mb' }), async (req, re
       })();
     } else if (wantTranscribe) {
       (async () => {
+        let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
         try {
-          let buffer = newAudio && newAudio.buffer, mime = newAudio && newAudio.mime;
           if (!buffer) {
             const r = await fetch(vo.url);
             if (!r.ok) throw new Error('audio fetch ' + r.status);
             buffer = await r.buffer();
             mime = r.headers.get('content-type') || '';
           }
+        } catch (e) { return finish({ error: 'transcription failed: ' + e.message }); }
+        let words = null, duration = null;
+        try {
           const { transcribeAudio } = require('./movies');
           const sub = ((String(mime).split('/')[1] || 'm4a').split(';')[0] || 'm4a');
           const ext = sub === 'mpeg' ? 'mp3' : (sub === 'mp4' || sub === 'x-m4a' || sub === 'aac') ? 'm4a' : sub;
           const t = await transcribeAudio(buffer, 'voiceover.' + ext);
+          words = t.text; duration = t.duration;
           await finish({ text: t.text, duration: t.duration });
         } catch (e) { await finish({ error: 'transcription failed: ' + e.message }); }
+        // Archive the recording either way — a Whisper blip must not lose it
+        // (fileIntoArchive will retry the words itself when passed none).
+        await fileMemoCopy(buffer, words, duration, mime);
+      })();
+    } else if (newAudio || url) {
+      // Recording arrived with its words already known (or transcription was
+      // explicitly declined) — still belongs in the archive.
+      (async () => {
+        try {
+          let buffer = newAudio && newAudio.buffer;
+          if (!buffer) {
+            const r = await fetch(vo.url);
+            if (!r.ok) throw new Error('audio fetch ' + r.status);
+            buffer = await r.buffer();
+          }
+          await fileMemoCopy(buffer, vo.text || null, null);
+        } catch (e) { console.warn('voiceover memo filing failed:', e.message); }
       })();
     }
   } catch (err) {
@@ -1259,27 +1332,72 @@ app.post('/api/journal/upload-file', express.raw({ type: () => true, limit: '120
     const name = String(req.query.filename || '').replace(/[/\\]/g, '_').trim()
       || ('scan-' + Date.now() + '.pdf');
     const bucket = storyApp.storage().bucket();
+    const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
+
+    // Two dedupe rules together (Aug 2026): same NAME overwrites (a re-export
+    // replaces its older self), same BYTES under a different name is skipped
+    // (the exact file can't land twice). Hashing is free — md5 of the body
+    // here, and GCS already keeps an md5 on every stored object, so records
+    // that predate the hash field heal from object metadata, no downloads.
+    const hash = require('crypto').createHash('md5').update(req.body).digest('hex');
+    const all = {};
+    try {
+      const [buf] = await mf.download();
+      JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
+    } catch (e) { /* first scan ever — start a fresh index */ }
+    let healed = false;
+    for (const r of Object.values(all)) {
+      if (r.hash) continue;
+      try {
+        const [meta] = await bucket.file(`${JOURNAL_FOLDER}/${r.name}`).getMetadata();
+        if (meta.md5Hash) { r.hash = Buffer.from(meta.md5Hash, 'base64').toString('hex'); healed = true; }
+      } catch (e) { /* object missing — leave the record unhashed */ }
+    }
+    const dup = Object.values(all).find((r) => r.hash === hash);
+    if (dup) {
+      // keep any healing we just learned, then answer without storing twice
+      if (healed) {
+        const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false }).catch(() => {});
+      }
+      return res.json({ ok: true, duplicate: true, name: dup.name, size: dup.size });
+    }
+
     await bucket.file(`${JOURNAL_FOLDER}/${name}`).save(req.body, {
       contentType: req.get('content-type') || 'application/pdf', resumable: false,
     });
-    // Manifest merge, matching the app's JournalScanRecord shape exactly:
-    // { month?, name, size, url, uploadedAt (seconds) } — newest wins by name.
-    const rec = {
+    // Manifest merge, matching the app's JournalScanRecord shape (the app's
+    // decoder ignores the extra hash field): newest wins by name.
+    all[name] = {
       month: journalMonthGuess(name), name, size: req.body.length,
-      url: '', uploadedAt: Date.now() / 1000,
+      url: '', uploadedAt: Date.now() / 1000, hash,
     };
     try {
-      const mf = bucket.file(`${JOURNAL_FOLDER}/manifest.json`);
-      const all = {};
-      try {
-        const [buf] = await mf.download();
-        JSON.parse(buf.toString('utf8')).forEach((r) => { if (r && r.name) all[r.name] = r; });
-      } catch (e) { /* first scan ever — start a fresh index */ }
-      all[name] = rec;
       const merged = Object.values(all).sort((a, b) => String(a.name).localeCompare(String(b.name)));
       await mf.save(Buffer.from(JSON.stringify(merged)), { contentType: 'application/json', resumable: false });
     } catch (e) { console.error('journal manifest merge failed:', e.message); }
     res.json({ ok: true, name, size: req.body.length });
+
+    // ── background: a COVER for the shelf — page 1 rendered at ~500px wide,
+    // true aspect, stored PRIVATE beside the scans (mupdf WASM, no native
+    // deps). Bodies over 40MB skip the render (memory on the free instance);
+    // a chat backfills those with `node scripts/journal-thumbs.js`.
+    if (req.body.length <= 40 * 1024 * 1024) {
+      const body = req.body;
+      (async () => {
+        try {
+          const mupdf = await import('mupdf');
+          const doc = mupdf.Document.openDocument(body, 'application/pdf');
+          const page = doc.loadPage(0);
+          const b = page.getBounds();
+          const zoom = 500 / Math.max(1, b[2] - b[0]);
+          const pix = page.toPixmap(mupdf.Matrix.scale(zoom, zoom), mupdf.ColorSpace.DeviceRGB, false, true);
+          await bucket.file(`${JOURNAL_FOLDER}/thumbs/${name}.png`).save(Buffer.from(pix.asPNG()), {
+            contentType: 'image/png', resumable: false,
+          });
+        } catch (e) { console.error('journal thumb failed:', e.message); }
+      })();
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1569,6 +1687,9 @@ async function findChatAsset(chat, { hash, url } = {}) {
   }
   return null;
 }
+// Audio assets (Aug 2026): the Assets tab holds sound too. An asset is audio
+// when the chat filing it says so (kind:'audio') or its url plainly is.
+const AUDIO_URL_RE = /\.(mp3|m4a|wav|ogg|aac|flac)([?#]|$)/i;
 app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1600,6 +1721,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         ? String(url) : null;
       if (!wipUrl) return res.status(400).json({ error: 'assetsOnly requires a hosted url' });
       if (!chatName || !admin.apps.length) return res.json({ ok: true, skipped: 'no chat/admin' });
+      const kind = (req.body.kind === 'audio' || AUDIO_URL_RE.test(wipUrl)) ? 'audio' : '';
       const acol = admin.firestore().collection('forge-chat-assets');
       const existing = await findChatAsset(chatName, { url: wipUrl });
       if (existing) {
@@ -1613,6 +1735,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           patch.prompt = curated.slice(0, 500);
         }
         if (description && description !== existing.data().description) patch.description = description;
+        if (kind && !existing.data().kind) patch.kind = kind;
         if (Object.keys(patch).length) {
           await existing.ref.update(patch);
           return res.json({ ok: true, updated: true, deduped: true, url: wipUrl, description: description || existing.data().description || '' });
@@ -1624,6 +1747,7 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         prompt: String(prompt || '').slice(0, 500),
         created: new Date(createdMs).toISOString(), wip: true,
       };
+      if (kind) wipDoc.kind = kind;
       if (description) wipDoc.description = description;
       await acol.add(wipDoc);
       return res.json({ ok: true, assetsOnly: true, url: wipUrl, description });
@@ -1749,15 +1873,19 @@ app.get('/api/gallery/assets', async (req, res) => {
       const base = decodeURIComponent(clean.split('/').pop() || '').toLowerCase();
       return base || clean;
     };
-    const add = (url, ms, prompt, description, style, content) => {
+    const add = (url, ms, prompt, description, style, content, kind) => {
       if (!url) return;
+      // Audio rides the same records as images; an untagged doc (filed before
+      // the kind field existed) is still recognised by its url.
+      if (!kind && AUDIO_URL_RE.test(String(url))) kind = 'audio';
       const k = keyOf(url);
       const existing = seen.get(k);
       if (!existing) {
         seen.set(k, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
-          promptStyle: style || '', promptContent: content || '', alts: [] });
+          promptStyle: style || '', promptContent: content || '', kind: kind || '', alts: [] });
         return;
       }
+      if (kind && !existing.kind) existing.kind = kind;
       // Same picture arriving by its other path: keep every field that has
       // something in it, whichever copy carried it.
       if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
@@ -1801,7 +1929,7 @@ app.get('/api/gallery/assets', async (req, res) => {
           .where('chat', '==', chat).get();
         asnap.docs.forEach((d) => {
           const a = d.data();
-          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent);
+          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent, a.kind);
         });
       } catch (e) { /* best effort */ }
     }
@@ -1812,6 +1940,7 @@ app.get('/api/gallery/assets', async (req, res) => {
         const o = { url: a.url, prompt: a.prompt, created: a.ms ? new Date(a.ms).toISOString() : '' };
         if (a.alts.length) o.alts = a.alts;   // the same picture's other path(s)
         if (a.description) o.description = a.description;   // what this image IS, when a chat said so
+        if (a.kind) o.kind = a.kind;   // 'audio' → the client renders a player tile, no thumb
         // The generating prompt, split (see POST /api/gallery/assets/prompt).
         if (a.promptStyle) o.promptStyle = a.promptStyle;
         if (a.promptContent) o.promptContent = a.promptContent;
@@ -1827,6 +1956,7 @@ app.get('/api/gallery/assets', async (req, res) => {
       const bucket = admin.storage().bucket();
       const warm = [];
       assets.forEach((a) => {
+        if (a.kind === 'audio') return;   // no thumbnail to make for a sound
         if (!THUMB_HOSTS.test(a.url)) return;
         a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
         warm.push(a.url);
@@ -2118,7 +2248,12 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
 // One image: { chat, url, style, content }. A whole backfill in one call:
 // { chat, items:[{url, style, content}, …] }. Idempotent — re-posting the same
 // url overwrites that image's split, and an empty string clears a side.
-const ASSET_PROMPT_MAX = 1500;
+// A truncated prompt is a WRONG prompt — the whole point of the split is that
+// it is the exact text the model was sent. The cap used to be 1500 and silently
+// sliced, which quietly filed a chopped-off style block against real images. So
+// the ceiling is generous enough for a full style prompt, and over-length is
+// REFUSED rather than trimmed (same rule the note thread already follows).
+const ASSET_PROMPT_MAX = 6000;
 app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -2129,7 +2264,7 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
     if (!chatName) return res.status(400).json({ error: 'chat required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const list = Array.isArray(items) && items.length ? items : [req.body || {}];
-    const clean = (v) => String(v == null ? '' : v).trim().slice(0, ASSET_PROMPT_MAX);
+    const clean = (v) => String(v == null ? '' : v).trim();
     const acol = admin.firestore().collection('forge-chat-assets');
     const del = admin.firestore.FieldValue.delete();
     const results = [];
@@ -2142,8 +2277,22 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
       // A side is only touched when it was sent, so posting just the content
       // later never wipes a style filed earlier.
       const patch = {};
-      if (raw.style !== undefined) patch.promptStyle = clean(raw.style) || del;
-      if (raw.content !== undefined) patch.promptContent = clean(raw.content) || del;
+      const over = [];
+      if (raw.style !== undefined) {
+        const s = clean(raw.style);
+        if (s.length > ASSET_PROMPT_MAX) over.push('style (' + s.length + ')');
+        else patch.promptStyle = s || del;
+      }
+      if (raw.content !== undefined) {
+        const c = clean(raw.content);
+        if (c.length > ASSET_PROMPT_MAX) over.push('content (' + c.length + ')');
+        else patch.promptContent = c || del;
+      }
+      if (over.length) {
+        results.push({ url, ok: false,
+          error: over.join(' and ') + ' over ' + ASSET_PROMPT_MAX + ' chars — refused, not truncated' });
+        continue;
+      }
       if (!Object.keys(patch).length) {
         results.push({ url, ok: false, error: 'style or content required' });
         continue;
@@ -2243,8 +2392,12 @@ app.get('/wall', serveGated('wall.html'));
 // Story Room: the movie asset boards in the Writing Room's frame — narration
 // with the art in place, live from /api/story (no deploy needed for content),
 // notes per beat via /api/writing/notes (keys "story-<project>:b<beat>").
-// Regenerate with scripts/gen-storyroom.py. Same gate as the Studio.
-app.get('/storyroom', serveGated('storyroom.html'));
+// THE Story Room is the pad now (Sophie, Aug 2026): /storyroom serves the
+// same page as /scratchpad, so the app's Story Room tile opens the pad with
+// no build. The OLD board page (storyroom.html + gen-storyroom.py + the
+// /api/story routes) is kept in the repo but no longer pointed at — restore
+// this line to serveGated('storyroom.html') to bring it back.
+app.get('/storyroom', serveGated('scratchpad.html', { pill: true }));
 
 // Writing Room: the dating-book working drafts — every date in two versions
 // (Sophie's original journal + the current draft with Claude's changes in
@@ -2268,6 +2421,29 @@ app.get('/blog', (req, res) => {
   return serveGated('blog.html')(req, res);
 });
 app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
+
+// The witch app's Home screen ends with a "From the blog" section, and this is
+// where it reads from. PUBLIC and deliberately tiny — no body HTML, just what a
+// card needs. blogPublic.sitePosts() is cached for 5 minutes, so Home asking on
+// every load costs no Firestore reads.
+app.get('/api/witch/blog', async (req, res) => {
+  try {
+    const limit = Math.min(12, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const posts = (await blogPublic.sitePosts()).slice(0, limit).map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.metaDescription,
+      image: p.image || null,
+      // Which part of the square hero survives the feature card's 16:9 crop.
+      focal: p.focal,
+      date: p.publishedAt ? p.publishedAt.toISOString() : null,
+    }));
+    res.json({ posts });
+  } catch (err) {
+    res.status(502).json({ error: String((err && err.message) || err) });
+  }
+});
+
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
 app.get('/import', serveGated('ingest.html'));
@@ -2281,6 +2457,9 @@ app.get('/crystals', serveGated('crystals.html'));
 // into Firebase, each one back as a permanent public url anything downstream can
 // use. Engine is /api/audio (audio.js).
 app.get('/audio', serveGated('audio.html'));
+// Voice Studio — pick a cloned voice, type text, get it spoken. Engine is
+// /api/voicelab (voicelab.js). Gets the shared autoscroll pill.
+app.get('/voice', serveGated('voice.html', { pill: true }));
 
 // Episode Editor: select spans of a real interview transcript as snippet cards,
 // arrange them with narration + gaps, tap Render, get the finished audio.
@@ -2289,6 +2468,17 @@ app.get('/audio', serveGated('audio.html'));
 // autoscroll pill — the native EpisodeEditorView deliberately ships no pill of
 // its own, so this is the only one.
 app.get('/editor', serveGated('editor.html', { pill: true }));
+
+// Cutting Room: one of Sophie's OWN recordings marked on its transcript —
+// tap words to cut pauses and slice sections off to save or send on (Episode
+// Editor / Story Room). Engine is /api/cutroom (cuttingroom.js). Same gate;
+// long transcripts get the shared autoscroll pill.
+app.get('/cuttingroom', serveGated('cuttingroom.html', { pill: true }));
+
+// Cut Marks: the manual sibling — mark your own cut points on a playhead
+// (video or audio, no transcript), drop pieces, render a fresh file. Engine
+// is /api/cutmarks (cutmarks.js). Same gate; same shared pill.
+app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
@@ -2608,7 +2798,7 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
     const db = admin.firestore();
     const ref = db.collection('forge-witch-dream-illus').doc();
     await ref.set({
-      status: 'running', label: 'reading your dream', dream, people: people || null,
+      status: 'running', label: 'illustrating your dream', dream, people: people || null,
       page1: null, totalPages: 0, title: null, error: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -3240,8 +3430,7 @@ Interpret their daily 3-card past/present/future pull (Rider-Waite). Do NOT ment
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "Past|Present|Future", "meaning": "1-2 sentences for this card in this position/orientation" } ],
-  "reading": "2 short paragraphs weaving the three cards into one throughline for today",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2 short paragraphs weaving the three cards into one throughline for today"
 }`;
     const tarotUser = `Date: ${date}.
 Their daily 3-card tarot pull (past / present / future):
@@ -3359,6 +3548,9 @@ Write the deeper page now.`;
 let TAROT_DECK = null;
 try { TAROT_DECK = require('./witch-tarot-manifest.json'); } catch (e) { /* manifest optional */ }
 app.get('/api/witch/tarot-deck', (req, res) => {
+  // Committed static data — cache it like the readings corpus so a repeat open
+  // doesn't re-fetch the map before it can show a flipped card's real art.
+  res.set('Cache-Control', 'public, max-age=3600');
   if (!TAROT_DECK) return res.json({ configured: false, cards: {} });
   res.json({ configured: true, count: Object.keys(TAROT_DECK).length, cards: TAROT_DECK });
 });
@@ -3460,8 +3652,7 @@ They did not ask anything specific, so read the spread as a general reading of w
 Return VALID JSON ONLY, no markdown fences, exactly this shape:
 {
   "cards": [ { "name": "...", "position": "...", "meaning": "1-2 sentences for this card in this position and orientation" } ],
-  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}",
-  "advice": "one gentle, actionable suggestion"
+  "reading": "2-3 short paragraphs (separate them with a blank line) weaving the cards into one message${question ? ', ending on a clear answer to their question' : ''}"
 }
 Give one "cards" entry per card drawn, in the order given, with the position copied exactly.`;
         const userMsg = `Spread: ${spreadName}.${question ? `\nTheir question: ${question}` : '\n(No specific question — a general reading.)'}
@@ -3530,6 +3721,10 @@ function shopWords(t) {
 const SHOP_NAME_OVERRIDES = { // handle -> nice one-line name
   'labradorite-choose-exact-crystal-67898': 'Labradorite Crystal',
   'fluorite-wand-point-crystal-mineral-86535': 'Fluorite Wand Point',
+  // Both card sets shorten to plain "Witchcraft Cards", which read as the same
+  // product twice in the Cards tab. Only the newer one is renamed, so the
+  // long-standing listing keeps the name it has always had.
+  'witchcraft-cards-233495': 'Witchcraft Cards — Set of 4',
 };
 function shopShortName(title, handle) {
   if (handle && SHOP_NAME_OVERRIDES[handle]) return SHOP_NAME_OVERRIDES[handle];
@@ -3560,6 +3755,31 @@ const SHOP_CATEGORIES = [
   { key: 'jewelry', name: 'Jewelry', re: /necklace|pendant|talisman|choker|bracelet|earring/i },
   { key: 'potions', name: 'Potions, oils & herbs', re: /\boils?\b|potion|\bsalt\b|\bherbs?\b|incense/i },
 ];
+// ─── The head of the shelf (Sophie's picks, Aug 2026) ───────────────
+// Everything else is ordered by Etsy's `featured_rank`, but Etsy has NO API for
+// it — updateListing cannot write featured_rank — so the handful she wants up
+// front is pinned here by handle instead. Anything not listed keeps its Etsy
+// order behind them, and this changes the APP's shelf only; Etsy's own shop
+// order still has to be dragged in Etsy.
+// The Cards tab is this same list filtered, so a card's place here IS its place
+// there: Magic Rituals sits above the apothecary/mineralogy set so that it
+// leads the Cards tab (Sophie: "at the top of the cards tab, the first one"),
+// which costs that set one place in All.
+const SHOP_PINNED = [
+  'huge-witchcraft-kit-witch-alter-sets-86658',      // Witchcraft Kit
+  'witchy-essential-43160',                          // Witchy Essential Oils
+  'witchcraft-apothecary-w-mortar-and-54053',        // the apothecary kit
+  'magic-rituals-card-deck-217746',                  // first card in the Cards tab
+  'witchcraft-cards-apothecary-crystal-19221',       // apothecary + mineralogy, set of 2
+  'boo-boo-doll-healing-witchcraft-magic-kiss-band-aid-457217',  // near the top, not at it
+];
+function shopApplyPins(products) {
+  const rank = new Map(SHOP_PINNED.map((h, i) => [h, i]));
+  const pinned = [], rest = [];
+  for (const p of products) (rank.has(p.handle) ? pinned : rest).push(p);
+  pinned.sort((a, b) => rank.get(a.handle) - rank.get(b.handle));
+  return pinned.concat(rest);
+}
 // Evaluation order — deliberately NOT the display order above. Changing how
 // the bar reads must never change which bucket a product lands in.
 const SHOP_CAT_ORDER = ['cards', 'jewelry', 'kits', 'potions', 'crystals', 'altar'];
@@ -3703,6 +3923,9 @@ async function buildShopPayload(debug) {
       products = products.map(p => ({ ...p, title: shopShortName(p.title, p.handle), fullTitle: p.title }));
       if (debug) dbg = { error: e.message };
     }
+
+    // Sophie's pinned picks lead the shelf, whatever Etsy's featured order said.
+    products = shopApplyPins(products);
 
     // Tag each product with its category, and report only the categories that
     // actually have stock so the filter bar never shows an empty tab.
@@ -3948,7 +4171,9 @@ async function loadHouseRef(storagePath) {
   return buf;
 }
 // Multi-reference gpt-image-2 edit (accepts several image[] style anchors).
-async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024' } = {}, retries = 2) {
+// `timeout` is per attempt — a medium 1024x1536 render can run well past the
+// 90s that suits the low-quality square calls, so callers can raise it.
+async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000 } = {}, retries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -3964,7 +4189,7 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
         body: form,
-        timeout: 90000,
+        timeout,
       });
       return await res.json();
     } catch (err) {
@@ -4143,6 +4368,230 @@ app.post('/api/generate/replicate', async (req, res) => {
 // POST returns the id in ~0.2s and the page polls GET /:id, resuming from
 // localStorage if it was closed mid-run.
 const PROMPTLAB = 'forge-promptlab';
+
+// ─── The Playground's 3rd style: gpt-image-2 + Sophie's style reference ──
+// Not a LoRA. Her own scanned ink-and-watercolour page is attached to
+// gpt-image-2's EDITS endpoint as a pure STYLE reference at quality MEDIUM,
+// 2:3 portrait — the recipe settled in docs/evan-film-style.md. The prefix
+// below is baked in server-side and her typed words follow it verbatim,
+// separated by a blank line; the page prints the whole thing in its "Sent as"
+// line, so nothing about the prompt is hidden from her.
+// The scan is the same file the Evan film uses (refs/evan-film-style.png =
+// "datescan0013" — the page she attached when asking for this option).
+const PL_GPT = {
+  id: 'gpt-image-2', label: 'ChatGPT',
+  quality: 'medium', qualities: ['low', 'medium', 'high'],
+  size: '1024x1536', aspectRatio: '2:3', outputs: 1, maxOutputs: 4,
+  refFile: 'evan-film-style.png',
+  // The Sophie character toggle (Aug 2026): when a run sends character:true,
+  // this image rides along as the SECOND attachment and characterLine is
+  // appended to the prefix, so "Sophie" in her prompt draws this girl. The
+  // file is her hearted Playground render ("girl placing her book face down",
+  // run AD3NW4comO2TZYRFjZoD) banked into refs/.
+  characterFile: 'sophie-character.png',
+  // Keep BOTH in sync with STYLES.chatgpt in public/promptlab.html (the page
+  // only uses its copies to PREVIEW the prompt; these are what gets sent).
+  prefix: 'Use only the style of the attached style reference and ignore its ' +
+    'content — do not copy anything depicted in it. You can choose your own ' +
+    'colors rather than copying the colors of the style reference.',
+  characterLine: ' Use the second attached image as a character reference. ' +
+    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+};
+// The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
+// — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
+// from PL_GPT — differing only in which ref images ride along and the prefix
+// wording (singular vs several references). 'evan' is the original ChatGPT
+// style and the default when the page sends no `style`, so older pages and
+// the Scratch Pad's copies keep working unchanged. The page's STYLES entries
+// preview these prefixes in the "Sent as" line — keep the copies identical.
+// `suffix` (Aug 2026, Sophie) rides at the VERY END of the sent prompt, after
+// her words — the no-text rule reads last so the model can't bury it.
+const PL_GPT_STYLES = {
+  evan: {
+    label: 'ChatGPT', refFiles: [PL_GPT.refFile],
+    prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
+    suffix: 'Do not include any text in the image.',
+  },
+  // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
+  // picture-book pages), cropped to the artwork and banked in refs/. TWO of
+  // the three attach — the mouse in bed and the taxi jam. The third,
+  // `richard-scarry-2.png` (mouse at the table), was taken OUT Aug 2026 at
+  // her ask; the file stays in refs/ because she may put it back, so adding
+  // it here again is the whole job (mind the "two"/"three" in the prefix).
+  // No colors line (that belonged to the watercolor reference) and NO Sophie
+  // character card (her card is the watercolor look — wrong reference here),
+  // both Sophie's call Aug 2026.
+  scarry: {
+    label: 'Scarry',
+    refFiles: ['richard-scarry-1.png', 'richard-scarry-3.png'],
+    prefix: 'Use only the style of the two attached style reference images and ' +
+      'ignore their content — do not copy anything depicted in them.',
+    suffix: 'Do not include any text in the image.',
+    noCharacter: true,
+  },
+  // "Pastel" (Aug 2026, Sophie) — the pastel-variant-2 house look, the same
+  // recipe MODELS.house['house-pastel'] renders (Witch School style refs +
+  // its written style line + the whiten pass), offered here as a Playground
+  // tile. Its refs live in STORAGE, not refs/, so they load through
+  // loadHouseRef; `storageRefs` is what marks that. NO Sophie character card:
+  // hers is the watercolor look, the wrong reference for this line.
+  pastel: {
+    label: 'Pastel',
+    storageRefs: ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'],
+    prefix: 'Use the attached images ONLY as a STYLE reference for the linework: ' +
+      'bold confident black ink outlines, flat colors with NO gradients and minimal ' +
+      'shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, ' +
+      'on a plain white background, playful modern editorial illustration.',
+    suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
+    whiten: true,
+    noCharacter: true,
+  },
+  // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
+  // app's loading animation cycles (Dump album "hoonies", #228). Four of them
+  // attach, picked for the thing she wants out of this style: two subjects
+  // grown into ONE object (a face in an open book, an eye inside a vase, a
+  // face as a jug, a face as a candle) — which is what a coincidence looks
+  // like, two halves melted together. Refs live in STORAGE, not refs/.
+  // The prefix carries NO engraving vocabulary ON PURPOSE: tested side by side,
+  // adding a written style description pulled the line finer and more modern,
+  // away from the hoonies' blunt woodcut feel (same finding as the Evan style).
+  // Everything it does say is composition, not style. NO Sophie character card:
+  // hers is the watercolor look, the wrong reference here.
+  hoonies: {
+    label: 'Hoonies',
+    storageRefs: [
+      'hoonies/refs/style-1.png', 'hoonies/refs/style-2.png',
+      'hoonies/refs/style-3.png', 'hoonies/refs/style-4.png',
+    ],
+    prefix: 'Use the attached images ONLY as a style reference — copy their ' +
+      'drawing style, not their content. Draw the subject below in that exact ' +
+      'style, alone on a plain white background, no border, no frame, no text.',
+    suffix: 'Do not include any text in the image.',
+    noCharacter: true,
+  },
+};
+const plRefCache = {};
+function playgroundRef(file) {
+  if (!plRefCache[file]) plRefCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
+  return plRefCache[file];
+}
+// A style's reference images, wherever they live: `refFiles` are banked in
+// refs/ (read once, cached), `storageRefs` are Firebase Storage paths shared
+// with the house styles (downloaded once, cached by loadHouseRef).
+async function playgroundRefs(st) {
+  const local = (st.refFiles || []).map(playgroundRef);
+  const remote = await Promise.all((st.storageRefs || []).map(loadHouseRef));
+  return local.concat(remote);
+}
+
+// Cancelled run ids (in-process — the job and the cancel route are the same
+// instance). Replicate runs only; see the /cancel route.
+const plCancelled = new Set();
+
+// Deploys restart the server mid-generation, and an in-flight run's doc is
+// then stuck status:'running' forever — a zombie "drawing…" pinned to the top
+// of the Playground (happened for real: "I was always bored as a child",
+// orphaned by the 2026-08-04 deploy). No legitimate run outlives its 5-minute
+// API timeout, so anything 'running' past 10 minutes is dead: sweep it into
+// 'failed' shortly after boot and every 10 minutes after.
+async function sweepStuckPromptlabRuns() {
+  try {
+    if (!admin.apps.length) return;
+    const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const d of q.docs) {
+      const at = d.data().createdAt?.toMillis?.() || 0;
+      if (at && at < cutoff) {
+        await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
+        console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
+      }
+    }
+  } catch (e) { console.warn('promptlab sweep:', e.message); }
+}
+setTimeout(sweepStuckPromptlabRuns, 90 * 1000);
+setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
+
+// Every finished Playground image also lands in the iOS "My Creations" gallery
+// (Sophie asked, Aug 2026) so she can browse them as thumbnails on the phone —
+// the same `users/{uid}/creations` collection in membry that POST /api/gallery
+// writes, with `source:'playground'` so they're identifiable. De-dupes by url.
+// Best-effort by design: a gallery hiccup must never fail a run whose images
+// are already saved and on the page.
+async function fileRunToCreations(images, { prompt, style, model, quality } = {}) {
+  try {
+    if (!images || !images.length) return;
+    await storyDb();
+    if (!storyApp) return;
+    const uid = await galleryUid();
+    const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
+    for (const url of images) {
+      const dup = await col.where('url', '==', url).limit(1).get();
+      if (!dup.empty) continue;
+      const doc = {
+        type: 'image', url, prompt: String(prompt || '').slice(0, 500), stickers: null,
+        createdAt: admin.firestore.Timestamp.now(), source: 'playground',
+      };
+      if (style) doc.style = String(style).slice(0, 80);
+      // What made the picture, as separate fields — the gallery popup shows
+      // "model · quality" and shouldn't have to parse a label back apart.
+      if (model) doc.model = String(model).slice(0, 80);
+      if (quality) doc.quality = String(quality).slice(0, 40);
+      await col.add(doc);
+    }
+  } catch (err) {
+    console.warn('promptlab → My Creations failed:', err.message);
+  }
+}
+
+// One run = `outputs` independent edits calls, all sent together, each landing
+// on the doc as it finishes (status 'ready' on the first, 'done' when all are
+// in) so the grid fills in as they arrive. A single failed call costs its
+// image, not the run; only an empty result fails the job.
+// NOT cancellable, by nature: OpenAI has no cancel for image generation, so
+// every image here is billed the moment it's requested. Nothing in the flow
+// pretends otherwise — the page shows no X on these runs.
+async function runPromptLabGptJob(docRef, cfg) {
+  try {
+    // Style refs first; the Sophie character card rides LAST when toggled on
+    // (each style's characterLine points at it that way).
+    const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+    const refs = await playgroundRefs(st);
+    if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
+    const images = [];
+    let failed = 0;
+    const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
+    await Promise.all(Array.from({ length: want }, async () => {
+      try {
+        const data = await openaiImageEditRefs(cfg.fullPrompt, refs, {
+          quality: cfg.quality, size: PL_GPT.size, timeout: 300000,
+        });
+        if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error('gpt-image-2 returned no image');
+        let buf = Buffer.from(b64, 'base64');
+        // The pastel line is defined on a plain white ground, so it gets the
+        // same flood-fill whiten the house style does. Best-effort: a failed
+        // whiten keeps the picture rather than losing a paid render.
+        if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
+        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+        await docRef.update({ status: 'ready', images: images.slice() });
+      } catch (err) {
+        failed++;
+        console.warn('promptlab gpt-image render failed:', err.message);
+      }
+    }));
+    if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
+    await docRef.update({ status: 'done', images, failedRenders: failed });
+    fileRunToCreations(images, {
+      prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
+      model: PL_GPT.id, quality: cfg.quality,
+    });
+  } catch (err) {
+    console.warn('promptlab gpt job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
 async function runPromptLabJob(docRef, cfg) {
   try {
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
@@ -4152,7 +4601,7 @@ async function runPromptLabJob(docRef, cfg) {
         version: cfg.version,
         input: {
           prompt: cfg.fullPrompt, model: 'dev', go_fast: false,
-          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: 4,
+          lora_scale: cfg.loraScale, megapixels: '1', num_outputs: cfg.outputs,
           aspect_ratio: cfg.aspectRatio, output_format: 'webp',
           guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
           num_inference_steps: cfg.steps, seed: cfg.seed,
@@ -4162,10 +4611,18 @@ async function runPromptLabJob(docRef, cfg) {
     let prediction = await createRes.json();
     if (prediction.error) throw new Error(String(prediction.error));
     if (!prediction.urls?.get) throw new Error(prediction.detail || 'Replicate did not return a polling URL');
-    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+    // The prediction id is what /cancel needs — Replicate stops charging for
+    // the compute it hasn't run yet.
+    if (prediction.id) await docRef.update({ predictionId: prediction.id }).catch(() => {});
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
       await new Promise(r => setTimeout(r, 1500));
       const poll = await fetch(prediction.urls.get, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
       prediction = await poll.json();
+    }
+    if (prediction.status === 'canceled' || plCancelled.has(docRef.id)) {
+      plCancelled.delete(docRef.id);
+      await docRef.update({ status: 'cancelled' });
+      return;
     }
     if (prediction.status === 'failed') throw new Error(prediction.error || 'generation failed');
     const urls = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
@@ -4175,9 +4632,12 @@ async function runPromptLabJob(docRef, cfg) {
     // copies are what keep the run history browsable.
     await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
+    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
+    plCancelled.delete(docRef.id);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
   }
 }
@@ -4188,9 +4648,37 @@ app.post('/api/promptlab', async (req, res) => {
   }
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
-    const content = String(req.body.prompt || '').trim().replace(/\.+$/, '');
-    if (!content) return res.status(400).json({ error: 'prompt required' });
+    const typed = String(req.body.prompt || '').trim();
+    if (!typed) return res.status(400).json({ error: 'prompt required' });
     const modelId = req.body.model || 'sageryza/watercolordrawings';
+
+    // The gpt-image-2 style: her words go through UNTOUCHED (no trigger word,
+    // no trailing-period trim, no suffix) after the baked style-ref prefix.
+    if (modelId === PL_GPT.id) {
+      if (!OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY not set on the server' });
+      // Which ChatGPT-engine style: an unknown/absent `style` falls back to
+      // the original ('evan'), so older pages keep working.
+      const styleId = Object.hasOwn(PL_GPT_STYLES, String(req.body.style || '')) ? String(req.body.style) : 'evan';
+      const st = PL_GPT_STYLES[styleId];
+      // A noCharacter style never attaches the Sophie card, whatever the page
+      // sends — her card is the watercolor look, the wrong reference there.
+      const character = Boolean(req.body.character) && !st.noCharacter;
+      const fullPrompt = `${st.prefix}${character ? st.characterLine : ''}\n\n${typed}${st.suffix ? `\n\n${st.suffix}` : ''}`;
+      const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
+      const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
+      const docRef = admin.firestore().collection(PROMPTLAB).doc();
+      await docRef.set({
+        id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
+        model: PL_GPT.id, gptStyle: styleId, quality, size: PL_GPT.size,
+        aspectRatio: PL_GPT.aspectRatio,
+        styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
+        character, images: [], createdAt: admin.firestore.Timestamp.now(),
+      });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId });
+      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+    }
+
+    const content = typed.replace(/\.+$/, '');
     const known = MODELS.replicate.find(m => m.id === modelId);
     if (!known) return res.status(400).json({ error: `unknown model ${modelId}` });
     const suffix = String(req.body.suffix ?? 'White background').trim();
@@ -4200,16 +4688,19 @@ app.post('/api/promptlab', async (req, res) => {
     // Per-model extras so the other house styles work here too: HOONIE's
     // baked suffix and 40 steps, vict's pen-and-ink suffix, etc.
     const steps = known.defaultSteps ?? 28;
+    // ONE image a run (Aug 2026, Sophie) — the LoRAs used to come back with a
+    // hard-coded four. The page sends 1; anything else is clamped to 1-4.
+    const outputs = Math.min(Math.max(Number(req.body.outputs) || 1, 1), 4);
     const tail = [known.promptSuffix, suffix].filter(Boolean).join(', ');
     const fullPrompt = `${known.trigger} ${content}.${tail ? ` ${tail} ` : ' '}`;
     const version = `${known.id}:${await resolveReplicateVersion(known)}`;
     const docRef = admin.firestore().collection(PROMPTLAB).doc();
     await docRef.set({
-      id: docRef.id, status: 'running', prompt: content, fullPrompt, suffix,
-      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps,
+      id: docRef.id, status: 'running', engine: 'replicate', prompt: content, fullPrompt, suffix,
+      model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps });
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs, prompt: content, styleLabel: known.name });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -4223,6 +4714,62 @@ app.get('/api/promptlab/:id', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
     const d = snap.data();
     res.json({ ...d, createdAt: d.createdAt?.toMillis?.() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cancel a running job — Replicate (the LoRAs) ONLY. Replicate has a cancel
+// endpoint: the prediction stops and only the compute already run is billed.
+// OpenAI has no cancel for image generation — a requested image is billed
+// whether or not anyone waits for the response — so a ChatGPT run is refused
+// here rather than offered a cancel that saves nothing (and the page shows no
+// X on those runs).
+app.post('/api/promptlab/:id/cancel', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    if (d.engine === 'gptimage') {
+      return res.status(400).json({ error: 'gpt-image-2 renders cannot be cancelled — OpenAI bills an image as soon as it is requested' });
+    }
+    if (d.status !== 'running' && d.status !== 'ready') {
+      return res.json({ ok: true, status: d.status, note: 'already finished' });
+    }
+    plCancelled.add(req.params.id);
+    await ref.update({ cancelRequested: true });
+    if (d.predictionId && REPLICATE_API_TOKEN) {
+      try {
+        await fetch(`https://api.replicate.com/v1/predictions/${d.predictionId}/cancel`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` },
+        });
+      } catch (err) { console.warn('promptlab replicate cancel failed:', err.message); }
+    }
+    res.json({ ok: true, status: 'cancelling' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ♥/✕ on one image of a run (votes: { <imageIndex>: 'like'|'dislike' } on the
+// doc). Sending the same vote again clears it — the page's toggles.
+app.post('/api/promptlab/:id/vote', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const i = Number(req.body.image);
+    if (!Number.isInteger(i) || i < 0 || i > 3) return res.status(400).json({ error: 'image index 0-3 required' });
+    const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
+    res.json({ ok: true, image: i, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

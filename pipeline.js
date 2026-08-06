@@ -587,6 +587,102 @@ async function createPrintifyProduct(opts = {}) {
   };
 }
 
+// ─── The make job: design → every chosen product, as a BACKGROUND job ──
+// The Product Creator's payoff step. The page used to drive this as a loop of
+// synchronous calls, which meant leaving the app mid-run silently dropped the
+// products that hadn't been created yet. House rule: anything slow is a
+// fire-and-forget background job the client can resume polling — so the whole
+// routed batch now runs server-side against one job doc.
+//
+// Jobs live in memory (this process does the work) and mirror to Firestore
+// `forge-products` best-effort, so a poll after a dyno restart can still read
+// the outcome even though no new work happens then.
+const admin = tryRequire('firebase-admin');
+const makeJobs = new Map();
+function productsDb() {
+  try { return admin && admin.apps.length ? admin.firestore() : null; } catch { return null; }
+}
+function saveMakeJob(job) {
+  makeJobs.set(job.id, job);
+  const db = productsDb();
+  if (db) db.collection('forge-products').doc(job.id).set(job, { merge: true }).catch(() => {});
+}
+
+async function runMakeJob(job) {
+  const podKeys = job.products.filter(p => POD_CATALOG[p.key]);
+  const etsyKeys = job.products.filter(p => !POD_CATALOG[p.key]);
+  try {
+    // One shared copy for the whole batch (the page sends edited copy when
+    // Sophie touched it; otherwise write it once here, not per product).
+    let content = { title: job.title, description: job.description, tags: job.tags };
+    if (!content.title) {
+      content = await generateListingContent({
+        theme: job.theme,
+        productType: (job.products[0] && job.products[0].key) || 'art print',
+      });
+      job.content = content; saveMakeJob(job);
+    }
+
+    // Apparel / mugs → Printify product, published to Etsy as a DRAFT.
+    for (const p of podKeys) {
+      job.stage = `making ${p.key}`; saveMakeJob(job);
+      try {
+        const r = await createPrintifyProduct({
+          product_type: p.key,
+          variant_ids: p.variant_id ? [p.variant_id] : undefined,
+          image: { url: job.design, fileName: 'design.png' },
+          ...content, productType: p.key,
+          price: Math.round(job.price * 100),
+          removeBackground: true,
+          publish: true, goLive: false, // → Etsy DRAFT, never live
+        });
+        job.results.push({ key: p.key, ok: !!(r && r.ok), product_id: r && r.product_id,
+                           detail: r && !r.ok ? (r.error || `${r.stage || 'create'} failed`) : undefined });
+      } catch (err) {
+        job.results.push({ key: p.key, ok: false, detail: err.message });
+      }
+      saveMakeJob(job);
+    }
+
+    // Art print / card → plain Etsy draft with the design image.
+    if (etsyKeys.length) {
+      if (!etsy) throw new Error('etsy module unavailable');
+      const shopId = job.shop_id || process.env.ETSY_SHOP_ID;
+      if (!shopId) throw new Error('shop_id required for art print / card (or set ETSY_SHOP_ID)');
+      job.stage = 'fetching Etsy defaults'; saveMakeJob(job);
+      const def = await etsy.getListingDefaults(shopId);
+      if (!def.ok) throw new Error('no active Etsy listing to derive shipping defaults from');
+      for (const p of etsyKeys) {
+        job.stage = `making ${p.key}`; saveMakeJob(job);
+        try {
+          const r = await publishDraft({
+            shop_id: Number(shopId), images: [job.design],
+            ...content, productType: p.key,
+            price: job.price,
+            shipping_profile_id: def.defaults.shipping_profile_id,
+            return_policy_id: def.defaults.return_policy_id,
+            readiness_state_id: def.defaults.readiness_state_id,
+            // taxonomy_id omitted — publishDraft maps it from productType
+          });
+          job.results.push({ key: p.key, ok: !!(r && r.ok), listing_id: r && r.listing_id,
+                             detail: r && !r.ok ? (r.error || `${r.stage || 'create'} failed`) : undefined });
+        } catch (err) {
+          job.results.push({ key: p.key, ok: false, detail: err.message });
+        }
+        saveMakeJob(job);
+      }
+    }
+
+    job.status = job.results.some(r => r.ok) ? 'done' : 'failed';
+  } catch (err) {
+    job.status = 'failed';
+    job.error = err.message;
+  }
+  job.stage = null;
+  job.doneAt = Date.now();
+  saveMakeJob(job);
+}
+
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
@@ -697,6 +793,44 @@ router.post('/pod-product', express.json({ limit: '25mb' }), async (req, res) =>
     const code = /required|unavailable/.test(err.message) ? 400 : 502;
     res.status(code).json({ error: err.message });
   }
+});
+
+// Make every chosen product from one design, as a background job (the Product
+// Creator's Create button). Returns { id } immediately; poll GET /make/:id.
+// Body: { design (public url), products:[{key, variant_id?}], price (dollars),
+//         shop_id?, theme?, title?/description?/tags? (edited copy wins) }.
+router.post('/make', express.json({ limit: '5mb' }), (req, res) => {
+  const { design, products, price, shop_id, theme, title, description, tags } = req.body || {};
+  if (!design) return res.status(400).json({ error: 'design (image url) required' });
+  const list = (Array.isArray(products) ? products : [])
+    .map(p => (typeof p === 'string' ? { key: p } : p))
+    .filter(p => p && p.key);
+  if (!list.length) return res.status(400).json({ error: 'products required' });
+  if (!(Number(price) > 0)) return res.status(400).json({ error: 'price (dollars) required' });
+  const job = {
+    id: 'mk' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    status: 'making', stage: 'starting', createdAt: Date.now(),
+    design, theme: theme || '', price: Number(price), shop_id: shop_id || null,
+    products: list, title: title || '', description: description || '',
+    tags: Array.isArray(tags) ? tags : [], results: [],
+  };
+  saveMakeJob(job);
+  runMakeJob(job); // fire and forget — the doc carries the outcome
+  res.json({ id: job.id, poll: `/api/pipeline/make/${job.id}` });
+});
+
+// Poll a make job. Memory first (live), Firestore fallback (post-restart read).
+router.get('/make/:id', async (req, res) => {
+  const job = makeJobs.get(req.params.id);
+  if (job) return res.json(job);
+  const db = productsDb();
+  if (db) {
+    try {
+      const doc = await db.collection('forge-products').doc(req.params.id).get();
+      if (doc.exists) return res.json(doc.data());
+    } catch { /* fall through */ }
+  }
+  res.status(404).json({ error: 'unknown job' });
 });
 
 module.exports = {

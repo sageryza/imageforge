@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cutting Room</title>
+<style>
+  /* Sibling palette to the Episode Editor (editor.html) — the two audio tools
+     read as one family. Buttons are Sophie's spec (Aug 2026): GOLD outline +
+     GOLD icon on CREAM, icon-first — words only where a word is unavoidable. */
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    --badbg:#F5E2DC; --selbg:#E7EFE2; --nowbg:#F6E3BE;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:110px}
+  /* [hidden] must ALWAYS win — an author display rule silently overrides the
+     UA default (the bug that broke the Episode Editor's back button). */
+  [hidden]{display:none !important}
+  /* Inside the app the native nav bar carries the tool title and THE back
+     chevron (the Episode Editor pattern — __nativeNavBar is injected), so the
+     page hides its own back button, and on the recordings list the whole page
+     header too (it would only duplicate the bar's title). */
+  body.native #back{display:none !important}
+  body.native.at-home header{display:none}
+  svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; display:block}
+
+  /* header — page-owned (Aug 2026 v2 rule); the top-right corner is RESERVED
+     for the shared autoscroll pill, same calc as editor.html/chats. */
+  header{position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:12px 14px;
+    padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
+  #back{width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:transparent; border:none; color:var(--goldline); flex:none}
+  .htext{min-width:0; flex:1}
+  .eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--soft); font-weight:600}
+  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:20px; margin:2px 0 0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hmeta{font-size:12px; color:var(--soft); margin-top:1px}
+
+  .wrap{padding:14px; max-width:720px; margin:0 auto}
+
+  /* buttons — cream, gold outline, gold icon (no pills; 6px) */
+  button{font:inherit; cursor:pointer}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:11px 14px; display:inline-flex; align-items:center; gap:8px; font-weight:600}
+  .btn:active{background:#F1E6CE}
+  .btn[disabled]{opacity:.4}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .btn .n{font-size:13px}
+  .btn.bad{border-color:var(--bad); color:var(--bad); background:var(--badbg)}
+
+  h2.sec{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--soft);
+    margin:26px 0 8px; font-weight:600}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:8px}
+  .row{display:flex; gap:10px; align-items:center}
+  .grow{flex:1; min-width:0}
+  .muted{color:var(--soft); font-size:13px}
+  .tiny{font-size:12px; color:var(--soft)}
+  .clip1{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  /* home list */
+  .srcrow{cursor:pointer}
+  .srcrow .name{font-weight:600}
+  .badge{display:inline-flex; align-items:center; gap:5px; color:var(--goldline); font-size:12px; font-weight:600}
+  .badge svg{width:13px; height:13px}
+
+  /* the transcript */
+  #tr{background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:16px 14px; font-size:19px; line-height:2.15; margin-top:12px}
+  .w{border-radius:4px; padding:2px 1px; cursor:pointer}
+  .w.now{background:var(--nowbg)}
+  .w.sel{background:var(--selbg)}
+  .w.selend{background:#D9E7D2}
+  .w.cutout{text-decoration:line-through; color:var(--soft); opacity:.55}
+  .pz{display:inline-block; background:var(--cream); border:1px solid var(--line); border-radius:4px;
+    color:var(--soft); font-size:12px; padding:0 7px; margin:0 3px; vertical-align:2px;
+    cursor:pointer; line-height:1.7; white-space:nowrap}
+  .pz.removed{background:var(--badbg); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+  .pin{display:inline-block; vertical-align:-2px; margin:0 2px; color:var(--goldline); cursor:pointer}
+  .pin svg{width:14px; height:14px}
+
+  /* processing */
+  #listen{text-align:center; padding:44px 20px}
+  #listen img{width:150px; height:150px; object-fit:contain}
+  #listen .lbl{margin-top:10px; color:var(--soft); font-size:14px}
+  #listen .note{margin-top:18px; font-size:12.5px; color:var(--soft)}
+  #listen .err{color:var(--bad); font-size:14px; margin-top:10px}
+
+  /* fixed bottom bar */
+  #bbar{position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--paper);
+    border-top:1px solid var(--line); padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:14px}
+  #play{width:54px; height:54px; border-radius:50%; background:var(--cream);
+    border:1.5px solid var(--goldline); color:var(--goldline); flex:none;
+    display:flex; align-items:center; justify-content:center; padding:0}
+  #play svg{width:22px; height:22px; margin-left:2px}
+  #play.on svg{margin-left:0}
+  #time{font-size:14px; color:var(--soft)} #time b{color:var(--ink); font-weight:600}
+  #mark{margin-left:auto; padding:15px 24px}
+  #mark svg{width:18px; height:18px}
+
+  /* section bar (above the bottom bar when a span is picked) */
+  #secbar{position:fixed; left:0; right:0; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:6;
+    background:var(--cream); border-top:1px solid var(--line);
+    padding:9px 14px; display:flex; align-items:center; gap:8px}
+  #secbar .rng{font-size:13px; font-weight:600; margin-right:auto}
+  #secbar .btn{padding:10px 13px}
+  #secx{background:transparent; border:none; color:var(--soft); padding:8px 10px; font-size:17px}
+
+  /* sheet + confirm overlays — a light paper veil, never a dark scrim */
+  .veil{position:fixed; inset:0; z-index:8; background:rgba(250,247,241,.55)}
+  #sheet{position:fixed; left:8px; right:8px; bottom:8px; z-index:9; background:var(--card);
+    border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+    box-shadow:0 -2px 16px rgba(35,32,27,.12); max-height:76vh; overflow-y:auto}
+  #sheet .grab{width:34px; height:4px; background:var(--line); border-radius:2px; margin:0 auto 10px}
+  #sheet .quote{font-family:Georgia,serif; font-size:15px; line-height:1.5}
+  #sheet .qmeta{font-size:12.5px; color:var(--soft); margin:5px 0 10px}
+  .srow{display:flex; align-items:center; gap:13px; padding:13px 4px; border-top:1px solid var(--line); cursor:pointer}
+  .srow .ic{width:38px; height:38px; border-radius:6px; background:var(--cream); color:var(--goldline);
+    display:flex; align-items:center; justify-content:center; flex:none}
+  .srow .tx{flex:1; min-width:0}
+  .srow .tx b{display:block; font-size:15px}
+  .srow .tx span{display:block; font-size:12.5px; color:var(--soft); margin-top:1px; line-height:1.35}
+  .srow .go{color:var(--soft)} .srow .go svg{width:15px; height:15px}
+  .beatgrid{display:flex; flex-wrap:wrap; gap:8px; padding-top:10px}
+  .beatgrid .cell{width:calc((100% - 24px)/4); aspect-ratio:2/3; border:1.5px solid var(--line);
+    border-radius:6px; overflow:hidden; background:var(--cream); cursor:pointer; position:relative}
+  .beatgrid .cell img{width:100%; height:100%; object-fit:cover; display:block}
+  .beatgrid .cell .t{position:absolute; inset:0; padding:5px; font-size:10px; color:var(--soft); overflow:hidden}
+  .beatgrid .cell .voiced{position:absolute; right:3px; bottom:3px; color:var(--goldline);
+    background:rgba(255,255,255,.85); border-radius:4px; padding:2px}
+  .beatgrid .cell .voiced svg{width:11px; height:11px}
+
+  /* the ? circle — instructions for an icon-first tool, tap to show/hide */
+  #help{width:34px; height:34px; border-radius:50%; background:var(--cream);
+    border:1px solid var(--goldline); color:var(--goldline); font-weight:700; font-size:16px;
+    padding:0; display:flex; align-items:center; justify-content:center; flex:none; font-family:Georgia,serif}
+  #helpcard{position:fixed; left:16px; right:16px; top:50%; transform:translateY(-50%); z-index:9;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px 16px 12px;
+    box-shadow:0 2px 18px rgba(35,32,27,.14); max-height:82vh; overflow-y:auto}
+  .hrow{display:flex; gap:12px; align-items:flex-start; padding:10px 0;
+    border-top:1px solid var(--line); font-size:14px; line-height:1.45}
+  .hrow:first-child{border-top:none}
+  .hrow .hic{width:32px; flex:none; color:var(--goldline); display:flex; justify-content:center; padding-top:2px}
+  .hrow .pz{cursor:default}
+
+  #confirm{position:fixed; left:24px; right:24px; top:50%; transform:translateY(-50%); z-index:9;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px;
+    box-shadow:0 2px 18px rgba(35,32,27,.14)}
+  #confirm .txt{font-size:15px; line-height:1.5; margin-bottom:16px}
+  #confirm .row{justify-content:flex-end}
+
+  #toast{position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(96px + env(safe-area-inset-bottom)); z-index:10; background:var(--ink); color:var(--paper);
+    border-radius:6px; padding:9px 16px; font-size:14px; max-width:84vw; text-align:center;
+    opacity:0; transition:opacity .25s; pointer-events:none}
+  #toast.on{opacity:1}
+
+  /* outputs */
+  .outrow .btn{padding:9px 11px}
+  .outrow .lbl{font-weight:600; font-size:14px}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="back" hidden aria-label="back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <div class="htext">
+    <div class="eyebrow">CUTTING ROOM</div>
+    <h1 id="htitle">Cutting Room</h1>
+    <div class="hmeta" id="hmeta"></div>
+  </div>
+</header>
+
+<!-- ── home: pick a recording ─────────────────────────────────────── -->
+<div class="wrap" id="home">
+  <div class="muted" id="homehint">Recordings you share from Voice Memos land here — tap one to open it.</div>
+  <h2 class="sec">Recordings</h2>
+  <div id="srclist"><div class="muted">loading…</div></div>
+</div>
+
+<!-- ── room: mark one recording ───────────────────────────────────── -->
+<div class="wrap" id="room" hidden>
+  <div id="listen" hidden>
+    <img src="/hoonie-loading-clear.gif" alt="">
+    <div class="lbl" id="listenlbl">listening to the recording…</div>
+    <div class="err" id="listenerr" hidden></div>
+    <button class="btn" id="retry" hidden>Try again</button>
+    <div class="note">This runs on the server — leaving the page is fine.</div>
+  </div>
+
+  <div id="markui" hidden>
+    <div class="row" id="tools">
+      <button class="btn" id="tighten" title="Cut every pause">
+        <svg viewBox="0 0 24 24"><path d="m20 17-5-5 5-5"/><path d="m4 7 5 5-5 5"/></svg>
+        <span class="n" id="tightenN"></span>
+      </button>
+      <button class="btn" id="render" title="Render the cut" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg>
+        <span class="n" id="renderN" hidden></span>
+      </button>
+      <span class="tiny" id="jobnote" style="margin-left:auto"></span>
+      <button id="help" aria-label="how this works">?</button>
+    </div>
+
+    <div id="tr"></div>
+
+    <div id="outs">
+      <div id="rendersWrap" hidden>
+        <h2 class="sec">Cuts</h2>
+        <div id="renders"></div>
+      </div>
+      <div id="clipsWrap" hidden>
+        <h2 class="sec">Sections</h2>
+        <div id="clips"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- section bar -->
+<div id="secbar" hidden>
+  <span class="rng" id="secrng"></span>
+  <button class="btn bad" id="seccut" title="Cut this out">
+    <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+  </button>
+  <button class="btn" id="secsend" title="Save or send">
+    <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+  </button>
+  <button id="secx" aria-label="clear">✕</button>
+</div>
+
+<!-- bottom transport -->
+<div id="bbar" hidden>
+  <button id="play" aria-label="play"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></button>
+  <div id="time"><b>0:00</b> / 0:00</div>
+  <button class="btn" id="mark" title="Drop a pin here">
+    <svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+  </button>
+</div>
+
+<!-- save / send sheet -->
+<div class="veil" id="veil" hidden></div>
+<div id="sheet" hidden>
+  <div class="grab"></div>
+  <div id="sheetmain">
+    <div class="quote" id="sheetquote"></div>
+    <div class="qmeta" id="sheetmeta"></div>
+    <div class="srow" data-act="save">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
+      <div class="tx"><b>Save as a clip</b><span>lands in your audio library with its own link</span></div>
+      <div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="srow" data-act="editor">
+      <div class="ic"><svg viewBox="0 0 24 24"><line x1="3" y1="9" x2="3" y2="15"/><line x1="7.5" y1="6" x2="7.5" y2="18"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="16.5" y1="7" x2="16.5" y2="17"/><line x1="21" y1="10" x2="21" y2="14"/></svg></div>
+      <div class="tx"><b>Episode Editor</b><span>becomes a snippet card in the episode you pick</span></div>
+      <div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="srow" data-act="story">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <div class="tx"><b>Story Room</b><span>pick the story, tap the beat — this becomes its voice</span></div>
+      <div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+  </div>
+  <div id="sheetpick" hidden></div>
+</div>
+
+<!-- the ? card — what every icon does; tap anywhere to hide it -->
+<div id="helpcard" hidden>
+  <div class="hrow"><span class="hic"><span class="pz">1.2s</span></span><span>a pause it found — tap to cut it, tap again to keep it</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="m20 17-5-5 5-5"/><path d="m4 7 5 5-5 5"/></svg></span><span>cut every pause at once (each keeps a 0.3s breath)</span></div>
+  <div class="hrow"><span class="hic" style="font-family:Georgia,serif;font-size:15px">Aa</span><span>tap the first word, then the last word — that picks a section</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span><span>cut the picked section out — tap its struck-through words later to put them back</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span>save the picked section as a clip, or send it to the Episode Editor or a Story Room beat</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>pin the word being spoken, so you can find it again</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with all your cuts — the original is never touched</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span>play — with a section picked, it plays just that section</span></div>
+</div>
+
+<!-- confirm -->
+<div id="confirm" hidden>
+  <div class="txt" id="confirmtxt"></div>
+  <div class="row">
+    <button class="btn plain" id="confirmno">✕</button>
+    <button class="btn" id="confirmyes"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Persistent, DOM-ATTACHED players. iOS WebKit suspends an Audio object
+     created in JS but never attached to the document a few seconds into
+     playback (this bit Sophie for real: a rendered cut "stopped after the
+     seventh word" — the file was fine, the detached player died). One element
+     for the recording (the transport), one for renders/clips. -->
+<audio id="player" preload="metadata" hidden></audio>
+<audio id="player2" preload="none" hidden></audio>
+
+<script>
+// ANY tap pauses the shared autoscroll pill (house rule).
+document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+// Inside the app the native nav bar carries the title + back chevron
+// (injected as __nativeNavBar, the Episode Editor pattern) — hide our own.
+if (window.__nativeNavBar) document.body.classList.add('native');
+
+const TOKEN = '__STUDIO_TOKEN__';
+const H = { 'Content-Type': 'application/json' };
+if (TOKEN && TOKEN[0] !== '_') H['x-studio-token'] = TOKEN;
+const API = '/api/cutroom';
+const $ = (id) => document.getElementById(id);
+
+async function api(path, opts) {
+  const res = await fetch(API + path, { headers: H, ...(opts || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('request failed (' + res.status + ')'));
+  return data;
+}
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
+
+const fmt = (s) => {
+  s = Math.max(0, Math.round(s || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+};
+const fmtDate = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+let toastT = null;
+function toast(msg, ms) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('on'), ms || 2600);
+}
+
+// ── state ───────────────────────────────────────────────────────────
+let doc = null;        // the project doc
+let words = [];        // [{word,start,end}]
+let sel = { a: null, b: null };
+let curWord = -1;
+let sectionStop = null;   // stop playback at this time (section preview)
+let docPoll = null, jobPoll = null;
+let lastFollow = 0;
+
+// The two persistent players (see the elements' comment above) — listeners
+// attach ONCE here; opening another recording only swaps `src`.
+const audio = $('player');   // the transport: the open recording
+const outP = $('player2');   // renders + saved clips
+audio.addEventListener('timeupdate', onTick);
+audio.addEventListener('play', () => setPlayIcon(true));
+audio.addEventListener('pause', () => setPlayIcon(false));
+audio.addEventListener('ended', () => setPlayIcon(false));
+audio.addEventListener('error', () => { if (audio.getAttribute('src')) toast('couldn’t play the recording'); });
+outP.addEventListener('error', () => { if (outP.getAttribute('src')) toast('couldn’t play — tap it again'); });
+
+// ── home ────────────────────────────────────────────────────────────
+async function showHome() {
+  stopAudio();
+  clearInterval(docPoll); clearInterval(jobPoll);
+  doc = null; words = []; sel = { a: null, b: null };
+  localStorage.removeItem('cutroom_open');
+  $('room').hidden = true; $('bbar').hidden = true; $('secbar').hidden = true;
+  $('back').hidden = true;
+  $('home').hidden = false;
+  document.body.classList.add('at-home');
+  $('htitle').textContent = 'Cutting Room';
+  $('hmeta').textContent = '';
+  try {
+    const { items, projects } = await api('/sources');
+    const list = $('srclist');
+    if (!items.length) {
+      list.innerHTML = '<div class="card muted">Nothing here yet — share a recording from Voice Memos to the app and it lands in this list.</div>';
+      return;
+    }
+    list.innerHTML = items.map((it, i) => {
+      const p = projects[it.projectId];
+      const badge = p ? '<span class="badge"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>'
+        + (p.status === 'ready'
+          ? ((p.removed + p.cuts) + ' edits' + (p.renders ? ' · ' + p.renders + ' rendered' : ''))
+          : p.status) + '</span>' : '';
+      return '<div class="card srcrow row" data-i="' + i + '">'
+        + '<div class="grow"><div class="name clip1">' + esc(it.name || 'Recording') + '</div>'
+        + '<div class="tiny">' + (it.seconds ? fmt(it.seconds) + ' · ' : '') + esc(it.batch || '') + ' · ' + fmtDate(it.createdAt) + '</div></div>'
+        + badge + '</div>';
+    }).join('');
+    list.onclick = (e) => {
+      const row = e.target.closest('.srcrow');
+      if (!row) return;
+      const it = items[Number(row.dataset.i)];
+      openRecording(it.url, it.name, it.itemId, it.batch);
+    };
+  } catch (err) {
+    $('srclist').innerHTML = '<div class="card muted">' + esc(err.message) + '</div>';
+  }
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// ── opening a recording ─────────────────────────────────────────────
+async function openRecording(url, name, itemId, batch) {
+  try {
+    toast('Opening…', 1200);
+    const { id } = await post('/open', { url, name, itemId, batch });
+    localStorage.setItem('cutroom_open', id);
+    enterRoom(id);
+  } catch (err) { toast(err.message); }
+}
+
+async function enterRoom(id) {
+  document.body.classList.remove('at-home');
+  $('home').hidden = true;
+  $('room').hidden = false;
+  $('back').hidden = false;
+  $('markui').hidden = true;
+  $('listen').hidden = false;
+  $('listenerr').hidden = true; $('retry').hidden = true;
+  await refreshDoc(id);
+  if (!doc) { showHome(); return; }
+  if (doc.status === 'ready') buildRoom();
+  else {
+    watchListening(id);
+  }
+}
+
+async function refreshDoc(id) {
+  try { doc = await api('/' + id); } catch { doc = null; }
+}
+
+function watchListening(id) {
+  clearInterval(docPoll);
+  const tick = async () => {
+    await refreshDoc(id);
+    if (!doc) return;
+    const j = doc.job || {};
+    $('listenlbl').textContent = (j.status === 'running' && j.label) ? j.label : 'listening to the recording…';
+    if (doc.status === 'ready') {
+      clearInterval(docPoll);
+      buildRoom();
+    } else if (doc.status === 'failed') {
+      clearInterval(docPoll);
+      $('listenerr').textContent = doc.error || 'something went wrong';
+      $('listenerr').hidden = false;
+      $('retry').hidden = false;
+    }
+  };
+  tick();
+  docPoll = setInterval(tick, 2500);
+}
+$('retry').onclick = async () => {
+  if (!doc) return;
+  try {
+    await post('/open', { url: doc.source.url, name: doc.title });
+    $('listenerr').hidden = true; $('retry').hidden = true;
+    watchListening(doc.id);
+  } catch (err) { toast(err.message); }
+};
+
+// ── the marking room ────────────────────────────────────────────────
+async function buildRoom() {
+  $('htitle').textContent = doc.title || 'Recording';
+  $('hmeta').textContent = fmt(doc.seconds) + ' · ' + (doc.wordCount || 0) + ' words';
+  $('listen').hidden = true;
+  $('markui').hidden = false;
+  $('bbar').hidden = false;
+  try {
+    words = (await api('/' + doc.id + '/words')).words || [];
+  } catch { toast('couldn’t load the transcript'); return; }
+  renderTranscript();
+  updateTools();
+  renderOuts();
+  setupAudio();
+  if (doc.job && doc.job.status === 'running') watchJob();
+}
+
+// word index → pause chip after it (precomputed)
+function chipPositions() {
+  const map = new Map(); // wordIndex → [pauseIndex,…]
+  (doc.pauses || []).forEach((p, pi) => {
+    // the last word that ends before the pause starts
+    let lo = 0, hi = words.length - 1, at = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (words[mid].end <= p.s + 0.03) { at = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    if (!map.has(at)) map.set(at, []);
+    map.get(at).push(pi);
+  });
+  return map;
+}
+
+function renderTranscript() {
+  const chips = chipPositions();
+  const pinSet = new Set((doc.pins || []).map((p) => p.wi));
+  const cutRanges = (doc.cuts || []);
+  const inCut = (i) => cutRanges.some((c) => i >= c.wi0 && i <= c.wi1);
+  const parts = [];
+  const PIN = '<svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+  for (let i = 0; i < words.length; i++) {
+    if (pinSet.has(i)) parts.push('<span class="pin" data-pin="' + i + '">' + PIN + '</span>');
+    parts.push('<span class="w' + (inCut(i) ? ' cutout' : '') + '" data-i="' + i + '">' + esc(words[i].word) + '</span> ');
+    if (chips.has(i)) {
+      for (const pi of chips.get(i)) {
+        const p = doc.pauses[pi];
+        parts.push('<span class="pz' + (p.removed ? ' removed' : '') + '" data-p="' + pi + '">' + p.sec + 's</span> ');
+      }
+    }
+  }
+  $('tr').innerHTML = parts.join('');
+}
+
+function updateTools() {
+  const pauses = doc.pauses || [];
+  const left = pauses.filter((p) => !p.removed);
+  const removed = pauses.filter((p) => p.removed);
+  $('tighten').disabled = !left.length;
+  $('tightenN').textContent = left.length ? String(left.length) : (pauses.length ? '✓' : '0');
+  const edits = removed.length + (doc.cuts || []).length;
+  $('render').disabled = !edits || (doc.job && doc.job.status === 'running');
+  $('renderN').hidden = !edits;
+  $('renderN').textContent = String(edits);
+}
+
+// ── transcript taps ─────────────────────────────────────────────────
+$('tr').addEventListener('click', async (e) => {
+  const pz = e.target.closest('.pz');
+  if (pz) {
+    const pi = Number(pz.dataset.p);
+    const removed = !doc.pauses[pi].removed;
+    pz.classList.toggle('removed', removed);
+    doc.pauses[pi].removed = removed;
+    updateTools();
+    try { await post('/' + doc.id + '/pause', { i: pi, removed }); } catch (err) { toast(err.message); }
+    return;
+  }
+  const pin = e.target.closest('.pin');
+  if (pin) {
+    const wi = Number(pin.dataset.pin);
+    doc.pins = (doc.pins || []).filter((p) => p.wi !== wi);
+    pin.remove();
+    try { await post('/' + doc.id + '/pin', { wi }); } catch (err) { toast(err.message); }
+    return;
+  }
+  const w = e.target.closest('.w');
+  if (!w) return;
+  const i = Number(w.dataset.i);
+  if (w.classList.contains('cutout')) {
+    const cut = (doc.cuts || []).find((c) => i >= c.wi0 && i <= c.wi1);
+    if (cut) confirmBox('Put this back?\n“' + cut.text + '”', async () => {
+      try {
+        await post('/' + doc.id + '/uncut', { cutId: cut.id });
+        doc.cuts = doc.cuts.filter((c) => c.id !== cut.id);
+        for (let k = cut.wi0; k <= cut.wi1; k++) wordEl(k)?.classList.remove('cutout');
+        updateTools();
+      } catch (err) { toast(err.message); }
+    });
+    return;
+  }
+  tapWord(i);
+});
+
+const wordEl = (i) => $('tr').querySelector('.w[data-i="' + i + '"]');
+
+function tapWord(i) {
+  if (sel.a === null) {
+    sel.a = i;
+    wordEl(i).classList.add('sel', 'selend');
+    $('secrng').textContent = 'tap the last word';
+    $('secbar').hidden = false;
+    $('seccut').disabled = true; $('secsend').disabled = true;
+    return;
+  }
+  if (sel.b === null) {
+    sel.b = i;
+    if (sel.b < sel.a) { const t = sel.a; sel.a = sel.b; sel.b = t; }
+    for (let k = sel.a; k <= sel.b; k++) wordEl(k)?.classList.add('sel');
+    wordEl(sel.a)?.classList.add('selend');
+    wordEl(sel.b)?.classList.add('selend');
+    const t0 = words[sel.a].start, t1 = words[sel.b].end;
+    $('secrng').textContent = fmt(t0) + ' – ' + fmt(t1) + ' · ' + Math.round(t1 - t0) + 's';
+    $('seccut').disabled = false; $('secsend').disabled = false;
+    return;
+  }
+  clearSel();
+  tapWord(i);
+}
+function clearSel() {
+  $('tr').querySelectorAll('.w.sel').forEach((el) => el.classList.remove('sel', 'selend'));
+  sel = { a: null, b: null };
+  $('secbar').hidden = true;
+}
+$('secx').onclick = clearSel;
+
+// ── tools ───────────────────────────────────────────────────────────
+$('tighten').onclick = () => {
+  const left = (doc.pauses || []).filter((p) => !p.removed);
+  if (!left.length) return;
+  const save = left.reduce((x, p) => x + p.sec, 0);
+  confirmBox('Cut all ' + left.length + ' pauses — saves about ' + Math.round(save) + 's. Each keeps a natural ' + '0.3s breath.', async () => {
+    try {
+      await post('/' + doc.id + '/tighten', { removed: true });
+      (doc.pauses || []).forEach((p) => { p.removed = true; });
+      $('tr').querySelectorAll('.pz').forEach((el) => el.classList.add('removed'));
+      updateTools();
+      toast('Pauses cut — render when you’re ready');
+    } catch (err) { toast(err.message); }
+  });
+};
+
+$('render').onclick = () => {
+  const removed = (doc.pauses || []).filter((p) => p.removed);
+  const edits = removed.length + (doc.cuts || []).length;
+  const sec = removed.reduce((x, p) => x + p.sec, 0)
+    + (doc.cuts || []).reduce((x, c) => x + (c.e - c.s), 0);
+  confirmBox('Render the cut — ' + edits + ' edits, removes about ' + Math.round(sec) + 's. The original stays untouched.', async () => {
+    try {
+      await post('/' + doc.id + '/render', {});
+      toast('Rendering… you can leave the page');
+      watchJob();
+    } catch (err) { toast(err.message); }
+  });
+};
+
+function watchJob() {
+  clearInterval(jobPoll);
+  updateTools();
+  const tick = async () => {
+    let j;
+    try { j = (await api('/' + doc.id + '/job')).job; } catch { return; }
+    if (!j) { clearInterval(jobPoll); return; }
+    $('jobnote').textContent = j.status === 'running' ? (j.label || '…') : '';
+    if (j.status === 'running') return;
+    clearInterval(jobPoll);
+    const kind = j.kind;
+    await refreshDoc(doc.id);
+    renderOuts(); updateTools();
+    if (j.status === 'error') { toast(j.error || 'the job failed'); return; }
+    if (kind === 'render') {
+      const r = (doc.renders || [])[0];
+      toast(r ? 'Rendered — ' + fmt(r.seconds) + ', −' + Math.round(r.removed) + 's' : 'Rendered');
+    } else if (kind === 'section') {
+      const k = (doc.clips || [])[doc.clips.length - 1];
+      toast(k && k.dest === 'story' ? 'Attached to the beat' : 'Saved to your audio library');
+    }
+  };
+  tick();
+  jobPoll = setInterval(tick, 2500);
+}
+
+// ── outputs ─────────────────────────────────────────────────────────
+const DESTICON = {
+  clip: '<svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>',
+  save: '<svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>',
+  story: '<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+  editor: '<svg viewBox="0 0 24 24"><line x1="3" y1="9" x2="3" y2="15"/><line x1="7.5" y1="6" x2="7.5" y2="18"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="16.5" y1="7" x2="16.5" y2="17"/><line x1="21" y1="10" x2="21" y2="14"/></svg>',
+};
+const PLAYSVG = '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+const OPENSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+
+function renderOuts() {
+  const renders = doc.renders || [];
+  $('rendersWrap').hidden = !renders.length;
+  $('renders').innerHTML = renders.map((r, i) =>
+    '<div class="card outrow row">'
+    + '<button class="btn" data-play="' + esc(r.url) + '">' + PLAYSVG + '</button>'
+    + '<div class="grow"><div class="lbl">' + fmt(r.seconds) + ' · −' + Math.round(r.removed) + 's</div>'
+    + '<div class="tiny">' + r.edits + ' edits · ' + fmtDate(r.at) + '</div></div>'
+    + '<button class="btn" data-open="' + esc(r.url) + '">' + OPENSVG + '</button>'
+    + '</div>').join('');
+  const clips = (doc.clips || []).slice().reverse();
+  $('clipsWrap').hidden = !clips.length;
+  $('clips').innerHTML = clips.map((k) =>
+    '<div class="card outrow row">'
+    + (k.url ? '<button class="btn" data-play="' + esc(k.url) + '">' + PLAYSVG + '</button>' : '')
+    + '<div class="grow"><div class="lbl clip1">' + esc(k.name) + '</div>'
+    + '<div class="tiny">' + (k.sec ? fmt(k.sec) + ' · ' : '')
+    + (k.dest === 'editor' ? 'in “' + esc(k.episodeTitle || 'episode') + '”' : k.dest === 'story' ? 'a beat’s voice' : 'audio library')
+    + ' · ' + fmtDate(k.at) + '</div></div>'
+    + '<span style="color:var(--goldline)">' + (DESTICON[k.dest] || '') + '</span>'
+    + '</div>').join('');
+  $('outs').onclick = (e) => {
+    const p = e.target.closest('[data-play]');
+    if (p) {
+      const url = p.dataset.play;
+      if (outP.src === url && !outP.paused) { outP.pause(); return; }
+      audio.pause();
+      if (outP.src !== url) outP.src = url;
+      outP.play().catch(() => toast('couldn’t play'));
+      return;
+    }
+    const o = e.target.closest('[data-open]');
+    if (o) window.open(o.dataset.open, '_blank');
+  };
+}
+
+// ── playback + follow ───────────────────────────────────────────────
+function setupAudio() {
+  stopAudio();
+  if (audio.getAttribute('src') !== doc.source.url) audio.src = doc.source.url;
+  curWord = -1;
+  sectionStop = null;
+  $('time').innerHTML = '<b>0:00</b> / ' + fmt(doc.seconds);
+}
+function stopAudio() {
+  audio.pause();
+  outP.pause();
+}
+function setPlayIcon(on) {
+  $('play').innerHTML = on
+    ? '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
+    : '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  $('play').classList.toggle('on', on);
+}
+$('play').onclick = () => {
+  if (!doc || !audio.getAttribute('src')) return;
+  if (!audio.paused) { audio.pause(); sectionStop = null; return; }
+  outP.pause();
+  if (sel.a !== null && sel.b !== null) {
+    // with a section picked, play button plays JUST that section
+    audio.currentTime = Math.max(0, words[sel.a].start - 0.15);
+    sectionStop = words[sel.b].end + 0.15;
+  } else sectionStop = null;
+  audio.play().catch(() => toast('couldn’t play the recording'));
+};
+
+function onTick() {
+  const t = audio.currentTime;
+  if (sectionStop != null && t >= sectionStop) { audio.pause(); sectionStop = null; }
+  $('time').innerHTML = '<b>' + fmt(t) + '</b> / ' + fmt(doc.seconds);
+  // advance the current-word pointer (words are sorted)
+  let i = curWord;
+  if (i < 0 || i >= words.length || t < words[i].start - 2) i = 0;
+  while (i < words.length - 1 && words[i + 1].start <= t) i++;
+  if (i !== curWord) {
+    if (curWord >= 0) wordEl(curWord)?.classList.remove('now');
+    curWord = i;
+    const el = wordEl(i);
+    if (el) {
+      el.classList.add('now');
+      // the page follows the voice — never scrolled by hand
+      const now = Date.now();
+      if (!audio.paused && now - lastFollow > 900 && $('sheet').hidden && $('confirm').hidden) {
+        lastFollow = now;
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }
+}
+
+$('mark').onclick = async () => {
+  if (!words.length) return;
+  const wi = curWord >= 0 ? curWord : 0;
+  const existing = (doc.pins || []).find((p) => p.wi === wi);
+  try {
+    await post('/' + doc.id + '/pin', { wi, t: words[wi].start });
+    if (existing) {
+      doc.pins = doc.pins.filter((p) => p.wi !== wi);
+      $('tr').querySelector('.pin[data-pin="' + wi + '"]')?.remove();
+    } else {
+      (doc.pins = doc.pins || []).push({ wi, t: words[wi].start });
+      const el = wordEl(wi);
+      if (el) el.insertAdjacentHTML('beforebegin',
+        '<span class="pin" data-pin="' + wi + '"><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>');
+      toast('Pinned “' + words[wi].word + '”', 1400);
+    }
+  } catch (err) { toast(err.message); }
+};
+
+// ── cut out ─────────────────────────────────────────────────────────
+$('seccut').onclick = async () => {
+  if (sel.a === null || sel.b === null) return;
+  const a = sel.a, b = sel.b;
+  try {
+    const { cut } = await post('/' + doc.id + '/cutout', { wi0: a, wi1: b });
+    (doc.cuts = doc.cuts || []).push(cut);
+    clearSel();
+    for (let k = a; k <= b; k++) wordEl(k)?.classList.add('cutout');
+    updateTools();
+    toast('Cut out — tap the words to put them back', 2200);
+  } catch (err) { toast(err.message); }
+};
+
+// ── save / send sheet ───────────────────────────────────────────────
+let sheetSel = null; // frozen selection while the sheet is open
+function openSheet() {
+  if (sel.a === null || sel.b === null) return;
+  sheetSel = { a: sel.a, b: sel.b };
+  const text = words.slice(sel.a, sel.b + 1).map((w) => w.word).join(' ');
+  $('sheetquote').textContent = '“' + (text.length > 160 ? text.slice(0, 160) + '…' : text) + '”';
+  $('sheetmeta').textContent = fmt(words[sel.a].start) + ' – ' + fmt(words[sel.b].end)
+    + ' · ' + Math.round(words[sel.b].end - words[sel.a].start) + ' seconds';
+  $('sheetmain').hidden = false;
+  $('sheetpick').hidden = true;
+  $('veil').hidden = false; $('sheet').hidden = false;
+}
+function closeSheet() { $('veil').hidden = true; $('sheet').hidden = true; sheetSel = null; }
+$('veil').onclick = () => {
+  if (!$('confirm').hidden) { $('confirm').hidden = true; confirmFn = null; }
+  if (!$('helpcard').hidden) { $('helpcard').hidden = true; }
+  closeSheet();
+};
+$('secsend').onclick = openSheet;
+
+$('sheetmain').onclick = async (e) => {
+  const row = e.target.closest('.srow');
+  if (!row || !sheetSel) return;
+  const act = row.dataset.act;
+  if (act === 'save') {
+    try {
+      await post('/' + doc.id + '/section', { wi0: sheetSel.a, wi1: sheetSel.b, action: 'save' });
+      closeSheet(); clearSel();
+      toast('Cutting the section…');
+      watchJob();
+    } catch (err) { toast(err.message); }
+  } else if (act === 'editor') {
+    pickEpisode();
+  } else if (act === 'story') {
+    pickPad();
+  }
+};
+
+async function pickEpisode() {
+  $('sheetmain').hidden = true;
+  const pick = $('sheetpick');
+  pick.hidden = false;
+  pick.innerHTML = '<div class="muted">loading episodes…</div>';
+  let eps = [];
+  try { eps = await (await fetch('/api/editor/', { headers: H })).json(); } catch { /* empty is fine */ }
+  if (!Array.isArray(eps)) eps = eps.episodes || [];
+  pick.innerHTML =
+    '<div class="srow" data-ep="__new__"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>'
+    + '<div class="tx"><b>New episode</b><span>“' + esc(doc.title) + ' — cuts”</span></div></div>'
+    + eps.map((ep) => '<div class="srow" data-ep="' + esc(ep.id) + '"><div class="ic">' + DESTICON.editor + '</div>'
+      + '<div class="tx"><b>' + esc(ep.title) + '</b><span>' + (ep.snippets || 0) + ' snippets</span></div></div>').join('');
+  pick.onclick = async (e) => {
+    const row = e.target.closest('.srow');
+    if (!row || !sheetSel) return;
+    const epId = row.dataset.ep;
+    try {
+      const r = await post('/' + doc.id + '/section', {
+        wi0: sheetSel.a, wi1: sheetSel.b, action: 'editor',
+        episodeId: epId === '__new__' ? null : epId,
+      });
+      closeSheet(); clearSel();
+      await refreshDoc(doc.id); renderOuts();
+      toast('Sent to “' + (r.episode && r.episode.title || 'the episode') + '”');
+    } catch (err) { toast(err.message); }
+  };
+}
+
+async function pickPad() {
+  $('sheetmain').hidden = true;
+  const pick = $('sheetpick');
+  pick.hidden = false;
+  pick.innerHTML = '<div class="muted">loading stories…</div>';
+  let pads = [];
+  try { pads = (await (await fetch('/api/scratchpad/pads', { headers: H })).json()).pads || []; } catch { /* noop */ }
+  if (!pads.length) { pick.innerHTML = '<div class="muted">no stories yet — start one in the Story Room first</div>'; return; }
+  pick.innerHTML = pads.map((p) => '<div class="srow" data-pad="' + esc(p.id) + '">'
+    + '<div class="ic">' + (p.cover ? '<img src="' + esc(p.cover) + '" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : DESTICON.story) + '</div>'
+    + '<div class="tx"><b>' + esc(p.title || 'Untitled') + '</b><span>' + p.beats + ' beats</span></div>'
+    + '<div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>').join('');
+  pick.onclick = async (e) => {
+    const row = e.target.closest('.srow[data-pad]');
+    if (!row) return;
+    await pickBeat(row.dataset.pad);
+  };
+}
+
+async function pickBeat(padId) {
+  const pick = $('sheetpick');
+  pick.innerHTML = '<div class="muted">loading beats…</div>';
+  let pad = null;
+  try { pad = await (await fetch('/api/scratchpad/?pad=' + encodeURIComponent(padId), { headers: H })).json(); } catch { /* noop */ }
+  const beats = (pad && pad.beats) || [];
+  if (!beats.length) { pick.innerHTML = '<div class="muted">that story has no beats yet</div>'; return; }
+  const MIC = '<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+  pick.innerHTML = '<div class="tiny" style="padding:4px 2px 0">tap the beat this section belongs to</div>'
+    + '<div class="beatgrid">' + beats.map((b) => '<div class="cell" data-beat="' + esc(b.id) + '">'
+      + (b.url ? '<img src="' + esc(b.url) + '">' : '<div class="t">' + esc((b.text || '').split('\n')[0].slice(0, 60)) + '</div>')
+      + (b.voiceUrl ? '<span class="voiced">' + MIC + '</span>' : '')
+      + '</div>').join('') + '</div>';
+  pick.onclick = async (e) => {
+    const cell = e.target.closest('.cell');
+    if (!cell || !sheetSel) return;
+    try {
+      await post('/' + doc.id + '/section', {
+        wi0: sheetSel.a, wi1: sheetSel.b, action: 'story',
+        padId, beatId: cell.dataset.beat,
+      });
+      closeSheet(); clearSel();
+      toast('Cutting the section…');
+      watchJob();
+    } catch (err) { toast(err.message); }
+  };
+}
+
+// ── the ? card ──────────────────────────────────────────────────────
+function toggleHelp() {
+  const open = $('helpcard').hidden;
+  $('helpcard').hidden = !open;
+  $('veil').hidden = !open;
+}
+$('help').onclick = toggleHelp;
+$('helpcard').onclick = toggleHelp;   // tap anywhere on it to hide it
+
+// ── confirm box ─────────────────────────────────────────────────────
+let confirmFn = null;
+function confirmBox(text, fn) {
+  $('confirmtxt').textContent = text;
+  confirmFn = fn;
+  $('veil').hidden = false;
+  $('confirm').hidden = false;
+}
+$('confirmyes').onclick = () => {
+  const fn = confirmFn;
+  $('confirm').hidden = true; $('veil').hidden = true; confirmFn = null;
+  if (fn) fn();
+};
+$('confirmno').onclick = () => { $('confirm').hidden = true; $('veil').hidden = true; confirmFn = null; };
+
+// ── back / entry ────────────────────────────────────────────────────
+$('back').onclick = showHome;
+// native chevron contract (future builds): step one level, else let the app out
+window.__navBack = () => {
+  if (!$('room').hidden) { showHome(); return true; }
+  return false;
+};
+
+const openId = localStorage.getItem('cutroom_open');
+if (openId) enterRoom(openId); else showHome();
+</script>
+</body>
+</html>

@@ -12,6 +12,10 @@ struct LessonsView: View {
     @State private var loadFailed = false
     @State private var reloadKey = 0
 
+    /// The /lessons page's own paper (`body{background:#fdf9f3}`), so the nav
+    /// bar matches the page instead of showing a white strip above it.
+    static let paper = Color(red: 0.992, green: 0.976, blue: 0.953)
+
     var body: some View {
         Group {
             if loadFailed {

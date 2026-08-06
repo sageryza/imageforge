@@ -23,6 +23,16 @@ PILL_CSS = """
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
 #spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+/* The pill's glyphs must survive any HOST page's global svg rules — a page
+   that declares `svg{fill:none}` (editor.html, cuttingroom.html) was
+   hollowing the play triangle (Sophie: "the play arrow is normally filled
+   in, but the one I see on yours is hollow"). CSS beats an SVG's own
+   presentation attributes, so reassert each glyph's attributes at higher
+   specificity than any bare-`svg` page rule can reach. */
+.float svg{fill:none; stroke:currentColor; stroke-width:1.8; width:auto; height:auto;}
+.float svg[fill="currentColor"]{fill:currentColor;}
+.float svg[stroke-width="1"]{stroke-width:1;}
+.float svg:not([stroke]){stroke:none;}
 """
 
 PILL_HTML = """
@@ -70,7 +80,13 @@ function stepPill(ts){
     if(atEnd) scrollStop(); }
   last=ts; raf=requestAnimationFrame(stepPill);
 }
-function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function canScroll(d){ return d>0 ? (window.innerHeight+window.scrollY < document.body.scrollHeight-4) : (window.scrollY>2); }
+// Pressing play at an end of the page used to do nothing at all: autoscroll
+// remembers the direction it stopped in, so after riding UP to the top the next
+// play still meant "up" and there was nowhere to go. A direction with no room
+// flips to the one that has room, so a press always moves the page.
+function scrollStart(d){ if(!canScroll(d) && canScroll(-d)) d=-d;
+  dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
 function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;

@@ -321,6 +321,13 @@ def download_audio(binary, video_id, workdir, audio_format):
 
 
 # ── Firebase ───────────────────────────────────────────────────────────
+# (upload_bytes / upload_file live at the top of the file, next to
+# UPLOAD_CHUNK. They MUST stay on the blob.open("wb", chunk_size=...) form:
+# in google-cloud-storage 3.x, upload_from_string()/upload_from_filename()
+# ignore blob.chunk_size for anything under 8MiB and send ONE multipart POST
+# — the exact request shape that stalls on this network. Measured: 1.5MB via
+# upload_from_string 62s with a retry; via blob.open 1.2s.)
+
 
 def find_key_file():
     """No env vars set? Look for the Deck Factory key file in the obvious Mac

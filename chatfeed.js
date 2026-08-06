@@ -7,7 +7,10 @@
 //   GET  /api/chatfeed           → { chats:{name:{icon}}, messages:[...] } (newest first)
 //   GET  /api/chatfeed?since=ISO → delta: only messages newer than ISO, for
 //                                  polling (0-2 reads instead of 1500)
-//   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr? }
+//   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr?,
+//                                  turn?, working? } — turn = stable per-turn key:
+//                                  the post UPSERTS that turn's one message (live
+//                                  drafts; working:true = still being written)
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
 //   GET  /api/chatfeed/search?q= → substring search across every message
@@ -28,6 +31,7 @@
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -391,7 +395,7 @@ router.get('/thread', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr, url, account, session, explicit } = req.body || {};
+    const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -429,14 +433,51 @@ router.post('/', async (req, res) => {
         doc.audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
       }
     }
-    const ref = await db().collection(MSGS).add(doc);
+    // Live drafts (Aug 2026): a post carrying `turn` — a stable per-turn key
+    // from the hook (the transcript uuid of the user message that started the
+    // turn) — UPSERTS one message per turn instead of appending a new doc.
+    // That's what lets the hook post the prose a chat writes BEFORE it starts
+    // coding (working:true, the app shows "still writing…"), grow it as more
+    // text lands between tool calls, and have the normal end-of-turn post
+    // finalize the SAME message (working cleared, TLDR set) — one message in
+    // the thread, never a duplicate. The doc id is deterministic from
+    // session|turn (falling back to chat|turn), NOT from the chat slug alone,
+    // so a mid-turn slug re-resolution or a renamed chat can never fork a
+    // draft; the final post simply re-patches `chat` to the current
+    // resolution. postedAt bumps on every write, which is what re-delivers
+    // the updated doc through the app's delta poll.
+    let msgId;
+    const turnKey = String(turn || '').slice(0, 120);
+    if (turnKey) {
+      msgId = 't' + crypto.createHash('sha1')
+        .update((skey || doc.chat) + '|' + turnKey).digest('hex').slice(0, 28);
+      const ref = db().collection(MSGS).doc(msgId);
+      if (working) doc.working = true;
+      const prev = await ref.get();
+      if (prev.exists) {
+        // keep the first write's `created` (it's what the unread dot keys on —
+        // a draft pings once when it appears, never again as it grows/finishes)
+        const patch = {
+          chat: doc.chat, text: doc.text, tldr: doc.tldr, postedAt: doc.postedAt,
+          working: working ? true : admin.firestore.FieldValue.delete(),
+        };
+        if (doc.url) patch.url = doc.url;
+        if (doc.audioUrl) patch.audioUrl = doc.audioUrl;
+        await ref.update(patch);
+      } else {
+        await ref.set(doc);
+      }
+    } else {
+      const ref = await db().collection(MSGS).add(doc);
+      msgId = ref.id;
+    }
     const reg = { lastSeen: doc.created };
     if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
     await regRef(doc.chat).set(reg, { merge: true });
-    res.json({ ok: true, id: ref.id });
+    res.json({ ok: true, id: msgId });
   } catch (err) { fail(res, err); }
 });
 

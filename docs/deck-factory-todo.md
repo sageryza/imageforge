@@ -64,3 +64,23 @@ then build it and check it off here.
 - [x] **Take THE FILMS section off the Story Room home.** (Done Aug
   2026.) Unmatched films (dream experiments, tests) wait behind the
   home's Films button; the button only shows when any exist.
+
+## Voice Memos
+
+- [x] **ONE path into the Voice Memo library — always transcribed,
+  never doubled, never lost.** (Sophie 2026-08-05; built same day.)
+  Every entry point now funnels through `memos.fileIntoArchive()`:
+  the Mac push (unchanged), the iOS share sheet / audio drop
+  (`audio.js` auto-files every recording, transcription
+  unconditional — the old toggle is ignored), Story Room voiceover
+  pastes (recordings file too; TTS renders don't), and a chat's
+  pasted recording (`POST /api/memos/ingest`, stamp now OPTIONAL —
+  derived server-side, md5 guards). Dedupe is belt and braces:
+  `hash` (md5 of bytes) on every record plus the wall-clock stamp;
+  derived stamps never skip on stamp alone and carry a hash suffix
+  in the id so two recordings in the same minute can't overwrite
+  each other. Bank first, enrich after — a Whisper failure files the
+  audio with `enrichError` instead of losing it. Backfill:
+  `scripts/memo-unify-backfill.js` (phase A hashed the existing
+  records from Storage md5 metadata; phase B merged `forge-audio`
+  strays via the live server).
