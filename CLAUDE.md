@@ -817,10 +817,23 @@ lifted into a standalone tool later.
   "html": "<the full self-contained page>" }` (x-studio-token when gated;
   ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
   Compare) and opens full-screen in the app — that's where she'll look for it,
-  next to your assets. Design the HTML however the comparison needs (mobile
+  next to your assets. Lay the content out however the comparison needs (mobile
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
   your own scroll pill.
+  **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
+  styled differently — there should be one style").** Start every new page
+  from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
+  (same-origin — served pages can link it; the skeleton is documented at the
+  top of `public/compare.css`: `.wrap` > `.eyebrow`/`h1`/`.sub`, then
+  `.card`/`.big`/`.chips`/`.imgrow` blocks). Do NOT hand-roll a fresh look
+  per page, and do NOT override the `:root` tokens. **The tokens are also
+  what fixes the pill:** the injected pill styles itself with the host page's
+  `--ink`/`--paper`/`--chg`/`--ink2`/`--rose` variables, so a page that
+  defines none of them renders the pill BLACK on transparent (this is why
+  every hand-rolled page's pill looked broken — Sophie caught it). If a page
+  genuinely can't link the stylesheet, it MUST at least define those five
+  `:root` tokens.
   **ANY tap pauses the autoscroll (Aug 2026, Sophie's rule — every Compare
   page MUST have this).** While she's interacting with a page — voting,
   typing a name, tapping anything at all — the page must not keep creeping
