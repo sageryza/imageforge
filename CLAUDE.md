@@ -1742,10 +1742,17 @@ lifted into a standalone tool later.
   drawing, not a generic palette — same vector as the iOS tile
   (`Assets.xcassets/Playground.imageset`, mirrored as `ICON_PLAY` in
   `gen-scratchpad.py`). Keep the copies in step.
+- **Deliberately UNLINKED pages (Aug 2026, Sophie's call — don't "fix" by
+  adding tiles):** the `/audio` page (superseded — the share sheet routes
+  audio into the memo library now; the `audio.js` API underneath is still
+  live machinery), `/crystals` and `/import` (project-specific drop boxes,
+  superseded for day-to-day use by the share sheet / Dump; kept because
+  their data and APIs are real), and `/wall` (the everything-feed; no tile
+  asked for). The pages still serve at their URLs for a chat or a browser.
 - **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
   **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
   latter behind the **briefcase** beside the test tube, holding Instagram,
-  Ads and Blog Studio. `Tool.isBusiness` decides which grid a tool lands on;
+  Ads, Blog Studio, the Product Creator and the Shop Report. `Tool.isBusiness` decides which grid a tool lands on;
   a tool is on ONE grid, never both, so each home stays scannable. The
   business home's top-left is a **house** back to the making home; Chats
   keeps its top-right corner on both. Deep link: `deckfactory://business`.

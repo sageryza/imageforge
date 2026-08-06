@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad, voice, song, character, films
     var id: String { rawValue }
 
     var title: String {
@@ -19,6 +19,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       return "Ads"
         case .blog:      return "Blog Studio"
         case .product:   return "Product Creator"
+        case .report:    return "Shop Report"
         case .story:     return "Story Room"
         case .lessons:   return "Lessons"
         case .writing:   return "Writing Room"
@@ -29,6 +30,10 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      return "Dump"
         case .playground: return "Playground"
         case .scratchpad: return "Scratch Pad"
+        case .voice:     return "Voice Studio"
+        case .song:      return "Song Station"
+        case .character: return "Characters"
+        case .films:     return "Films"
         }
     }
 
@@ -44,6 +49,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       return "Run Instagram & Facebook ads — no confusing Ads Manager."
         case .blog:      return "Turn a topic into an SEO post — then publish it."
         case .product:   return "An idea → designs → real products, as Etsy drafts."
+        case .report:    return "How the shop is really doing — winners, sleepers, fixes."
         case .story:     return "Every story in one room — words, voice, art, films."
         case .lessons:   return "Every finished lesson & story in one map — tap to read."
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
@@ -54,6 +60,10 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      return "Send whole albums here — sort them out later."
         case .playground: return "Try prompts on a style — four images a run, same seed."
         case .scratchpad: return "Think in pictures — hearted art laid out as beats."
+        case .voice:     return "Your voices read anything you type."
+        case .song:      return "Sing a made-up song — keep your voice, gain a band."
+        case .character: return "The recurring people — cards that keep faces consistent."
+        case .films:     return "Films without a story — experiments and one-offs."
         }
     }
 
@@ -78,10 +88,15 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      return "tray.and.arrow.down"
         case .blog:      return "newspaper"
         case .product:   return "shippingbox"
+        case .report:    return "chart.line.uptrend.xyaxis"
         case .playground: return "paintpalette" // fallback; .playground uses a custom asset (see customIcon)
         // The pad IS the Story Room now, so it wears the Story Room's books —
         // the old dashed placement slot read as a different tool in the bar.
         case .scratchpad: return "books.vertical"
+        case .voice:     return "waveform"
+        case .song:      return "music.note"
+        case .character: return "person.crop.rectangle"
+        case .films:     return "film.stack"
         }
     }
 
@@ -110,6 +125,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       AdsView()
         case .blog:      BlogView().forgeToolBar("Blog Studio")
         case .product:   ProductCreatorView().forgeToolBar("Product Creator")
+        case .report:    GatedWebTool(path: "/report", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis").forgeToolBar("Shop Report")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -123,6 +139,10 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      DumpView().forgeToolBar("Dump")
         case .playground: PlaygroundView()
         case .scratchpad: ScratchPadView()
+        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform").forgeToolBar("Voice Studio")
+        case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true).forgeToolBar("Song Station")
+        case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle").forgeToolBar("Characters")
+        case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack").forgeToolBar("Films")
         }
     }
 }
@@ -173,7 +193,7 @@ extension Tool {
     /// the other, never both, so each home stays a short scannable list.
     var isBusiness: Bool {
         switch self {
-        case .instagram, .ads, .blog, .product: return true
+        case .instagram, .ads, .blog, .product, .report: return true
         default: return false
         }
     }
@@ -438,7 +458,10 @@ private struct HomeGrid: View {
     // storybooks, and coloring pages pinned last; everything in between rotates
     // by most-recent use.
     private var tools: [Tool] {
-        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring]
+        // Voice Studio, Song Station, Characters and Films sit BELOW the four
+        // making staples — Sophie's call: present, but at the end of the list.
+        let pinnedBottom: [Tool] = [.greeting, .sticker, .storybook, .coloring,
+                                    .voice, .song, .character, .films]
         // Chats and Test Station aren't grid cards — they live as the corner
         // icons in the header (chats top-right, test station top-left).
         // .scratchpad is hidden: the pad IS the Story Room now (the .story
