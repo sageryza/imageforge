@@ -1635,6 +1635,21 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
+  - **A RE-ENCODED copy defeats BOTH dedupe layers and lands as an unlabeled
+    duplicate tile (Aug 2026 — this bit Sophie during the style-ref
+    experiments).** The hook auto-files every image sent with SendUserFile;
+    identical bytes collapse onto the labeled tile by content hash, and same
+    filenames union in the tab — but a converted copy (webp→png for chat
+    preview) has NEW bytes AND a NEW random filename, so it files as a fresh
+    tile with NO label, next to the labeled original. Labeling only the
+    storage URL is therefore NOT enough. Avoid it: send the ORIGINAL file
+    (bytes untouched) whenever the image already lives in Storage; if a
+    conversion is genuinely needed for chat, then AFTER the reply finishes,
+    sweep `GET /api/gallery/assets?chat=` for new unlabeled tiles and label
+    each (`POST /api/gallery { assetsOnly:true, chat, url, description }`,
+    matching by downloaded content hash when unsure which is which). An
+    experiment's versions MUST each carry their version label on EVERY copy —
+    an unlabeled variant makes the whole comparison unreadable.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
