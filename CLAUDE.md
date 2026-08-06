@@ -2052,9 +2052,19 @@ lifted into a standalone tool later.
   (inline JSON). Idempotent — re-running skips what's banked. Example:
   `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
   (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
-- **The one-command way Sophie runs it: `cd ~/imageforge && git pull && ./scripts/grab`**
+- **The one-command way Sophie runs it:
+  `cd ~/imageforge && git checkout main && git pull origin main && ./scripts/grab`**
   — paste links when asked, Return on an empty line (or
-  `./scripts/grab --file scripts/nde-urls.txt`). The wrapper builds a private
+  `./scripts/grab --file scripts/nde-urls.txt`). **`git checkout main` is load-
+  bearing, not boilerplate:** her Mac checkout is where chats park
+  work-in-progress branches, and it sat on one (`grab-python-fallback`) for
+  days — so a bare `git pull` kept answering "Already up to date" while
+  updating THAT branch, an already-merged fix never arrived, and the same
+  failure repeated every run with nothing in the output to reveal why.
+  `scripts/grab` now warns when it isn't on main (or when main is behind) and
+  prints that command. It deliberately WARNS instead of switching by itself —
+  a silent `git checkout` from inside a download tool can strand another
+  chat's uncommitted work. The wrapper builds a private
   venv (`.grab-venv`) with the two Google packages on first run, so the Mac's
   own pip/python state can never break it; every argument passes through to
   `nde-grab-local.py`. Idempotent — re-running skips what's banked, so a
