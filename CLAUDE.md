@@ -2350,6 +2350,38 @@ lifted into a standalone tool later.
   `__nativeNavBar` hides the page back button, media paused on screen
   changes — `audio,video` both). Page carries the injected shared pill;
   native pill suppressed in RootView's `showAutoScroll`.
+## Getting original art OUT of a Google Drawing (Aug 2026)
+Sophie's old scanned artwork lives inside Google Drawings — for a lot of it
+those embedded copies are the only ones left. **The SVG export is the only way
+out at full size**, and `scripts/gdrawing-extract.py` (stdlib only) does the
+whole job: `python3 scripts/gdrawing-extract.py <url-or-id> [-o dir] [--list]`.
+- **Why SVG:** File ▸ Download ▸ PNG/JPEG flattens the whole drawing to ONE
+  image at **screen size** (~1056x816 — useless for print). The SVG export
+  instead embeds every placed image as its own base64 blob at the size Google
+  stored it, so splitting the SVG apart returns each picture individually at
+  full resolution.
+- **Don't reach for the Drive API export** (`download_file_content`,
+  `mimeType=image/svg+xml`): it has a hard **~10MB cap** and answers *"File too
+  large for export"* for any drawing full of scans. The plain public URL
+  `https://docs.google.com/drawings/d/<id>/export/svg` has no such cap (84MB
+  came down fine) — that's what the script uses.
+- **It needs link sharing.** That URL is unauthenticated, so a restricted
+  drawing 401s; Sophie sets Share ▸ General access ▸ "Anyone with the link"
+  (Viewer is enough) and can set it back afterwards. The script prints exactly
+  that instruction on a 401 instead of a stack trace.
+- **Reading the sizes:** anything sitting EXACTLY on **2500px** hit Google's
+  upload resize ceiling, so the original was bigger; anything under it is the
+  size she uploaded. **2500 applies to PNG as well as JPEG** — an earlier note
+  here claimed PNGs capped at 2048, which is wrong (2048 is just a common
+  export size, and PNGs come out at 2500 all the time). Either way it is the
+  biggest copy that still exists. Bytes are Google's re-encode (same pixels,
+  metadata stripped), never the byte-for-byte original file.
+- Duplicates are skipped by content hash — drawings copied from other drawings
+  repeat images heavily (one 46-image drawing shared 9 with its sibling).
+- **A two-figure image** (two people in one placed picture, often on a
+  transparent background) splits cleanly on the empty alpha column between
+  them, then composites onto white — Pillow + numpy, see the Blake-and-Louis
+  pair in the Aug 2026 chat.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
