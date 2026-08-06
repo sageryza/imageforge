@@ -1,9 +1,16 @@
-// "The meteorite" — watercolor prompts (Playground ChatGPT style), Aug 2026.
-// Sophie's ask: image prompts for the meteorite story she narrated, to be made
-// in the ChatGPT watercolor style and eventually animated. Same 12 beats and
-// beat ORDER as beats.js (the narration supercut is already cut to those spans,
-// so this art lines up with the existing audio); the spans themselves live in
-// beats.js only — this file is the PROMPTS.
+// "The meteorite" — watercolor prompts (Playground ChatGPT style), v2 Aug 2026.
+// v1 was staged too close to the pastel short and drew the ex-boyfriend wrong;
+// Sophie asked for a full rewrite (Aug 2026): the watercolor reference has a
+// totally different feeling, so these are re-imagined as diary-drawing moments
+// — intimate framing, real rooms, humor from body language — not the pastel
+// cartoon re-worded. Same 12 beats and beat ORDER as beats.js (the narration
+// supercut is already cut to those spans, so the art lines up with the
+// existing audio); the spans themselves live in beats.js only.
+//
+// The ex-boyfriend, per Sophie: BLONDE hair, ROUND GLASSES, average build
+// ("not skinny... just normal"), smug — but he also gets scared. The pale
+// blue button-up + dark trousers are Claude's continuity pick (she gave no
+// wardrobe) — flagged to her, swap on request.
 //
 // Style rules (docs/evan-film-style.md — do not re-derive):
 // - Prompts are PURE CONTENT. No watercolor/ink/palette words — the attached
@@ -13,35 +20,40 @@
 // - "Sophie" in a prompt + the Sophie character toggle ON draws her from
 //   refs/sophie-character.png.
 // - The ex-boyfriend has NO card yet, so his look rides as the same written
-//   description (BOY) in every prompt he appears in — the movies pipeline's
-//   character-continuity-tokens technique. Once Sophie hearts a reference
-//   render, bank it (like refs/evan-character.png) and later renders can
-//   attach it instead.
+//   description (BOY) in every prompt he appears in. Once Sophie hearts a
+//   reference render, bank it (like refs/evan-character.png) and later
+//   renders can attach it instead.
 // - `dream` = an optional second panel per Sophie's literal→metaphorical pair
 //   formula (docs/movies/sophies-movie-pipeline.md): same people, same moment,
 //   only the world transformed; the animation goes BETWEEN panel A and B.
 // - Motion notes are SCENE-DRIVEN (the README rule) — no house motion default.
 
 module.exports.BOY =
-  'a tall young man with short dark brown hair in a grey crewneck sweatshirt';
+  'a young man with short blonde hair, round glasses and an average build, ' +
+  'in a pale blue button-up shirt';
 
 module.exports.CHARACTER_REFS = {
   sophie: {
     label: 'Sophie — character reference (Sophie toggle ON)',
     prompt:
       'Sophie stands facing the viewer on a plain pale background, full body ' +
-      'from head to toe, relaxed, hands at her sides, with a small smile — a ' +
-      'clean simple character portrait with nothing else in the scene.',
+      'from head to toe, hands loose at her sides, with a small knowing ' +
+      'smile — a clean simple character study with nothing else in the scene.',
   },
   boy: {
     label: 'The boy — character reference (Sophie toggle OFF)',
     prompt:
-      'A character portrait of a tall young man in his late twenties with ' +
-      'short dark brown hair, standing on a plain pale background, full body ' +
-      'from head to toe, facing the viewer. He wears a grey crewneck ' +
-      'sweatshirt, dark jeans and white sneakers, hands in his pockets, chin ' +
-      'slightly up, with a confident, slightly smug expression. Nothing else ' +
-      'in the scene.',
+      'A character study of a young man in his late twenties standing on a ' +
+      'plain pale background, full body from head to toe, facing the viewer: ' +
+      'short blonde hair, round glasses, an average build — not skinny — ' +
+      'wearing a pale blue button-up shirt and dark trousers, hands in his ' +
+      'pockets, with a slightly smug expression. Nothing else in the scene.',
+    scaredPrompt:
+      'A character study of the same young man — short blonde hair, round ' +
+      'glasses, an average build, pale blue button-up shirt and dark ' +
+      'trousers — standing on a plain pale background, shoulders raised, ' +
+      'hands half lifted, eyes wide behind his glasses, scared. Nothing ' +
+      'else in the scene.',
   },
 };
 
@@ -49,180 +61,173 @@ module.exports.BEATS = [
   {
     label: 'Meteorite 1 — the confession (I think I cursed my ex)',
     content:
-      'Sophie sits cross-legged on her bed at night staring straight at the ' +
-      'viewer with wide worried eyes, both hands pressed to her cheeks, like ' +
-      'she is confessing to a camera; a few small stars and a tiny crescent ' +
-      'moon wobble in the air around her head.',
+      'Sophie sits on the floor at the foot of her bed late at night, ' +
+      'hugging a pillow to her chest, looking straight out at the viewer ' +
+      'with a guilty, worried face like she is about to admit something; ' +
+      'the room is dark around her except one small warm lamp.',
     motion:
-      'Nervous confession energy: she leans in toward the viewer, eyes ' +
-      'darting quickly side to side, pressing her hands harder into her ' +
-      'cheeks while the stars around her head jitter and tremble.',
+      'She glances over her shoulder like someone might hear, then leans in ' +
+      'closer to the viewer and squeezes the pillow tighter.',
   },
   {
     label: 'Meteorite 2 — the $10,000 meteorite in its case',
     content:
-      'Sophie holds up a small clear display case with a dark grey lumpy ' +
-      'meteorite inside, speckled with tiny glinting metallic flecks, ' +
-      'presenting it to the viewer with both hands and raised eyebrows like ' +
-      'it is proof; a few small sparkles float around the case.',
+      'A close view of Sophie\'s two hands holding a small clear display ' +
+      'case out toward the viewer, a dark grey lumpy meteorite inside with ' +
+      'tiny bright metallic flecks; Sophie\'s face is just above the case, ' +
+      'eyebrows raised, daring the viewer not to believe her.',
     motion:
-      'A slow dramatic camera push-in toward the display case as she raises ' +
-      'it higher, the metallic flecks flaring one by one like a jewel under ' +
-      'lights.',
+      'She tilts the case slowly left and right so the metal flecks catch ' +
+      'the light, then lifts it a little closer to the viewer.',
     dream: {
       content:
-        'The same small dark grey lumpy meteorite, huge in the frame, ' +
-        'tumbling alone through deep dark space with tiny stars all around ' +
-        'and a thin bright streak of light trailing behind it.',
+        'The same dark grey lumpy meteorite falling through deep black ' +
+        'space toward a tiny far-away Earth, a long thin streak of light ' +
+        'behind it, its metallic flecks glowing.',
       animate:
-        'A→B: the display case and Sophie\'s hands dissolve away as the ' +
-        'camera closes on the rock until it is falling through space.',
+        'A→B: her hands and the room fade and the case\'s glass disappears ' +
+        'until the rock is falling alone through space.',
     },
   },
   {
     label: 'Meteorite 3 — the witchcraft business (retired voodoo dolls)',
     content:
-      'Sophie stands proudly behind a small market stall of witchy goods — ' +
-      'potion bottles, a crystal ball, a stack of tarot cards — while on a ' +
-      'shelf behind her a row of small stitched voodoo dolls sits with one ' +
-      'tipped over into a wastebasket.',
+      'Sophie sits at a cluttered work table packing witchcraft-shop orders ' +
+      '— wrapping a crystal in paper, small shipping boxes and stacks of ' +
+      'tarot cards around her — while at her feet an open cardboard box ' +
+      'stuffed with little stitched voodoo dolls waits to be taped shut and ' +
+      'put away.',
     motion:
-      'Busy shopkeeper pride: she sweeps one arm across the stall presenting ' +
-      'her goods, the tarot cards fan out and flutter, and the tipped voodoo ' +
-      'doll drops the rest of the way into the wastebasket.',
+      'She keeps wrapping, and without looking at it nudges the box of ' +
+      'voodoo dolls further under the table with her foot.',
   },
   {
     label: 'Meteorite 4 — pins into his stomach, from bed',
     content:
-      'Sophie lies in bed at night under a pale quilt with her eyes open, ' +
-      'and above her floats one large round thought bubble showing the ' +
-      'simple dark silhouette of a man with long sewing pins angled toward ' +
-      'his stomach.',
+      'Seen from directly above, Sophie lies in bed at night with the ' +
+      'blanket pulled up to her chin and her eyes wide open, and the ' +
+      'darkness around the bed is full of long sewing pins drifting slowly ' +
+      'toward a faint pale silhouette of a man at the edge of the dark.',
     motion:
-      'Menace building: the thought bubble swells larger and looms over the ' +
-      'bed as the pins drive into the silhouette one after another, and her ' +
-      'hands slowly clench the quilt.',
+      'The pins drift inward a little at a time while her eyes stay fixed ' +
+      'open, unblinking.',
     dream: {
       content:
-        'Inside the vision: a vast dark empty space where a huge simple ' +
-        'silhouette of a man floats with long sewing pins driving toward his ' +
-        'stomach from every direction, while far below in one corner of the ' +
-        'darkness tiny Sophie lies in her small bed, watching.',
+        'The vision fills the whole frame: a pale silhouette of a man ' +
+        'floating in darkness while long sewing pins slide slowly into his ' +
+        'stomach from every side; far below, at the bottom edge of the ' +
+        'dark, one small bed with Sophie in it.',
       animate:
-        'A→B: the camera rises into the thought bubble until its inside ' +
-        'becomes the whole frame and the bedroom is gone.',
+        'A→B: the bedroom darkness swallows the frame until only the ' +
+        'vision is left.',
     },
   },
   {
     label: 'Meteorite 5 — the vow: if this is real, I want to know',
     content:
-      'Sophie sits up cross-legged on her bed at night with one hand raised ' +
-      'like she is swearing a solemn oath, her face serious, a ring of small ' +
-      'stars circling her raised hand.',
+      'Sophie sits up in bed in the middle of the night, blanket pooled ' +
+      'around her waist, one hand pressed flat over her chest, chin lifted, ' +
+      'speaking up into the dark ceiling like she is addressing someone who ' +
+      'might be listening.',
     motion:
-      'A vow being sealed: the ring of stars snaps into a fast spin around ' +
-      'her raised hand, flares bright, then locks still all at once as her ' +
-      'jaw sets with resolve.',
+      'A slow push-in on her face as her chin lifts and her jaw sets; the ' +
+      'dark above her seems to lean down and listen.',
   },
   {
     label: 'Meteorite 6 — he shows up with stomach pain',
     content:
-      'Sophie holds her front door open with one eyebrow raised while her ' +
-      'ex-boyfriend — a tall young man with short dark brown hair in a grey ' +
-      'crewneck sweatshirt — stands hunched in the doorway clutching his ' +
-      'stomach, his face miserable.',
+      'Sophie\'s ex-boyfriend — a young man with short blonde hair, round ' +
+      'glasses and an average build, in a pale blue button-up shirt — ' +
+      'stands on her doorstep bent forward with both arms wrapped around ' +
+      'his stomach, his glasses slipping down his nose, his smugness gone ' +
+      'grey and scared; Sophie leans on the doorframe with her arms ' +
+      'crossed, looking at him sideways.',
     motion:
-      'A wave of pain hits him: he doubles over clutching his stomach and ' +
-      'staggers a half step against the doorframe, while she coolly raises ' +
-      'her eyebrow and holds the door.',
+      'He winces through a wave of pain and grips his stomach tighter, his ' +
+      'glasses sliding further down; she just slowly tilts her head.',
   },
   {
     label: "Meteorite 7 — the skeptic (none of that's real, babe)",
     content:
-      'Sophie\'s ex-boyfriend — a tall young man with short dark brown hair ' +
-      'in a grey crewneck sweatshirt — stands with his arms crossed and chin ' +
-      'up, dismissive, surrounded by floating doodles of an atom, a beaker ' +
-      'and a magnet, while on the other side of the scene a small witch hat ' +
-      'and a crystal ball float near Sophie, who watches him flatly.',
+      'Sophie\'s ex-boyfriend — a young man with short blonde hair, round ' +
+      'glasses and an average build, in a pale blue button-up shirt — leans ' +
+      'back on a couch with one finger raised like a professor, mid-lecture ' +
+      'and smug, while Sophie sits at the other end of the couch with her ' +
+      'tarot cards spread on the cushion beside her, glaring at him.',
     motion:
-      'Dismissive lecture energy: he swats the witch hat out of the air with ' +
-      'the back of his hand so it tumbles, the science doodles wobbling ' +
-      'smugly on their orbits around him.',
+      'He rocks back further, very pleased with himself; her eyes narrow ' +
+      'and one tarot card flicks between her fingers.',
   },
   {
     label: 'Meteorite 8 — the meteorite instead of escrow',
     content:
-      'At a small table, Sophie\'s ex-boyfriend — a tall young man with ' +
-      'short dark brown hair in a grey crewneck sweatshirt — pushes the ' +
-      'meteorite in its clear display case across the table toward Sophie ' +
-      'with both hands; a small tied money bag sits ignored at the edge of ' +
-      'the table; Sophie stands with her arms crossed, unimpressed.',
+      'At Sophie\'s kitchen table, her ex-boyfriend — a young man with ' +
+      'short blonde hair, round glasses and an average build, in a pale ' +
+      'blue button-up shirt — slides the meteorite in its clear case across ' +
+      'the table toward her while avoiding her eyes; Sophie sits with her ' +
+      'chin in her hand, unmoved, not touching it.',
     motion:
-      'The bargain: he shoves the case across the table so it slides and ' +
-      'stops right in front of her, sparkles scattering off it — and she ' +
-      'does not move at all, arms crossed.',
+      'The case slides to a stop in front of her; he glances up hopefully; ' +
+      'she does not move, chin still in her hand.',
   },
   {
     label: 'Meteorite 9 — the rat under the table (he was lying)',
     content:
-      'Sophie and her ex-boyfriend — a tall young man with short dark brown ' +
-      'hair in a grey crewneck sweatshirt — sit across from each other at a ' +
-      'small restaurant table at night; under the table a little grey rat ' +
-      'looks up knowingly; he looks away sweating while Sophie leans in, ' +
-      'staring at him.',
+      'Sophie and her ex-boyfriend — a young man with short blonde hair, ' +
+      'round glasses and an average build, in a pale blue button-up shirt — ' +
+      'sit at a small restaurant table at night; in the shadow under the ' +
+      'table a little grey rat has stopped between their feet and is ' +
+      'looking straight up at him; above the table he is sweating and ' +
+      'looking away from Sophie\'s stare.',
     motion:
-      'Comic reveal timing: the rat pops up taller and its whiskers twitch ' +
-      'rapidly, a fat sweat drop falls off his face as he looks away, and ' +
-      'she leans in sharply, unblinking.',
+      'The rat\'s whiskers twitch; a bead of sweat rolls down his temple; ' +
+      'Sophie leans in an inch, unblinking.',
   },
   {
     label: 'Meteorite 10 — the mobius strip ritual',
     content:
-      'Four friends sit in a circle on a living room rug at night with lit ' +
-      'candles, each holding up a twisted white paper loop; Sophie sits ' +
-      'among them, and in the center of the circle the meteorite sits in its ' +
-      'clear case, glowing faintly.',
+      'Sophie and three friends sit close in a circle on a rug at night, ' +
+      'their faces lit from below by candles, each holding a twisted white ' +
+      'paper loop; in the middle of the circle the meteorite sits on a ' +
+      'folded cloth, out of its case; the room around them is dark.',
     motion:
-      'Ceremony rising: all the candle flames leap tall at the same moment, ' +
-      'the friends turn their paper loops in unison, and the glow around the ' +
-      'meteorite surges outward in a slow ring.',
+      'The candle flames stretch tall together, shadows climb the walls, ' +
+      'and each paper loop turns slowly in their fingers.',
   },
   {
     label: 'Meteorite 11 — the gibberish blessing song',
     content:
-      'Sophie sits on her bed at night singing with her eyes closed, ' +
-      'colorful music notes floating up from her mouth, while her ' +
-      'ex-boyfriend — a tall young man with short dark brown hair in a grey ' +
-      'crewneck sweatshirt — lies curled up beside her crying big tears into ' +
-      'a pillow.',
+      'Sophie kneels on her bed at night, singing with her eyes closed and ' +
+      'one hand resting on the shoulder of her ex-boyfriend — a young man ' +
+      'with short blonde hair and an average build, his round glasses set ' +
+      'on the nightstand — who lies curled on his side in his pale blue ' +
+      'button-up shirt, crying into the pillow.',
     motion:
-      'Emotional swell: the music notes pour out faster and rise in a ' +
-      'widening spiral, his shoulders heave with sobs, and one big tear ' +
-      'splashes onto the pillow.',
+      'Her head sways gently with the song; his shoulders shake harder; ' +
+      'one tear runs into the pillow.',
     dream: {
       content:
-        'The same bed now floating in open night sky among stars, Sophie ' +
-        'still singing with her eyes closed, the colorful music notes ' +
-        'spiraling up and becoming constellations, her ex-boyfriend — a ' +
-        'tall young man with short dark brown hair in a grey crewneck ' +
-        'sweatshirt — still curled up beside her, crying.',
+        'The same bed drifting in a huge open night sky full of stars, ' +
+        'Sophie still kneeling and singing with her eyes closed, her hand ' +
+        'still on the shoulder of her ex-boyfriend — a young man with ' +
+        'short blonde hair and an average build, in a pale blue button-up ' +
+        'shirt, his round glasses beside him — while a soft pale ribbon ' +
+        'unwinds from her mouth up into the stars.',
       animate:
-        'A→B: the bedroom walls drift away and stars fade in around the bed ' +
-        'while the song keeps going — same people, same moment, only the ' +
-        'world changed.',
+        'A→B: the bedroom walls thin away and stars come out around the ' +
+        'bed while nothing about the two of them changes.',
     },
   },
   {
     label: 'Meteorite 12 — "what did it mean?"',
     content:
-      'Sophie\'s ex-boyfriend — a tall young man with short dark brown hair ' +
-      'in a grey crewneck sweatshirt — lies in bed rolled over to face ' +
-      'Sophie with puffy eyes and a baffled expression; above Sophie floats ' +
-      'a small thought bubble containing only colorful meaningless squiggles ' +
-      'as she shrugs with a tiny smile.',
+      'Sophie\'s ex-boyfriend — a young man with short blonde hair and an ' +
+      'average build, in a pale blue button-up shirt, holding his round ' +
+      'glasses in one hand, his eyes puffy from crying — has rolled over ' +
+      'in bed at night to face Sophie and is asking her something ' +
+      'desperately; Sophie looks back at him and shrugs, with a tiny smile.',
     motion:
-      'Deadpan punchline: everything holds perfectly still for a beat — then ' +
-      'only the squiggles in the thought bubble scramble wildly while he ' +
-      'blinks, and she gives one small shrug.',
+      'He blinks at her, waiting; she holds the shrug a long beat, and her ' +
+      'tiny smile widens just a little.',
   },
 ];
