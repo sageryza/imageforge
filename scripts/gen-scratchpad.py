@@ -51,6 +51,13 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
    leaving a story feels like going back. */
 header{display:block; text-align:center; padding:6px 0 0; position:relative;}
 header #storiesbtn{position:absolute; left:0; top:2px;}
+/* In the app the native nav bar already says STORY ROOM — never two titles
+   (the Playground rule). Builds inject window.__nativeNavBar; the page
+   answers with body.native: the eyebrow hides and the shelf button becomes a
+   normal block so the header keeps its height instead of collapsing under
+   the absolute-positioned button. Plain browsers keep the eyebrow. */
+body.native header .no{display:none;}
+body.native header #storiesbtn{position:static;}
 /* The title row PINS to the top while she scrolls a long story, so film /
    play / add / inbox are always a thumb away (Sophie). Paper background so
    beats slide beneath it. Its z-index stays BELOW the pill's 9 (the house
@@ -977,6 +984,38 @@ function closeBeat(){stopRec(); saveNote(); document.getElementById('beatpop').h
 document.getElementById('beatpop').onclick=function(ev){
   var t=ev.target;
   if(t===this||t.id==='beatcard'||t.id==='cardin')closeBeat();
+};
+
+/* ── the app's native nav bar ──────────────────────────────────────────
+   Builds inject window.__nativeNavBar before the page runs. body.native
+   hides the page's own STORY ROOM eyebrow (the native bar already says it —
+   a double header shipped for real, Sophie's screenshot, Aug 2026). The
+   chevron asks __navBack first: close the topmost open layer — film,
+   lightbox, a confirm box, the beat popup, a sheet — each through its own
+   close path so nothing skips its cleanup (closeBeat saves the note, the
+   inbox returns to the beat it was filling). Only a bare pad answers false,
+   and the app leaves the tool. */
+if(window.__nativeNavBar) document.body.classList.add('native');
+window.__navBack=function(){
+  var el=document.getElementById('filmplay');
+  if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
+  el=document.getElementById('lightbox');
+  if(!el.hidden){ el.hidden=true; return true; }
+  el=document.getElementById('delask');
+  if(!el.hidden){ el.hidden=true; return true; }
+  el=document.getElementById('bulkask');
+  if(!el.hidden){ el.hidden=true; lock(false); return true; }
+  el=document.getElementById('beatpop');
+  if(!el.hidden){ closeBeat(); return true; }
+  el=document.getElementById('inbox');
+  if(!el.hidden){
+    el.hidden=true;
+    if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
+    return true;
+  }
+  el=document.getElementById('stories');
+  if(!el.hidden){ el.hidden=true; lock(false); return true; }
+  return false;
 };
 
 load();
