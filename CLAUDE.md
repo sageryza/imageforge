@@ -2241,6 +2241,53 @@ lifted into a standalone tool later.
   tool: tap → a card naming what every icon does, tap anywhere → hidden.
   Keep it in step with the icons if any control changes.
 
+## Cut Marks (mark your own cuts on a playhead — video or audio)
+- `cutmarks.js` (`/api/cutmarks`, page at `/cutmarks`, iOS tile "Cut Marks",
+  SF Symbol `timeline.selection`, deep link `deckfactory://cutmarks`) — the
+  **manual** sibling of the Cutting Room (Aug 2026, Sophie's ask): no
+  transcript, no waveform — she plays the file, taps the scissors at the
+  exact spot, and the marks split it into PIECES she keeps or drops; render
+  bakes one new file. Opens recordings from the audio drop AND videos from
+  the Dump (`media:'video'` docs) — one room either way.
+- **The transport is small on purpose** (Sophie rejected the big five-speed
+  shuttle in the mockup: "just to keep playing the video"): a slim horizontal
+  three-button pill — back 2s · play/pause · forward 2s — plus tap-the-strip
+  to jump. Precision lives on the MARK, not the playhead: each mark row has
+  −.1/+.1 nudges and tap-its-time-to-jump. Everything is a tap (wrist rule).
+- **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
+  them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
+  a nudge keeps the same pieces, an added mark splits one (both halves stay
+  dropped), a removed mark merges two (merged piece stays dropped only when
+  both halves were). Without the remap, nudging a boundary silently
+  un-dropped the piece beside it — caught in testing, don't regress it.
+- **Renders are exact cuts at the marked times.** Audio: one atrim+concat
+  filtergraph with 12ms edge micro-fades so a manual cut never clicks — NO
+  loudnorm (her voice rule), channels kept. Video: ONE `filter_complex`
+  trim/atrim+concat pass with a single encode (libx264 veryfast, aac) —
+  deliberately not per-piece files + concat demuxer, because concatenated
+  AAC pieces add ~24ms priming per join and walk the sound off the picture
+  (the Scratch Pad film finding). A soundless video renders video-only
+  (`hasAudio` probed at open). Audio renders also file into the audio
+  library (batch `cut-marks`, track `cutmarks`, hash-deduped).
+- **Data:** one doc per file in `forge-cutmarks` (deckfactory),
+  content-addressed by sha1 of the url (reopening resumes): `{ id, title,
+  kind, source, seconds, hasAudio, marks:[t], dropped:[key], renders (capped
+  8), job }`. `POST /:id/state {marks, dropped}` saves the whole marking
+  state (the page debounces 600ms, flushes via sendBeacon on pagehide).
+  Probe + render are background jobs on the doc (house rule); the page polls
+  and resumes from `localStorage['cutmarks_open']`.
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /sources`,
+  `GET /`, `POST /open {url, name, kind, itemId, poster}`, `GET /:id`,
+  `POST /:id/state`, `POST /:id/title`, `POST /:id/render`, `GET /:id/job`,
+  `DELETE /:id`. Tests: keptSegments/audioGraph/videoGraph are exported;
+  render graphs validated against real files (exact durations), page flow
+  validated headless (playwright).
+- iOS: `CutMarksView.swift` = the Episode Editor wrapper pattern (native
+  `.forgeToolBar("Cut Marks")`, chevron asks `window.__navBack`,
+  `__nativeNavBar` hides the page back button, media paused on screen
+  changes — `audio,video` both). Page carries the injected shared pill;
+  native pill suppressed in RootView's `showAutoScroll`.
+
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
   incaseofamnesia.com; Firebase Cloud Functions that read API keys from
