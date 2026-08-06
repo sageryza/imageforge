@@ -626,6 +626,20 @@ function extFromMime(mime = '') {
   return 'm4a';   // audio/mp4, audio/x-m4a, audio/aac
 }
 
+// ─── Safety refusals are TERMINAL, not a hiccup ─────────────────────
+// gpt-image-2's moderation refuses ordinary dream content now and then — the
+// 2026-08-03 "Mommy Evaluates Kid" render died on a breastfeeding line, flagged
+// `safety_violations=[sexual]`. A refusal is DETERMINISTIC: the same words get
+// refused every time, so every retry ladder above it is pure waste. That render
+// burned 9 API calls over ~65s of backoff and then reported "3 rounds of
+// retries", which reads like a network failure and buries the real reason.
+// So a refusal short-circuits every retry loop, and the page gets exactly ONE
+// redraw with its wording softened (see softenRefusedNarrative).
+function isSafetyRefusal(err) {
+  const m = String((err && err.message) || err || '');
+  return /safety system|safety_violations|content[ _]policy|moderation_blocked|rejected by our safety/i.test(m);
+}
+
 // Panel render — gpt-image-2 portrait, timeout scaled by quality (high takes
 // minutes at OpenAI's end; see server.js's OPENAI_IMAGE_TIMEOUTS).
 const IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000 };
@@ -650,6 +664,7 @@ async function openaiPanel(prompt, quality = 'medium', retries = 2) {
       return Buffer.from(b64, 'base64');
     } catch (err) {
       lastErr = err;
+      if (isSafetyRefusal(err)) break;   // deterministic — retrying can't help
       if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
     }
   }
@@ -690,6 +705,7 @@ async function openaiPanelEdit(prompt, refBuffers, quality = 'medium', retries =
       return Buffer.from(b64, 'base64');
     } catch (err) {
       lastErr = err;
+      if (isSafetyRefusal(err)) break;   // deterministic — retrying can't help
       if (attempt < retries) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
     }
   }
@@ -1520,6 +1536,100 @@ function dreamZinePagePrompt(dream, group, refPages) {
   return `${stylePrefix}${refNote}${lookNote}${distinctNote}${layout}${body}`;
 }
 
+// ─── One softened redraw after a safety refusal ─────────────────────
+// The refused wording is the dreamer's own, and Sophie's call (2026-08-06) is
+// that rewording her sentences is fine — so a refused page is redrawn ONCE with
+// the narrative rephrased around whatever tripped the filter. Only the
+// NARRATIVE is rewritten (the page's slice of the dream, its captions, the
+// whole-dream context line); every structural instruction — style reference,
+// character-continuity clauses, layout, attachment numbering — is rebuilt
+// untouched around the result, so softening can never scramble the references.
+const SOFTEN_SYSTEM =
+  "You rewrite short narrative text so an image generator's automated safety "
+  + 'filter will accept it, without changing what happens. The text describes a '
+  + 'real dream someone recorded. It is not explicit, but wording about bodies, '
+  + 'nudity, children, blood, injury or violence can trip the filter even when '
+  + 'the scene is innocent. Rephrase ONLY what is likely to trip it, in plain '
+  + 'non-graphic language (e.g. "nursing her baby" rather than anatomical '
+  + 'wording). Keep every event, person and detail — do not censor the story, '
+  + 'soften the words. Keep the dreamer\'s first-person voice, and keep each '
+  + 'caption about as long as it was. Reply with JSON having EXACTLY the same '
+  + 'keys and array lengths as the input, every string rewritten in place.';
+
+// Merge the rewriter's reply onto the original, shape-for-shape: any string it
+// dropped, emptied or changed the type of falls back to the original, so a
+// sloppy reply can never blank out a caption or lose a panel.
+function mergeSoftened(orig, out) {
+  if (typeof orig === 'string') return (typeof out === 'string' && out.trim()) ? out : orig;
+  if (Array.isArray(orig)) {
+    if (!Array.isArray(out) || out.length !== orig.length) return orig;
+    return orig.map((v, i) => mergeSoftened(v, out[i]));
+  }
+  if (orig && typeof orig === 'object') {
+    if (!out || typeof out !== 'object' || Array.isArray(out)) return orig;
+    const res = {};
+    for (const k of Object.keys(orig)) res[k] = mergeSoftened(orig[k], out[k]);
+    return res;
+  }
+  return orig;
+}
+
+async function softenRefusedNarrative(bundle) {
+  try {
+    const out = await openaiChatJSON([
+      { role: 'system', content: SOFTEN_SYSTEM },
+      { role: 'user', content: JSON.stringify(bundle) },
+    ], { model: 'gpt-4o-mini', temperature: 0.3, retries: 1 });
+    const softened = mergeSoftened(bundle, out);
+    // Nothing actually changed → the redraw would be refused identically.
+    if (JSON.stringify(softened) === JSON.stringify(bundle)) return null;
+    return softened;
+  } catch (err) {
+    console.warn('movies: could not soften a refused page —', err.message);
+    return null;
+  }
+}
+
+const REFUSAL_MESSAGE = "gpt-image-2's safety filter refused this part of the dream, "
+  + 'and refused it again after the wording was softened';
+function refusalError() {
+  const err = new Error(REFUSAL_MESSAGE);
+  err.terminal = true;   // drawPagesResilient must not retry this page
+  return err;
+}
+
+// The refusal control flow, with both of its effects injected so it can be
+// tested without spending a cent at OpenAI (scripts/test-dream-refusal.js).
+// A safety refusal softens the bundle once and redraws; EVERY other error
+// propagates untouched, so real hiccups still get drawPagesResilient's rounds.
+async function softenOnRefusal(bundle, draw, soften) {
+  try {
+    return await draw(bundle);
+  } catch (err) {
+    if (!isSafetyRefusal(err)) throw err;
+    const soft = await soften(bundle);
+    if (!soft) throw refusalError();
+    console.warn('movies: page refused by the safety filter — redrawing with softened wording');
+    try {
+      return { ...await draw(soft), softened: true };
+    } catch (err2) {
+      if (isSafetyRefusal(err2)) throw refusalError();
+      throw err2;
+    }
+  }
+}
+
+// Draw a page from its narrative bundle; `build(bundle)` returns the full prompt.
+async function drawWithSoftening(bundle, build, refs, quality) {
+  return softenOnRefusal(bundle, async b => {
+    const prompt = build(b);
+    const buf = refs.length
+      ? await openaiPanelEdit(prompt, refs, quality)
+      : await openaiPanel(prompt, quality);
+    return { buf, prompt };
+  }, softenRefusedNarrative);
+}
+
 // Render one dream page: style ref first, then the earlier pages we're carrying
 // characters from (the ones already drawn), with the prompt naming each by
 // attachment position.
@@ -1539,11 +1649,14 @@ async function renderDreamPage(dream, group, quality, rendered) {
     const buf = await refBufferFromUrl(r.url);
     if (buf) { refs.push(buf); usable.push(r); }
   }
-  const prompt = dreamZinePagePrompt(dream, group, usable);
-  const buf = refs.length
-    ? await openaiPanelEdit(prompt, refs, quality)
-    : await openaiPanel(prompt, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
+  const bundle = {
+    panels: group.map(s => ({ scene: String(s.imagePrompt || ''), caption: String(s.title || '') })),
+  };
+  const build = b => dreamZinePagePrompt(dream, group.map((s, i) => ({
+    ...s, imagePrompt: b.panels[i].scene, title: b.panels[i].caption,
+  })), usable);
+  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
+  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
 }
 
 // ─── Resilient page drawing ─────────────────────────────────────────
@@ -1560,10 +1673,11 @@ async function renderDreamPage(dream, group, quality, rendered) {
 async function drawPagesResilient(total, drawOne, progress, persist) {
   const slots = new Array(total).fill(null);
   const errors = new Map();
+  const terminal = new Set();   // refused pages — waiting changes nothing
   const pauses = [0, 20000, 45000];
   for (let round = 0; round < pauses.length; round++) {
     const missing = [];
-    for (let i = 0; i < total; i++) if (!slots[i]) missing.push(i);
+    for (let i = 0; i < total; i++) if (!slots[i] && !terminal.has(i)) missing.push(i);
     if (!missing.length) break;
     if (round) {
       await progress(total - missing.length, total,
@@ -1577,6 +1691,7 @@ async function drawPagesResilient(total, drawOne, progress, persist) {
         await persist(slots);
       } catch (err) {
         errors.set(i, err.message);
+        if (err.terminal || isSafetyRefusal(err)) terminal.add(i);
         console.warn(`movies: dream page ${i + 1}/${total} failed (round ${round + 1}) —`, err.message);
       }
       await progress(slots.filter(Boolean).length, total, 'drawing pages');
@@ -1585,7 +1700,11 @@ async function drawPagesResilient(total, drawOne, progress, persist) {
   const failed = total - slots.filter(Boolean).length;
   if (failed) {
     const why = [...new Set(errors.values())].join('; ').slice(0, 400);
-    throw new Error(`${failed} of ${total} pages failed after 3 rounds of retries`
+    // A refusal isn't a failed retry — saying "after 3 rounds of retries" made
+    // a content refusal read like a network fault. Name what actually happened.
+    const allRefused = terminal.size === failed;
+    throw new Error(`${failed} of ${total} page${total > 1 ? 's' : ''} couldn't be drawn`
+      + (allRefused ? '' : ' after 3 rounds of retries')
       + (why ? ` — ${why}` : '')
       + '. The finished pages are kept — re-render to fill the gaps.');
   }
@@ -1724,20 +1843,24 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
     : '';
   const caps = Array.isArray(plan.captions) ? plan.captions.filter(Boolean)
     : (plan.caption ? [plan.caption] : []);
-  const capInstr = caps.length
-    ? `Hand-letter ${caps.length === 1 ? 'this caption' : 'these ' + caps.length + ' captions, in order,'} onto the page as small caption boxes in the dreamer's handwriting, each spelled EXACTLY as written and nothing added: ${caps.map(c => `"${c}"`).join(', ')}.`
-    : 'Add a short hand-lettered caption in the dreamer\'s own voice.';
-  const body =
-    `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. ` +
-    `The whole dream, for context only: "${dream.dreamText || dream.dream}". ` +
-    `THIS page covers ONLY this part of it: "${plan.text}". Draw only that part. ` +
-    'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. ' +
-    capInstr;
-  const prompt = `${styleIntro}${continuity}${body}`;
-  const buf = refs.length
-    ? await openaiPanelEdit(prompt, refs, quality)
-    : await openaiPanel(prompt, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt };
+  const bundle = {
+    context: String(dream.dreamText || dream.dream || ''),
+    text: String(plan.text || ''),
+    captions: caps.map(String),
+  };
+  const build = b => {
+    const capInstr = b.captions.length
+      ? `Hand-letter ${b.captions.length === 1 ? 'this caption' : 'these ' + b.captions.length + ' captions, in order,'} onto the page as small caption boxes in the dreamer's handwriting, each spelled EXACTLY as written and nothing added: ${b.captions.map(c => `"${c}"`).join(', ')}.`
+      : 'Add a short hand-lettered caption in the dreamer\'s own voice.';
+    return `${styleIntro}${continuity}`
+      + `This is page ${idx + 1} of ${total} of a hand-drawn comic telling a real dream. `
+      + `The whole dream, for context only: "${b.context}". `
+      + `THIS page covers ONLY this part of it: "${b.text}". Draw only that part. `
+      + 'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. '
+      + capInstr;
+  };
+  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
+  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
 }
 
 async function makeDreamPagesV2(dream, quality, progress) {
@@ -1752,7 +1875,11 @@ async function makeDreamPagesV2(dream, quality, progress) {
     const rendered = slots.filter(Boolean).map(pg => ({ url: pg.url, who: new Set(pg.who || []) }));
     const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    return { url: page.url, promptUsed: page.prompt, text: plans[i].text, captions: plans[i].captions || [], who: plans[i].who || [] };
+    return {
+      url: page.url, promptUsed: page.prompt, text: plans[i].text,
+      captions: plans[i].captions || [], who: plans[i].who || [],
+      softened: !!page.softened,
+    };
   }, progress, persist);
 }
 
@@ -3213,6 +3340,11 @@ module.exports = {
   normalizeDreamCast,
   dreamPageRefs,
   dreamZinePagePrompt,
+  isSafetyRefusal,
+  mergeSoftened,
+  softenOnRefusal,
+  drawWithSoftening,
+  drawPagesResilient,
   probe,
   extractLastFrame,
   normalizeClip,

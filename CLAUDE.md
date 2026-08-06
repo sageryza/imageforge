@@ -1005,7 +1005,32 @@ lifted into a standalone tool later.
   **Render survives leaving the app:** fire-and-forget server job; iOS
   `DreamsView` records rendering ids in `@AppStorage("dreams.activeRenderIDs")`
   and resumes polling on return; transient poll failures retry (phone locked /
-  Render cold start) — only a real job error surfaces. Characters keep their
+  Render cold start) — only a real job error surfaces.
+  **A gpt-image-2 SAFETY REFUSAL is terminal, never a retry (Aug 2026).** The
+  filter refuses ordinary dream content — the "Mommy Evaluates Kid" render died
+  on a breastfeeding line, flagged `safety_violations=[sexual]`. A refusal is
+  deterministic, so retrying it is waste: that render burned 9 API calls over
+  ~65s of backoff and reported "3 rounds of retries", which reads like a network
+  fault. Now `isSafetyRefusal()` short-circuits every retry ladder
+  (`openaiPanel`, `openaiPanelEdit`, `drawPagesResilient`'s rounds), and the page
+  gets exactly ONE redraw with its NARRATIVE softened — `softenRefusedNarrative`
+  (gpt-4o-mini) rewords only the page's slice of the dream, its captions and the
+  context line, and the structural half of the prompt (style ref, continuity
+  clauses, attachment numbering) is rebuilt untouched around it, so softening
+  can't scramble the references. **Rewording Sophie's own sentences to get past
+  the filter is allowed — she asked for it (2026-08-06).** A page that lands
+  softened is marked `softened:true`. Two refusals in a row give up with a plain
+  reason instead of a retry count. Tests: `node scripts/test-dream-refusal.js`.
+  **The page must not re-render while she scrolls.** `dreams.html` polls every
+  3.2s during a render and used to call `render()` each tick, reassigning
+  `root.innerHTML` — which re-decodes every image and drops scroll position.
+  Scrolling "Past dreams" during a render therefore flickered and jumped to the
+  top (her report, 2026-08-06; renderArchive's own comment already warned that
+  rebuilding "re-decoded every image"). `liveUpdate()` now patches the status
+  line and APPENDS newly-landed pages instead, and returns early when she's on
+  the archive/zine tab so a background render never touches the view she's
+  reading. Tests: `node scripts/test-dreams-scroll.js` (headless Chromium;
+  playwright is an optionalDependency, the script skips without it). Characters keep their
   ORIGINAL backgrounds (the transparent cleanBox step was removed by request
   — background separation only matters if a character is composited later).
   Same `STUDIO_TOKEN` gate. iOS is the frontend; a web page port of the new

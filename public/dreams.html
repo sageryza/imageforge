@@ -497,7 +497,7 @@
       const id = remaining.shift();
       doneCount++;
       S.statusLabel = total>1 ? `Drawing dream ${doneCount} of ${total}…` : 'Drawing…';
-      render();
+      if(!liveUpdate()) render();
       const done = await pollDream(id, session);
       if(session!==S.session) return;
       if(done) S.finished.push(done);
@@ -528,13 +528,45 @@
         if(job.status==='error'){ showToast(job.error||"The render didn't finish."); return null; }
         if(job.status!=='running'){ return (d.pages&&d.pages.length)||job.status==='done' ? d : null; }
         if(job.label) S.statusLabel = job.label.charAt(0).toUpperCase()+job.label.slice(1)+'…';
-        render();
+        if(!liveUpdate()) render();
       } else { fails++; if(fails>=25) return null; }
       await sleep(3200);
     }
     return null;
   }
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+  // Patch a running render in place instead of rebuilding the screen.
+  // render() reassigns root.innerHTML, which throws away scroll position and
+  // makes every image re-decode — so polling every 3.2s meant the page
+  // flickered and jumped back to the top while Sophie was trying to scroll
+  // through the pages already drawn (2026-08-06). Nothing changes mid-render
+  // except the status line and newly-landed pages, and pages only ever get
+  // APPENDED, so both can be patched. Returns false when the view's shape
+  // really did change, and the caller falls back to a full render.
+  function liveUpdate(){
+    // On another tab there is nothing on screen belonging to the render, and a
+    // full render() would rebuild THAT view instead — which is what made "Past
+    // dreams" flash and jump to the top every 3.2s while a render ran behind
+    // it. renderArchive() reassigns the whole grid (its own comment: "re-decoded
+    // every image (dramatic flashing/reshaping)"). Navigating back re-renders.
+    if(S.view==='archive' || S.view==='zine') return true;
+    const stack = $('pagestack'), prog = $('prog');
+    if(!stack || !prog || S.review.length) return false;
+    const want = [];
+    S.finished.forEach(d => (d.pages||[]).forEach(p => { if(p.url) want.push([p.url, d]); }));
+    if(S.current && S.current.pages) S.current.pages.forEach(p => { if(p.url) want.push([p.url, S.current]); });
+    const shown = stack.querySelectorAll('.page').length;
+    if(want.length < shown) return false;    // a page went away — needs a redraw
+    if(want.length > shown){
+      // pageRefs is append-only in this view, so the new tiles' indices follow on.
+      prog.insertAdjacentHTML('beforebegin', want.slice(shown).map(([url,d]) => pageHtml(url,d)).join(''));
+      stack.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>openPopup(pageRefs[el.dataset.page]));
+    }
+    const txt = $('progtxt');
+    if(txt) txt.textContent = S.statusLabel || 'Illustrating…';
+    return true;
+  }
 
   // ── Rendering ──
   function render(){
@@ -564,10 +596,11 @@
     if(S.review.length){
       h += reviewHtml();
     } else if(S.busy || S.current || S.finished.length){
-      h += `<div class="section">`;
+      // Ids so a running render can be patched in place — see liveUpdate().
+      h += `<div class="section" id="pagestack">`;
       S.finished.forEach(d => (d.pages||[]).forEach(p => h += pageHtml(p.url, d)));
       if(S.current && S.current.pages) S.current.pages.forEach(p => h += pageHtml(p.url, S.current));
-      if(S.busy) h += `<div class="progress"><div class="spinner"></div><span>${esc(S.statusLabel||'Illustrating…')}</span></div>`;
+      if(S.busy) h += `<div class="progress" id="prog"><div class="spinner"></div><span id="progtxt">${esc(S.statusLabel||'Illustrating…')}</span></div>`;
       h += `</div>`;
     } else {
       h += `<img class="sunflower" src="/dream-sunflowers.png" alt="What did you dream last night?">`;
