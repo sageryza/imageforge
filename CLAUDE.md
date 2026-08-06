@@ -1623,6 +1623,25 @@ lifted into a standalone tool later.
   - Web tools that shipped WITH a native bar (Playground, Episode Editor,
     Story Room's title/chevron) keep working as-is; move each to a
     page-owned header at its next real redesign, not as churn.
+  - **A NEW web tool ships with the NATIVE bar + chevron — the Episode
+    Editor wrapper is the reference (Aug 2026, earned on the Cutting Room
+    v1).** The page-owns-header rule above describes where headers are
+    HEADING, not what a new tool should ship as today: the Cutting Room v1
+    followed it literally (bare WKWebView host, page header only) and Sophie
+    flagged the mismatch the first time she opened it — "there's no back
+    arrow to go back to the home screen and it's a different autoscroll
+    pill." A new tool must match the tools BESIDE it: copy
+    `EpisodeEditorView.swift` (forgeToolBar + chevron asking
+    `window.__navBack` first, `__nativeNavBar` injected so the page hides
+    its own back button via `body.native`, audio paused on
+    `.forgeScreenChanged`). Only a page that replaces the WHOLE chrome with
+    a rich header of its own (Chats, Writing Room) earns the bare host — an
+    eyebrow-and-title header does not.
+  - **An icon-first tool carries a "?" circle (Aug 2026, Sophie).** When a
+    tool's controls are icons with no words (her preference), add a small
+    gold "?" circle that toggles a card explaining what each icon does —
+    tap to show, tap anywhere to hide. The Cutting Room's `#help` /
+    `#helpcard` is the pattern.
 - **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
   to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
   button stays visible and taps do nothing. Every page that toggles the
@@ -2126,10 +2145,18 @@ lifted into a standalone tool later.
   'editor',…}`, `POST /:id/render`, `GET /:id/job`, `DELETE /:id`.
 - Transcription cost ≈ $0.006/min of recording (whisper), paid once per
   recording. Caps at 90 min.
-- iOS: `CuttingRoomView.swift` = bare WKWebView on `/cuttingroom` answering
-  the studio gate (page-owns-header rule; page changes ship via Render
-  deploy). The page carries the injected shared pill, so the native pill is
-  suppressed for the tool (`showAutoScroll`).
+- iOS: `CuttingRoomView.swift` = the **Episode Editor wrapper pattern** (v1
+  shipped bare and Sophie flagged it — see the Headers design rule): native
+  `.forgeToolBar("Cutting Room")` whose chevron asks `window.__navBack`
+  first (room → recordings list → leave the tool), `__nativeNavBar`
+  injected so the page hides its own back button (`body.native`; the page
+  header also folds away on the recordings list, where it would duplicate
+  the bar), audio paused on screen changes. The page carries the injected
+  shared pill, so the native pill is suppressed (`showAutoScroll`). Page
+  changes ship via Render deploy; wrapper changes need TestFlight.
+- **The "?" circle on the tools row** is the instructions for an icon-first
+  tool: tap → a card naming what every icon does, tap anywhere → hidden.
+  Keep it in step with the icons if any control changes.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
