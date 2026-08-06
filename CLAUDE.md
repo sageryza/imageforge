@@ -1169,7 +1169,12 @@ lifted into a standalone tool later.
   `onAppear` can't do this, a view held in a ZStack only appears once. The
   page hides its own eyebrow under `?embed=1` (the native bar already titles
   the screen) and the upload progress bar sits ABOVE the tabs, since an
-  upload keeps running while she sorts.
+  upload keeps running while she sorts. **Select mode (Aug 2026, Sophie):**
+  the Select chip opens every album to just its thumbs — tap to pick across
+  albums, then the fixed bottom bar moves the lot into an existing album or
+  a newly named one (`POST /api/drop/move {ids, bundleName}`; placeIn()'s
+  registry transaction numbers them in, the target album's session and
+  track/name labels win, files placed in the order she picked them).
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
