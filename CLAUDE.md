@@ -1466,6 +1466,22 @@ lifted into a standalone tool later.
   endpoints + a small set of stateless AI endpoints in `server.js`:
   `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
   `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **The blog is a real NAVIGATION out of the app page, and the tab re-assert
+  must not follow it (Aug 2026 — this bug made the blog unreachable in the
+  app: tapping "The blog" bounced to Home instantly).** In the iOS app the
+  witch page and the blog share ONE web view, so opening `/blog?app=1`
+  replaces the app. The blog page therefore installs its own `window.__setTab`
+  shim (`blog-public.js`) that answers the native tab bar by navigating BACK
+  into the app — but `WitchWebView`'s `didFinish` also re-asserts the current
+  tab on every load, to keep bar and page in step after a reload. That
+  re-assert fired the moment the blog finished loading and the shim did what it
+  was told: straight back to Home. Fixed on BOTH sides, and both are load-
+  bearing — `didFinish` now re-asserts only on the app page (`isAppPage`,
+  path `/witch`), and the shim ignores the first call inside a 2s grace window
+  (a finger can't beat the page's own load event) so ALREADY-INSTALLED builds
+  are fixed by a Render deploy alone. A tab tap from a blog page still works:
+  it arrives via `updateUIView`, not `didFinish`. Anything else the app ever
+  navigates to in that web view needs the same treatment.
 - **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
   - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
     epoch, client-side), a deterministic **Card of the Day** (per-day hash into
