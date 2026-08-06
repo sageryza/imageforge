@@ -148,7 +148,12 @@ function extFor(filename, ct) {
 }
 function baseName(filename) {
   const f = String(filename || '').split('/').pop() || '';
-  return f.replace(/\.[a-z0-9]{1,5}$/i, '').replace(/[_]+/g, ' ').trim() || null;
+  return f.replace(/\.[a-z0-9]{1,5}$/i, '')
+    // The iOS share extension names every export `UUID() + originalFilename`
+    // (see DumpShare/DumpUploader) — that staging id is not part of the
+    // recording's name and read as "a weird code" on Sophie's list.
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i, '')
+    .replace(/[_]+/g, ' ').trim() || null;
 }
 
 function run(bin, args) {
