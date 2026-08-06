@@ -21,6 +21,12 @@
   /* [hidden] must ALWAYS win — an author display rule silently overrides the
      UA default (the bug that broke the Episode Editor's back button). */
   [hidden]{display:none !important}
+  /* Inside the app the native nav bar carries the tool title and THE back
+     chevron (the Episode Editor pattern — __nativeNavBar is injected), so the
+     page hides its own back button, and on the recordings list the whole page
+     header too (it would only duplicate the bar's title). */
+  body.native #back{display:none !important}
+  body.native.at-home header{display:none}
   svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
     stroke-linecap:round; stroke-linejoin:round; display:block}
 
@@ -131,6 +137,19 @@
     background:rgba(255,255,255,.85); border-radius:4px; padding:2px}
   .beatgrid .cell .voiced svg{width:11px; height:11px}
 
+  /* the ? circle — instructions for an icon-first tool, tap to show/hide */
+  #help{width:34px; height:34px; border-radius:50%; background:var(--cream);
+    border:1px solid var(--goldline); color:var(--goldline); font-weight:700; font-size:16px;
+    padding:0; display:flex; align-items:center; justify-content:center; flex:none; font-family:Georgia,serif}
+  #helpcard{position:fixed; left:16px; right:16px; top:50%; transform:translateY(-50%); z-index:9;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px 16px 12px;
+    box-shadow:0 2px 18px rgba(35,32,27,.14); max-height:82vh; overflow-y:auto}
+  .hrow{display:flex; gap:12px; align-items:flex-start; padding:10px 0;
+    border-top:1px solid var(--line); font-size:14px; line-height:1.45}
+  .hrow:first-child{border-top:none}
+  .hrow .hic{width:32px; flex:none; color:var(--goldline); display:flex; justify-content:center; padding-top:2px}
+  .hrow .pz{cursor:default}
+
   #confirm{position:fixed; left:24px; right:24px; top:50%; transform:translateY(-50%); z-index:9;
     background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px;
     box-shadow:0 2px 18px rgba(35,32,27,.14)}
@@ -187,6 +206,7 @@
         <span class="n" id="renderN" hidden></span>
       </button>
       <span class="tiny" id="jobnote" style="margin-left:auto"></span>
+      <button id="help" aria-label="how this works">?</button>
     </div>
 
     <div id="tr"></div>
@@ -251,6 +271,18 @@
   <div id="sheetpick" hidden></div>
 </div>
 
+<!-- the ? card — what every icon does; tap anywhere to hide it -->
+<div id="helpcard" hidden>
+  <div class="hrow"><span class="hic"><span class="pz">1.2s</span></span><span>a pause it found — tap to cut it, tap again to keep it</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="m20 17-5-5 5-5"/><path d="m4 7 5 5-5 5"/></svg></span><span>cut every pause at once (each keeps a 0.3s breath)</span></div>
+  <div class="hrow"><span class="hic" style="font-family:Georgia,serif;font-size:15px">Aa</span><span>tap the first word, then the last word — that picks a section</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span><span>cut the picked section out — tap its struck-through words later to put them back</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span>save the picked section as a clip, or send it to the Episode Editor or a Story Room beat</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>pin the word being spoken, so you can find it again</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with all your cuts — the original is never touched</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span>play — with a section picked, it plays just that section</span></div>
+</div>
+
 <!-- confirm -->
 <div id="confirm" hidden>
   <div class="txt" id="confirmtxt"></div>
@@ -273,6 +305,9 @@
 <script>
 // ANY tap pauses the shared autoscroll pill (house rule).
 document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+// Inside the app the native nav bar carries the title + back chevron
+// (injected as __nativeNavBar, the Episode Editor pattern) — hide our own.
+if (window.__nativeNavBar) document.body.classList.add('native');
 
 const TOKEN = '__STUDIO_TOKEN__';
 const H = { 'Content-Type': 'application/json' };
@@ -332,6 +367,7 @@ async function showHome() {
   $('room').hidden = true; $('bbar').hidden = true; $('secbar').hidden = true;
   $('back').hidden = true;
   $('home').hidden = false;
+  document.body.classList.add('at-home');
   $('htitle').textContent = 'Cutting Room';
   $('hmeta').textContent = '';
   try {
@@ -375,6 +411,7 @@ async function openRecording(url, name, itemId, batch) {
 }
 
 async function enterRoom(id) {
+  document.body.classList.remove('at-home');
   $('home').hidden = true;
   $('room').hidden = false;
   $('back').hidden = false;
@@ -762,6 +799,7 @@ function openSheet() {
 function closeSheet() { $('veil').hidden = true; $('sheet').hidden = true; sheetSel = null; }
 $('veil').onclick = () => {
   if (!$('confirm').hidden) { $('confirm').hidden = true; confirmFn = null; }
+  if (!$('helpcard').hidden) { $('helpcard').hidden = true; }
   closeSheet();
 };
 $('secsend').onclick = openSheet;
@@ -859,6 +897,15 @@ async function pickBeat(padId) {
     } catch (err) { toast(err.message); }
   };
 }
+
+// ── the ? card ──────────────────────────────────────────────────────
+function toggleHelp() {
+  const open = $('helpcard').hidden;
+  $('helpcard').hidden = !open;
+  $('veil').hidden = !open;
+}
+$('help').onclick = toggleHelp;
+$('helpcard').onclick = toggleHelp;   // tap anywhere on it to hide it
 
 // ── confirm box ─────────────────────────────────────────────────────
 let confirmFn = null;
