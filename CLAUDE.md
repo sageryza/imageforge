@@ -2041,6 +2041,36 @@ lifted into a standalone tool later.
   (inline JSON). Idempotent — re-running skips what's banked. Example:
   `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
   (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
+- **The one-command way Sophie runs it: `cd ~/imageforge && git pull && ./scripts/grab`**
+  — paste links when asked, Return on an empty line (or
+  `./scripts/grab --file scripts/nde-urls.txt`). The wrapper builds a private
+  venv (`.grab-venv`) with the two Google packages on first run, so the Mac's
+  own pip/python state can never break it; every argument passes through to
+  `nde-grab-local.py`. Idempotent — re-running skips what's banked, so a
+  failed batch is just "run it again".
+- **Sophie's home connection stalls on big single uploads (Aug 2026 —
+  measured, not guessed).** Any single HTTPS request body over ~512KB to
+  storage.googleapis.com hangs until the client's retry deadline (plain curl
+  from her Mac: 512KB in 0.33s, 1MB forever; her Wi-Fi is generally spotty),
+  and sustained `git push` from the Mac stalls the same way. It shows up as
+  "Timeout of 120.0s exceeded" right after a big transcript or audio finishes.
+  Two standing workarounds, both proven live (PR #836):
+  - **Every Storage upload from her Mac must be CHUNKED.** `nde-grab-local.py`
+    sends all uploads as resumable uploads in 512KB chunks
+    (`UPLOAD_CHUNK` / `upload_bytes()` / `upload_file()` — measured 1.4MB/s
+    where a single-request upload hung forever). Do NOT revert to plain
+    `upload_from_string`/`upload_from_filename` even if her network seems
+    healthy — chunking costs nothing then. Any NEW script that uploads from
+    her Mac to Storage needs the same treatment; the library's defaults
+    (single multipart POST under 8MiB) will hang on her connection.
+  - **When `git push` stalls on the Mac, hand the commit to a CLOUD chat —
+    don't fight the network.** Cloud sessions push fine. The Mac chat
+    describes the change (or pastes the diff), the cloud chat recreates it on
+    a branch, pushes, PRs, and merges; the Mac then just runs
+    `git checkout main && git pull` (downloads work fine on her connection)
+    and deletes its stranded local branch. This is exactly how the chunking
+    fix itself landed — written on the Mac as local commit dd3edc0,
+    un-pushable, recreated from the cloud as #836.
 - **Ingesting one of Sophie's OWN videos (not YouTube), July 2026.** For a video
   she made herself — no captions, no YouTube id — `POST /videos/from-video`
   `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
