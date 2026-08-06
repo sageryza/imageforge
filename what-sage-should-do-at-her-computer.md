@@ -4,7 +4,7 @@ A running list of things that are easier (or only possible) on a real computer,
 not the phone. **Any chat can add to this** — drop new items under "Backlog" with
 a short why. Keep links as full clickable `https://…` links so they're one tap.
 
-_Last updated: July 8, 2026._
+_Last updated: August 6, 2026._
 
 ---
 
@@ -81,6 +81,29 @@ _Chats: add items below with a one-line reason._
      deckfactory service account; outputs public clip links + a ZIP), with no
      computer involved — works while Sophie is traveling.
 
+- **Cut 4 reference clips out of Donnie Darko (Director's Cut).** Must run on
+  the computer — the cloud sessions can't reach the upload at all (YouTube
+  geo-restricts it to the US and blocks datacenter IPs). Source video:
+  https://youtu.be/8b95qGVqw6w
+  Timestamps were located against a Director's-Cut-synced subtitle track, so
+  they should match — but **run the mailbox one first to check for an offset**
+  (if the uploader added an intro card, add that many seconds to all four).
+  1. **55:35–56:10** — "I just don't debate it anymore" (the God-exists line;
+     he says it twice, at 55:46 and 55:58).
+  2. **1:03:22–1:03:50** — the mom saying she doesn't recall him ever having
+     mentioned a rabbit.
+  3. **25:48–26:06** — the old woman at the mailbox, "No mail today. Maybe
+     tomorrow." ← run this one first as the offset check.
+  4. **2:01:28–2:06:30** — the reversal sequence through to him waking up in
+     bed laughing. A window, not an exact mark: it's wordless, so there were
+     no subtitle cues to pin inside it. Bounded by his letter voiceover ending
+     at 2:01:32 and the next morning's dialogue starting at 2:06:22.
+
+  Needs `brew install yt-dlp ffmpeg` once. Then per clip:
+  `yt-dlp -f 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' --force-keyframes-at-cuts
+  --download-sections "*00:25:48-00:26:06" -o "03-mailbox.%(ext)s" <url>`.
+  `--force-keyframes-at-cuts` is what makes the cut land on the exact second
+  instead of snapping to the nearest keyframe (it re-encodes, so it's slower).
 - **Set up YouTube auto-upload (OAuth).** So a chat can push finished videos to
   your channel as private drafts (you just tap Publish). One-time browser sign-in
   only you can do. On the computer: create a Google Cloud project → enable
