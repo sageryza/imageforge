@@ -132,23 +132,33 @@ async function fileAsset(url, description, style, content, quality) {
   }
   initFirebase();
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const results = [];
-  for (const job of jobs) {
-    process.stdout.write(`[${job.id}] ${job.quality || 'medium'} ${job.label} … `);
-    try {
-      const buf = await generate(job);
-      fs.writeFileSync(path.join(OUT_DIR, `${job.id}.png`), buf);
-      const url = await upload(buf, `${job.id}.png`);
-      const refList = ['refs/evan-film-style.png', ...(job.characterRefs || [])].join(' + ');
-      const style = `gpt-image-2 EDITS, quality ${job.quality || 'medium'}, 1024x1536. Attached: ${refList}. Sent verbatim as:\n\n${builtPrompt(job).replace(job.prompt, '[content]')}`;
-      await fileAsset(url, job.label, style, job.prompt, job.quality || 'medium');
-      results.push({ id: job.id, label: job.label, url, quality: job.quality || 'medium' });
-      console.log('ok');
-    } catch (err) {
-      console.log(`FAILED: ${err.message}`);
-      results.push({ id: job.id, error: err.message });
+  // Three renders in flight at a time — the server's own promptlab requests
+  // images in parallel, so this is well within what the API tolerates, and it
+  // turns a ~90-render batch from hours into ~half an hour.
+  const CONCURRENCY = Number(process.env.HOSPITAL_PARALLEL || 3);
+  const results = new Array(jobs.length);
+  let next = 0;
+  async function worker() {
+    while (next < jobs.length) {
+      const i = next++;
+      const job = jobs[i];
+      try {
+        const buf = await generate(job);
+        fs.writeFileSync(path.join(OUT_DIR, `${job.id}.png`), buf);
+        const url = await upload(buf, `${job.id}.png`);
+        const refList = ['refs/evan-film-style.png', ...(job.characterRefs || [])].join(' + ');
+        const style = `gpt-image-2 EDITS, quality ${job.quality || 'medium'}, 1024x1536. Attached: ${refList}. Sent verbatim as:\n\n${builtPrompt(job).replace(job.prompt, '[content]')}`;
+        await fileAsset(url, job.label, style, job.prompt, job.quality || 'medium');
+        results[i] = { id: job.id, label: job.label, url, quality: job.quality || 'medium' };
+        console.log(`[${job.id}] ok — ${job.label}`);
+      } catch (err) {
+        console.log(`[${job.id}] FAILED: ${err.message}`);
+        results[i] = { id: job.id, error: err.message };
+      }
     }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, worker));
   fs.writeFileSync(path.join(OUT_DIR, 'results.json'), JSON.stringify(results, null, 2));
-  console.log(`\nwrote ${OUT_DIR}/results.json`);
+  const failed = results.filter(r => r && r.error).length;
+  console.log(`\nwrote ${OUT_DIR}/results.json — ${results.length - failed} ok, ${failed} failed`);
 })();
