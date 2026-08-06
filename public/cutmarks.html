@@ -16,29 +16,40 @@
   html{-webkit-text-size-adjust:100%}
   body{margin:0; background:var(--paper); color:var(--ink);
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-    padding-bottom:120px}
+    padding-bottom:96px}
   /* [hidden] must ALWAYS win over author display rules (house gotcha). */
   [hidden]{display:none !important}
   /* Inside the app the native nav bar carries the tool title + back chevron
      (__nativeNavBar injected, the Episode Editor pattern) — hide our back
-     button, and on the pick-a-recording list the whole page header. */
+     button AND the eyebrow (the bar already says CUT MARKS — Sophie flagged
+     the double), and on the pick-a-recording list the whole page header. */
   body.native #back{display:none !important}
+  body.native .eyebrow{display:none}
   body.native.at-home header{display:none}
+  /* In a plain browser the home header keeps only the eyebrow — an h1 saying
+     "Cut Marks" right under CUT MARKS was the same double. */
+  body.at-home header h1, body.at-home .hmeta{display:none}
   svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
     stroke-linecap:round; stroke-linejoin:round; display:block}
 
   /* header — page-owned; the top-right corner is RESERVED for the shared
      autoscroll pill (same calc as chats/editor/cuttingroom). */
   header{position:sticky; top:0; z-index:5; background:var(--paper);
-    border-bottom:1px solid var(--line); padding:12px 14px;
+    border-bottom:1px solid var(--line); padding:8px 14px;
     padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
   #back{width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center;
     background:transparent; border:none; color:var(--goldline); flex:none}
   .htext{min-width:0; flex:1}
   .eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--soft); font-weight:600}
-  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:20px; margin:2px 0 0;
+  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:17px; margin:1px 0 0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .hmeta{font-size:12px; color:var(--soft); margin-top:1px}
+  /* small header icons (undo · render · ?) — out of the way, room-only */
+  #hicons{display:flex; gap:6px; align-items:center; flex:none}
+  .hbtn{width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--cream); border:1px solid var(--goldline); color:var(--goldline); border-radius:6px}
+  .hbtn svg{width:15px; height:15px}
+  .hbtn[disabled], .hbtn.dim{opacity:.35}
 
   .wrap{padding:14px; max-width:720px; margin:0 auto}
 
@@ -116,11 +127,9 @@
   .rrow .save{color:var(--goldline); padding:8px; display:flex}
   .rrow .save svg{width:16px; height:16px}
 
-  /* fixed bottom bar: small transport + time + MARK */
-  #bbar{position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--paper);
-    border-top:1px solid var(--line); padding:9px 14px calc(10px + env(safe-area-inset-bottom));
-    display:flex; align-items:center; gap:12px}
-  .hwrap{display:flex; flex-direction:column; align-items:center; gap:3px; flex:none}
+  /* the transport lives centered right under the video/audio card (Sophie:
+     "so it's right there"), not down in the bottom bar */
+  .hwrap{display:flex; flex-direction:column; align-items:center; gap:3px; margin:12px 0 2px}
   .hseg{display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden;
     background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09)}
   .hseg button{border:none; background:transparent; color:var(--ink); width:46px; height:40px;
@@ -128,15 +137,19 @@
   .hseg button + button{border-left:1.5px solid var(--ink)}
   .hseg button.on{background:#F1E4C2; color:var(--goldline)}
   #hlbl{font-size:10.5px; font-weight:600; color:var(--soft); letter-spacing:.02em}
-  #btime{font-size:13.5px; color:var(--soft); font-variant-numeric:tabular-nums; flex:1; text-align:center}
-  #btime b{color:var(--ink); font-weight:600; font-size:15px}
+  #jobnote{text-align:center; margin-top:4px; min-height:16px}
+
+  /* slim fixed bottom bar: time + MARK */
+  #bbar{position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--paper);
+    border-top:1px solid var(--line); padding:8px 14px calc(9px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:12px}
+  #btime{font-size:13.5px; color:var(--soft); font-variant-numeric:tabular-nums; flex:1}
+  #btime b{color:var(--ink); font-weight:600; font-size:16px}
   #mark{padding:11px 16px; flex:none}
   #mark svg{width:18px; height:18px}
 
-  /* the ? circle + help card */
-  #help{width:34px; height:34px; border-radius:50%; background:var(--cream);
-    border:1px solid var(--goldline); color:var(--goldline); font-weight:700; font-size:16px;
-    padding:0; display:flex; align-items:center; justify-content:center; flex:none; font-family:Georgia,serif}
+  /* the ? circle (small, in the header) + help card */
+  #help{border-radius:50%; font-weight:700; font-size:13px; font-family:Georgia,serif}
   .veil{position:fixed; inset:0; z-index:8; background:rgba(250,247,241,.55)}
   #helpcard{position:fixed; left:16px; right:16px; top:50%; transform:translateY(-50%); z-index:9;
     background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px 16px 12px;
@@ -168,6 +181,11 @@
     <h1 id="htitle">Cut Marks</h1>
     <div class="hmeta" id="hmeta"></div>
   </div>
+  <div id="hicons" hidden>
+    <button class="hbtn dim" id="undo" title="Undo" aria-label="undo the last change"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button>
+    <button class="hbtn" id="render" title="Render the cut" disabled><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></button>
+    <button class="hbtn" id="help" aria-label="how this works">?</button>
+  </div>
 </header>
 
 <!-- ── home: pick something to cut ────────────────────────────────── -->
@@ -196,13 +214,15 @@
       <div class="tc" id="atc">0:00.0</div>
     </div>
 
-    <div class="row" style="margin-top:12px">
-      <button class="btn" id="render" title="Render the cut" disabled>
-        <svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg>
-      </button>
-      <span class="tiny" id="jobnote" style="margin-left:auto"></span>
-      <button id="help" aria-label="how this works">?</button>
+    <div class="hwrap">
+      <div class="hseg">
+        <button id="hleft" aria-label="Back two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+        <button id="hmid" aria-label="Play or pause"></button>
+        <button id="hright" aria-label="Forward two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg></button>
+      </div>
+      <span id="hlbl">2s a tap</span>
     </div>
+    <div class="tiny" id="jobnote"></div>
 
     <div id="strip"><div id="ph"></div></div>
     <div class="striphint">Tap the strip to jump. Marks split it into pieces below.</div>
@@ -225,17 +245,9 @@
   </div>
 </div>
 
-<!-- bottom transport: back 2s · play · forward 2s, then MARK -->
+<!-- slim bottom bar: time + MARK (the transport lives under the video) -->
 <div id="bbar" hidden>
-  <div class="hwrap">
-    <div class="hseg">
-      <button id="hleft" aria-label="Back two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
-      <button id="hmid" aria-label="Play or pause"></button>
-      <button id="hright" aria-label="Forward two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg></button>
-    </div>
-    <span id="hlbl">2s a tap</span>
-  </div>
-  <div id="btime"><b id="bnow">0:00.0</b><br><span id="btot">0:00</span></div>
+  <div id="btime"><b id="bnow">0:00.0</b> / <span id="btot">0:00</span></div>
   <button class="btn" id="mark" title="Mark a cut here">
     <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>
   </button>
@@ -248,6 +260,7 @@
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span><span>mark a cut exactly where the playhead is — marks split the recording into pieces</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="6" rx="2"/><path d="M9 6v12"/></svg></span><span>on a piece row, the scissors drop that piece and the curled arrow puts it back; ▶ plays just that piece</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></span><span>−.1 and +.1 nudge a mark by a tenth of a second; tapping its time jumps the playhead there</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span><span>undo the last change — tap again to step further back (marks and drops; renders never overwrite anything)</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with the dropped pieces gone — the original is never touched. Audio cuts land in your audio library too.</span></div>
 </div>
 
@@ -269,8 +282,21 @@
 <audio id="player2" preload="none" hidden></audio>
 
 <script>
-// ANY tap pauses the shared autoscroll pill (house rule).
-document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+// The WHOLE page script lives in an IIFE. Load-bearing, not style: the
+// server appends the shared pill's script in GLOBAL scope, and it declares
+// `var raf`, `var I`, … — top-level `let raf`/`const I` here collide with
+// those and kill the pill's script at PARSE time (empty stretched buttons,
+// no scrolling — exactly what Sophie saw). Scope everything.
+(function(){
+'use strict';
+// ANY tap pauses the shared autoscroll pill (house rule) — EXCEPT taps on
+// the pill itself: __scrollStop repaints the pill's glyphs, and swapping the
+// tapped element out mid-press eats the click (play could never start).
+document.addEventListener('pointerdown', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('.float')) return;
+  if (window.__scrollStop) window.__scrollStop();
+}, true);
 if (window.__nativeNavBar) document.body.classList.add('native');
 
 const TOKEN = '__STUDIO_TOKEN__';
@@ -321,14 +347,27 @@ let raf = null;
 let pieceStop = null;    // stop time while playing one piece
 let docPoll = null, jobPoll = null;
 let saveTimer = null;
+let hist = [];           // undo snapshots for the OPEN recording (this session)
+
+// ── undo ────────────────────────────────────────────────────────────
+// Every marking change snapshots first; undo steps back through them.
+// Session-only and per-recording — renders never overwrite anything, so
+// they need no undo.
+function snap() {
+  hist.push({ marks: (doc.marks || []).slice(), dropped: (doc.dropped || []).slice() });
+  if (hist.length > 40) hist.shift();
+  paintUndo();
+}
+function paintUndo() { $('undo').classList.toggle('dim', !hist.length); }
 
 // ── home ────────────────────────────────────────────────────────────
 async function showHome() {
   stopMedia(); stopRenderPlayback();
   clearInterval(docPoll); clearInterval(jobPoll);
-  doc = null;
+  doc = null; hist = [];
   localStorage.removeItem('cutmarks_open');
   $('room').hidden = true; $('bbar').hidden = true; $('back').hidden = true;
+  $('hicons').hidden = true;
   $('home').hidden = false;
   document.body.classList.add('at-home');
   $('htitle').textContent = 'Cut Marks';
@@ -425,6 +464,8 @@ function buildRoom() {
   $('listen').hidden = true;
   $('markui').hidden = false;
   $('bbar').hidden = false;
+  $('hicons').hidden = false;
+  hist = []; paintUndo();
   $('htitle').textContent = doc.title;
   $('hmeta').textContent = (doc.kind === 'video' ? 'video' : 'audio') + ' · ' + fmt(doc.seconds);
   $('btot').textContent = fmt(doc.seconds);
@@ -536,6 +577,7 @@ $('mark').onclick = () => {
   if (t <= 0.01) { toast('Play into the recording first'); return; }
   doc.marks = doc.marks || [];
   if (doc.marks.some((m) => Math.abs(m - t) < 0.15)) { toast('A mark is already there'); return; }
+  snap();
   const before = piecesOf();
   const di = droppedIdxSet();
   const k = before.findIndex((p) => t >= p.s && t < p.e);
@@ -634,6 +676,7 @@ $('pieces').onclick = (e) => {
     return;
   }
   if (e.target.closest('.ptog')) {
+    snap();
     const key = row.dataset.key;
     doc.dropped = doc.dropped || [];
     const at = doc.dropped.indexOf(key);
@@ -654,6 +697,7 @@ $('marks').onclick = (e) => {
     if ((i > 0 && t - marks[i - 1] < 0.12) || (i < marks.length - 1 && marks[i + 1] - t < 0.12)) {
       toast('Too close to the next mark'); return;
     }
+    snap();
     const di = droppedIdxSet();      // a nudge keeps the same pieces
     marks[i] = t;
     doc.marks = marks;
@@ -663,6 +707,7 @@ $('marks').onclick = (e) => {
     return;
   }
   if (e.target.closest('.del')) {
+    snap();
     const di = droppedIdxSet();
     marks.splice(i, 1);
     doc.marks = marks;
@@ -678,6 +723,16 @@ $('marks').onclick = (e) => {
     saveState(); rebuild();
     toast('Mark removed');
   }
+};
+
+$('undo').onclick = () => {
+  const h = hist.pop();
+  if (!h) { toast('Nothing to undo'); return; }
+  doc.marks = h.marks;
+  doc.dropped = h.dropped;
+  paintUndo();
+  saveState(); rebuild();
+  toast('Undone');
 };
 
 // ── renders: play a cut ─────────────────────────────────────────────
@@ -774,6 +829,7 @@ window.__navBack = () => {
 
 const openId = localStorage.getItem('cutmarks_open');
 if (openId) enterRoom(openId); else showHome();
+})();
 </script>
 </body>
 </html>
