@@ -30,15 +30,24 @@ earlier shot.
   the reference; prompts without her don't.
 - **The rest of the cast has no references yet**, so they keep verbatim
   descriptions, identical at every appearance:
-  - Francesca: "a heavyset older woman with long graying dark hair, in sky
-    blue patient pajamas"
-  - Laura: "a pale sad woman with very long flowing hair, in sky blue
-    patient pajamas"
+  - Francesca: "a slightly overweight older woman with long graying dark
+    hair, in sky blue patient pajamas" (Aug 2026, Sophie: "a little
+    overweight, but not that big" — the earlier "heavyset" drew her too big)
+  - Laura: **reference LOCKED (Aug 2026)** — `hospital-film/f72.png`, the
+    window render Sophie picked. Attach it like the girl's and call her "the
+    long-haired woman" with no description. Until a shot is re-rolled its
+    prompt may still carry the old verbal token.
   - Mayra: "a small young woman with short black hair, in sky blue patient
     pajamas"
   - Dr. Grim: "a stern middle-aged doctor in a dark purple checkered shirt
     and black suit pants"
-  - Nurses are always "in scrubs, not patient pajamas".
+  - Nurses: **mostly Black women, a bit overweight with large behinds**
+    (Aug 2026, Sophie), always "in scrubs, not patient pajamas" — and
+    DIFFERENTIATE them, never a generic interchangeable nurse: the tall one
+    in a skirt (the terrible night — the manuscript's "the big black one who
+    was wearing a skirt"), the large seated one (the candy scene), the head
+    nurse ("the other Sophie"), the aide. Reference candidates rendered Aug
+    2026 — lock each from Sophie's hearts like the girl's.
   (Once a render of each is hearted, lock it as that character's reference
   the same way and strip their descriptions too.)
 - The engine's baked suffix bans text in the image, so paper labels and forms
@@ -101,39 +110,39 @@ earlier shot.
 4. animals — A hospital hallway of people in thin sky blue patient pajamas with gentle animal heads — a sheep, a pig, a heron — shuffling in single file.
 5. gold stars — A toddler perched on a toilet in a vast white room, a huge golden star sticker floating in the air above.
 6. the pajamas — People in identical thin sky blue patient pajamas pacing a long circular hospital hallway, spread out like dancers rehearsing a choreographed piece.
-7. rolled cuffs — A nurse in scrubs, not patient pajamas, kneels to roll up the too-long pajama cuffs of the girl, who stands still like a child, faint pleasure on her face.
+7. rolled cuffs — A Black nurse, a bit overweight, in scrubs, not patient pajamas, kneels to roll up the too-long pajama cuffs of the girl, who stands still like a child, faint pleasure on her face.
 8. the menu form — A small white paper meal-order form and a stubby pencil on a wooden desk in morning light.
 9. Sophie Spincher — The girl sits at a wooden desk, squinting at the name printed at the top of a little white meal-order form.
 10. filling it out anyway — The girl dutifully fills out a little white meal-order form at a desk by a window.
 11. the soup container — A soup container — a long white plastic rounded rectangle with a lid that has two holes in it — sitting alone on a wooden desk, glowing softly like a treasure.
-12. forms in the trash — The girl listlessly drops white paper forms into a metal trash can beside her desk.
+12. forms in the trash — The girl sits at her desk, listlessly pushing white paper forms into the metal trash can right beside the desk, without getting up.
 13. Francesca and the yogurt — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, eats sweet bread in a hallway chair, reaching for a small yogurt cup the girl holds out to her.
 14. trash treasure — The girl reaches into a hospital trash can and lifts out an empty soup container — a long white plastic rounded rectangle with a lid that has two holes in it — holding it up like a treasure.
 15. the sculptures — Small handmade sculptures crowd a little wooden desk in a hospital room, each built from long white plastic rounded-rectangle soup containers with two holes in their lids, stacked upright and held together with copious masking tape, clear plastic cutlery sleeves taped onto their sides.
 16. night gallery — At night the girl crouches at a dark windowsill, arranging little sculptures built from long white plastic rounded-rectangle soup containers and masking tape into a careful row in front of an air conditioning vent, a tiny paper label standing in front of each one, city lights outside the window.
 17. the titles — Close up: tiny paper labels standing upright on a moonlit windowsill, one in front of each little sculpture built from long white plastic rounded-rectangle soup containers and masking tape.
-18. taken down — Morning light. Three nurses in scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
+18. taken down — Morning light. Three Black nurses, a bit overweight, in scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
 19. drawer museum — An open wooden drawer holding little sculptures built from long white plastic rounded-rectangle soup containers and masking tape, arranged neatly like museum pieces, a tiny paper label standing in front of each.
 
 ## Chapter Two — meeting with Sarah
 
 20. speaking up — The girl sits small in a large chair in an office, speaking timidly to a big woman in a dark blue suit behind a desk.
-21. the accusation — A nurse's aide in scrubs, not patient pajamas, bursts through an office doorway mid-accusation, pointing, while the girl shrinks into her chair.
+21. the accusation — A Black nurse's aide, a bit overweight, in scrubs, not patient pajamas, bursts through an office doorway mid-accusation, pointing, while the girl shrinks into her chair.
 
 ## Chapter Three — candy
 
 22. the bad dream bursts — A dark storm cloud breaking apart into falling pastel candy squares.
-23. circling — The girl walks a wide wary circle around a large nurse in scrubs seated in a hallway chair.
+23. circling — The girl walks a wide wary circle around a large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair.
 24. the ant and the idol — One tiny black ant walking in a wide circle around an enormous carved stone statue of a seated figure on a dusty floor; the statue is solid carved stone, not a living person.
-25. the offer — A large nurse in scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
+25. the offer — A large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
 26. pink square — A single pink candy square in the middle of an open palm, close up.
-27. at peace — The girl and a large seated nurse in scrubs look at each other calmly, the girl's cheek round with candy.
+27. at peace — The girl and a large seated Black nurse in scrubs look at each other calmly, the girl's cheek round with candy.
 28. the red one — The girl slips a red candy square into the pocket of her sky blue pajama shirt with a small secret smile.
 
 ## Chapter Four — Francesca
 
 29. telling Tommy — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, sits on a blue wire chair in a hospital hallway, talking with big gestures to a blonde young man in patient pajamas.
-30. music group — Patients in thin sky blue pajamas seated in a circle holding small percussion instruments; a heavyset older woman with long graying dark hair strikes hers out of turn while a music teacher with a blonde bob glares.
+30. music group — Patients in thin sky blue pajamas seated in a circle holding small percussion instruments; a slightly overweight older woman with long graying dark hair strikes hers out of turn while a music teacher with a blonde bob glares.
 31. the silence — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, a miniature tambourine in her lap, fingers pressed to her lips, a circle of waiting patients around her.
 32. the beautiful body — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, tells her story in a hallway while behind her a faint memory of a young beautiful woman dissolves into the wall.
 33. the singing — Ribbons of song winding out of a doorway and down a hospital hallway, painted as flowing colored lines.
@@ -152,9 +161,9 @@ earlier shot.
 
 41. the theft — The girl hides a pair of scissors deep in a wooden drawer, glancing over her shoulder.
 42. not even feeling good — The girl sits stiffly on a desk chair beside a closed wooden drawer, hands in her lap.
-43. the knock — The silhouette of a nurse in scrubs knocking at a hospital room door, serious, seen from inside the dim room.
-44. handing them over — The girl surrenders a pair of scissors into the open hand of a nurse in scrubs at a nurses' station.
-45. the explanation — The girl mid-explanation before a skeptical nurse in scrubs, her hands tangled in the air like string.
+43. the knock — The silhouette of a Black nurse in scrubs knocking at a hospital room door, serious, seen from inside the dim room.
+44. handing them over — The girl surrenders a pair of scissors into the open hand of a Black nurse, a bit overweight, in scrubs at a nurses' station.
+45. the explanation — The girl mid-explanation before a skeptical Black nurse, a bit overweight, in scrubs, her hands tangled in the air like string.
 46. we don't steal scissors — The girl walks small and scolded down a hallway beside a stern middle-aged doctor in a dark purple checkered shirt and black suit pants.
 47. gray options — An abstract branching map of forking colored paths drawn on paper, the bright colors draining to flat dead gray toward the edges; no people in the picture.
 
@@ -177,13 +186,13 @@ earlier shot.
 56. the pill in the cup — Two careful fingers fish a partially dissolved white pill out of a small paper cup of water, close up.
 57. breaking the soap — In a shower stall, the girl breaks a tiny corner off a bar of white hospital soap.
 58. soap water — A paper cup of water held up to fluorescent light, jagged little pieces of white soap floating at the bottom, close up.
-59. look, I'm going to take it — The girl shows a paper cup to a tall nurse in scrubs at a nurses' station at night.
-60. down in one — The girl drinks down a paper cup in one motion while a nurse in scrubs watches, night hallway shadows.
+59. look, I'm going to take it — The girl shows a paper cup to a tall Black nurse, a bit overweight with a large behind, in scrubs and a skirt, at a nurses' station at night.
+60. down in one — The girl drinks down a paper cup in one motion while a tall Black nurse in scrubs and a skirt watches, night hallway shadows.
 61. the pill travels — A small glowing bead travels up through the neck of a translucent watercolor figure toward her head, synapses branching like coral inside.
 62. butter and sugar — Three little pats of butter on a hospital floor where the wall curves to make room for the bathroom, white sugar pouring down onto the little mounds from a torn paper packet.
 63. seven packets — Seven torn empty sugar packets scattered across a hospital floor at night; no people in the picture.
 64. push-up position — The girl holds a frozen push-up position in the center of a dark hospital room, moonlight through the window.
-65. caught — A nurse in scrubs silhouetted in a doorway; the girl in bed with covers pulled to her chin, eyes wide open.
+65. caught — A Black nurse in scrubs silhouetted in a doorway; the girl in bed with covers pulled to her chin, eyes wide open.
 66. the fish tank — A hospital meeting room where all the patients are goldfish drifting inside a huge fish tank; the girl watches from outside the glass.
 67. the mechanical arm — In a circle of chairs, the girl mechanically puts an arm around a crying pale sad woman with very long flowing hair, in sky blue patient pajamas.
 
@@ -210,8 +219,8 @@ earlier shot.
 ## Chapter Thirteen — Francesca cried the day I left
 
 79. Francesca crying — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, cries at a dining table, a strawberry yogurt in one hand and a piece of bread in the other.
-80. sign here — A head nurse in scrubs grips the girl's shoulder and holds out papers and a pen; the girl's parents wait at a table behind them.
-81. goodbye — The girl kisses a heavyset older woman with long graying dark hair, in sky blue patient pajamas, gently on the hair.
+80. sign here — A Black head nurse, a bit overweight, in scrubs grips the girl's shoulder and holds out papers and a pen; the girl's parents wait at a table behind them.
+81. goodbye — The girl kisses a slightly overweight older woman with long graying dark hair, in sky blue patient pajamas, gently on the hair.
 
 ## Chapter Fourteen — medicine line
 
@@ -222,7 +231,7 @@ earlier shot.
 
 84. handstands — A bright sun-patched day room; a small young woman with short black hair, in sky blue patient pajamas, does a handstand in the light, legs straight up.
 85. jumping — The girl, wearing a red tank top and pajama pants, jumps up and down in a patch of sunlight, hair mid-air, joyful.
-86. ninety-eight — The girl stands on a hospital scale in morning light while a nurse in scrubs notes something down.
+86. ninety-eight — The girl stands on a hospital scale in morning light while a Black nurse, a bit overweight, in scrubs notes something down.
 
 ## Chapter Sixteen — the tour
 
