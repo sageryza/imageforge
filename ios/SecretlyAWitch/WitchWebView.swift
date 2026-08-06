@@ -121,6 +121,15 @@ struct WitchWebView: UIViewRepresentable {
             return host == appHost
         }
 
+        /// The witch app page itself — as opposed to another page served by the
+        /// same host that the web view can navigate to (the blog, /blog and
+        /// /blog/<slug>). Those have no tabs, so there is nothing to re-assert
+        /// on them, and asking anyway navigates away from them (see didFinish).
+        private func isAppPage(_ url: URL?) -> Bool {
+            guard let url, isAppHost(url) else { return false }
+            return url.path == "/witch" || url.path == "/witch/"
+        }
+
         // Outbound links (shop, Instagram, YouTube) open in the real browser —
         // the web view only ever shows the app itself.
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
@@ -153,8 +162,17 @@ struct WitchWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             parent.loading = false
-            // Every fresh load starts the page on Home — re-assert whichever
-            // tab the native bar is actually on so they can never desync.
+            // Every fresh load of the APP starts the page on Home — re-assert
+            // whichever tab the native bar is actually on so they can never
+            // desync.
+            //
+            // Only for the app page. The blog is a real navigation in this same
+            // web view, and it answers __setTab by navigating BACK into the app
+            // — so re-asserting there threw her off the blog and onto Home the
+            // instant it loaded, which is what "the blog jumps right back to the
+            // home page" was. A tab tap still works from a blog page: it comes
+            // through updateUIView, not from here.
+            guard isAppPage(webView.url) else { return }
             pushTab(webView, parent.tab)
         }
 
