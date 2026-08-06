@@ -88,13 +88,39 @@ const test = async (name, fn) => {
     assert.deepStrictEqual(drawn, ['she fed it milk from her breasts', 'she fed it nursing']);
   });
 
-  await test('a second refusal gives up with a plain reason (no third draw)', async () => {
+  await test('pass 2 escalates from pass 1 output and can still save the page', async () => {
+    const drawn = [];
+    // Mirrors the real filter: "breasts" AND the vaguer "her body" are both
+    // refused; only an ordinary verb gets through (probed live 2026-08-06).
+    const draw = async b => {
+      drawn.push(b.text);
+      if (/breasts|her body/.test(b.text)) throw REFUSAL;
+      return { url: 'page1' };
+    };
+    const soften = async (b, pass) => pass === 1
+      ? { ...b, text: b.text.replace('milk from her breasts', 'milk from her body') }
+      : { ...b, text: 'she nursed the baby' };
+    const out = await M.softenOnRefusal({ text: 'she fed it milk from her breasts' }, draw, soften);
+    assert.deepStrictEqual(out, { url: 'page1', softened: true });
+    assert.deepStrictEqual(drawn, ['she fed it milk from her breasts',
+      'she fed it milk from her body', 'she nursed the baby']);
+  });
+
+  await test('a refusal that survives both passes gives up (no fourth draw)', async () => {
     let draws = 0;
     const draw = async () => { draws++; throw REFUSAL; };
     await assert.rejects(
-      () => M.softenOnRefusal({ text: 'x' }, draw, async b => ({ ...b, text: 'y' })),
+      () => M.softenOnRefusal({ text: 'x' }, draw, async (b, pass) => ({ ...b, text: 'y' + pass })),
       /safety filter refused this part of the dream/);
-    assert.strictEqual(draws, 2, `expected 2 draws, got ${draws}`);
+    assert.strictEqual(draws, 3, `expected 3 draws (original + 2 passes), got ${draws}`);
+  });
+
+  await test('the second pass rewrites the ALREADY-softened text, not the original', async () => {
+    const softenSaw = [];
+    await M.softenOnRefusal({ text: 'orig' }, async () => { throw REFUSAL; },
+      async (b, pass) => { softenSaw.push([pass, b.text]); return { ...b, text: 'soft' + pass }; })
+      .catch(() => {});
+    assert.deepStrictEqual(softenSaw, [[1, 'orig'], [2, 'soft1']]);
   });
 
   await test('an unsoftenable page fails without a pointless redraw', async () => {

@@ -1544,17 +1544,42 @@ function dreamZinePagePrompt(dream, group, refPages) {
 // whole-dream context line); every structural instruction — style reference,
 // character-continuity clauses, layout, attachment numbering — is rebuilt
 // untouched around the result, so softening can never scramble the references.
+// Pass 1 — REFRAME. The wording of this prompt is empirically calibrated against
+// gpt-image-2's filter (probed 2026-08-06 on the refused page): "feed it milk
+// from her breasts", "breastfeed the baby" and even the vaguer "feed it milk
+// from her body" are all REFUSED, while "nurse the baby" and "feed the baby"
+// are ACCEPTED. So a euphemistic word-swap is the wrong move — the first version
+// of this prompt said "rephrase only what is likely to trip it" and the model
+// dutifully produced "from her body", which was refused again. Reframing the
+// ACTION in ordinary verbs is what actually passes.
 const SOFTEN_SYSTEM =
-  "You rewrite short narrative text so an image generator's automated safety "
-  + 'filter will accept it, without changing what happens. The text describes a '
-  + 'real dream someone recorded. It is not explicit, but wording about bodies, '
-  + 'nudity, children, blood, injury or violence can trip the filter even when '
-  + 'the scene is innocent. Rephrase ONLY what is likely to trip it, in plain '
-  + 'non-graphic language (e.g. "nursing her baby" rather than anatomical '
-  + 'wording). Keep every event, person and detail — do not censor the story, '
-  + 'soften the words. Keep the dreamer\'s first-person voice, and keep each '
-  + 'caption about as long as it was. Reply with JSON having EXACTLY the same '
-  + 'keys and array lengths as the input, every string rewritten in place.';
+  "You rewrite a short piece of dream narrative so an image generator's automated "
+  + 'safety filter will accept it, without changing what happens. '
+  + 'The filter fires on explicit references to bodies and bodily substances, '
+  + 'especially anywhere near a child — but it accepts the SAME EVENT described '
+  + 'with an ordinary everyday verb. Being VAGUER DOES NOT HELP: "feed it milk '
+  + 'from her body" is refused exactly like "from her breasts", while "nurse the '
+  + 'baby" is accepted. So do not swap a word for a euphemism — REFRAME THE '
+  + 'ACTION as a plainly drawable, wholesome scene in the fewest ordinary words. '
+  + 'Rules: never name a body part or a bodily substance; use concrete everyday '
+  + 'verbs (nurse, feed, hold, carry, wash, dress); keep every event, person and '
+  + 'detail — do not censor the story and do not add anything; keep the dreamer\'s '
+  + 'first-person voice and keep each caption about as long as it was. '
+  + 'Worked example: "Then she went to feed it milk from her breasts." becomes '
+  + '"Then she went to nurse the baby." '
+  + 'Reply with JSON having EXACTLY the same keys and array lengths as the input, '
+  + 'every string rewritten in place.';
+
+// Pass 2 — DROP IT. Pass 1's rewrite was refused too, so stop trying to say the
+// thing a different way and describe only what can be drawn. Losing one detail
+// beats losing the whole page (and the page is what Sophie is waiting for).
+const SOFTEN_SYSTEM_HARD = SOFTEN_SYSTEM
+  + ' SECOND PASS: the text you are given has ALREADY been softened once and was '
+  + 'STILL refused. This time DROP the sensitive detail entirely instead of '
+  + 'rephrasing it — describe only the part of the moment that can be drawn '
+  + 'plainly (who is there, where they are, the plain visible action), and let '
+  + 'the caption say only that. A shorter caption that loses a detail is the '
+  + 'correct outcome here.';
 
 // Merge the rewriter's reply onto the original, shape-for-shape: any string it
 // dropped, emptied or changed the type of falls back to the original, so a
@@ -1574,10 +1599,10 @@ function mergeSoftened(orig, out) {
   return orig;
 }
 
-async function softenRefusedNarrative(bundle) {
+async function softenRefusedNarrative(bundle, pass = 1) {
   try {
     const out = await openaiChatJSON([
-      { role: 'system', content: SOFTEN_SYSTEM },
+      { role: 'system', content: pass > 1 ? SOFTEN_SYSTEM_HARD : SOFTEN_SYSTEM },
       { role: 'user', content: JSON.stringify(bundle) },
     ], { model: 'gpt-4o-mini', temperature: 0.3, retries: 1 });
     const softened = mergeSoftened(bundle, out);
@@ -1591,7 +1616,7 @@ async function softenRefusedNarrative(bundle) {
 }
 
 const REFUSAL_MESSAGE = "gpt-image-2's safety filter refused this part of the dream, "
-  + 'and refused it again after the wording was softened';
+  + 'and refused it again after two passes of softer wording';
 function refusalError() {
   const err = new Error(REFUSAL_MESSAGE);
   err.terminal = true;   // drawPagesResilient must not retry this page
@@ -1600,22 +1625,30 @@ function refusalError() {
 
 // The refusal control flow, with both of its effects injected so it can be
 // tested without spending a cent at OpenAI (scripts/test-dream-refusal.js).
-// A safety refusal softens the bundle once and redraws; EVERY other error
-// propagates untouched, so real hiccups still get drawPagesResilient's rounds.
-async function softenOnRefusal(bundle, draw, soften) {
+// A safety refusal softens and redraws, escalating up to `passes` times (each
+// pass rewrites the ALREADY-softened text, so pass 2 works from pass 1's output
+// and drops the detail instead of rephrasing it). A refused request is rejected
+// before generation and costs nothing, so the extra passes only ever spend time
+// — and a refusal comes back fast. EVERY other error propagates untouched, so
+// real hiccups still get drawPagesResilient's rounds.
+async function softenOnRefusal(bundle, draw, soften, passes = 2) {
   try {
     return await draw(bundle);
   } catch (err) {
     if (!isSafetyRefusal(err)) throw err;
-    const soft = await soften(bundle);
-    if (!soft) throw refusalError();
-    console.warn('movies: page refused by the safety filter — redrawing with softened wording');
-    try {
-      return { ...await draw(soft), softened: true };
-    } catch (err2) {
-      if (isSafetyRefusal(err2)) throw refusalError();
-      throw err2;
+    let current = bundle;
+    for (let pass = 1; pass <= passes; pass++) {
+      const soft = await soften(current, pass);
+      if (!soft) break;         // nothing changed → redrawing is pointless
+      console.warn(`movies: page refused by the safety filter — redrawing with softened wording (pass ${pass})`);
+      try {
+        return { ...await draw(soft), softened: true };
+      } catch (err2) {
+        if (!isSafetyRefusal(err2)) throw err2;
+        current = soft;         // escalate from what we just tried
+      }
     }
+    throw refusalError();
   }
 }
 
@@ -3342,6 +3375,7 @@ module.exports = {
   dreamZinePagePrompt,
   isSafetyRefusal,
   mergeSoftened,
+  softenRefusedNarrative,
   softenOnRefusal,
   drawWithSoftening,
   drawPagesResilient,
