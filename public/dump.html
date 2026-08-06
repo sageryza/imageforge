@@ -63,6 +63,35 @@
   .hint{ font-size:12px; color:var(--dim); }
   .empty{ text-align:center; color:var(--dim); padding:44px 20px; font-size:14px; }
 
+  /* Select mode: every album open to just its thumbs, tap to pick. */
+  .files .f.picked{ outline:3px solid var(--accent); outline-offset:-3px; }
+  .files .f.picked::before{ content:'✓'; position:absolute; top:3px; right:3px; z-index:1;
+    width:18px; height:18px; border-radius:50%; background:var(--accent); color:#fff;
+    font-size:12px; display:flex; align-items:center; justify-content:center; }
+  #movebar{ position:fixed; left:0; right:0; bottom:0; z-index:15;
+    display:flex; gap:10px; align-items:center; padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--border); }
+  #movebar .n{ font-size:14px; color:var(--text); flex:1; }
+  #movebar button{ font:inherit; font-size:14px; font-weight:600; border-radius:var(--r); padding:9px 16px; }
+  #mvgo{ background:var(--accent); color:#fff; border:0; }
+  #mvgo:disabled{ opacity:.5; }
+  #mvcancel{ background:transparent; color:var(--dim); border:1px solid var(--border); }
+  /* Album-picker sheet */
+  #sheet{ position:fixed; inset:0; z-index:25; background:rgba(20,16,12,.45);
+    display:flex; align-items:flex-end; }
+  #sheetin{ background:var(--surface); border-radius:12px 12px 0 0; width:100%;
+    max-height:70vh; overflow-y:auto; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); }
+  #sheetin .lab2{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin:12px 0 6px; }
+  .alb{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; font:inherit;
+    background:none; border:0; border-bottom:1px solid var(--border); padding:10px 2px; cursor:pointer; }
+  .alb img{ width:38px; height:38px; border-radius:4px; object-fit:cover; background:var(--surface2); }
+  .alb .an{ font-size:15px; color:var(--text); flex:1; }
+  .alb .ac{ font-size:12px; color:var(--dim); }
+  #newrow{ display:flex; gap:8px; margin-top:8px; }
+  #newrow input{ flex:1; }
+  #newrow button{ font:inherit; font-size:14px; font-weight:600; border-radius:var(--r);
+    padding:9px 14px; background:var(--accent); color:#fff; border:0; }
+
   /* Lightbox: freezes the page behind it (house rule — save/restore scroll). */
   #lb{ position:fixed; inset:0; background:rgba(20,16,12,.92); z-index:20;
     display:flex; flex-direction:column; align-items:center; justify-content:center; }
@@ -79,6 +108,21 @@
 </header>
 <div class="chips" id="filters"></div>
 <main id="list"><div class="empty">loading the inbox…</div></main>
+
+<div id="movebar" hidden>
+  <span class="n" id="mvcount">0 picked</span>
+  <button id="mvcancel">Cancel</button>
+  <button id="mvgo" disabled>Move to…</button>
+</div>
+
+<div id="sheet" hidden>
+  <div id="sheetin">
+    <div class="lab2">Move into</div>
+    <div id="alblist"></div>
+    <div class="lab2">Or a new album</div>
+    <div id="newrow"><input type="text" id="newname" placeholder="album name"><button id="newgo">Move</button></div>
+  </div>
+</div>
 
 <div id="lb" hidden>
   <img id="lbimg" alt="" hidden>
@@ -121,11 +165,13 @@ async function loadBundles(){
 function renderFilters(){
   const el=document.getElementById('filters');
   el.innerHTML=
+    '<span class="chip'+(selectMode?' on':'')+'" data-sel="1">Select</span>'+
     '<span class="chip'+(curSession?'':' on')+'" data-s="">All</span>'+
     '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unlabelled</span>'+
     sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'">'
       +esc(s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
   el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    if(c.dataset.sel){ setSelectMode(!selectMode); return; }
     if(c.dataset.un){ onlyUnlabelled=!onlyUnlabelled; }
     else curSession=c.dataset.s;
     renderFilters(); loadBundles();
@@ -133,20 +179,52 @@ function renderFilters(){
 }
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
+// Select mode: pick files across ANY album, then move the lot into one —
+// "select a bunch and put them all in a folder" (Sophie). Every card opens to
+// just its thumbs (no label editor), taps pick instead of opening the lightbox,
+// and the fixed bottom bar does the move.
+let selectMode=false; const picked=new Map(); // id -> url (for order + count)
+function setSelectMode(on){
+  selectMode=on;
+  if(!on) picked.clear();
+  document.getElementById('movebar').hidden=!on;
+  document.body.style.paddingBottom=on?'70px':'';
+  renderFilters(); renderList();
+}
+function updateMoveBar(){
+  document.getElementById('mvcount').textContent=picked.size+' picked';
+  document.getElementById('mvgo').disabled=!picked.size;
+}
+
 function renderList(){
   const el=document.getElementById('list');
   if(!bundles.length){ el.innerHTML='<div class="empty">Nothing here — dump something from the app first.</div>'; return; }
   el.innerHTML=bundles.map((b,i)=>{
     const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
     const tk=b.track?'<span class="tk set">'+esc(b.track)+'</span>':'<span class="tk un">unlabelled</span>';
+    const files=selectMode
+      ? '<div class="body"><div class="files">'+b.files.map(f=>{
+          const src=f.media==='video'?(f.posterUrl||''):f.url;
+          return '<button class="f'+(f.media==='video'?' vid':'')+(picked.has(f.id)?' picked':'')+'" data-pick="'+esc(f.id)+'">'+
+            '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
+        }).join('')+'</div></div>'
+      : '<div class="body" id="body'+i+'" hidden></div>';
     return '<div class="card" data-i="'+i+'">'+
-      '<div class="head" onclick="toggle('+i+')">'+
+      '<div class="head"'+(selectMode?'':' onclick="toggle('+i+')"')+'>'+
         '<img class="cover" src="'+esc(b.cover||'')+'" loading="lazy" alt="">'+
         '<div class="meta"><div class="nm">'+esc(nm)+'</div>'+
         '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.session)+'</div></div>'+
-        tk+'</div>'+
-      '<div class="body" id="body'+i+'" hidden></div></div>';
+        tk+'</div>'+files+'</div>';
   }).join('');
+  if(selectMode){
+    el.querySelectorAll('[data-pick]').forEach(f=>f.onclick=()=>{
+      const id=f.dataset.pick;
+      if(picked.has(id)){ picked.delete(id); f.classList.remove('picked'); }
+      else{ picked.set(id,1); f.classList.add('picked'); }
+      updateMoveBar();
+    });
+    updateMoveBar();
+  }
 }
 
 function toggle(i){
@@ -201,6 +279,36 @@ function toggle(i){
       renderList(); }
     else hint.textContent='failed: '+((r.body&&r.body.error)||r.status);
   };
+}
+
+// ── the move itself ──
+document.getElementById('mvcancel').onclick=()=>setSelectMode(false);
+document.getElementById('mvgo').onclick=()=>{
+  const list=document.getElementById('alblist');
+  list.innerHTML=bundles.filter(b=>b.bundle).map(b=>{
+    const nm=b.bundleName||b.bundle.replace(/-/g,' ');
+    return '<button class="alb" data-mv="'+esc(nm)+'">'+
+      '<img src="'+esc(b.cover||'')+'" loading="lazy" alt=""><span class="an">'+esc(nm)+'</span>'+
+      '<span class="ac">'+b.files.length+'</span></button>';
+  }).join('')||'<div class="empty" style="padding:14px">No albums yet — name a new one below.</div>';
+  list.querySelectorAll('[data-mv]').forEach(a=>a.onclick=()=>doMove(a.dataset.mv));
+  document.getElementById('newname').value='';
+  document.getElementById('sheet').hidden=false;
+};
+document.getElementById('sheet').onclick=e=>{ if(e.target.id==='sheet')document.getElementById('sheet').hidden=true; };
+document.getElementById('newgo').onclick=()=>{
+  const nm=document.getElementById('newname').value.trim();
+  if(nm) doMove(nm);
+};
+async function doMove(bundleName){
+  document.getElementById('sheet').hidden=true;
+  const ids=[...picked.keys()];
+  document.getElementById('mvcount').textContent='moving '+ids.length+'…';
+  const r=await api('/move',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ids, bundleName})});
+  if(!r.ok){ document.getElementById('mvcount').textContent='failed: '+((r.body&&r.body.error)||r.status); return; }
+  setSelectMode(false);
+  await load();          // sessions + bundles both changed
 }
 
 // Lightbox — freeze the page behind it AND restore the exact scroll position
