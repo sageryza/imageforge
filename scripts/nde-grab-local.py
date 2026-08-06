@@ -84,6 +84,35 @@ CONTENT_TYPES = {
 }
 
 
+# EVERY upload is CHUNKED — never one big request body. Measured on this Mac
+# (Aug 2026): a single HTTPS request body over ~512KB to storage.googleapis.com
+# stalls and dies on the client's 120s retry deadline, while 512KB goes through
+# in 0.3s and the SAME 1MB body to a non-Google host uploads in 2s. Plain curl
+# with no auth reproduces it (5B → 403 in 0.13s, 512KB → 403 in 0.33s, 1MB →
+# hangs), on both IPv4 and IPv6, so it is the network path to Google's frontend,
+# not bandwidth, not credentials, and nothing in this script. That stall is what
+# failed every one of the Dolores Cannon audiobooks right after "transcript ✓":
+# their transcripts are 1.5MB+ of JSON, uploaded in one shot. A resumable upload
+# in 512KB chunks routes around it entirely (measured 1.4MB/s). Keep it chunked
+# even if the path heals — chunking costs nothing when the network is healthy.
+UPLOAD_CHUNK = 512 * 1024  # must stay a multiple of 256KiB (resumable API rule)
+
+
+def upload_bytes(bucket, dest, payload, content_type):
+    blob = bucket.blob(dest)
+    with blob.open("wb", content_type=content_type, chunk_size=UPLOAD_CHUNK) as fh:
+        fh.write(payload)
+    return blob
+
+
+def upload_file(bucket, dest, path, content_type):
+    blob = bucket.blob(dest)
+    with open(path, "rb") as src, \
+            blob.open("wb", content_type=content_type, chunk_size=UPLOAD_CHUNK) as fh:
+        shutil.copyfileobj(src, fh, UPLOAD_CHUNK)
+    return blob
+
+
 def log(msg):
     print(msg, flush=True)
 
@@ -460,8 +489,7 @@ def grab_one(video_id, ctx):
             payload = json.dumps(transcript, ensure_ascii=False).encode("utf-8")
             if len(payload) > 850_000:
                 dest = f"nde-transcripts/{video_id}.json"
-                ctx["bucket"].blob(dest).upload_from_string(
-                    payload, content_type="application/json")
+                upload_bytes(ctx["bucket"], dest, payload, "application/json")
                 update["transcript"] = {
                     "storage": dest,
                     "segmentsCount": len(transcript["segments"]),
@@ -482,8 +510,10 @@ def grab_one(video_id, ctx):
         path, ext = download_audio(ctx["ytdlp"], video_id, ctx["workdir"], ctx["audio_format"])
         size = os.path.getsize(path)
         dest = f"{AUDIO_PREFIX}{video_id}.{ext}"
-        target = ctx["bucket"].blob(dest)
-        target.upload_from_filename(path, content_type=CONTENT_TYPES.get(ext, "application/octet-stream"))
+        log(f"    uploading {size / 1e6:.0f}MB of audio in {UPLOAD_CHUNK // 1024}KB "
+            "chunks — this is the slow part")
+        target = upload_file(ctx["bucket"], dest, path,
+                             CONTENT_TYPES.get(ext, "application/octet-stream"))
         target.make_public()
         update["audioUrl"] = f"https://storage.googleapis.com/{ctx['bucket'].name}/{dest}"
         update["audioBytes"] = size
