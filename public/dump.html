@@ -1,0 +1,224 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Dump — sort & label</title>
+<style>
+  :root{ --bg:#faf9f7; --surface:#fff; --surface2:#f5f0eb; --border:#e8e4df;
+    --accent:#b48b6a; --text:#3a3530; --dim:#9e9590; --danger:#d4807a; --r:6px; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,'DM Sans',system-ui,sans-serif; -webkit-text-size-adjust:100%; }
+  [hidden]{ display:none !important; }
+
+  /* Page-owned header (the Chats-look eyebrow); top-right corner reserved for
+     the autoscroll pill per the house rule. */
+  header{ position:sticky; top:0; background:var(--bg); z-index:5;
+    padding:calc(14px + env(safe-area-inset-top)) 56px 10px 16px;
+    border-bottom:1px solid var(--border); }
+  .eyebrow{ font-size:12px; font-weight:600; letter-spacing:2.5px; color:#8a8377; }
+  .counts{ font-size:12px; color:var(--dim); margin-top:3px; }
+
+  .chips{ display:flex; gap:6px; overflow-x:auto; padding:10px 16px 4px;
+    -webkit-overflow-scrolling:touch; }
+  .chips::-webkit-scrollbar{ display:none; }
+  .chip{ flex:0 0 auto; font-size:13px; border:1px solid var(--border); border-radius:var(--r);
+    padding:6px 12px; background:var(--surface); color:var(--dim); cursor:pointer; user-select:none; }
+  .chip.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  main{ padding:8px 12px calc(40px + env(safe-area-inset-bottom)); }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    margin-bottom:10px; overflow:hidden; }
+  .head{ display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; }
+  .cover{ width:56px; height:56px; border-radius:var(--r); object-fit:cover;
+    background:var(--surface2); flex:0 0 auto; }
+  .meta{ flex:1; min-width:0; }
+  .nm{ font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sub{ font-size:12px; color:var(--dim); margin-top:2px; }
+  .tk{ font-size:11px; border-radius:var(--r); padding:3px 8px; flex:0 0 auto; }
+  .tk.set{ background:var(--surface2); color:var(--accent); border:1px solid var(--border); }
+  .tk.un{ color:var(--danger); border:1px dashed var(--danger); }
+
+  .body{ border-top:1px solid var(--border); padding:12px; }
+  .files{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:12px; }
+  .files .f{ position:relative; aspect-ratio:1; border-radius:4px; overflow:hidden;
+    background:var(--surface2); border:0; padding:0; cursor:pointer; }
+  .files img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .files .vid::after{ content:'▶'; position:absolute; inset:0; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-size:18px; text-shadow:0 1px 4px rgba(0,0,0,.6); }
+  label{ display:block; font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--dim); margin:10px 0 4px; }
+  input[type=text], textarea{ width:100%; border:1px solid var(--border); border-radius:var(--r);
+    padding:9px 10px; font:inherit; font-size:15px; background:var(--bg); color:var(--text); }
+  textarea{ min-height:52px; resize:vertical; }
+  .tracks{ display:flex; gap:6px; flex-wrap:wrap; }
+  .savebar{ display:flex; gap:10px; align-items:center; margin-top:14px; }
+  .save{ background:var(--accent); color:#fff; border:0; border-radius:var(--r);
+    padding:10px 20px; font:inherit; font-size:15px; font-weight:600; }
+  .save:disabled{ opacity:.5; }
+  .hint{ font-size:12px; color:var(--dim); }
+  .empty{ text-align:center; color:var(--dim); padding:44px 20px; font-size:14px; }
+
+  /* Lightbox: freezes the page behind it (house rule — save/restore scroll). */
+  #lb{ position:fixed; inset:0; background:rgba(20,16,12,.92); z-index:20;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #lb img, #lb video{ max-width:96vw; max-height:78vh; border-radius:4px; }
+  #lb .row{ display:flex; gap:14px; margin-top:16px; }
+  #lb button{ font:inherit; font-size:14px; border-radius:var(--r); padding:9px 18px;
+    border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; }
+  #lb .del{ border-color:var(--danger); color:var(--danger); }
+</style>
+
+<header>
+  <div class="eyebrow">THE DUMP</div>
+  <div class="counts" id="counts">loading…</div>
+</header>
+<div class="chips" id="filters"></div>
+<main id="list"><div class="empty">loading the inbox…</div></main>
+
+<div id="lb" hidden>
+  <img id="lbimg" alt="" hidden>
+  <video id="lbvid" controls playsinline hidden></video>
+  <div class="row">
+    <button class="del" id="lbdel">Delete</button>
+    <button id="lbclose">Close</button>
+  </div>
+</div>
+
+<script>
+const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
+const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok};
+  return fetch('/api/drop'+p,o).then(async r=>({ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))})); };
+
+// The known tracks; "other…" reveals a free-text box. Deliberately few — a
+// track is a project, not a tag cloud.
+const TRACKS=['crystals','story-art','hoonies','reference','product'];
+let sessions=[], curSession='', onlyUnlabelled=false, bundles=[];
+
+async function load(){
+  const s=await api('/sessions'); sessions=(s.ok&&s.body.sessions)||[];
+  renderFilters(); await loadBundles();
+}
+async function loadBundles(){
+  const q=[]; if(curSession)q.push('session='+encodeURIComponent(curSession));
+  if(onlyUnlabelled)q.push('untracked=1');
+  const r=await api('/bundles'+(q.length?'?'+q.join('&'):''));
+  bundles=(r.ok&&r.body.bundles)||[];
+  const files=(r.ok&&r.body.files)||0;
+  const un=bundles.filter(b=>!b.track).length;
+  document.getElementById('counts').textContent=
+    bundles.length+' albums · '+files+' files · '+un+' unlabelled';
+  renderList();
+}
+function renderFilters(){
+  const el=document.getElementById('filters');
+  el.innerHTML=
+    '<span class="chip'+(curSession?'':' on')+'" data-s="">All</span>'+
+    '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unlabelled</span>'+
+    sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'">'
+      +esc(s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
+  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    if(c.dataset.un){ onlyUnlabelled=!onlyUnlabelled; }
+    else curSession=c.dataset.s;
+    renderFilters(); loadBundles();
+  });
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function renderList(){
+  const el=document.getElementById('list');
+  if(!bundles.length){ el.innerHTML='<div class="empty">Nothing here — dump something from the app first.</div>'; return; }
+  el.innerHTML=bundles.map((b,i)=>{
+    const nm=b.bundleName||b.name||(b.bundle?b.bundle.replace(/-/g,' '):'loose file');
+    const tk=b.track?'<span class="tk set">'+esc(b.track)+'</span>':'<span class="tk un">unlabelled</span>';
+    return '<div class="card" data-i="'+i+'">'+
+      '<div class="head" onclick="toggle('+i+')">'+
+        '<img class="cover" src="'+esc(b.cover||'')+'" loading="lazy" alt="">'+
+        '<div class="meta"><div class="nm">'+esc(nm)+'</div>'+
+        '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.session)+'</div></div>'+
+        tk+'</div>'+
+      '<div class="body" id="body'+i+'" hidden></div></div>';
+  }).join('');
+}
+
+function toggle(i){
+  const body=document.getElementById('body'+i);
+  if(!body.hidden){ body.hidden=true; return; }
+  const b=bundles[i];
+  const other=b.track&&!TRACKS.includes(b.track)?b.track:'';
+  body.innerHTML=
+    '<div class="files">'+b.files.map(f=>{
+      const src=f.media==='video'?(f.posterUrl||''):f.url;
+      return '<button class="f'+(f.media==='video'?' vid':'')+'" data-id="'+esc(f.id)+'" data-url="'+esc(f.url)+'" data-m="'+esc(f.media)+'">'+
+        '<img src="'+esc(src)+'" loading="lazy" alt=""></button>';
+    }).join('')+'</div>'+
+    '<label>Name</label><input type="text" id="nm'+i+'" value="'+esc(b.bundleName||b.name||'')+'">'+
+    '<label>Track — what project is this?</label>'+
+    '<div class="tracks" id="tr'+i+'">'+TRACKS.map(t=>
+      '<span class="chip'+(b.track===t?' on':'')+'" data-t="'+t+'">'+t+'</span>').join('')+
+      '<span class="chip'+(other?' on':'')+'" data-t="__other">other…</span></div>'+
+    '<input type="text" id="oth'+i+'" placeholder="track name" value="'+esc(other)+'"'+(other?'':' hidden')+'>'+
+    '<label>Notes</label><textarea id="no'+i+'">'+esc(b.notes||'')+'</textarea>'+
+    '<div class="savebar"><button class="save" id="sv'+i+'">Save</button><span class="hint" id="hi'+i+'"></span></div>';
+  body.hidden=false;
+
+  let track=b.track||'';
+  const trEl=document.getElementById('tr'+i), othEl=document.getElementById('oth'+i);
+  trEl.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const t=c.dataset.t;
+    if(t==='__other'){ othEl.hidden=!othEl.hidden; if(!othEl.hidden)othEl.focus(); track=othEl.value.trim(); }
+    else{
+      // tap the lit chip again to clear the track back to unlabelled
+      track=(track===t)?'':t; othEl.hidden=true;
+    }
+    trEl.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',
+      x.dataset.t==='__other'?!othEl.hidden:x.dataset.t===track));
+  });
+  othEl.oninput=()=>{ track=othEl.value.trim(); };
+
+  body.querySelectorAll('.f').forEach(f=>f.onclick=()=>openLB(f.dataset));
+
+  document.getElementById('sv'+i).onclick=async()=>{
+    const btn=document.getElementById('sv'+i), hint=document.getElementById('hi'+i);
+    btn.disabled=true; hint.textContent='saving…';
+    const patch={ bundleName:document.getElementById('nm'+i).value.trim(),
+      track:track||null, notes:document.getElementById('no'+i).value.trim() };
+    let r;
+    if(b.bundle) r=await api('/bundle',{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session:b.session,bundle:b.bundle,...patch})});
+    else r=await api('/items/'+b.files[0].id,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:patch.bundleName,track:patch.track,notes:patch.notes})});
+    btn.disabled=false;
+    if(r.ok){ hint.textContent='saved ✓'; Object.assign(b,{bundleName:patch.bundleName,track:patch.track,notes:patch.notes});
+      renderList(); }
+    else hint.textContent='failed: '+((r.body&&r.body.error)||r.status);
+  };
+}
+
+// Lightbox — freeze the page behind it AND restore the exact scroll position
+// on close (overflow:hidden alone doesn't stop programmatic scrolls).
+let savedY=0, lbId=null;
+function openLB(d){
+  savedY=window.scrollY; lbId=d.id;
+  if(window.__scrollStop)window.__scrollStop();
+  document.body.style.overflow='hidden';
+  const img=document.getElementById('lbimg'), vid=document.getElementById('lbvid');
+  if(d.m==='video'){ img.hidden=true; vid.hidden=false; vid.src=d.url; }
+  else{ vid.hidden=true; vid.removeAttribute('src'); img.hidden=false; img.src=d.url; }
+  document.getElementById('lb').hidden=false;
+}
+function closeLB(){
+  document.getElementById('lb').hidden=true;
+  const vid=document.getElementById('lbvid'); vid.pause&&vid.pause(); vid.removeAttribute('src');
+  document.body.style.overflow=''; window.scrollTo(0,savedY);
+}
+document.getElementById('lbclose').onclick=closeLB;
+document.getElementById('lb').onclick=e=>{ if(e.target.id==='lb')closeLB(); };
+document.getElementById('lbdel').onclick=async()=>{
+  if(!confirm('Delete this file from the Dump?'))return;
+  const r=await api('/items/'+lbId,{method:'DELETE'});
+  closeLB();
+  if(r.ok) loadBundles();
+};
+
+load();
+</script>

@@ -588,6 +588,9 @@ function serveGated(file, opts = {}) {
   };
 }
 app.get('/studio', serveGated('studio.html'));
+// The Dump's sort & label page — browse what the inbox holds, name albums,
+// set their track, delete strays. The native Dump tile links here.
+app.get('/dump', serveGated('dump.html'));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
 app.get('/photo', serveGated('photo.html'));
