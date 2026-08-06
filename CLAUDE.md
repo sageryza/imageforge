@@ -2070,20 +2070,34 @@ lifted into a standalone tool later.
   `nde-grab-local.py`. Idempotent — re-running skips what's banked, so a
   failed batch is just "run it again".
 - **Sophie's home connection stalls on big single uploads (Aug 2026 —
-  measured, not guessed).** Any single HTTPS request body over ~512KB to
-  storage.googleapis.com hangs until the client's retry deadline (plain curl
-  from her Mac: 512KB in 0.33s, 1MB forever; her Wi-Fi is generally spotty),
-  and sustained `git push` from the Mac stalls the same way. It shows up as
-  "Timeout of 120.0s exceeded" right after a big transcript or audio finishes.
-  Two standing workarounds, both proven live (PR #836):
-  - **Every Storage upload from her Mac must be CHUNKED.** `nde-grab-local.py`
-    sends all uploads as resumable uploads in 512KB chunks
-    (`UPLOAD_CHUNK` / `upload_bytes()` / `upload_file()` — measured 1.4MB/s
-    where a single-request upload hung forever). Do NOT revert to plain
-    `upload_from_string`/`upload_from_filename` even if her network seems
-    healthy — chunking costs nothing then. Any NEW script that uploads from
-    her Mac to Storage needs the same treatment; the library's defaults
-    (single multipart POST under 8MiB) will hang on her connection.
+  measured, not guessed).** Any single sustained HTTPS request body over ~1MB
+  hangs until the client's retry deadline (plain curl from her Mac: 512KB in
+  0.33s, 1MB forever, on both IPv4 and IPv6; her Wi-Fi is generally spotty),
+  and sustained `git push` from the Mac stalls the same way. **It is her
+  UPLINK, not any one host** — first measured against storage.googleapis.com,
+  but later testing stalled the same way to Cloudflare/GitHub/httpbin, while
+  downloads stay fine (~2.9MB/s) and 512KB uploads stay fine (~1.5MB/s). So
+  don't chase a Google-specific explanation. It shows up as "Timeout of 120.0s
+  exceeded" right after a big transcript or audio finishes. Two standing
+  workarounds, both proven live (PR #836, corrected in #845):
+  - **Every Storage upload from her Mac must be CHUNKED, and the load-bearing
+    idiom is `blob.open("wb", chunk_size=…)`.** `nde-grab-local.py`'s
+    `upload_bytes()` / `upload_file()` write through a file handle for exactly
+    this reason (measured 1.4MB/s where a single-request upload hung forever).
+    **Do NOT "simplify" that to `upload_from_string`/`upload_from_filename`
+    with `chunk_size` set on the blob** — it looks equivalent and is not, and
+    that exact mistake already shipped once: google-cloud-storage's
+    `Blob._do_upload` dispatches on SIZE ALONE (`size <= 8MiB` → one multipart
+    POST) and **never consults `blob.chunk_size` on that path**, so every
+    transcript (1.2-2.2MB) still went as one request — the very thing that
+    stalls. `chunk_size` only bites on the resumable path, i.e. files over
+    8MiB (the audio). Measured back to back on her Mac with the same 1.5MB
+    payload: the blob-attribute form 62.4s (surviving only because a 60s
+    read-timeout retry happened to land — under the stall it burns the 120s
+    deadline and fails INTERMITTENTLY, the worst failure mode), the
+    `blob.open()` form 1.2s. Keep it chunked even if her network heals —
+    chunking costs nothing then. Any NEW script that uploads from her Mac
+    needs the same treatment.
   - **When `git push` stalls on the Mac, hand the commit to a CLOUD chat —
     don't fight the network.** Cloud sessions push fine. The Mac chat
     describes the change (or pastes the diff), the cloud chat recreates it on
