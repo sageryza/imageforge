@@ -87,9 +87,11 @@ const nowIso = () => new Date().toISOString();
 
 // The iOS uploader stages every export as `UUID() + originalFilename`, so a
 // Dump video with no album name shows as "0FC85C52-23E3-…" (Sophie flagged
-// it). Strip the staging prefix and the extension; if nothing readable is
+// it). Strip the staging prefix — REPEATED, because a re-staged export
+// stacks a second UUID in front of the first (found live: "99A7EF7A-…-
+// 3FFC80BC-…-IMG_3210.MOV") — and the extension; if nothing readable is
 // left, name it by kind + date.
-const UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i;
+const UUID_PREFIX = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*)+/i;
 function displayName(raw, kind, createdAt) {
   const n = String(raw || '')
     .replace(UUID_PREFIX, '')
