@@ -12,6 +12,16 @@
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
 #spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+/* The pill's glyphs must survive any HOST page's global svg rules — a page
+   that declares `svg{fill:none}` (editor.html, cuttingroom.html) was
+   hollowing the play triangle (Sophie: "the play arrow is normally filled
+   in, but the one I see on yours is hollow"). CSS beats an SVG's own
+   presentation attributes, so reassert each glyph's attributes at higher
+   specificity than any bare-`svg` page rule can reach. */
+.float svg{fill:none; stroke:currentColor; stroke-width:1.8; width:auto; height:auto;}
+.float svg[fill="currentColor"]{fill:currentColor;}
+.float svg[stroke-width="1"]{stroke-width:1;}
+.float svg:not([stroke]){stroke:none;}
 </style>
 
 <div class="float">

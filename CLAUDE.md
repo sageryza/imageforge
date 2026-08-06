@@ -1608,7 +1608,11 @@ lifted into a standalone tool later.
   - **One look, shared code.** Pages must still MATCH each other: build page
     headers to one shared pattern the way the autoscroll pill is shared (ONE
     source — `scripts/pill.py` — imported by every gen script / injected by
-    the server), not a fresh hand-rolled header per page. When adding or
+    the server), not a fresh hand-rolled header per page. The pill defends
+    its own glyphs against host-page `svg` globals (a page's `svg{fill:none}`
+    hollowed its play triangle — Sophie caught it on the Cutting Room, and
+    editor.html had the same hazard); after ANY pill.py edit, re-run
+    `python3 scripts/gen-pill-inject.py`. When adding or
     changing a page header, reuse/extract the shared pieces (the eyebrow
     title style, the back control, the pill-corner reservation) instead of
     copying variants around. The Chats header is the reference look.
