@@ -2199,10 +2199,12 @@ slots are short centered dashes.
   where it goes. **The pad is four to a row and incomplete rows CENTER**
   (flex, not grid — the first beat sits in the middle of the top, Sophie's
   spec). Tapping a beat opens a popup: **an opaque cream/white CARD with a
-  light border that nearly fills the screen but leaves a sliver of the pad
-  visible around its edges (Aug 2026, Sophie) — NOT a dark lightbox scrim;
-  everything lives ON the card** (`#beatcard`, controls styled ink-on-cream,
-  tap the edge or the card's empty cream to close) — the art at THUMBNAIL
+  light border, centered and only as TALL as its contents — a full-height
+  card was "too tall" (Aug 2026, Sophie) — with the pad visible all around
+  it; NOT a dark lightbox scrim; everything lives ON the card**
+  (`#beatcard`, screen-capped + scrolls inside if it overflows, controls
+  styled ink-on-cream, tap anywhere off the controls — the surrounding pad
+  or the card's empty cream — to close) — the art at THUMBNAIL
   size (never blown up — Sophie's spec), five bare color chips (gray/
   mustard/green/blue/pink) that set the FRAME color and keep the popup
   open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits

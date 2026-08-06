@@ -136,20 +136,23 @@ header #storiesbtn{position:absolute; left:0; top:2px;}
   padding:0; overflow:hidden; cursor:pointer;}
 #inboxgrid button img{width:100%; height:100%; object-fit:cover; display:block;}
 #inboxgrid button.used{opacity:.35;}
-/* The beat popup is an opaque cream CARD, not a dark lightbox: it nearly
-   fills the screen but leaves a little of the pad showing around its edges,
-   white/cream paper with a light border (Sophie, Aug 2026). Everything —
-   art, versions, chips, note, icons — lives ON the card. No scrim. */
+/* The beat popup is an opaque cream CARD, not a dark lightbox: white/cream
+   paper with a light border, centered, and only as TALL as what's on it
+   (Sophie, Aug 2026 — a full-height card was "too tall"; the pad showing
+   all around it is also the tap-out target). Capped at the screen and
+   scrolls inside if content ever overflows. Everything — art, versions,
+   chips, note, icons — lives ON the card. No scrim. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
-  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);}
-#beatcard{width:100%; height:100%; box-sizing:border-box; background:var(--barbg);
+  display:flex; align-items:center; justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);}
+#beatcard{width:100%; max-height:100%; box-sizing:border-box; background:var(--barbg);
   border:1.5px solid var(--line); border-radius:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;
   display:flex; flex-direction:column;}
-/* margin:auto centers the content when it's shorter than the card and lets
-   it scroll normally when it's taller (justify-content:center would clip
-   the top of overflowing content). */
-#cardin{margin:auto; width:100%; box-sizing:border-box; padding:22px 16px;
-  display:flex; flex-direction:column; align-items:center; gap:20px;}
+/* margin:auto keeps the content centered inside the card and lets it
+   scroll normally when it's taller than the screen cap (justify-content:
+   center would clip the top of overflowing content). */
+#cardin{margin:auto; width:100%; box-sizing:border-box; padding:20px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;}
 /* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
    big) — openBeat() copies the pad tile's pixel width onto it. */
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
