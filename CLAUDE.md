@@ -837,12 +837,21 @@ lifted into a standalone tool later.
   **ANY tap pauses the autoscroll (Aug 2026, Sophie's rule — every Compare
   page MUST have this).** While she's interacting with a page — voting,
   typing a name, tapping anything at all — the page must not keep creeping
-  underneath her. Add this one line to every Compare page's script:
-  `document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);`
-  (capture phase, so it fires even when the tap lands on a button or form
-  field; the pill's own play button starts scrolling again). This is on top
-  of the existing image-lightbox rule below — opening an image still locks
-  background scroll too. List your
+  underneath her. Add this to every Compare page's script (capture phase, so
+  it fires even when the tap lands on a button or form field) — and it MUST
+  skip taps on the pill itself: `__scrollStop` repaints the pill's glyphs,
+  and swapping the tapped element out mid-press EATS the click, so an
+  unconditional version makes the pill's own play button dead (found live on
+  Cut Marks, fixed on the Cutting Room too):
+  `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
+  This is on top of the existing image-lightbox rule below — opening an
+  image still locks background scroll too.
+  **A page served with the injected pill must SCOPE its own script (IIFE).**
+  The pill snippet runs in global scope and declares `var raf`, `var I`,
+  `var playing`, … — a page-level `let raf`/`const I` collides and kills the
+  pill's script at PARSE time (empty stretched buttons, no scrolling —
+  Sophie hit this on Cut Marks). Wrap the page script in `(function(){ …
+  })()` and expose only `window.__navBack` etc. List your
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
@@ -2341,6 +2350,14 @@ lifted into a standalone tool later.
   three-button pill — back 2s · play/pause · forward 2s — plus tap-the-strip
   to jump. Precision lives on the MARK, not the playhead: each mark row has
   −.1/+.1 nudges and tap-its-time-to-jump. Everything is a tap (wrist rule).
+  **The transport sits CENTERED right under the video/audio card** (Aug 2026,
+  Sophie: "so it's right there"), not in the bottom bar; the fixed bottom bar
+  is just time + the MARK scissors. **Undo, render and "?" are SMALL header
+  icons** (30px, top-right before the pill's reserved corner) — undo is a
+  session-only snapshot stack (marks + drops, capped 40); renders never
+  overwrite anything so they need no undo. In native builds the page hides
+  its EYEBROW too (`body.native .eyebrow`) — the nav bar already says CUT
+  MARKS and Sophie flagged the double.
 - **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
   them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
   a nudge keeps the same pieces, an added mark splits one (both halves stay

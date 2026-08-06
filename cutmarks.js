@@ -85,6 +85,22 @@ function run(bin, args, timeoutMs = 600000) {
 const projectId = (url) => crypto.createHash('sha1').update(String(url)).digest('hex').slice(0, 16);
 const nowIso = () => new Date().toISOString();
 
+// The iOS uploader stages every export as `UUID() + originalFilename`, so a
+// Dump video with no album name shows as "0FC85C52-23E3-…" (Sophie flagged
+// it). Strip the staging prefix and the extension; if nothing readable is
+// left, name it by kind + date.
+const UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i;
+function displayName(raw, kind, createdAt) {
+  const n = String(raw || '')
+    .replace(UUID_PREFIX, '')
+    .replace(/\.(mov|mp4|m4v|webm|m4a|mp3|wav|aac)$/i, '')
+    .trim();
+  if (n) return n;
+  const d = new Date(createdAt || Date.now());
+  return (kind === 'video' ? 'Video · ' : 'Recording · ')
+    + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 async function loadDoc(id) {
   const d = db();
   if (!d) throw new Error('Firebase unavailable');
@@ -348,7 +364,8 @@ router.get('/sources', async (req, res) => {
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       .slice(0, 60)
       .map((x) => ({
-        itemId: x.itemId, name: x.name || x.bundleName || x.filename || 'Video',
+        itemId: x.itemId,
+        name: displayName(x.name || x.bundleName || x.filename, 'video', x.createdAt),
         posterUrl: x.posterUrl || null, url: x.url, createdAt: x.createdAt,
         projectId: projectId(x.url),
       }));
@@ -374,15 +391,19 @@ router.post('/open', async (req, res) => {
     const url = String(req.body.url || '').trim();
     if (!/^https:\/\//.test(url)) return res.status(400).json({ error: 'a media url is required' });
     const id = projectId(url);
+    const kind = req.body.kind === 'video' ? 'video' : 'audio';
+    const cleanName = displayName(req.body.name, kind, Date.now());
     const existing = await loadDoc(id);
-    if (existing && existing.status === 'ready') return res.json({ id, status: 'ready' });
+    if (existing && existing.status === 'ready') {
+      // repair a title saved before the UUID-prefix cleaning existed
+      if (UUID_PREFIX.test(existing.title || '')) {
+        await patchDoc(id, { title: cleanName.slice(0, 120) }).catch(() => {});
+      }
+      return res.json({ id, status: 'ready' });
+    }
     if (existing && existing.status === 'processing' && existing.job && existing.job.status === 'running') {
       return res.json({ id, status: 'processing' });
     }
-    const kind = req.body.kind === 'video' ? 'video' : 'audio';
-    const cleanName = String(req.body.name || (kind === 'video' ? 'Video' : 'Recording'))
-      .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i, '')
-      .trim() || 'Recording';
     const doc = existing || {
       id, title: cleanName.slice(0, 120), kind,
       source: { url, itemId: req.body.itemId || null },
