@@ -41,8 +41,10 @@ earlier shot.
     pajamas"
   - Dr. Grim: "a stern middle-aged doctor in a dark purple checkered shirt
     and black suit pants"
-  - Nurses: **mostly Black women, a bit overweight with large behinds**
-    (Aug 2026, Sophie), always "in scrubs, not patient pajamas" — and
+  - Nurses: **mostly Black women, a bit overweight with large behinds, and
+    every nurse wears the SAME uniform: dark teal scrubs** (Aug 2026,
+    Sophie — the first ref candidates came out in three different colors and
+    she caught it), always "not patient pajamas" — and
     DIFFERENTIATE them, never a generic interchangeable nurse: the tall one
     in a skirt (the terrible night — the manuscript's "the big black one who
     was wearing a skirt"), the large seated one (the candy scene), the head
@@ -110,7 +112,7 @@ earlier shot.
 4. animals — A hospital hallway of people in thin sky blue patient pajamas with gentle animal heads — a sheep, a pig, a heron — shuffling in single file.
 5. gold stars — A toddler perched on a toilet in a vast white room, a huge golden star sticker floating in the air above.
 6. the pajamas — People in identical thin sky blue patient pajamas pacing a long circular hospital hallway, spread out like dancers rehearsing a choreographed piece.
-7. rolled cuffs — A Black nurse, a bit overweight, in scrubs, not patient pajamas, kneels to roll up the too-long pajama cuffs of the girl, who stands still like a child, faint pleasure on her face.
+7. rolled cuffs — A Black nurse, a bit overweight, in dark teal scrubs, not patient pajamas, kneels to roll up the too-long pajama cuffs of the girl, who stands still like a child, faint pleasure on her face.
 8. the menu form — A small white paper meal-order form and a stubby pencil on a wooden desk in morning light.
 9. Sophie Spincher — The girl sits at a wooden desk, squinting at the name printed at the top of a little white meal-order form.
 10. filling it out anyway — The girl dutifully fills out a little white meal-order form at a desk by a window.
@@ -121,22 +123,22 @@ earlier shot.
 15. the sculptures — Small handmade sculptures crowd a little wooden desk in a hospital room, each built from long white plastic rounded-rectangle soup containers with two holes in their lids, stacked upright and held together with copious masking tape, clear plastic cutlery sleeves taped onto their sides.
 16. night gallery — At night the girl crouches at a dark windowsill, arranging little sculptures built from long white plastic rounded-rectangle soup containers and masking tape into a careful row in front of an air conditioning vent, a tiny paper label standing in front of each one, city lights outside the window.
 17. the titles — Close up: tiny paper labels standing upright on a moonlit windowsill, one in front of each little sculpture built from long white plastic rounded-rectangle soup containers and masking tape.
-18. taken down — Morning light. Three Black nurses, a bit overweight, in scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
+18. taken down — Morning light. Three Black nurses, a bit overweight, in dark teal scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
 19. drawer museum — An open wooden drawer holding little sculptures built from long white plastic rounded-rectangle soup containers and masking tape, arranged neatly like museum pieces, a tiny paper label standing in front of each.
 
 ## Chapter Two — meeting with Sarah
 
 20. speaking up — The girl sits small in a large chair in an office, speaking timidly to a big woman in a dark blue suit behind a desk.
-21. the accusation — A Black nurse's aide, a bit overweight, in scrubs, not patient pajamas, bursts through an office doorway mid-accusation, pointing, while the girl shrinks into her chair.
+21. the accusation — A Black nurse's aide, a bit overweight, in dark teal scrubs, not patient pajamas, bursts through an office doorway mid-accusation, pointing, while the girl shrinks into her chair.
 
 ## Chapter Three — candy
 
 22. the bad dream bursts — A dark storm cloud breaking apart into falling pastel candy squares.
-23. circling — The girl walks a wide wary circle around a large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair.
+23. circling — The girl walks a wide wary circle around a large Black nurse, overweight with a large behind, in dark teal scrubs, seated in a hallway chair.
 24. the ant and the idol — One tiny black ant walking in a wide circle around an enormous carved stone statue of a seated figure on a dusty floor; the statue is solid carved stone, not a living person.
-25. the offer — A large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
+25. the offer — A large Black nurse, overweight with a large behind, in dark teal scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
 26. pink square — A single pink candy square in the middle of an open palm, close up.
-27. at peace — The girl and a large seated Black nurse in scrubs look at each other calmly, the girl's cheek round with candy.
+27. at peace — The girl and a large seated Black nurse in dark teal scrubs look at each other calmly, the girl's cheek round with candy.
 28. the red one — The girl slips a red candy square into the pocket of her sky blue pajama shirt with a small secret smile.
 
 ## Chapter Four — Francesca
@@ -161,9 +163,9 @@ earlier shot.
 
 41. the theft — The girl hides a pair of scissors deep in a wooden drawer, glancing over her shoulder.
 42. not even feeling good — The girl sits stiffly on a desk chair beside a closed wooden drawer, hands in her lap.
-43. the knock — The silhouette of a Black nurse in scrubs knocking at a hospital room door, serious, seen from inside the dim room.
-44. handing them over — The girl surrenders a pair of scissors into the open hand of a Black nurse, a bit overweight, in scrubs at a nurses' station.
-45. the explanation — The girl mid-explanation before a skeptical Black nurse, a bit overweight, in scrubs, her hands tangled in the air like string.
+43. the knock — The silhouette of a Black nurse in dark teal scrubs knocking at a hospital room door, serious, seen from inside the dim room.
+44. handing them over — The girl surrenders a pair of scissors into the open hand of a Black nurse, a bit overweight, in dark teal scrubs at a nurses' station.
+45. the explanation — The girl mid-explanation before a skeptical Black nurse, a bit overweight, in dark teal scrubs, her hands tangled in the air like string.
 46. we don't steal scissors — The girl walks small and scolded down a hallway beside a stern middle-aged doctor in a dark purple checkered shirt and black suit pants.
 47. gray options — An abstract branching map of forking colored paths drawn on paper, the bright colors draining to flat dead gray toward the edges; no people in the picture.
 
@@ -186,13 +188,13 @@ earlier shot.
 56. the pill in the cup — Two careful fingers fish a partially dissolved white pill out of a small paper cup of water, close up.
 57. breaking the soap — In a shower stall, the girl breaks a tiny corner off a bar of white hospital soap.
 58. soap water — A paper cup of water held up to fluorescent light, jagged little pieces of white soap floating at the bottom, close up.
-59. look, I'm going to take it — The girl shows a paper cup to a tall Black nurse, a bit overweight with a large behind, in scrubs and a skirt, at a nurses' station at night.
-60. down in one — The girl drinks down a paper cup in one motion while a tall Black nurse in scrubs and a skirt watches, night hallway shadows.
+59. look, I'm going to take it — The girl shows a paper cup to a tall Black nurse, a bit overweight with a large behind, in dark teal scrubs and a matching skirt, at a nurses' station at night.
+60. down in one — The girl drinks down a paper cup in one motion while a tall Black nurse in dark teal scrubs and a matching skirt watches, night hallway shadows.
 61. the pill travels — A small glowing bead travels up through the neck of a translucent watercolor figure toward her head, synapses branching like coral inside.
 62. butter and sugar — Three little pats of butter on a hospital floor where the wall curves to make room for the bathroom, white sugar pouring down onto the little mounds from a torn paper packet.
 63. seven packets — Seven torn empty sugar packets scattered across a hospital floor at night; no people in the picture.
 64. push-up position — The girl holds a frozen push-up position in the center of a dark hospital room, moonlight through the window.
-65. caught — A Black nurse in scrubs silhouetted in a doorway; the girl in bed with covers pulled to her chin, eyes wide open.
+65. caught — A Black nurse in dark teal scrubs silhouetted in a doorway; the girl in bed with covers pulled to her chin, eyes wide open.
 66. the fish tank — A hospital meeting room where all the patients are goldfish drifting inside a huge fish tank; the girl watches from outside the glass.
 67. the mechanical arm — In a circle of chairs, the girl mechanically puts an arm around a crying pale sad woman with very long flowing hair, in sky blue patient pajamas.
 
@@ -219,7 +221,7 @@ earlier shot.
 ## Chapter Thirteen — Francesca cried the day I left
 
 79. Francesca crying — A heavyset older woman with long graying dark hair, in sky blue patient pajamas, cries at a dining table, a strawberry yogurt in one hand and a piece of bread in the other.
-80. sign here — A Black head nurse, a bit overweight, in scrubs grips the girl's shoulder and holds out papers and a pen; the girl's parents wait at a table behind them.
+80. sign here — A Black head nurse, a bit overweight, in dark teal scrubs grips the girl's shoulder and holds out papers and a pen; the girl's parents wait at a table behind them.
 81. goodbye — The girl kisses a slightly overweight older woman with long graying dark hair, in sky blue patient pajamas, gently on the hair.
 
 ## Chapter Fourteen — medicine line
@@ -231,7 +233,7 @@ earlier shot.
 
 84. handstands — A bright sun-patched day room; a small young woman with short black hair, in sky blue patient pajamas, does a handstand in the light, legs straight up.
 85. jumping — The girl, wearing a red tank top and pajama pants, jumps up and down in a patch of sunlight, hair mid-air, joyful.
-86. ninety-eight — The girl stands on a hospital scale in morning light while a Black nurse, a bit overweight, in scrubs notes something down.
+86. ninety-eight — The girl stands on a hospital scale in morning light while a Black nurse, a bit overweight, in dark teal scrubs notes something down.
 
 ## Chapter Sixteen — the tour
 
@@ -256,10 +258,10 @@ narration ever folds them in.
 B1. disco ball — A hospital dayroom where everyone's light blue pajamas shine like mirrors, the whole room glittering like the inside of a giant disco ball.
 B2. the red cart — The girl pushes herself down a hospital hallway in a little red cart, snatching fruit off passing meal trays.
 B3. two chairs — The girl, in mismatched socks, squats between two identical hospital chairs with gray seats, long curved metal legs and black plastic armrests, sitting in neither.
-B4. coalition of nurses — A circle of nurses in scrubs confer in a huddle right outside a bedroom door at night; the girl walks slowly past with her eyes down.
-B5. moving the bed — A group of nurses in scrubs carry an unmade bed down a hospital hallway while the girl sits on a chair watching them work.
+B4. coalition of nurses — A circle of nurses in dark teal scrubs confer in a huddle right outside a bedroom door at night; the girl walks slowly past with her eyes down.
+B5. moving the bed — A group of nurses in dark teal scrubs carry an unmade bed down a hospital hallway while the girl sits on a chair watching them work.
 B6. become a real person kit — A cardboard box with a neat square hole cut in its front, on a desk, surrounded by little inventions: a net made of gauze with a bent toothbrush handle, a taped-on paper packet of sugar, salt, pepper, fork, knife and napkin; no people in the picture.
 B7. the cape — The girl, a white bedsheet tied around her neck like a cape, parades around two low wooden hospital beds while her roommate stands at the window talking to herself.
 B8. the pillowcase — The girl walks down a hospital hallway toward the exit with a stuffed white pillowcase over her shoulder, glancing back once.
 B9. stuffed raspberries — A row of little stuffed raspberries sewn from white pillowcase fabric on a sunny windowsill; no people in the picture.
-B10. we couldn't touch — The girl and a pale sad woman with very long flowing hair, in sky blue patient pajamas, grip hands tightly in a hallway as a staff member in scrubs approaches to separate them.
+B10. we couldn't touch — The girl and a pale sad woman with very long flowing hair, in sky blue patient pajamas, grip hands tightly in a hallway as a staff member in dark teal scrubs approaches to separate them.
