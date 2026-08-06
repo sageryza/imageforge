@@ -315,6 +315,10 @@ loadConfig().then(() => {
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
   // rate-limited per IP inside the module, since it spends on image gen.
   app.use('/api/selfcare', require('./selfcare').router);
+  // Dream Draw — dream text → drawn comic pages (the dream app's "draw it"
+  // backend). PUBLIC + rate-limited per IP like /api/selfcare; spends on
+  // image gen. Mounted here so movies.js has its keys hydrated.
+  app.use('/api/dreamdraw', require('./dreamdraw').router);
   // Voice-memo ingest. The Mac holds only the audio; the membry credential and
   // the OpenAI key live here, so the laptop command needs no secrets at all.
   const memos = require('./memos');
