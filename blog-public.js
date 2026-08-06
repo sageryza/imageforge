@@ -242,7 +242,25 @@ ${n.inApp ? `<script>
 // view, so the native tab bar's window.__setTab call would otherwise land on
 // nothing and the bar would go dead. Answer it by navigating back to the app
 // on the tab that was tapped.
-window.__setTab = function (t) { location.href = ${JSON.stringify(n.tab('__TAB__'))}.replace('__TAB__', encodeURIComponent(t)); };
+//
+// GOTCHA (Aug 2026 — this is what made the blog unreachable in the app): the
+// app ALSO re-asserts its current tab on every didFinish, so the native bar
+// and the page can never desync after a reload. That fires the instant THIS
+// page finishes loading, and answering it navigated straight back to the app
+// — so tapping "The blog" bounced to Home before a word could be read. Her
+// finger cannot beat the page's own load event, so the first call inside the
+// grace window is the app's re-assert, not a tap, and it is ignored. A real
+// tap a moment later still works. WitchWebView.swift no longer re-asserts on
+// a non-app page, but old installed builds still do — keep this guard.
+(function () {
+  var GRACE = 2000, t0 = Date.now(), seen = false;
+  window.__setTab = function (t) {
+    var reassert = !seen && Date.now() - t0 < GRACE;
+    seen = true;
+    if (reassert) return;
+    location.href = ${JSON.stringify(n.tab('__TAB__'))}.replace('__TAB__', encodeURIComponent(t));
+  };
+})();
 </script>` : ''}
 </body>
 </html>`;

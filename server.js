@@ -304,6 +304,9 @@ loadConfig().then(() => {
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
   app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
+  // Freeform — your own reference images + your own words, sent verbatim. The
+  // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
+  app.use('/api/freeform', require('./freeform').router);
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);
@@ -312,6 +315,10 @@ loadConfig().then(() => {
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
   // rate-limited per IP inside the module, since it spends on image gen.
   app.use('/api/selfcare', require('./selfcare').router);
+  // Dream Draw — dream text → drawn comic pages (the dream app's "draw it"
+  // backend). PUBLIC + rate-limited per IP like /api/selfcare; spends on
+  // image gen. Mounted here so movies.js has its keys hydrated.
+  app.use('/api/dreamdraw', require('./dreamdraw').router);
   // Voice-memo ingest. The Mac holds only the audio; the membry credential and
   // the OpenAI key live here, so the laptop command needs no secrets at all.
   const memos = require('./memos');
@@ -633,6 +640,9 @@ app.get('/promptlab', serveGated('promptlab.html', { pill: true }));
 // beats with unlabelled color frames (thinking on paper; Story Room is stage
 // two). Deliberately minimal; see scratchpad.js.
 app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
+// Freeform: upload your own references, type your own words, pick the quality.
+// Nothing is added to the prompt here — that's the whole point of the page.
+app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).

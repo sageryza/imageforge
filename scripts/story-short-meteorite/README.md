@@ -43,3 +43,22 @@ Pipeline (run in order from the imageforge root; needs `OPENAI_API_KEY`,
    splits, the 12 Story Room beats + cand cards, Compare page. Idempotent.
 
 Cost for the 12-beat story: ~$0.7 panels + ~$1.9 clips + ~$0.3 whisper ≈ $2.9.
+
+## Watercolor variant (Aug 2026)
+
+`watercolor-beats.js` — the same 12 beats re-prompted for the **Playground
+ChatGPT watercolor style** (Sophie's ask, Aug 2026): pure-content prompts (the
+style ref carries the look — docs/evan-film-style.md), "Sophie" + the Sophie
+character toggle for her, a written ex-boyfriend description in every prompt
+he appears in until a hearted render becomes his card, character-reference
+prompts, and three optional literal→metaphorical dream panels (her pair
+formula — animate between A and B). Beat order matches `beats.js`, so the
+already-cut narration lines up shot for shot.
+
+**v2 is current** (Compare page "The Meteorite — watercolor prompts v2" in the
+`meteorite-story-prompts` chat; v1's page stays as history). Sophie rejected
+v1 — it was staged too close to the pastel short and the ex-boyfriend was
+wrong. v2 restages every beat as diary-drawing moments for the watercolor
+feel, and his real look is **blonde hair, round glasses, average build, smug
+but he also gets scared** (the blue button-up is Claude's continuity pick,
+flagged to her).

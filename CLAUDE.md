@@ -488,6 +488,29 @@ lifted into a standalone tool later.
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
+- `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
+  surface with **no opinion**. Every other one wraps her words in a house style
+  (Playground prepends `PL_GPT.prefix`, the Scratch Pad locks a style per story,
+  the passport paints pastel); here the prompt is sent to gpt-image-2 **verbatim**
+  — no prefix, no suffix, no trigger word, not even a trailing-period trim. If the
+  prompt should mention a style, SHE says it. `promptSent` is stored on every run
+  so the page (and any later reader) can verify nothing was added — this is the
+  "if you add anything to a prompt Sophie gave, tell her" rule made structural.
+- **References are a LIBRARY, not a per-run upload** (`forge-freeform-refs`):
+  upload once, attach to any later run and to several at a time — the point is
+  trying the same references against different words. Bytes at
+  `freeform/refs/<id>.<ext>` + a 512px webp display copy; deleting a ref drops
+  the record but KEEPS the bytes, or a finished run's history would break.
+- **Quality low / medium / high** (~2¢ / 6¢ / 25¢), size portrait 2:3 (default) /
+  square / landscape, 1-4 images a run. With refs attached it calls the **edits**
+  endpoint; with none it calls **generations** (edits requires an image).
+- Background job on the doc (`forge-freeform`), each output lands as it finishes
+  so one failed call costs its image not the run; the page polls, remembers
+  pending ids in `localStorage`, and resumes on return. STUDIO_TOKEN-gated
+  (only `GET /status` open). Routes: `/status`, `POST/GET/PATCH/DELETE /refs`,
+  `POST /run`, `GET /runs`, `GET/DELETE /run/:id`.
+
 ## Writing Room (dating-book drafts on the phone)
 - `writing.js` (`/api/writing`, page at `/writing`, iOS tile "Writing Room") —
   the dating-book working drafts as a reviewable module. Every date in two
@@ -1474,6 +1497,22 @@ lifted into a standalone tool later.
   endpoints + a small set of stateless AI endpoints in `server.js`:
   `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
   `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+- **The blog is a real NAVIGATION out of the app page, and the tab re-assert
+  must not follow it (Aug 2026 — this bug made the blog unreachable in the
+  app: tapping "The blog" bounced to Home instantly).** In the iOS app the
+  witch page and the blog share ONE web view, so opening `/blog?app=1`
+  replaces the app. The blog page therefore installs its own `window.__setTab`
+  shim (`blog-public.js`) that answers the native tab bar by navigating BACK
+  into the app — but `WitchWebView`'s `didFinish` also re-asserts the current
+  tab on every load, to keep bar and page in step after a reload. That
+  re-assert fired the moment the blog finished loading and the shim did what it
+  was told: straight back to Home. Fixed on BOTH sides, and both are load-
+  bearing — `didFinish` now re-asserts only on the app page (`isAppPage`,
+  path `/witch`), and the shim ignores the first call inside a 2s grace window
+  (a finger can't beat the page's own load event) so ALREADY-INSTALLED builds
+  are fixed by a Render deploy alone. A tab tap from a blog page still works:
+  it arrives via `updateUIView`, not `didFinish`. Anything else the app ever
+  navigates to in that web view needs the same treatment.
 - **Five tabs** (Book of Miracles is locked as the **2nd** icon by request):
   - **Today** — computed **moon phase** (synodic calc from a fixed new-moon
     epoch, client-side), a deterministic **Card of the Day** (per-day hash into
@@ -1592,6 +1631,25 @@ lifted into a standalone tool later.
   - Web tools that shipped WITH a native bar (Playground, Episode Editor,
     Story Room's title/chevron) keep working as-is; move each to a
     page-owned header at its next real redesign, not as churn.
+  - **A NEW web tool ships with the NATIVE bar + chevron — the Episode
+    Editor wrapper is the reference (Aug 2026, earned on the Cutting Room
+    v1).** The page-owns-header rule above describes where headers are
+    HEADING, not what a new tool should ship as today: the Cutting Room v1
+    followed it literally (bare WKWebView host, page header only) and Sophie
+    flagged the mismatch the first time she opened it — "there's no back
+    arrow to go back to the home screen and it's a different autoscroll
+    pill." A new tool must match the tools BESIDE it: copy
+    `EpisodeEditorView.swift` (forgeToolBar + chevron asking
+    `window.__navBack` first, `__nativeNavBar` injected so the page hides
+    its own back button via `body.native`, audio paused on
+    `.forgeScreenChanged`). Only a page that replaces the WHOLE chrome with
+    a rich header of its own (Chats, Writing Room) earns the bare host — an
+    eyebrow-and-title header does not.
+  - **An icon-first tool carries a "?" circle (Aug 2026, Sophie).** When a
+    tool's controls are icons with no words (her preference), add a small
+    gold "?" circle that toggles a card explaining what each icon does —
+    tap to show, tap anywhere to hide. The Cutting Room's `#help` /
+    `#helpcard` is the pattern.
 - **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
   to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
   button stays visible and taps do nothing. Every page that toggles the
@@ -1604,6 +1662,21 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
+  - **A RE-ENCODED copy defeats BOTH dedupe layers and lands as an unlabeled
+    duplicate tile (Aug 2026 — this bit Sophie during the style-ref
+    experiments).** The hook auto-files every image sent with SendUserFile;
+    identical bytes collapse onto the labeled tile by content hash, and same
+    filenames union in the tab — but a converted copy (webp→png for chat
+    preview) has NEW bytes AND a NEW random filename, so it files as a fresh
+    tile with NO label, next to the labeled original. Labeling only the
+    storage URL is therefore NOT enough. Avoid it: send the ORIGINAL file
+    (bytes untouched) whenever the image already lives in Storage; if a
+    conversion is genuinely needed for chat, then AFTER the reply finishes,
+    sweep `GET /api/gallery/assets?chat=` for new unlabeled tiles and label
+    each (`POST /api/gallery { assetsOnly:true, chat, url, description }`,
+    matching by downloaded content hash when unsure which is which). An
+    experiment's versions MUST each carry their version label on EVERY copy —
+    an unlabeled variant makes the whole comparison unreadable.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
@@ -1667,6 +1740,16 @@ lifted into a standalone tool later.
     and stamp art.
 - **NO GRADIENTS. Ever.** Sophie hates gradients — flat solid colors only, in
   every UI (iOS, web pages, artifacts). No LinearGradient, no CSS gradients.
+- **Sophie's voice renders on `eleven_multilingual_v2` — NEVER `eleven_v3`
+  (Aug 2026, Sophie: "no one uses v3 ever again").** Her professional clone
+  ("Sophie — morning", `UTkHGl2ImiT6gwtAFCql`) is not optimized for v3 and
+  the likeness collapses — "a cousin doing an impression". v3 was tried and
+  REVERTED in the pad and the editor, but stale doc notes kept saying v3 and
+  a chat followed one, shipping a 15-minute film in the wrong voice: **when a
+  doc and the code disagree about her voice, trust the code** (scratchpad.js
+  / editor.js are the live copies). Settings of record:
+  `stability 0.5, similarity_boost 0.75, style 0, use_speaker_boost true`.
+  `<break time>` tags work on v2; v3's `[quietly]`-style acting tags do not.
 - **No Claude-isms in public-facing copy** (lessons, blog posts, app text,
   product listings — anything Sophie's readers see). People shouldn't be able
   to tell it's AI-written. Banned: mic-drop closers ("That's the whole
@@ -1998,8 +2081,12 @@ lifted into a standalone tool later.
   immediately, the page polls `GET /:id/job`, records the pending render in
   `localStorage` and RESUMES polling on return — leaving the page never loses it.
   Each UNIQUE snippet is cut once no matter how many times it appears in the
-  sequence. Narration = ElevenLabs voice `UTkHGl2ImiT6gwtAFCql`, model
-  `eleven_v3`, text prefixed `[quietly] `, then `atempo=1.12` + loudnorm.
+  sequence. Narration = ElevenLabs voice `UTkHGl2ImiT6gwtAFCql` on
+  `eleven_multilingual_v2` (**NEVER `eleven_v3`** — voice rule under Design
+  rules), no whisper prefix, no tempo nudge, ONE constant gain instead of
+  loudnorm (Aug 2026, Sophie — she rejected the dynamic squeezing;
+  editor.js is the live copy of all of this, `docs/narration-voice-settings.md`
+  the human record).
   `ELEVENLABS_API_KEY` is in config-loader `MANAGED_KEYS` (Render env or
   `config/pipeline`) — **without it narration cards FAIL the render with a clear
   job error, they are never silently skipped**. Output: one 44.1k mono mp3 at
@@ -2071,10 +2158,18 @@ lifted into a standalone tool later.
   'editor',…}`, `POST /:id/render`, `GET /:id/job`, `DELETE /:id`.
 - Transcription cost ≈ $0.006/min of recording (whisper), paid once per
   recording. Caps at 90 min.
-- iOS: `CuttingRoomView.swift` = bare WKWebView on `/cuttingroom` answering
-  the studio gate (page-owns-header rule; page changes ship via Render
-  deploy). The page carries the injected shared pill, so the native pill is
-  suppressed for the tool (`showAutoScroll`).
+- iOS: `CuttingRoomView.swift` = the **Episode Editor wrapper pattern** (v1
+  shipped bare and Sophie flagged it — see the Headers design rule): native
+  `.forgeToolBar("Cutting Room")` whose chevron asks `window.__navBack`
+  first (room → recordings list → leave the tool), `__nativeNavBar`
+  injected so the page hides its own back button (`body.native`; the page
+  header also folds away on the recordings list, where it would duplicate
+  the bar), audio paused on screen changes. The page carries the injected
+  shared pill, so the native pill is suppressed (`showAutoScroll`). Page
+  changes ship via Render deploy; wrapper changes need TestFlight.
+- **The "?" circle on the tools row** is the instructions for an icon-first
+  tool: tap → a card naming what every icon does, tap anywhere → hidden.
+  Keep it in step with the icons if any control changes.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
@@ -2117,10 +2212,12 @@ slots are short centered dashes.
   where it goes. **The pad is four to a row and incomplete rows CENTER**
   (flex, not grid — the first beat sits in the middle of the top, Sophie's
   spec). Tapping a beat opens a popup: **an opaque cream/white CARD with a
-  light border that nearly fills the screen but leaves a sliver of the pad
-  visible around its edges (Aug 2026, Sophie) — NOT a dark lightbox scrim;
-  everything lives ON the card** (`#beatcard`, controls styled ink-on-cream,
-  tap the edge or the card's empty cream to close) — the art at THUMBNAIL
+  light border, centered and only as TALL as its contents — a full-height
+  card was "too tall" (Aug 2026, Sophie) — with the pad visible all around
+  it; NOT a dark lightbox scrim; everything lives ON the card**
+  (`#beatcard`, screen-capped + scrolls inside if it overflows, controls
+  styled ink-on-cream, tap anywhere off the controls — the surrounding pad
+  or the card's empty cream — to close) — the art at THUMBNAIL
   size (never blown up — Sophie's spec), five bare color chips (gray/
   mustard/green/blue/pink) that set the FRAME color and keep the popup
   open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
@@ -2129,12 +2226,12 @@ slots are short centered dashes.
   under its tile — FIRST LINE only, the rest lives in the popup — and
   tapping those words (or the popup speech icon) plays them in her ElevenLabs
   professional clone "Sophie — morning" (`POST /tts {id}` — voice
-  UTkHGl2ImiT6gwtAFCql, **eleven_v3 at stability 1.0 = Robust** (Sophie's
-  call, Aug 2026 — most consistent, closest to her v2 sound; settings ride
-  in the cache key): bracketed stage directions like `[quietly]` work in a
-  note, but v3 has NO `<break time>` tags — pauses come from punctuation;
-  cached by text hash at Storage scratchpad/tts/<hash>.mp3, so replays are
-  free). **Her OWN recording wins over TTS:** the popup's mic icon records
+  UTkHGl2ImiT6gwtAFCql on **`eleven_multilingual_v2`, NEVER `eleven_v3`**
+  (see the voice rule under Design rules) at stability 0.5, similarity_boost
+  0.75, style 0, use_speaker_boost true — the Voice Studio recipe in
+  scratchpad.js, which is the live copy; `<break time="1.0s" />` tags work
+  in a note for pauses, v3-style `[quietly]` acting tags do NOT; cached by
+  text hash at Storage scratchpad/tts/<hash>.mp3, so replays are free). **Her OWN recording wins over TTS:** the popup's mic icon records
   her reading the line (MediaRecorder → `POST /voice {id, audio:dataURL}` →
   Storage scratchpad/voice/, `beat.voiceUrl`); wherever a recording exists
   the caption and speech icon play IT. EVERY take is kept in

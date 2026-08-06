@@ -4,6 +4,14 @@ Everything the NDE films' narration passes through, written down so it can be
 removed, compared against, and put back exactly. `editor.js` is the live copy of
 these values; this file is the human record.
 
+> **THE MODEL RULE (Aug 2026, Sophie: "no one uses v3 ever again").** Her voice
+> renders on **`eleven_multilingual_v2` — never `eleven_v3`**. The professional
+> clone is not optimized for v3 and the likeness collapses ("a cousin doing an
+> impression"). The v3 stack documented below is the HISTORICAL record of the
+> July 2026 NDE renders, kept so those takes can be reproduced or compared —
+> it is not a recipe to follow. `editor.js`'s live defaults are
+> `eleven_multilingual_v2`, no whisper prefix, tempo 1, constant gain.
+
 ## The voice
 - **Sophie — morning**, ElevenLabs voice id `UTkHGl2ImiT6gwtAFCql`, a
   **professional** (fine-tuned) clone, 7 source samples, ~227MB of morning
