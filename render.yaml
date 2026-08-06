@@ -2,7 +2,12 @@ services:
   - type: web
     name: imageforge
     runtime: node
-    plan: free
+    # Starter ($7/mo, 0.5 vCPU / 512MB): always-on, no 750-hour monthly cap and
+    # no spin-down cold starts. Sophie's call, Aug 2026. If this service is
+    # Blueprint-managed, a sync applies it; otherwise set the instance type in
+    # the dashboard (Settings -> General -> Instance Type) and this keeps the
+    # repo from reverting it later.
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
     envVars:
