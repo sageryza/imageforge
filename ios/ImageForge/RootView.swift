@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad, voice, song, character, films
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform
     var id: String { rawValue }
 
     var title: String {
@@ -34,6 +34,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .song:      return "Song Station"
         case .character: return "Characters"
         case .films:     return "Films"
+        case .freeform:  return "Freeform"
         }
     }
 
@@ -64,6 +65,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .song:      return "Sing a made-up song — keep your voice, gain a band."
         case .character: return "The recurring people — cards that keep faces consistent."
         case .films:     return "Films without a story — experiments and one-offs."
+        case .freeform:  return "Your refs, your words — sent exactly as typed."
         }
     }
 
@@ -97,6 +99,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .song:      return "music.note"
         case .character: return "person.crop.rectangle"
         case .films:     return "film.stack"
+        // A loose scribble — the page with no house style.
+        case .freeform:  return "scribble.variable"
         }
     }
 
@@ -143,6 +147,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true).forgeToolBar("Song Station")
         case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle").forgeToolBar("Characters")
         case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack").forgeToolBar("Films")
+        // Page owns its whole header (Aug 2026 v2 design rule) — a bare
+        // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
+        case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
         }
     }
 }
@@ -403,6 +410,8 @@ struct RootView: View {
             // Scratch Pad is a web page with its own injected pill — showing
             // the native one too would stack two pills.
             if t == .scratchpad { return false }
+            // Freeform is a web page with its own injected pill too.
+            if t == .freeform { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.
