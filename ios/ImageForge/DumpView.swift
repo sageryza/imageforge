@@ -153,6 +153,29 @@ struct DumpView: View {
 
     private var albumGrid: some View {
         VStack(spacing: 0) {
+            // The other half of "dump first, label afterwards": the /dump web
+            // page, where what's already in the inbox gets named, tracked and
+            // pruned. Pushed, so the native back chevron returns here.
+            NavigationLink {
+                GatedWebTool(path: "/dump", name: "the sort & label page", icon: "tray.full")
+                    .forgeTitle("Sort & label")
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "tray.full").font(.system(size: 15))
+                    Text("Sort & label what's already in")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Theme.textDim)
+                }
+                .foregroundColor(Theme.accent)
+                .padding(.horizontal, 14).padding(.vertical, 11)
+                .background(Theme.surface)
+                .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
+                .cornerRadius(Theme.radiusLg)
+                .padding(.horizontal, 12).padding(.top, 10)
+            }
+            .buttonStyle(.plain)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 10) {
                     ForEach(library.albums) { album in

@@ -534,8 +534,13 @@ router.post('/open', async (req, res) => {
     if (existing && existing.status === 'processing' && existing.job && existing.job.status === 'running') {
       return res.json({ id, status: 'processing' });
     }
+    // Strip the iOS share extension's `UUID() + filename` staging prefix if a
+    // caller passes it through — the id is not part of the recording's name.
+    const cleanName = String(req.body.name || 'Recording')
+      .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i, '')
+      .trim() || 'Recording';
     const doc = existing || {
-      id, title: String(req.body.name || 'Recording').slice(0, 120),
+      id, title: cleanName.slice(0, 120),
       source: { url, itemId: req.body.itemId || null, batch: req.body.batch || null },
       seconds: null, status: 'processing', pauses: [], cuts: [], pins: [],
       clips: [], renders: [], job: null, createdAt: Date.now(), updatedAt: Date.now(),

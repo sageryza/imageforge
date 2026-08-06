@@ -1155,6 +1155,14 @@ lifted into a standalone tool later.
   metadata — no downloads — then removes in-album duplicates, renumbers, seeds
   the registry). `--dry-run` prints the plan. Ran once on 2026-07-28: 2,717
   files → 2,594, 123 exact duplicates removed (~327 MB), 58 albums renumbered.
+- **Sort & label page (Aug 2026, Sophie's ask): `/dump`** (`public/dump.html`,
+  serveGated) — the other half of "dump first, label afterwards". Browse every
+  album (filter by session / unlabelled-only), name it, set its `track` (chips
+  for the known tracks + free text; tapping the lit chip clears back to
+  unlabelled), notes, per-file lightbox with delete. Saves via
+  `PATCH /api/drop/bundle` (loose files via `PATCH /items/:id`). The native
+  Dump tile links to it ("Sort & label what's already in", pushed
+  `GatedWebTool`).
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
@@ -1500,19 +1508,22 @@ lifted into a standalone tool later.
   Sophie).** Every loading spot in the app sits on cream (`--bg #f5efe2`,
   `--surface #fffbf3`, `--panel #efe6d3`), so the old `hoonie-loading.gif`'s
   white square showed as a visible box. The clear one is the same hoonies with
-  the paper removed — transparent background, 70 drawings, 240px, 278KB (the
+  the paper removed — transparent background, 70 drawings, 240px, 390KB (the
   old one: 45 drawings, 360px, 865KB). Both files stay in `public/`; the old
   one is still what iOS bundles (`TestStationView` deliberately puts
   `Color.white` behind it). Rebuild either from a folder of hoonies with
   `python3 scripts/hoonie-cutouts.py <dir> --gif public/hoonie-loading-clear.gif
-  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy`); the same
+  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy scipy`); the same
   script writes the transparent PNG cutouts with `--out`. GIF transparency is
-  1-bit, so the ink keeps a short gray ramp that stops short of white — a pale
-  antialiased edge would read as a halo on a dark surface.
+  1-bit, so each frame quantizes its own real colors (7 + transparent), so the ink keeps
+  its warm tone — the first cut quantized to neutral gray and read greeny on
+  the app's cream surfaces.
 - **The hoonies themselves live in the Dump**, album **hoonies** (#228, 140
   drawings — woodcut smallies, many of them two things grown into each other).
-  Cutouts at Storage `hoonies/cutouts/<nnn>.png`, 210px webp thumbs at
-  `hoonies/thumb/`. As a gpt-image-2 style reference they transfer well with
+  Cutouts at Storage `hoonies/cutouts2/<nnn>.png`, 210px webp thumbs at
+  `hoonies/thumb2/` (v1 at `cutouts/`/`thumb/` was grayscale-quantized and read
+  greeny on cream; v2 is the corner flood-fill cut — new paths because the old
+  objects are immutable-cached). As a gpt-image-2 style reference they transfer well with
   the refs attached and **NO written style description** (same finding as
   `docs/evan-film-style.md`) — adding an engraving description pulls the line
   finer and more modern, away from their blunt woodcut feel.
@@ -1638,7 +1649,11 @@ lifted into a standalone tool later.
   - **One look, shared code.** Pages must still MATCH each other: build page
     headers to one shared pattern the way the autoscroll pill is shared (ONE
     source — `scripts/pill.py` — imported by every gen script / injected by
-    the server), not a fresh hand-rolled header per page. When adding or
+    the server), not a fresh hand-rolled header per page. The pill defends
+    its own glyphs against host-page `svg` globals (a page's `svg{fill:none}`
+    hollowed its play triangle — Sophie caught it on the Cutting Room, and
+    editor.html had the same hazard); after ANY pill.py edit, re-run
+    `python3 scripts/gen-pill-inject.py`. When adding or
     changing a page header, reuse/extract the shared pieces (the eyebrow
     title style, the back control, the pill-corner reservation) instead of
     copying variants around. The Chats header is the reference look.
@@ -1870,13 +1885,18 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
-  latter behind the **briefcase** beside the test tube, holding Instagram,
-  Ads, Blog Studio, the Product Creator and the Shop Report. `Tool.isBusiness` decides which grid a tool lands on;
-  a tool is on ONE grid, never both, so each home stays scannable. The
-  business home's top-left is a **house** back to the making home; Chats
-  keeps its top-right corner on both. Deep link: `deckfactory://business`.
+- **Three home screens (Aug 2026, Sophie).** The making home (`.home`), the
+  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) behind
+  the **briefcase** beside the test tube — Instagram, Ads, Blog Studio, the
+  Product Creator and the Shop Report — and the **old fashioned** home
+  (`.crafts`, `CraftsGrid`) behind the hand-drawn **quilt** beside the
+  briefcase: the original staples (stickers, storybooks, coloring pages,
+  greeting cards) plus the Writing Room, per Sophie. `Tool.isBusiness` /
+  `Tool.isCraft` decide which grid a tool lands on; a tool is on ONE grid,
+  never two, so each home stays scannable. The second and third homes'
+  top-left is a **house** back to the making home; Chats keeps its top-right
+  corner on all three. Deep links: `deckfactory://business`,
+  `deckfactory://crafts` (alias `://quilt`).
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
