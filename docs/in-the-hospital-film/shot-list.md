@@ -123,7 +123,7 @@ earlier shot.
 15. the sculptures — Small handmade sculptures crowd a little wooden desk in a hospital room, each built from long white plastic rounded-rectangle soup containers with two holes in their lids, stacked upright and held together with copious masking tape, clear plastic cutlery sleeves taped onto their sides.
 16. night gallery — At night the girl crouches at a dark windowsill, arranging little sculptures built from long white plastic rounded-rectangle soup containers and masking tape into a careful row in front of an air conditioning vent, a tiny paper label standing in front of each one, city lights outside the window.
 17. the titles — Close up: tiny paper labels standing upright on a moonlit windowsill, one in front of each little sculpture built from long white plastic rounded-rectangle soup containers and masking tape.
-18. taken down — Morning light. Three Black nurses, a bit overweight, in scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
+18. taken down — Morning light. Three Black nurses, a bit overweight, in dark teal scrubs — not patient pajamas — crowd into a small hospital room, pointing at little sculptures built from white plastic rounded-rectangle soup containers and masking tape lined up on the windowsill, while the girl watches from her bed.
 19. drawer museum — An open wooden drawer holding little sculptures built from long white plastic rounded-rectangle soup containers and masking tape, arranged neatly like museum pieces, a tiny paper label standing in front of each.
 
 ## Chapter Two — meeting with Sarah
@@ -134,11 +134,11 @@ earlier shot.
 ## Chapter Three — candy
 
 22. the bad dream bursts — A dark storm cloud breaking apart into falling pastel candy squares.
-23. circling — The girl walks a wide wary circle around a large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair.
+23. circling — The girl walks a wide wary circle around a large Black nurse, overweight with a large behind, in dark teal scrubs, seated in a hallway chair.
 24. the ant and the idol — One tiny black ant walking in a wide circle around an enormous carved stone statue of a seated figure on a dusty floor; the statue is solid carved stone, not a living person.
-25. the offer — A large Black nurse, overweight with a large behind, in scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
+25. the offer — A large Black nurse, overweight with a large behind, in dark teal scrubs, seated in a hallway chair, tears open a pack of candy in a yellow paper wrapper and holds out one pink candy square to the girl.
 26. pink square — A single pink candy square in the middle of an open palm, close up.
-27. at peace — The girl and a large seated Black nurse in scrubs look at each other calmly, the girl's cheek round with candy.
+27. at peace — The girl and a large seated Black nurse in dark teal scrubs look at each other calmly, the girl's cheek round with candy.
 28. the red one — The girl slips a red candy square into the pocket of her sky blue pajama shirt with a small secret smile.
 
 ## Chapter Four — Francesca
@@ -163,9 +163,9 @@ earlier shot.
 
 41. the theft — The girl hides a pair of scissors deep in a wooden drawer, glancing over her shoulder.
 42. not even feeling good — The girl sits stiffly on a desk chair beside a closed wooden drawer, hands in her lap.
-43. the knock — The silhouette of a Black nurse in scrubs knocking at a hospital room door, serious, seen from inside the dim room.
-44. handing them over — The girl surrenders a pair of scissors into the open hand of a Black nurse, a bit overweight, in scrubs at a nurses' station.
-45. the explanation — The girl mid-explanation before a skeptical Black nurse, a bit overweight, in scrubs, her hands tangled in the air like string.
+43. the knock — The silhouette of a Black nurse in dark teal scrubs knocking at a hospital room door, serious, seen from inside the dim room.
+44. handing them over — The girl surrenders a pair of scissors into the open hand of a Black nurse, a bit overweight, in dark teal scrubs at a nurses' station.
+45. the explanation — The girl mid-explanation before a skeptical Black nurse, a bit overweight, in dark teal scrubs, her hands tangled in the air like string.
 46. we don't steal scissors — The girl walks small and scolded down a hallway beside a stern middle-aged doctor in a dark purple checkered shirt and black suit pants.
 47. gray options — An abstract branching map of forking colored paths drawn on paper, the bright colors draining to flat dead gray toward the edges; no people in the picture.
 
@@ -233,7 +233,7 @@ earlier shot.
 
 84. handstands — A bright sun-patched day room; a small young woman with short black hair, in sky blue patient pajamas, does a handstand in the light, legs straight up.
 85. jumping — The girl, wearing a red tank top and pajama pants, jumps up and down in a patch of sunlight, hair mid-air, joyful.
-86. ninety-eight — The girl stands on a hospital scale in morning light while a Black nurse, a bit overweight, in scrubs notes something down.
+86. ninety-eight — The girl stands on a hospital scale in morning light while a Black nurse, a bit overweight, in dark teal scrubs notes something down.
 
 ## Chapter Sixteen — the tour
 
