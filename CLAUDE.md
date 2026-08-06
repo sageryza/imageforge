@@ -1495,19 +1495,22 @@ lifted into a standalone tool later.
   Sophie).** Every loading spot in the app sits on cream (`--bg #f5efe2`,
   `--surface #fffbf3`, `--panel #efe6d3`), so the old `hoonie-loading.gif`'s
   white square showed as a visible box. The clear one is the same hoonies with
-  the paper removed — transparent background, 70 drawings, 240px, 278KB (the
+  the paper removed — transparent background, 70 drawings, 240px, 390KB (the
   old one: 45 drawings, 360px, 865KB). Both files stay in `public/`; the old
   one is still what iOS bundles (`TestStationView` deliberately puts
   `Color.white` behind it). Rebuild either from a folder of hoonies with
   `python3 scripts/hoonie-cutouts.py <dir> --gif public/hoonie-loading-clear.gif
-  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy`); the same
+  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy scipy`); the same
   script writes the transparent PNG cutouts with `--out`. GIF transparency is
-  1-bit, so the ink keeps a short gray ramp that stops short of white — a pale
-  antialiased edge would read as a halo on a dark surface.
+  1-bit, so each frame quantizes its own real colors (7 + transparent), so the ink keeps
+  its warm tone — the first cut quantized to neutral gray and read greeny on
+  the app's cream surfaces.
 - **The hoonies themselves live in the Dump**, album **hoonies** (#228, 140
   drawings — woodcut smallies, many of them two things grown into each other).
-  Cutouts at Storage `hoonies/cutouts/<nnn>.png`, 210px webp thumbs at
-  `hoonies/thumb/`. As a gpt-image-2 style reference they transfer well with
+  Cutouts at Storage `hoonies/cutouts2/<nnn>.png`, 210px webp thumbs at
+  `hoonies/thumb2/` (v1 at `cutouts/`/`thumb/` was grayscale-quantized and read
+  greeny on cream; v2 is the corner flood-fill cut — new paths because the old
+  objects are immutable-cached). As a gpt-image-2 style reference they transfer well with
   the refs attached and **NO written style description** (same finding as
   `docs/evan-film-style.md`) — adding an engraving description pulls the line
   finer and more modern, away from their blunt woodcut feel.
