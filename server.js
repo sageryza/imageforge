@@ -3044,32 +3044,6 @@ Return valid JSON only, no markdown fences, shaped:
   }
 });
 
-// ─── Name your familiar ─────────────────────────────────────────────
-// Body: { animal?, vibe? }
-app.post('/api/witch/familiar', async (req, res) => {
-  try {
-    const { animal = '', vibe = '' } = req.body || {};
-    const system = `You name magical familiars for an app called "Secretly a Witch". Given an animal and/or a vibe, invent 4 evocative familiar names with tiny personalities. Names should feel witchy, folkloric, a little unexpected — not clichéd (avoid "Salem", "Luna", "Shadow" unless it truly fits).
-
-Return valid JSON only, no markdown fences, shaped:
-{ "familiars": [ { "name": "...", "species": "...", "trait": "2-4 word personality", "blurb": "one charming sentence about them" } ] }`;
-
-    const userMsg = `Animal: ${animal || 'any — you choose'}. Vibe: ${vibe || 'any — you choose'}.`;
-
-    // Claude, not mini (Aug 2026, Sophie) — these names are the whole point.
-    const data = await anthropicChat({
-      system,
-      messages: [{ role: 'user', content: userMsg }],
-      max_tokens: 1200,
-      temperature: 1,
-    });
-    if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json(parseAnthropicJson(data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ─── End-of-lesson notes: ask a question (AI) / leave a comment (to Sophie) ──
 // Public, so lightly rate-limited per IP. Questions go to Claude Haiku with
 // the lesson's own card text as context; comments land in Firestore
