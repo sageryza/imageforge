@@ -158,7 +158,10 @@ for spec in "${SPANS[@]}"; do
   # --force-keyframes-at-cuts re-encodes the edges so the clip actually starts
   # where you asked; without it yt-dlp snaps to the nearest keyframe and you
   # can lose a second or two off the front.
-  CMD=(yt-dlp "${COOKIE_ARGS[@]}" --no-playlist -f "$FORMAT"
+  # ${arr[@]+"${arr[@]}"} — NOT plain "${arr[@]}". macOS ships bash 3.2, where
+  # expanding an EMPTY array under `set -u` dies with "unbound variable". That
+  # made --no-cookies (the only empty case) crash before yt-dlp ever ran.
+  CMD=(yt-dlp ${COOKIE_ARGS[@]+"${COOKIE_ARGS[@]}"} --no-playlist -f "$FORMAT"
        --force-keyframes-at-cuts --download-sections "*$RANGE"
        -o "$OUTDIR/$STEM.%(ext)s" "$URL")
   if [ "$DRY" = "1" ]; then
