@@ -1983,18 +1983,25 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Three home screens (Aug 2026, Sophie).** The making home (`.home`), the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) behind
-  the **briefcase** beside the test tube — Instagram, Ads, Blog Studio, the
-  Product Creator and the Shop Report — and the **old fashioned** home
-  (`.crafts`, `CraftsGrid`) behind the hand-drawn **quilt** beside the
-  briefcase: the original staples (stickers, storybooks, coloring pages,
-  greeting cards) plus the Writing Room, per Sophie. `Tool.isBusiness` /
-  `Tool.isCraft` decide which grid a tool lands on; a tool is on ONE grid,
-  never two, so each home stays scannable. The second and third homes'
-  top-left is a **house** back to the making home; Chats keeps its top-right
-  corner on all three. Deep links: `deckfactory://business`,
-  `deckfactory://crafts` (alias `://quilt`).
+- **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
+  REPLACES the earlier three-home-screens rule).** The home is a single grid;
+  above the module cards sits a row of five rounded squares, **icons only**
+  ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
+  Two of them open a tool (**Dump**, **Chats**); three FILTER the cards below
+  (`HomeFilter` — **briefcase** = business, **quilt** = old fashioned,
+  **film** = everything that makes or cuts moving pictures and sound: Movies,
+  Films, Cutting Room, Cut Marks, Episode Editor, Story Room). The lit chip
+  clears back to everything when tapped again (the Dump sort page's
+  convention). `BusinessGrid`/`CraftsGrid` and `Screen.business`/`.crafts`
+  are GONE; `deckfactory://business` and `://crafts` (alias `://quilt`) land
+  on the home with that filter already lit. `Tool.isBusiness` /
+  `Tool.isCraft` now decide which FILTER a tool answers to, and keep it off
+  the unfiltered list so the default home stays scannable. The Test Station's
+  test tube is the one corner icon left beside the masthead — Chats gave up
+  its top-right corner rather than appear twice on one screen.
+  **Which five is not settled** — Sophie expects to change slots 2 and 4 and
+  is still working out what the filters should be, so treat the set as
+  provisional, not as a rule.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
