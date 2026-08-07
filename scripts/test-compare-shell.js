@@ -47,7 +47,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>pending</title>
 <link rel="stylesheet" href="/compare.css">
 <div class="wrap">
   <div class="eyebrow">TEST</div><h1>Compare shell</h1>
-  <div class="card"><button id="vote">vote</button></div>
+  <div class="card" data-item="thing-1"><button id="vote">vote</button></div>
   ${'<div class="card"><p>tall filler so the page can scroll</p></div>'.repeat(60)}
   <div class="imgrow">
     <img id="pic" alt="a" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23c99'/%3E%3C/svg%3E">
@@ -60,6 +60,10 @@ __PILL__
 (function(){
   var L=[];
   function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  // spy on the verdict POSTs the note box makes
+  var posts=[], realFetch=window.fetch.bind(window);
+  window.fetch=function(u,o){ if(o&&o.method==='POST') posts.push({u:String(u),b:o.body}); return realFetch(u,o); };
+  window.__compareNotes({chat:'t',sheet:'s'});
   setTimeout(function(){
     // 1. content tap pauses an already-running autoscroll
     window.__scrollStart(1);
@@ -89,8 +93,26 @@ __PILL__
     ok(Math.abs(window.scrollY - y0) < 2 && document.body.style.overflow === '',
        'closing restores the exact scroll position');
 
-    fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
-  }, 300);
+    // 4. notes — Sophie's standing rule: every reviewable item takes one
+    var host = document.querySelector('[data-item="thing-1"]');
+    var note = host && host.querySelector('.cmp-note');
+    var opener = note && note.querySelector('.cmp-note-open');
+    var box = note && note.querySelector('.cmp-note-box');
+    ok(!!(note && opener && box), 'every [data-item] gets a note box');
+    if (opener) opener.click();
+    ok(note && note.classList.contains('open') && opener.hidden, 'tapping "+ note" opens the box');
+    if (box) {
+      box.value = 'this one drifts';
+      box.dispatchEvent(new Event('blur'));           // blur flushes immediately
+    }
+    setTimeout(function () {
+      var p = posts.filter(function (x) { return x.u.indexOf('/api/chatfeed/verdict') === 0; }).pop();
+      var body = p ? JSON.parse(p.b) : null;
+      ok(!!body && body.text === 'this one drifts' && body.item === 'thing-1' && body.ok === undefined,
+         'a note saves to the verdict doc as text, leaving the vote alone');
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+    }, 120);
+  }, 400);
 })();
 </script>`;
 

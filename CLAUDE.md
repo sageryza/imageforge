@@ -988,6 +988,27 @@ lifted into a standalone tool later.
   tightest cut"), pointing at NEW version-numbered media files; the old pages
   and files stay as history. DELETE+re-post is only for fixing a typo on the
   SAME version.
+  **SHE MUST BE ABLE TO ADD A NOTE — everywhere it could apply (Aug 2026,
+  Sophie's standing rule: "that should be a standing rule generally whenever
+  applicable").** A vote answers yes/no; a note is where she says WHY, or what
+  to change, and it has to sit next to the thing itself. So **anything
+  reviewable gets a note box**: every item on a Compare page, and by extension
+  any new surface where she judges things (the Assets lightbox and the Writing
+  Room already work this way — match them). Do NOT ship a page whose only
+  input is a pair of vote buttons.
+  - **It is one line, because `/compare.js` owns it.** Mark each item
+    `data-item="<id>"` and call
+    `window.__compareNotes({ chat, sheet })` after the items are in the DOM.
+    That builds a quiet "+ note" affordance per item, prefills whatever she
+    wrote before, saves as she types (debounced), and flushes on blur and on
+    `pagehide` so a half-typed note can't be lost by navigating away. Never
+    hand-roll a note box per page.
+  - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
+    for the vote, `text` for the note — so writing one never clears the other
+    (that is why the route has both). Read them back together with
+    `GET /api/chatfeed/verdict?chat=&sheet=` → `{ items, texts }`.
+  - **Read the notes when she next messages you**, in the same sweep as asset
+    votes/notes, and act on them.
   **A page must NEVER post to `/api/chatfeed/reply`** (Aug 2026, Sophie's
   rule): notes she types on a Compare page are not chat messages and must stay
   on the page — use `POST /api/chatfeed/verdict { chat, sheet, item, text }`.

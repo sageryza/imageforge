@@ -99,4 +99,111 @@
 
   window.__compareShell.openImage = open;
   window.__compareShell.closeImage = close;
+
+  /* 4 — NOTES ON ANYTHING (Aug 2026, Sophie's standing rule: "whenever
+     applicable notes should be able to be added"). Reviewing is not only
+     yes/no — she needs to say WHY, or what to change, next to the thing
+     itself. So every Compare page that shows reviewable items gets a note
+     box per item, and it lives here rather than being hand-rolled per page.
+
+     Wire it in one line, after your items are in the DOM:
+
+       window.__compareNotes({ chat: 'my-chat', sheet: 'page-thing-v1' });
+
+     Every element carrying `data-item="<id>"` gets a note affordance. Notes
+     save to the SAME verdict doc as votes but a DIFFERENT field (`text` vs
+     `ok`), so writing one never clears the other — read both back with
+     GET /api/chatfeed/verdict?chat=&sheet= → { items, texts }.
+
+     Never post a note to /api/chatfeed/reply: a note on a page is not a chat
+     message (the server reroutes it anyway, but say what you mean).
+
+     Saving is debounced while she types and flushed on blur and on pagehide,
+     so a note is never lost by navigating away mid-sentence. */
+  var noteCfg = null, noteTimers = {};
+
+  function postNote(item, text) {
+    if (!noteCfg) return Promise.resolve();
+    return fetch('/api/chatfeed/verdict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: noteCfg.chat, sheet: noteCfg.sheet, item: item, text: text }),
+    }).catch(function () { /* offline — the text stays in the box */ });
+  }
+
+  function buildNote(host, item, existing) {
+    if (host.querySelector(':scope > .cmp-note')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'cmp-note';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cmp-note-open';
+    btn.textContent = '+ note';
+    var box = document.createElement('textarea');
+    box.className = 'cmp-note-box';
+    box.rows = 2;
+    box.placeholder = 'a note about this one…';
+    var flag = document.createElement('span');
+    flag.className = 'cmp-note-saved';
+    flag.textContent = 'saved';
+    wrap.appendChild(btn); wrap.appendChild(box); wrap.appendChild(flag);
+    host.appendChild(wrap);
+
+    if (existing) { box.value = existing; wrap.classList.add('open'); btn.hidden = true; }
+
+    btn.addEventListener('click', function () {
+      wrap.classList.add('open'); btn.hidden = true; box.focus();
+    });
+    function save() {
+      flag.classList.remove('on');
+      postNote(item, box.value).then(function () {
+        flag.classList.add('on');
+        setTimeout(function () { flag.classList.remove('on'); }, 1200);
+      });
+    }
+    box.addEventListener('input', function () {
+      clearTimeout(noteTimers[item]);
+      noteTimers[item] = setTimeout(save, 700);
+    });
+    box.addEventListener('blur', function () {
+      clearTimeout(noteTimers[item]);
+      // an empty box that was never written is not a note — don't POST ''
+      if (box.value.trim() || box.dataset.touched) save();
+      if (box.value.trim()) box.dataset.touched = '1';
+      if (!box.value.trim() && !box.dataset.touched) { wrap.classList.remove('open'); btn.hidden = false; }
+    });
+  }
+
+  window.__compareNotes = function (opts) {
+    noteCfg = { chat: (opts || {}).chat, sheet: (opts || {}).sheet };
+    var sel = (opts || {}).selector || '[data-item]';
+    var hosts = Array.prototype.slice.call(document.querySelectorAll(sel));
+    if (!hosts.length || !noteCfg.chat || !noteCfg.sheet) return;
+    // prefill from whatever she already wrote, then wire every box
+    fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(noteCfg.chat) +
+          '&sheet=' + encodeURIComponent(noteCfg.sheet))
+      .then(function (r) { return r.ok ? r.json() : { texts: {} }; })
+      .catch(function () { return { texts: {} }; })
+      .then(function (d) {
+        var texts = (d && d.texts) || {};
+        hosts.forEach(function (h) {
+          var item = h.getAttribute('data-item');
+          if (item) buildNote(h, item, texts[item] || '');
+        });
+      });
+  };
+
+  // a half-typed note must survive leaving the page
+  window.addEventListener('pagehide', function () {
+    if (!noteCfg) return;
+    document.querySelectorAll('.cmp-note-box').forEach(function (box) {
+      var item = box.closest('[data-item]');
+      if (!item || !box.value.trim()) return;
+      try {
+        navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
+          chat: noteCfg.chat, sheet: noteCfg.sheet,
+          item: item.getAttribute('data-item'), text: box.value,
+        })], { type: 'application/json' }));
+      } catch (_) { /* nothing more we can do here */ }
+    });
+  });
 })();
