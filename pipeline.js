@@ -20,6 +20,7 @@
 
 const express = require('express');
 const fetch = require('node-fetch');
+const anthropic = require('./anthropic');   // listing copy + the brief run on Claude
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 // Optional access token. When set, mutating/costly pipeline routes require the
@@ -67,9 +68,12 @@ function routePOD(productType = '') {
 }
 
 // ─── AI listing content ─────────────────────────────────────────────
-// Minimal OpenAI chat call (JSON mode) — kept local so this module stays
-// self-contained. Mirrors server.js's model choice (gpt-4o-mini) and its
-// "Connection: close" retry guard against dropped keep-alive sockets.
+// Runs on Claude (Aug 2026, Sophie). This copy is what an Etsy shopper
+// actually reads — the title, the description, the 13 tags that decide whether
+// the listing is found at all — so it is words-a-human-reads, not bulk
+// extraction. See anthropic.js for the model and what it costs.
+//
+// The OpenAI helper below is kept for anything mechanical that wants it.
 async function openaiJSON(messages, retries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -97,6 +101,13 @@ async function openaiJSON(messages, retries = 2) {
     }
   }
   throw lastErr;
+}
+
+// Same call shape as openaiJSON (system turn first), on Claude.
+async function claudeJSON(messages) {
+  const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+  const turns = messages.filter(m => m.role !== 'system');
+  return anthropic.chatJSON({ system, messages: turns, temperature: 0.8, maxTokens: 4000 });
 }
 
 // Enforce Etsy's listing limits regardless of what the model returns:
@@ -150,7 +161,7 @@ async function interpretBrief({ text, styles = [] } = {}) {
     '"note": one short friendly sentence reflecting their vibe back}.',
   ].join(' ');
   const user = `Available styles: ${styles.join(', ') || '(none)'}\nTheir description: ${text}`;
-  const raw = await openaiJSON([
+  const raw = await claudeJSON([
     { role: 'system', content: sys },
     { role: 'user', content: user },
   ]);
@@ -165,7 +176,6 @@ async function interpretBrief({ text, styles = [] } = {}) {
 // Generate SEO-optimized Etsy listing content from a theme + product type.
 async function generateListingContent({ theme, productType = 'art print', audience, extraContext } = {}) {
   if (!theme) throw new Error('theme required');
-  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   const sys = [
     'You are an expert Etsy SEO copywriter for a small illustrated-goods shop.',
     'Write listing content that ranks and converts. Front-load the most-searched keywords.',
@@ -179,7 +189,7 @@ async function generateListingContent({ theme, productType = 'art print', audien
     audience ? `Target audience: ${audience}.` : '',
     extraContext ? `Extra context: ${extraContext}.` : '',
   ].filter(Boolean).join('\n');
-  const raw = await openaiJSON([
+  const raw = await claudeJSON([
     { role: 'system', content: sys },
     { role: 'user', content: user },
   ]);

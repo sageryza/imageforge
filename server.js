@@ -2704,24 +2704,24 @@ RULES:
 
 Return valid JSON only, no markdown fences: an array of objects with "title", "text", and "prompt".`;
 
-    const data = await openaiChat({
-        model: 'gpt-4o-mini',
-        temperature: mode === 'imagine' ? 0.95 : 0.7,
-        messages: [
-          { role: 'system', content: mode === 'imagine' ? imagineSystem : captureSystem },
-          {
-            role: 'user',
-            content: mode === 'imagine'
-              ? `Theme: ${seed}. Imagine ${count} everyday-miracle entries. Return a JSON array.`
-              : seed,
-          },
-        ],
+    // Claude, not mini (Aug 2026, Sophie) — these are the book's own pages.
+    const data = await anthropicChat({
+        system: mode === 'imagine' ? imagineSystem : captureSystem,
+        messages: [{
+          role: 'user',
+          content: mode === 'imagine'
+            ? `Theme: ${seed}. Imagine ${count} everyday-miracle entries. Return a JSON array.`
+            : seed,
+        }],
+        max_tokens: 4000,
+        temperature: 1,
     });
 
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    const text = data.choices[0].message.content.trim();
-    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    // The reply is a JSON ARRAY here, so parseAnthropicJson's object-prefill
+    // helpers don't apply — strip fences and parse what came back.
+    const cleaned = anthropicText(data).replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
     const entries = Array.isArray(parsed) ? parsed : [parsed];
     res.json({ entries });
@@ -3009,16 +3009,15 @@ Return valid JSON only, no markdown fences, shaped:
   "note": "one grounding sentence — the real magic is intention/attention"
 }`;
 
-    const data = await openaiChat({
-      model: 'gpt-4o-mini',
-      temperature: 0.9,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: `Intent: ${intent}. Write one ${kind}.` },
-      ],
+    // Claude, not mini (Aug 2026, Sophie) — a spell is prose a reader reads.
+    const data = await anthropicChat({
+      system,
+      messages: [{ role: 'user', content: `Intent: ${intent}. Write one ${kind}.` }],
+      max_tokens: 1200,
+      temperature: 1,
     });
     if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json(parseJsonReply(data));
+    res.json(parseAnthropicJson(data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -3036,13 +3035,15 @@ Return valid JSON only, no markdown fences, shaped:
 
     const userMsg = `Animal: ${animal || 'any — you choose'}. Vibe: ${vibe || 'any — you choose'}.`;
 
-    const data = await openaiChat({
-      model: 'gpt-4o-mini',
+    // Claude, not mini (Aug 2026, Sophie) — these names are the whole point.
+    const data = await anthropicChat({
+      system,
+      messages: [{ role: 'user', content: userMsg }],
+      max_tokens: 1200,
       temperature: 1,
-      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
     });
     if (data.error) return res.status(400).json({ error: data.error.message });
-    res.json(parseJsonReply(data));
+    res.json(parseAnthropicJson(data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -3135,9 +3136,10 @@ ${hasTime ? '' : 'NOTE: no birth time was given, so there are NO houses. For the
 Warm, plain, second person, 2-3 sentences each, teaching the CONCEPT through their specific placement. Never fatalistic, never medical/financial. Return VALID JSON only, no fences:
 { "cards": [ { "concept": "sign", "planet": "Venus", "sign": "Libra", "house": 7, "title": "3-5 word title", "body": "2-3 sentences teaching what a sign is, using their Venus in Libra" }, … three total, in the order sign, planet, house ] }`;
     const user = `Their placements:\n${String(placements).slice(0, 1500)}\n${big3 ? `Big three: ${String(big3).slice(0, 200)}` : ''}`;
-    const data = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.7, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+    // Claude, not mini (Aug 2026, Sophie) — this is teaching copy she ships.
+    const data = await anthropicChat({ system, messages: [{ role: 'user', content: user }], max_tokens: 1600, temperature: 1 });
     if (data.error) return res.status(400).json({ error: data.error.message });
-    const out = parseJsonReply(data);
+    const out = parseAnthropicJson(data);
     if (!out || !Array.isArray(out.cards)) return res.status(500).json({ error: 'bad lesson' });
     res.json(out);
   } catch (err) {
@@ -3222,10 +3224,11 @@ Return valid JSON only, no markdown fences:
 Give 3 to 5 sections on the most striking placements, houses, and aspects.`;
     const user = `Natal chart (already computed — interpret only):\n${angles}${placements}\nTightest aspects: ${aspects}.`;
 
-    const data = await openaiChat({ model: 'gpt-4o-mini', temperature: 0.85, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+    // Claude, not mini (Aug 2026, Sophie) — a natal reading is the words.
+    const data = await anthropicChat({ system, messages: [{ role: 'user', content: user }], max_tokens: 2000, temperature: 1 });
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    res.json({ chart, reading: parseJsonReply(data), place: placeName, coords: { lat, lon }, tz: zone, hasTime });
+    res.json({ chart, reading: parseAnthropicJson(data), place: placeName, coords: { lat, lon }, tz: zone, hasTime });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

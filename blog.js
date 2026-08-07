@@ -6,7 +6,7 @@
 // answer, so the click still comes to you.
 //
 // Flow (mirrors the rest of the studio — generate, then a human reviews):
-//   topic → long-tail keyword research (gpt-4o-mini)
+//   topic → long-tail keyword research (Claude — see the model note below)
 //         → SEO post: title, meta description, slug, tags, HTML body, FAQ
 //         → gpt-image-2 images
 //         → draft you review → publish to the Shopify store blog (shopify.js)
@@ -21,6 +21,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const googleads = require('./googleads'); // real keyword search-volume data (when Basic access is live)
+const anthropic = require('./anthropic');   // reader-facing words run on Claude
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -41,8 +42,22 @@ function bucket() {
   try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; }
 }
 
-// ─── OpenAI text (gpt-4o-mini, JSON) ────────────────────────────────
-// Same shape/guards as pipeline.js's openaiJSON.
+// ─── Text: Claude ───────────────────────────────────────────────────
+// Both text steps here — the keyword research AND the post itself — run on
+// Claude, not gpt-4o-mini (Aug 2026, Sophie). Keyword research is the reason:
+// it decides what the whole post is FOR, and a weak call there wastes every
+// step after it. See anthropic.js for the model choice and what it costs.
+//
+// Shape-compatible with the old openaiJSON so the callers below didn't change:
+// takes [{role, content}] with the system turn first, returns a parsed object.
+async function claudeJSON(messages, { temperature = 0.7 } = {}) {
+  const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+  const turns = messages.filter(m => m.role !== 'system');
+  return anthropic.chatJSON({ system, messages: turns, temperature, maxTokens: 8000 });
+}
+
+// Kept for the image step's sibling helpers / any future OpenAI text need.
+// eslint-disable-next-line no-unused-vars
 async function openaiJSON(messages, { temperature = 0.7, retries = 2 } = {}) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   let lastErr;
@@ -114,7 +129,7 @@ async function researchKeywords({ topic, context = '' } = {}) {
     '"clusters": [{"title": short post title idea, "keyword": the target phrase}]}.',
     'Return 10-14 keywords and 5-8 cluster post ideas.',
   ].join(' ');
-  const raw = await openaiJSON([
+  const raw = await claudeJSON([
     { role: 'system', content: sys },
     { role: 'user', content: `Topic / product: ${topic}\nShop context: ${context || '(a small handmade / illustrated goods shop)'}` },
   ], { temperature: 0.7 });
@@ -180,7 +195,7 @@ async function draftPost({ topic, keyword, context = '', tone = 'warm, personal,
     '"faq": [{"q": string, "a": string}],',
     '"imagePrompts": [string, string]}.',
   ].join(' ');
-  const raw = await openaiJSON([
+  const raw = await claudeJSON([
     { role: 'system', content: sys },
     { role: 'user', content: `Target keyword: ${target}\nBroader topic: ${topic || target}\nShop context: ${context || '(a small handmade / illustrated goods shop)'}` },
   ], { temperature: 0.75 });

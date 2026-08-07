@@ -263,7 +263,7 @@ lifted into a standalone tool later.
 - **`pipeline.js`** (`/api/pipeline`) — orchestration glue. `GET /status`
   aggregates connectivity across every service; `GET /route?product_type=` maps
   a product type to a POD service; `POST /listing-content` AI-writes SEO
-  title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
+  title/13 tags/description (**Claude** — buyer-facing copy, clamped to Etsy limits);
   `POST /publish-draft` creates the Etsy draft **and** uploads the design
   image(s) in one call (auto-generates listing content when `generateContent`;
   category comes from a `productType`→Etsy-taxonomy map — `taxonomyFor()` — so
@@ -1366,7 +1366,8 @@ lifted into a standalone tool later.
   vs windowed sales, and buckets listings into top sellers / hidden gems (high
   conversion, low views → visibility problem) / stalled (views, no sales) /
   sale candidates (favorites = Etsy-notified audience) / ad candidates (proven
-  converters). gpt-4o-mini writes a short advice section (`?advice=0` skips).
+  converters). **Claude** writes a short advice section — **opt-in via `?advice=1`**
+  (the page loads numbers only; opening it must never spend, Aug 2026).
   Same `STUDIO_TOKEN` gate; page uses `serveGated`. If the stored token
   predates `transactions_r` the report degrades to listings-only with a
   reconnect banner instead of failing.
@@ -1473,8 +1474,8 @@ lifted into a standalone tool later.
   Google's AI Overviews can't fully answer, so the click still comes to you;
   organize as topic clusters (a pillar + specific cluster posts).
 - **Flow:** `POST /keywords` (topic → long-tail keyword ideas w/ intent +
-  difficulty + a pillar/cluster shape, gpt-4o-mini) → `POST /draft` (full post:
-  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, gpt-4o-mini) →
+  difficulty + a pillar/cluster shape, **Claude**) → `POST /draft` (full post:
+  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, **Claude**) →
   `POST /image` (gpt-image-2 → permanent Firebase webp URL) → `POST /publish`
   (reuses `shopify.publishArticle`; hidden draft or live). Generation endpoints
   are stateless; drafts best-effort persist to Firestore (`forge-blog`) for a
@@ -1610,7 +1611,7 @@ lifted into a standalone tool later.
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
   endpoints + a small set of stateless AI endpoints in `server.js`:
   `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
-  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+  **Claude** via `anthropicChat`; `parseAnthropicJson` strips fences).
 - **The blog is a real NAVIGATION out of the app page, and the tab re-assert
   must not follow it (Aug 2026 — this bug made the blog unreachable in the
   app: tapping "The blog" bounced to Home instantly).** In the iOS app the
@@ -1708,6 +1709,32 @@ lifted into a standalone tool later.
   YouTube is still a placeholder search** — the channel URL isn't stored anywhere
   (the YouTube token is upload-only scope and can't read the channel), so it
   needs Sophie's `@handle` pasted in.
+
+## Which model writes it (Aug 2026, Sophie: "my brains are really important")
+- **Anything whose output is WORDS A HUMAN READS runs on Claude, never
+  `gpt-4o-mini`.** Blog posts *and the keyword research behind them*, Etsy
+  listing copy, the shop advice she makes spending decisions from, the witch
+  app's spells / familiars / natal readings / sky lessons, the Book of
+  Miracles' pages. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
+  default `claude-sonnet-5` via `CLAUDE_WRITING_MODEL`) — do NOT hand-copy the
+  fetch a fifth time. `server.js`'s `anthropicChat` + `parseAnthropicJson` is
+  the in-server equivalent for routes that already live there.
+- **`gpt-4o-mini` stays ONLY for bulk mechanical extraction** where the job is
+  "pull the fields out of hundreds of documents", not "write something worth
+  reading": NDE moment mining (`nde.js`), memo titling (`memos.js`), the deck
+  brainstorm lists (`/api/generate/subjects`, `/moments`), `stories.js`,
+  `/api/set/third`, the Talking zine's planner, `dreamapp.js`. If you switch
+  one of these, say why.
+- **`gpt-4o-mini-tts` and `gpt-4o-mini-transcribe` are NOT this.** They are
+  the audio models — a grep for "gpt-4o-mini" hits them and inflates the
+  count. Leave them alone; the voice rules elsewhere govern them.
+- **A doc that tells you to use mini for reader-facing words is STALE — fix
+  the doc.** This kept coming back because the module headers said "gpt-4o-mini"
+  long after the code moved on. When you change a model, change its comment,
+  its module header, and this file in the same commit.
+- **Opening a page must never spend money.** The Shop Report used to write its
+  AI advice on page load; that is now `?advice=1`, behind a star button. Same
+  rule anywhere else: numbers/lists are free, a model call is a deliberate tap.
 
 ## Design rules (forever)
 - **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
