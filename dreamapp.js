@@ -274,9 +274,12 @@ router.get('/feed', async (req, res) => {
       .map((doc) => ({
         id: doc.id,
         title: doc.title || 'A Dream',
+        // `name` still rides along for a later reader; the feed does not show
+        // it — dreams are grouped under their DAY, unattributed (Sophie).
         name: doc.name,
         mine: doc.uid === req.user.uid,
         createdAt: doc.createdAt,
+        publicOn: doc.publicOn,
         words: doc.wordsPublic !== false ? doc.text : null,
         panels: (doc.panels || []).filter((p) => p.public).map((p) => ({ i: p.i, url: p.url, captions: p.captions })),
         feltCount: doc.feltCount || 0,

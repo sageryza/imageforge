@@ -56,7 +56,11 @@
   .sealmsg .big { font-size:17px; font-weight:700; }
   .sealmsg .sml { font-size:13.5px; color:var(--dim); margin-top:5px; }
 
-  .post { padding:18px 2px 16px; border-bottom:1px solid var(--line); }
+  /* The feed reads as days: one date, then that day's dreams, unattributed. */
+  .dayhead { font-family:Georgia, "Times New Roman", serif; font-size:15px; color:var(--dim);
+             padding:26px 2px 4px; }
+  .dayhead:first-child { padding-top:14px; }
+  .post { padding:14px 2px 16px; border-bottom:1px solid var(--line); }
   .post .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                font-size:19px; font-weight:400; }
   .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
@@ -177,6 +181,14 @@ var openDreamId = null, cameFrom = 'mine';
 function esc(s){ var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 function toast(msg){ var t = document.getElementById('toast'); t.textContent = msg;
   t.style.opacity = 1; setTimeout(function(){ t.style.opacity = 0; }, 2100); }
+// "2026-08-07" -> "Friday, August 7". Built from the parts as a LOCAL date so
+// the label can't slip a day (parsing the string directly reads as UTC midnight).
+function dayLabel(iso){
+  var p = String(iso || '').split('-');
+  if (p.length !== 3) return '';
+  return new Date(+p[0], +p[1] - 1, +p[2])
+    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
 function ago(iso){
   var m = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   if (m < 60) return m + 'm';
@@ -251,14 +263,23 @@ async function renderFeed(){
       el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
       return;
     }
-    el.innerHTML = f.dreams.map(function(d){
-      return '<article class="post" data-id="' + d.id + '">' +
-        '<div class="ttl">' + esc(d.title) + '</div>' +
-        '<div class="meta">' + esc(d.mine ? 'you' : d.name) + ' · ' + ago(d.createdAt) + '</div>' +
-        (d.words ? '<div class="words">' + esc(d.words) + '</div>' : '') +
-        panelBlock(d.panels) +
-        '<button class="stars' + (d.felt ? ' on' : '') + '">' + STAR_LINE + '<span>' + d.feltCount + ' felt this</span></button>' +
-        '</article>';
+    // Group under the day they were shared, newest day first; no names.
+    var byDay = {}, days = [];
+    f.dreams.forEach(function(d){
+      var k = d.publicOn || String(d.createdAt || '').slice(0, 10);
+      if (!byDay[k]) { byDay[k] = []; days.push(k); }
+      byDay[k].push(d);
+    });
+    days.sort().reverse();
+    el.innerHTML = days.map(function(k){
+      return '<div class="dayhead">' + dayLabel(k) + '</div>' + byDay[k].map(function(d){
+        return '<article class="post" data-id="' + d.id + '">' +
+          '<div class="ttl">' + esc(d.title) + '</div>' +
+          (d.words ? '<div class="words">' + esc(d.words) + '</div>' : '') +
+          panelBlock(d.panels) +
+          '<button class="stars' + (d.felt ? ' on' : '') + '">' + STAR_LINE + '<span>' + d.feltCount + ' felt this</span></button>' +
+          '</article>';
+      }).join('');
     }).join('');
     wirePanels(el);
     el.querySelectorAll('.post').forEach(function(post){
