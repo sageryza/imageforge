@@ -90,64 +90,10 @@ const md5Of = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 
 // ── the audio fingerprint ──────────────────────────────────────────────────
 //
-// THE FILE md5 IS NOT A FINGERPRINT OF THE RECORDING. iOS rewrites an m4a's
-// QuickTime creation/modification dates every time the file is exported or
-// shared, so re-sharing a recording you already archived produces DIFFERENT
-// BYTES for identical audio — and the md5 half of the dedupe can never fire.
-//
-// Measured, not assumed (2026-08-07, on the pair 2026-08-02_1243 /
-// 2026-08-03_2131): both files 2,820,952 bytes, exactly 36 bytes different,
-// every one of them a date field — copy A says 2026-08-02T19:43:44Z, copy B
-// says 2026-08-04T04:31:10Z, each matching the moment it was FILED. All 2.8MB
-// of audio was bit-identical. That one cause defeated BOTH dedupe layers at
-// once, because `mvhdDate()` below reads the same rewritten clock, so the
-// derived stamp was "when it was shared" too.
-//
-// `audioHash` zeroes those fields before hashing, so a recording fingerprints
-// the same however many times it has been shared.
-//
-// The scan is deliberately a WHOLE-BUFFER search rather than a tree walk from
-// the top-level moov: Voice Memos leaves an earlier copy of mvhd/tkhd/mdhd
-// embedded inside the mdat region (same file: headers at 17814 and again at
-// 2755110), and iOS updates both copies. A tree walk finds only the second
-// and the two fingerprints would still disagree.
-//
-// A false hit is implausible: the four ASCII bytes must be preceded by a size
-// field exactly equal to that box's size at the version byte that follows it.
-// Nothing is copied — the hash is fed the buffer's own slices with zeros
-// spliced in, so a 400MB recording costs no extra memory.
-const DATE_BOXES = { mvhd: [108, 120], tkhd: [92, 104], mdhd: [32, 44] };
-const ZEROS = Buffer.alloc(16);
-function audioHash(buf) {
-  const spans = [];
-  for (const [type, sizeFor] of Object.entries(DATE_BOXES)) {
-    let i = 0;
-    while ((i = buf.indexOf(type, i, 'latin1')) >= 0) {
-      const at = i;
-      i += 4;
-      if (at < 4 || at + 8 > buf.length) continue;
-      const version = buf[at + 4];
-      if (version > 1) continue;
-      if (buf.readUInt32BE(at - 4) !== sizeFor[version]) continue;
-      const width = version === 1 ? 8 : 4;
-      const end = at + 8 + width * 2;
-      if (end > buf.length) continue;
-      spans.push([at + 8, end]);
-    }
-  }
-  if (!spans.length) return null; // not an ISO-BMFF file — the md5 is all there is
-  spans.sort((a, b) => a[0] - b[0]);
-  const h = crypto.createHash('md5');
-  let p = 0;
-  for (const [s, e] of spans) {
-    if (s < p) continue;
-    h.update(buf.slice(p, s));
-    h.update(ZEROS.slice(0, e - s));
-    p = e;
-  }
-  h.update(buf.slice(p));
-  return h.digest('hex');
-}
+// Lives in its own dependency-free module (memo-fingerprint.js) because the
+// Mac push needs the SAME function to prove a local recording is an already-
+// archived one before correcting its date. Read the why-it-exists there.
+const { audioHash } = require('./memo-fingerprint');
 
 // ── the transcript backstop ────────────────────────────────────────────────
 //
@@ -508,6 +454,103 @@ router.post('/ingest', gate, express.raw({ type: '*/*', limit: '120mb' }), async
   }
 });
 
+// ── correcting a date nobody vouched for ────────────────────────────────────
+//
+// A recording shared off the phone carries NO record of when it was made.
+// iOS rewrites the m4a's QuickTime clock on every export, so the file says
+// "when it was shared", and Voice Memos puts no ©day / title atom in the
+// exported copy at all — measured on a real share: the only tags that survive
+// are the rewritten creation_time and the encoder's iTunSMPB. So a memo filed
+// from a chat upload or the share sheet gets a stamp derived from that
+// rewritten clock, and the id carries a hash suffix to say so.
+//
+// The true date is not lost — it is in Apple's own Voice Memos database
+// (ZCLOUDRECORDING.ZDATE), which only Sophie's Mac can read. That is what the
+// Mac push already reads, so it is the one thing in the system that can
+// answer this, and `scripts/push-memos.mjs` now heals these records on every
+// run. The pairing is done on the AUDIO FINGERPRINT, never on duration or
+// title: the local recording and the shared copy differ only in their date
+// fields, so the fingerprint matches exactly and a wrong record can't be
+// re-dated by coincidence.
+const DERIVED_ID = /_[0-9a-f]{6}$/;
+
+// The records whose date is a guess. Small by construction — everything the
+// Mac push files carries a real stamp — so this is a plain manifest scan.
+function unstampedRecords(memos) {
+  return memos.filter(m => DERIVED_ID.test(m.id)).map(m => ({
+    id: m.id, dur: m.dur, ahash: m.ahash || null, hash: m.hash || null,
+    title: m.title || null, date: m.date, cat: m.cat,
+  }));
+}
+
+// Give one record its real date. The id encodes the stamp, and the audio
+// object is named after the id, so this moves bytes as well as editing the
+// manifest — and the manifest is backed up beside itself first, the same
+// contract scripts/memo-dedupe.js uses, so every repair is reversible by hand.
+async function restampRecord({ id, stamp, iso = '', force = false }) {
+  if (!STAMP.test(stamp)) throw new Error('stamp must look like 2026-07-15_0812');
+  const b = await bucket();
+  const { manifest, generation } = await readManifest();
+  const rec = manifest.memos.find(m => m.id === id);
+  if (!rec) throw new Error('no record with that id');
+  if (!DERIVED_ID.test(rec.id) && !force) {
+    throw new Error('that record already has a date somebody vouched for — pass force to overrule it');
+  }
+
+  const ext = (String(rec.file || '').split('.').pop() || 'm4a').toLowerCase();
+  const isoStr = iso || '';
+  let newId = isoStr
+    ? `${stamp}_${String(isoStr).replace(/[:.]/g, '_').replace(/_\d+Z$/, 'Z')}`
+    : stamp;
+  if (newId === rec.id) return { changed: false, memo: rec, count: manifest.count };
+  if (manifest.memos.some(m => m.id === newId)) throw new Error(`another record is already called ${newId}`);
+
+  await backupManifest(manifest, 'prerestamp');
+
+  // Move the audio first. If this throws, the manifest still points at bytes
+  // that exist — the opposite order would leave a record pointing at nothing.
+  const from = `${PREFIX}/${rec.file}`;
+  const to = `${PREFIX}/${newId}.${ext}`;
+  const [exists] = await b.file(from).exists();
+  if (exists) await b.file(from).move(to);
+
+  const was = rec.id;
+  rec.id = newId;
+  rec.file = `${newId}.${ext}`;
+  rec.date = stamp.slice(0, 10);
+  rec.restampedFrom = was;
+  const count = await writeManifest(manifest, generation);
+  return { changed: true, was, memo: rec, count };
+}
+
+async function backupManifest(manifest, tag) {
+  const name = `${PREFIX}/manifest-backup-${new Date().toISOString().slice(0, 10)}-${tag}.json`;
+  await (await bucket()).file(name).save(JSON.stringify(manifest), { contentType: 'application/json' });
+}
+
+// GET /unstamped — the records whose date is only a guess, so a client that
+// CAN answer (the Mac, which has Apple's database) knows what to look up.
+router.get('/unstamped', gate, async (req, res) => {
+  try {
+    const { manifest } = await readManifest();
+    res.json({ ok: true, records: unstampedRecords(manifest.memos) });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /restamp {id, stamp, iso?, force?} — file one record under its real date.
+router.post('/restamp', gate, express.json({ limit: '256kb' }), async (req, res) => {
+  try {
+    const { id, stamp, iso, force } = req.body || {};
+    if (!id || !stamp) return res.status(400).json({ error: 'need id and stamp' });
+    const out = await restampRecord({ id: String(id), stamp: String(stamp), iso: String(iso || ''), force: Boolean(force) });
+    res.json({ ok: true, ...out });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // GET /audio/:id — stream one recording so the dream archive page can play it.
 //
 // memo-audio/** is readable only by a signed-in Firebase user, and the archive
@@ -585,5 +628,6 @@ async function streamMemoAudio(id, req, res, { dreamsOnly = false } = {}) {
 // without a second copy of the manifest contract.
 module.exports = {
   router, init, fileIntoArchive, md5Of, audioHash, transcriptTwin,
+  unstampedRecords, restampRecord,
   readManifest, writeManifest, streamMemoAudio,
 };
