@@ -1353,13 +1353,62 @@ lifted into a standalone tool later.
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead
   of losing the recording.
-- Dedupe is belt and braces: hash match always skips; a caller-supplied
-  (trusted) stamp match skips; a server-derived stamp never skips on its own
-  and gets a hash suffix in the id so two same-minute recordings can't
-  collide. `GET /api/memos/status` returns `stamps` + `hashes`.
-- One-time repairs (both ran 2026-08-05): `scripts/memo-unify-backfill.js`
-  — phase A stamped `hash` onto existing records from Storage md5 metadata,
-  phase B merged strays from `forge-audio` into the archive.
+- **THE FILE md5 IS NOT A FINGERPRINT OF THE RECORDING (Aug 2026 — this is
+  what let duplicates through after the "one library" fix).** iOS rewrites an
+  m4a's QuickTime creation/modification dates every time the file is exported
+  or shared, so re-sharing a recording gives DIFFERENT BYTES for identical
+  audio. Measured on a real pair: both copies 2,820,952 bytes, **36 bytes
+  different, every one a date field** (copy A `2026-08-02T19:43:44Z`, copy B
+  `2026-08-04T04:31:10Z` — each the moment it was FILED), all 2.8MB of audio
+  bit-identical. **That single cause defeated BOTH dedupe layers at once**,
+  because `mvhdDate()` reads the same rewritten clock, so the server-derived
+  stamp was "when it was shared" too. Don't diagnose a repeat memo as a hash
+  bug — the hash was working; it was hashing the wrong thing.
+- **Dedupe is THREE layers now, and each catches what the one before cannot:**
+  1. **file md5** (`hash`) — a byte-identical resend, i.e. a retried upload.
+  2. **audio fingerprint** (`ahash`, `memos.audioHash`) — the file md5 with
+     every mvhd/tkhd/mdhd date zeroed, so a re-SHARED recording matches. The
+     scan is a whole-buffer search, NOT a tree walk from the top-level moov:
+     Voice Memos leaves an earlier copy of those boxes inside the mdat region
+     (headers at 17814 *and* 2755110 in the measured file) and iOS updates
+     both — a tree walk finds one and the fingerprints still disagree.
+  3. **transcript backstop** (`memos.transcriptTwin`) — exact duration + ≥40
+     words + ≥90% word agreement. This is what catches a re-ENCODED copy,
+     where even the audio bytes differ. **The thresholds are calibrated
+     against the real archive, not guessed** (swept over all 1,117 records:
+     they flag the 9 genuine duplicates and nothing else). Every gate is
+     load-bearing — EXACT duration because Sophie re-records the same line
+     constantly and those takes land 1–2s apart (±2s slack wrongly flagged
+     four of them); 40 WORDS because an 8-second line repeated ten seconds
+     later really is word-for-word identical and is NOT a duplicate; 90%
+     because Whisper transcribes the same audio differently each run (which
+     is exactly why duplicates read as different memos). Re-run
+     `node scripts/memo-dedupe.js` after touching any of them.
+- **A stamp equal to NOW is a caller GUESSING — the server no longer trusts
+  it.** 12 records got in that way (stamps 0–3 min from their own upload).
+  A guessed stamp is how one recording lands twice under two different days,
+  and trusting it risks the opposite failure too: two genuinely different
+  memos filed inside one minute collapsing into one. The stamp is still used
+  for the id; it just cannot dedupe. **Never hand-build a stamp** — POST the
+  bytes and let the server work it out.
+- A skip after the audio is already uploaded now DELETES those bytes, or they
+  become an orphan object nothing can reach (five of those had accumulated).
+- **Repairs: `node scripts/memo-dedupe.js`** — `--fingerprints` (backfill
+  `ahash`), `--merge` (merge duplicate pairs), `--orphans` (sweep audio no
+  record points at), `--all`, `--dry-run`. **It never deletes**: a merged-away
+  recording's audio moves to `memo-audio/_removed/` and the manifest is backed
+  up beside itself before any write, so every repair is reversible by hand.
+  Bare (no flags) it scans and changes nothing — run that first.
+- Ran 2026-08-07: 9 duplicate pairs merged (1,117 → 1,108 records) — 6 from
+  the 11 July bulk build (`export-voice-memos.sh` appends `_1` when a filename
+  already exists, so a second export run into the same folder copied some
+  recordings out twice and each copy was transcribed and titled separately),
+  3 from re-shares in Aug. Re-index Search after any merge.
+- Earlier one-time repairs (both ran 2026-08-05):
+  `scripts/memo-unify-backfill.js` — phase A stamped `hash` onto existing
+  records from Storage md5 metadata, phase B merged strays from `forge-audio`
+  into the archive. Note phase A landed AFTER two of the three Aug duplicates,
+  so the md5 layer wasn't even present when they were filed.
 
 ## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
 - `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for

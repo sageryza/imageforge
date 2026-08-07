@@ -83,6 +83,105 @@ const stampOf = (s) => { const m = /^\d{4}-\d{2}-\d{2}_\d{4}/.exec(String(s || '
 
 const md5Of = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 
+// ── the audio fingerprint ──────────────────────────────────────────────────
+//
+// THE FILE md5 IS NOT A FINGERPRINT OF THE RECORDING. iOS rewrites an m4a's
+// QuickTime creation/modification dates every time the file is exported or
+// shared, so re-sharing a recording you already archived produces DIFFERENT
+// BYTES for identical audio — and the md5 half of the dedupe can never fire.
+//
+// Measured, not assumed (2026-08-07, on the pair 2026-08-02_1243 /
+// 2026-08-03_2131): both files 2,820,952 bytes, exactly 36 bytes different,
+// every one of them a date field — copy A says 2026-08-02T19:43:44Z, copy B
+// says 2026-08-04T04:31:10Z, each matching the moment it was FILED. All 2.8MB
+// of audio was bit-identical. That one cause defeated BOTH dedupe layers at
+// once, because `mvhdDate()` below reads the same rewritten clock, so the
+// derived stamp was "when it was shared" too.
+//
+// `audioHash` zeroes those fields before hashing, so a recording fingerprints
+// the same however many times it has been shared.
+//
+// The scan is deliberately a WHOLE-BUFFER search rather than a tree walk from
+// the top-level moov: Voice Memos leaves an earlier copy of mvhd/tkhd/mdhd
+// embedded inside the mdat region (same file: headers at 17814 and again at
+// 2755110), and iOS updates both copies. A tree walk finds only the second
+// and the two fingerprints would still disagree.
+//
+// A false hit is implausible: the four ASCII bytes must be preceded by a size
+// field exactly equal to that box's size at the version byte that follows it.
+// Nothing is copied — the hash is fed the buffer's own slices with zeros
+// spliced in, so a 400MB recording costs no extra memory.
+const DATE_BOXES = { mvhd: [108, 120], tkhd: [92, 104], mdhd: [32, 44] };
+const ZEROS = Buffer.alloc(16);
+function audioHash(buf) {
+  const spans = [];
+  for (const [type, sizeFor] of Object.entries(DATE_BOXES)) {
+    let i = 0;
+    while ((i = buf.indexOf(type, i, 'latin1')) >= 0) {
+      const at = i;
+      i += 4;
+      if (at < 4 || at + 8 > buf.length) continue;
+      const version = buf[at + 4];
+      if (version > 1) continue;
+      if (buf.readUInt32BE(at - 4) !== sizeFor[version]) continue;
+      const width = version === 1 ? 8 : 4;
+      const end = at + 8 + width * 2;
+      if (end > buf.length) continue;
+      spans.push([at + 8, end]);
+    }
+  }
+  if (!spans.length) return null; // not an ISO-BMFF file — the md5 is all there is
+  spans.sort((a, b) => a[0] - b[0]);
+  const h = crypto.createHash('md5');
+  let p = 0;
+  for (const [s, e] of spans) {
+    if (s < p) continue;
+    h.update(buf.slice(p, s));
+    h.update(ZEROS.slice(0, e - s));
+    p = e;
+  }
+  h.update(buf.slice(p));
+  return h.digest('hex');
+}
+
+// ── the transcript backstop ────────────────────────────────────────────────
+//
+// The last line of defence, and the only one that needs no bytes at all: two
+// records of the SAME LENGTH whose words agree are the same recording. It
+// exists because a re-encode (not just a re-mux) changes the audio bytes too,
+// which beats even the fingerprint above.
+//
+// The three gates are calibrated against the real archive, not guessed
+// (2026-08-07, swept over all 1,117 records): exact duration + at least 40
+// words + 90% word agreement flags the 9 genuine duplicates and NOTHING else.
+// Every gate is load-bearing —
+//   · EXACT duration, because Sophie re-records the same line constantly and
+//     those takes land 1-2s apart (a ±2s slack wrongly flagged four of them);
+//   · 40 WORDS, because an 8-second line repeated ten seconds later really is
+//     word-for-word identical and is NOT a duplicate (2021-09-10_0024/_0025 —
+//     two separate recordings, 4KB apart in size);
+//   · 90%, because Whisper transcribes the same audio slightly differently
+//     each run (that is exactly why the duplicates read as different memos).
+// Re-run `node scripts/memo-dedupe.js` (bare = scan only) after moving any.
+const DUP_MIN_WORDS = Number(process.env.MEMO_DUP_MIN_WORDS || 40);
+const DUP_JACCARD = Number(process.env.MEMO_DUP_JACCARD || 0.9);
+const wordsOf = (s) => String(s || '').toLowerCase().match(/[a-z0-9']+/g) || [];
+function transcriptTwin(memos, { dur, transcript }) {
+  const mine = wordsOf(transcript);
+  if (mine.length < DUP_MIN_WORDS) return null;
+  const A = new Set(mine);
+  for (const m of memos) {
+    if (!m.transcript || Number(m.dur) !== Number(dur)) continue;
+    const other = wordsOf(m.transcript);
+    if (other.length < DUP_MIN_WORDS) continue;
+    const B = new Set(other);
+    let both = 0;
+    A.forEach((w) => { if (B.has(w)) both++; });
+    if (both / (A.size + B.size - both) >= DUP_JACCARD) return m;
+  }
+  return null;
+}
+
 // Sophie's phone lives in Pacific time; the stamp is HER wall clock.
 const MEMO_TZ = process.env.MEMO_TZ || 'America/Los_Angeles';
 function stampInTz(date) {
@@ -92,6 +191,19 @@ function stampInTz(date) {
   });
   const p = Object.fromEntries(dtf.formatToParts(date).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}_${p.hour}${p.minute}`;
+}
+
+// Is this stamp just "now"? Answered by rendering the stamps for the minutes
+// either side of the server clock and looking for it, rather than by parsing a
+// wall-clock string back through a named timezone — no DST arithmetic to get
+// wrong, and it stays correct whatever MEMO_TZ is set to.
+const NOW_STAMP_MINUTES = Number(process.env.MEMO_NOW_STAMP_MINUTES || 10);
+function isNowish(stamp) {
+  const now = Date.now();
+  for (let d = -NOW_STAMP_MINUTES; d <= NOW_STAMP_MINUTES; d++) {
+    if (stampInTz(new Date(now + d * 60000)) === stamp) return true;
+  }
+  return false;
 }
 
 // The m4a's mvhd creation time (QuickTime epoch, 1904-01-01 UTC). This is the
@@ -128,27 +240,41 @@ async function readManifest() {
   return { manifest: m, generation: meta.generation };
 }
 
+// Save the manifest back, guarding against a concurrent writer. Exported so
+// the repair script edits the archive through the same contract the server
+// uses instead of hand-rolling a second one.
+async function writeManifest(manifest, generation) {
+  manifest.memos.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
+  manifest.count = manifest.memos.length;
+  await (await file()).save(JSON.stringify(manifest), {
+    contentType: 'application/json',
+    preconditionOpts: { ifGenerationMatch: generation },
+  });
+  return manifest.count;
+}
+
 // Append one record. Re-reads and retries on a generation conflict so two
 // uploads landing together can't silently drop one of them. trustStamp=false
-// (a stamp the SERVER derived from the file, not one the Mac read off the
-// Voice Memos database) means a stamp collision does NOT skip — two different
+// (a stamp the SERVER derived from the file, or one a caller clearly guessed —
+// see fileIntoArchive) means a stamp collision does NOT skip: two different
 // recordings can honestly share a minute, and a derived stamp can be wrong by
-// one — only a hash match does.
+// one. Only a fingerprint or transcript match does.
+function findDuplicate(memos, record, trustStamp) {
+  return memos.find(m => (record.hash && m.hash === record.hash)
+      || (record.ahash && m.ahash === record.ahash)
+      || (trustStamp && stampOf(m.id) === stampOf(record.id)))
+    || transcriptTwin(memos, record);
+}
+
 async function appendToManifest(record, { trustStamp = true } = {}) {
   for (let attempt = 1; attempt <= 5; attempt++) {
     const { manifest, generation } = await readManifest();
-    const dup = manifest.memos.find(m => (record.hash && m.hash === record.hash)
-      || (trustStamp && stampOf(m.id) === stampOf(record.id)));
+    const dup = findDuplicate(manifest.memos, record, trustStamp);
     if (dup) return { skipped: true, memo: dup, count: manifest.count };
     manifest.memos.push(record);
-    manifest.memos.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
-    manifest.count = manifest.memos.length;
     try {
-      await (await file()).save(JSON.stringify(manifest), {
-        contentType: 'application/json',
-        preconditionOpts: { ifGenerationMatch: generation },
-      });
-      return { skipped: false, count: manifest.count };
+      const count = await writeManifest(manifest, generation);
+      return { skipped: false, count };
     } catch (err) {
       const code = err && (err.code || err.status);
       if (code !== 412 && attempt === 5) throw err;
@@ -202,9 +328,18 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   if (!buf || !buf.length) throw new Error('empty audio');
   if (!/^[a-z0-9]{2,4}$/i.test(ext)) ext = 'm4a';
   const hash = md5Of(buf);
+  const ahash = audioHash(buf);
   dur = Math.max(0, Math.round(Number(dur) || 0));
 
-  const trustStamp = Boolean(stamp);
+  // A stamp equal to RIGHT NOW is a caller guessing, not a caller knowing —
+  // it is the filing time, not the recording time. 12 records got in that way
+  // (found 2026-08-07, gaps of 0-3 minutes from their own upload), and it is
+  // how the same recording lands twice under two different days. Keep the
+  // stamp for the id, but do not let it dedupe: trusting it also risks the
+  // OPPOSITE failure, two genuinely different memos filed inside one minute
+  // silently collapsing into one.
+  let trustStamp = Boolean(stamp);
+  if (trustStamp && isNowish(stamp)) trustStamp = false;
   let recordedAt = null;
   if (!stamp) {
     const end = mvhdDate(buf);
@@ -213,10 +348,12 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   }
   if (!STAMP.test(stamp)) throw new Error('stamp must look like 2026-07-15_0812');
 
-  // Cheap check before doing any paid work.
+  // Cheap checks before doing any paid work. The fingerprint catches a
+  // re-shared recording that the file md5 cannot see; the transcript backstop
+  // below catches a re-ENCODED one, but only once we have words for it.
   const { manifest } = await readManifest();
-  const dupHash = manifest.memos.find(m => m.hash === hash);
-  if (dupHash) return { skipped: true, reason: 'same audio already archived', memo: dupHash, count: manifest.count };
+  const dupHash = manifest.memos.find(m => m.hash === hash || (ahash && m.ahash === ahash));
+  if (dupHash) return { skipped: true, reason: 'same recording already archived', memo: dupHash, count: manifest.count };
   if (trustStamp) {
     const dupStamp = manifest.memos.find(m => stampOf(m.id) === stamp);
     if (dupStamp) return { skipped: true, reason: 'already in the archive', memo: dupStamp, count: manifest.count };
@@ -250,7 +387,15 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
     }
   }
 
-  await (await bucket()).file(`${PREFIX}/${id}.${ext}`).save(buf, {
+  // Now that there are words, the backstop can answer — BEFORE the audio is
+  // uploaded, so a duplicate costs one transcription and no storage.
+  const twin = transcriptTwin(manifest.memos, { dur, transcript });
+  if (twin) {
+    return { skipped: true, reason: 'the same recording is already archived (same words, same length)', memo: twin, count: manifest.count };
+  }
+
+  const objectPath = `${PREFIX}/${id}.${ext}`;
+  await (await bucket()).file(objectPath).save(buf, {
     contentType: ext === 'm4a' || ext === 'mp4' ? 'audio/mp4' : 'audio/' + ext,
   });
 
@@ -262,9 +407,16 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
     dur, transcript: transcript || null,
     hash,
   };
+  if (ahash) record.ahash = ahash;
   if (source) record.source = source;
   if (enrichError) record.enrichError = enrichError;
   const merged = await appendToManifest(record, { trustStamp });
+  // Another upload won the race, so these bytes have no record pointing at
+  // them. Left behind they become an orphan object nothing can ever reach —
+  // five of those were already sitting in the archive (one of them 14MB).
+  if (merged.skipped) {
+    await (await bucket()).file(objectPath).delete().catch(() => {});
+  }
   return {
     skipped: !!merged.skipped,
     reason: merged.skipped ? 'landed concurrently' : undefined,
@@ -420,4 +572,7 @@ async function streamMemoAudio(id, req, res, { dreamsOnly = false } = {}) {
 
 // readManifest is exported so Search can index the archive's transcripts
 // without a second copy of the manifest contract.
-module.exports = { router, init, fileIntoArchive, md5Of, readManifest, streamMemoAudio };
+module.exports = {
+  router, init, fileIntoArchive, md5Of, audioHash, transcriptTwin,
+  readManifest, writeManifest, streamMemoAudio,
+};
