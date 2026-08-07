@@ -1384,13 +1384,27 @@ lifted into a standalone tool later.
      because Whisper transcribes the same audio differently each run (which
      is exactly why duplicates read as different memos). Re-run
      `node scripts/memo-dedupe.js` after touching any of them.
-- **A stamp equal to NOW is a caller GUESSING — the server no longer trusts
-  it.** 12 records got in that way (stamps 0–3 min from their own upload).
-  A guessed stamp is how one recording lands twice under two different days,
-  and trusting it risks the opposite failure too: two genuinely different
-  memos filed inside one minute collapsing into one. The stamp is still used
-  for the id; it just cannot dedupe. **Never hand-build a stamp** — POST the
-  bytes and let the server work it out.
+- **A SHARED STAMP IS NOT A DUPLICATE, and the stamp no longer dedupes
+  anywhere (Aug 2026).** It is minute-resolution, Sophie records several short
+  thoughts back to back, and the archive holds **70 groups of recordings that
+  honestly share a minute** — so the rule was wrong for about one recording in
+  fifteen. It cost a real one: a 28-minute recording from 2025-09-12 was
+  refused as "already in the archive" because an unrelated 11-second clip
+  (91KB against 14.2MB) was made in the same minute. Identity is bytes or
+  words; the stamp only NAMES a record.
+  - The Mac push had it worse, because it filters BEFORE uploading — a new
+    recording sharing a minute with an archived one was never sent at all, so
+    the server's layers never got to judge it. `GET /status` returns **`keys`**
+    (`stamp|duration`) and `push-memos.mjs` skips only when both match;
+    duration comes free from the Voice Memos database, so this costs no file
+    reading. (`stamps` is still returned for older callers.)
+  - **The direction of the risk is deliberate**: a false SEND is harmless (three
+    real layers catch it, and a fingerprint match costs nothing — not even
+    transcription), while a false SKIP loses a recording for good.
+- **Never hand-build a stamp** — POST the bytes and let the server work it out.
+  A stamp equal to NOW is a caller guessing (12 records got in that way, 0–3
+  min from their own upload); it still names the record but earns the id a hash
+  suffix so two derived minutes can't collide.
 - A skip after the audio is already uploaded now DELETES those bytes, or they
   become an orphan object nothing can reach (five of those had accumulated).
 - **Repairs: `node scripts/memo-dedupe.js`** — `--fingerprints` (backfill
@@ -1399,11 +1413,19 @@ lifted into a standalone tool later.
   recording's audio moves to `memo-audio/_removed/` and the manifest is backed
   up beside itself before any write, so every repair is reversible by hand.
   Bare (no flags) it scans and changes nothing — run that first.
-- Ran 2026-08-07: 9 duplicate pairs merged (1,117 → 1,108 records) — 6 from
+- Ran 2026-08-07, end to end: 9 duplicate pairs merged (1,117 → 1,108) — 6 from
   the 11 July bulk build (`export-voice-memos.sh` appends `_1` when a filename
   already exists, so a second export run into the same folder copied some
   recordings out twice and each copy was transcribed and titled separately),
-  3 from re-shares in Aug. Re-index Search after any merge.
+  3 from re-shares in Aug. Then `ahash` backfilled over all 1,108 (4.86GB read,
+  ~$0.60 of egress; 3 zero-duration empties have no container to fingerprint),
+  and the 5 orphan objects re-filed → **1,113 records, 0 duplicate pairs**. One
+  of those orphans was a 28-minute DREAM with a 19,316-character transcript
+  that had been invisible since Sept 2025.
+- **After any merge or re-file: rebuild the Search index AND re-embed.** The
+  index keys its vectors to `builtAt` + chunk count, so a reindex that changes
+  chunking leaves meaning-search 409ing on `stale-vectors`.
+  `POST /api/search/reindex` (free) then `POST /api/search/embed` (~$0.05).
 - Earlier one-time repairs (both ran 2026-08-05):
   `scripts/memo-unify-backfill.js` — phase A stamped `hash` onto existing
   records from Storage md5 metadata, phase B merged strays from `forge-audio`
