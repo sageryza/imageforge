@@ -57,6 +57,9 @@
   .chip{background:var(--card); border:1px solid var(--line); color:var(--soft);
     border-radius:6px; padding:7px 11px; font-size:13px; font-weight:600}
   .chip.on{background:var(--cream); border-color:var(--goldline); color:var(--goldline)}
+  /* the mode row sits under the kind row, quieter — it is a smaller decision */
+  .chips.modes{margin-bottom:2px}
+  .chips.modes .chip{font-size:12px; padding:5px 10px}
 
   .status{font-size:12.5px; color:var(--soft); margin:10px 0 4px; min-height:18px}
 
@@ -137,9 +140,14 @@
   </div>
   <div class="i">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-    <div><b>Quotes</b> hold words together — <b>"leave the body"</b> finds that
-      phrase, where the same words unquoted can sit anywhere in the passage.
-      Every word you type has to appear.</div>
+    <div><b>Words</b> finds the words you type — every one has to appear.
+      <b>"Quotes"</b> hold them together as a phrase.</div>
+  </div>
+  <div class="i">
+    <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-4 10.5V17h8v-3.5A6 6 0 0 0 12 3z"/><path d="M10 21h4"/></svg>
+    <div><b>Meaning</b> finds the passage you're describing even when nobody
+      said your words — <i>the part where he explains how the heart holds the
+      soul in</i>. Slower, and it can't do quotes.</div>
   </div>
 </div>
 
@@ -153,6 +161,13 @@
     <button class="chip on" data-kind="">Everything</button>
     <button class="chip" data-kind="nde">Interviews</button>
     <button class="chip" data-kind="memo">My recordings</button>
+  </div>
+  <!-- The two modes answer different questions: WORDS finds the word you type,
+       MEANING finds the passage you're describing even when nobody said your
+       words. Kept as its own row so it never reads as another kind filter. -->
+  <div class="chips modes">
+    <button class="chip on" data-mode="words">Words</button>
+    <button class="chip" data-mode="meaning">Meaning</button>
   </div>
   <div class="status" id="status"></div>
   <div id="results"></div>
@@ -190,6 +205,8 @@ const API = '/api/search';
 const $ = (id) => document.getElementById(id);
 
 let kind = '';
+let mode = 'words';
+let idxChunks = 0;   // shown in the embed offer, so it can name the real number
 let terms = [];
 let playing = null;      // the hit id currently sounding
 let seq = 0;             // request sequence — a slow answer can't overwrite a newer one
@@ -197,7 +214,11 @@ let seq = 0;             // request sequence — a slow answer can't overwrite a
 async function api(path, opts) {
   const res = await fetch(API + path, { headers: H, ...(opts || {}) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  if (!res.ok) {
+    const err = new Error(data.error || ('HTTP ' + res.status));
+    err.code = data.code;      // 'no-vectors' / 'stale-vectors' are actionable
+    throw err;
+  }
   return data;
 }
 function toast(msg) {
@@ -267,11 +288,15 @@ async function run() {
     return;
   }
   const mine = ++seq;
-  $('status').textContent = 'Searching…';
+  $('status').textContent = mode === 'meaning' ? 'Reading…' : 'Searching…';
   try {
-    const data = await api('/?q=' + encodeURIComponent(q) + (kind ? '&kind=' + kind : ''));
+    const data = await api('/?q=' + encodeURIComponent(q)
+      + (kind ? '&kind=' + kind : '') + (mode === 'meaning' ? '&mode=meaning' : ''));
     if (mine !== seq) return;           // a newer query already answered
-    terms = data.terms || [];
+    // Meaning hits are ranked by similarity, not by containing the words, so
+    // highlighting the query inside them would mark almost nothing and imply
+    // the match was lexical. Only Words mode highlights.
+    terms = mode === 'words' ? (data.terms || []) : [];
     $('status').textContent = data.total
       ? data.total + (data.total === 1 ? ' passage' : ' passages') + ' · ' + data.took + 'ms'
       : '';
@@ -280,11 +305,40 @@ async function run() {
   } catch (err) {
     if (mine !== seq) return;
     $('status').textContent = '';
+    // The passages aren't embedded yet (or the index moved under them) — that
+    // is a state she can fix with one tap, not an error to stare at.
+    if (err.code === 'no-vectors' || err.code === 'stale-vectors') { offerEmbed(err); return; }
     $('results').innerHTML = '<div class="note">' + esc(err.message) + '</div>';
   }
 }
 
+// Meaning search needs every passage embedded once (~5¢ for the whole
+// library). Offer it where the results would be, with the price on the button.
+function offerEmbed(err) {
+  $('intro').hidden = true;
+  $('results').innerHTML = '<div class="note"><b>Meaning search isn\'t ready yet.</b><br>'
+    + esc(err.message) + '<br><br>Reading all ' + (idxChunks ? idxChunks.toLocaleString() + ' ' : '')
+    + 'passages costs about 5¢, once — after that every meaning search is free.<br>'
+    + '<button class="btn" id="doembed" style="margin-top:10px">Read them now</button></div>';
+  $('doembed').onclick = async () => {
+    $('doembed').disabled = true;
+    $('doembed').textContent = 'Reading…';
+    try {
+      await api('/embed', { method: 'POST' });
+      const poll = setInterval(async () => {
+        const d = await api('/embed');
+        if (!d.job) return;
+        if (d.job.status === 'running') { $('doembed').textContent = d.job.label || 'Reading…'; return; }
+        clearInterval(poll);
+        if (d.job.status === 'done') { toast('Ready — meaning search is on'); run(); }
+        else { toast(d.job.error || 'That failed'); $('doembed').disabled = false; $('doembed').textContent = 'Try again'; }
+      }, 3000);
+    } catch (e) { toast(e.message); $('doembed').disabled = false; $('doembed').textContent = 'Try again'; }
+  };
+}
+
 function showIndex(counts, builtAt) {
+  idxChunks = counts.chunks || 0;
   const when = builtAt ? new Date(builtAt).toLocaleDateString() : '';
   $('idx').textContent = counts.nde + ' interviews · ' + counts.memo + ' recordings · '
     + counts.chunks.toLocaleString() + ' passages' + (when ? ' · indexed ' + when : '');
@@ -402,11 +456,16 @@ let t = null;
 $('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 250); });
 $('q').addEventListener('search', run);
 $('clear').onclick = () => { $('q').value = ''; run(); $('q').focus(); };
-document.querySelectorAll('.chip').forEach((c) => {
-  c.onclick = () => {
-    document.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
-    kind = c.dataset.kind; run();
-  };
+// Scoped to the chip's OWN row: the kind row and the mode row are independent
+// choices, so lighting one must not clear the other.
+document.querySelectorAll('.chips').forEach((row) => {
+  row.querySelectorAll('.chip').forEach((c) => {
+    c.onclick = () => {
+      row.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
+      if (c.dataset.mode) mode = c.dataset.mode; else kind = c.dataset.kind;
+      run();
+    };
+  });
 });
 $('intro').addEventListener('click', (e) => {
   const ex = e.target.closest('.ex');
