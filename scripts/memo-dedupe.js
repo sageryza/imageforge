@@ -105,8 +105,13 @@ function choose(a, b) {
 async function fingerprints() {
   const { audioHash, md5Of } = require('../memos');
   console.log('\n── fingerprints ──');
+  // Computed fingerprints survive a losing race on the manifest. Without this
+  // cache a single concurrent upload — one memo shared from her phone while
+  // this is running — would cost a second pass over the whole 4.9GB archive.
+  const seen = new Map();
   for (let attempt = 1; attempt <= 3; attempt++) {
     const { manifest, generation } = await readManifest();
+    manifest.memos.forEach((m) => { if (seen.has(m.file)) Object.assign(m, seen.get(m.file)); });
     const todo = manifest.memos.filter((m) => !m.ahash);
     console.log(`  ${manifest.memos.length} records, ${todo.length} without a fingerprint.`);
     if (!todo.length) return;
@@ -118,6 +123,7 @@ async function fingerprints() {
         const ah = audioHash(buf);
         if (ah) rec.ahash = ah;
         if (!rec.hash) rec.hash = md5Of(buf);
+        seen.set(rec.file, { ahash: rec.ahash, hash: rec.hash });
         done++;
       } catch (e) {
         failed++;
