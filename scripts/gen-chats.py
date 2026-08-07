@@ -182,8 +182,17 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    it says Archive / Bookmarks while she's there. */
 .archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
-.archlink.on{color:var(--ink); font-weight:600;}
-.hdrbmk{flex:none; padding:6px 4px;}   /* bookmark LEFT of the word (Sophie) */
+/* NOT bold in a sub-view (Aug 2026, Sophie): the big title already says
+   Archive / Bookmarks, so bolding the exit as well said the same thing twice.
+   It still darkens to full ink — it is the live control on that row. */
+.archlink.on{color:var(--ink);}
+/* Bookmark LEFT of the word (Sophie), and ALWAYS filled red — it reads as the
+   bookmark thing at a glance. Which view is open is the title's job, so this
+   one doesn't change with state. Selector is `.bmk.hdrbmk`, not `.hdrbmk`: the
+   generic .bmk color rule sits LATER in this file, so at equal specificity it
+   would win and the icon came out grey. */
+.bmk.hdrbmk{flex:none; padding:6px 4px; color:var(--chg);}
+.bmk.hdrbmk svg{fill:currentColor;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -201,7 +210,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    PILL-SHAPED BY REQUEST (Aug 2026, Sophie) — a deliberate exception to the
    no-pills rule, which still holds for every other text button. Don't "fix"
    this back to 6px. */
-.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:999px;}
+.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:3px 14px; border-radius:999px; line-height:1.5;}
 /* Search across every chat (in-memory index on the server). */
 .searchrow{position:relative; margin:0 0 1.4em;}
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
