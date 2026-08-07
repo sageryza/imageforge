@@ -319,6 +319,12 @@ body.reading .backwrap{display:block;}
 
 
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
+/* While a full-screen overlay is open (Compare page viewer, image lightbox)
+   this page's OWN pill must be hidden: the viewer supplies its own pill for
+   the iframe, and `.float` is promoted to its own layer (translateZ), which
+   iOS paints ABOVE the overlay despite the lower z-index — so Sophie saw TWO
+   pills stacked. Child selector: the viewer's pill lives inside .pageview. */
+body.ontop > .float{display:none !important;}
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
 .vseg button + button{border-top:1.5px solid var(--ink);}
@@ -1459,9 +1465,10 @@ function openPage(p){
       });
     }catch(_){}
   });
-  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
+  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove();
+    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
   document.body.appendChild(v);
-  document.body.style.overflow='hidden';
+  document.body.style.overflow='hidden'; document.body.classList.add('ontop');
 }
 // How a chat files the prompt behind an image, shown folded-away at the top of
 // every Assets tab — so the instructions live where the images do and can be
@@ -1615,9 +1622,9 @@ function lightbox(url, asset){
   }
   var cap=asset?(asset.description||asset.prompt||''):'';
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
-  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
-    lb.classList.remove('hastalk'); document.body.style.overflow=''; };
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop'); };
 }
 function goHome(){
   scrollStop(); cur=null; curTab='chat';
