@@ -33,15 +33,11 @@
 // missing index builds itself on first use. A rebuild is free: it reads
 // Firestore + the manifest and spends nothing on any paid API.
 //
-// KEYWORD SEARCH ONLY, ON PURPOSE (v1). Terms are ANDed, phrases can be
-// quoted, and scoring favours proximity — instant, costs nothing, and it is
-// what "search Darius" needs. MEANING search (ask for "the part about the
-// heart mechanism" without knowing the words) is the planned phase 2: embed
-// each chunk once with text-embedding-3-small (~5.7M chars ≈ 1.4M tokens ≈
-// $0.03, then free forever) and store the vectors beside the chunks. The
-// chunk list is deliberately shaped for that — every chunk already carries a
-// stable `i`, so vectors can be a parallel array added later without
-// reshaping anything or re-cutting a single clip.
+// TWO MODES, because they answer different questions. WORDS (default) is
+// keyword: terms ANDed, "quoted phrases", proximity scoring — instant, free,
+// exact, and what "darius" needs. MEANING is embeddings: ask for "the part
+// where he explains how the heart holds the soul in" and find it without
+// knowing a single word of how it was said. See the embeddings section below.
 //
 // MEMO AUDIO IS PROXIED, AND THAT WIDENS AN EXISTING RESTRICTION. Storage
 // `memo-audio/**` is readable only by a signed-in Firebase user, so memo audio
@@ -55,11 +51,13 @@
 //
 // Routes (mounted at /api/search, STUDIO_TOKEN gate, only /status open):
 //   GET  /status          → { ok, firebase, index:{built, chunks, …} }
-//   GET  /?q=&limit=&kind=&offset=
-//                         → { hits, total, took, terms, index }
+//   GET  /?q=&mode=words|meaning&limit=&kind=&offset=
+//                         → { hits, total, took, mode, terms, index }
 //   GET  /sources         → what is searchable (per library counts)
 //   POST /reindex         → rebuild the chunk index (background job)
 //   GET  /reindex         → { job } — poll the rebuild
+//   POST /embed           → embed every passage for meaning search (~$0.05,
+//                           background job); GET /embed reports state+staleness
 //   GET  /audio/:id       → stream one memo's audio (range-capable)
 //   POST /to-editor       → { src, timeSec, text, episodeId?, episodeTitle? }
 //                           → a snippet card in the Episode Editor
@@ -97,6 +95,32 @@ const MEMO_CHUNK_STEP = 460;
 const MAX_HITS = 60;
 // Re-read the index off Storage this often; a rebuild clears it immediately.
 const CACHE_MS = 15 * 60 * 1000;
+
+// ─── meaning search ─────────────────────────────────────────────────
+// Keyword search answers "who said this word". Meaning search answers "where
+// is the part about the heart mechanism" — the question you actually have when
+// you remember a thing but not its wording. Every chunk is embedded ONCE with
+// text-embedding-3-small; after that, searching costs one tiny embedding call
+// for the query (~$0.000002) and a dot product per chunk.
+//
+// SHORTENED + QUANTIZED, on purpose. 12,905 chunks at the model's native 1536
+// dimensions in float32 is a 79MB file — absurd to ship to a 512MB instance on
+// every cold start. `dimensions: 512` is the model's own Matryoshka trick
+// (it is trained so a truncated vector still works), and quantizing the
+// re-normalised floats to int8 divides by four again: 512 dims × 1 byte ×
+// 12,905 = ~6.6MB, loaded as one Buffer with no JSON parsing at all. Recall
+// loss from int8 on normalised vectors is negligible for ranking.
+//
+// THE VECTORS ARE KEYED TO THE INDEX BUILD. Chunk N in the vector file must be
+// chunk N in the index, so `meta.builtAt` has to match the index's. A reindex
+// that changes the chunking leaves the vectors stale, and meaning search says
+// so instead of silently returning wrong passages.
+const EMBED_MODEL = process.env.SEARCH_EMBED_MODEL || 'text-embedding-3-small';
+const EMBED_DIMS = 512;
+const EMBED_BATCH = 200;        // ~36k tokens a request, well under the cap
+const EMBED_PARALLEL = 4;
+const VECTORS_PATH = process.env.SEARCH_VECTORS_PATH || 'search-index/vectors-v1.bin';
+const VECTORS_META = process.env.SEARCH_VECTORS_META || 'search-index/vectors-v1.json';
 
 function db() { return admin.apps.length ? admin.firestore() : null; }
 function bucket() {
@@ -304,6 +328,171 @@ async function loadIndex({ force = false } = {}) {
   try { return await building; } finally { building = null; }
 }
 
+// ─── embeddings ─────────────────────────────────────────────────────
+let vecCache = null;      // { at, meta, data:Int8Array }
+let vecLoading = null;
+let embedJob = null;      // { status, label, done, total, at, error }
+
+// Retries transient failures. This is not defensive boilerplate: the first
+// real run died on a plain OpenAI 500 at 4,800 of 12,905 chunks and threw away
+// every embedding already PAID FOR, because one bad response failed the whole
+// job. A 429 or any 5xx is retried with backoff; a 4xx (bad key, bad request)
+// is permanent and fails immediately rather than burning four more attempts.
+async function embed(inputs, attempt = 1) {
+  const key = process.env.OPENAI_API_KEY || '';
+  if (!key) throw new Error('OPENAI_API_KEY is not set — meaning search needs it');
+  let res;
+  try {
+    res = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: EMBED_MODEL, input: inputs, dimensions: EMBED_DIMS }),
+    });
+  } catch (err) {
+    if (attempt >= 5) throw new Error(`embeddings unreachable: ${err.message}`);
+    await new Promise((r) => setTimeout(r, 1500 * 2 ** (attempt - 1)));
+    return embed(inputs, attempt + 1);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const transient = res.status === 429 || res.status >= 500;
+    if (transient && attempt < 5) {
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** (attempt - 1)));
+      return embed(inputs, attempt + 1);
+    }
+    throw new Error(`embeddings ${res.status}: ${body.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  // The API may return them out of order; `index` is authoritative.
+  const out = new Array(inputs.length);
+  for (const d of json.data) out[d.index] = d.embedding;
+  return out;
+}
+
+// Unit-normalise (a shortened embedding is no longer normalised) then scale to
+// int8. Ranking only needs direction, so this is lossless enough and 4x smaller.
+function quantize(vec, target, offset) {
+  let norm = 0;
+  for (let i = 0; i < vec.length; i++) norm += vec[i] * vec[i];
+  norm = Math.sqrt(norm) || 1;
+  for (let i = 0; i < vec.length; i++) {
+    const v = Math.round((vec[i] / norm) * 127);
+    target[offset + i] = v > 127 ? 127 : v < -127 ? -127 : v;
+  }
+}
+
+async function buildVectors(progress = () => {}) {
+  const index = await loadIndex();
+  const n = index.chunks.length;
+  const data = new Int8Array(n * EMBED_DIMS);
+
+  // Batches run a few at a time: sequential would take ~10 minutes for 65
+  // requests, and flooding them risks a rate limit for no real gain.
+  const batches = [];
+  for (let i = 0; i < n; i += EMBED_BATCH) batches.push(i);
+  let done = 0;
+  for (let b = 0; b < batches.length; b += EMBED_PARALLEL) {
+    const slice = batches.slice(b, b + EMBED_PARALLEL);
+    await Promise.all(slice.map(async (start) => {
+      const chunk = index.chunks.slice(start, start + EMBED_BATCH);
+      // An empty string is rejected by the API; a space embeds harmlessly.
+      const vecs = await embed(chunk.map((c) => c.x.slice(0, 8000) || ' '));
+      vecs.forEach((v, k) => quantize(v, data, (start + k) * EMBED_DIMS));
+      done += chunk.length;
+    }));
+    progress(`embedding ${done} of ${n}`);
+  }
+
+  const meta = {
+    version: 1, model: EMBED_MODEL, dims: EMBED_DIMS, chunks: n,
+    builtAt: index.builtAt,               // ties these vectors to that chunking
+    embeddedAt: new Date().toISOString(),
+  };
+  const b = bucket();
+  if (b) {
+    await b.file(VECTORS_PATH).save(Buffer.from(data.buffer), {
+      contentType: 'application/octet-stream',
+      metadata: { cacheControl: 'no-cache' }, resumable: false,
+    });
+    await b.file(VECTORS_META).save(JSON.stringify(meta), {
+      contentType: 'application/json',
+      metadata: { cacheControl: 'no-cache' }, resumable: false,
+    });
+  }
+  vecCache = { at: Date.now(), meta, data };
+  return meta;
+}
+
+async function loadVectors() {
+  if (vecCache && (Date.now() - vecCache.at) < CACHE_MS) return vecCache;
+  if (vecLoading) return vecLoading;
+  vecLoading = (async () => {
+    const b = bucket();
+    if (!b) return null;
+    try {
+      const [metaBuf] = await b.file(VECTORS_META).download();
+      const meta = JSON.parse(metaBuf.toString());
+      const [buf] = await b.file(VECTORS_PATH).download();
+      const data = new Int8Array(buf.buffer, buf.byteOffset, buf.length);
+      vecCache = { at: Date.now(), meta, data };
+      return vecCache;
+    } catch { return null; }
+  })();
+  try { return await vecLoading; } finally { vecLoading = null; }
+}
+
+// Rank every chunk by cosine similarity to the query. A linear pass over
+// ~13k × 512 int8 dot products is a few milliseconds — no ANN index to
+// maintain, and no approximation to explain away.
+async function searchMeaning(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
+  const vectors = await loadVectors();
+  if (!vectors) {
+    const err = new Error('meaning search needs the passages embedded first');
+    err.code = 'no-vectors';
+    throw err;
+  }
+  if (vectors.meta.builtAt !== index.builtAt || vectors.meta.chunks !== index.chunks.length) {
+    const err = new Error('the index was rebuilt since these passages were embedded — re-embed to use meaning search');
+    err.code = 'stale-vectors';
+    throw err;
+  }
+
+  const [raw] = await embed([q]);
+  const qv = new Float32Array(EMBED_DIMS);
+  let norm = 0;
+  for (let i = 0; i < EMBED_DIMS; i++) norm += raw[i] * raw[i];
+  norm = Math.sqrt(norm) || 1;
+  for (let i = 0; i < EMBED_DIMS; i++) qv[i] = raw[i] / norm;
+
+  const { data } = vectors;
+  const scored = [];
+  for (let c = 0; c < index.chunks.length; c++) {
+    const chunk = index.chunks[c];
+    const src = index.sources[chunk.s];
+    if (!src) continue;
+    if (kind && src.k !== kind) continue;
+    let dot = 0;
+    const base = c * EMBED_DIMS;
+    for (let i = 0; i < EMBED_DIMS; i++) dot += qv[i] * data[base + i];
+    scored.push({ c: chunk, src, score: dot / 127 });
+  }
+  scored.sort((a, b) => b.score - a.score);
+
+  // Similarity is a RANKING, not a set: every chunk gets a score, so without a
+  // cut-off "the heart holds the soul" honestly reported 1,080 passages and
+  // nonsense still reported 23. Two floors, both measured against real runs on
+  // this library (a good query tops out ~0.54 and decays slowly; a nonsense
+  // query tops out ~0.31):
+  //   · ABSOLUTE — below this nothing is really about the question, so a
+  //     nonsense query correctly returns nothing at all.
+  //   · RELATIVE — keep only what is close to the best hit, so a strong query
+  //     answers with its handful and a vague one doesn't pad itself out.
+  const top = scored.length ? scored[0].score : 0;
+  const floor = Math.max(0.38, top * 0.85);
+  const relevant = scored.filter((s) => s.score >= floor).slice(0, MAX_HITS * 2);
+  return finish(relevant, { limit, offset });
+}
+
 // ─── scoring ────────────────────────────────────────────────────────
 // Count word-boundary occurrences of one term. A prefix match counts at a
 // discount, so "explain" finds "explains" without the caller stemming
@@ -382,7 +571,13 @@ function search(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
     scored.push({ c, src, score });
   }
   scored.sort((a, b) => b.score - a.score || (a.c.i - b.c.i));
+  return { ...finish(scored, { limit, offset }), terms, phrases };
+}
 
+// Turn a scored list into the page of hits both modes return. Shared so
+// keyword and meaning results dedupe, cap and describe themselves identically
+// — the mode should change what ranks, never what a result IS.
+function finish(scored, { limit = 25, offset = 0 } = {}) {
   // Windows OVERLAP (see the chunk constants), so the same moment can score
   // twice. Highest score wins and its neighbour is dropped: an interview hit
   // by how close their timestamps are, a memo hit by chunk adjacency (it has
@@ -425,8 +620,8 @@ function search(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
     score: Math.round(score * 100) / 100,
     more: Math.max(0, (perSource.get(c.s) || 1) - 3),
     // Where the audio comes from. A memo is m4a and streams straight through
-    // this server. An interview is webm/opus, which iOS cannot play at all, so
-    // its passage is transcoded on demand and cached — see /clip.
+    // this server. An interview is webm/opus and one object per whole
+    // interview, so its passage is transcoded on demand and cached — see /clip.
     audio: src.k === 'memo' ? `/api/search/audio/${encodeURIComponent(src.id)}` : null,
     clip: src.k === 'nde'
       ? `/api/search/clip?src=${encodeURIComponent(src.id)}&t=${Math.floor(c.t || 0)}`
@@ -435,7 +630,7 @@ function search(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
       ? `${src.url}${src.url.includes('?') ? '&' : '?'}t=${Math.max(0, Math.floor(c.t || 0))}`
       : null,
   }));
-  return { hits, total, terms, phrases };
+  return { hits, total };
 }
 
 // ─── router ─────────────────────────────────────────────────────────
@@ -476,12 +671,26 @@ router.get('/', async (req, res) => {
     if (!q) return res.json({ hits: [], total: 0, terms: [] });
     const started = Date.now();
     const index = await loadIndex();
-    const out = search(index, q, {
+    const opts = {
       limit: Math.min(Number(req.query.limit) || 25, MAX_HITS),
       offset: Math.max(0, Number(req.query.offset) || 0),
       kind: ['nde', 'memo'].includes(String(req.query.kind)) ? String(req.query.kind) : '',
-    });
-    res.json({ ...out, took: Date.now() - started, index: index.counts, builtAt: index.builtAt });
+    };
+    const mode = String(req.query.mode || 'words') === 'meaning' ? 'meaning' : 'words';
+    let out;
+    if (mode === 'meaning') {
+      try {
+        out = await searchMeaning(index, q, opts);
+      } catch (err) {
+        // A missing or stale vector file is a state the page can act on (offer
+        // to embed), not a server error — say which it is.
+        if (err.code) return res.status(409).json({ error: err.message, code: err.code });
+        throw err;
+      }
+    } else {
+      out = search(index, q, opts);
+    }
+    res.json({ ...out, mode, took: Date.now() - started, index: index.counts, builtAt: index.builtAt });
   } catch (err) { fail(res, err); }
 });
 
@@ -504,6 +713,41 @@ router.post('/reindex', async (req, res) => {
 });
 
 router.get('/reindex', (req, res) => res.json({ job }));
+
+// Embed every passage so meaning search works. Paid, but once: ~2.3M tokens of
+// text-embedding-3-small ≈ $0.05 for the whole library, then every search is
+// one tiny query embedding. Background job like everything else slow.
+router.post('/embed', async (req, res) => {
+  try {
+    if (embedJob && embedJob.status === 'running') return res.json({ job: embedJob });
+    embedJob = { status: 'running', label: 'starting', at: Date.now(), error: null };
+    (async () => {
+      try {
+        const meta = await buildVectors((label) => { embedJob = { ...embedJob, label }; });
+        embedJob = { status: 'done', label: 'ready', at: Date.now(), meta, error: null };
+      } catch (err) {
+        console.warn('search embed failed:', err.message);
+        embedJob = { status: 'failed', label: 'failed', at: Date.now(), error: err.message };
+      }
+    })();
+    res.json({ job: embedJob });
+  } catch (err) { fail(res, err); }
+});
+
+router.get('/embed', async (req, res) => {
+  try {
+    const v = await loadVectors();
+    const index = cache ? cache.index : null;
+    res.json({
+      job: embedJob,
+      embedded: !!v,
+      meta: v ? v.meta : null,
+      // Stale = the index was rebuilt after these vectors were made, so chunk
+      // N no longer means the same passage.
+      stale: !!(v && index && (v.meta.builtAt !== index.builtAt || v.meta.chunks !== index.chunks.length)),
+    });
+  } catch (err) { fail(res, err); }
+});
 
 // ─── playable interview passages ────────────────────────────────────
 // The banked interview audio is what yt-dlp downloaded: WEBM/OPUS, and a
@@ -634,4 +878,8 @@ router.post('/to-cutroom', async (req, res) => {
 
 // Exported so a chat (or a script) can search the libraries without the HTTP
 // hop, and so tests can build an index from fixtures.
-module.exports = { router, loadIndex, buildIndex, search, parseQuery, normalize, splitChars };
+module.exports = {
+  router, loadIndex, buildIndex, search, parseQuery, normalize, splitChars,
+  // meaning search — exported so a script can embed the library offline
+  buildVectors, loadVectors, searchMeaning,
+};

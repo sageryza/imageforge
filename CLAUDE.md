@@ -41,7 +41,8 @@ around them change, so verify the labels and use these for the URL.
   so no future chat has to ask twice.
 
 ## Live app
-- **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
+- **Deployed:** https://imageforge-q125.onrender.com (Render.com, **Starter**
+  instance — $7/mo, always-on; Sophie upgraded Aug 2026)
   - Hub: https://imageforge-q125.onrender.com/
   - Test Station: https://imageforge-q125.onrender.com/test
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
@@ -58,35 +59,33 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
-## Render keep-awake & running hours (READ THIS before blaming cold starts)
-- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
-  block) runs a `setInterval` every **10 min** that fetches
-  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
-  external uptime monitor / cron / GitHub Action. There is NO external pinger
-  anywhere in any of the four repos; do not go hunting for one. Render injects
-  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
-  (log line: `Keep-awake self-ping enabled for …`).
-- **Why it exists:** Render **free** web services spin down after ~15 min with
-  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
-  failed" / slow first render). The 10-min self-ping (under the 15-min idle
-  window) keeps the instance warm so Sophie doesn't hit that wait.
-- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
-  — right after a deploy/restart before any traffic, or if the ping ever lapses
-  — it can't ping itself back awake; the *next real visitor* eats the cold
-  start. So an occasional slow first load is still expected, especially just
-  after a deploy. (A slow generation is usually cold start **plus** the model
-  itself, e.g. gpt-image-2 medium ~30–90s.)
-- **Limited running hours (the trade-off):** Render's free tier gives **750
-  instance hours per workspace per calendar month** (reset on the 1st, no
-  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
-  is ~730 hours, so a single always-on free service *just* fits under 750 with
-  little slack. **If those 750 hours run out, Render suspends ALL free web
-  services in the workspace until the next month** — so a second free service,
-  or restart churn, can exhaust the budget early and take the app down till the
-  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
-  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
-  no hour cap); until then, the self-ping is the free-tier compromise.
-  (Verified against Render's current free-tier terms, July 2026.)
+## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
+- **The service runs on the $7/mo Starter instance** (`plan: starter` in
+  `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
+  simply gone, so **do not explain a slow load with either of them**:
+  - **No spin-down.** Free services slept after ~15 min idle and the next
+    visitor ate a ~30–60s cold start. Starter never sleeps, so there is no
+    cold start except the ~30–60s right after a deploy or restart, while the
+    new instance boots.
+  - **No 750-hour monthly cap.** The free tier's per-workspace hour budget
+    (which could suspend every free service until the 1st) does not apply.
+    "ImageForge is hard-down late in the month" is no longer a running-hours
+    question.
+- **CPU went 0.1 → 0.5 vCPU** (RAM is still 512MB, unchanged — the streaming
+  discipline around big audio/video buffers still matters exactly as much).
+  So the **server's own** work got roughly 5× the CPU: ffmpeg (film stitching,
+  Episode Editor / Cutting Room renders, pause detection), sharp (webp copies,
+  HEIC re-encodes, MPC prep), zip building.
+- **Model time did NOT change** and it dominates most waits: gpt-image-2,
+  Replicate, Whisper, ElevenLabs and the LLM calls all run on someone else's
+  hardware. A ~30–90s medium image is still ~30–90s.
+- **The keep-awake self-ping is now redundant but harmless.** `server.js`
+  (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
+  10 min via `setInterval` — an **internal self-ping**, not an external uptime
+  monitor / cron / GitHub Action (there is NO external pinger in any of the
+  four repos; don't go hunting for one). It was the free-tier compromise
+  against spin-down. Left in place deliberately: it costs one request per
+  10 min and it is the safety net if the instance is ever moved back to Free.
 
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
@@ -237,6 +236,31 @@ each opens a focused workflow that shares the same house styles.
 - `saveToFirebase()` uploads generated images to Firebase Storage for permanent
   URLs + the gallery; without `FIREBASE_SERVICE_ACCOUNT` images are temporary
   (~1hr) Replicate/OpenAI URLs.
+
+## Reference images — Sophie's names (Aug 2026)
+The style/character references the app attaches automatically. **These are the
+names Sophie picked, so use them when talking to her about a look** — she named
+them off the reference sheet, not off the old filenames.
+- `refs/sage-sandy-mirror.png` — **sage sandy mirror**, her scanned
+  ink-and-watercolour page ("datescan0013"). The Playground's ChatGPT style,
+  the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
+- `refs/sophie-book.png` — **sophie book**, the character card behind the
+  Sophie toggle. Was `sophie-character.png`.
+- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page. Movies'
+  "Dreamy pencil", the dream illustrator, the zine, Character Creator. Was
+  `movie-style.jpg`, and it ALSO existed as a second slightly-different crop
+  at `refs/style.jpg` (the zine's own copy) — Sophie spotted the duplicate and
+  asked for one file, so `style.jpg` is deleted and the zine reads this.
+- `storage:witch-school/refs/sophie-snake.png` + `sophie-animals.png` —
+  **sophie snake** / **sophie animals**, the Pastel pair. The Playground's
+  Pastel, the Witch School lesson cards, the self-care stickers and stamps.
+  Were `style-1.png` / `style-2.png`; the old Storage objects were COPIED not
+  moved, so they still exist and can be deleted once this has been live a
+  while.
+- Deliberately NOT renamed, at her ask: `richard-scarry-1/2/3.png`,
+  `flat-cool.png` / `flat-busy.png`, `evan-character.png`, and the four
+  `storage:hoonies/refs/style-*.png`.
+- Her full name list is banked at `GET /api/chatfeed/verdict?chat=references-render-plan&sheet=ref-names`.
 
 ## Product pipeline
 - **The "Product Creator" IS `/studio` (`public/studio.html`) — iOS tile
@@ -397,7 +421,7 @@ lifted into a standalone tool later.
   `RETIRED` in promptlab.html.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
-  page attached as a pure STYLE reference (`refs/evan-film-style.png` =
+  page attached as a pure STYLE reference (`refs/sage-sandy-mirror.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
   **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
   equivalents. **"Scarry"** (Aug 2026, shortened from "Richard Scarry") is a
@@ -411,7 +435,7 @@ lifted into a standalone tool later.
   because her character card is the watercolor look. **"Pastel"** (Aug 2026) is
   the third: the pastel-variant-2 house look, the same recipe as
   `MODELS.house['house-pastel']` — the two Witch School style refs (which live
-  in **Storage**, `witch-school/refs/style-*.png`, loaded via `loadHouseRef`,
+  in **Storage**, `witch-school/refs/sophie-snake.png + sophie-animals.png`, loaded via `loadHouseRef`,
   not in `refs/`), that style's written linework/palette line as the prefix, and
   the `whiten` flood-fill pass on every finished image. Also `noCharacter`.
   **"Hoonies"** (Aug 2026) is the fourth gpt style: her woodcut smallies (the
@@ -443,7 +467,7 @@ lifted into a standalone tool later.
   `noCharacter` style like Richard Scarry hides it and the server refuses the
   card):** her picture as a small button on the controls row (dim = off, lit
   = on; a plain variable like quality, so every load starts OFF). On, the run
-  attaches `refs/sophie-character.png` (her hearted "girl placing her book
+  attaches `refs/sophie-book.png` (her hearted "girl placing her book
   face down" render) as the SECOND image and appends `PL_GPT.characterLine`
   to the prefix — "Use the second attached image as a character reference.
   Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that
@@ -976,7 +1000,7 @@ lifted into a standalone tool later.
 - **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
   download retries + size verification (replicate.delivery truncates under
   parallel load), ~5-parallel prediction pool.
-- **Style reference:** `refs/movie-style.jpg` (Sophie's hand-drawn diary-comic
+- **Style reference:** `refs/dream-mystery.jpg` (Sophie's hand-drawn diary-comic
   page, never web-served). When present, EVERY panel renders via gpt-image-2's
   **edits** endpoint with it attached as a pure STYLE reference (prefix insists
   style only — never content/subjects/composition). `MOVIE_STYLE_REF=0`
@@ -1508,7 +1532,7 @@ lifted into a standalone tool later.
   die-cut PNG** — any background left on it masks as a grey rectangle instead of
   the sticker's outline.
 - **Art pipeline: `scripts/selfcare-stickers.js`** — the Witch School look
-  (gpt-image-2 edits against `storage:witch-school/refs/style-*.png`, same as
+  (gpt-image-2 edits against `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`, same as
   `witch-school-cards.js`) so stickers and lesson cards read as one set, then
   **background-remover (Replicate) → alpha-trim → upload** to
   `selfcare/stickers/<pack>/<id>.png` (raws kept under `_raw/`). The prompt bans
@@ -1605,7 +1629,7 @@ lifted into a standalone tool later.
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
   via `scripts/witch-school-cards.js`, per-card sampled backgrounds, wiring,
-  tests). Sophie's style refs live at `storage:witch-school/refs/style-*.png`.
+  tests). Sophie's style refs live at `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`.
 - `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
@@ -1964,15 +1988,43 @@ lifted into a standalone tool later.
   tiered pyramid, two cells along the base for the lows and the filled top
   tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
   that says nothing about how many).
-- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
-  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
-  ink — it sits on a text baseline, so the glyph is about cap height, not the
-  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
-  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
-  time, which is why the Test Station's tubes read half again the size of
-  every symbol beside them. Bundled glyph SVGs should fill ~0.9 of their own
-  viewBox, centred (both `TestTube` and `Playground` do) so one rule sizes
-  them all.
+- **Custom-icon sizing has TWO halves, and both were wrong for a long time —
+  the numbers below are MEASURED off a real 3x screenshot, never reasoned
+  about (Aug 2026, third attempt; the first two failed by reasoning).**
+  - **Half one — the frame (`ToolGlyph.customFrame` = 1.11·S).** The old note
+    here claimed "an SF Symbol at point size S draws only ~0.75·S of ink", so
+    custom art was framed SMALLER, at 0.86·S. **That premise is false.**
+    Measured on the home screen at declared S: `briefcase` 22.7w x 19.0h,
+    `film` 24.0 x 19.0, `photo` 24.0 x 19.0, `bubble.left.and.bubble.right`
+    28.0 x 22.3 — i.e. real symbols draw **0.90-0.95·S tall and ~1.13·S
+    wide**, not 0.75. The hand-drawn glyphs measured 15.3pt (test tube) and
+    15.7pt (quilt) against those, which is why Sophie kept seeing them as
+    different sizes. Custom art fills 0.90 of its frame, so a frame of
+    **1.11·S** puts its ink at ~1.00·S, inside the cluster the real symbols
+    occupy. History: 1.35·S (far too big — the tubes read half again the size
+    of everything), then 0.86·S (too small), now 1.11·S. **Only `ToolGlyph`
+    may hold this number** — `ToolGlyph.asset(_:size:)` renders any bundled
+    glyph, and a hand-picked frame anywhere else is how it drifts.
+  - **Half two — the art. A bundled glyph MUST fill exactly 0.90 of its own
+    viewBox, centred — run `python3 scripts/normalize-glyphs.py` after adding
+    or editing one** (`--check` measures without writing; it's the gate). One
+    frame rule is only correct if every glyph fills the SAME share of its
+    box, and measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
+    (playground)** — `.scaledToFit()` scales by the longer side, so the
+    Playground rendered ~17% bigger than the quilt at the same nominal size.
+    No frame number can fix that; the difference is in the ART, so the script
+    normalizes the art and leaves the Swift rule alone. An earlier pass got
+    this wrong by measuring ONE glyph and assuming the rest matched
+    (testtube.svg's comment claimed it filled "the same share the Playground
+    glyph fills" — 0.923 against 1.000), which is why the script RENDERS
+    every file and measures the ink instead of trusting any comment.
+  - **How to check this properly next time:** take a screenshot of the real
+    screen, find the accent ink with a colour test (`R-B > 45` — borders and
+    background are near-neutral), group it into icons by column runs, and
+    divide the bounding boxes by the device scale (3 on an iPhone 13). That
+    gives every icon's true rendered size in points, custom and SF alike, on
+    one comparable scale. It takes minutes and settles the question; two
+    earlier attempts guessed instead and shipped wrong.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
@@ -1985,18 +2037,40 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Three home screens (Aug 2026, Sophie).** The making home (`.home`), the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) behind
-  the **briefcase** beside the test tube — Instagram, Ads, Blog Studio, the
-  Product Creator and the Shop Report — and the **old fashioned** home
-  (`.crafts`, `CraftsGrid`) behind the hand-drawn **quilt** beside the
-  briefcase: the original staples (stickers, storybooks, coloring pages,
-  greeting cards) plus the Writing Room, per Sophie. `Tool.isBusiness` /
-  `Tool.isCraft` decide which grid a tool lands on; a tool is on ONE grid,
-  never two, so each home stays scannable. The second and third homes'
-  top-left is a **house** back to the making home; Chats keeps its top-right
-  corner on all three. Deep links: `deckfactory://business`,
-  `deckfactory://crafts` (alias `://quilt`).
+- **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
+  REPLACES the earlier three-home-screens rule).** The home is a single grid;
+  above the module cards sits a row of six rounded squares, **icons only**
+  ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
+  TWO open a tool (**Dump**, which itself now opens on SORT, and **Chats**);
+  the other four FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  (Playground, Test Station, Freeform — the only place the Test Station has a
+  card at all), **briefcase** = business, **quilt** = old fashioned, **film**
+  = everything that makes or cuts moving pictures AND sound (Movies, Films,
+  Cutting Room, Cut Marks, Episode Editor, Story Room, Song Station, Voice
+  Studio, Search, Characters). The lit chip clears back to everything when
+  tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
+  and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
+  `://crafts` (alias `://quilt`) land on the home with that filter already
+  lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
+  answers to, and keep it off the unfiltered list so the default home stays
+  scannable — the picture and film sets are explicit lists, and their tools
+  DO still appear on the unfiltered home. **Four corner icons** beside the
+  masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
+  RIGHT with Chats on the very end (its original spot). The briefcase and
+  quilt corners fire the same filters as their row squares — several
+  controls live in two places on purpose ("it can be in two places, silly"),
+  which is also why the row is six rather than the five it started as. Don't
+  "fix" the duplicates.
+  **They are SQUARES, and the lit state is a thicker gold outline over a
+  light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
+  gold) — v1 stretched them into rectangles by sharing the row width out,
+  and filled the lit one with solid `Theme.accent`, which Sophie read as
+  "turning that beige color". A fixed-size square centred in an equal-width
+  flexible cell is what keeps the shape on every screen width.
+  **The set is not settled** — Sophie is still working out what the filters
+  should be, so treat it as provisional, not as a rule. The filter icon must
+  NOT be the generate star: that glyph is reserved for controls that spend a
+  model call.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
@@ -2067,7 +2141,7 @@ lifted into a standalone tool later.
   (`voice_id` `TbXVSG5Ejm1c91umIzJN`, needs `ELEVENLABS_API_KEY`), model
   `eleven_multilingual_v2`, punchy settings (stability ~0.34, style ~0.45) and
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
-  `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
+  `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
 ## Anthony Chene NDE moments database
@@ -2448,12 +2522,39 @@ lifted into a standalone tool later.
   pyramids" finds nothing in the one interview entirely about Darius, because
   YouTube's auto-caption mis-hears his name in the first sentence ("my name is
   sh right") and he is never named again.
-- **Keyword only in v1, deliberately** — ANDed terms, `"quoted phrases"`,
-  proximity scoring, prefix matches at a discount, word-boundary matching (so
-  "art" never hits inside "heart"). Instant and free. **MEANING search is the
-  planned phase 2**: embed each chunk once with `text-embedding-3-small`
-  (~1.4M tokens ≈ $0.03, then free forever). Every chunk already carries a
-  stable `i` so vectors can be a parallel array — no reshaping.
+- **TWO MODES, a chip row under the kind filter.** **WORDS** (default) is
+  keyword: ANDed terms, `"quoted phrases"`, proximity scoring, prefix matches
+  at a discount, word-boundary matching (so "art" never hits inside "heart").
+  Instant and free. **MEANING** is embeddings — "the part where he explains how
+  the heart holds the soul in" finds it without knowing a word of the wording.
+  Only Words highlights the query in a passage (a meaning hit needn't contain
+  the words, and marking nothing would imply the match was lexical).
+- **The vectors (Aug 2026, live).** Every chunk embedded ONCE with
+  `text-embedding-3-small` at `dimensions: 512` (the model's Matryoshka
+  property — a truncated vector still works), re-normalised and quantized to
+  **int8**: 12,905 × 512 × 1 byte = **6.3MB** at Storage
+  `search-index/vectors-v1.bin` (+ a small `-v1.json` meta), loaded as ONE
+  Buffer with no JSON parsing. Native 1536-dim float32 would have been 79MB.
+  Whole-library cost was **$0.046**, ~16s; a query costs one tiny embedding
+  (~$0.000002) and a linear dot-product pass (~150ms).
+- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt` + chunk count must
+  match). Chunk N in the vector file has to be chunk N in the index, so a
+  reindex that re-chunks makes them stale — meaning search returns **409 with
+  `code:'stale-vectors'`** (or `'no-vectors'`) and the page offers a one-tap
+  re-embed with the price on the button, instead of silently ranking against
+  the wrong passages. **Re-embed after any reindex that changes chunking.**
+- **Similarity is a RANKING, not a set — hence two floors.** Every chunk gets a
+  score, so with no cut-off "the heart holds the soul" honestly reported
+  **1,080** passages and pure nonsense still reported 23. Measured on this
+  library: a good query tops out ~0.54 and decays slowly, nonsense tops ~0.31.
+  So: **absolute floor 0.38** (nonsense returns nothing at all) **plus a
+  relative floor of 0.85 × the top hit** (a strong query answers with its
+  handful, a vague one can't pad itself out).
+- **`embed()` retries transient failures, and that is not boilerplate.** The
+  first real run died on a plain OpenAI **500 at 4,800 of 12,905** chunks and
+  threw away every embedding already PAID FOR, because one bad response failed
+  the whole job. 429/5xx now retry with backoff (5 attempts); a 4xx is
+  permanent and fails immediately.
 - **`/api/search/audio/:id` widens an existing restriction, on purpose.**
   `memo-audio/**` is readable only by a signed-in Firebase user, and
   `/api/memos/audio/:id` deliberately serves ONLY `cat:'dream'` recordings to
@@ -2461,7 +2562,8 @@ lifted into a standalone tool later.
   Search's own route serves ANY memo — behind the same STUDIO_TOKEN gate. One
   streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
 - **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
-  `GET /?q=&kind=&limit=&offset=`, `GET /sources`, `POST|GET /reindex`,
+  `GET /?q=&mode=words|meaning&kind=&limit=&offset=`, `GET /sources`,
+  `POST|GET /reindex`, **`POST|GET /embed`** (build/inspect the vectors),
   `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
   Deep link a query with `/search?q=darius`.
 - **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
@@ -2641,8 +2743,8 @@ slots are short centered dashes.
   tile when empty, in a row ABOVE the picture when it already has one:
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
-  with `refs/evan-film-style.png` as the style ref and, by default,
-  `refs/sophie-character.png` as the character card; the prompt defaults to
+  with `refs/sage-sandy-mirror.png` as the style ref and, by default,
+  `refs/sophie-book.png` as the character card; the prompt defaults to
   the beat's own words, quality low/medium/high default medium, NO style
   picker — one style per story; superseded art goes to `beat.imageHistory`,
   never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
@@ -2709,7 +2811,7 @@ slots are short centered dashes.
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
   Its style is settled (Aug 2026) and the headline rule is counter-intuitive:
-  **write NO style description at all** — attach `refs/evan-film-style.png` and
+  **write NO style description at all** — attach `refs/sage-sandy-mirror.png` and
   say only to use it as a style reference, not its content, colors not required.
   Written style blocks were tested and rejected. gpt-image-2 edits, quality
   **medium** (not high), **1024x1536** portrait. Evan's locked character

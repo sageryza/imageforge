@@ -24,7 +24,16 @@ it is machine-verified, not ear-verified.
 2. **Phrase location.** The snippet text is located in the window's words by a
    CONTIGUOUS best-match slide (difflib `SequenceMatcher(autojunk=False)`,
    ported verbatim to JS) — a repeated word later in the window cannot stretch
-   the cut. (`phraseSpan` / `_phrase_span`.)
+   the cut. (`phraseSpan` / `_phrase_span`.) **The span's edges then snap to
+   the words that actually MATCHED (Aug 2026, editor.js only):** a phrase word
+   the audio never says ("uh", caption garble) makes a window shifted one word
+   early score the SAME ratio as the true one, and the tie broke toward the
+   earlier start — the cut opened on a stray word from the previous sentence,
+   heard as the previous clip's last word played twice (Sophie's doubled
+   "coincidence" in the Sheldrake episode, 2026-08-07; three of that episode's
+   six clips carried a stray lead). Unmatched window words on either edge are
+   trimmed via the matched blocks. Regression: `node
+   scripts/test-editor-cutter.js` (the real failing texts).
 3. **Gap-aware padding.** Pad outward for a natural feel, but NEVER past the
    midpoint of the silence to the neighboring word — fixed the swallowed
    first-syllable-of-next-word bug. (`clampBounds`.)
@@ -58,7 +67,9 @@ it is machine-verified, not ear-verified.
   `nde-episodes/`.
 - Alignment caches: Storage `nde-align-cache/` (see step 1).
 - Finished cuts (Aug 2026): Storage `nde-episodes/editor/clip-cache/<sha1>.mp3`
-  — content-addressed by `CUT_VERSION|videoId|normalized words|rounded anchor`.
+  — content-addressed by `CUT_VERSION|videoId|normalized words|rounded anchor`
+  (v2 since 2026-08-07 — the phraseSpan edge snap above; every v1 cut re-cuts
+  itself on next use).
   `editor.js` checks this before cutting anything, so a clip is only ever cut
   once; bump `CUT_VERSION` when the cutting logic changes so old cuts expire.
   Narration lives beside it in `narr-cache/` (keyed by voice+model+tempo+

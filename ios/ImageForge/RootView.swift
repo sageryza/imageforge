@@ -171,20 +171,40 @@ struct ToolGlyph: View {
     var size: CGFloat = 21
     var weight: Font.Weight = .regular
 
+    /// Frame factor for a bundled glyph, so its ink matches the SF Symbols
+    /// beside it. MEASURED off a real 3x screenshot of this very screen
+    /// (Aug 2026) rather than reasoned about, because reasoning about it had
+    /// already failed twice:
+    ///
+    ///     SF Symbol ink at declared size S   height 0.90-0.95·S, width ~1.13·S
+    ///     custom art ink at frame 0.86·S     0.77·S both ways  <- visibly small
+    ///
+    /// The old rule was built on a note claiming an SF Symbol "draws only
+    /// ~0.75·S of ink". It does not — that figure is the myth that made every
+    /// previous attempt land wrong (first 1.35·S, far too big; then 0.86·S,
+    /// too small). Custom art fills 0.90 of its frame, so a frame of 1.11·S
+    /// puts its ink at ~1.00·S — inside the cluster the real symbols occupy.
+    static let customFrame: CGFloat = 1.11
+
+    /// A bundled glyph at the custom-icon size rule. Use this for any
+    /// hand-drawn asset, so there is ONE place the factor lives.
+    static func asset(_ name: String, size: CGFloat) -> some View {
+        Image(name)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size * customFrame, height: size * customFrame)
+    }
+
     var body: some View {
         if let asset = tool.customIcon {
-            Image(asset)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                // An SF Symbol at point size S draws only about 0.75·S of ink —
-                // it sits on a text baseline, so the glyph is roughly cap
-                // height, not the full box. Custom art fills ~0.9 of whatever
-                // frame it gets, so matching that ink means a frame SMALLER
-                // than S, not bigger. (This used to scale UP by 1.35, which is
-                // why the Test Station's tubes read half again the size of
-                // every symbol beside them.)
-                .frame(width: size * 0.86, height: size * 0.86)
+            // This ONE rule is only right because every bundled glyph fills
+            // exactly 0.90 of its own viewBox — enforced by
+            // scripts/normalize-glyphs.py, not by hope. They didn't (0.853 to
+            // 1.000), and that spread was the OTHER half of why the hand-drawn
+            // icons never matched: the art was inconsistent AND the target was
+            // wrong. Both had to be fixed.
+            Self.asset(asset, size: size)
                 // …in a LAYOUT box the height an SF Symbol of this size would
                 // take, so a custom glyph never nudges whatever sits under it
                 // (the home grid stacks a title right below the icon) out of
@@ -197,15 +217,18 @@ struct ToolGlyph: View {
     }
 }
 
-/// Which screen the bottom bar is showing. There are TWO home grids: the
-/// making one (`.home`) and the business one (`.business`), reached by the
-/// briefcase beside the test tube.
-enum Screen: Hashable { case home, business, crafts, tool(Tool), gallery }
+/// Which screen the bottom bar is showing. ONE home grid now — business and
+/// old-fashioned are FILTERS on it (the shortcut row), not separate screens.
+enum Screen: Hashable { case home, tool(Tool), gallery }
+
+/// What the home grid is showing. `.all` is the normal module list; the other
+/// three are the shortcut row's filter chips — tapping the lit one clears back
+/// to `.all` (the Dump sort page's convention).
+enum HomeFilter: Hashable { case all, business, crafts, movie, image }
 
 extension Tool {
-    /// The tools that live on the BUSINESS home grid instead of the making one
-    /// — running the shop rather than making the work. They're on one grid or
-    /// the other, never both, so each home stays a short scannable list.
+    /// The tools behind the BRIEFCASE filter — running the shop rather than
+    /// making the work. Kept off the unfiltered list so it stays scannable.
     var isBusiness: Bool {
         switch self {
         case .instagram, .ads, .blog, .product, .report: return true
@@ -213,9 +236,9 @@ extension Tool {
         }
     }
 
-    /// The OLD FASHIONED grid, behind the quilt beside the briefcase — the
-    /// original staples Sophie named: stickers, storybooks, coloring pages,
-    /// greeting cards (same family, my call) and the Writing Room.
+    /// The tools behind the QUILT filter — the original staples Sophie named:
+    /// stickers, storybooks, coloring pages, greeting cards (same family, my
+    /// call) and the Writing Room. Also kept off the unfiltered list.
     var isCraft: Bool {
         switch self {
         case .sticker, .storybook, .coloring, .greeting, .writing: return true
@@ -279,6 +302,9 @@ struct RootView: View {
     // The app opens on Chats (its home feed); the module grid is one tap away on
     // the bottom bar's house icon.
     @State private var screen: Screen = .tool(.chats)
+    // Which slice of the modules the home grid is showing. Lives here, not in
+    // HomeGrid, so a deep link (deckfactory://business) can set it.
+    @State private var homeFilter: HomeFilter = .all
     // Where you came from, most recent last — every tool's back chevron pops
     // this, so back always means "the previous screen", however you got here
     // (home grid, bottom bar, a corner icon, a deep link).
@@ -329,13 +355,18 @@ struct RootView: View {
     private func go(_ dest: String) {
         switch dest {
         case "", "home":
+            homeFilter = .all
             setScreen(.home)
         case "gallery", "creations":
             setScreen(.gallery)
+        // The two old home screens are filters on the one home now, so their
+        // deep links land on the home with that filter already lit.
         case "business":
-            setScreen(.business)
+            homeFilter = .business
+            setScreen(.home)
         case "crafts", "quilt":
-            setScreen(.crafts)
+            homeFilter = .crafts
+            setScreen(.home)
         default:
             if let t = Tool(rawValue: dest) { open(t) }
         }
@@ -359,15 +390,9 @@ struct RootView: View {
     // is shown.
     private var content: some View {
         ZStack {
-            HomeGrid(open: open, openBusiness: { setScreen(.business) }, openCrafts: { setScreen(.crafts) }, recents: recents)
+            HomeGrid(open: open, filter: $homeFilter, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
-            BusinessGrid(open: open, goHome: { setScreen(.home) })
-                .opacity(screen == .business ? 1 : 0)
-                .allowsHitTesting(screen == .business)
-            CraftsGrid(open: open, goHome: { setScreen(.home) })
-                .opacity(screen == .crafts ? 1 : 0)
-                .allowsHitTesting(screen == .crafts)
             ForEach(recents.recentThree.filter { $0 != .chats }) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { setScreen(.home) })
@@ -402,7 +427,7 @@ struct RootView: View {
 
     private var showAutoScroll: Bool {
         switch screen {
-        case .home, .business, .crafts: return false
+        case .home: return false
         case .gallery: return true
         case .tool(let t):
             // Story Room is a web page with its own in-page pill.
@@ -484,13 +509,34 @@ private struct BottomBar: View {
 }
 
 /// The Home grid — every tool as a card. Tapping one opens it (and promotes it
-/// into the recent slots).
+/// into the recent slots). Above the cards sits the shortcut row: five rounded
+/// squares, icons only, that either open a tool or filter the cards below.
 private struct HomeGrid: View {
     var open: (Tool) -> Void
-    var openBusiness: () -> Void
-    var openCrafts: () -> Void
+    @Binding var filter: HomeFilter
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    /// The film filter's set — everything that makes or cuts moving pictures
+    /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
+    private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
+                                             .story, .song, .voice, .search, .character]
+
+    /// The image filter's set — the three "make me a picture" tools. This is
+    /// the only place the Test Station gets a CARD: it's otherwise just the
+    /// test tube beside the masthead.
+    private static let imageTools: [Tool] = [.playground, .test, .freeform]
+
+    /// What the cards show: the normal list, or one filter's slice.
+    private var shown: [Tool] {
+        switch filter {
+        case .all:      return tools
+        case .business: return Tool.allCases.filter { $0.isBusiness }
+        case .crafts:   return Tool.allCases.filter { $0.isCraft }
+        case .movie:    return Self.movieTools
+        case .image:    return Self.imageTools
+        }
+    }
 
     // Sophie's home order: Story Room pinned first; greeting cards, stickers,
     // storybooks, and coloring pages pinned last; everything in between rotates
@@ -498,14 +544,15 @@ private struct HomeGrid: View {
     private var tools: [Tool] {
         // Voice Studio, Song Station, Characters and Films at the end of the
         // list — Sophie's call: present, but at the bottom. (The four staples
-        // that used to be pinned here live on the quilt grid now.)
+        // that used to be pinned here sit behind the quilt filter now.)
         let pinnedBottom: [Tool] = [.voice, .song, .character, .films]
-        // Chats and Test Station aren't grid cards — they live as the corner
-        // icons in the header (chats top-right, test station top-left).
+        // Chats and Test Station aren't grid cards — they're the two corner
+        // icons beside the masthead. (The Test Station does get a card under
+        // the pictures filter, which is the only place it has one.)
         // .scratchpad is hidden: the pad IS the Story Room now (the .story
         // tile's /storyroom page serves it), so two tiles would be the same
         // tool twice. The case and view stay for deep links and history.
-        // Business tools live on the other home grid, behind the briefcase.
+        // Business and old-fashioned tools show under their own filters.
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
@@ -520,60 +567,39 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
-            // Three corner icons on the left, none a grid card: the Test
-            // Station's test tube, the briefcase across to the BUSINESS home,
-            // and the quilt across to the OLD FASHIONED home (the original
-            // staples). 40pt slots so three still clear the centred masthead.
+            // Four corner icons, Sophie's arrangement: test tube + briefcase
+            // on the left, quilt + Chats on the right with Chats on the very
+            // END (its old spot). The briefcase and quilt are the same FILTERS
+            // as in the row below — several of these live in two places on
+            // purpose ("it can be in two places, silly").
             .overlay(alignment: .leading) {
                 HStack(spacing: 0) {
-                    Button { open(.test) } label: {
+                    corner(label: "Test Station") { open(.test) } icon: {
                         ToolGlyph(tool: .test, size: 20)
-                            .foregroundColor(Theme.accent)
-                            .frame(width: 40, height: 44)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    Button(action: openBusiness) {
-                        Image(systemName: "briefcase")
-                            .font(.system(size: 20))
-                            .foregroundColor(Theme.accent)
-                            .frame(width: 40, height: 44)
-                            .contentShape(Rectangle())
+                    corner(label: "Business") { toggle(.business) } icon: {
+                        Image(systemName: "briefcase").font(.system(size: 20))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Business")
-                    Button(action: openCrafts) {
-                        // Hand-drawn quilt glyph — sized by the custom-icon rule
-                        // (~0.86 of the SF point size beside it).
-                        Image("Quilt")
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 17.2, height: 17.2)
-                            .foregroundColor(Theme.accent)
-                            .frame(width: 40, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Old fashioned")
                 }
                 .padding(.leading, 4)
             }
-            // Chats isn't a grid card — it's this icon in the top-right corner.
             .overlay(alignment: .trailing) {
-                Button { open(.chats) } label: {
-                    Image(systemName: Tool.chats.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    corner(label: "Old fashioned") { toggle(.crafts) } icon: {
+                        quiltGlyph(20)
+                    }
+                    corner(label: "Chats") { open(.chats) } icon: {
+                        Image(systemName: Tool.chats.icon).font(.system(size: 20))
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.trailing, 12)
+                .padding(.trailing, 4)
             }
+            // Sophie: "a tad lower under Deck Factory so it doesn't feel so
+            // crowded" — the row needs air between it and the masthead.
+            shortcutRow.padding(.top, 14)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(tools) { t in
+                    ForEach(shown) { t in
                         Button { open(t) } label: {
                             HubCard(tool: t, title: t.title, desc: t.desc)
                         }
@@ -585,123 +611,92 @@ private struct HomeGrid: View {
         }
         .background(Theme.bg.ignoresSafeArea())
     }
-}
 
-/// The BUSINESS home — the second grid, behind the briefcase. Everything for
-/// running the shop rather than making the work. Deliberately not a tool
-/// screen: it's a home, so it has no back chevron and no bottom-bar slot — the
-/// house in the top-left is the way back to the making home.
-private struct BusinessGrid: View {
-    var open: (Tool) -> Void
-    var goHome: () -> Void
-    private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+    /// Side of a shortcut button. Six of these plus even gaps fit the narrowest
+    /// phone we care about (375pt wide: 6 x 48 = 288 inside 343 of usable row).
+    private static let squareSide: CGFloat = 48
 
-    private var tools: [Tool] { Tool.allCases.filter { $0.isBusiness } }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                StarTitle(text: "Business")
+    /// Six rounded SQUARES across, icons only (Sophie: "just the icon"). Two
+    /// open a tool; the other four are filters on the cards below — the lit one
+    /// clears back to everything when tapped again. Chats is here AND in its
+    /// top-right corner on purpose ("it can be in two places, silly"), which is
+    /// why the row is six rather than the five it started as.
+    private var shortcutRow: some View {
+        HStack(spacing: 0) {
+            // The Dump's inbox — opens on SORT, since sorting what's already
+            // in is the half she comes here for.
+            square(lit: false, label: "Dump") { open(.dump) } icon: {
+                ToolGlyph(tool: .dump, size: 21)
             }
-            .padding(.top, 12)
-            .padding(.bottom, 4)
-            // The way back to the making home — the mirror of the briefcase
-            // that got you here, in the same corner.
-            .overlay(alignment: .leading) {
-                Button(action: goHome) {
-                    Image(systemName: "house")
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Home")
-                .padding(.leading, 12)
+            square(lit: false, label: "Chats") { open(.chats) } icon: {
+                Image(systemName: Tool.chats.icon).font(.system(size: 21))
             }
-            // Chats stays reachable from both homes, same corner as on the other.
-            .overlay(alignment: .trailing) {
-                Button { open(.chats) } label: {
-                    Image(systemName: Tool.chats.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 12)
+            // Deliberately NOT the generate star: that glyph is reserved for
+            // controls that spend a model call, and a filter spends nothing.
+            square(lit: filter == .image, label: "Pictures") { toggle(.image) } icon: {
+                Image(systemName: "photo").font(.system(size: 21))
             }
-            ScrollView {
-                LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(tools) { t in
-                        Button { open(t) } label: {
-                            HubCard(tool: t, title: t.title, desc: t.desc)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding()
+            square(lit: filter == .business, label: "Business") { toggle(.business) } icon: {
+                Image(systemName: "briefcase").font(.system(size: 21))
+            }
+            square(lit: filter == .crafts, label: "Old fashioned") { toggle(.crafts) } icon: {
+                quiltGlyph(21)
+            }
+            square(lit: filter == .movie, label: "Movies & sound") { toggle(.movie) } icon: {
+                Image(systemName: "film").font(.system(size: 21))
             }
         }
-        .background(Theme.bg.ignoresSafeArea())
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
     }
-}
 
-/// The OLD FASHIONED home — the third grid, behind the quilt. The original
-/// staples: stickers, storybooks, coloring pages, greeting cards, and the
-/// Writing Room. Same shape as BusinessGrid: a home, not a tool screen — the
-/// house top-left goes back to the making home.
-private struct CraftsGrid: View {
-    var open: (Tool) -> Void
-    var goHome: () -> Void
-    private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+    private func toggle(_ f: HomeFilter) {
+        filter = (filter == f) ? .all : f
+    }
 
-    private var tools: [Tool] { Tool.allCases.filter { $0.isCraft } }
+    /// The hand-drawn quilt, sized by the one custom-icon rule in `ToolGlyph`
+    /// — never a hand-picked number here, which is how it drifted before.
+    private func quiltGlyph(_ size: CGFloat) -> some View {
+        ToolGlyph.asset("Quilt", size: size)
+    }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                StarTitle(text: "Old Fashioned")
-            }
-            .padding(.top, 12)
-            .padding(.bottom, 4)
-            .overlay(alignment: .leading) {
-                Button(action: goHome) {
-                    Image(systemName: "house")
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Home")
-                .padding(.leading, 12)
-            }
-            // Chats keeps its corner on every home.
-            .overlay(alignment: .trailing) {
-                Button { open(.chats) } label: {
-                    Image(systemName: Tool.chats.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 12)
-            }
-            ScrollView {
-                LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(tools) { t in
-                        Button { open(t) } label: {
-                            HubCard(tool: t, title: t.title, desc: t.desc)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding()
-            }
+    /// A header corner icon — plain glyph, no chrome, 44pt tap target.
+    private func corner<Icon: View>(label: String, _ tap: @escaping () -> Void,
+                                    @ViewBuilder icon: () -> Icon) -> some View {
+        Button(action: tap) {
+            icon()
+                .foregroundColor(Theme.accent)
+                .frame(width: 40, height: 44)
+                .contentShape(Rectangle())
         }
-        .background(Theme.bg.ignoresSafeArea())
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    /// One shortcut button. A real SQUARE (Sophie — the first cut stretched
+    /// them into rectangles by sharing the width out), and the lit state is a
+    /// THICKER GOLD outline over a light gold tint, keeping the gold icon —
+    /// filling the square with solid accent read as "turned beige".
+    private func square<Icon: View>(lit: Bool, label: String,
+                                    _ tap: @escaping () -> Void,
+                                    @ViewBuilder icon: () -> Icon) -> some View {
+        Button(action: tap) {
+            icon()
+                .foregroundColor(Theme.accent)
+                .frame(width: Self.squareSide, height: Self.squareSide)
+                .background(lit ? Theme.accent.opacity(0.14) : Theme.surface)
+                .cornerRadius(Theme.radiusLg)
+                .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg)
+                    .stroke(lit ? Theme.accent : Theme.border, lineWidth: lit ? 2.5 : 1))
+                .contentShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+                // Equal-width CELL, fixed-size square centred in it — the
+                // square keeps its shape whatever the screen width, and the
+                // gaps stay even. (Letting the square itself stretch to fill
+                // the cell is what made them rectangles.)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }
 
