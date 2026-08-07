@@ -1653,13 +1653,16 @@ async function softenOnRefusal(bundle, draw, soften, passes = 2) {
 }
 
 // Draw a page from its narrative bundle; `build(bundle)` returns the full prompt.
+// `used` comes back as the bundle the finished picture was actually drawn from —
+// the softened one when softening fired — so the caller can record what the page
+// really says alongside the dreamer's original words.
 async function drawWithSoftening(bundle, build, refs, quality) {
   return softenOnRefusal(bundle, async b => {
     const prompt = build(b);
     const buf = refs.length
       ? await openaiPanelEdit(prompt, refs, quality)
       : await openaiPanel(prompt, quality);
-    return { buf, prompt };
+    return { buf, prompt, used: b };
   }, softenRefusedNarrative);
 }
 
@@ -1688,8 +1691,11 @@ async function renderDreamPage(dream, group, quality, rendered) {
   const build = b => dreamZinePagePrompt(dream, group.map((s, i) => ({
     ...s, imagePrompt: b.panels[i].scene, title: b.panels[i].caption,
   })), usable);
-  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
+  const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality);
+  return {
+    url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'),
+    prompt, softened: !!softened, used: used || bundle,
+  };
 }
 
 // ─── Resilient page drawing ─────────────────────────────────────────
@@ -1773,7 +1779,18 @@ async function makeDreamPages(dream, quality, progress) {
     });
     const page = await renderDreamPage(dream, groups[i], quality, rendered);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    return { url: page.url, promptUsed: page.prompt, beatIds: groups[i].map(s => s.id) };
+    const rec = {
+      url: page.url, promptUsed: page.prompt, beatIds: groups[i].map(s => s.id),
+      softened: !!page.softened,
+    };
+    // This path keeps its captions on dream.beats[].caption, so nothing of hers
+    // is overwritten — but a softened page still records what it actually
+    // letters, beside her originals, for the same auditability as V2.
+    if (page.softened) {
+      rec.captions = ((page.used || {}).panels || []).map(p => p.caption);
+      rec.captionsOriginal = groups[i].map(s => s.title || '');
+    }
+    return rec;
   }, progress, persist);
 }
 
@@ -1892,8 +1909,11 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
       + 'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. '
       + capInstr;
   };
-  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
+  const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality);
+  return {
+    url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'),
+    prompt, softened: !!softened, used: used || bundle,
+  };
 }
 
 async function makeDreamPagesV2(dream, quality, progress) {
@@ -1908,11 +1928,27 @@ async function makeDreamPagesV2(dream, quality, progress) {
     const rendered = slots.filter(Boolean).map(pg => ({ url: pg.url, who: new Set(pg.who || []) }));
     const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    return {
-      url: page.url, promptUsed: page.prompt, text: plans[i].text,
-      captions: plans[i].captions || [], who: plans[i].who || [],
+    // `text`/`captions` are what the picture ACTUALLY says (softened when the
+    // filter forced it), so anything rendering captions from the doc matches the
+    // drawing. Sophie's own words are kept beside them whenever they differ —
+    // the dream is a record of what she said, and a content filter must never
+    // silently replace her sentence with a paraphrase. Only present when
+    // softening fired, so ordinary pages carry no redundant copy.
+    const used = page.used || {};
+    const rec = {
+      url: page.url, promptUsed: page.prompt,
+      text: used.text || plans[i].text,
+      captions: used.captions || plans[i].captions || [],
+      who: plans[i].who || [],
       softened: !!page.softened,
     };
+    if (page.softened) {
+      const origText = plans[i].text || '';
+      const origCaps = plans[i].captions || [];
+      if (rec.text !== origText) rec.textOriginal = origText;
+      if (JSON.stringify(rec.captions) !== JSON.stringify(origCaps)) rec.captionsOriginal = origCaps;
+    }
+    return rec;
   }, progress, persist);
 }
 

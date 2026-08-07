@@ -147,6 +147,27 @@ const test = async (name, fn) => {
     assert.strictEqual(err.terminal, true);
   });
 
+  await test('a drawn page reports the bundle it was actually drawn from', async () => {
+    // drawWithSoftening's inner draw returns `used`, which is what lets
+    // makeDreamPagesV2 store what the picture says beside Sophie's original.
+    const draw = async b => ({ url: 'p', used: b });
+    const out = await M.softenOnRefusal({ text: 'clean' }, draw, async () => null);
+    assert.strictEqual(out.used.text, 'clean');
+    assert.strictEqual(out.softened, undefined, 'an unrefused page is not marked softened');
+  });
+
+  await test('a softened page reports the SOFTENED bundle as the one drawn', async () => {
+    const draw = async b => {
+      if (b.text.includes('breasts')) throw REFUSAL;
+      return { url: 'p', used: b };
+    };
+    const out = await M.softenOnRefusal({ text: 'milk from her breasts', captions: ['a'] },
+      draw, async b => ({ ...b, text: 'nurse the baby', captions: ['A'] }));
+    assert.strictEqual(out.softened, true);
+    assert.strictEqual(out.used.text, 'nurse the baby');
+    assert.deepStrictEqual(out.used.captions, ['A']);
+  });
+
   const failed = results.filter(r => r[0] !== 'ok');
   results.forEach(([s, n]) => console.log(`${s === 'ok' ? '  ok  ' : ' FAIL '} ${n}`));
   console.log(`\n${results.length - failed.length}/${results.length} passed`);
