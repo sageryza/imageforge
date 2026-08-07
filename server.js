@@ -354,6 +354,10 @@ loadConfig().then(() => {
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
   app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
   app.use('/api/cutroom', cuttingroom.router); // Cutting Room: mark her own recordings on the transcript — cut pauses, save/send sections
+  // Search: one search over BOTH transcript libraries (the interviews in
+  // forge-nde-videos + the voice-memo archive), with the hand-offs that turn a
+  // hit into work — interview → Episode Editor, memo → Cutting Room.
+  app.use('/api/search', require('./search').router);
   app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
@@ -2475,6 +2479,10 @@ app.get('/editor', serveGated('editor.html', { pill: true }));
 // long transcripts get the shared autoscroll pill.
 app.get('/cuttingroom', serveGated('cuttingroom.html', { pill: true }));
 
+// Search: every transcript in one place — the interview library and the voice
+// memos together. Engine is /api/search (search.js). A results page scrolls,
+// so it carries the shared autoscroll pill like its sibling audio tools.
+app.get('/search', serveGated('search.html', { pill: true }));
 // Cut Marks: the manual sibling — mark your own cut points on a playhead
 // (video or audio, no transcript), drop pieces, render a fresh file. Engine
 // is /api/cutmarks (cutmarks.js). Same gate; same shared pill.

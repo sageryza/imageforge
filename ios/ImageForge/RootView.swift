@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform
     var id: String { rawValue }
 
     var title: String {
@@ -25,6 +25,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "Writing Room"
         case .editor:    return "Episode Editor"
         case .cutroom:   return "Cutting Room"
+        case .search:    return "Search"
         case .cutmarks:  return "Cut Marks"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
@@ -57,6 +58,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "Read the dating-book drafts — leave notes as you go."
         case .editor:    return "Cut interview clips into an episode — then hear it."
         case .cutroom:   return "Mark a recording on its words — cut pauses, send sections on."
+        case .search:    return "Find any words in every interview and every memo."
         case .cutmarks:  return "Mark your own cuts on a video or recording — no transcript."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
@@ -86,6 +88,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   return "text.book.closed"
         case .editor:    return "slider.horizontal.3"
         case .cutroom:   return "scissors"
+        case .search:    return "magnifyingglass"
         case .cutmarks:  return "timeline.selection"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
@@ -141,6 +144,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .writing:   WritingRoomView()
         case .editor:    EpisodeEditorView()
         case .cutroom:   CuttingRoomView()
+        case .search:    SearchView()
         case .cutmarks:  CutMarksView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
@@ -411,6 +415,8 @@ struct RootView: View {
             if t == .playground { return false }
             // Cutting Room is a web page with its own injected pill.
             if t == .cutroom { return false }
+            // Search is a web page with its own injected pill too.
+            if t == .search { return false }
             // Cut Marks too — same family, same injected pill.
             if t == .cutmarks { return false }
             // Scratch Pad is a web page with its own injected pill — showing

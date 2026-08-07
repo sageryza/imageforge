@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Search</title>
+<style>
+  /* Same paper/gold palette as the Cutting Room and the Episode Editor — the
+     three audio tools read as one family. */
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    --badbg:#F5E2DC; --hit:#F6E3BE;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:40px}
+  /* [hidden] must ALWAYS win — an author display rule silently overrides the
+     UA default (the bug that broke the Episode Editor's back button). */
+  [hidden]{display:none !important}
+  /* In the app the native nav bar carries the title + back chevron. */
+  body.native #back{display:none !important}
+  svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; display:block}
+
+  /* header — page-owned; the top-right corner is RESERVED for the shared pill. */
+  header{position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:12px 14px;
+    padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
+  #back{width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:transparent; border:none; color:var(--goldline); flex:none}
+  .htext{min-width:0; flex:1}
+  .eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--soft); font-weight:600}
+  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:20px; margin:2px 0 0}
+
+  .wrap{padding:14px; max-width:720px; margin:0 auto}
+
+  button{font:inherit; cursor:pointer}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:9px 12px; display:inline-flex; align-items:center; gap:7px; font-weight:600}
+  .btn:active{background:#F1E6CE}
+  .btn[disabled]{opacity:.4}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .btn svg{width:16px; height:16px}
+
+  /* search box */
+  .searchrow{display:flex; gap:8px; align-items:center; margin-bottom:10px}
+  #q{flex:1; min-width:0; font:17px/1.4 inherit; color:var(--ink); background:var(--card);
+    border:1px solid var(--line); border-radius:6px; padding:12px 13px; -webkit-appearance:none}
+  #q:focus{outline:none; border-color:var(--goldline)}
+  #clear{background:transparent; border:none; color:var(--soft); padding:8px 6px; font-size:17px}
+
+  /* filter chips — rounded rectangles, never pills */
+  .chips{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:6px}
+  .chip{background:var(--card); border:1px solid var(--line); color:var(--soft);
+    border-radius:6px; padding:7px 11px; font-size:13px; font-weight:600}
+  .chip.on{background:var(--cream); border-color:var(--goldline); color:var(--goldline)}
+
+  .status{font-size:12.5px; color:var(--soft); margin:10px 0 4px; min-height:18px}
+
+  /* a hit */
+  .hit{background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:12px 13px; margin-bottom:9px}
+  .hit .src{display:flex; align-items:baseline; gap:8px; margin-bottom:2px}
+  .hit .name{font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; min-width:0; flex:1}
+  .hit .at{font-size:12px; color:var(--goldline); font-weight:600; flex:none}
+  .hit .meta{font-size:12px; color:var(--soft); margin-bottom:8px}
+  .hit .passage{font-size:15.5px; line-height:1.72}
+  .hit mark{background:var(--hit); color:inherit; border-radius:3px; padding:1px 2px}
+  .hit .acts{display:flex; gap:7px; margin-top:11px; flex-wrap:wrap; align-items:center}
+  .hit .more{font-size:12px; color:var(--soft); margin-left:auto}
+  .kind{font-size:10px; letter-spacing:1.5px; font-weight:700; color:var(--soft)}
+
+  /* first-run / empty states */
+  .note{background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:14px; color:var(--soft); font-size:14px; line-height:1.6}
+  .note b{color:var(--ink)}
+  .note .ex{display:inline-block; background:var(--cream); border:1px solid var(--line);
+    border-radius:6px; padding:3px 8px; margin:4px 5px 0 0; color:var(--goldline);
+    font-size:13px; font-weight:600; cursor:pointer}
+
+  footer{max-width:720px; margin:22px auto 0; padding:0 14px; font-size:12px; color:var(--soft)}
+  footer .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    border-top:1px solid var(--line); padding-top:12px}
+
+  /* help card (icon-first tools carry a "?" — house rule) */
+  #help{width:26px; height:26px; border-radius:50%; border:1px solid var(--goldline);
+    background:var(--cream); color:var(--goldline); font-weight:700; font-size:14px;
+    display:flex; align-items:center; justify-content:center; padding:0; flex:none}
+  #helpcard{position:fixed; left:10px; right:10px; top:70px; z-index:9; background:var(--card);
+    border:1px solid var(--goldline); border-radius:8px; padding:14px 16px; font-size:14px;
+    line-height:1.65; color:var(--ink); box-shadow:0 4px 18px rgba(35,32,27,.14); max-width:700px;
+    margin:0 auto; max-height:70vh; overflow-y:auto}
+  #helpcard .h{font-weight:700; margin-bottom:6px}
+  #helpcard .i{display:flex; gap:9px; align-items:flex-start; margin-top:9px}
+  #helpcard .i svg{color:var(--goldline); flex:none; margin-top:3px}
+
+  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:26px; z-index:12;
+    background:var(--ink); color:#fff; padding:11px 16px; border-radius:6px; font-size:14px;
+    max-width:90%; text-align:center; opacity:0; pointer-events:none; transition:opacity .18s}
+  #toast.on{opacity:.95}
+</style>
+</head>
+<body>
+<header>
+  <button id="back" aria-label="Back">
+    <svg viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+  </button>
+  <div class="htext">
+    <div class="eyebrow">SEARCH</div>
+    <h1>Every transcript</h1>
+  </div>
+  <button id="help" aria-label="What the buttons do">?</button>
+</header>
+
+<div id="helpcard" hidden>
+  <div class="h">What this searches</div>
+  Every interview transcript in the NDE library and every transcribed voice
+  memo — at once. A result is a passage, not a file: about thirty seconds of
+  speech with its place in the recording.
+  <div class="i">
+    <svg viewBox="0 0 24 24"><path d="m5 3 14 9-14 9V3z"/></svg>
+    <div><b>Play</b> — hear that passage from its exact moment. Tap again to stop.</div>
+  </div>
+  <div class="i">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+    <div><b>Send</b> — an interview passage becomes a snippet card in the
+      Episode Editor; a voice memo opens in the Cutting Room, marked on its own
+      transcript.</div>
+  </div>
+  <div class="i">
+    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    <div><b>Copy</b> — the passage text, to paste anywhere.</div>
+  </div>
+  <div class="i">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <div><b>Quotes</b> hold words together — <b>"leave the body"</b> finds that
+      phrase, where the same words unquoted can sit anywhere in the passage.
+      Every word you type has to appear.</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="searchrow">
+    <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="Search everything that was said" enterkeyhint="search">
+    <button id="clear" hidden aria-label="Clear">✕</button>
+  </div>
+  <div class="chips">
+    <button class="chip on" data-kind="">Everything</button>
+    <button class="chip" data-kind="nde">Interviews</button>
+    <button class="chip" data-kind="memo">My recordings</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div id="results"></div>
+  <div class="note" id="intro">
+    Two libraries, one search: the <b>interview transcripts</b> (the Anthony
+    Chene NDE videos and anything else ingested) and <b>your voice memos</b>.
+    Try
+    <span class="ex">Darius</span>
+    <span class="ex">"leave the body"</span>
+    <span class="ex">pyramids</span>
+    <span class="ex">silver cord</span>
+  </div>
+</div>
+
+<footer>
+  <div class="row">
+    <span id="idx">…</span>
+    <button class="btn plain" id="reindex" style="margin-left:auto">Rebuild the index</button>
+  </div>
+</footer>
+
+<audio id="player" preload="none" hidden></audio>
+<div id="toast"></div>
+
+<script>
+// ANY tap pauses the shared autoscroll pill (house rule).
+document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+// In the app the native nav bar carries the title + back chevron.
+if (window.__nativeNavBar) document.body.classList.add('native');
+
+const TOKEN = '__STUDIO_TOKEN__';
+const H = { 'Content-Type': 'application/json' };
+if (TOKEN && TOKEN[0] !== '_') H['x-studio-token'] = TOKEN;
+const API = '/api/search';
+const $ = (id) => document.getElementById(id);
+
+let kind = '';
+let terms = [];
+let playing = null;      // the hit id currently sounding
+let seq = 0;             // request sequence — a slow answer can't overwrite a newer one
+
+async function api(path, opts) {
+  const res = await fetch(API + path, { headers: H, ...(opts || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2600);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+function mmss(sec) {
+  if (sec === null || sec === undefined) return '';
+  const s = Math.max(0, Math.floor(sec));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(r).padStart(2, '0');
+}
+
+// Highlight the matched words in the passage. Escaping happens FIRST, then the
+// marks go in — the other order would let transcript text inject markup.
+function highlight(text) {
+  let html = esc(text);
+  for (const t of terms) {
+    if (!t) continue;
+    const re = new RegExp('\\b(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\w*)', 'gi');
+    html = html.replace(re, '<mark>$1</mark>');
+  }
+  return html;
+}
+
+const ICON = {
+  play: '<svg viewBox="0 0 24 24"><path d="m5 3 14 9-14 9V3z"/></svg>',
+  stop: '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="14" rx="1.5"/></svg>',
+  send: '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+};
+
+function render(data) {
+  const hits = data.hits || [];
+  $('intro').hidden = true;
+  if (!hits.length) {
+    $('results').innerHTML = '<div class="note">Nothing said those words. Every word you type has to appear — try fewer of them, or drop the quotes.</div>';
+    return;
+  }
+  $('results').innerHTML = hits.map((h) => {
+    const at = h.timeSec === null ? '' : '<span class="at">' + mmss(h.timeSec) + '</span>';
+    const meta = [h.kind === 'nde' ? 'INTERVIEW' : 'MY RECORDING', h.who, h.date]
+      .filter(Boolean).map(esc).join(' · ');
+    const sendLabel = h.kind === 'nde' ? 'Episode Editor' : 'Cutting Room';
+    return '<div class="hit" data-id="' + h.id + '">'
+      + '<div class="src"><span class="name">' + esc(h.title) + '</span>' + at + '</div>'
+      + '<div class="meta kind">' + meta + '</div>'
+      + '<div class="passage">' + highlight(h.text) + '</div>'
+      + '<div class="acts">'
+      +   '<button class="btn" data-act="play">' + ICON.play + '<span>Play</span></button>'
+      +   '<button class="btn" data-act="send">' + ICON.send + '<span>' + sendLabel + '</span></button>'
+      +   '<button class="btn plain" data-act="copy">' + ICON.copy + '</button>'
+      +   (h.more ? '<span class="more">+' + h.more + ' more here</span>' : '')
+      + '</div></div>';
+  }).join('');
+  // Keep the hit objects for the action handlers.
+  render.hits = Object.fromEntries(hits.map((h) => [h.id, h]));
+}
+
+async function run() {
+  const q = $('q').value.trim();
+  $('clear').hidden = !q;
+  if (!q) {
+    terms = []; $('results').innerHTML = ''; $('intro').hidden = false; $('status').textContent = '';
+    return;
+  }
+  const mine = ++seq;
+  $('status').textContent = 'Searching…';
+  try {
+    const data = await api('/?q=' + encodeURIComponent(q) + (kind ? '&kind=' + kind : ''));
+    if (mine !== seq) return;           // a newer query already answered
+    terms = data.terms || [];
+    $('status').textContent = data.total
+      ? data.total + (data.total === 1 ? ' passage' : ' passages') + ' · ' + data.took + 'ms'
+      : '';
+    render(data);
+    if (data.index) showIndex(data.index, data.builtAt);
+  } catch (err) {
+    if (mine !== seq) return;
+    $('status').textContent = '';
+    $('results').innerHTML = '<div class="note">' + esc(err.message) + '</div>';
+  }
+}
+
+function showIndex(counts, builtAt) {
+  const when = builtAt ? new Date(builtAt).toLocaleDateString() : '';
+  $('idx').textContent = counts.nde + ' interviews · ' + counts.memo + ' recordings · '
+    + counts.chunks.toLocaleString() + ' passages' + (when ? ' · indexed ' + when : '');
+}
+
+// ── actions ─────────────────────────────────────────────────────────
+$('results').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const hit = render.hits[btn.closest('.hit').dataset.id];
+  if (!hit) return;
+  const act = btn.dataset.act;
+
+  if (act === 'copy') {
+    try { await navigator.clipboard.writeText(hit.text); toast('Copied'); }
+    catch { toast("Couldn't copy"); }
+    return;
+  }
+
+  if (act === 'play') {
+    const p = $('player');
+    if (playing === hit.id) { p.pause(); playing = null; paintPlay(); return; }
+
+    // A memo is m4a — it streams straight through the server and plays now.
+    // An interview is webm/opus, which iOS cannot play, so the server cuts
+    // that passage to mp3 the first time it is asked for (cached forever
+    // after). Only the memo path can start inside the tap.
+    if (hit.kind === 'memo') {
+      let src = hit.audio;
+      if (TOKEN && TOKEN[0] !== '_') src += (src.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN);
+      start(p, src, 0, hit.id);
+      return;
+    }
+
+    playing = hit.id; paintPlay(true);
+    try {
+      const url = await clipUrl(hit);
+      if (playing !== hit.id) return;      // she moved on while it was cutting
+      start(p, url, 0, hit.id);
+    } catch (err) {
+      if (playing === hit.id) { playing = null; paintPlay(); }
+      toast(err.message);
+    }
+    return;
+  }
+
+  if (act === 'send') {
+    btn.disabled = true;
+    try {
+      if (hit.kind === 'nde') {
+        const out = await api('/to-editor', {
+          method: 'POST',
+          body: JSON.stringify({ src: hit.source, text: hit.text, timeSec: hit.timeSec || 0 }),
+        });
+        toast('Added to "' + out.title + '"');
+      } else {
+        const { url, name } = await api('/to-cutroom', {
+          method: 'POST', body: JSON.stringify({ src: hit.source }),
+        });
+        toast('Opening in the Cutting Room…');
+        const res = await fetch('/api/cutroom/open', {
+          method: 'POST', headers: H, body: JSON.stringify({ url, name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'could not open it');
+        // The Cutting Room resumes from this on load — the same key it writes.
+        localStorage.setItem('cutroom_open', data.id);
+        location.href = '/cuttingroom';
+      }
+    } catch (err) { toast(err.message); }
+    btn.disabled = false;
+  }
+});
+
+// Point the one player at a url and go. play() has to be called synchronously
+// inside the tap on iOS, and it is ALSO what starts the download — the element
+// is preload="none", so waiting for loadedmetadata BEFORE playing deadlocks
+// (nothing loads until play, so the event never fires). That bug killed
+// playback outright the first time round.
+function start(p, src, at, id) {
+  p.src = src + (at ? '#t=' + Math.floor(at) : '');
+  playing = id; paintPlay();
+  if (at) {
+    const seek = () => { try { if (Math.abs(p.currentTime - at) > 1.5) p.currentTime = at; } catch {} };
+    if (p.readyState >= 1) seek(); else p.addEventListener('loadedmetadata', seek, { once: true });
+  }
+  p.play().catch(() => {});
+}
+
+// Ask for this passage's playable copy, waiting while the server cuts it.
+// Cached server-side, so the same passage answers instantly ever after.
+async function clipUrl(hit) {
+  for (let i = 0; i < 40; i++) {
+    const d = await api(hit.clip.replace('/api/search', ''));
+    if (d.status === 'ready') return d.url;
+    if (d.status === 'failed') throw new Error(d.error || "couldn't get that audio");
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  throw new Error('that audio is taking too long — try again');
+}
+
+function paintPlay(working) {
+  document.querySelectorAll('.hit').forEach((el) => {
+    const btn = el.querySelector('[data-act="play"]');
+    if (!btn) return;
+    const on = String(playing) === el.dataset.id;
+    const label = on ? (working ? 'Getting it…' : 'Stop') : 'Play';
+    btn.innerHTML = (on && !working ? ICON.stop : ICON.play) + '<span>' + label + '</span>';
+  });
+}
+$('player').addEventListener('ended', () => { playing = null; paintPlay(); });
+
+// ── chrome ──────────────────────────────────────────────────────────
+let t = null;
+$('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 250); });
+$('q').addEventListener('search', run);
+$('clear').onclick = () => { $('q').value = ''; run(); $('q').focus(); };
+document.querySelectorAll('.chip').forEach((c) => {
+  c.onclick = () => {
+    document.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
+    kind = c.dataset.kind; run();
+  };
+});
+$('intro').addEventListener('click', (e) => {
+  const ex = e.target.closest('.ex');
+  if (!ex) return;
+  $('q').value = ex.textContent.trim(); run();
+});
+
+$('help').onclick = (e) => { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
+document.addEventListener('click', () => { $('helpcard').hidden = true; });
+
+$('reindex').onclick = async () => {
+  $('reindex').disabled = true;
+  try {
+    await api('/reindex', { method: 'POST' });
+    toast('Rebuilding the index…');
+    const poll = setInterval(async () => {
+      const { job } = await api('/reindex');
+      if (!job || job.status === 'running') return;
+      clearInterval(poll);
+      $('reindex').disabled = false;
+      if (job.status === 'done') { toast('Index rebuilt'); if (job.counts) showIndex(job.counts, new Date().toISOString()); run(); }
+      else toast(job.error || 'Rebuild failed');
+    }, 2000);
+  } catch (err) { toast(err.message); $('reindex').disabled = false; }
+};
+
+$('back').onclick = () => history.length > 1 ? history.back() : (location.href = '/');
+// Native chevron contract: nothing to step back through here, so let the app out.
+window.__navBack = () => false;
+
+// Deep link: /search?q=darius
+const preset = new URLSearchParams(location.search).get('q');
+if (preset) { $('q').value = preset; run(); }
+api('/sources').then((d) => showIndex(d.counts, d.builtAt)).catch(() => {});
+</script>
+</body>
+</html>
