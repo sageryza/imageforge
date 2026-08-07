@@ -1738,8 +1738,7 @@ lifted into a standalone tool later.
 - **Anything whose output is WORDS A HUMAN READS runs on Claude, never
   `gpt-4o-mini`.** Blog posts *and the keyword research behind them*, Etsy
   listing copy, the shop advice she makes spending decisions from, the witch
-  app's spells / familiars / natal readings / sky lessons, the Book of
-  Miracles' pages. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
+  app's spells / familiars / natal readings / sky lessons. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
   default `claude-sonnet-5` via `CLAUDE_WRITING_MODEL`) — do NOT hand-copy the
   fetch a fifth time. `server.js`'s `anthropicChat` + `parseAnthropicJson` is
   the in-server equivalent for routes that already live there.
@@ -1749,6 +1748,13 @@ lifted into a standalone tool later.
   brainstorm lists (`/api/generate/subjects`, `/moments`), `stories.js`,
   `/api/set/third`, the Talking zine's planner, `dreamapp.js`. If you switch
   one of these, say why.
+- **The Book of Miracles stays on mini — Sophie's explicit call.** It was
+  switched to Claude once and she asked for it back: the book's voice is
+  settled and the model change moves how the pages read. `/api/generate/miracles`
+  is ONE route feeding BOTH the witch app's Miracles tab and `/book` (they also
+  share the same localStorage book), so touching it moves both at once. The
+  THIRD Book of Miracles is a separate iOS app in another repo and is not
+  affected by anything here.
 - **`gpt-4o-mini-tts` and `gpt-4o-mini-transcribe` are NOT this.** They are
   the audio models — a grep for "gpt-4o-mini" hits them and inflates the
   count. Leave them alone; the voice rules elsewhere govern them.
