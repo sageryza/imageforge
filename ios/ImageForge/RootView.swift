@@ -133,8 +133,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
-        case .blog:      BlogView().forgeToolBar("Blog Studio")
-        case .product:   ProductCreatorView().forgeToolBar("Product Creator")
+        case .blog:      GatedWebTool(path: "/blog?embed=1", name: "Blog Studio", icon: "newspaper").forgeToolBar("Blog Studio")
+        case .product:   GatedWebTool(path: "/studio?embed=1", name: "the Product Creator", icon: "shippingbox").forgeToolBar("Product Creator")
         case .report:    GatedWebTool(path: "/report?embed=1", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis").forgeToolBar("Shop Report")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the

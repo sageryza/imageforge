@@ -40,10 +40,20 @@ body.tool [hidden]{ display:none !important; }
 .tool #help{ width:26px; height:26px; border-radius:50%; flex:0 0 auto;
   border:1px solid var(--accent); background:transparent; color:var(--accent);
   font:inherit; font-size:14px; cursor:pointer; }
-.tool .helpcard{ background:var(--surface2); border:1px solid var(--border);
-  border-radius:12px; margin:10px 14px 0; padding:12px 14px;
-  font-size:13px; line-height:1.5; color:var(--dim); }
+/* The help card FLOATS — it must not push the page down and move whatever she
+   was about to tap (Sophie). Anchored under the header, tap anywhere to close. */
+.tool .helpcard{ position:fixed; top:calc(58px + env(safe-area-inset-top));
+  left:14px; right:14px; z-index:20;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  box-shadow:0 6px 24px rgba(0,0,0,.13); padding:14px 16px;
+  font-size:14px; line-height:1.55; color:var(--dim); }
+body.embed .tool .helpcard, body.embed .helpcard{ top:46px; }
 .tool .helpcard b{ color:var(--ink); }
+/* A link in here would navigate the WEB VIEW out of the tool — and the page it
+   lands on offers "← Hub", which strands her in the web hub with no way back
+   (Sophie hit exactly this from the Photo studio link). Inside the app the
+   words stay, the trap doesn't. */
+body.embed .helpcard a{ pointer-events:none; color:inherit; text-decoration:none; }
 /* An embedded page's native bar already carries the title. */
 body.embed .tool-eyebrow{ display:none; }
 
