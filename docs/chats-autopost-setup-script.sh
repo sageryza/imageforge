@@ -28,6 +28,9 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v8 (Aug 2026) — TURN-START PING: UserPromptSubmit tells the feed the chat is
+# working (POST /working), so the Chats app can tint it until the reply lands.
+#
 # v7 (Aug 2026) — LIVE DRAFTS: also registered on PostToolUse, so the prose a
 # chat writes BEFORE and BETWEEN tool calls reaches the Chats app while the
 # turn is still running, instead of only when it stops (a long coding turn
@@ -215,6 +218,19 @@ fi
 
 # ── FINAL pass (Stop / UserPromptSubmit) ───────────────────────────────────
 resolve_name
+
+# TURN STARTED (v8, Aug 2026) — tell the feed this chat is now working, so the
+# Chats app can tint it pink until the reply lands. This is a separate one-line
+# ping rather than a side effect of posting her message, because HER MESSAGE IS
+# NOT IN THE TRANSCRIPT YET at UserPromptSubmit: the parse below can only lift
+# it at the END of the turn, and measured live her messages' postedAt lands ~1s
+# before the reply's, every time. So "newest message is hers" was true for about
+# one second and the tint never showed. This needs no transcript at all — just
+# the chat — so it can fire the moment she sends. Backgrounded: a hook must
+# never make her wait, and a lost ping only costs one tint.
+if [ "$event" = "UserPromptSubmit" ]; then
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" '{chat:$c, session:$s}')" ) >/dev/null 2>&1 &
+fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
 gstate="$HOME/.claude/forge-gallery-${sid}.done"

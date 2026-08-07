@@ -612,6 +612,21 @@ lifted into a standalone tool later.
   `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
   (that domain is already on her allowed list — the hook posts to it). After
   that, future hook versions land by themselves and this trap is closed.
+- **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
+  usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
+  working on something. The obvious signal ("the chat's newest message is
+  hers") looks right and is useless: the hook can only lift her message out of
+  the TRANSCRIPT, and at UserPromptSubmit the transcript does not contain it
+  yet — so it is posted at the END of the turn. Measured live across a whole
+  afternoon of her messages, her `postedAt` lands **~1 second** before the
+  reply's, every time, so that condition is true for about one second and the
+  tint never appeared. The hook therefore pings **`POST /api/chatfeed/working
+  {chat, session}`** at UserPromptSubmit (no transcript needed, backgrounded),
+  which stamps `workingAt` on the chat's registry doc; the reply's own
+  registry write deletes it. `chatWorking()` in chats.html reads that mark,
+  with a 3h cap and a backstop (a reply newer than the mark means the turn
+  finished, even if the clear was lost). The app's own reply box stamps the
+  same mark server-side, so that path works with no hook at all.
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old
