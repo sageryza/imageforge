@@ -135,7 +135,11 @@ struct DumpView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
+        // Reserve the autoscroll pill's corner: it floats over the top-right of
+        // the content area, and with the tab bar there it sat on top of SORT.
+        // Both tabs shrink equally, so the pair stays balanced.
+        .padding(.trailing, 58)
         .padding(.vertical, 8)
     }
 

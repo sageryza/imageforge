@@ -135,7 +135,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .ads:       AdsView()
         case .blog:      BlogView().forgeToolBar("Blog Studio")
         case .product:   ProductCreatorView().forgeToolBar("Product Creator")
-        case .report:    GatedWebTool(path: "/report", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis").forgeToolBar("Shop Report")
+        case .report:    GatedWebTool(path: "/report?embed=1", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis").forgeToolBar("Shop Report")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -411,8 +411,9 @@ struct RootView: View {
             // and the pill would sit on top of its sticky header.
             if t == .editor { return false }
             // Playground is a short web form + grid — nothing to autoscroll,
-            // and the pill would cover its Generate corner.
-            if t == .playground { return false }
+            // and the pill would cover its Generate corner. Same for the two
+            // business forms: the pill sat on their first card.
+            if t == .playground || t == .product || t == .blog { return false }
             // Cutting Room is a web page with its own injected pill.
             if t == .cutroom { return false }
             // Search is a web page with its own injected pill too.
