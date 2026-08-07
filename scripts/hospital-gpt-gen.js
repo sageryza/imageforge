@@ -2,7 +2,7 @@
 /**
  * hospital-gpt-gen.js — the ChatGPT-watercolor path for the "In the Hospital"
  * film. Same recipe as the Playground's ChatGPT style (PL_GPT_STYLES.evan):
- * gpt-image-2's EDITS endpoint, refs/evan-film-style.png attached as a pure
+ * gpt-image-2's EDITS endpoint, refs/sage-sandy-mirror.png attached as a pure
  * style reference, 1024x1536, prompt = prefix + her words + no-text suffix.
  *
  * What this adds: a --character <url|path> reference (one or more) attached
@@ -31,7 +31,7 @@ const PL_GPT = {
     'colors rather than copying the colors of the style reference.',
 };
 const EVAN_SUFFIX = 'Do not include any text in the image.';
-const STYLE_REF = path.join(__dirname, '..', 'refs', 'evan-film-style.png');
+const STYLE_REF = path.join(__dirname, '..', 'refs', 'sage-sandy-mirror.png');
 
 const PRICE = { low: 0.02, medium: 0.06, high: 0.25 };   // per image, 1024x1536
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
@@ -127,7 +127,7 @@ async function fileAsset(url, description, style, content, quality) {
   const est = jobs.reduce((a, j) => a + (PRICE[j.quality || 'medium'] || 0.06), 0);
   console.log(`${jobs.length} gpt-image-2 renders — estimated $${est.toFixed(2)}`);
   if (DRY) {
-    jobs.forEach(j => console.log(`\n[${j.id}] ${j.quality || 'medium'} — ${j.label}\nrefs: ${['refs/evan-film-style.png', ...(j.characterRefs || [])].join(', ')}\n---\n${builtPrompt(j)}\n---`));
+    jobs.forEach(j => console.log(`\n[${j.id}] ${j.quality || 'medium'} — ${j.label}\nrefs: ${['refs/sage-sandy-mirror.png', ...(j.characterRefs || [])].join(', ')}\n---\n${builtPrompt(j)}\n---`));
     return;
   }
   initFirebase();
@@ -146,7 +146,7 @@ async function fileAsset(url, description, style, content, quality) {
         const buf = await generate(job);
         fs.writeFileSync(path.join(OUT_DIR, `${job.id}.png`), buf);
         const url = await upload(buf, `${job.id}.png`);
-        const refList = ['refs/evan-film-style.png', ...(job.characterRefs || [])].join(' + ');
+        const refList = ['refs/sage-sandy-mirror.png', ...(job.characterRefs || [])].join(' + ');
         const style = `gpt-image-2 EDITS, quality ${job.quality || 'medium'}, 1024x1536. Attached: ${refList}. Sent verbatim as:\n\n${builtPrompt(job).replace(job.prompt, '[content]')}`;
         await fileAsset(url, job.label, style, job.prompt, job.quality || 'medium');
         results[i] = { id: job.id, label: job.label, url, quality: job.quality || 'medium' };

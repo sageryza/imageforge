@@ -238,6 +238,31 @@ each opens a focused workflow that shares the same house styles.
   URLs + the gallery; without `FIREBASE_SERVICE_ACCOUNT` images are temporary
   (~1hr) Replicate/OpenAI URLs.
 
+## Reference images — Sophie's names (Aug 2026)
+The style/character references the app attaches automatically. **These are the
+names Sophie picked, so use them when talking to her about a look** — she named
+them off the reference sheet, not off the old filenames.
+- `refs/sage-sandy-mirror.png` — **sage sandy mirror**, her scanned
+  ink-and-watercolour page ("datescan0013"). The Playground's ChatGPT style,
+  the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
+- `refs/sophie-book.png` — **sophie book**, the character card behind the
+  Sophie toggle. Was `sophie-character.png`.
+- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page. Movies'
+  "Dreamy pencil", the dream illustrator, the zine, Character Creator. Was
+  `movie-style.jpg`, and it ALSO existed as a second slightly-different crop
+  at `refs/style.jpg` (the zine's own copy) — Sophie spotted the duplicate and
+  asked for one file, so `style.jpg` is deleted and the zine reads this.
+- `storage:witch-school/refs/sophie-snake.png` + `sophie-animals.png` —
+  **sophie snake** / **sophie animals**, the Pastel pair. The Playground's
+  Pastel, the Witch School lesson cards, the self-care stickers and stamps.
+  Were `style-1.png` / `style-2.png`; the old Storage objects were COPIED not
+  moved, so they still exist and can be deleted once this has been live a
+  while.
+- Deliberately NOT renamed, at her ask: `richard-scarry-1/2/3.png`,
+  `flat-cool.png` / `flat-busy.png`, `evan-character.png`, and the four
+  `storage:hoonies/refs/style-*.png`.
+- Her full name list is banked at `GET /api/chatfeed/verdict?chat=references-render-plan&sheet=ref-names`.
+
 ## Product pipeline
 - **The "Product Creator" IS `/studio` (`public/studio.html`) — iOS tile
   "Product Creator" on the BUSINESS home (Aug 2026).** One make-a-product
@@ -397,7 +422,7 @@ lifted into a standalone tool later.
   `RETIRED` in promptlab.html.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
-  page attached as a pure STYLE reference (`refs/evan-film-style.png` =
+  page attached as a pure STYLE reference (`refs/sage-sandy-mirror.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
   **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
   equivalents. **"Scarry"** (Aug 2026, shortened from "Richard Scarry") is a
@@ -411,7 +436,7 @@ lifted into a standalone tool later.
   because her character card is the watercolor look. **"Pastel"** (Aug 2026) is
   the third: the pastel-variant-2 house look, the same recipe as
   `MODELS.house['house-pastel']` — the two Witch School style refs (which live
-  in **Storage**, `witch-school/refs/style-*.png`, loaded via `loadHouseRef`,
+  in **Storage**, `witch-school/refs/sophie-snake.png + sophie-animals.png`, loaded via `loadHouseRef`,
   not in `refs/`), that style's written linework/palette line as the prefix, and
   the `whiten` flood-fill pass on every finished image. Also `noCharacter`.
   **"Hoonies"** (Aug 2026) is the fourth gpt style: her woodcut smallies (the
@@ -443,7 +468,7 @@ lifted into a standalone tool later.
   `noCharacter` style like Richard Scarry hides it and the server refuses the
   card):** her picture as a small button on the controls row (dim = off, lit
   = on; a plain variable like quality, so every load starts OFF). On, the run
-  attaches `refs/sophie-character.png` (her hearted "girl placing her book
+  attaches `refs/sophie-book.png` (her hearted "girl placing her book
   face down" render) as the SECOND image and appends `PL_GPT.characterLine`
   to the prefix — "Use the second attached image as a character reference.
   Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that
@@ -936,7 +961,7 @@ lifted into a standalone tool later.
 - **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
   download retries + size verification (replicate.delivery truncates under
   parallel load), ~5-parallel prediction pool.
-- **Style reference:** `refs/movie-style.jpg` (Sophie's hand-drawn diary-comic
+- **Style reference:** `refs/dream-mystery.jpg` (Sophie's hand-drawn diary-comic
   page, never web-served). When present, EVERY panel renders via gpt-image-2's
   **edits** endpoint with it attached as a pure STYLE reference (prefix insists
   style only — never content/subjects/composition). `MOVIE_STYLE_REF=0`
@@ -1446,7 +1471,7 @@ lifted into a standalone tool later.
   die-cut PNG** — any background left on it masks as a grey rectangle instead of
   the sticker's outline.
 - **Art pipeline: `scripts/selfcare-stickers.js`** — the Witch School look
-  (gpt-image-2 edits against `storage:witch-school/refs/style-*.png`, same as
+  (gpt-image-2 edits against `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`, same as
   `witch-school-cards.js`) so stickers and lesson cards read as one set, then
   **background-remover (Replicate) → alpha-trim → upload** to
   `selfcare/stickers/<pack>/<id>.png` (raws kept under `_raw/`). The prompt bans
@@ -1543,7 +1568,7 @@ lifted into a standalone tool later.
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
   via `scripts/witch-school-cards.js`, per-card sampled backgrounds, wiring,
-  tests). Sophie's style refs live at `storage:witch-school/refs/style-*.png`.
+  tests). Sophie's style refs live at `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`.
 - `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
@@ -1979,7 +2004,7 @@ lifted into a standalone tool later.
   (`voice_id` `TbXVSG5Ejm1c91umIzJN`, needs `ELEVENLABS_API_KEY`), model
   `eleven_multilingual_v2`, punchy settings (stability ~0.34, style ~0.45) and
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
-  `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
+  `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
 ## Anthony Chene NDE moments database
@@ -2307,8 +2332,8 @@ slots are short centered dashes.
   tile when empty, in a row ABOVE the picture when it already has one:
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
-  with `refs/evan-film-style.png` as the style ref and, by default,
-  `refs/sophie-character.png` as the character card; the prompt defaults to
+  with `refs/sage-sandy-mirror.png` as the style ref and, by default,
+  `refs/sophie-book.png` as the character card; the prompt defaults to
   the beat's own words, quality low/medium/high default medium, NO style
   picker — one style per story; superseded art goes to `beat.imageHistory`,
   never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
@@ -2375,7 +2400,7 @@ slots are short centered dashes.
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
   Its style is settled (Aug 2026) and the headline rule is counter-intuitive:
-  **write NO style description at all** — attach `refs/evan-film-style.png` and
+  **write NO style description at all** — attach `refs/sage-sandy-mirror.png` and
   say only to use it as a style reference, not its content, colors not required.
   Written style blocks were tested and rejected. gpt-image-2 edits, quality
   **medium** (not high), **1024x1536** portrait. Evan's locked character

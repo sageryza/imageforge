@@ -14,11 +14,11 @@
 //
 // Style rules (docs/evan-film-style.md — do not re-derive):
 // - Prompts are PURE CONTENT. No watercolor/ink/palette words — the attached
-//   style ref (refs/evan-film-style.png) carries the entire look; written
+//   style ref (refs/sage-sandy-mirror.png) carries the entire look; written
 //   style blocks were tested and rejected.
 // - Run in the Playground, ChatGPT style, quality medium, 2:3 (1024x1536).
 // - "Sophie" in a prompt + the Sophie character toggle ON draws her from
-//   refs/sophie-character.png.
+//   refs/sophie-book.png.
 // - The ex-boyfriend has NO card yet, so his look rides as the same written
 //   description (BOY) in every prompt he appears in. Once Sophie hearts a
 //   reference render, bank it (like refs/evan-character.png) and later

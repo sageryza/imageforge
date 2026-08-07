@@ -76,8 +76,8 @@ const ART = {
   size: '1024x1536',
   qualities: ['low', 'medium', 'high'],
   quality: 'medium',
-  styleFile: 'evan-film-style.png',
-  characterFile: 'sophie-character.png',
+  styleFile: 'sage-sandy-mirror.png',
+  characterFile: 'sophie-book.png',
   prefix: 'Use only the style of the attached style reference and ignore its ' +
     'content — do not copy anything depicted in it. You can choose your own ' +
     'colors rather than copying the colors of the style reference.',

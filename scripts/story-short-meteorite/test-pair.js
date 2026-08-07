@@ -92,7 +92,7 @@ async function post(path, body) {
   admin.initializeApp({ credential: admin.credential.cert(svc), storageBucket: `${svc.project_id}.firebasestorage.app` });
   const bucket = admin.storage().bucket();
   const styleRefs = [];
-  for (const p of ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png']) {
+  for (const p of ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png']) {
     const [buf] = await bucket.file(p).download();
     styleRefs.push(buf);
   }
@@ -143,7 +143,7 @@ async function post(path, body) {
   }
   await post('/api/gallery/assets/prompt', {
     chat: CHAT,
-    items: results.map(r => ({ url: r.endUrl, style: CONT + '[content]' + END + ' — refs attached: the beat\'s start panel FIRST, then witch-school/refs/style-1.png, style-2.png · gpt-image-2 edits · 1024x1536 · medium', content: r.endContent })),
+    items: results.map(r => ({ url: r.endUrl, style: CONT + '[content]' + END + ' — refs attached: the beat\'s start panel FIRST, then witch-school/refs/sophie-snake.png, sophie-animals.png · gpt-image-2 edits · 1024x1536 · medium', content: r.endContent })),
   });
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const rows = results.map(r => `
