@@ -944,8 +944,22 @@ window.__navBack = () => {
   return false;
 };
 
-const openId = localStorage.getItem('cutroom_open');
-if (openId) enterRoom(openId); else showHome();
+// ── hand-off in: /cuttingroom?url=…&name=… ──────────────────────────
+// Another tool sending a finished audio file here to have its pauses and
+// filler words taken out — the Episode Editor's Renders list is the first
+// (scissors on a render row). /open is content-addressed, so arriving with a
+// url already opened before RESUMES that marking instead of re-transcribing.
+// The param is stripped once used: a reload should land wherever she actually
+// is, not yank her back into the handed-off recording.
+const handoff = new URLSearchParams(location.search).get('url');
+if (handoff && /^https:\/\//.test(handoff)) {
+  const handoffName = new URLSearchParams(location.search).get('name') || 'Recording';
+  history.replaceState(null, '', location.pathname);
+  openRecording(handoff, handoffName);
+} else {
+  const openId = localStorage.getItem('cutroom_open');
+  if (openId) enterRoom(openId); else showHome();
+}
 </script>
 </body>
 </html>
