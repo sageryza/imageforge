@@ -1987,21 +1987,27 @@ lifted into a standalone tool later.
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
   above the module cards sits a row of five rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  Two of them open a tool (**Dump**, **Chats**); three FILTER the cards below
-  (`HomeFilter` — **briefcase** = business, **quilt** = old fashioned,
-  **film** = everything that makes or cuts moving pictures and sound: Movies,
-  Films, Cutting Room, Cut Marks, Episode Editor, Story Room). The lit chip
-  clears back to everything when tapped again (the Dump sort page's
-  convention). `BusinessGrid`/`CraftsGrid` and `Screen.business`/`.crafts`
-  are GONE; `deckfactory://business` and `://crafts` (alias `://quilt`) land
-  on the home with that filter already lit. `Tool.isBusiness` /
-  `Tool.isCraft` now decide which FILTER a tool answers to, and keep it off
-  the unfiltered list so the default home stays scannable. The Test Station's
-  test tube is the one corner icon left beside the masthead — Chats gave up
-  its top-right corner rather than appear twice on one screen.
-  **Which five is not settled** — Sophie expects to change slots 2 and 4 and
-  is still working out what the filters should be, so treat the set as
-  provisional, not as a rule.
+  ONE opens a tool (**Dump**, which itself now opens on SORT); the other four
+  FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  (Playground, Test Station, Freeform — the only place the Test Station has a
+  card at all), **briefcase** = business, **quilt** = old fashioned, **film**
+  = everything that makes or cuts moving pictures AND sound (Movies, Films,
+  Cutting Room, Cut Marks, Episode Editor, Story Room, Song Station, Voice
+  Studio, Search, Characters). The lit chip clears back to everything when
+  tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
+  and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
+  `://crafts` (alias `://quilt`) land on the home with that filter already
+  lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
+  answers to, and keep it off the unfiltered list so the default home stays
+  scannable — the picture and film sets are explicit lists, and their tools
+  DO still appear on the unfiltered home. The two corner icons beside the
+  masthead are unchanged: test tube left, **Chats right** (it held a row slot
+  for one build and Sophie asked for the corner back — that's what freed slot
+  two for the picture filter).
+  **The set is not settled** — Sophie is still working out what the filters
+  should be, so treat it as provisional, not as a rule. The filter icon must
+  NOT be the generate star: that glyph is reserved for controls that spend a
+  model call.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not

@@ -204,7 +204,7 @@ enum Screen: Hashable { case home, tool(Tool), gallery }
 /// What the home grid is showing. `.all` is the normal module list; the other
 /// three are the shortcut row's filter chips — tapping the lit one clears back
 /// to `.all` (the Dump sort page's convention).
-enum HomeFilter: Hashable { case all, business, crafts, movie }
+enum HomeFilter: Hashable { case all, business, crafts, movie, image }
 
 extension Tool {
     /// The tools behind the BRIEFCASE filter — running the shop rather than
@@ -497,9 +497,15 @@ private struct HomeGrid: View {
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
 
-    /// The movie filter's set, in Sophie's order — everything that makes or
-    /// cuts moving pictures and sound.
-    private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor, .story]
+    /// The film filter's set — everything that makes or cuts moving pictures
+    /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
+    private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
+                                             .story, .song, .voice, .search, .character]
+
+    /// The image filter's set — the three "make me a picture" tools. This is
+    /// the only place the Test Station gets a CARD: it's otherwise just the
+    /// test tube beside the masthead.
+    private static let imageTools: [Tool] = [.playground, .test, .freeform]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {
@@ -508,6 +514,7 @@ private struct HomeGrid: View {
         case .business: return Tool.allCases.filter { $0.isBusiness }
         case .crafts:   return Tool.allCases.filter { $0.isCraft }
         case .movie:    return Self.movieTools
+        case .image:    return Self.imageTools
         }
     }
 
@@ -519,8 +526,9 @@ private struct HomeGrid: View {
         // list — Sophie's call: present, but at the bottom. (The four staples
         // that used to be pinned here sit behind the quilt filter now.)
         let pinnedBottom: [Tool] = [.voice, .song, .character, .films]
-        // Chats and Test Station aren't grid cards — Chats is in the shortcut
-        // row, the Test Station is the corner icon beside the masthead.
+        // Chats and Test Station aren't grid cards — they're the two corner
+        // icons beside the masthead. (The Test Station does get a card under
+        // the pictures filter, which is the only place it has one.)
         // .scratchpad is hidden: the pad IS the Story Room now (the .story
         // tile's /storyroom page serves it), so two tiles would be the same
         // tool twice. The case and view stay for deep links and history.
@@ -539,10 +547,10 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
-            // The Test Station's test tube is the one corner icon left: the
-            // briefcase and the quilt moved into the shortcut row as FILTERS,
-            // and Chats is in that row too (a second copy up here would be the
-            // same glyph twice on one screen).
+            // Two corner icons, as before: the Test Station's test tube left,
+            // Chats right (Sophie wants it in its old spot). The briefcase and
+            // the quilt left the corners for the shortcut row, where they're
+            // FILTERS rather than screens.
             .overlay(alignment: .leading) {
                 Button { open(.test) } label: {
                     ToolGlyph(tool: .test, size: 20)
@@ -552,6 +560,17 @@ private struct HomeGrid: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 8)
+            }
+            .overlay(alignment: .trailing) {
+                Button { open(.chats) } label: {
+                    Image(systemName: Tool.chats.icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 12)
             }
             shortcutRow
             ScrollView {
@@ -570,8 +589,10 @@ private struct HomeGrid: View {
     }
 
     /// Five rounded squares across, icons only (Sophie: "just the icon").
-    /// Two of them open a tool; three are filters on the cards below — the lit
-    /// one clears back to everything when tapped again.
+    /// One opens a tool; the other four are filters on the cards below — the
+    /// lit one clears back to everything when tapped again. Chats used to hold
+    /// slot two; it went back to its corner, which is what freed the slot for
+    /// the image-making filter.
     private var shortcutRow: some View {
         HStack(spacing: 10) {
             // The Dump's inbox — opens on SORT, since sorting what's already
@@ -579,8 +600,10 @@ private struct HomeGrid: View {
             square(lit: false, label: "Dump") { open(.dump) } icon: {
                 ToolGlyph(tool: .dump, size: 22)
             }
-            square(lit: false, label: "Chats") { open(.chats) } icon: {
-                Image(systemName: Tool.chats.icon).font(.system(size: 21))
+            // Deliberately NOT the generate star: that glyph is reserved for
+            // controls that spend a model call, and a filter spends nothing.
+            square(lit: filter == .image, label: "Pictures") { toggle(.image) } icon: {
+                Image(systemName: "photo").font(.system(size: 21))
             }
             square(lit: filter == .business, label: "Business") { toggle(.business) } icon: {
                 Image(systemName: "briefcase").font(.system(size: 21))
