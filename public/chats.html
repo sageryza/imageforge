@@ -154,7 +154,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .acctrow .tbtn{min-width:34px; text-align:center;}
-.archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
+/* Just the word (Sophie's ask) — no box, no border. Lit while the grid is
+   showing the archived chats instead of the live ones. */
+.archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2);
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+.archlink.on{color:var(--ink); font-weight:600;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -378,6 +382,7 @@ body.ontop > .float{display:none !important;}
     <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
+      <button id="archlink" class="archlink">Archive</button>
     </div>
     <div class="searchrow">
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
@@ -758,15 +763,16 @@ function renderHome(){
   var all=sortedChatNames(g);
   var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  document.getElementById('archlink').classList.toggle('on', showArchived);
+  // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
+  // the top of the screen swaps the grid over to the archived chats and back.
+  if(showArchived){
+    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived yet.</div>'; return; }
+    if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
+    return;
+  }
   if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
-  if(arch.length){
-    var tog=document.createElement('button'); tog.className='archtoggle';
-    tog.textContent=(showArchived?'\u25be':'\u25b8')+' Archived ('+arch.length+')';
-    tog.onclick=function(){ showArchived=!showArchived; renderHome(); };
-    el.appendChild(tog);
-    if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
-  }
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
 // message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
@@ -1766,6 +1772,9 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+document.getElementById('archlink').onclick=function(){
+  showArchived=!showArchived; renderHome(); window.scrollTo(0,0);
+};
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
