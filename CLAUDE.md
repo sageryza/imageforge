@@ -41,7 +41,8 @@ around them change, so verify the labels and use these for the URL.
   so no future chat has to ask twice.
 
 ## Live app
-- **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
+- **Deployed:** https://imageforge-q125.onrender.com (Render.com, **Starter**
+  instance — $7/mo, always-on; Sophie upgraded Aug 2026)
   - Hub: https://imageforge-q125.onrender.com/
   - Test Station: https://imageforge-q125.onrender.com/test
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
@@ -58,35 +59,33 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
-## Render keep-awake & running hours (READ THIS before blaming cold starts)
-- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
-  block) runs a `setInterval` every **10 min** that fetches
-  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
-  external uptime monitor / cron / GitHub Action. There is NO external pinger
-  anywhere in any of the four repos; do not go hunting for one. Render injects
-  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
-  (log line: `Keep-awake self-ping enabled for …`).
-- **Why it exists:** Render **free** web services spin down after ~15 min with
-  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
-  failed" / slow first render). The 10-min self-ping (under the 15-min idle
-  window) keeps the instance warm so Sophie doesn't hit that wait.
-- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
-  — right after a deploy/restart before any traffic, or if the ping ever lapses
-  — it can't ping itself back awake; the *next real visitor* eats the cold
-  start. So an occasional slow first load is still expected, especially just
-  after a deploy. (A slow generation is usually cold start **plus** the model
-  itself, e.g. gpt-image-2 medium ~30–90s.)
-- **Limited running hours (the trade-off):** Render's free tier gives **750
-  instance hours per workspace per calendar month** (reset on the 1st, no
-  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
-  is ~730 hours, so a single always-on free service *just* fits under 750 with
-  little slack. **If those 750 hours run out, Render suspends ALL free web
-  services in the workspace until the next month** — so a second free service,
-  or restart churn, can exhaust the budget early and take the app down till the
-  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
-  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
-  no hour cap); until then, the self-ping is the free-tier compromise.
-  (Verified against Render's current free-tier terms, July 2026.)
+## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
+- **The service runs on the $7/mo Starter instance** (`plan: starter` in
+  `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
+  simply gone, so **do not explain a slow load with either of them**:
+  - **No spin-down.** Free services slept after ~15 min idle and the next
+    visitor ate a ~30–60s cold start. Starter never sleeps, so there is no
+    cold start except the ~30–60s right after a deploy or restart, while the
+    new instance boots.
+  - **No 750-hour monthly cap.** The free tier's per-workspace hour budget
+    (which could suspend every free service until the 1st) does not apply.
+    "ImageForge is hard-down late in the month" is no longer a running-hours
+    question.
+- **CPU went 0.1 → 0.5 vCPU** (RAM is still 512MB, unchanged — the streaming
+  discipline around big audio/video buffers still matters exactly as much).
+  So the **server's own** work got roughly 5× the CPU: ffmpeg (film stitching,
+  Episode Editor / Cutting Room renders, pause detection), sharp (webp copies,
+  HEIC re-encodes, MPC prep), zip building.
+- **Model time did NOT change** and it dominates most waits: gpt-image-2,
+  Replicate, Whisper, ElevenLabs and the LLM calls all run on someone else's
+  hardware. A ~30–90s medium image is still ~30–90s.
+- **The keep-awake self-ping is now redundant but harmless.** `server.js`
+  (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
+  10 min via `setInterval` — an **internal self-ping**, not an external uptime
+  monitor / cron / GitHub Action (there is NO external pinger in any of the
+  four repos; don't go hunting for one). It was the free-tier compromise
+  against spin-down. Left in place deliberately: it costs one request per
+  10 min and it is the safety net if the instance is ever moved back to Free.
 
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
@@ -238,6 +237,31 @@ each opens a focused workflow that shares the same house styles.
   URLs + the gallery; without `FIREBASE_SERVICE_ACCOUNT` images are temporary
   (~1hr) Replicate/OpenAI URLs.
 
+## Reference images — Sophie's names (Aug 2026)
+The style/character references the app attaches automatically. **These are the
+names Sophie picked, so use them when talking to her about a look** — she named
+them off the reference sheet, not off the old filenames.
+- `refs/sage-sandy-mirror.png` — **sage sandy mirror**, her scanned
+  ink-and-watercolour page ("datescan0013"). The Playground's ChatGPT style,
+  the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
+- `refs/sophie-book.png` — **sophie book**, the character card behind the
+  Sophie toggle. Was `sophie-character.png`.
+- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page. Movies'
+  "Dreamy pencil", the dream illustrator, the zine, Character Creator. Was
+  `movie-style.jpg`, and it ALSO existed as a second slightly-different crop
+  at `refs/style.jpg` (the zine's own copy) — Sophie spotted the duplicate and
+  asked for one file, so `style.jpg` is deleted and the zine reads this.
+- `storage:witch-school/refs/sophie-snake.png` + `sophie-animals.png` —
+  **sophie snake** / **sophie animals**, the Pastel pair. The Playground's
+  Pastel, the Witch School lesson cards, the self-care stickers and stamps.
+  Were `style-1.png` / `style-2.png`; the old Storage objects were COPIED not
+  moved, so they still exist and can be deleted once this has been live a
+  while.
+- Deliberately NOT renamed, at her ask: `richard-scarry-1/2/3.png`,
+  `flat-cool.png` / `flat-busy.png`, `evan-character.png`, and the four
+  `storage:hoonies/refs/style-*.png`.
+- Her full name list is banked at `GET /api/chatfeed/verdict?chat=references-render-plan&sheet=ref-names`.
+
 ## Product pipeline
 - **The "Product Creator" IS `/studio` (`public/studio.html`) — iOS tile
   "Product Creator" on the BUSINESS home (Aug 2026).** One make-a-product
@@ -263,7 +287,7 @@ lifted into a standalone tool later.
 - **`pipeline.js`** (`/api/pipeline`) — orchestration glue. `GET /status`
   aggregates connectivity across every service; `GET /route?product_type=` maps
   a product type to a POD service; `POST /listing-content` AI-writes SEO
-  title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
+  title/13 tags/description (**Claude** — buyer-facing copy, clamped to Etsy limits);
   `POST /publish-draft` creates the Etsy draft **and** uploads the design
   image(s) in one call (auto-generates listing content when `generateContent`;
   category comes from a `productType`→Etsy-taxonomy map — `taxonomyFor()` — so
@@ -397,7 +421,7 @@ lifted into a standalone tool later.
   `RETIRED` in promptlab.html.
   **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
-  page attached as a pure STYLE reference (`refs/evan-film-style.png` =
+  page attached as a pure STYLE reference (`refs/sage-sandy-mirror.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
   **1024x1536**. LoRA scale / seed / ×3 are hidden for it — it has no
   equivalents. **"Scarry"** (Aug 2026, shortened from "Richard Scarry") is a
@@ -411,7 +435,7 @@ lifted into a standalone tool later.
   because her character card is the watercolor look. **"Pastel"** (Aug 2026) is
   the third: the pastel-variant-2 house look, the same recipe as
   `MODELS.house['house-pastel']` — the two Witch School style refs (which live
-  in **Storage**, `witch-school/refs/style-*.png`, loaded via `loadHouseRef`,
+  in **Storage**, `witch-school/refs/sophie-snake.png + sophie-animals.png`, loaded via `loadHouseRef`,
   not in `refs/`), that style's written linework/palette line as the prefix, and
   the `whiten` flood-fill pass on every finished image. Also `noCharacter`.
   **"Hoonies"** (Aug 2026) is the fourth gpt style: her woodcut smallies (the
@@ -443,7 +467,7 @@ lifted into a standalone tool later.
   `noCharacter` style like Richard Scarry hides it and the server refuses the
   card):** her picture as a small button on the controls row (dim = off, lit
   = on; a plain variable like quality, so every load starts OFF). On, the run
-  attaches `refs/sophie-character.png` (her hearted "girl placing her book
+  attaches `refs/sophie-book.png` (her hearted "girl placing her book
   face down" render) as the SECOND image and appends `PL_GPT.characterLine`
   to the prefix — "Use the second attached image as a character reference.
   Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that
@@ -689,6 +713,17 @@ lifted into a standalone tool later.
     rather than used to reject the message (they ride inside real messages).
   - First firing in a session **baselines her history and posts only her latest**,
     same policy as the reply poster, so installing it never floods a live feed.
+  - **MID-TURN messages need the queue records (Aug 2026, fixed).** A message
+    Sophie sends WHILE Claude is still working is queued, and a queued message
+    is written to the transcript ONLY as a `queue-operation`/`enqueue` record —
+    it never becomes a `user` record. The parser only read `user` records, so
+    those messages reached Claude but **silently never reached the Chats app**
+    (found live 2026-08-07: "Yeah. Do the images." was lost, and it was a
+    course-correction — exactly the kind worth keeping). The hook now also
+    collects enqueue records. EVERY message is enqueued, so a queued entry only
+    counts when no `user` record carries the same words — matched as a
+    **multiset** so repeating a short phrase can't let the first swallow the
+    second — and its dedupe key is `q:<timestamp>`.
   - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
@@ -704,6 +739,24 @@ lifted into a standalone tool later.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **App-embedded tool pages share ONE kit: `public/tool.css` (Aug 2026,
+  Sophie's redesign brief — "too much text, the buttons are too long, think
+  about the user doing the flow").** These pages were built for the desktop
+  web hub, which is why they showed every field, every explanation and every
+  full-width button at once. The kit gives them a step FLOW: `.rail` (where
+  am I), `.step` (only the OPEN one shows controls; a finished step collapses
+  to a tappable one-line summary), `.btn` that hugs its text, `.btn.star` for
+  anything that spends a model call, and a `?` circle holding the explanation
+  that used to be a paragraph. Link it, set `body class="tool"`, don't
+  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`
+  and `report.html` follow.
+- **A gated page hosted inside a native tool must be asked for with
+  `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
+  `.app-header` — its brand row duplicated the native nav-bar title, and its
+  "← Hub" button navigated the WEB VIEW to the web hub, stranding her outside
+  the tool with no way back (Sophie caught all three business tools like
+  this). One rule in `serveGated` covers every gated page, since they share
+  `.app-header` from `forge.css`. Pass it on every new `GatedWebTool` path.
 - **Gated pages must not be cached by the app.** `serveGated` sends
   `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
   and the iOS app's WKWebView served a heuristically-cached copy, so a shipped
@@ -805,6 +858,17 @@ lifted into a standalone tool later.
   ANY header control reaching that corner is untappable — the rename pencil was,
   for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
   reservation on any new header row, and never place a control in that corner.
+  **The home screen has THREE views, switched from the title row: chats,
+  ARCHIVE, and BOOKMARKS (Aug 2026, Sophie).** `homeView` in chats.html. The
+  serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
+  the word beside it becomes the way OUT, reading "← Chats" — a bold word
+  alone was "really confusing" and left her with no visible exit. The
+  bookmark icon next to it opens **every bookmarked message across all
+  chats**, newest first, tapping one jumps to it in its thread
+  (`GET /api/chatfeed/bookmarks`, one equality filter sorted in memory so
+  Firestore needs no composite index). Before that route existed the bookmark
+  button wrote a flag NOTHING ever read — a bookmark could only be found by
+  scrolling to that exact message in its own thread.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
   message first. The **App/Web account toggle is a plain on/off switch** on the
@@ -817,19 +881,73 @@ lifted into a standalone tool later.
   "html": "<the full self-contained page>" }` (x-studio-token when gated;
   ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
   Compare) and opens full-screen in the app — that's where she'll look for it,
-  next to your assets. Design the HTML however the comparison needs (mobile
+  next to your assets. Lay the content out however the comparison needs (mobile
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
   your own scroll pill.
+  **START FROM THE SHELL — `public/compare-shell.html` (Aug 2026, Sophie's
+  ask: "a shell every chat can use for their compare page that has the auto
+  scroll pill with everything exempt").** Copy that file and fill it in; it
+  links the two shared halves and carries the rules below as comments, so a
+  new page gets them without anyone remembering them:
+  - **`/compare.css`** — the one house look AND the `:root` tokens the
+    injected pill styles itself from.
+  - **`/compare.js`** — the one house BEHAVIOUR, in a single script tag:
+    any tap pauses the autoscroll **with the pill itself exempt** (an
+    unconditional handler eats the click on the pill's own play button) and
+    `[data-nostop]` as an opt-out; plus an image lightbox that stops the
+    scroll, locks the page, and restores the exact scroll position on close.
+    Do NOT hand-roll these handlers per page anymore — a page that includes
+    `/compare.js` has them right by construction. Tests:
+    `node scripts/test-compare-shell.js` (drives real taps against the real
+    injected pill in headless Chromium; skips if no Chromium).
+  **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
+  styled differently — there should be one style").** Start every new page
+  from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
+  (same-origin — served pages can link it; the skeleton is documented at the
+  top of `public/compare.css`: `.wrap` > `.eyebrow`/`h1`/`.sub`, then
+  `.card`/`.big`/`.chips`/`.imgrow` blocks). Do NOT hand-roll a fresh look
+  per page, and do NOT override the `:root` tokens. **The tokens are also
+  what fixes the pill:** the injected pill styles itself with the host page's
+  `--ink`/`--paper`/`--chg`/`--ink2`/`--rose` variables, so a page that
+  defines none of them renders the pill BLACK on transparent (this is why
+  every hand-rolled page's pill looked broken — Sophie caught it). If a page
+  genuinely can't link the stylesheet, it MUST at least define those five
+  `:root` tokens.
   **ANY tap pauses the autoscroll (Aug 2026, Sophie's rule — every Compare
   page MUST have this).** While she's interacting with a page — voting,
   typing a name, tapping anything at all — the page must not keep creeping
-  underneath her. Add this one line to every Compare page's script:
-  `document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);`
-  (capture phase, so it fires even when the tap lands on a button or form
-  field; the pill's own play button starts scrolling again). This is on top
-  of the existing image-lightbox rule below — opening an image still locks
-  background scroll too. List your
+  underneath her. Add this to every Compare page's script (capture phase, so
+  it fires even when the tap lands on a button or form field) — and it MUST
+  skip taps on the pill itself: `__scrollStop` repaints the pill's glyphs,
+  and swapping the tapped element out mid-press EATS the click, so an
+  unconditional version makes the pill's own play button dead (found live on
+  Cut Marks, fixed on the Cutting Room too):
+  `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
+  **Including `/compare.js` does exactly this for you** — that snippet is now
+  only for a page that genuinely cannot load the shared script.
+  This is on top of the existing image-lightbox rule below — opening an
+  image still locks background scroll too.
+  **The tap gesture's exempt list is SHARED — never hand-roll one, and always
+  PASS THE EVENT (Aug 2026, Sophie: this "comes up a lot").** `pill.py` owns
+  `PILL_SKIP` (`a,button,summary,details,input,textarea,select,label,video,
+  audio,[onclick]`) and exposes it two ways: `window.__scrollTap(e)` applies
+  it for you, and `window.__pillInteractive(el)` answers it for a page's own
+  handler. **`__scrollTap()` called with no argument exempts NOTHING** — that
+  is exactly how a code block's COPY button in the Chats app both copied AND
+  started the autoscroll (Sophie caught it; the copy handler's own
+  `stopPropagation` is a document-level listener, so it runs after the page's
+  tap handler and can't help). A page may ADD its own exemptions on top
+  (chats: `pre`/`code`, so selecting text in a code block isn't a tap;
+  writing: `.notebox`), but the shared list is the floor. This is why a
+  Compare page with a copy button, a vote chip or a text field must route
+  through the shared helper rather than reinventing the skip list.
+  **A page served with the injected pill must SCOPE its own script (IIFE).**
+  The pill snippet runs in global scope and declares `var raf`, `var I`,
+  `var playing`, … — a page-level `let raf`/`const I` collides and kills the
+  pill's script at PARSE time (empty stretched buttons, no scrolling —
+  Sophie hit this on Cut Marks). Wrap the page script in `(function(){ …
+  })()` and expose only `window.__navBack` etc. List your
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
@@ -936,7 +1054,7 @@ lifted into a standalone tool later.
 - **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
   download retries + size verification (replicate.delivery truncates under
   parallel load), ~5-parallel prediction pool.
-- **Style reference:** `refs/movie-style.jpg` (Sophie's hand-drawn diary-comic
+- **Style reference:** `refs/dream-mystery.jpg` (Sophie's hand-drawn diary-comic
   page, never web-served). When present, EVERY panel renders via gpt-image-2's
   **edits** endpoint with it attached as a pure STYLE reference (prefix insists
   style only — never content/subjects/composition). `MOVIE_STYLE_REF=0`
@@ -1005,7 +1123,45 @@ lifted into a standalone tool later.
   **Render survives leaving the app:** fire-and-forget server job; iOS
   `DreamsView` records rendering ids in `@AppStorage("dreams.activeRenderIDs")`
   and resumes polling on return; transient poll failures retry (phone locked /
-  Render cold start) — only a real job error surfaces. Characters keep their
+  Render cold start) — only a real job error surfaces.
+  **A gpt-image-2 SAFETY REFUSAL is terminal, never a retry (Aug 2026).** The
+  filter refuses ordinary dream content — the "Mommy Evaluates Kid" render died
+  on a breastfeeding line, flagged `safety_violations=[sexual]`. A refusal is
+  deterministic, so retrying it is waste: that render burned 9 API calls over
+  ~65s of backoff and reported "3 rounds of retries", which reads like a network
+  fault. Now `isSafetyRefusal()` short-circuits every retry ladder
+  (`openaiPanel`, `openaiPanelEdit`, `drawPagesResilient`'s rounds), and the page
+  gets redrawn with its NARRATIVE softened — `softenRefusedNarrative`
+  (gpt-4o-mini) rewords only the page's slice of the dream, its captions and the
+  context line, and the structural half of the prompt (style ref, continuity
+  clauses, attachment numbering) is rebuilt untouched around it, so softening
+  can't scramble the references. **Rewording Sophie's own sentences to get past
+  the filter is allowed — she asked for it (2026-08-06).** A page that lands
+  softened is marked `softened:true`. Softening escalates over TWO passes (pass 2
+  rewrites pass 1's output), then gives up with a plain reason instead of a retry
+  count. Refused requests are rejected before generation and cost nothing, so the
+  extra pass only ever spends a few seconds.
+  **`SOFTEN_SYSTEM` is empirically calibrated — don't reword it casually.**
+  Probed live against the filter on the refused page (2026-08-06): `feed it milk
+  from her breasts`, `breastfeed the baby` and even the VAGUER `feed it milk from
+  her body` are all REFUSED; `nurse the baby`, `feed the baby` and `hold the baby
+  close and feed it` are ACCEPTED. So being vaguer does not help and euphemism is
+  the wrong move — the first version of the prompt said "rephrase only what is
+  likely to trip it" and the model produced "from her body", which was refused
+  again. The prompt now tells it to REFRAME THE ACTION in ordinary everyday
+  verbs, with that worked example baked in; verified end-to-end (pass 1 →
+  "Then she went to nurse the baby." → page drawn).
+  Tests: `node scripts/test-dream-refusal.js`.
+  **The page must not re-render while she scrolls.** `dreams.html` polls every
+  3.2s during a render and used to call `render()` each tick, reassigning
+  `root.innerHTML` — which re-decodes every image and drops scroll position.
+  Scrolling "Past dreams" during a render therefore flickered and jumped to the
+  top (her report, 2026-08-06; renderArchive's own comment already warned that
+  rebuilding "re-decoded every image"). `liveUpdate()` now patches the status
+  line and APPENDS newly-landed pages instead, and returns early when she's on
+  the archive/zine tab so a background render never touches the view she's
+  reading. Tests: `node scripts/test-dreams-scroll.js` (headless Chromium;
+  playwright is an optionalDependency, the script skips without it). Characters keep their
   ORIGINAL backgrounds (the transparent cleanBox step was removed by request
   — background separation only matters if a character is composited later).
   Same `STUDIO_TOKEN` gate. iOS is the frontend; a web page port of the new
@@ -1117,6 +1273,47 @@ lifted into a standalone tool later.
   metadata — no downloads — then removes in-album duplicates, renumbers, seeds
   the registry). `--dry-run` prints the plan. Ran once on 2026-07-28: 2,717
   files → 2,594, 123 exact duplicates removed (~327 MB), 58 albums renumbered.
+- **Sort & label page (Aug 2026, Sophie's ask): `/dump`** (`public/dump.html`,
+  serveGated) — the other half of "dump first, label afterwards". Browse every
+  album (filter by session / unlabelled-only), name it, set its `track` (chips
+  for the known tracks + free text; tapping the lit chip clears back to
+  unlabelled), notes, per-file lightbox with delete. Saves via
+  `PATCH /api/drop/bundle` (loose files via `PATCH /items/:id`). **The native
+  Dump tile is two tabs — SEND and SORT (Aug 2026, Sophie)**: sending albums
+  in and sorting out what's already there are one tool, not a screen plus a
+  pushed page. Both halves stay ALIVE behind the switch (a reload would lose
+  her place), so the page exposes `window.__dumpRefresh` and `GatedWebTool`'s
+  `refreshOnAppear`/`refreshTick` fires it on every switch to SORT —
+  `onAppear` can't do this, a view held in a ZStack only appears once. The
+  page hides its own eyebrow under `?embed=1` (the native bar already titles
+  the screen) and the upload progress bar sits ABOVE the tabs, since an
+  upload keeps running while she sorts. **Select mode (Aug 2026, Sophie):**
+  the Select chip opens every album to just its thumbs — tap to pick across
+  albums, then the fixed bottom bar moves the lot into an existing album or
+  a newly named one (`POST /api/drop/move {ids, bundleName}`; placeIn()'s
+  registry transaction numbers them in, the target album's session and
+  track/name labels win, files placed in the order she picked them).
+- **FOLDERS CONTAIN ALBUMS — they never merge them (Aug 2026, Sophie: "don't
+  take it out of the sub folders it's already in").** A folder is the `track`
+  field, shown as "Folder" in the UI: filing an album writes the label onto
+  its files and nothing inside it moves, so one crystal stays one album stays
+  one Etsy listing. The sort page's Select mode picks whole album CARDS (not
+  files) and files the lot in one tap; the filter row carries a chip per
+  folder in use, so tapping "Crystals" shows exactly those albums. Albums
+  sort **newest first** by `newest` (the album's latest file — `seq` is
+  arrival order across ALL albums and can't answer freshness).
+  `POST /move` (file-level, above) is still there for a chat, but the page
+  never merges albums. The page's whole control strip (title, counts, filter
+  + Select chips) is ONE sticky header, and a back-to-top button floats
+  bottom-LEFT past 400px of scroll — with 100 albums, reaching Select must
+  never mean scrolling back to the top.
+- **`DumpView` must RE-READ the Photos albums, not load them once.** Its
+  `.task` fires a single time because RootView holds the view alive in a
+  ZStack, so an album created in Photos after launch never appeared in SEND —
+  and it read as the Dump having lost it (Sophie made "character references"
+  and "style references", didn't see them, and made them again). It now
+  reloads on `.forgeScreenChanged`, on `willEnterForeground`, and on every
+  switch back to the SEND tab.
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
@@ -1247,7 +1444,8 @@ lifted into a standalone tool later.
   vs windowed sales, and buckets listings into top sellers / hidden gems (high
   conversion, low views → visibility problem) / stalled (views, no sales) /
   sale candidates (favorites = Etsy-notified audience) / ad candidates (proven
-  converters). gpt-4o-mini writes a short advice section (`?advice=0` skips).
+  converters). **Claude** writes a short advice section — **opt-in via `?advice=1`**
+  (the page loads numbers only; opening it must never spend, Aug 2026).
   Same `STUDIO_TOKEN` gate; page uses `serveGated`. If the stored token
   predates `transactions_r` the report degrades to listings-only with a
   reconnect banner instead of failing.
@@ -1354,8 +1552,8 @@ lifted into a standalone tool later.
   Google's AI Overviews can't fully answer, so the click still comes to you;
   organize as topic clusters (a pillar + specific cluster posts).
 - **Flow:** `POST /keywords` (topic → long-tail keyword ideas w/ intent +
-  difficulty + a pillar/cluster shape, gpt-4o-mini) → `POST /draft` (full post:
-  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, gpt-4o-mini) →
+  difficulty + a pillar/cluster shape, **Claude**) → `POST /draft` (full post:
+  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, **Claude**) →
   `POST /image` (gpt-image-2 → permanent Firebase webp URL) → `POST /publish`
   (reuses `shopify.publishArticle`; hidden draft or live). Generation endpoints
   are stateless; drafts best-effort persist to Firestore (`forge-blog`) for a
@@ -1388,7 +1586,7 @@ lifted into a standalone tool later.
   die-cut PNG** — any background left on it masks as a grey rectangle instead of
   the sticker's outline.
 - **Art pipeline: `scripts/selfcare-stickers.js`** — the Witch School look
-  (gpt-image-2 edits against `storage:witch-school/refs/style-*.png`, same as
+  (gpt-image-2 edits against `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`, same as
   `witch-school-cards.js`) so stickers and lesson cards read as one set, then
   **background-remover (Replicate) → alpha-trim → upload** to
   `selfcare/stickers/<pack>/<id>.png` (raws kept under `_raw/`). The prompt bans
@@ -1462,19 +1660,22 @@ lifted into a standalone tool later.
   Sophie).** Every loading spot in the app sits on cream (`--bg #f5efe2`,
   `--surface #fffbf3`, `--panel #efe6d3`), so the old `hoonie-loading.gif`'s
   white square showed as a visible box. The clear one is the same hoonies with
-  the paper removed — transparent background, 70 drawings, 240px, 278KB (the
+  the paper removed — transparent background, 70 drawings, 240px, 390KB (the
   old one: 45 drawings, 360px, 865KB). Both files stay in `public/`; the old
   one is still what iOS bundles (`TestStationView` deliberately puts
   `Color.white` behind it). Rebuild either from a folder of hoonies with
   `python3 scripts/hoonie-cutouts.py <dir> --gif public/hoonie-loading-clear.gif
-  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy`); the same
+  --size 240 --pad 16 --max 70` (needs `pip3 install Pillow numpy scipy`); the same
   script writes the transparent PNG cutouts with `--out`. GIF transparency is
-  1-bit, so the ink keeps a short gray ramp that stops short of white — a pale
-  antialiased edge would read as a halo on a dark surface.
+  1-bit, so each frame quantizes its own real colors (7 + transparent), so the ink keeps
+  its warm tone — the first cut quantized to neutral gray and read greeny on
+  the app's cream surfaces.
 - **The hoonies themselves live in the Dump**, album **hoonies** (#228, 140
   drawings — woodcut smallies, many of them two things grown into each other).
-  Cutouts at Storage `hoonies/cutouts/<nnn>.png`, 210px webp thumbs at
-  `hoonies/thumb/`. As a gpt-image-2 style reference they transfer well with
+  Cutouts at Storage `hoonies/cutouts2/<nnn>.png`, 210px webp thumbs at
+  `hoonies/thumb2/` (v1 at `cutouts/`/`thumb/` was grayscale-quantized and read
+  greeny on cream; v2 is the corner flood-fill cut — new paths because the old
+  objects are immutable-cached). As a gpt-image-2 style reference they transfer well with
   the refs attached and **NO written style description** (same finding as
   `docs/evan-film-style.md`) — adding an engraving description pulls the line
   finer and more modern, away from their blunt woodcut feel.
@@ -1482,13 +1683,13 @@ lifted into a standalone tool later.
   `docs/witch-school-lessons.md`** — read it BEFORE writing a lesson so new
   lessons match the 14 live ones (voice, research pass, illustration pipeline
   via `scripts/witch-school-cards.js`, per-card sampled backgrounds, wiring,
-  tests). Sophie's style refs live at `storage:witch-school/refs/style-*.png`.
+  tests). Sophie's style refs live at `storage:witch-school/refs/sophie-snake.png + sophie-animals.png`.
 - `public/witch.html` (page at `/witch`, **ungated/public**) is a mobile-first,
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
   endpoints + a small set of stateless AI endpoints in `server.js`:
   `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
-  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+  **Claude** via `anthropicChat`; `parseAnthropicJson` strips fences).
 - **The blog is a real NAVIGATION out of the app page, and the tab re-assert
   must not follow it (Aug 2026 — this bug made the blog unreachable in the
   app: tapping "The blog" bounced to Home instantly).** In the iOS app the
@@ -1587,6 +1788,38 @@ lifted into a standalone tool later.
   (the YouTube token is upload-only scope and can't read the channel), so it
   needs Sophie's `@handle` pasted in.
 
+## Which model writes it (Aug 2026, Sophie: "my brains are really important")
+- **Anything whose output is WORDS A HUMAN READS runs on Claude, never
+  `gpt-4o-mini`.** Blog posts *and the keyword research behind them*, Etsy
+  listing copy, the shop advice she makes spending decisions from, the witch
+  app's spells / familiars / natal readings / sky lessons. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
+  default `claude-sonnet-5` via `CLAUDE_WRITING_MODEL`) — do NOT hand-copy the
+  fetch a fifth time. `server.js`'s `anthropicChat` + `parseAnthropicJson` is
+  the in-server equivalent for routes that already live there.
+- **`gpt-4o-mini` stays ONLY for bulk mechanical extraction** where the job is
+  "pull the fields out of hundreds of documents", not "write something worth
+  reading": NDE moment mining (`nde.js`), memo titling (`memos.js`), the deck
+  brainstorm lists (`/api/generate/subjects`, `/moments`), `stories.js`,
+  `/api/set/third`, the Talking zine's planner, `dreamapp.js`. If you switch
+  one of these, say why.
+- **The Book of Miracles stays on mini — Sophie's explicit call.** It was
+  switched to Claude once and she asked for it back: the book's voice is
+  settled and the model change moves how the pages read. `/api/generate/miracles`
+  is ONE route feeding BOTH the witch app's Miracles tab and `/book` (they also
+  share the same localStorage book), so touching it moves both at once. The
+  THIRD Book of Miracles is a separate iOS app in another repo and is not
+  affected by anything here.
+- **`gpt-4o-mini-tts` and `gpt-4o-mini-transcribe` are NOT this.** They are
+  the audio models — a grep for "gpt-4o-mini" hits them and inflates the
+  count. Leave them alone; the voice rules elsewhere govern them.
+- **A doc that tells you to use mini for reader-facing words is STALE — fix
+  the doc.** This kept coming back because the module headers said "gpt-4o-mini"
+  long after the code moved on. When you change a model, change its comment,
+  its module header, and this file in the same commit.
+- **Opening a page must never spend money.** The Shop Report used to write its
+  AI advice on page load; that is now `?advice=1`, behind a star button. Same
+  rule anywhere else: numbers/lists are free, a model call is a deliberate tap.
+
 ## Design rules (forever)
 - **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
   decision — REVERSES the earlier "forgeToolBar on every tool root" rule for
@@ -1600,7 +1833,11 @@ lifted into a standalone tool later.
   - **One look, shared code.** Pages must still MATCH each other: build page
     headers to one shared pattern the way the autoscroll pill is shared (ONE
     source — `scripts/pill.py` — imported by every gen script / injected by
-    the server), not a fresh hand-rolled header per page. When adding or
+    the server), not a fresh hand-rolled header per page. The pill defends
+    its own glyphs against host-page `svg` globals (a page's `svg{fill:none}`
+    hollowed its play triangle — Sophie caught it on the Cutting Room, and
+    editor.html had the same hazard); after ANY pill.py edit, re-run
+    `python3 scripts/gen-pill-inject.py`. When adding or
     changing a page header, reuse/extract the shared pieces (the eyebrow
     title style, the back control, the pill-corner reservation) instead of
     copying variants around. The Chats header is the reference look.
@@ -1623,6 +1860,25 @@ lifted into a standalone tool later.
   - Web tools that shipped WITH a native bar (Playground, Episode Editor,
     Story Room's title/chevron) keep working as-is; move each to a
     page-owned header at its next real redesign, not as churn.
+  - **A NEW web tool ships with the NATIVE bar + chevron — the Episode
+    Editor wrapper is the reference (Aug 2026, earned on the Cutting Room
+    v1).** The page-owns-header rule above describes where headers are
+    HEADING, not what a new tool should ship as today: the Cutting Room v1
+    followed it literally (bare WKWebView host, page header only) and Sophie
+    flagged the mismatch the first time she opened it — "there's no back
+    arrow to go back to the home screen and it's a different autoscroll
+    pill." A new tool must match the tools BESIDE it: copy
+    `EpisodeEditorView.swift` (forgeToolBar + chevron asking
+    `window.__navBack` first, `__nativeNavBar` injected so the page hides
+    its own back button via `body.native`, audio paused on
+    `.forgeScreenChanged`). Only a page that replaces the WHOLE chrome with
+    a rich header of its own (Chats, Writing Room) earns the bare host — an
+    eyebrow-and-title header does not.
+  - **An icon-first tool carries a "?" circle (Aug 2026, Sophie).** When a
+    tool's controls are icons with no words (her preference), add a small
+    gold "?" circle that toggles a card explaining what each icon does —
+    tap to show, tap anywhere to hide. The Cutting Room's `#help` /
+    `#helpcard` is the pattern.
 - **CSS gotcha that broke the Episode Editor's back button: `[hidden]` loses
   to any author `display` rule** (e.g. `.icon{display:flex}`), so the "hidden"
   button stays visible and taps do nothing. Every page that toggles the
@@ -1635,6 +1891,21 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
+  - **A RE-ENCODED copy defeats BOTH dedupe layers and lands as an unlabeled
+    duplicate tile (Aug 2026 — this bit Sophie during the style-ref
+    experiments).** The hook auto-files every image sent with SendUserFile;
+    identical bytes collapse onto the labeled tile by content hash, and same
+    filenames union in the tab — but a converted copy (webp→png for chat
+    preview) has NEW bytes AND a NEW random filename, so it files as a fresh
+    tile with NO label, next to the labeled original. Labeling only the
+    storage URL is therefore NOT enough. Avoid it: send the ORIGINAL file
+    (bytes untouched) whenever the image already lives in Storage; if a
+    conversion is genuinely needed for chat, then AFTER the reply finishes,
+    sweep `GET /api/gallery/assets?chat=` for new unlabeled tiles and label
+    each (`POST /api/gallery { assetsOnly:true, chat, url, description }`,
+    matching by downloaded content hash when unsure which is which). An
+    experiment's versions MUST each carry their version label on EVERY copy —
+    an unlabeled variant makes the whole comparison unreadable.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
@@ -1755,7 +2026,11 @@ lifted into a standalone tool later.
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
-  Circular icon buttons (toggles, dots) are the only exception.
+  Circular icon buttons (toggles, dots) are the only exception. **Plus one
+  named exception Sophie asked for (Aug 2026): the Chats home screen's
+  REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
+  a loosening of the rule — don't round anything else off, and don't "fix"
+  that one back.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
@@ -1788,15 +2063,43 @@ lifted into a standalone tool later.
   tiered pyramid, two cells along the base for the lows and the filled top
   tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
   that says nothing about how many).
-- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
-  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
-  ink — it sits on a text baseline, so the glyph is about cap height, not the
-  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
-  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
-  time, which is why the Test Station's tubes read half again the size of
-  every symbol beside them. Bundled glyph SVGs should fill ~0.9 of their own
-  viewBox, centred (both `TestTube` and `Playground` do) so one rule sizes
-  them all.
+- **Custom-icon sizing has TWO halves, and both were wrong for a long time —
+  the numbers below are MEASURED off a real 3x screenshot, never reasoned
+  about (Aug 2026, third attempt; the first two failed by reasoning).**
+  - **Half one — the frame (`ToolGlyph.customFrame` = 1.11·S).** The old note
+    here claimed "an SF Symbol at point size S draws only ~0.75·S of ink", so
+    custom art was framed SMALLER, at 0.86·S. **That premise is false.**
+    Measured on the home screen at declared S: `briefcase` 22.7w x 19.0h,
+    `film` 24.0 x 19.0, `photo` 24.0 x 19.0, `bubble.left.and.bubble.right`
+    28.0 x 22.3 — i.e. real symbols draw **0.90-0.95·S tall and ~1.13·S
+    wide**, not 0.75. The hand-drawn glyphs measured 15.3pt (test tube) and
+    15.7pt (quilt) against those, which is why Sophie kept seeing them as
+    different sizes. Custom art fills 0.90 of its frame, so a frame of
+    **1.11·S** puts its ink at ~1.00·S, inside the cluster the real symbols
+    occupy. History: 1.35·S (far too big — the tubes read half again the size
+    of everything), then 0.86·S (too small), now 1.11·S. **Only `ToolGlyph`
+    may hold this number** — `ToolGlyph.asset(_:size:)` renders any bundled
+    glyph, and a hand-picked frame anywhere else is how it drifts.
+  - **Half two — the art. A bundled glyph MUST fill exactly 0.90 of its own
+    viewBox, centred — run `python3 scripts/normalize-glyphs.py` after adding
+    or editing one** (`--check` measures without writing; it's the gate). One
+    frame rule is only correct if every glyph fills the SAME share of its
+    box, and measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
+    (playground)** — `.scaledToFit()` scales by the longer side, so the
+    Playground rendered ~17% bigger than the quilt at the same nominal size.
+    No frame number can fix that; the difference is in the ART, so the script
+    normalizes the art and leaves the Swift rule alone. An earlier pass got
+    this wrong by measuring ONE glyph and assuming the rest matched
+    (testtube.svg's comment claimed it filled "the same share the Playground
+    glyph fills" — 0.923 against 1.000), which is why the script RENDERS
+    every file and measures the ink instead of trusting any comment.
+  - **How to check this properly next time:** take a screenshot of the real
+    screen, find the accent ink with a colour test (`R-B > 45` — borders and
+    background are near-neutral), group it into icons by column runs, and
+    divide the bounding boxes by the device scale (3 on an iPhone 13). That
+    gives every icon's true rendered size in points, custom and SF alike, on
+    one comparable scale. It takes minutes and settles the question; two
+    earlier attempts guessed instead and shipped wrong.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
@@ -1809,13 +2112,40 @@ lifted into a standalone tool later.
   superseded for day-to-day use by the share sheet / Dump; kept because
   their data and APIs are real), and `/wall` (the everything-feed; no tile
   asked for). The pages still serve at their URLs for a chat or a browser.
-- **Two home screens (Aug 2026, Sophie).** The making home (`.home`) and the
-  **business** home (`.business`, `BusinessGrid` in `RootView.swift`) — the
-  latter behind the **briefcase** beside the test tube, holding Instagram,
-  Ads, Blog Studio, the Product Creator and the Shop Report. `Tool.isBusiness` decides which grid a tool lands on;
-  a tool is on ONE grid, never both, so each home stays scannable. The
-  business home's top-left is a **house** back to the making home; Chats
-  keeps its top-right corner on both. Deep link: `deckfactory://business`.
+- **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
+  REPLACES the earlier three-home-screens rule).** The home is a single grid;
+  above the module cards sits a row of six rounded squares, **icons only**
+  ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
+  TWO open a tool (**Dump**, which itself now opens on SORT, and **Chats**);
+  the other four FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  (Playground, Test Station, Freeform — the only place the Test Station has a
+  card at all), **briefcase** = business, **quilt** = old fashioned, **film**
+  = everything that makes or cuts moving pictures AND sound (Movies, Films,
+  Cutting Room, Cut Marks, Episode Editor, Story Room, Song Station, Voice
+  Studio, Search, Characters). The lit chip clears back to everything when
+  tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
+  and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
+  `://crafts` (alias `://quilt`) land on the home with that filter already
+  lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
+  answers to, and keep it off the unfiltered list so the default home stays
+  scannable — the picture and film sets are explicit lists, and their tools
+  DO still appear on the unfiltered home. **Four corner icons** beside the
+  masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
+  RIGHT with Chats on the very end (its original spot). The briefcase and
+  quilt corners fire the same filters as their row squares — several
+  controls live in two places on purpose ("it can be in two places, silly"),
+  which is also why the row is six rather than the five it started as. Don't
+  "fix" the duplicates.
+  **They are SQUARES, and the lit state is a thicker gold outline over a
+  light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
+  gold) — v1 stretched them into rectangles by sharing the row width out,
+  and filled the lit one with solid `Theme.accent`, which Sophie read as
+  "turning that beige color". A fixed-size square centred in an equal-width
+  flexible cell is what keeps the shape on every screen width.
+  **The set is not settled** — Sophie is still working out what the filters
+  should be, so treat it as provisional, not as a rule. The filter icon must
+  NOT be the generate star: that glyph is reserved for controls that spend a
+  model call.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
@@ -1886,7 +2216,7 @@ lifted into a standalone tool later.
   (`voice_id` `TbXVSG5Ejm1c91umIzJN`, needs `ELEVENLABS_API_KEY`), model
   `eleven_multilingual_v2`, punchy settings (stability ~0.34, style ~0.45) and
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
-  `refs/movie-style.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
+  `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
 ## Anthony Chene NDE moments database
@@ -1935,6 +2265,82 @@ lifted into a standalone tool later.
   (inline JSON). Idempotent — re-running skips what's banked. Example:
   `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
   (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
+- **The one-command way Sophie runs it:
+  `cd ~/imageforge && git checkout main && git pull origin main && ./scripts/grab`**
+  — paste links when asked, Return on an empty line (or
+  `./scripts/grab --file scripts/nde-urls.txt`). **`git checkout main` is load-
+  bearing, not boilerplate:** her Mac checkout is where chats park
+  work-in-progress branches, and it sat on one (`grab-python-fallback`) for
+  days — so a bare `git pull` kept answering "Already up to date" while
+  updating THAT branch, an already-merged fix never arrived, and the same
+  failure repeated every run with nothing in the output to reveal why.
+  `scripts/grab` now warns when it isn't on main (or when main is behind) and
+  prints that command. It deliberately WARNS instead of switching by itself —
+  a silent `git checkout` from inside a download tool can strand another
+  chat's uncommitted work. The wrapper builds a private
+  venv (`.grab-venv`) with the two Google packages on first run, so the Mac's
+  own pip/python state can never break it; every argument passes through to
+  `nde-grab-local.py`. Idempotent — re-running skips what's banked, so a
+  failed batch is just "run it again".
+- **Sophie's home connection stalls on big single uploads (Aug 2026 —
+  measured, not guessed).** Any single sustained HTTPS request body over ~1MB
+  hangs until the client's retry deadline (plain curl from her Mac: 512KB in
+  0.33s, 1MB forever, on both IPv4 and IPv6; her Wi-Fi is generally spotty),
+  and sustained `git push` from the Mac stalls the same way. **It is her
+  UPLINK, not any one host** — first measured against storage.googleapis.com,
+  but later testing stalled the same way to Cloudflare/GitHub/httpbin, while
+  downloads stay fine (~2.9MB/s) and 512KB uploads stay fine (~1.5MB/s). So
+  don't chase a Google-specific explanation. It shows up as "Timeout of 120.0s
+  exceeded" right after a big transcript or audio finishes. Two standing
+  workarounds, both proven live (PR #836, corrected in #845):
+  - **Every Storage upload from her Mac must be CHUNKED, and the load-bearing
+    idiom is `blob.open("wb", chunk_size=…)`.** `nde-grab-local.py`'s
+    `upload_bytes()` / `upload_file()` write through a file handle for exactly
+    this reason (measured 1.4MB/s where a single-request upload hung forever).
+    **Do NOT "simplify" that to `upload_from_string`/`upload_from_filename`
+    with `chunk_size` set on the blob** — it looks equivalent and is not, and
+    that exact mistake already shipped once: google-cloud-storage's
+    `Blob._do_upload` dispatches on SIZE ALONE (`size <= 8MiB` → one multipart
+    POST) and **never consults `blob.chunk_size` on that path**, so every
+    transcript (1.2-2.2MB) still went as one request — the very thing that
+    stalls. `chunk_size` only bites on the resumable path, i.e. files over
+    8MiB (the audio). Measured back to back on her Mac with the same 1.5MB
+    payload: the blob-attribute form 62.4s (surviving only because a 60s
+    read-timeout retry happened to land — under the stall it burns the 120s
+    deadline and fails INTERMITTENTLY, the worst failure mode), the
+    `blob.open()` form 1.2s. Keep it chunked even if her network heals —
+    chunking costs nothing then. Any NEW script that uploads from her Mac
+    needs the same treatment.
+  - **When `git push` stalls on the Mac, hand the commit to a CLOUD chat —
+    don't fight the network.** Cloud sessions push fine. The Mac chat
+    describes the change (or pastes the diff), the cloud chat recreates it on
+    a branch, pushes, PRs, and merges; the Mac then just runs
+    `git checkout main && git pull` (downloads work fine on her connection)
+    and deletes its stranded local branch. This is exactly how the chunking
+    fix itself landed — written on the Mac as local commit dd3edc0,
+    un-pushable, recreated from the cloud as #836.
+- **Pulling short CLIPS out of a YouTube video: `./scripts/clip` (Aug 2026).**
+  A different job from the grabber above — that banks WHOLE interviews (audio +
+  captions) into Firebase; this one saves short **video** clips as files on her
+  Mac. `cd ~/imageforge && ./scripts/clip "<youtube url>"`, then paste one line
+  per clip (`00:25:48-00:26:06 mailbox`) and Return on an empty line → numbered
+  files in `clips/<videoId>/` (gitignored). Re-running skips clips already
+  downloaded. `--spans`, `--dry-run` (needs no yt-dlp and no network),
+  `--format`, `--out`, `--cookies`, `--browser`, `--no-cookies`.
+  This replaces hand-pasted `yt-dlp … --download-sections` one-liners — the old
+  way meant re-typing the whole command per clip with new timestamps, which is
+  where the mistakes came from. `--force-keyframes-at-cuts` is baked in: without
+  it yt-dlp snaps to the nearest keyframe and the clip loses a second or two off
+  the front.
+  - **COOKIES are the whole game for age-gated videos** ("sign in to confirm
+    your age"). The script tries an exported cookies file FIRST — any
+    `~/Downloads/*cookies*.txt`, from the Chrome extension "Get cookies.txt
+    LOCALLY" — and only falls back to `--cookies-from-browser chrome`. That
+    order is deliberate and earned: reading Chrome's cookies directly raises a
+    macOS keychain prompt ("Chrome Safe Storage") that accepts ONLY her Mac
+    **login** password, and hers has drifted out of sync, so that path dead-ends
+    for her. The exported file skips the keychain entirely. It IS her live
+    YouTube session — tell her to delete it when a batch is done.
 - **Ingesting one of Sophie's OWN videos (not YouTube), July 2026.** For a video
   she made herself — no captions, no YouTube id — `POST /videos/from-video`
   `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
@@ -2122,10 +2528,216 @@ lifted into a standalone tool later.
   'editor',…}`, `POST /:id/render`, `GET /:id/job`, `DELETE /:id`.
 - Transcription cost ≈ $0.006/min of recording (whisper), paid once per
   recording. Caps at 90 min.
-- iOS: `CuttingRoomView.swift` = bare WKWebView on `/cuttingroom` answering
-  the studio gate (page-owns-header rule; page changes ship via Render
-  deploy). The page carries the injected shared pill, so the native pill is
-  suppressed for the tool (`showAutoScroll`).
+- iOS: `CuttingRoomView.swift` = the **Episode Editor wrapper pattern** (v1
+  shipped bare and Sophie flagged it — see the Headers design rule): native
+  `.forgeToolBar("Cutting Room")` whose chevron asks `window.__navBack`
+  first (room → recordings list → leave the tool), `__nativeNavBar`
+  injected so the page hides its own back button (`body.native`; the page
+  header also folds away on the recordings list, where it would duplicate
+  the bar), audio paused on screen changes. The page carries the injected
+  shared pill, so the native pill is suppressed (`showAutoScroll`). Page
+  changes ship via Render deploy; wrapper changes need TestFlight.
+- **The "?" circle on the tools row** is the instructions for an icon-first
+  tool: tap → a card naming what every icon does, tap anywhere → hidden.
+  Keep it in step with the icons if any control changes.
+- The recordings list links out to **Search** (below) — the way in when she
+  knows what was said but not which recording said it.
+
+## Search (`search.js`) — every transcript, one search
+- `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
+  `magnifyingglass`, deep link `deckfactory://search`) — one search across
+  **BOTH** transcript libraries: the 77 interview transcripts in
+  `forge-nde-videos` (~3.5M chars) and the 1,022 transcribed voice memos in the
+  membry archive (~2.2M chars). Nothing could search either before: the Cutting
+  Room only searches inside ONE recording already open, the Episode Editor only
+  shows a ±150s window around a snippet she already knows about.
+- **Results are PASSAGES, not files** — a ~48s window of transcript with its
+  timestamp, whose recording it is, and audio. Same paper/gold palette as
+  editor.html / cuttingroom.html; the three audio tools are one family.
+- **The hand-offs are the point** (a search that only lists is worse than
+  scrolling). Each hit goes to the tool that owns that kind of audio:
+  **interview → Episode Editor** (`editor.addExternalSnippet` — a snippet card
+  lands in an episode and the editor re-cuts it natively), **memo → Cutting
+  Room** (`POST /api/cutroom/open` with the recording's url). Search cuts no
+  audio of its own; both paths feed the ONE cutter in `editor.js`.
+- **A hit's Play NEVER points at the banked interview audio.** Those files are
+  what yt-dlp downloaded — webm/opus, one object per whole interview (the
+  Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once
+  via `editor.extractWindow` (ffmpeg seeking over HTTP — it never pulls the
+  whole file), banked at Storage `search-clips/<videoId>-<start>.mp3`,
+  immutable-cached, instant ever after. `GET /clip?src=&t=` is a background job
+  (`{status:'making'}` → poll → `{status:'ready', url}`). Two reasons:
+  **size** (measured — a 56s passage is ~800KB against 62MB; on a phone that is
+  the difference between a tap that plays and one that doesn't) and **format**
+  (iOS Safari has no WebM audio support; Opus plays there only inside CAF).
+  Voice memos skip all of it — m4a, minutes long, streamed through `/audio/:id`.
+- **Two things about audio CANNOT be tested from a chat's sandbox** (both cost
+  real debugging time — don't re-derive them): ffmpeg's **direct HTTP seek**
+  fails because the sandbox's outbound HTTPS proxy is one ffmpeg can't use (it
+  exits 2 with no message and falls back to downloading the source), and a
+  headless browser has **no network to `storage.googleapis.com` at all**, so
+  in-browser playback of any Storage URL is untestable — a `MEDIA_ERR code 4`
+  there is a network failure, NOT proof of a codec problem. Verify playback on
+  the phone.
+- **The index** lives at Storage `search-index/index-v1.json` (~10MB, ~600ms to
+  load, ~49MB heap) and is cached in process for 15 min. Built from Firestore +
+  the memo manifest; a rebuild is FREE (no paid API) and runs as a background
+  job via `POST /reindex` (the page has a "Rebuild the index" button). A
+  missing index builds itself on first use. **Re-index after ingesting new
+  videos or a batch of memos**, or they aren't findable.
+- **Chunks OVERLAP on purpose** (step 30s / span 48s; memos 700 chars / step
+  460). Terms are ANDed, so two words spoken in one breath either side of a
+  boundary would find NOTHING — "darius pyramids" really did miss the memo that
+  says "Darius is like … he describes how the pyramids are like a chamber"
+  because a 700-char cut fell between them. `search()` then dedupes the
+  near-duplicate hits overlap creates (by timestamp for interviews, by chunk
+  adjacency for memos).
+- **A term may match the recording's TITLE instead of its words**, scored well
+  below a spoken match and left out of the proximity test. Without it "darius
+  pyramids" finds nothing in the one interview entirely about Darius, because
+  YouTube's auto-caption mis-hears his name in the first sentence ("my name is
+  sh right") and he is never named again.
+- **TWO MODES, a chip row under the kind filter.** **WORDS** (default) is
+  keyword: ANDed terms, `"quoted phrases"`, proximity scoring, prefix matches
+  at a discount, word-boundary matching (so "art" never hits inside "heart").
+  Instant and free. **MEANING** is embeddings — "the part where he explains how
+  the heart holds the soul in" finds it without knowing a word of the wording.
+  Only Words highlights the query in a passage (a meaning hit needn't contain
+  the words, and marking nothing would imply the match was lexical).
+- **The vectors (Aug 2026, live).** Every chunk embedded ONCE with
+  `text-embedding-3-small` at `dimensions: 512` (the model's Matryoshka
+  property — a truncated vector still works), re-normalised and quantized to
+  **int8**: 12,905 × 512 × 1 byte = **6.3MB** at Storage
+  `search-index/vectors-v1.bin` (+ a small `-v1.json` meta), loaded as ONE
+  Buffer with no JSON parsing. Native 1536-dim float32 would have been 79MB.
+  Whole-library cost was **$0.046**, ~16s; a query costs one tiny embedding
+  (~$0.000002) and a linear dot-product pass (~150ms).
+- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt` + chunk count must
+  match). Chunk N in the vector file has to be chunk N in the index, so a
+  reindex that re-chunks makes them stale — meaning search returns **409 with
+  `code:'stale-vectors'`** (or `'no-vectors'`) and the page offers a one-tap
+  re-embed with the price on the button, instead of silently ranking against
+  the wrong passages. **Re-embed after any reindex that changes chunking.**
+- **Similarity is a RANKING, not a set — hence two floors.** Every chunk gets a
+  score, so with no cut-off "the heart holds the soul" honestly reported
+  **1,080** passages and pure nonsense still reported 23. Measured on this
+  library: a good query tops out ~0.54 and decays slowly, nonsense tops ~0.31.
+  So: **absolute floor 0.38** (nonsense returns nothing at all) **plus a
+  relative floor of 0.85 × the top hit** (a strong query answers with its
+  handful, a vague one can't pad itself out).
+- **`embed()` retries transient failures, and that is not boilerplate.** The
+  first real run died on a plain OpenAI **500 at 4,800 of 12,905** chunks and
+  threw away every embedding already PAID FOR, because one bad response failed
+  the whole job. 429/5xx now retry with backoff (5 attempts); a 4xx is
+  permanent and fails immediately.
+- **`/api/search/audio/:id` widens an existing restriction, on purpose.**
+  `memo-audio/**` is readable only by a signed-in Firebase user, and
+  `/api/memos/audio/:id` deliberately serves ONLY `cat:'dream'` recordings to
+  keep the other ~940 locked down. A hit you can't play isn't a result, so
+  Search's own route serves ANY memo — behind the same STUDIO_TOKEN gate. One
+  streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
+  `GET /?q=&mode=words|meaning&kind=&limit=&offset=`, `GET /sources`,
+  `POST|GET /reindex`, **`POST|GET /embed`** (build/inspect the vectors),
+  `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
+  Deep link a query with `/search?q=darius`.
+- **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
+  waiting for `loadedmetadata` BEFORE calling `play()` deadlocks — nothing
+  loads until play, so the event never fires. `play()` must be called
+  synchronously in the tap (iOS also requires that) and the seek hangs off
+  `loadedmetadata` as a backstop.
+- iOS: `SearchView.swift` = the Episode Editor wrapper pattern (native
+  `.forgeToolBar("Search")`, chevron asks `window.__navBack` then the web
+  view's own history — a memo hand-off really does navigate to
+  `/cuttingroom` — `__nativeNavBar` injected, audio paused on screen
+  changes). Page changes ship via Render deploy; the wrapper needs TestFlight.
+
+## Cut Marks (mark your own cuts on a playhead — video or audio)
+- `cutmarks.js` (`/api/cutmarks`, page at `/cutmarks`, iOS tile "Cut Marks",
+  SF Symbol `timeline.selection`, deep link `deckfactory://cutmarks`) — the
+  **manual** sibling of the Cutting Room (Aug 2026, Sophie's ask): no
+  transcript, no waveform — she plays the file, taps the scissors at the
+  exact spot, and the marks split it into PIECES she keeps or drops; render
+  bakes one new file. Opens recordings from the audio drop AND videos from
+  the Dump (`media:'video'` docs) — one room either way.
+- **The transport is small on purpose** (Sophie rejected the big five-speed
+  shuttle in the mockup: "just to keep playing the video"): a slim horizontal
+  three-button pill — back 2s · play/pause · forward 2s — plus tap-the-strip
+  to jump. Precision lives on the MARK, not the playhead: each mark row has
+  −.1/+.1 nudges and tap-its-time-to-jump. Everything is a tap (wrist rule).
+  **The transport sits CENTERED right under the video/audio card** (Aug 2026,
+  Sophie: "so it's right there"), not in the bottom bar; the fixed bottom bar
+  is just time + the MARK scissors. **Undo, render and "?" are SMALL header
+  icons** (30px, top-right before the pill's reserved corner) — undo is a
+  session-only snapshot stack (marks + drops, capped 40); renders never
+  overwrite anything so they need no undo. In native builds the page hides
+  its EYEBROW too (`body.native .eyebrow`) — the nav bar already says CUT
+  MARKS and Sophie flagged the double.
+- **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
+  them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
+  a nudge keeps the same pieces, an added mark splits one (both halves stay
+  dropped), a removed mark merges two (merged piece stays dropped only when
+  both halves were). Without the remap, nudging a boundary silently
+  un-dropped the piece beside it — caught in testing, don't regress it.
+- **Renders are exact cuts at the marked times.** Audio: one atrim+concat
+  filtergraph with 12ms edge micro-fades so a manual cut never clicks — NO
+  loudnorm (her voice rule), channels kept. Video: ONE `filter_complex`
+  trim/atrim+concat pass with a single encode (libx264 veryfast, aac) —
+  deliberately not per-piece files + concat demuxer, because concatenated
+  AAC pieces add ~24ms priming per join and walk the sound off the picture
+  (the Scratch Pad film finding). A soundless video renders video-only
+  (`hasAudio` probed at open). Audio renders also file into the audio
+  library (batch `cut-marks`, track `cutmarks`, hash-deduped).
+- **Data:** one doc per file in `forge-cutmarks` (deckfactory),
+  content-addressed by sha1 of the url (reopening resumes): `{ id, title,
+  kind, source, seconds, hasAudio, marks:[t], dropped:[key], renders (capped
+  8), job }`. `POST /:id/state {marks, dropped}` saves the whole marking
+  state (the page debounces 600ms, flushes via sendBeacon on pagehide).
+  Probe + render are background jobs on the doc (house rule); the page polls
+  and resumes from `localStorage['cutmarks_open']`.
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /sources`,
+  `GET /`, `POST /open {url, name, kind, itemId, poster}`, `GET /:id`,
+  `POST /:id/state`, `POST /:id/title`, `POST /:id/render`, `GET /:id/job`,
+  `DELETE /:id`. Tests: keptSegments/audioGraph/videoGraph are exported;
+  render graphs validated against real files (exact durations), page flow
+  validated headless (playwright).
+- iOS: `CutMarksView.swift` = the Episode Editor wrapper pattern (native
+  `.forgeToolBar("Cut Marks")`, chevron asks `window.__navBack`,
+  `__nativeNavBar` hides the page back button, media paused on screen
+  changes — `audio,video` both). Page carries the injected shared pill;
+  native pill suppressed in RootView's `showAutoScroll`.
+## Getting original art OUT of a Google Drawing (Aug 2026)
+Sophie's old scanned artwork lives inside Google Drawings — for a lot of it
+those embedded copies are the only ones left. **The SVG export is the only way
+out at full size**, and `scripts/gdrawing-extract.py` (stdlib only) does the
+whole job: `python3 scripts/gdrawing-extract.py <url-or-id> [-o dir] [--list]`.
+- **Why SVG:** File ▸ Download ▸ PNG/JPEG flattens the whole drawing to ONE
+  image at **screen size** (~1056x816 — useless for print). The SVG export
+  instead embeds every placed image as its own base64 blob at the size Google
+  stored it, so splitting the SVG apart returns each picture individually at
+  full resolution.
+- **Don't reach for the Drive API export** (`download_file_content`,
+  `mimeType=image/svg+xml`): it has a hard **~10MB cap** and answers *"File too
+  large for export"* for any drawing full of scans. The plain public URL
+  `https://docs.google.com/drawings/d/<id>/export/svg` has no such cap (84MB
+  came down fine) — that's what the script uses.
+- **It needs link sharing.** That URL is unauthenticated, so a restricted
+  drawing 401s; Sophie sets Share ▸ General access ▸ "Anyone with the link"
+  (Viewer is enough) and can set it back afterwards. The script prints exactly
+  that instruction on a 401 instead of a stack trace.
+- **Reading the sizes:** anything sitting EXACTLY on **2500px** hit Google's
+  upload resize ceiling, so the original was bigger; anything under it is the
+  size she uploaded. **2500 applies to PNG as well as JPEG** — an earlier note
+  here claimed PNGs capped at 2048, which is wrong (2048 is just a common
+  export size, and PNGs come out at 2500 all the time). Either way it is the
+  biggest copy that still exists. Bytes are Google's re-encode (same pixels,
+  metadata stripped), never the byte-for-byte original file.
+- Duplicates are skipped by content hash — drawings copied from other drawings
+  repeat images heavily (one 46-image drawing shared 9 with its sibling).
+- **A two-figure image** (two people in one placed picture, often on a
+  transparent background) splits cleanly on the empty alpha column between
+  them, then composites onto white — Pillow + numpy, see the Blake-and-Louis
+  pair in the Aug 2026 chat.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
@@ -2168,10 +2780,12 @@ slots are short centered dashes.
   where it goes. **The pad is four to a row and incomplete rows CENTER**
   (flex, not grid — the first beat sits in the middle of the top, Sophie's
   spec). Tapping a beat opens a popup: **an opaque cream/white CARD with a
-  light border that nearly fills the screen but leaves a sliver of the pad
-  visible around its edges (Aug 2026, Sophie) — NOT a dark lightbox scrim;
-  everything lives ON the card** (`#beatcard`, controls styled ink-on-cream,
-  tap the edge or the card's empty cream to close) — the art at THUMBNAIL
+  light border, centered and only as TALL as its contents — a full-height
+  card was "too tall" (Aug 2026, Sophie) — with the pad visible all around
+  it; NOT a dark lightbox scrim; everything lives ON the card**
+  (`#beatcard`, screen-capped + scrolls inside if it overflows, controls
+  styled ink-on-cream, tap anywhere off the controls — the surrounding pad
+  or the card's empty cream — to close) — the art at THUMBNAIL
   size (never blown up — Sophie's spec), five bare color chips (gray/
   mustard/green/blue/pink) that set the FRAME color and keep the popup
   open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
@@ -2204,8 +2818,8 @@ slots are short centered dashes.
   tile when empty, in a row ABOVE the picture when it already has one:
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
-  with `refs/evan-film-style.png` as the style ref and, by default,
-  `refs/sophie-character.png` as the character card; the prompt defaults to
+  with `refs/sage-sandy-mirror.png` as the style ref and, by default,
+  `refs/sophie-book.png` as the character card; the prompt defaults to
   the beat's own words, quality low/medium/high default medium, NO style
   picker — one style per story; superseded art goes to `beat.imageHistory`,
   never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
@@ -2272,7 +2886,7 @@ slots are short centered dashes.
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
   Its style is settled (Aug 2026) and the headline rule is counter-intuitive:
-  **write NO style description at all** — attach `refs/evan-film-style.png` and
+  **write NO style description at all** — attach `refs/sage-sandy-mirror.png` and
   say only to use it as a style reference, not its content, colors not required.
   Written style blocks were tested and rejected. gpt-image-2 edits, quality
   **medium** (not high), **1024x1536** portrait. Evan's locked character
@@ -2365,7 +2979,15 @@ the `forge-stories` collection is retired (see migration below).
   `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
   secrets; `imageforge_ref` input picks the imageforge branch). Page/content
   changes ship via Render deploy — no build.
-- Approvals happen in chat with Sophie; sync after flipping statuses.
+- **The approve/candidate step is PARKED (Aug 2026, Sophie: "we don't really
+  use it anymore… we might put it back in eventually").** The data model keeps
+  it — a card still carries `status` (`approved`/`ok` > `candidate`/`cand` >
+  `draft` > `miss`), the draft-film stitcher still prefers the best-status art
+  per beat, and `/api/story/status` still flips it — so turning the flow back
+  on is a UI change, not a migration. But **nothing user-facing may show
+  approval state**: no approved-vs-made counts, no "0 of 12 approved" bars, no
+  candidate language on a story page or a Compare page. Approvals happened in
+  chat with Sophie when the flow was live; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix
   anything that breaks.

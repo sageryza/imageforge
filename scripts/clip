@@ -1,0 +1,186 @@
+#!/bin/bash
+# clip — pull short CLIPS out of a YouTube video. Run this on YOUR OWN Mac.
+#
+#   cd ~/imageforge && ./scripts/clip "https://www.youtube.com/watch?v=XXXXXXXXXXX"
+#   # ...then paste one line per clip and press Return on an empty line:
+#   #     00:25:48-00:26:06 mailbox
+#   #     1:02:10-1:02:40   the dog on the porch
+#   # → clips/XXXXXXXXXXX/01-mailbox.mp4, 02-the-dog-on-the-porch.mp4
+#
+# This is the committed version of the yt-dlp one-liners that used to get
+# pasted into chat by hand, e.g.
+#   yt-dlp --cookies-from-browser chrome -f "$F" --force-keyframes-at-cuts \
+#          --download-sections '*00:25:48-00:26:06' -o '03-mailbox.%(ext)s' "$U"
+# Re-typing that four times with different timestamps is where the mistakes
+# came from, so the whole thing is one command now.
+#
+# WHY IT RUNS LOCALLY: YouTube bot-blocks datacenter IPs, so a cloud chat can
+# never download a video. Same reason as scripts/grab.
+#
+# COOKIES (this is what makes age-gated / "sign in to confirm your age" work).
+# yt-dlp borrows your logged-in YouTube session. Two ways, tried in order:
+#   1. An exported cookies file — the reliable one. Chrome extension "Get
+#      cookies.txt LOCALLY", visit youtube.com signed in, Export. Drop it in
+#      ~/Downloads and this script finds it automatically.
+#   2. Straight from Chrome (--cookies-from-browser). Needs no export, BUT on
+#      a Mac it can raise a keychain prompt ("Chrome Safe Storage") that only
+#      takes your Mac LOGIN password, and if that's drifted out of sync there's
+#      no way past it. That's why an exported file wins when both exist.
+# A cookies file IS your logged-in session — delete it when you're done.
+#
+# OPTIONS
+#   --spans "00:01:02-00:01:20 name"   one clip without the paste prompt
+#                                      (repeatable)
+#   --cookies PATH   use this cookies.txt
+#   --browser NAME   pull cookies from this browser instead (chrome, safari…)
+#   --no-cookies     don't send cookies at all
+#   --format FMT     yt-dlp format selector (default: best mp4 video+audio)
+#   --out DIR        where clips land (default: clips/<videoId>)
+#   --dry-run        print the yt-dlp commands, download nothing
+#
+# Needs yt-dlp + ffmpeg:  brew install yt-dlp ffmpeg
+# Costs nothing — no paid API calls.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+URL=""
+FORMAT='bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/b'
+OUTDIR=""
+COOKIE_FILE=""
+BROWSER=""
+NO_COOKIES=0
+DRY=0
+SPANS=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --spans)      SPANS+=("$2"); shift 2 ;;
+    --cookies)    COOKIE_FILE="$2"; shift 2 ;;
+    --browser)    BROWSER="$2"; shift 2 ;;
+    --no-cookies) NO_COOKIES=1; shift ;;
+    --format|-f)  FORMAT="$2"; shift 2 ;;
+    --out|-o)     OUTDIR="$2"; shift 2 ;;
+    --dry-run)    DRY=1; shift ;;
+    -h|--help)    sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*)           echo "unknown option: $1" >&2; exit 2 ;;
+    *)            URL="$1"; shift ;;
+  esac
+done
+
+if [ -z "$URL" ]; then
+  echo "Give me the YouTube video to clip from:" >&2
+  echo "  ./scripts/clip \"https://www.youtube.com/watch?v=XXXXXXXXXXX\"" >&2
+  exit 2
+fi
+
+# --dry-run does no network and shells out to nothing, so it works anywhere
+# (same contract as nde-grab-local.py's) — only a real run needs the binary.
+if [ "$DRY" != "1" ]; then
+  command -v yt-dlp >/dev/null 2>&1 || {
+    echo "yt-dlp not found — install it with:  brew install yt-dlp ffmpeg" >&2
+    exit 1
+  }
+fi
+
+# ── video id (same shapes scripts/nde-grab-local.py accepts) ──────────
+VID="$(printf '%s' "$URL" | sed -n -E 's|.*(v=\|/shorts/\|/embed/\|youtu\.be/\|/live/)([A-Za-z0-9_-]{11}).*|\2|p')"
+if [ -z "$VID" ] && printf '%s' "$URL" | grep -qE '^[A-Za-z0-9_-]{11}$'; then
+  VID="$URL"
+  URL="https://www.youtube.com/watch?v=$VID"
+fi
+[ -n "$VID" ] || { echo "That doesn't look like a YouTube video URL or an 11-character id: $URL" >&2; exit 2; }
+[ -n "$OUTDIR" ] || OUTDIR="clips/$VID"
+
+# ── cookies: exported file first, browser second (see the header) ─────
+COOKIE_ARGS=()
+if [ "$NO_COOKIES" = "1" ]; then
+  :
+elif [ -n "$COOKIE_FILE" ]; then
+  [ -f "$COOKIE_FILE" ] || { echo "No cookies file at $COOKIE_FILE" >&2; exit 2; }
+  COOKIE_ARGS=(--cookies "$COOKIE_FILE")
+elif [ -n "$BROWSER" ]; then
+  COOKIE_ARGS=(--cookies-from-browser "$BROWSER")
+else
+  FOUND="$(ls -t "$HOME"/Downloads/*cookies*.txt 2>/dev/null | head -1 || true)"
+  if [ -n "$FOUND" ]; then
+    COOKIE_ARGS=(--cookies "$FOUND")
+    echo "Using exported cookies: $FOUND"
+  else
+    COOKIE_ARGS=(--cookies-from-browser chrome)
+    echo "Using Chrome's cookies (quit Chrome if it complains)."
+  fi
+fi
+
+# ── the clips: --spans, or paste mode ─────────────────────────────────
+if [ ${#SPANS[@]} -eq 0 ]; then
+  echo
+  echo "Paste one line per clip — a time range, then what to call it:"
+  echo "    00:25:48-00:26:06 mailbox"
+  echo "    1:02:10-1:02:40 the dog on the porch"
+  echo "Press Return on an empty line when you're done:"
+  while IFS= read -r line; do
+    [ -n "${line// /}" ] || break
+    SPANS+=("$line")
+  done
+fi
+
+[ ${#SPANS[@]} -gt 0 ] || { echo "No clips given — nothing to do." >&2; exit 1; }
+
+mkdir -p "$OUTDIR"
+echo
+echo "$([ "$DRY" = 1 ] && echo "DRY RUN — ") ${#SPANS[@]} clip(s) from $URL → $OUTDIR/"
+echo
+
+i=0
+failed=0
+for spec in "${SPANS[@]}"; do
+  i=$((i + 1))
+  RANGE="$(printf '%s' "$spec" | awk '{print $1}')"
+  NAME="$(printf '%s' "$spec" | cut -s -d' ' -f2-)"
+  # timestamps → HH:MM:SS-HH:MM:SS (M:SS and MM:SS are fine too)
+  if ! printf '%s' "$RANGE" | grep -qE '^[0-9]+(:[0-9]{1,2}){1,2}-[0-9]+(:[0-9]{1,2}){1,2}$'; then
+    echo "[$i] SKIPPED — \"$spec\" doesn't start with a time range like 00:25:48-00:26:06"
+    failed=$((failed + 1))
+    continue
+  fi
+  # name → filename-safe slug; unnamed clips just get their number
+  SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')"
+  [ -n "$SLUG" ] || SLUG="clip"
+  STEM="$(printf '%02d-%s' "$i" "$SLUG")"
+
+  if compgen -G "$OUTDIR/$STEM.*" >/dev/null 2>&1; then
+    echo "[$i] $STEM — already downloaded, skipping"
+    continue
+  fi
+
+  echo "[$i] $RANGE → $STEM"
+  # --force-keyframes-at-cuts re-encodes the edges so the clip actually starts
+  # where you asked; without it yt-dlp snaps to the nearest keyframe and you
+  # can lose a second or two off the front.
+  # ${arr[@]+"${arr[@]}"} — NOT plain "${arr[@]}". macOS ships bash 3.2, where
+  # expanding an EMPTY array under `set -u` dies with "unbound variable". That
+  # made --no-cookies (the only empty case) crash before yt-dlp ever ran.
+  CMD=(yt-dlp ${COOKIE_ARGS[@]+"${COOKIE_ARGS[@]}"} --no-playlist -f "$FORMAT"
+       --force-keyframes-at-cuts --download-sections "*$RANGE"
+       -o "$OUTDIR/$STEM.%(ext)s" "$URL")
+  if [ "$DRY" = "1" ]; then
+    printf '    '; printf '%q ' "${CMD[@]}"; printf '\n'
+    continue
+  fi
+  if ! "${CMD[@]}"; then
+    echo "    FAILED — see the yt-dlp error above"
+    failed=$((failed + 1))
+  fi
+done
+
+echo
+if [ "$DRY" = "1" ]; then
+  echo "Dry run — nothing downloaded."
+elif [ "$failed" -gt 0 ]; then
+  echo "$failed clip(s) failed. Re-run the same command — finished clips are skipped."
+  echo "If it's an age/sign-in error, the cookies are the thing to fix (see ./scripts/clip --help)."
+  exit 1
+else
+  echo "Done — clips are in $OUTDIR/"
+fi

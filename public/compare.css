@@ -1,0 +1,134 @@
+/* compare.css — the ONE shared style for Compare pages (Aug 2026, Sophie's
+   rule: "every artifact styled differently… there should be one style").
+   Every new Compare page starts from this stylesheet:
+     <link rel="stylesheet" href="/compare.css">
+   (same-origin — Compare pages are served by this server, so the link works
+   in the app and in a browser; the page stays otherwise self-contained).
+
+   WHY THIS FILE ALSO FIXES THE PILL: the server-injected autoscroll pill
+   styles itself with the host page's CSS variables (--ink / --paper / --chg /
+   --ink2 / --rose). A page that never defines them renders the pill BLACK on
+   transparent — which is exactly what hand-rolled Compare pages did. The
+   tokens below are therefore load-bearing: define them (or link this file)
+   and the pill comes out right.
+
+   The look = the Chats app's reference look: warm paper, gold accent, serif
+   body, flat colors. House rules baked in: NO gradients, NO pills on text
+   buttons (6px radius), [hidden] always wins.
+
+   Standard skeleton (see CLAUDE.md "Compare pages"):
+     <link rel="stylesheet" href="/compare.css">
+     <div class="wrap">
+       <div class="eyebrow">CHAT NAME · DATE</div>
+       <h1>Title states the version and what it is</h1>
+       <div class="sub">One-line subtitle.</div>
+       ... .card / .big / .imgrow blocks ...
+     </div>
+     <script>
+       document.addEventListener('pointerdown', function(){
+         if(window.__scrollStop) window.__scrollStop(); }, true);
+     </script>
+*/
+
+:root {
+  --paper: #faf6ee;   /* page background */
+  --surface: #fffdf8; /* card background */
+  --ink: #2a2620;     /* text — the pill's border/glyphs */
+  --ink2: #6b6255;    /* secondary text — the pill's speed label */
+  --line: #e7dfd0;    /* hairlines / card borders */
+  --chg: #a8845c;     /* gold accent — the pill's active state */
+  --gold: #a8845c;
+  --rose: #c0614a;    /* flags / warnings */
+  --green: #3f6633;   /* done / good */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.55 Georgia, 'Times New Roman', serif;
+  padding: 18px 14px 80px;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 680px; margin: 0 auto; }
+
+/* Header — eyebrow over serif title, top-right corner left free for the pill */
+.eyebrow {
+  font: 700 11px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 6px; padding-right: 56px;
+}
+h1 { font-size: 26px; line-height: 1.2; font-weight: 700; margin-bottom: 4px; padding-right: 56px; }
+.sub { color: var(--ink2); font-size: 15px; margin-bottom: 22px; }
+h2 {
+  font: 700 13px/1.2 -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); margin: 30px 0 10px;
+}
+
+/* Blocks */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 14px 14px 12px; margin-bottom: 12px;
+}
+.card h3 { font-size: 19px; margin-bottom: 2px; }
+.big {
+  border: 1px solid #d9c9ac; background: #fbf3df; border-radius: 6px;
+  padding: 14px; margin-bottom: 16px; font-size: 16px;
+}
+.big b {
+  display: block; font: 700 12px/1.2 -apple-system, sans-serif;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: #8a6238; margin-bottom: 6px;
+}
+
+/* Chips — flat rounded rectangles, never pill-shaped */
+.chips { margin: 4px 0 8px; }
+.chip {
+  display: inline-block;
+  font: 600 11px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: .04em; border-radius: 6px; padding: 4px 7px;
+  margin: 2px 4px 2px 0;
+  border: 1px solid #e0d6c4; color: var(--ink2); background: #f6f0e4;
+}
+.chip.good { background: #e8f0e2; border-color: #c9dbbd; color: var(--green); }
+.chip.warn { background: #f9e9e4; border-color: #eccfc5; color: #a04f35; }
+.chip.info { background: #efe8f2; border-color: #dccfe3; color: #6b4f7d; }
+
+/* Text */
+a { color: #8a6238; text-underline-offset: 2px; }
+.mini { color: var(--ink2); font-size: 14px; }
+ul { list-style: none; }
+li { padding: 3px 0 3px 18px; position: relative; font-size: 16px; }
+li::before { content: '•'; position: absolute; left: 4px; color: #c9b48f; }
+
+/* Images — rows of two by default (Sophie's Compare rule); .three for dense
+   overview grids when she asks for more per row. Always webp display copies,
+   never raw generated PNGs. */
+.imgrow {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;
+}
+.imgrow.three { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.imgrow img { width: 100%; height: auto; border-radius: 6px; display: block; }
+figure { margin: 0; }
+figcaption { font-size: 13px; color: var(--ink2); padding-top: 4px; }
+
+/* Video — these films are PORTRAIT (1024×1536 / 1080×1920). A <video> with
+   only a width set has no aspect until its metadata loads, so it lays out in
+   the browser's default box and reads SQUARE (Sophie caught this on the Bath
+   page). `aspect-ratio: auto 2/3` means "use the real ratio once known,
+   portrait until then" — so a landscape clip is never distorted by this. */
+video {
+  display: block; width: 100%; height: auto;
+  aspect-ratio: auto 2 / 3;
+  border-radius: 6px; background: #000;
+}
+
+/* Buttons (rare on Compare pages) — rounded rectangles, flat */
+button, .btn {
+  font: 600 14px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  border: 1.5px solid var(--gold); color: var(--gold);
+  background: var(--surface); border-radius: 6px; padding: 9px 14px;
+}

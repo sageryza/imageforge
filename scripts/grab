@@ -10,6 +10,32 @@
 # scripts/nde-grab-local.py.
 set -e
 cd "$(dirname "$0")/.."
+
+# ── am I even running the current code? (local checks, never the network) ──
+# This ran for days from an old side-branch: `git pull` kept answering
+# "Already up to date" because it was faithfully updating THAT branch, so a
+# fix that was already on main never arrived and the same failure repeated
+# every run. Nothing said which version was running, so there was no way to
+# tell from the output.
+# It WARNS rather than switching by itself, deliberately: this repo's Mac
+# checkout is where chats park work-in-progress branches, and a silent
+# `git checkout` from inside a download tool can strand uncommitted work.
+# The "behind" count reads the last-fetched origin/main, so it can only
+# under-report, never cry wolf — which is why there's no cheerful
+# "you're up to date" line, only real warnings.
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+if [ -n "${BRANCH:-}" ] && [ "$BRANCH" != "HEAD" ]; then
+  if [ "$BRANCH" != "main" ]; then
+    echo "⚠️  You're on branch \"$BRANCH\", not main — this may be old code."
+    echo "   Switch and update with:"
+    echo "     cd ~/imageforge && git checkout main && git pull origin main"
+    echo
+  elif [ "$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)" != "0" ]; then
+    echo "⚠️  main is behind — update with:  git pull origin main"
+    echo
+  fi
+fi
+
 VENV=".grab-venv"
 if [ ! -x "$VENV/bin/python" ]; then
   echo "First run — setting up a private Python environment (about a minute)…"

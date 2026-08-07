@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WebKit
 
 /// One wrapper for every "a tile that hosts a gated web page" tool — the
@@ -15,6 +16,12 @@ struct GatedWebTool: View {
     let icon: String
     /// Grant the page microphone capture (Song Station records her singing).
     var mic: Bool = false
+    /// JS to run whenever `refreshTick` changes — for a page kept alive behind
+    /// a tab, which must re-read its data when she switches back to it.
+    var refreshOnAppear: String? = nil
+    /// Bump to fire `refreshOnAppear`. (A plain counter, not onAppear: a view
+    /// held alive in a ZStack only ever appears once.)
+    var refreshTick: Int = 0
 
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
@@ -46,7 +53,9 @@ struct GatedWebTool: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                GatedWebView(path: path, token: studioToken, mic: mic, failed: $loadFailed)
+                GatedWebView(path: path, token: studioToken, mic: mic,
+                             refreshJS: refreshOnAppear, refreshTick: refreshTick,
+                             failed: $loadFailed)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -59,6 +68,8 @@ private struct GatedWebView: UIViewRepresentable {
     let path: String
     let token: String
     let mic: Bool
+    let refreshJS: String?
+    let refreshTick: Int
     @Binding var failed: Bool
 
     func makeUIView(context: Context) -> WKWebView {
@@ -79,12 +90,18 @@ private struct GatedWebView: UIViewRepresentable {
         return web
     }
 
-    func updateUIView(_ web: WKWebView, context: Context) {}
+    func updateUIView(_ web: WKWebView, context: Context) {
+        guard let js = refreshJS, refreshTick != context.coordinator.lastTick else { return }
+        context.coordinator.lastTick = refreshTick
+        // Guarded: the page may still be loading when the tab is first shown.
+        web.evaluateJavaScript("if (\(js)) \(js)()", completionHandler: nil)
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: GatedWebView
+        var lastTick = 0
         init(_ parent: GatedWebView) { self.parent = parent }
 
         // The pages sit behind HTTP Basic (any user, password = studio token).
@@ -108,6 +125,27 @@ private struct GatedWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             parent.failed = true
         }
+        /// Keep her INSIDE the tool. A link on one of these pages navigates the
+        /// web view itself, and the page it lands on offers "← Hub" — which
+        /// walks her into the web hub with no way back to the app (Sophie hit
+        /// this from the Product Creator's Photo studio link). So: the tool's
+        /// own page may load; anything else opens in Safari instead, and the
+        /// tool stays put.
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard navigationAction.navigationType == .linkActivated,
+                  let url = navigationAction.request.url else {
+                decisionHandler(.allow); return
+            }
+            let mine = URL(string: MovieService.serverURL + parent.path)?.path  // query stripped
+            if url.path == mine {
+                decisionHandler(.allow)
+            } else {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            }
+        }
+
         func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
                      decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
             if let http = navigationResponse.response as? HTTPURLResponse, http.statusCode == 401 {

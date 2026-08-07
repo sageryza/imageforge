@@ -9,6 +9,26 @@ step (Google's developer-token review) — pick up wherever it left off.
 > developer token, client ID, client secret, and refresh token are shared
 > privately (in-chat / Render env vars) and never committed here.
 
+## Status as of 2026-08-07 (checked live)
+
+- **All five env vars ARE set in Render** — `GET /api/googleads/status` returns
+  `allPresent: true` and the OAuth layer validates: *"refresh token exchanged
+  for an access token — OAuth credentials are valid"*. So step 2 below is DONE.
+- **Basic access is STILL NOT granted.** A real call proves it, not the status
+  endpoint (which only checks OAuth):
+  `POST /api/googleads/keyword-ideas {"keywords":["tarot deck for beginners"]}`
+  → `"The caller does not have permission"` (PERMISSION_DENIED = developer token
+  still on Test access). Applied 2026-07-24, so this is ~2 weeks in Google's
+  queue. Nothing to do but wait — the keyword endpoints go live by themselves
+  the moment it clears.
+- **Consequence for Blog Studio:** `blog.js` already calls
+  `googleads.generateHistoricalMetrics()` to attach REAL monthly search volume
+  to each proposed keyword, and silently falls back when it 403s. So keyword
+  research is currently running on the model's *estimated* difficulty
+  (`volumeSource: "estimated"`), not real demand data. That's the honest
+  caveat until approval lands.
+- Step 1 (rotate the briefly-exposed client secret) is still open.
+
 ## Status as of 2026-07-24
 
 ### ✅ Done

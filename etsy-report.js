@@ -6,7 +6,7 @@
 // what has traffic but never sells (stalled), what a sale event should target
 // (favorites = a pre-built notify audience), and what's worth ad spend (proven
 // converters — ads multiply traffic, so send them to listings that convert).
-// Optionally has gpt-4o-mini write a short plain-English advice section on top.
+// `?advice=1` adds a short plain-English advice section on top (Claude).
 //
 // Mounted at /api/etsy/report by server.js; the phone-friendly page is /report.
 // Same STUDIO_TOKEN gate as the rest of the pipeline.
@@ -19,6 +19,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const etsy = require('./etsy');
+const anthropic = require('./anthropic');   // the advice runs on Claude
 
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 function requireToken(req, res, next) {
@@ -48,7 +49,11 @@ async function resolveShopId(explicit) {
   throw new Error('could not resolve shop_id — pass ?shop_id= or set ETSY_SHOP_ID');
 }
 
-async function buildReport({ shopId, days = 90, advice = true } = {}) {
+// `advice` defaults to FALSE on purpose (Aug 2026, Sophie: "it starts making it
+// as soon as I go to that page. I don't even click anything, and I think it
+// spends money" — she was right). Opening a page must never spend; the advice
+// is a separate deliberate tap. Pass advice:true / ?advice=1 to ask for it.
+async function buildReport({ shopId, days = 90, advice = false } = {}) {
   shopId = await resolveShopId(shopId);
   const minCreated = Math.floor(Date.now() / 1000) - days * 86400;
 
@@ -191,15 +196,18 @@ async function buildReport({ shopId, days = 90, advice = true } = {}) {
     ].filter(Boolean),
   };
 
-  if (advice && process.env.OPENAI_API_KEY && !needsReconnect) {
+  if (advice && anthropic.available() && !needsReconnect) {
     try { report.advice = await writeAdvice(report); }
     catch (err) { report.advice_error = err.message; }
   }
   return report;
 }
 
-// A short seller-advice write-up from the numbers. Deliberately cheap
-// (gpt-4o-mini, compact JSON in, ~300 words out) so it can run on every load.
+// A short seller-advice write-up from the numbers. Runs on Claude (Aug 2026,
+// Sophie) — this is advice she makes real spending decisions from, so it is
+// exactly the kind of judgment worth paying for. It no longer runs on every
+// load (see buildReport), so the per-call price stopped being the thing that
+// mattered: ~400 output tokens is well under a cent, only when she asks.
 async function writeAdvice(report) {
   const compact = {
     window_days: report.window_days,
@@ -211,40 +219,25 @@ async function writeAdvice(report) {
     ad_candidates: report.sections.ad_candidates.map(({ title, conversion, units, revenue }) => ({ title, conversion, units, revenue })),
     reviews: { count: report.reviews.count, average: report.reviews.average, low_recent: report.reviews.low_recent },
   };
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      temperature: 0.4,
-      max_tokens: 600,
-      messages: [{
-        role: 'system',
-        content: 'You advise a small handmade Etsy shop owner. Given her shop data as JSON, write friendly, concrete advice: 1) what is working, 2) which listings deserve ad budget and why, 3) what a sale/discount event should target, 4) one experiment to try this week. Short paragraphs or bullets, plain language, no tables, no markdown headers. Mention listings by name. If the data is thin, say so honestly and keep advice proportionate.',
-      }, {
-        role: 'user',
-        content: JSON.stringify(compact),
-      }],
-    }),
+  return anthropic.chat({
+    system: 'You advise a small handmade Etsy shop owner. Given her shop data as JSON, write friendly, concrete advice: 1) what is working, 2) which listings deserve ad budget and why, 3) what a sale/discount event should target, 4) one experiment to try this week. Short paragraphs or bullets, plain language, no tables, no markdown headers. Mention listings by name. If the data is thin, say so honestly and keep advice proportionate.',
+    user: JSON.stringify(compact),
+    temperature: 0.4,
+    maxTokens: 900,
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(`openai ${res.status}: ${JSON.stringify(data).slice(0, 200)}`);
-  return data.choices && data.choices[0] && data.choices[0].message.content.trim();
 }
 
 // ─── Router ─────────────────────────────────────────────────────────
 const router = express.Router();
 
-// GET /api/etsy/report?days=90&shop_id=&advice=0
+// GET /api/etsy/report?days=90&shop_id=&advice=1
+// Numbers are free; `advice=1` is the only thing here that spends money.
 router.get('/', requireToken, async (req, res) => {
   try {
     const report = await buildReport({
       shopId: req.query.shop_id,
       days: Math.min(Math.max(Number(req.query.days) || 90, 1), 365),
-      advice: req.query.advice !== '0',
+      advice: req.query.advice === '1',
     });
     res.json(report);
   } catch (err) {

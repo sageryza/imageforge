@@ -70,7 +70,7 @@ async function editWithRefs(prompt, refs, retries = 2) {
 
   console.log('downloading style refs…');
   const refs = [];
-  for (const p of ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png']) {
+  for (const p of ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png']) {
     const [buf] = await bucket.file(p).download();
     refs.push(buf);
   }

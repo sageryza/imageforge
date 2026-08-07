@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Fits the drawing centred in the 64 box at 92% — the same share the
-       Playground glyph fills, so the two custom icons match each other and
-       ToolGlyph can size them like an SF Symbol. The old blow-up was around a
-       guessed centre and pushed the tube rims off the top edge. -->
+  <g class="norm" transform="translate(0.7593 0.7593) scale(0.97627)">
+  <!-- The `norm` wrapper above is written by scripts/normalize-glyphs.py and
+       puts the ink at exactly 0.90 of the 64 box, centred — the share every
+       bundled glyph must fill for ToolGlyph's single 0.86 frame rule to size
+       them all alike. Don't hand-tune it; re-run the script.
+       (This comment used to claim 92% "the same share the Playground glyph
+       fills". Measured: the Playground filled 1.00, so the two never matched
+       and the quilt was smaller again at 0.85.) -->
   <g transform="translate(-12.30 -7.12) scale(1.3630)">
     <g transform="rotate(-14 27 30)">
       <path d="M18 10h16" fill="none" stroke="#000" stroke-width="3.6" stroke-linecap="round"/>
@@ -15,4 +19,5 @@
       <path d="M36.6 33H45.4V44a4.4 4.4 0 0 1-8.8 0z" fill="#000"/>
     </g>
   </g>
+</g>
 </svg>

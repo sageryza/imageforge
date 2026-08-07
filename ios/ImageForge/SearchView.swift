@@ -1,0 +1,164 @@
+import SwiftUI
+import UIKit
+import WebKit
+
+/// Search — one search across BOTH transcript libraries: the interview
+/// transcripts in `forge-nde-videos` and every transcribed voice memo. A
+/// result is a passage with its timestamp, and each one hands off to the tool
+/// that owns that kind of audio (interview → Episode Editor, memo → Cutting
+/// Room). Wraps the server's gated /search page (public/search.html, engine at
+/// /api/search in search.js) with the Episode Editor wrapper pattern: native
+/// tool bar carrying THE back chevron, __nativeNavBar injected so the page
+/// hides its own back button, audio paused on screen changes.
+/// Page changes ship with a Render deploy — no app build needed.
+struct SearchView: View {
+    @AppStorage("forge.studioToken") private var studioToken = ""
+    @State private var loadFailed = false
+    @State private var reloadKey = 0
+    @StateObject private var webRef = SearchWebRef()
+    @Environment(\.goBack) private var goBack
+
+    /// The page's paper (fixed light), so the nav-bar area blends into the
+    /// page instead of showing a mismatched strip. Same tokens as the Cutting
+    /// Room and the Episode Editor — the audio tools are one family.
+    static let paper = Color(red: 0.980, green: 0.969, blue: 0.945)   // --paper #FAF7F1
+    static let ink = Color(red: 0.137, green: 0.125, blue: 0.106)     // --ink #23201B
+
+    var body: some View {
+        Group {
+            if loadFailed {
+                VStack(spacing: 14) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Theme.inkSoft)
+                    Text("Couldn't open Search")
+                        .font(.headline)
+                        .foregroundStyle(Theme.ink)
+                    Text(studioToken.isEmpty
+                         ? "The studio token isn't set on this phone — ask a chat to help set it, then try again."
+                         : "Check the connection and try again.")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.inkSoft)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                    Button("Try again") { loadFailed = false; reloadKey += 1 }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .background(RoundedRectangle(cornerRadius: 6).stroke(Theme.ink, lineWidth: 1))
+                        .foregroundStyle(Theme.ink)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.bg)
+            } else {
+                SearchWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                    .id(reloadKey)
+                    .ignoresSafeArea(edges: .bottom)
+            }
+        }
+        .background(Self.paper.ignoresSafeArea())
+        .forgeToolBar("Search", tint: Self.ink, paper: Self.paper, back: navBack)
+    }
+
+    /// Search has no inner levels of its own, but a hand-off navigates the web
+    /// view to /cuttingroom — so step the web view's history first, and only
+    /// then leave the tool.
+    private func navBack() {
+        guard !loadFailed, let web = webRef.web else { goBack(); return }
+        web.evaluateJavaScript("window.__navBack ? window.__navBack() : false") { handled, _ in
+            if (handled as? Bool) == true { return }
+            if web.canGoBack { web.goBack() } else { goBack() }
+        }
+    }
+}
+
+/// Hands the loaded WKWebView up to the SwiftUI layer so the nav-bar chevron
+/// can talk to the page.
+final class SearchWebRef: ObservableObject { weak var web: WKWebView? }
+
+/// WKWebView host: answers the studio gate's HTTP Basic challenge with the
+/// token and lets the page play a hit's audio inline without a second tap.
+private struct SearchWebView: UIViewRepresentable {
+    let token: String
+    @Binding var failed: Bool
+    let webRef: SearchWebRef
+
+    func makeUIView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        // Tells the page this build's nav bar carries the back chevron, so it
+        // hides its own in-page back button (body.native) — never both.
+        config.userContentController.addUserScript(WKUserScript(
+            source: "window.__nativeNavBar = true",
+            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        let web = WKWebView(frame: .zero, configuration: config)
+        web.navigationDelegate = context.coordinator
+        web.uiDelegate = context.coordinator
+        web.isOpaque = false
+        web.backgroundColor = UIColor(red: 0.980, green: 0.969, blue: 0.945, alpha: 1) // page --paper #FAF7F1
+        // A hand-off navigates to /cuttingroom, so back/forward history is real
+        // here — but the chevron drives it, not an edge swipe.
+        web.allowsBackForwardNavigationGestures = false
+        webRef.web = web
+        if let url = URL(string: MovieService.serverURL + "/search") {
+            web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
+        }
+        context.coordinator.stopAudioOnScreenChange(web)
+        return web
+    }
+
+    func updateUIView(_ web: WKWebView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        let parent: SearchWebView
+        private var screenChangeObserver: NSObjectProtocol?
+        init(_ parent: SearchWebView) { self.parent = parent }
+
+        // This web view stays alive (hidden) when Sophie switches tabs, so a
+        // playing passage would keep talking out of a screen she can't see.
+        func stopAudioOnScreenChange(_ web: WKWebView) {
+            let pause = "document.querySelectorAll('audio').forEach(function(a){a.pause()});"
+            screenChangeObserver = NotificationCenter.default.addObserver(
+                forName: .forgeScreenChanged, object: nil, queue: .main) { [weak web] _ in
+                    web?.evaluateJavaScript(pause, completionHandler: nil)
+            }
+        }
+
+        deinit {
+            if let o = screenChangeObserver { NotificationCenter.default.removeObserver(o) }
+        }
+
+        // The /search page sits behind HTTP Basic (any user, password = token).
+        func webView(_ webView: WKWebView,
+                     didReceive challenge: URLAuthenticationChallenge,
+                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+            if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodHTTPBasic,
+               challenge.previousFailureCount == 0 {
+                completionHandler(.useCredential,
+                                  URLCredential(user: "sophie", password: parent.token, persistence: .forSession))
+            } else if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
+                completionHandler(.performDefaultHandling, nil)
+            } else {
+                completionHandler(.cancelAuthenticationChallenge, nil)
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            parent.failed = true
+        }
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            parent.failed = true
+        }
+        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                     decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            if let http = navigationResponse.response as? HTTPURLResponse, http.statusCode == 401 {
+                parent.failed = true
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
+    }
+}

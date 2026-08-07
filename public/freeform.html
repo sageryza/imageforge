@@ -127,10 +127,27 @@ function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove('show'); }, 2600);
 }
 
-// ── Any tap pauses the autoscroll pill (house rule for served pages) ─────────
-document.addEventListener('pointerdown', function () {
+// ── Autoscroll pill, the Chats-app gesture ──────────────────────────────────
+// A tap on anything INTERACTIVE (button, form field, link) pauses the scroll
+// so the page never creeps while she's working; a tap on plain content or
+// empty paper toggles it — stop, tap again to start (__scrollTap, the shared
+// pill's own content-tap gesture). Images are excluded here because the
+// lightbox open/close below owns their scroll behavior.
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  if (t && t.closest && (t.closest('#lb') || t.closest('img[data-full]'))) return;
+  var interactive = (window.__pillInteractive && window.__pillInteractive(t)) ||
+                    (t && t.closest && t.closest('.ref'));   // library tiles select refs
+  if (interactive) {
+    if (window.__scrollStop) window.__scrollStop();
+    return;
+  }
+  if (window.__scrollTap) window.__scrollTap(e);
+});
+// Typing focus (keyboard up) always pauses, even without a click landing.
+document.addEventListener('focusin', function () {
   if (window.__scrollStop) window.__scrollStop();
-}, true);
+});
 
 // ── Lightbox: pause scroll, lock the body, and RESTORE the exact position on
 // close — pausing alone is not enough, since overflow:hidden doesn't stop

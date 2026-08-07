@@ -23,7 +23,7 @@ const fs = require('fs');
 
 const router = express.Router();
 const COLLECTION = 'forge-selfcare-stamps';
-const REFS = ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'];
+const REFS = ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'];
 
 // Same line quality as the stickers, repainted pastel. The palette is stated
 // twice on purpose — the attached refs are warm gold/salmon and the model

@@ -1,0 +1,18 @@
+[
+ {"id":"grass-01-drummond",
+  "scene":"a person kneeling barefoot in a wide meadow of impossibly vivid green grass, seen from behind and slightly above so their face is not visible, one hand resting flat on the grass — the grass around their hand glowing faintly, as if warmth and affection were coming up out of it into them. A single full-bleed vertical illustration, no text or lettering anywhere."},
+
+ {"id":"grass-02-dennis",
+  "refs":["/home/user/out/nde-wc/cards/card-dennis.webp"],
+  "likeness":"The SECOND attached image is the character reference for the man in this scene. Keep the same face, same hair, same build — do not redesign the character.",
+  "scene":"that man standing in a field of otherworldly grass, looking down at his own bare feet, close enough that every single blade of grass is separately drawn and distinct — each blade lit from within. His face is calm and astonished. A single full-bleed vertical illustration, no text or lettering anywhere."},
+
+ {"id":"grass-03-vinnie",
+  "scene":"an extreme close-up of one single blade of grass held upright between two fingertips, the blade blazing with contained light far too bright for the ordinary dim landscape behind it — the light straining at the edges of the blade as if it could not be held. A single full-bleed vertical illustration, no text or lettering anywhere."},
+
+ {"id":"grass-04-ashford",
+  "scene":"a rolling green hillside where everything is visibly alive and breathing — the grass leaning and stirring, scattered stones each glowing with a slow inner pulse, the hills themselves rising and settling like the flank of a sleeping animal. No people. A single full-bleed vertical illustration, no text or lettering anywhere."},
+
+ {"id":"grass-05-thomas",
+  "scene":"a garden seen close and low: wildflowers, grass and the trunks of trees, each one lit from the inside so the light comes out through the petals and the blades and the bark rather than falling on them from a sky. A single full-bleed vertical illustration, no text or lettering anywhere."}
+]

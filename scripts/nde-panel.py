@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Render full-panel NDE illustrations in Sophie's dreamy 'pencil' style.
-Attaches refs/movie-style.jpg as a pure STYLE reference on gpt-image-2's edits
+Attaches refs/dream-mystery.jpg as a pure STYLE reference on gpt-image-2's edits
 endpoint (portrait, single full-bleed panel — no 2x2 grid, no text).
 
   python3 nde-panel.py <scenes.json> [outdir]
@@ -10,7 +10,7 @@ import base64, json, os, sys, urllib.request, uuid
 KEY = os.environ["OPENAI_API_KEY"]
 SCENES = sys.argv[1]
 OUTDIR = sys.argv[2] if len(sys.argv) > 2 else "/home/user/out/panels"
-STYLE_REF = os.environ.get("STYLE_REF", "/home/user/imageforge/refs/movie-style.jpg")
+STYLE_REF = os.environ.get("STYLE_REF", "/home/user/imageforge/refs/dream-mystery.jpg")
 QUALITY = os.environ.get("PANEL_QUALITY", "medium")
 os.makedirs(OUTDIR, exist_ok=True)
 

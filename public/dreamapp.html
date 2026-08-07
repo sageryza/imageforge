@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>dreams</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  [hidden] { display:none !important; }
+  :root {
+    --bg:#0e0e11; --ink:#ffffff; --dim:#9a9aa3; --line:#ffffff3d;
+    --fuchsia:#ff2fa0; --field:#17171c;
+  }
+  body { background:var(--bg); color:var(--ink);
+         font:15px/1.6 -apple-system, "Helvetica Neue", sans-serif; padding-bottom:100px; }
+  svg.i { width:20px; height:20px; stroke:currentColor; stroke-width:1.8; fill:none;
+          stroke-linecap:round; stroke-linejoin:round; vertical-align:-4px; }
+  .star { display:inline-block; width:20px; height:20px; vertical-align:-4px; }
+  .star svg { width:100%; height:100%; }
+
+  header { position:sticky; top:0; z-index:5; background:var(--bg); padding:16px 56px 12px 18px;
+           display:flex; align-items:baseline; gap:10px; border-bottom:1px solid var(--line); }
+  .wordmark { font-size:22px; font-weight:800; letter-spacing:-.02em; }
+  .today { font-size:13px; color:var(--dim); }
+  header .out { margin-left:auto; background:none; border:none; color:var(--dim); font-size:12px; }
+
+  main { padding:0 16px; }
+  .btn { display:block; width:100%; background:var(--fuchsia); color:#fff; border:none; border-radius:6px;
+         padding:13px 16px; font:600 15px -apple-system, sans-serif; margin-top:14px; }
+  .btn.sub { background:none; color:var(--ink); border:1px solid var(--line); }
+  .btn[disabled] { opacity:.45; }
+  .quiet { font-size:13px; color:var(--dim); margin-top:10px; }
+  .err { font-size:13px; color:var(--fuchsia); margin-top:10px; }
+
+  /* sign-in */
+  .gate { padding:60px 26px 0; max-width:420px; margin:0 auto; }
+  .gate .wordmark { font-size:34px; }
+  .gate .sub { color:var(--dim); margin:6px 0 30px; }
+  .gate input { width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px;
+                color:var(--ink); font:15px -apple-system, sans-serif; padding:13px; margin-top:10px; outline:none; }
+  .gate input:focus { border-color:var(--fuchsia); }
+  .gate .rule { display:flex; align-items:center; gap:12px; color:var(--dim); font-size:12px; margin:22px 0 8px; }
+  .gate .rule::before, .gate .rule::after { content:''; flex:1; height:1px; background:var(--line); }
+  .gate .swap { background:none; border:none; color:var(--dim); font-size:13px; margin-top:16px;
+                text-decoration:underline; }
+
+  /* feed */
+  .sealwrap { position:relative; overflow:hidden; }
+  .sealed { filter:blur(7px); pointer-events:none; user-select:none; }
+  .sealmsg { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; }
+  .sealmsg .inner { background:var(--bg); border:1px solid var(--line); border-radius:10px;
+                    padding:24px 22px; margin:0 22px; text-align:center; }
+  .sealmsg .big { font-size:17px; font-weight:700; }
+  .sealmsg .sml { font-size:13.5px; color:var(--dim); margin-top:5px; }
+
+  .post { padding:18px 2px 16px; border-bottom:1px solid var(--line); }
+  .post .ttl { color:var(--fuchsia); font-size:17px; font-weight:700; }
+  .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
+  .post .words { margin-top:9px; color:var(--ink); white-space:pre-wrap; }
+  .stars { background:none; border:none; font:inherit; font-size:13px; color:var(--dim);
+           display:flex; align-items:center; gap:7px; margin-top:11px; padding:0; }
+  .stars.on { color:var(--fuchsia); }
+  .stars.on svg.i { fill:var(--fuchsia); }
+
+  /* panels: three to a row, a lone panel stays one-third width */
+  .pgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; margin-top:11px; }
+  .pgrid img { width:100%; display:block; border-radius:6px; background:#1a1a20; }
+  .morep { width:100%; background:none; border:none; color:var(--dim); font:12.5px -apple-system, sans-serif;
+           display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 0 0; }
+
+  /* compose + dream detail */
+  .h2 { font-size:16px; font-weight:700; margin:20px 2px 10px; }
+  textarea { width:100%; background:var(--field); border:1px solid var(--line); border-radius:8px;
+             color:var(--ink); font:16px/1.6 -apple-system, sans-serif; padding:13px; min-height:140px;
+             resize:none; outline:none; }
+  textarea:focus { border-color:var(--fuchsia); }
+  .naming { color:var(--dim); font-size:14px; animation:pu 1.1s infinite alternate; }
+  @keyframes pu { from { opacity:.3; } to { opacity:1; } }
+  .drawing { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; color:var(--dim); }
+  .pulse { width:9px; height:9px; border-radius:50%; background:var(--fuchsia); animation:pu 1s infinite alternate; }
+  .skel { border-radius:6px; background:#1c1c22; animation:pu 1.1s infinite alternate; height:150px; }
+  .share-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #ffffff1c; }
+  .share-item:last-of-type { border-bottom:none; }
+  .share-item .thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; flex:none; }
+  .share-item .lab { font-size:14.5px; }
+  .share-item .st { margin-left:auto; border:1px solid var(--line); background:none; color:var(--dim);
+                    border-radius:6px; padding:6px 13px; font:600 13px -apple-system, sans-serif; min-width:80px; }
+  .share-item .st.pub { background:var(--fuchsia); border-color:var(--fuchsia); color:#fff; }
+  .badge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em;
+           text-transform:uppercase; border-radius:6px; padding:3px 8px; }
+  .badge.pub { background:var(--fuchsia); color:#fff; }
+  .badge.priv { background:#212127; color:var(--dim); }
+  .backrow { display:flex; align-items:center; gap:8px; padding:14px 0 0; }
+  .backrow button { background:none; border:none; color:var(--dim); display:flex; align-items:center;
+                    gap:5px; font:13px -apple-system, sans-serif; padding:4px 6px 4px 0; }
+
+  /* journal list */
+  .jitem { width:100%; text-align:left; background:none; border:none; color:inherit; font:inherit;
+           padding:16px 2px 14px; border-bottom:1px solid var(--line); }
+  .jitem .row { display:flex; align-items:center; gap:9px; }
+  .jitem .ttl { color:var(--fuchsia); font-weight:700; font-size:16px; }
+  .jitem .when { color:var(--dim); font-size:12.5px; margin-left:auto; }
+  .jitem .snip { color:var(--dim); font-size:13.5px; margin-top:4px;
+                 display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+  nav { position:fixed; left:0; right:0; bottom:0; z-index:10; display:flex; align-items:center;
+        justify-content:space-around; background:var(--bg); border-top:1px solid var(--line);
+        padding:8px 26px calc(10px + env(safe-area-inset-bottom)); }
+  nav button { background:none; border:none; color:var(--dim); font:11px -apple-system, sans-serif;
+               display:flex; flex-direction:column; align-items:center; gap:3px; padding:2px 10px; }
+  nav button.here { color:var(--ink); }
+  nav .mid { width:50px; height:50px; border-radius:50%; background:var(--fuchsia); color:#fff;
+             align-items:center; justify-content:center; margin-top:-16px; border:none; display:flex; }
+  nav .mid svg.i { width:25px; height:25px; stroke-width:2.2; }
+
+  .toast { position:fixed; left:50%; bottom:108px; transform:translateX(-50%); z-index:30;
+           background:var(--ink); color:#0e0e11; border-radius:6px; padding:9px 18px; font-size:13.5px;
+           font-weight:600; opacity:0; transition:opacity .25s; pointer-events:none; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <div class="wordmark">dreams</div>
+  <div class="sub">What everyone dreamt last night.</div>
+  <button class="btn" id="googleBtn">Continue with Google</button>
+  <div class="rule">or with email</div>
+  <input id="email" type="email" placeholder="email" autocomplete="email">
+  <input id="pw" type="password" placeholder="password" autocomplete="current-password">
+  <button class="btn sub" id="emailBtn">Sign in</button>
+  <button class="swap" id="swapBtn">New here? Create an account</button>
+  <div class="err" id="gateErr" hidden></div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <span class="wordmark">dreams</span>
+    <span class="today" id="todayLbl"></span>
+    <button class="out" id="signOut">sign out</button>
+  </header>
+  <main>
+    <section id="scr-feed"></section>
+    <section id="scr-mine" hidden></section>
+    <section id="scr-compose" hidden></section>
+    <section id="scr-dream" hidden></section>
+  </main>
+  <nav>
+    <button id="nav-feed" class="here"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>feed</button>
+    <button id="nav-post" class="mid" aria-label="New dream"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+    <button id="nav-mine"><svg class="i" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>my dreams</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+
+var API = '/api/dreamapp';
+var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
+var STAR_LINE = '<svg class="i" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>';
+var DOWN = '<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+var UP = '<svg class="i" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>';
+var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
+
+var fbAuth = null, user = null, signUpMode = false;
+var openDreamId = null, cameFrom = 'mine';
+
+function esc(s){ var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function toast(msg){ var t = document.getElementById('toast'); t.textContent = msg;
+  t.style.opacity = 1; setTimeout(function(){ t.style.opacity = 0; }, 2100); }
+function ago(iso){
+  var m = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (m < 60) return m + 'm';
+  var h = Math.round(m / 60);
+  if (h < 24) return h + 'h';
+  return Math.round(h / 24) + 'd';
+}
+async function api(path, opts){
+  opts = opts || {};
+  var tok = await fbAuth.currentUser.getIdToken();
+  opts.headers = Object.assign({ authorization: 'Bearer ' + tok }, opts.headers || {});
+  if (opts.body) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(opts.body); opts.method = opts.method || 'POST'; }
+  var r = await fetch(API + path, opts);
+  var j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'something went wrong');
+  return j;
+}
+
+/* ── panels: three to a row; more than three folds behind "see more" ── */
+function panelBlock(panels){
+  if (!panels.length) return '';
+  var cell = function(p){ return '<img src="' + p.url + '" alt="" loading="lazy">'; };
+  if (panels.length <= 3) return '<div class="pgrid">' + panels.map(cell).join('') + '</div>';
+  var extra = panels.length - 3;
+  return '<div class="pgrid">' + panels.slice(0, 3).map(cell).join('') + '</div>' +
+    '<div class="pgrid" data-rest hidden>' + panels.slice(3).map(cell).join('') + '</div>' +
+    '<button class="morep" data-more>' + DOWN + '<span>see more · ' + extra + '</span></button>';
+}
+function wirePanels(root){
+  root.querySelectorAll('[data-more]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var rest = btn.parentElement.querySelector('[data-rest]');
+      var open = rest.hidden;
+      rest.hidden = !open;
+      btn.innerHTML = open ? UP + '<span>see less</span>' : DOWN + '<span>see more · ' + rest.children.length + '</span>';
+    });
+  });
+}
+
+/* ── views ── */
+var scr = { feed: null, mine: null, compose: null, dream: null };
+function go(which){
+  for (var k in scr) scr[k].hidden = (k !== which);
+  document.getElementById('nav-feed').classList.toggle('here', which === 'feed');
+  document.getElementById('nav-mine').classList.toggle('here', which === 'mine' || which === 'dream');
+  window.scrollTo(0, 0);
+}
+
+/* ── feed ── */
+async function renderFeed(){
+  var el = scr.feed;
+  try {
+    var f = await api('/feed');
+    if (f.sealed) {
+      var ghosts = '';
+      for (var i = 0; i < 3; i++) {
+        ghosts += '<div class="post"><div class="ttl">Somewhere a Door Kept Opening</div>' +
+          '<div class="meta">a dreamer · last night</div>' +
+          '<div class="words">The stairwell went down further than the building did and everyone acted like that was normal…</div></div>';
+      }
+      el.innerHTML =
+        '<div class="sealwrap"><div class="sealed">' + ghosts + '</div>' +
+        '<div class="sealmsg"><div class="inner">' +
+        '<div class="big">' + f.count + ' dream' + (f.count === 1 ? '' : 's') + ' from last night</div>' +
+        '<div class="sml">Share one of yours to read them. The feed opens for the rest of the day.</div>' +
+        '<button class="btn" id="gateGo">share a dream</button>' +
+        '</div></div></div>';
+      document.getElementById('gateGo').addEventListener('click', function(){ openCompose(); });
+      return;
+    }
+    if (!f.dreams.length) {
+      el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
+      return;
+    }
+    el.innerHTML = f.dreams.map(function(d){
+      return '<article class="post" data-id="' + d.id + '">' +
+        '<div class="ttl">' + esc(d.title) + '</div>' +
+        '<div class="meta">' + esc(d.mine ? 'you' : d.name) + ' · ' + ago(d.createdAt) + '</div>' +
+        (d.words ? '<div class="words">' + esc(d.words) + '</div>' : '') +
+        panelBlock(d.panels) +
+        '<button class="stars' + (d.felt ? ' on' : '') + '">' + STAR_LINE + '<span>' + d.feltCount + ' felt this</span></button>' +
+        '</article>';
+    }).join('');
+    wirePanels(el);
+    el.querySelectorAll('.post').forEach(function(post){
+      var btn = post.querySelector('.stars');
+      btn.addEventListener('click', function(){
+        api('/dreams/' + post.dataset.id + '/felt').then(function(r){
+          btn.classList.toggle('on', r.felt);
+          btn.querySelector('span').textContent = r.feltCount + ' felt this';
+        }).catch(function(e){ toast(e.message); });
+      });
+    });
+  } catch (e) {
+    el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
+  }
+}
+
+/* ── compose ── */
+function openCompose(){
+  scr.compose.innerHTML =
+    '<div class="h2" style="margin-top:18px">What did you dream?</div>' +
+    '<textarea id="cap" placeholder="let it spill out…"></textarea>' +
+    '<button class="btn" id="saveBtn">save dream</button>' +
+    '<div class="quiet">It saves to my dreams first — sharing is its own step.</div>';
+  go('compose');
+  document.getElementById('saveBtn').addEventListener('click', async function(){
+    var t = document.getElementById('cap').value.trim();
+    if (!t) { document.getElementById('cap').focus(); return; }
+    this.disabled = true;
+    try {
+      var d = await api('/dreams', { body: { text: t } });
+      toast('saved to my dreams');
+      openDream(d.id, 'mine');
+    } catch (e) { toast(e.message); this.disabled = false; }
+  });
+}
+
+/* ── one dream (detail: name, draw, share) ── */
+var dreamPoll = null;
+function openDream(id, from){
+  openDreamId = id; cameFrom = from || 'mine';
+  go('dream');
+  renderDream();
+}
+async function renderDream(){
+  clearTimeout(dreamPoll);
+  var el = scr.dream;
+  var d;
+  try { d = await api('/dreams/' + openDreamId); }
+  catch (e) { el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
+
+  var drawing = d.drawJob && d.drawJob.status === 'drawing';
+  var failed = d.drawJob && d.drawJob.status === 'failed';
+  var shared = !!d.publicOn;
+  var drawBlock;
+  if (drawing) {
+    drawBlock = '<div class="drawing"><span class="pulse"></span>drawing your dream…</div>' +
+      '<div class="pgrid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>' +
+      '<div class="quiet">You can leave — the drawing will be here when it’s done.</div>';
+  } else if (d.panels.length) {
+    drawBlock = panelBlock(d.panels);
+  } else {
+    drawBlock = '<button class="btn sub" id="drawBtn"><span class="star" style="color:var(--fuchsia)">' + STAR + '</span> draw it</button>' +
+      (failed ? '<div class="err">' + esc(d.drawJob.error) + '</div>' : '');
+  }
+  var shareRows = '';
+  if (!drawing) {
+    shareRows = shareItem('words', 'your words', null, d.wordsPublic, shared) +
+      d.panels.map(function(p){
+        return shareItem('p' + p.i, 'panel ' + (p.i + 1), p.url, p.public, shared);
+      }).join('');
+  }
+  el.innerHTML =
+    '<div class="backrow"><button id="backBtn">' + BACK + 'back</button></div>' +
+    '<div class="post" style="border-bottom:none">' +
+    (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
+    '<div class="meta">' + ago(d.createdAt) + ' ago · ' +
+    (shared ? '<span class="badge pub">in today’s feed</span>' : '<span class="badge priv">private</span>') + '</div>' +
+    '<div class="words">' + esc(d.text) + '</div>' +
+    drawBlock + '</div>' +
+    (shareRows
+      ? '<div class="h2">Share</div>' + shareRows +
+        (shared ? '<div class="quiet">In today’s feed until midnight.</div>'
+                : '<button class="btn" id="shareBtn">share to today’s feed</button>')
+      : '');
+  wirePanels(el);
+  document.getElementById('backBtn').addEventListener('click', function(){
+    clearTimeout(dreamPoll);
+    if (cameFrom === 'feed') { renderFeed(); go('feed'); } else { renderMine(); go('mine'); }
+  });
+  var drawBtn = document.getElementById('drawBtn');
+  if (drawBtn) drawBtn.addEventListener('click', async function(){
+    this.disabled = true;
+    try { await api('/dreams/' + openDreamId + '/draw', { body: {} }); renderDream(); }
+    catch (e) { toast(e.message); this.disabled = false; }
+  });
+  el.querySelectorAll('[data-t]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (shared) return;
+      b.classList.toggle('pub');
+      b.textContent = b.classList.contains('pub') ? 'public' : 'private';
+    });
+  });
+  var shareBtn = document.getElementById('shareBtn');
+  if (shareBtn) shareBtn.addEventListener('click', async function(){
+    var words = el.querySelector('[data-t="words"]').classList.contains('pub');
+    var panels = [];
+    el.querySelectorAll('[data-t]').forEach(function(b){
+      if (b.dataset.t !== 'words' && b.classList.contains('pub')) panels.push(parseInt(b.dataset.t.slice(1), 10));
+    });
+    this.disabled = true;
+    try {
+      await api('/dreams/' + openDreamId + '/share', { body: { words: words, panels: panels } });
+      toast('you’re in today’s feed');
+      await renderFeed();
+      go('feed');
+    } catch (e) { toast(e.message); this.disabled = false; }
+  });
+  // keep polling while the name or a drawing is still landing
+  if (!d.title || drawing) dreamPoll = setTimeout(renderDream, drawing ? 4000 : 1500);
+}
+function shareItem(key, label, thumb, on, locked){
+  return '<div class="share-item">' + (thumb ? '<img class="thumb" src="' + thumb + '" alt="">' : '') +
+    '<span class="lab">' + label + '</span>' +
+    '<button class="st' + (on ? ' pub' : '') + '" data-t="' + key + '"' + (locked ? ' disabled' : '') + '>' +
+    (on ? 'public' : 'private') + '</button></div>';
+}
+
+/* ── my dreams ── */
+async function renderMine(){
+  var el = scr.mine;
+  try {
+    var r = await api('/dreams');
+    if (!r.dreams.length) {
+      el.innerHTML = '<div class="quiet" style="padding-top:30px">No dreams yet — tap + when you wake up with one.</div>';
+      return;
+    }
+    el.innerHTML = r.dreams.map(function(d){
+      var drawing = d.drawJob && d.drawJob.status === 'drawing';
+      return '<button class="jitem" data-id="' + d.id + '"><div class="row">' +
+        '<span class="ttl">' + esc(d.title || 'finding its name…') + '</span>' +
+        (d.publicOn ? '<span class="badge pub">shared</span>' : '<span class="badge priv">private</span>') +
+        (drawing ? '<span class="naming">drawing…</span>' : '') +
+        '<span class="when">' + ago(d.createdAt) + '</span></div>' +
+        '<div class="snip">' + esc(d.text) + '</div></button>';
+    }).join('');
+    el.querySelectorAll('.jitem').forEach(function(b){
+      b.addEventListener('click', function(){ openDream(b.dataset.id, 'mine'); });
+    });
+  } catch (e) {
+    el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
+  }
+}
+
+/* ── auth ── */
+function loadScript(src){ return new Promise(function(ok, bad){
+  var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s); }); }
+
+async function boot(){
+  scr.feed = document.getElementById('scr-feed');
+  scr.mine = document.getElementById('scr-mine');
+  scr.compose = document.getElementById('scr-compose');
+  scr.dream = document.getElementById('scr-dream');
+
+  var cfg = await (await fetch('/api/witch/firebase-config')).json();
+  var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+  await loadScript(base + 'firebase-app-compat.js');
+  await loadScript(base + 'firebase-auth-compat.js');
+  firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId,
+    storageBucket: cfg.storageBucket, messagingSenderId: cfg.messagingSenderId, appId: cfg.appId });
+  fbAuth = firebase.auth();
+
+  fbAuth.onAuthStateChanged(function(u){
+    user = u;
+    document.getElementById('gate').hidden = !!u;
+    document.getElementById('app').hidden = !u;
+    if (u) {
+      var today = new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles',
+        weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
+      document.getElementById('todayLbl').textContent = today;
+      renderFeed(); renderMine(); go('feed');
+    }
+  });
+
+  document.getElementById('googleBtn').addEventListener('click', async function(){
+    hideErr();
+    try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    catch (e) { showErr(e.message); }
+  });
+  document.getElementById('emailBtn').addEventListener('click', async function(){
+    hideErr();
+    var email = document.getElementById('email').value.trim();
+    var pw = document.getElementById('pw').value;
+    if (!email || !pw) return showErr('email and password, both');
+    try {
+      if (signUpMode) await fbAuth.createUserWithEmailAndPassword(email, pw);
+      else await fbAuth.signInWithEmailAndPassword(email, pw);
+    } catch (e) { showErr(e.message.replace(/^Firebase: /, '').replace(/ \(auth.*\)\.?$/, '')); }
+  });
+  document.getElementById('swapBtn').addEventListener('click', function(){
+    signUpMode = !signUpMode;
+    document.getElementById('emailBtn').textContent = signUpMode ? 'Create account' : 'Sign in';
+    this.textContent = signUpMode ? 'Have an account? Sign in' : 'New here? Create an account';
+  });
+  document.getElementById('signOut').addEventListener('click', function(){ fbAuth.signOut(); });
+
+  document.getElementById('nav-feed').addEventListener('click', function(){ renderFeed(); go('feed'); });
+  document.getElementById('nav-mine').addEventListener('click', function(){ renderMine(); go('mine'); });
+  document.getElementById('nav-post').addEventListener('click', openCompose);
+}
+function showErr(m){ var e = document.getElementById('gateErr'); e.textContent = m; e.hidden = false; }
+function hideErr(){ document.getElementById('gateErr').hidden = true; }
+
+boot();
+</script>
+</body>
+</html>

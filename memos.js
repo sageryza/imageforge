@@ -352,14 +352,32 @@ router.post('/ingest', gate, express.raw({ type: '*/*', limit: '120mb' }), async
 // Deliberately narrow: it serves ONLY recordings the archive categorises as
 // dreams, so the other ~940 private recordings stay exactly as locked down as
 // they are today.
+//
+// `streamMemoAudio` below is the SAME streamer without that category filter —
+// Search (search.js) plays any hit it returns, behind its own studio gate.
+// Keep the range/content-type handling here only; two copies would drift.
 router.get('/audio/:id', gate, async (req, res) => {
   try {
     const id = String(req.params.id || '');
     if (!/^[\w.\-:]{8,120}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+    await streamMemoAudio(id, req, res, { dreamsOnly: true });
+  } catch (err) {
+    if (!res.headersSent) res.status(502).json({ error: err.message });
+  }
+});
+
+// Stream one archived recording, with byte-range support so scrubbing works
+// instead of re-downloading on every seek. `dreamsOnly` keeps the historical
+// restriction on the public-ish dream archive route above; Search passes it
+// false because a search hit you cannot play is not a result.
+async function streamMemoAudio(id, req, res, { dreamsOnly = false } = {}) {
+  try {
     const { manifest } = await readManifest();
     const memo = manifest.memos.find(m => m.id === id || m.file === id);
     if (!memo) return res.status(404).json({ error: 'not in the archive' });
-    if (memo.cat !== 'dream') return res.status(403).json({ error: 'only dream recordings are served here' });
+    if (dreamsOnly && memo.cat !== 'dream') {
+      return res.status(403).json({ error: 'only dream recordings are served here' });
+    }
 
     const f = (await bucket()).file(`${PREFIX}/${memo.file}`);
     const [exists] = await f.exists();
@@ -398,6 +416,8 @@ router.get('/audio/:id', gate, async (req, res) => {
   } catch (err) {
     if (!res.headersSent) res.status(502).json({ error: err.message });
   }
-});
+}
 
-module.exports = { router, init, fileIntoArchive, md5Of };
+// readManifest is exported so Search can index the archive's transcripts
+// without a second copy of the manifest contract.
+module.exports = { router, init, fileIntoArchive, md5Of, readManifest, streamMemoAudio };

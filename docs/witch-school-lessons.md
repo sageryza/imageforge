@@ -83,8 +83,8 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 
 ```json
 {
-  "refs": ["storage:witch-school/refs/style-1.png",
-           "storage:witch-school/refs/style-2.png"],
+  "refs": ["storage:witch-school/refs/sophie-snake.png",
+           "storage:witch-school/refs/sophie-animals.png"],
   "cards": [
     { "id": "xx-01", "char": true, "prompt": "A woman ..." },
     { "id": "xx-02", "prompt": "Three simple emblems ..." }

@@ -202,6 +202,40 @@ router.post('/session', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Untangle a collided/forked thread: re-key every message from one slug to
+// another so two halves of the same conversation become one. Needed because a
+// session-first fork (a session whose messages landed under a suffixed slug
+// while the pretty slug it belongs to held the other half) can only be joined
+// by moving the messages — /thread filters on the exact `chat` field, so a
+// registry tombstone alone won't merge them. `postedAt` is refreshed so open
+// clients pick the moved messages up on their next delta poll. `?dry` counts
+// without writing. Tombstones the source registry doc (movedTo → to) so its
+// tile redirects. Gated like the rest of the module.
+router.post('/reassign', async (req, res) => {
+  try {
+    const from = String((req.body || {}).from || '').slice(0, 60);
+    const to = String((req.body || {}).to || '').slice(0, 60);
+    const dry = Boolean((req.body || {}).dry);
+    if (!from || !to) return res.status(400).json({ error: 'from and to required' });
+    if (from === to) return res.status(400).json({ error: 'from and to are the same' });
+    const snap = await db().collection(MSGS).where('chat', '==', from).get();
+    if (dry) return res.json({ ok: true, dry: true, wouldMove: snap.size, from, to });
+    const now = new Date().toISOString();
+    let moved = 0;
+    // Firestore batches cap at 500 writes; chunk to stay under it.
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db().batch();
+      for (const d of snap.docs.slice(i, i + 400)) {
+        batch.set(d.ref, { chat: to, postedAt: now }, { merge: true });
+        moved++;
+      }
+      await batch.commit();
+    }
+    await regRef(from).set({ movedTo: to }, { merge: true });
+    res.json({ ok: true, moved, from, to });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/', async (req, res) => {
   try {
     // Without this the app's webview heuristically caches the feed (no
@@ -634,6 +668,44 @@ router.post('/bookmark', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'id required' });
     await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
     res.json({ ok: true, bookmarked: !!bookmarked });
+  } catch (err) { fail(res, err); }
+});
+
+// Every bookmarked message, across every chat — the BOOKMARKS view on the home
+// screen. Until this existed a bookmark could only be seen by scrolling to that
+// exact message inside its own thread, which made the button close to useless.
+// ONE equality filter and the sort done in memory, so Firestore needs no
+// composite index (the same discipline as the crystals/audio queries).
+// The full `text` is deliberately NOT returned: it is only a list, and a chat
+// with long replies would otherwise send megabytes to a phone.
+// Sophie bookmarks two different things (Aug 2026, her own description): "code
+// I want to keep that has copy and paste instructions", and "a long explanation
+// I'll need to read later". That split is DERIVED, never asked for — she should
+// not have to categorise at bookmark time. A fenced code block is the signal,
+// and a precise one: it is exactly what the page renders as a copy-button code
+// box, i.e. the thing she copies. Inline `code` does not count — a sentence
+// mentioning a filename is still prose.
+function bookmarkKind(text) {
+  return /```/.test(String(text || '')) ? 'code' : 'read';
+}
+
+router.get('/bookmarks', async (req, res) => {
+  try {
+    const snap = await db().collection(MSGS).where('bookmarked', '==', true).limit(500).get();
+    const reg = await registry();
+    const items = snap.docs.map((d) => {
+      const m = d.data() || {};
+      const line = String(m.tldr || m.text || '').replace(/\s+/g, ' ').trim();
+      return {
+        id: d.id,
+        chat: m.chat || '',
+        from: m.from || '',
+        created: m.created || m.postedAt || '',
+        snippet: line.slice(0, 220),
+        kind: bookmarkKind(m.text),
+      };
+    }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
+    res.json({ items, chats: reg.chats });
   } catch (err) { fail(res, err); }
 });
 

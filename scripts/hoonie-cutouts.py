@@ -9,18 +9,23 @@ away. This does both halves of that:
   cutouts  every source image as a transparent PNG, trimmed to the ink
   gif      those cutouts as one animated GIF with a transparent background
 
-GIF transparency is 1-bit, so the ink keeps a short gray ramp (never lighter
-than --max-ink) and everything above the ink threshold is cut. A pale
-antialiased edge would read as a white halo on a dark background — the ramp
-stops short of that on purpose. Frames are written with disposal=2 (restore to
-background) or every frame would stack on the one before it.
+The cut is the same corner flood-fill the pastel house style uses
+(`whitenBackground()` in server.js): the background color is sampled from the
+four CORNERS and only pixels border-connected to it are cleared, so interior
+whites walled off by ink survive and — the part that matters — every kept pixel
+keeps its ORIGINAL color. Nothing is grayscaled or remapped: warm ink stays
+warm. (The first version of this script quantized everything to neutral gray,
+which read cold/greenish on the app's cream surfaces.)
+
+GIF transparency is 1-bit; each frame quantizes its own real colors with index
+0 reserved for the cleared paper, and frames use disposal=2 or they'd stack.
 
 Usage:
   python3 scripts/hoonie-cutouts.py <src-dir> --out <png-dir> --gif public/hoonie-loading-clear.gif
   python3 scripts/hoonie-cutouts.py <src-dir> --gif out.gif --size 300 --ms 200 --max 60
 
-Needs Pillow + numpy (local tool, not a server dependency):
-  pip3 install Pillow numpy
+Needs Pillow + numpy + scipy (local tool, not a server dependency):
+  pip3 install Pillow numpy scipy
 """
 import argparse
 import os
@@ -28,55 +33,30 @@ import sys
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 IMG_EXT = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff')
 
 
-def otsu(gray):
-    """Split ink from paper. Scans differ (pure white to warm 240s), so the
-    threshold is computed per image rather than fixed."""
-    hist = np.bincount(gray.ravel(), minlength=256).astype(float)
-    total = hist.sum()
-    omega = np.cumsum(hist) / total
-    mu = np.cumsum(hist * np.arange(256)) / total
-    mu_t = mu[-1]
-    denom = omega * (1 - omega)
-    denom[denom == 0] = 1e-9
-    between = (mu_t * omega - mu) ** 2 / denom
-    return int(np.argmax(between))
+def cutout(path, tol=46):
+    """One source image → RGBA with the paper cleared, trimmed to the ink.
+    Port of server.js whitenBackground(): corner-sampled background color,
+    border-connected flood fill, original pixels kept everywhere else."""
+    rgb = np.asarray(Image.open(path).convert('RGB'), dtype=np.int16)
+    h, w = rgb.shape[:2]
+    corners = [rgb[2, 2], rgb[2, w - 3], rgb[h - 3, 2], rgb[h - 3, w - 3]]
+    bg = np.mean(corners, axis=0)
+    near = ((rgb - bg) ** 2).sum(axis=2) <= tol * tol
 
+    labels, _ = ndimage.label(near)
+    edge = np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]]))
+    edge = edge[edge != 0]
+    paper = np.isin(labels, edge)
 
-def despeckle(mask, min_neighbors=2):
-    """Drop lone ink pixels — scan grain that survives the threshold and shows
-    up as dirt once the paper is gone."""
-    p = np.pad(mask.astype(np.uint8), 1)
-    n = sum(p[dy:dy + mask.shape[0], dx:dx + mask.shape[1]]
-            for dy in (0, 1, 2) for dx in (0, 1, 2)) - mask
-    return mask & (n >= min_neighbors)
-
-
-def cutout(path, max_ink=190, feather=18):
-    """One source image → RGBA with the paper removed, trimmed to the ink."""
-    im = Image.open(path).convert('L')
-    gray = np.asarray(im, dtype=np.uint8)
-    t = otsu(gray)
-    mask = despeckle(gray <= t)
-    if not mask.any():
+    if paper.all():
         return None
-
-    # Alpha ramps across `feather` levels above the threshold so edges keep some
-    # softness; anything paler than that is paper and goes fully transparent.
-    alpha = np.clip((t + feather - gray.astype(np.int16)) * (255.0 / max(feather, 1)), 0, 255)
-    keep = np.pad(mask, 1)
-    near = np.zeros_like(mask)
-    for dy in (0, 1, 2):
-        for dx in (0, 1, 2):
-            near |= keep[dy:dy + mask.shape[0], dx:dx + mask.shape[1]]
-    alpha = np.where(near, alpha, 0).astype(np.uint8)
-
-    ink = np.clip(gray, 0, max_ink).astype(np.uint8)
-    rgba = np.dstack([ink, ink, ink, alpha])
-    out = Image.fromarray(rgba, 'RGBA')
+    alpha = np.where(paper, 0, 255).astype(np.uint8)
+    out = Image.fromarray(np.dstack([rgb.astype(np.uint8), alpha]), 'RGBA')
     box = out.getbbox()
     return out.crop(box) if box else out
 
@@ -92,19 +72,19 @@ def on_canvas(img, size, pad):
     return canvas
 
 
-def to_frame(rgba, levels=4, max_ink=190):
-    """RGBA → paletted frame: index 0 transparent, the rest a short gray ramp."""
+def to_frame(rgba, colors=7):
+    """RGBA → paletted frame: index 0 transparent, the rest the frame's own
+    colors (adaptive palette), so the ink keeps its real tone."""
     a = np.asarray(rgba)[:, :, 3]
-    ink = np.asarray(rgba)[:, :, 0].astype(np.int16)
-    step = max_ink / (levels - 1)
-    idx = np.clip(np.round(ink / step), 0, levels - 1).astype(np.uint8) + 1
+    # Quantize against white so palette entries near the edge stay clean.
+    flat = Image.new('RGB', rgba.size, (255, 255, 255))
+    flat.paste(rgba, (0, 0), rgba)
+    q = flat.quantize(colors=colors, method=Image.MEDIANCUT)
+    idx = np.asarray(q, dtype=np.uint8) + 1                  # shift: 0 = transparent
     idx = np.where(a >= 128, idx, 0).astype(np.uint8)
     frame = Image.fromarray(idx, 'P')
-    pal = [255, 255, 255]                                   # 0 = transparent
-    for i in range(levels):
-        v = int(round(i * step))
-        pal += [v, v, v]
-    frame.putpalette(pal + [0, 0, 0] * (256 - levels - 1))
+    pal = q.getpalette()[:colors * 3]
+    frame.putpalette([255, 255, 255] + pal + [0, 0, 0] * (256 - colors - 1))
     return frame
 
 
@@ -117,7 +97,7 @@ def main():
     ap.add_argument('--pad', type=int, default=24)
     ap.add_argument('--ms', type=int, default=200)
     ap.add_argument('--max', type=int, default=0, help='cap the frame count (0 = all)')
-    ap.add_argument('--max-ink', type=int, default=190)
+    ap.add_argument('--tol', type=int, default=46, help='background match tolerance (whitenBackground default)')
     ap.add_argument('--skip', default='', help='comma-separated basenames to leave out')
     args = ap.parse_args()
 
@@ -132,7 +112,7 @@ def main():
 
     frames, kept = [], []
     for f in files:
-        cut = cutout(os.path.join(args.src, f), max_ink=args.max_ink)
+        cut = cutout(os.path.join(args.src, f), tol=args.tol)
         if cut is None:
             print('  blank, skipped:', f)
             continue
@@ -140,7 +120,7 @@ def main():
             cut.save(os.path.join(args.out, os.path.splitext(f)[0] + '.png'))
         kept.append(f)
         if args.gif:
-            frames.append(to_frame(on_canvas(cut, args.size, args.pad), max_ink=args.max_ink))
+            frames.append(to_frame(on_canvas(cut, args.size, args.pad)))
 
     print(f'{len(kept)} cutouts' + (f' → {args.out}' if args.out else ''))
 

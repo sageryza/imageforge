@@ -245,6 +245,7 @@ cur_parts = []; cur_mid = None; cur_turnkey = None
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
 users = []      # Sophie's OWN messages, so the feed reads as a conversation
+queued = []     # …and the ones she sent MID-TURN, which arrive a different way
 
 # What Sophie actually typed/said, as opposed to the machinery that arrives as a
 # "user" record too: task notifications, webhook activity, slash-command echoes,
@@ -279,6 +280,18 @@ with open(path, encoding='utf-8') as f:
         except Exception:
             continue
         idx += 1
+        # A message sent while Claude is still working is QUEUED, and a queued
+        # message is only ever written as a queue-operation record — it never
+        # becomes a "user" record, so everything below would miss it and it
+        # would never reach the app (verified live 2026-08-07). Collect it here
+        # and reconcile against the real user records after the loop.
+        if r.get('type') == 'queue-operation':
+            if r.get('operation') == 'enqueue' and r.get('timestamp'):
+                qt = her_words(r, r.get('content') or '')
+                if qt:
+                    queued.append({'uuid': 'q:' + r['timestamp'], 'text': qt,
+                                   'at': r['timestamp']})
+            continue
         role = (r.get('message') or {}).get('role')
         if role == 'user':
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
@@ -306,6 +319,23 @@ with open(path, encoding='utf-8') as f:
                     if isinstance(p, str) and IMG.search(p):
                         sends.append((idx, p))
 flush()  # the final (current) turn
+
+# EVERY message is enqueued, but only the mid-turn ones fail to also land as a
+# user record — so a queued entry counts only when no user record carries the
+# same words. Matched as a multiset, so sending the same short phrase twice
+# can't let the first one swallow the second.
+if queued:
+    from collections import Counter
+    def _norm(s):
+        return ' '.join((s or '').split()).lower()[:160]
+    have = Counter(_norm(u['text']) for u in users)
+    for q in queued:
+        k = _norm(q['text'])
+        if have.get(k):
+            have[k] -= 1
+            continue
+        users.append(q)
+    users.sort(key=lambda u: u.get('at') or '')
 
 # ── Sophie's own messages ──────────────────────────────────────────────────
 # Posted to /reply as from:"sophie" so a thread in the Chats app reads as the
