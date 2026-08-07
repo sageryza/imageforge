@@ -2421,12 +2421,39 @@ lifted into a standalone tool later.
   pyramids" finds nothing in the one interview entirely about Darius, because
   YouTube's auto-caption mis-hears his name in the first sentence ("my name is
   sh right") and he is never named again.
-- **Keyword only in v1, deliberately** — ANDed terms, `"quoted phrases"`,
-  proximity scoring, prefix matches at a discount, word-boundary matching (so
-  "art" never hits inside "heart"). Instant and free. **MEANING search is the
-  planned phase 2**: embed each chunk once with `text-embedding-3-small`
-  (~1.4M tokens ≈ $0.03, then free forever). Every chunk already carries a
-  stable `i` so vectors can be a parallel array — no reshaping.
+- **TWO MODES, a chip row under the kind filter.** **WORDS** (default) is
+  keyword: ANDed terms, `"quoted phrases"`, proximity scoring, prefix matches
+  at a discount, word-boundary matching (so "art" never hits inside "heart").
+  Instant and free. **MEANING** is embeddings — "the part where he explains how
+  the heart holds the soul in" finds it without knowing a word of the wording.
+  Only Words highlights the query in a passage (a meaning hit needn't contain
+  the words, and marking nothing would imply the match was lexical).
+- **The vectors (Aug 2026, live).** Every chunk embedded ONCE with
+  `text-embedding-3-small` at `dimensions: 512` (the model's Matryoshka
+  property — a truncated vector still works), re-normalised and quantized to
+  **int8**: 12,905 × 512 × 1 byte = **6.3MB** at Storage
+  `search-index/vectors-v1.bin` (+ a small `-v1.json` meta), loaded as ONE
+  Buffer with no JSON parsing. Native 1536-dim float32 would have been 79MB.
+  Whole-library cost was **$0.046**, ~16s; a query costs one tiny embedding
+  (~$0.000002) and a linear dot-product pass (~150ms).
+- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt` + chunk count must
+  match). Chunk N in the vector file has to be chunk N in the index, so a
+  reindex that re-chunks makes them stale — meaning search returns **409 with
+  `code:'stale-vectors'`** (or `'no-vectors'`) and the page offers a one-tap
+  re-embed with the price on the button, instead of silently ranking against
+  the wrong passages. **Re-embed after any reindex that changes chunking.**
+- **Similarity is a RANKING, not a set — hence two floors.** Every chunk gets a
+  score, so with no cut-off "the heart holds the soul" honestly reported
+  **1,080** passages and pure nonsense still reported 23. Measured on this
+  library: a good query tops out ~0.54 and decays slowly, nonsense tops ~0.31.
+  So: **absolute floor 0.38** (nonsense returns nothing at all) **plus a
+  relative floor of 0.85 × the top hit** (a strong query answers with its
+  handful, a vague one can't pad itself out).
+- **`embed()` retries transient failures, and that is not boilerplate.** The
+  first real run died on a plain OpenAI **500 at 4,800 of 12,905** chunks and
+  threw away every embedding already PAID FOR, because one bad response failed
+  the whole job. 429/5xx now retry with backoff (5 attempts); a 4xx is
+  permanent and fails immediately.
 - **`/api/search/audio/:id` widens an existing restriction, on purpose.**
   `memo-audio/**` is readable only by a signed-in Firebase user, and
   `/api/memos/audio/:id` deliberately serves ONLY `cat:'dream'` recordings to
@@ -2434,7 +2461,8 @@ lifted into a standalone tool later.
   Search's own route serves ANY memo — behind the same STUDIO_TOKEN gate. One
   streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
 - **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
-  `GET /?q=&kind=&limit=&offset=`, `GET /sources`, `POST|GET /reindex`,
+  `GET /?q=&mode=words|meaning&kind=&limit=&offset=`, `GET /sources`,
+  `POST|GET /reindex`, **`POST|GET /embed`** (build/inspect the vectors),
   `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
   Deep link a query with `/search?q=darius`.
 - **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
