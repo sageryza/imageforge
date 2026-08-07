@@ -27,6 +27,17 @@ const admin = require('firebase-admin');
 const { makeDreamPagesV2 } = require('./movies');
 
 const router = express.Router();
+
+// ── THE SHARE-TO-SEE GATE — currently OFF (Sophie, Aug 2026) ────────────────
+// Flip this back to true to require sharing a dream before the feed opens.
+// It is one constant on purpose: the whole mechanism (sealed response, the
+// sharedToday check) stays built and tested underneath, so turning it back on
+// is this line and nothing else.
+// While it's OFF the feed also widens past today (FEED_DAYS) — a today-only
+// feed with no gate reads as empty every morning.
+const GATE_ON = false;
+const FEED_DAYS = 14;
+
 const DREAMS = 'forge-dreamapp';
 const FELT = 'forge-dreamapp-felt';
 const QUALITIES = new Set(['low', 'medium']);
@@ -246,8 +257,14 @@ router.post('/dreams/:id/share', async (req, res) => {
 router.get('/feed', async (req, res) => {
   try {
     const today = feedDay();
-    const snap = await db().collection(DREAMS).where('publicOn', '==', today).get();
-    if (!(await sharedToday(req.user.uid))) {
+    // Gated: strictly today's dreams. Open: the last FEED_DAYS, so the feed
+    // still reads as a feed on a quiet morning.
+    const since = new Date(Date.now() - FEED_DAYS * 86400000)
+      .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const snap = GATE_ON
+      ? await db().collection(DREAMS).where('publicOn', '==', today).get()
+      : await db().collection(DREAMS).where('publicOn', '>=', since).get();
+    if (GATE_ON && !(await sharedToday(req.user.uid))) {
       return res.json({ sealed: true, count: snap.size, today });
     }
     const feltSnap = await db().collection(FELT).where('uid', '==', req.user.uid).get();
@@ -257,9 +274,12 @@ router.get('/feed', async (req, res) => {
       .map((doc) => ({
         id: doc.id,
         title: doc.title || 'A Dream',
+        // `name` still rides along for a later reader; the feed does not show
+        // it — dreams are grouped under their DAY, unattributed (Sophie).
         name: doc.name,
         mine: doc.uid === req.user.uid,
         createdAt: doc.createdAt,
+        publicOn: doc.publicOn,
         words: doc.wordsPublic !== false ? doc.text : null,
         panels: (doc.panels || []).filter((p) => p.public).map((p) => ({ i: p.i, url: p.url, captions: p.captions })),
         feltCount: doc.feltCount || 0,

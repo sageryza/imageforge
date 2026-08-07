@@ -12,7 +12,7 @@
 // WHICH MODEL, AND WHY (Aug 2026, Sophie's rule: "my brains are really
 // important"): anything whose OUTPUT IS WORDS A HUMAN READS runs on Claude —
 // blog posts and the keyword research behind them, Etsy listing copy, the shop
-// advice she makes decisions from, the witch app's spells/familiars/horoscopes.
+// advice she makes decisions from, the witch app's spells and horoscopes.
 // Bulk mechanical extraction over hundreds of documents (NDE moment mining,
 // memo titling) deliberately stays on gpt-4o-mini: it is 20-25x cheaper and the
 // job is "pull the fields out", not "write something worth reading".

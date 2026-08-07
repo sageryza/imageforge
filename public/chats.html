@@ -94,6 +94,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    thread and the box you type in fall off the bottom. */
 #clightbox.hastalk img{max-height:46vh;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+/* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
+   what she reviews by, the tag is how it was made. Showing only one of the
+   two meant a labelled image never said its quality (Sophie asked why). */
+#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
+#clightbox .cltag + .clcap{margin-top:4px;}
 /* the prompt behind the image: covers it completely (that's the point — you
    read the words instead of the picture), Style on the left of the toggle,
    Content on the right. .clwrap only wraps the img so the overlay lands on
@@ -266,6 +271,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
 .crow.live .cr-ic{border-color:var(--rose);}
 .crow.live .cr-name{color:var(--rose);}
+/* The unread dot still means "you need to check this" (Sophie) and must stay
+   readable on a tinted row — rose on rose disappears without an edge. */
+.crow.live .cr-dot{box-shadow:0 0 0 2px var(--paper);}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
@@ -887,14 +895,29 @@ function stampActive(a,last){ if(!a) return false; return !last || a>=(last.crea
 function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
 function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
 function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
-// A chat is "working" while its newest message is a live draft (working:true —
-// the hook's PostToolUse pass posts the turn's prose as it's written and the
-// Stop post clears the flag). `postedAt` bumps on every growth, so a draft
-// that hasn't moved in hours belongs to a session that died mid-turn and is
-// no longer working — without that cap it would stay tinted forever.
+// A chat counts as WORKING on either of two signals, and it needs both:
+//
+//   1. its newest message is a live draft (working:true — the hook's
+//      PostToolUse pass posts the turn's prose as it is written, and the Stop
+//      post clears the flag), or
+//   2. its newest message is HERS — she asked and nothing has come back yet.
+//
+// (2) is not a nicety. Shipped with (1) alone, the tint never appeared once:
+// the hook installed in these sessions is the pre-v7 build, which registers
+// only Stop and UserPromptSubmit, so `working:true` is never written and the
+// live feed contains zero drafts (checked live, 2026-08-07). It also covers
+// the gap between her message and the turn's first prose, which even a v7
+// hook can't fill. Measured against the real feed, (2) tints 1 chat of 71 —
+// precise, not a wall of pink.
+//
+// The cap: `postedAt` bumps on every draft growth, so a draft that hasn't
+// moved in hours belongs to a session that died mid-turn, and a message of
+// hers that has gone hours unanswered belongs to a chat that is not coming
+// back. Without it either would stay tinted forever.
 var LIVE_STALE=3*60*60*1000;
 function chatWorking(last){
-  if(!last||!last.working) return false;
+  if(!last) return false;
+  if(!last.working && last.from!=='sophie') return false;
   var at=Date.parse(last.postedAt||last.created||'');
   return !at || (Date.now()-at) < LIVE_STALE;
 }
@@ -1777,7 +1800,14 @@ function lightbox(url, asset){
     prow.onclick=function(e){ e.stopPropagation(); };
     prow.appendChild(promptBtn); lb.appendChild(prow);
   }
-  var cap=asset?(asset.description||asset.prompt||''):'';
+  // Two lines, not one: the curated model/quality tag (never the hook's
+  // generic "from <chat>") above the label. `description||prompt` hid the tag
+  // on every labelled image.
+  var tag=asset?String(asset.prompt||''):'';
+  if(/^from /.test(tag)) tag='';
+  var cap=asset?(asset.description||''):'';
+  if(!cap && tag){ cap=tag; tag=''; }
+  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
@@ -1945,10 +1975,28 @@ function loadCache(){
   }catch(e){ return false; }
 }
 
+// The app keeps a page loaded for days, so polling refreshes the DATA while the
+// CODE stays whatever it was at load — a shipped change then silently never
+// reaches her phone (a whole afternoon of UI changes sat unreachable this way,
+// and the feature she was testing "didn't work" because its code wasn't there).
+// Every feed response carries a stamp of the page file: keep the first one seen
+// — that IS the build running — and reload when it changes. Only from the home
+// screen, never mid-thread or while she's typing, so a reload can't eat words
+// or lose her place.
+var BUILD=null;
+function checkBuild(data){
+  if(!data||!data.build) return;
+  if(!BUILD){ BUILD=data.build; return; }
+  if(BUILD===data.build) return;
+  var a=document.activeElement, typing=a&&/^(INPUT|TEXTAREA)$/.test(a.tagName||'');
+  if(cur||typing) return;             // it can wait until she's back on the list
+  location.reload();
+}
 function load(){
   // cache-bust: the webview heuristically cached the bare URL, which made the
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
+    checkBuild(data);
     chats=data.chats||{}; msgs=data.messages||[];
     settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
@@ -2011,6 +2059,7 @@ function poll(){
   api('/api/chatfeed?since='+encodeURIComponent(since)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(data){
+      checkBuild(data);
       if(data.chats) chats=data.chats;
       if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
