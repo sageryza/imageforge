@@ -531,6 +531,10 @@ router.post('/', async (req, res) => {
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
+    // A FINAL reply ends the turn: clear the turn-start mark the hook stamped
+    // at UserPromptSubmit (see POST /working), so the app's pink tint drops
+    // the moment the reply lands. A growing draft is still mid-turn.
+    if (!working) reg.workingAt = admin.firestore.FieldValue.delete();
     await regRef(doc.chat).set(reg, { merge: true });
     res.json({ ok: true, id: msgId });
   } catch (err) { fail(res, err); }
@@ -677,6 +681,26 @@ router.post('/archive', async (req, res) => {
     await regRef(chat)
       .set({ archived: archived !== false }, { merge: true });
     res.json({ ok: true, archived: archived !== false });
+  } catch (err) { fail(res, err); }
+});
+
+// Turn started (v8, Aug 2026) — the hook pings this from UserPromptSubmit the
+// moment Sophie messages a session, and the app tints that chat pink until the
+// reply lands. This tiny route exists because the obvious signal doesn't work:
+// the hook can only lift HER MESSAGE out of the transcript at the END of the
+// turn (at UserPromptSubmit the transcript doesn't hold it yet — measured
+// live: her messages' postedAt lands ~1s before the reply's, every time), so
+// "newest message is hers" is true for about one second, ever. The ping needs
+// no transcript at all — just the chat — so it can fire at submit time. The
+// mark lives on the registry doc (rides the same cached read as the icons)
+// and the final reply's registry write clears it.
+router.post('/working', async (req, res) => {
+  try {
+    const { chat, session } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
+    res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
 
@@ -990,6 +1014,11 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
+    // She just gave that chat something to do, so mark it working (the app
+    // tints it until the chat's reply lands and clears the mark). This path
+    // covers the app's own reply box; a message sent from the Claude app is
+    // marked by the hook's turn-start ping instead — see POST /working.
+    await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });
