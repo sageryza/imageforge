@@ -2720,24 +2720,29 @@ RULES:
 
 Return valid JSON only, no markdown fences: an array of objects with "title", "text", and "prompt".`;
 
-    // Claude, not mini (Aug 2026, Sophie) — these are the book's own pages.
-    const data = await anthropicChat({
-        system: mode === 'imagine' ? imagineSystem : captureSystem,
-        messages: [{
-          role: 'user',
-          content: mode === 'imagine'
-            ? `Theme: ${seed}. Imagine ${count} everyday-miracle entries. Return a JSON array.`
-            : seed,
-        }],
-        max_tokens: 4000,
-        temperature: 1,
+    // STAYS ON gpt-4o-mini (Aug 2026, Sophie's call). It was briefly switched to
+    // Claude and she asked for it back: the book's voice is settled, and
+    // changing the model changes how the pages read. This one route feeds BOTH
+    // the witch app's Miracles tab and /book — they share this endpoint and the
+    // same localStorage book — so switching it moves both at once. Don't.
+    const data = await openaiChat({
+        model: 'gpt-4o-mini',
+        temperature: mode === 'imagine' ? 0.95 : 0.7,
+        messages: [
+          { role: 'system', content: mode === 'imagine' ? imagineSystem : captureSystem },
+          {
+            role: 'user',
+            content: mode === 'imagine'
+              ? `Theme: ${seed}. Imagine ${count} everyday-miracle entries. Return a JSON array.`
+              : seed,
+          },
+        ],
     });
 
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    // The reply is a JSON ARRAY here, so parseAnthropicJson's object-prefill
-    // helpers don't apply — strip fences and parse what came back.
-    const cleaned = anthropicText(data).replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    const text = data.choices[0].message.content.trim();
+    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
     const entries = Array.isArray(parsed) ? parsed : [parsed];
     res.json({ entries });
