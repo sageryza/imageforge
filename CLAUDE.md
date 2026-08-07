@@ -704,6 +704,17 @@ lifted into a standalone tool later.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **App-embedded tool pages share ONE kit: `public/tool.css` (Aug 2026,
+  Sophie's redesign brief — "too much text, the buttons are too long, think
+  about the user doing the flow").** These pages were built for the desktop
+  web hub, which is why they showed every field, every explanation and every
+  full-width button at once. The kit gives them a step FLOW: `.rail` (where
+  am I), `.step` (only the OPEN one shows controls; a finished step collapses
+  to a tappable one-line summary), `.btn` that hugs its text, `.btn.star` for
+  anything that spends a model call, and a `?` circle holding the explanation
+  that used to be a paragraph. Link it, set `body class="tool"`, don't
+  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`
+  and `report.html` follow.
 - **A gated page hosted inside a native tool must be asked for with
   `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
   `.app-header` — its brand row duplicated the native nav-bar title, and its
