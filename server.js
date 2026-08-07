@@ -1891,7 +1891,14 @@ app.get('/api/gallery/assets', async (req, res) => {
     // one of them carrying the label and prompt and the other blank.
     const keyOf = (url) => {
       const clean = String(url).split('?')[0].split('#')[0];
-      const base = decodeURIComponent(clean.split('/').pop() || '').toLowerCase();
+      // decodeURIComponent THROWS on malformed %-sequences, and one bad url in
+      // the collection used to abort the whole union mid-forEach — a chat's
+      // Assets tab silently showed almost nothing (a literal "%s.webp" template
+      // string the hook had filed as an image did exactly this, Aug 2026).
+      const raw = clean.split('/').pop() || '';
+      let base;
+      try { base = decodeURIComponent(raw).toLowerCase(); }
+      catch { base = raw.toLowerCase(); }
       return base || clean;
     };
     const add = (url, ms, prompt, description, style, content, kind) => {
