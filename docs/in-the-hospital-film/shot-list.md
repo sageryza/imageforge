@@ -57,6 +57,21 @@ earlier shot.
 - The 2x2 panel trick works on this engine (hard-border language, slice at
   quarters) and at high quality matches the singles' hand. Whether the film
   uses panels, singles, or both is Sophie's call.
+- **Animation pairs (Sophie's invention, Aug 2026): one page of two
+  side-by-side panels, same scene and camera — panel 1 is the animation's
+  START frame, panel 2 the END frame; wan 2.2 i2v (`image` + `last_image`)
+  animates between them so the story moves forward inside the shot.** Audition
+  pages at low (~2¢) + draft clips at 480p (~6¢); keepers get the page redrawn
+  at HIGH and the animation at 720p (~16¢). The two panels must show visibly
+  DIFFERENT poses/compositions or wan has nothing to do.
+- **A pair must be BOLD — Sophie rejected "small movements" twice.** A bold
+  pair is a frame TRANSFORMATION (the room floods with gray, a stone idol
+  collapses into a seated nurse, music drains from the air), a materialization
+  at scale (animals appear across a whole wall), or a body crossing the frame
+  (she steps INTO the glowing screen, shrinks into a child in enormous
+  pajamas). Hands-doing-tasks pairs — kneel, drop, place, pocket, reach — are
+  exactly what she keeps sending back. If the change between the panels could
+  be missed at a glance, it is not a pair; make it a single.
 - **Narration: Sophie — morning (`UTkHGl2ImiT6gwtAFCql`) on
   `eleven_multilingual_v2` — NEVER `eleven_v3`** (Aug 2026, Sophie; film v1
   shipped on v3 by mistake and was re-rendered). Settings: stability 0.5,
