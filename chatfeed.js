@@ -202,6 +202,40 @@ router.post('/session', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Untangle a collided/forked thread: re-key every message from one slug to
+// another so two halves of the same conversation become one. Needed because a
+// session-first fork (a session whose messages landed under a suffixed slug
+// while the pretty slug it belongs to held the other half) can only be joined
+// by moving the messages — /thread filters on the exact `chat` field, so a
+// registry tombstone alone won't merge them. `postedAt` is refreshed so open
+// clients pick the moved messages up on their next delta poll. `?dry` counts
+// without writing. Tombstones the source registry doc (movedTo → to) so its
+// tile redirects. Gated like the rest of the module.
+router.post('/reassign', async (req, res) => {
+  try {
+    const from = String((req.body || {}).from || '').slice(0, 60);
+    const to = String((req.body || {}).to || '').slice(0, 60);
+    const dry = Boolean((req.body || {}).dry);
+    if (!from || !to) return res.status(400).json({ error: 'from and to required' });
+    if (from === to) return res.status(400).json({ error: 'from and to are the same' });
+    const snap = await db().collection(MSGS).where('chat', '==', from).get();
+    if (dry) return res.json({ ok: true, dry: true, wouldMove: snap.size, from, to });
+    const now = new Date().toISOString();
+    let moved = 0;
+    // Firestore batches cap at 500 writes; chunk to stay under it.
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db().batch();
+      for (const d of snap.docs.slice(i, i + 400)) {
+        batch.set(d.ref, { chat: to, postedAt: now }, { merge: true });
+        moved++;
+      }
+      await batch.commit();
+    }
+    await regRef(from).set({ movedTo: to }, { merge: true });
+    res.json({ ok: true, moved, from, to });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/', async (req, res) => {
   try {
     // Without this the app's webview heuristically caches the feed (no
