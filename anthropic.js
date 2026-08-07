@@ -96,28 +96,43 @@ async function chat({ system, user, messages, model = WRITING_MODEL,
  * Claude call that must return a JSON object.
  *
  * Claude has no `response_format: json_object`, so the contract is carried in
- * the prompt and enforced here: we prefill the assistant turn with "{" (which
- * makes it impossible for the reply to open with prose or a ``` fence), then
- * put the brace back before parsing. Fences are still stripped defensively —
- * a prefill makes a leading fence unreachable, but a TRAILING one isn't.
+ * the prompt and the reply is parsed defensively here.
+ *
+ * An assistant-turn PREFILL ("{") is the classic trick for this and it does NOT
+ * work on the Claude 5 models — the API rejects it outright: "This model does
+ * not support assistant message prefill. The conversation must end with a user
+ * message." (Hit live 2026-08-07.) Don't reintroduce it. Probed against the
+ * real API instead: given the instruction below, claude-sonnet-5 returns bare,
+ * fence-free JSON. The extraction is belt and braces for the days it doesn't.
  */
 async function chatJSON({ system, user, messages, model = WRITING_MODEL,
                           maxTokens = 4000, temperature } = {}, retries = 2) {
   const turns = messages || [{ role: 'user', content: String(user || '') }];
   const text = await chat({
-    system: [system, 'Reply with STRICT JSON only — no prose, no code fences.'].filter(Boolean).join('\n\n'),
-    messages: [...turns, { role: 'assistant', content: '{' }],
+    system: [system, 'Reply with STRICT JSON only — no prose, no code fences, no explanation before or after.']
+      .filter(Boolean).join('\n\n'),
+    messages: turns,
     model, maxTokens, temperature,
   }, retries);
-  const raw = ('{' + text).replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-  try {
-    return JSON.parse(raw);
-  } catch {
-    // Last resort: the outermost {...} span, for a reply with a trailing note.
-    const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
-    if (a >= 0 && b > a) return JSON.parse(raw.slice(a, b + 1));
-    throw new Error('Claude did not return parseable JSON');
-  }
+  return parseJSON(text);
 }
 
-module.exports = { available, chat, chatJSON, WRITING_MODEL };
+/** Pull a JSON value out of a model reply that may be wrapped or annotated. */
+function parseJSON(text) {
+  const raw = String(text || '')
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+  try { return JSON.parse(raw); } catch { /* fall through */ }
+  // Widest {...} or [...] span in the reply — handles a leading "Here you go:"
+  // or a trailing note without tripping over braces inside string values.
+  for (const [open, close] of [['{', '}'], ['[', ']']]) {
+    const a = raw.indexOf(open), b = raw.lastIndexOf(close);
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(raw.slice(a, b + 1)); } catch { /* try the other */ }
+    }
+  }
+  throw new Error(`Claude did not return parseable JSON (got: ${raw.slice(0, 120)})`);
+}
+
+module.exports = { available, chat, chatJSON, parseJSON, WRITING_MODEL };
