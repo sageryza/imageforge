@@ -22,12 +22,17 @@
 // the Mac push, the iOS share sheet (audio.js), a Story Room voiceover paste,
 // a chat with a pasted file — files into THIS archive, through
 // fileIntoArchive() below. Transcription is unconditional (no toggle), and
-// dedupe is belt AND braces: the md5 of the bytes (`hash` on every record)
-// plus the local wall-clock stamp. Stamp alone is fragile — a caller that
-// isn't the Mac has to reconstruct it from the file's internal timestamp,
-// which is the moment the recording STOPPED and can be minutes off (learned
-// live 2026-08-05: filed _1330, phone said 1:28). md5 alone breaks if a path
-// re-encodes. Together they hold.
+// dedupe is THREE layers, because each catches what the one before cannot:
+// the md5 of the bytes (a retried upload), the AUDIO FINGERPRINT (a recording
+// re-shared off the phone, whose bytes differ only in rewritten date fields —
+// see audioHash), and the TRANSCRIPT BACKSTOP (a re-encoded copy, where even
+// the audio bytes differ).
+//
+// A shared STAMP is not one of them. It is minute-resolution, Sophie records
+// several short thoughts back to back, and the archive holds 70 groups of
+// recordings that honestly share a minute — treating that as identity refused
+// a real 28-minute recording because an 11-second clip was made in the same
+// minute. The stamp names a record; it never identifies one.
 const express = require('express');
 const crypto = require('crypto');
 
@@ -254,22 +259,25 @@ async function writeManifest(manifest, generation) {
 }
 
 // Append one record. Re-reads and retries on a generation conflict so two
-// uploads landing together can't silently drop one of them. trustStamp=false
-// (a stamp the SERVER derived from the file, or one a caller clearly guessed —
-// see fileIntoArchive) means a stamp collision does NOT skip: two different
-// recordings can honestly share a minute, and a derived stamp can be wrong by
-// one. Only a fingerprint or transcript match does.
-function findDuplicate(memos, record, trustStamp) {
+// uploads landing together can't silently drop one of them.
+//
+// A MATCHING STAMP IS NOT A DUPLICATE, and never was — the stamp is only
+// minute-resolution, and Sophie records several short thoughts back to back
+// all the time. The archive holds 70 groups of recordings that honestly share
+// a minute, so the rule was wrong about roughly one recording in fifteen.
+// It cost a real one: re-filing a 28-minute recording from 2025-09-12 was
+// refused because an unrelated 11-second clip (91KB against 14.2MB) had been
+// made in the same minute. Identity is bytes or words — nothing else.
+function findDuplicate(memos, record) {
   return memos.find(m => (record.hash && m.hash === record.hash)
-      || (record.ahash && m.ahash === record.ahash)
-      || (trustStamp && stampOf(m.id) === stampOf(record.id)))
+      || (record.ahash && m.ahash === record.ahash))
     || transcriptTwin(memos, record);
 }
 
-async function appendToManifest(record, { trustStamp = true } = {}) {
+async function appendToManifest(record) {
   for (let attempt = 1; attempt <= 5; attempt++) {
     const { manifest, generation } = await readManifest();
-    const dup = findDuplicate(manifest.memos, record, trustStamp);
+    const dup = findDuplicate(manifest.memos, record);
     if (dup) return { skipped: true, memo: dup, count: manifest.count };
     manifest.memos.push(record);
     try {
@@ -334,12 +342,11 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   // A stamp equal to RIGHT NOW is a caller guessing, not a caller knowing —
   // it is the filing time, not the recording time. 12 records got in that way
   // (found 2026-08-07, gaps of 0-3 minutes from their own upload), and it is
-  // how the same recording lands twice under two different days. Keep the
-  // stamp for the id, but do not let it dedupe: trusting it also risks the
-  // OPPOSITE failure, two genuinely different memos filed inside one minute
-  // silently collapsing into one.
-  let trustStamp = Boolean(stamp);
-  if (trustStamp && isNowish(stamp)) trustStamp = false;
+  // how the same recording lands twice under two different days. A stamp
+  // nobody vouches for still names the record — it just earns the id a hash
+  // suffix, so two recordings that derive the same minute can't collide.
+  let stampKnown = Boolean(stamp);
+  if (stampKnown && isNowish(stamp)) stampKnown = false;
   let recordedAt = null;
   if (!stamp) {
     const end = mvhdDate(buf);
@@ -350,14 +357,11 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
 
   // Cheap checks before doing any paid work. The fingerprint catches a
   // re-shared recording that the file md5 cannot see; the transcript backstop
-  // below catches a re-ENCODED one, but only once we have words for it.
+  // below catches a re-ENCODED one, but only once we have words for it. A
+  // shared STAMP is deliberately not consulted — see findDuplicate.
   const { manifest } = await readManifest();
   const dupHash = manifest.memos.find(m => m.hash === hash || (ahash && m.ahash === ahash));
   if (dupHash) return { skipped: true, reason: 'same recording already archived', memo: dupHash, count: manifest.count };
-  if (trustStamp) {
-    const dupStamp = manifest.memos.find(m => stampOf(m.id) === stamp);
-    if (dupStamp) return { skipped: true, reason: 'already in the archive', memo: dupStamp, count: manifest.count };
-  }
 
   const isoStr = iso || (recordedAt ? recordedAt.toISOString() : '');
   let id = isoStr ? `${stamp}_${String(isoStr).replace(/[:.]/g, '_').replace(/_\d+Z$/, 'Z')}` : stamp;
@@ -365,7 +369,7 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   // recordings can honestly derive the SAME id — and the second would save
   // over the first's audio at memo-audio/<id>. A slice of the hash keeps
   // derived ids unique per content (caught in rehearsal, 2026-08-05).
-  if (!trustStamp) id += '_' + hash.slice(0, 6);
+  if (!stampKnown) id += '_' + hash.slice(0, 6);
   const date = stamp.slice(0, 10);
 
   let cat = 'toolong', sort = null, enrichError = null;
@@ -410,7 +414,7 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   if (ahash) record.ahash = ahash;
   if (source) record.source = source;
   if (enrichError) record.enrichError = enrichError;
-  const merged = await appendToManifest(record, { trustStamp });
+  const merged = await appendToManifest(record);
   // Another upload won the race, so these bytes have no record pointing at
   // them. Left behind they become an orphan object nothing can ever reach —
   // five of those were already sitting in the archive (one of them 14MB).
@@ -440,6 +444,13 @@ router.get('/status', async (req, res) => {
       newest: manifest.memos.map(m => m.date).filter(Boolean).sort().pop() || null,
       maxMinutes: MAX_MIN,
       stamps,
+      // What the Mac push skips on. A stamp ALONE would skip a genuinely new
+      // recording made in the same minute as an archived one — and the Mac
+      // filters before uploading, so that recording would never be sent at
+      // all. Duration comes free from the Voice Memos database, costs no file
+      // reading, and separates them. A false send is harmless now (the server
+      // has three real layers); a false skip loses a recording for good.
+      keys: manifest.memos.map(m => `${stampOf(m.id) || ''}|${Math.round(Number(m.dur) || 0)}`),
       // Content hashes, so a caller can skip a big upload it already knows is
       // archived (the backfill script reads this).
       hashes: manifest.memos.map(m => m.hash).filter(Boolean),

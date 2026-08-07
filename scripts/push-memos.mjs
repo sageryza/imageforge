@@ -65,12 +65,22 @@ const statusRes = await fetch(BASE + '/api/memos/status');
 if (!statusRes.ok) { console.error(`❌ Server said ${statusRes.status}. Is the app awake? Open ${BASE} and try again.`); process.exit(1); }
 const status = await statusRes.json();
 if (!status.ok) { console.error('❌ ' + (status.error || 'the archive is not reachable')); process.exit(1); }
-const known = new Set(status.stamps || []);
+// Skip on stamp AND duration, never the stamp alone: Sophie records several
+// short thoughts back to back, and a recording made in the same minute as one
+// already archived would be filtered out HERE and never even reach the server
+// (it refused a real 28-minute recording that way). Duration comes free from
+// the Voice Memos database. `keys` is the server's list; older servers only
+// answer `stamps`, so fall back to the old behaviour rather than re-sending
+// the whole archive.
+const keyOf = (r) => `${stampOf(r.when)}|${Math.round(r.dur)}`;
+const byKey = Array.isArray(status.keys);
+const known = new Set(byKey ? status.keys : (status.stamps || []));
+const seen = (r) => known.has(byKey ? keyOf(r) : stampOf(r.when));
 console.log(`Already archived: ${status.count} recordings, newest ${status.newest}.`);
 
 const all = readVoiceMemos();
 const missing = all.filter(r => !r.downloaded);
-const fresh = all.filter(r => r.downloaded && !known.has(stampOf(r.when)));
+const fresh = all.filter(r => r.downloaded && !seen(r));
 console.log(`On this Mac: ${all.length} recordings.`);
 console.log(`New: ${fresh.length}\n`);
 
