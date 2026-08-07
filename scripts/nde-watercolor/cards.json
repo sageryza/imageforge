@@ -1,0 +1,37 @@
+[
+ {"id":"card-hugenot","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/hugenot.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Alan Hugenot, in old age. Keep his facial structure and features recognisably his, but draw him as he was at seventeen — a teenage boy. Do not redesign the face.",
+  "scene":"a head-and-shoulders portrait of that person as a seventeen-year-old boy, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-wittbrodt","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wittbrodt.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Penny Wittbrodt. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-wright","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Darius J. Wright. Keep their likeness — same face, same hair, same age, same skin tone. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-barker","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/barker.png"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Tricia Barker. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-hensley","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/hensley.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Mary Helen Hensley. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-rynes","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/rynes.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Nancy Rynes. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-dennis","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/dennis.png"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Landon Dennis. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-nair","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/nair.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Malcolm Nair. Keep their likeness — same face, same hair, same age, same skin tone. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-anthony","refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/anthony.jpg"],
+  "likeness":"The SECOND attached image is a photograph of a real person, Peter Anthony. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."}
+]
