@@ -2057,6 +2057,25 @@ lifted into a standalone tool later.
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by
   ChatGPT").
+  **SAY THE QUALITY IN THE REPLY TOO, as a word, not "the default" (Aug 2026,
+  Sophie: "she doesn't say what quality").** A delivery that says "quality
+  copied from the function" or "at the usual settings" leaves her guessing —
+  she assumed a medium sheet was high and asked for it to be re-run. Name the
+  value (`medium`) and its rough cost in the message that hands over the
+  image, every time. The caption is where she checks it LATER; the reply is
+  where she reads it NOW, and both have to carry it.
+  **THIS CANNOT BE BACKFILLED BY A LATER CHAT — file it when you make the
+  image or it is gone (Aug 2026, measured).** A sweep of all 171 chats found
+  **2,488 images, 1,938 with no quality caption**, and of those only **31**
+  could be recovered honestly (their filed prompt happened to contain both the
+  model and the quality). **1,320 had no filed prompt at all**, so nothing on
+  the record says how they were made. Guessing a caption is worse than an empty
+  one — it puts a confident wrong number in front of her forever — so those
+  1,938 stay blank by design and NO chat should invent them. The only chat that
+  ever knows an image's quality is the one that generated it, at the moment it
+  generated it. If you are backfilling your OWN older images, derive the value
+  from your filed prompt or your own run records; where neither exists, leave
+  it empty and say so.
   **THE HOLE EVERY CHAT FALLS IN (Aug 2026, found on the hospital film):
   images you send as chat FILES get auto-filed by the hook as
   `claude-deliveries/<random>` copies with NO label and NO quality caption,
