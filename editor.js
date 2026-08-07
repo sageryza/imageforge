@@ -70,7 +70,10 @@ const NARR_CACHE_FOLDER = `${RENDER_FOLDER}/narr-cache`;
 // anchor + this version), so the same clip is cut once ever — every later
 // preview or render just downloads it. Bump the version when the cutting logic
 // changes and every stale cut re-cuts itself on next use.
-const CUT_VERSION = 'v1';
+// v2 (Aug 2026): phraseSpan snaps span edges to the matched words — v1 cuts
+// could open on a stray word from the previous sentence (the doubled
+// "coincidence" in the Sheldrake episode), so every v1 cut re-cuts on use.
+const CUT_VERSION = 'v2';
 const MAX_RENDERS = 10;
 const WINDOW_RADIUS = 150; // ±seconds of transcript handed to the picker
 
@@ -165,18 +168,35 @@ function phraseSpan(words, phrase) {
   const pw = normWords(phrase);
   if (!pw.length) return null;
   const n = pw.length;
-  let best = null; // [ratio, start, end]
+  let best = null; // [ratio, start, windowLength]
   for (let L = n; L < n + 4; L++) {
     const last = Math.max(1, ww.length - L + 1);
     for (let i = 0; i < last; i++) {
       const win = ww.slice(i, i + L);
       if (!win.length) continue;
       const r = ratio(pw, win);
-      if (!best || r > best[0]) best = [r, i, Math.min(i + L - 1, words.length - 1)];
+      if (!best || r > best[0]) best = [r, i, L];
     }
   }
   if (!best || best[0] < 0.5) return null;
-  return { start: best[1], end: best[2], score: best[0] };
+  // Snap the span's edges to the words that actually MATCHED the phrase. A
+  // phrase word the audio never says ("uh", caption garble) makes a window
+  // shifted one word early score the SAME ratio as the true one, and the tie
+  // broke toward the earlier start — the cut then opened on a stray word from
+  // the previous sentence (Sophie heard clip 1's last word played twice: the
+  // Sheldrake episode's "…chance coincidence. | coincidence. The basic
+  // experiment…"). The matched blocks know exactly which window words are the
+  // phrase, so unmatched strays on either edge are trimmed off.
+  const [score, i0, L] = best;
+  let start = i0;
+  let end = Math.min(i0 + L - 1, words.length - 1);
+  const blocks = matchingBlocks(pw, ww.slice(i0, i0 + L));
+  if (blocks.length) {
+    const last = blocks[blocks.length - 1];
+    start = i0 + blocks[0][1];
+    end = Math.min(i0 + last[1] + last[2] - 1, words.length - 1);
+  }
+  return { start, end, score };
 }
 
 // Gap-aware clip bounds: pad outward for a natural feel, but NEVER past the
@@ -582,6 +602,11 @@ async function whisperWords(file) {
 
 // ─── ffmpeg helpers ─────────────────────────────────────────────────
 function run(bin, args, timeoutMs = 300000) {
+  // -hide_banner keeps stderr to the actual messages — without it a failure's
+  // tail was ffmpeg's build-flags banner, and the real error line fell off
+  // every truncated log (the Render seek failures were undiagnosable from
+  // render notes because of exactly this).
+  if (bin === FFMPEG || bin === FFPROBE) args = ['-hide_banner', ...args];
   return new Promise((resolve, reject) => {
     execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
@@ -601,44 +626,69 @@ async function audioDuration(file) {
   } catch { return 0; }
 }
 
-// Download a whole source file once per job — only used when ffmpeg can't seek
-// the URL directly (some static builds ship without https).
+// ─── Source downloads: one copy on disk, shared by every job ────────
+// ffmpeg on Render can't seek the https source (see extractWindow), so a
+// fresh cut needs the whole interview on disk. That used to be one download
+// per JOB — every preview pulled its own ~50MB copy of the same file, and a
+// render re-downloaded what a preview had just fetched. Downloads now land in
+// one process-wide LRU shared by everything that cuts (renders, previews, the
+// Cutting Room and Search via extractWindow). Eviction is by last use, only
+// of finished downloads; an evicted source simply re-downloads on next need.
+const SOURCE_DIR = path.join(os.tmpdir(), 'editor-sources');
+const SOURCE_CACHE_MAX = 3; // ~50MB each — bounded for the free instance's disk
+const sourceCache = new Map(); // url → { file, promise, at, done }
+
 async function downloadOnce(url, ctx) {
-  if (ctx.downloads.has(url)) return ctx.downloads.get(url);
-  const file = path.join(ctx.dir, `src-${crypto.randomBytes(4).toString('hex')}`);
-  const res = await fetch(url, { redirect: 'follow', timeout: 600000 });
-  if (!res.ok) throw new Error(`source audio fetch ${res.status}`);
-  await new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(file);
-    res.body.pipe(out);
-    res.body.on('error', reject);
-    out.on('finish', resolve);
-    out.on('error', reject);
-  });
-  ctx.downloads.set(url, file);
-  return file;
+  let entry = sourceCache.get(url);
+  if (!entry) {
+    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+    const file = path.join(SOURCE_DIR, crypto.createHash('sha1').update(url).digest('hex').slice(0, 16));
+    entry = { file, at: Date.now(), done: false, promise: null };
+    entry.promise = (async () => {
+      const res = await fetch(url, { redirect: 'follow', timeout: 600000 });
+      if (!res.ok) throw new Error(`source audio fetch ${res.status}`);
+      await new Promise((resolve, reject) => {
+        const out = fs.createWriteStream(file);
+        res.body.pipe(out);
+        res.body.on('error', reject);
+        out.on('finish', resolve);
+        out.on('error', reject);
+      });
+      entry.done = true;
+      ctx.log.push(`downloaded the source (${(fs.statSync(file).size / 1048576).toFixed(0)}MB)`);
+      return file;
+    })();
+    // A failed download must not poison the cache for the next attempt.
+    entry.promise.catch(() => sourceCache.delete(url));
+    sourceCache.set(url, entry);
+    const settled = [...sourceCache.entries()].filter(([, e]) => e.done).sort((a, b) => b[1].at - a[1].at);
+    for (const [u, e] of settled.slice(SOURCE_CACHE_MAX)) {
+      sourceCache.delete(u);
+      try { fs.unlinkSync(e.file); } catch { /* already gone */ }
+    }
+  }
+  entry.at = Date.now();
+  return entry.promise;
 }
 
-// Drop a downloaded source once every clip that needed it has been cut, so a
-// 12-source episode never holds twelve whole interviews on disk at once
-// (Render's free instance has little of it).
-function releaseDownload(url, ctx) {
-  const file = ctx.downloads.get(url);
-  if (!file) return;
-  ctx.downloads.delete(url);
-  try { fs.unlinkSync(file); } catch { /* already gone */ }
-}
+// Cut `winDur` seconds starting at `winStart` out of the source audio. A source
+// already downloaded (by any job since the process started) is cut locally;
+// otherwise the URL is tried directly first — ffmpeg range-seeks over http, so
+// where that works it pulls only what it needs. One failed direct seek marks
+// the url so later clips skip the doomed attempt instead of re-burning it.
+const directSeekFailed = new Set();
 
-// Cut `winDur` seconds starting at `winStart` out of the source audio. Tries the
-// URL directly first (ffmpeg range-seeks, so it pulls only what it needs).
 async function extractWindow(url, winStart, winDur, outFile, ctx) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable — cannot cut audio');
-  const args = ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', url, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile];
-  try {
-    await run(FFMPEG, args, 420000);
-    if (fs.existsSync(outFile) && fs.statSync(outFile).size > 2000) return outFile;
-  } catch (err) {
-    ctx.log.push(`direct seek failed (${err.message.slice(0, 90)}) — downloading the source`);
+  if (!sourceCache.has(url) && !directSeekFailed.has(url)) {
+    try {
+      await run(FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', url, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile], 420000);
+      if (fs.existsSync(outFile) && fs.statSync(outFile).size > 2000) return outFile;
+      throw new Error('ffmpeg wrote no audio');
+    } catch (err) {
+      directSeekFailed.add(url);
+      ctx.log.push(`direct seek failed (${String(err.message || '').trim().slice(-160)}) — downloading the source`);
+    }
   }
   const local = await downloadOnce(url, ctx);
   await run(FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', local, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile], 420000);
@@ -812,7 +862,7 @@ async function renderEpisode(ep, progress) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-'));
-  const ctx = { dir, downloads: new Map(), log: [] };
+  const ctx = { dir, log: [] };
   const snippetById = new Map((ep.snippets || []).map(s => [s.id, s]));
 
   try {
@@ -824,8 +874,10 @@ async function renderEpisode(ep, progress) {
     const clipFiles = new Map();
 
     // Cut video by video, not sequence order: ffmpeg on Render can't seek the
-    // https source, so each interview gets downloaded whole — grouping means
-    // one download per source, released the moment its last clip is cut.
+    // https source, so a fresh cut needs the interview downloaded — grouping
+    // keeps each source's clips together while its download is newest in the
+    // process-wide source cache (shared across jobs, evicted LRU, so previews
+    // and the next render reuse it instead of re-pulling ~50MB).
     const byVideo = new Map();
     for (const snippetId of uniqueClips) {
       const snippet = snippetById.get(snippetId);
@@ -842,7 +894,6 @@ async function renderEpisode(ep, progress) {
         clipFiles.set(snippet.id, await buildClip(snippet, source, ctx));
         done++;
       }
-      releaseDownload(source.audioUrl || defaultAudioUrl(videoId), ctx);
     }
 
     const parts = [];
@@ -981,7 +1032,7 @@ async function patchSnippet(episodeId, snippetId, fields) {
 async function makePreview(episodeId, snippetId) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-prev-'));
-  const ctx = { dir, downloads: new Map(), log: [] };
+  const ctx = { dir, log: [] };
   try {
     const ep = await loadEpisode(episodeId);
     if (!ep) throw new Error('episode not found');
@@ -1048,6 +1099,7 @@ router.get('/status', (req, res) => {
     storage: Boolean(bucket()),
     ffmpeg: Boolean(FFMPEG),
     ffprobe: Boolean(FFPROBE),
+    cutVersion: CUT_VERSION,
     openai: Boolean(OPENAI_API_KEY),
     elevenlabs: Boolean(process.env.ELEVENLABS_API_KEY),
     narrationVoice: NARRATION_VOICE,
@@ -1238,7 +1290,7 @@ router.post('/:id/narration-preview', async (req, res) => {
     const [exists] = await b.file(cachePath).exists();
     if (!exists) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-nar-'));
-      try { await buildNarration(text, { dir, downloads: new Map(), log: [] }); }
+      try { await buildNarration(text, { dir, log: [] }); }
       finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ } }
     }
     res.json({ url: storagePublicUrl(cachePath) });
