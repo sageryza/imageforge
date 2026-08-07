@@ -767,7 +767,22 @@ window.__navBack = () => {
   return false;
 };
 
-showList().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
+// Deep link straight to one episode: /editor?ep=<id> (or #ep=<id>, which is
+// what survives when a link is pasted somewhere that strips query strings).
+// A chat that sets an episode up can then hand Sophie ONE link that lands on
+// it, instead of "open the editor, now find the episode called…". Falls back
+// to the list when the id is missing or unknown, so a stale link is never a
+// dead end; back from that episode goes to the list as usual.
+const deepEp = (new URLSearchParams(location.search).get('ep')
+  || new URLSearchParams(location.hash.replace(/^#/, '')).get('ep') || '').trim();
+
+(async () => {
+  await showList();
+  if (deepEp) {
+    try { await openEpisode(deepEp); }
+    catch { /* unknown or deleted id — stay on the list we already rendered */ }
+  }
+})().catch(err => { $('#episodes').innerHTML = '<div class="status err">' + esc(err.message) + '</div>'; });
 </script>
 </body>
 </html>
