@@ -817,19 +817,41 @@ lifted into a standalone tool later.
   "html": "<the full self-contained page>" }` (x-studio-token when gated;
   ~10MB body cap). It appears in your chat's **Compare** tab (Chat · Assets ·
   Compare) and opens full-screen in the app — that's where she'll look for it,
-  next to your assets. Design the HTML however the comparison needs (mobile
+  next to your assets. Lay the content out however the comparison needs (mobile
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
   your own scroll pill.
+  **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
+  styled differently — there should be one style").** Start every new page
+  from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
+  (same-origin — served pages can link it; the skeleton is documented at the
+  top of `public/compare.css`: `.wrap` > `.eyebrow`/`h1`/`.sub`, then
+  `.card`/`.big`/`.chips`/`.imgrow` blocks). Do NOT hand-roll a fresh look
+  per page, and do NOT override the `:root` tokens. **The tokens are also
+  what fixes the pill:** the injected pill styles itself with the host page's
+  `--ink`/`--paper`/`--chg`/`--ink2`/`--rose` variables, so a page that
+  defines none of them renders the pill BLACK on transparent (this is why
+  every hand-rolled page's pill looked broken — Sophie caught it). If a page
+  genuinely can't link the stylesheet, it MUST at least define those five
+  `:root` tokens.
   **ANY tap pauses the autoscroll (Aug 2026, Sophie's rule — every Compare
   page MUST have this).** While she's interacting with a page — voting,
   typing a name, tapping anything at all — the page must not keep creeping
-  underneath her. Add this one line to every Compare page's script:
-  `document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);`
-  (capture phase, so it fires even when the tap lands on a button or form
-  field; the pill's own play button starts scrolling again). This is on top
-  of the existing image-lightbox rule below — opening an image still locks
-  background scroll too. List your
+  underneath her. Add this to every Compare page's script (capture phase, so
+  it fires even when the tap lands on a button or form field) — and it MUST
+  skip taps on the pill itself: `__scrollStop` repaints the pill's glyphs,
+  and swapping the tapped element out mid-press EATS the click, so an
+  unconditional version makes the pill's own play button dead (found live on
+  Cut Marks, fixed on the Cutting Room too):
+  `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
+  This is on top of the existing image-lightbox rule below — opening an
+  image still locks background scroll too.
+  **A page served with the injected pill must SCOPE its own script (IIFE).**
+  The pill snippet runs in global scope and declares `var raf`, `var I`,
+  `var playing`, … — a page-level `let raf`/`const I` collides and kills the
+  pill's script at PARSE time (empty stretched buttons, no scrolling —
+  Sophie hit this on Cut Marks). Wrap the page script in `(function(){ …
+  })()` and expose only `window.__navBack` etc. List your
   pages with `GET /api/chatfeed/pages?chat=<name>`; replace by DELETE
   `/api/chatfeed/page/:id` + re-post. Only fall back to a claude.ai artifact if
   the page genuinely can't work as plain HTML.
@@ -1175,6 +1197,27 @@ lifted into a standalone tool later.
   a newly named one (`POST /api/drop/move {ids, bundleName}`; placeIn()'s
   registry transaction numbers them in, the target album's session and
   track/name labels win, files placed in the order she picked them).
+- **FOLDERS CONTAIN ALBUMS — they never merge them (Aug 2026, Sophie: "don't
+  take it out of the sub folders it's already in").** A folder is the `track`
+  field, shown as "Folder" in the UI: filing an album writes the label onto
+  its files and nothing inside it moves, so one crystal stays one album stays
+  one Etsy listing. The sort page's Select mode picks whole album CARDS (not
+  files) and files the lot in one tap; the filter row carries a chip per
+  folder in use, so tapping "Crystals" shows exactly those albums. Albums
+  sort **newest first** by `newest` (the album's latest file — `seq` is
+  arrival order across ALL albums and can't answer freshness).
+  `POST /move` (file-level, above) is still there for a chat, but the page
+  never merges albums. The page's whole control strip (title, counts, filter
+  + Select chips) is ONE sticky header, and a back-to-top button floats
+  bottom-LEFT past 400px of scroll — with 100 albums, reaching Select must
+  never mean scrolling back to the top.
+- **`DumpView` must RE-READ the Photos albums, not load them once.** Its
+  `.task` fires a single time because RootView holds the view alive in a
+  ZStack, so an album created in Photos after launch never appeared in SEND —
+  and it read as the Dump having lost it (Sophie made "character references"
+  and "style references", didn't see them, and made them again). It now
+  reloads on `.forgeScreenChanged`, on `willEnterForeground`, and on every
+  switch back to the SEND tab.
 - **iOS is the main way in:** `ios/ImageForge/DumpUploader.swift` (in-app album
   picker — the share sheet can't see album names, so it's the right tool for a
   pile of named albums) with a background `URLSession` that survives leaving the
@@ -2028,6 +2071,82 @@ lifted into a standalone tool later.
   (inline JSON). Idempotent — re-running skips what's banked. Example:
   `python3 scripts/nde-grab-local.py "https://www.youtube.com/watch?v=XXXXXXXXXXX" "https://youtu.be/YYYYYYYYYYY"`
   (`--file urls.txt`, `--dry-run`, `--force`). Costs nothing; no paid API calls.
+- **The one-command way Sophie runs it:
+  `cd ~/imageforge && git checkout main && git pull origin main && ./scripts/grab`**
+  — paste links when asked, Return on an empty line (or
+  `./scripts/grab --file scripts/nde-urls.txt`). **`git checkout main` is load-
+  bearing, not boilerplate:** her Mac checkout is where chats park
+  work-in-progress branches, and it sat on one (`grab-python-fallback`) for
+  days — so a bare `git pull` kept answering "Already up to date" while
+  updating THAT branch, an already-merged fix never arrived, and the same
+  failure repeated every run with nothing in the output to reveal why.
+  `scripts/grab` now warns when it isn't on main (or when main is behind) and
+  prints that command. It deliberately WARNS instead of switching by itself —
+  a silent `git checkout` from inside a download tool can strand another
+  chat's uncommitted work. The wrapper builds a private
+  venv (`.grab-venv`) with the two Google packages on first run, so the Mac's
+  own pip/python state can never break it; every argument passes through to
+  `nde-grab-local.py`. Idempotent — re-running skips what's banked, so a
+  failed batch is just "run it again".
+- **Sophie's home connection stalls on big single uploads (Aug 2026 —
+  measured, not guessed).** Any single sustained HTTPS request body over ~1MB
+  hangs until the client's retry deadline (plain curl from her Mac: 512KB in
+  0.33s, 1MB forever, on both IPv4 and IPv6; her Wi-Fi is generally spotty),
+  and sustained `git push` from the Mac stalls the same way. **It is her
+  UPLINK, not any one host** — first measured against storage.googleapis.com,
+  but later testing stalled the same way to Cloudflare/GitHub/httpbin, while
+  downloads stay fine (~2.9MB/s) and 512KB uploads stay fine (~1.5MB/s). So
+  don't chase a Google-specific explanation. It shows up as "Timeout of 120.0s
+  exceeded" right after a big transcript or audio finishes. Two standing
+  workarounds, both proven live (PR #836, corrected in #845):
+  - **Every Storage upload from her Mac must be CHUNKED, and the load-bearing
+    idiom is `blob.open("wb", chunk_size=…)`.** `nde-grab-local.py`'s
+    `upload_bytes()` / `upload_file()` write through a file handle for exactly
+    this reason (measured 1.4MB/s where a single-request upload hung forever).
+    **Do NOT "simplify" that to `upload_from_string`/`upload_from_filename`
+    with `chunk_size` set on the blob** — it looks equivalent and is not, and
+    that exact mistake already shipped once: google-cloud-storage's
+    `Blob._do_upload` dispatches on SIZE ALONE (`size <= 8MiB` → one multipart
+    POST) and **never consults `blob.chunk_size` on that path**, so every
+    transcript (1.2-2.2MB) still went as one request — the very thing that
+    stalls. `chunk_size` only bites on the resumable path, i.e. files over
+    8MiB (the audio). Measured back to back on her Mac with the same 1.5MB
+    payload: the blob-attribute form 62.4s (surviving only because a 60s
+    read-timeout retry happened to land — under the stall it burns the 120s
+    deadline and fails INTERMITTENTLY, the worst failure mode), the
+    `blob.open()` form 1.2s. Keep it chunked even if her network heals —
+    chunking costs nothing then. Any NEW script that uploads from her Mac
+    needs the same treatment.
+  - **When `git push` stalls on the Mac, hand the commit to a CLOUD chat —
+    don't fight the network.** Cloud sessions push fine. The Mac chat
+    describes the change (or pastes the diff), the cloud chat recreates it on
+    a branch, pushes, PRs, and merges; the Mac then just runs
+    `git checkout main && git pull` (downloads work fine on her connection)
+    and deletes its stranded local branch. This is exactly how the chunking
+    fix itself landed — written on the Mac as local commit dd3edc0,
+    un-pushable, recreated from the cloud as #836.
+- **Pulling short CLIPS out of a YouTube video: `./scripts/clip` (Aug 2026).**
+  A different job from the grabber above — that banks WHOLE interviews (audio +
+  captions) into Firebase; this one saves short **video** clips as files on her
+  Mac. `cd ~/imageforge && ./scripts/clip "<youtube url>"`, then paste one line
+  per clip (`00:25:48-00:26:06 mailbox`) and Return on an empty line → numbered
+  files in `clips/<videoId>/` (gitignored). Re-running skips clips already
+  downloaded. `--spans`, `--dry-run` (needs no yt-dlp and no network),
+  `--format`, `--out`, `--cookies`, `--browser`, `--no-cookies`.
+  This replaces hand-pasted `yt-dlp … --download-sections` one-liners — the old
+  way meant re-typing the whole command per clip with new timestamps, which is
+  where the mistakes came from. `--force-keyframes-at-cuts` is baked in: without
+  it yt-dlp snaps to the nearest keyframe and the clip loses a second or two off
+  the front.
+  - **COOKIES are the whole game for age-gated videos** ("sign in to confirm
+    your age"). The script tries an exported cookies file FIRST — any
+    `~/Downloads/*cookies*.txt`, from the Chrome extension "Get cookies.txt
+    LOCALLY" — and only falls back to `--cookies-from-browser chrome`. That
+    order is deliberate and earned: reading Chrome's cookies directly raises a
+    macOS keychain prompt ("Chrome Safe Storage") that accepts ONLY her Mac
+    **login** password, and hers has drifted out of sync, so that path dead-ends
+    for her. The exported file skips the keychain entirely. It IS her live
+    YouTube session — tell her to delete it when a batch is done.
 - **Ingesting one of Sophie's OWN videos (not YouTube), July 2026.** For a video
   she made herself — no captions, no YouTube id — `POST /videos/from-video`
   `{ url, title? }` fetches it from a URL (Firebase Storage / Drive / Dropbox /
@@ -2310,6 +2429,93 @@ lifted into a standalone tool later.
   view's own history — a memo hand-off really does navigate to
   `/cuttingroom` — `__nativeNavBar` injected, audio paused on screen
   changes). Page changes ship via Render deploy; the wrapper needs TestFlight.
+
+## Cut Marks (mark your own cuts on a playhead — video or audio)
+- `cutmarks.js` (`/api/cutmarks`, page at `/cutmarks`, iOS tile "Cut Marks",
+  SF Symbol `timeline.selection`, deep link `deckfactory://cutmarks`) — the
+  **manual** sibling of the Cutting Room (Aug 2026, Sophie's ask): no
+  transcript, no waveform — she plays the file, taps the scissors at the
+  exact spot, and the marks split it into PIECES she keeps or drops; render
+  bakes one new file. Opens recordings from the audio drop AND videos from
+  the Dump (`media:'video'` docs) — one room either way.
+- **The transport is small on purpose** (Sophie rejected the big five-speed
+  shuttle in the mockup: "just to keep playing the video"): a slim horizontal
+  three-button pill — back 2s · play/pause · forward 2s — plus tap-the-strip
+  to jump. Precision lives on the MARK, not the playhead: each mark row has
+  −.1/+.1 nudges and tap-its-time-to-jump. Everything is a tap (wrist rule).
+  **The transport sits CENTERED right under the video/audio card** (Aug 2026,
+  Sophie: "so it's right there"), not in the bottom bar; the fixed bottom bar
+  is just time + the MARK scissors. **Undo, render and "?" are SMALL header
+  icons** (30px, top-right before the pill's reserved corner) — undo is a
+  session-only snapshot stack (marks + drops, capped 40); renders never
+  overwrite anything so they need no undo. In native builds the page hides
+  its EYEBROW too (`body.native .eyebrow`) — the nav bar already says CUT
+  MARKS and Sophie flagged the double.
+- **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
+  them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
+  a nudge keeps the same pieces, an added mark splits one (both halves stay
+  dropped), a removed mark merges two (merged piece stays dropped only when
+  both halves were). Without the remap, nudging a boundary silently
+  un-dropped the piece beside it — caught in testing, don't regress it.
+- **Renders are exact cuts at the marked times.** Audio: one atrim+concat
+  filtergraph with 12ms edge micro-fades so a manual cut never clicks — NO
+  loudnorm (her voice rule), channels kept. Video: ONE `filter_complex`
+  trim/atrim+concat pass with a single encode (libx264 veryfast, aac) —
+  deliberately not per-piece files + concat demuxer, because concatenated
+  AAC pieces add ~24ms priming per join and walk the sound off the picture
+  (the Scratch Pad film finding). A soundless video renders video-only
+  (`hasAudio` probed at open). Audio renders also file into the audio
+  library (batch `cut-marks`, track `cutmarks`, hash-deduped).
+- **Data:** one doc per file in `forge-cutmarks` (deckfactory),
+  content-addressed by sha1 of the url (reopening resumes): `{ id, title,
+  kind, source, seconds, hasAudio, marks:[t], dropped:[key], renders (capped
+  8), job }`. `POST /:id/state {marks, dropped}` saves the whole marking
+  state (the page debounces 600ms, flushes via sendBeacon on pagehide).
+  Probe + render are background jobs on the doc (house rule); the page polls
+  and resumes from `localStorage['cutmarks_open']`.
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /sources`,
+  `GET /`, `POST /open {url, name, kind, itemId, poster}`, `GET /:id`,
+  `POST /:id/state`, `POST /:id/title`, `POST /:id/render`, `GET /:id/job`,
+  `DELETE /:id`. Tests: keptSegments/audioGraph/videoGraph are exported;
+  render graphs validated against real files (exact durations), page flow
+  validated headless (playwright).
+- iOS: `CutMarksView.swift` = the Episode Editor wrapper pattern (native
+  `.forgeToolBar("Cut Marks")`, chevron asks `window.__navBack`,
+  `__nativeNavBar` hides the page back button, media paused on screen
+  changes — `audio,video` both). Page carries the injected shared pill;
+  native pill suppressed in RootView's `showAutoScroll`.
+## Getting original art OUT of a Google Drawing (Aug 2026)
+Sophie's old scanned artwork lives inside Google Drawings — for a lot of it
+those embedded copies are the only ones left. **The SVG export is the only way
+out at full size**, and `scripts/gdrawing-extract.py` (stdlib only) does the
+whole job: `python3 scripts/gdrawing-extract.py <url-or-id> [-o dir] [--list]`.
+- **Why SVG:** File ▸ Download ▸ PNG/JPEG flattens the whole drawing to ONE
+  image at **screen size** (~1056x816 — useless for print). The SVG export
+  instead embeds every placed image as its own base64 blob at the size Google
+  stored it, so splitting the SVG apart returns each picture individually at
+  full resolution.
+- **Don't reach for the Drive API export** (`download_file_content`,
+  `mimeType=image/svg+xml`): it has a hard **~10MB cap** and answers *"File too
+  large for export"* for any drawing full of scans. The plain public URL
+  `https://docs.google.com/drawings/d/<id>/export/svg` has no such cap (84MB
+  came down fine) — that's what the script uses.
+- **It needs link sharing.** That URL is unauthenticated, so a restricted
+  drawing 401s; Sophie sets Share ▸ General access ▸ "Anyone with the link"
+  (Viewer is enough) and can set it back afterwards. The script prints exactly
+  that instruction on a 401 instead of a stack trace.
+- **Reading the sizes:** anything sitting EXACTLY on **2500px** hit Google's
+  upload resize ceiling, so the original was bigger; anything under it is the
+  size she uploaded. **2500 applies to PNG as well as JPEG** — an earlier note
+  here claimed PNGs capped at 2048, which is wrong (2048 is just a common
+  export size, and PNGs come out at 2500 all the time). Either way it is the
+  biggest copy that still exists. Bytes are Google's re-encode (same pixels,
+  metadata stripped), never the byte-for-byte original file.
+- Duplicates are skipped by content hash — drawings copied from other drawings
+  repeat images heavily (one 46-image drawing shared 9 with its sibling).
+- **A two-figure image** (two people in one placed picture, often on a
+  transparent background) splits cleanly on the empty alpha column between
+  them, then composites onto white — Pillow + numpy, see the Blake-and-Louis
+  pair in the Aug 2026 chat.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at

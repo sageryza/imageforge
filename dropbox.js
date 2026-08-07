@@ -500,9 +500,15 @@ router.get('/bundles', async (req, res) => {
           qty: it.qty, origin: it.origin, kind: it.kind, count: it.count,
           listingId: it.listingId, listingUrl: it.listingUrl,
           cover: it.posterUrl || it.url,
+          // When the newest file in this album landed — what the sort page
+          // orders by (newest first), since seq is arrival order across ALL
+          // albums and says nothing about a re-dumped album's freshness.
+          newest: 0,
           files: [],
         });
       }
+      const at = Number(it.createdAt) || 0;
+      if (at > out[index.get(key)].newest) out[index.get(key)].newest = at;
       out[index.get(key)].files.push({
         id: it.id, url: it.url, media: it.media || 'image',
         posterUrl: it.posterUrl || null, photoIndex: it.photoIndex || 0,

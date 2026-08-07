@@ -311,7 +311,14 @@
 
 <script>
 // ANY tap pauses the shared autoscroll pill (house rule).
-document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+// Skip taps on the pill itself: __scrollStop repaints the pill's glyphs, and
+// swapping the tapped element out mid-press eats the click — the pill's own
+// play button could never start a scroll (found on Cut Marks, same bug here).
+document.addEventListener('pointerdown', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('.float')) return;
+  if (window.__scrollStop) window.__scrollStop();
+}, true);
 // Inside the app the native nav bar carries the title + back chevron
 // (injected as __nativeNavBar, the Episode Editor pattern) — hide our own.
 if (window.__nativeNavBar) document.body.classList.add('native');

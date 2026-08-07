@@ -293,6 +293,49 @@ def download_audio(binary, video_id, workdir, audio_format):
 
 # ── Firebase ───────────────────────────────────────────────────────────
 
+# EVERY upload is CHUNKED — never one big request body. Measured on Sophie's
+# Mac (Aug 2026): a single sustained HTTPS request body over ~1MB stalls and
+# dies on the client's 120s retry deadline, while 512KB goes through in 0.3s.
+# Plain curl with no auth reproduces it on both IPv4 and IPv6, so it is her
+# uplink (router/ISP), not bandwidth, not credentials, and nothing in this
+# script — downloads are fine at ~2.9MB/s throughout. That stall is what failed
+# every Dolores Cannon audiobook right after "transcript ✓": their transcripts
+# are 1.2-2.2MB of JSON, uploaded in one shot. A resumable upload in 512KB
+# chunks routes around it entirely (measured 1.4MB/s). Keep it chunked even if
+# her connection heals — chunking costs nothing when the network is healthy.
+#
+# THE LOAD-BEARING IDIOM IS blob.open("wb", chunk_size=...) — DO NOT "SIMPLIFY"
+# THIS BACK TO upload_from_string()/upload_from_filename() WITH chunk_size ON
+# THE BLOB. That looks equivalent and is not: google-cloud-storage's
+# Blob._do_upload dispatches on SIZE ALONE — `if size <= _MAX_MULTIPART_SIZE`
+# (8MiB) it calls _do_multipart_upload, and blob.chunk_size is never consulted
+# there. So every transcript, being under 8MiB, would still go as ONE multipart
+# POST — precisely the request that stalls. chunk_size only takes effect on the
+# resumable path, i.e. files OVER 8MiB (the audio). That exact mistake shipped
+# once and was caught by measurement: same 1.5MB payload, back to back on this
+# Mac, blob(chunk_size=...) + upload_from_string took 62.4s (it survived only
+# because a 60s read-timeout retry happened to succeed on the second attempt —
+# under the stall it burns the 120s deadline and fails INTERMITTENTLY), versus
+# 1.2s for blob.open("wb"). blob.open() forces a resumable chunked upload at
+# ANY size, which is the whole reason these are written as file handles.
+UPLOAD_CHUNK = 512 * 1024  # must stay a multiple of 256KiB (resumable API rule)
+
+
+def upload_bytes(bucket, dest, payload, content_type):
+    blob = bucket.blob(dest)
+    with blob.open("wb", content_type=content_type, chunk_size=UPLOAD_CHUNK) as fh:
+        fh.write(payload)
+    return blob
+
+
+def upload_file(bucket, dest, path, content_type):
+    blob = bucket.blob(dest)
+    with open(path, "rb") as src, \
+            blob.open("wb", content_type=content_type, chunk_size=UPLOAD_CHUNK) as fh:
+        shutil.copyfileobj(src, fh, UPLOAD_CHUNK)
+    return blob
+
+
 def find_key_file():
     """No env vars set? Look for the Deck Factory key file in the obvious Mac
     spots — an AirDropped file lands in ~/Downloads. Filename just has to look
@@ -460,8 +503,7 @@ def grab_one(video_id, ctx):
             payload = json.dumps(transcript, ensure_ascii=False).encode("utf-8")
             if len(payload) > 850_000:
                 dest = f"nde-transcripts/{video_id}.json"
-                ctx["bucket"].blob(dest).upload_from_string(
-                    payload, content_type="application/json")
+                upload_bytes(ctx["bucket"], dest, payload, "application/json")
                 update["transcript"] = {
                     "storage": dest,
                     "segmentsCount": len(transcript["segments"]),
@@ -482,8 +524,10 @@ def grab_one(video_id, ctx):
         path, ext = download_audio(ctx["ytdlp"], video_id, ctx["workdir"], ctx["audio_format"])
         size = os.path.getsize(path)
         dest = f"{AUDIO_PREFIX}{video_id}.{ext}"
-        target = ctx["bucket"].blob(dest)
-        target.upload_from_filename(path, content_type=CONTENT_TYPES.get(ext, "application/octet-stream"))
+        log(f"    uploading {size / 1e6:.0f}MB of audio in {UPLOAD_CHUNK // 1024}KB "
+            "chunks — this is the slow part")
+        target = upload_file(ctx["bucket"], dest, path,
+                             CONTENT_TYPES.get(ext, "application/octet-stream"))
         target.make_public()
         update["audioUrl"] = f"https://storage.googleapis.com/{ctx['bucket'].name}/{dest}"
         update["audioBytes"] = size

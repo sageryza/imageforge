@@ -277,6 +277,7 @@ loadConfig().then(() => {
   const nde = require('./nde');
   const editor = require('./editor');
   const cuttingroom = require('./cuttingroom');
+  const cutmarks = require('./cutmarks');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -357,6 +358,7 @@ loadConfig().then(() => {
   // forge-nde-videos + the voice-memo archive), with the hand-offs that turn a
   // hit into work — interview → Episode Editor, memo → Cutting Room.
   app.use('/api/search', require('./search').router);
+  app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -2481,6 +2483,10 @@ app.get('/cuttingroom', serveGated('cuttingroom.html', { pill: true }));
 // memos together. Engine is /api/search (search.js). A results page scrolls,
 // so it carries the shared autoscroll pill like its sibling audio tools.
 app.get('/search', serveGated('search.html', { pill: true }));
+// Cut Marks: the manual sibling — mark your own cut points on a playhead
+// (video or audio, no transcript), drop pieces, render a fresh file. Engine
+// is /api/cutmarks (cutmarks.js). Same gate; same shared pill.
+app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

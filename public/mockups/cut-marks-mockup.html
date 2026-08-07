@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cut Marks — mockup</title>
+<style>
+  /* Sibling palette to the Cutting Room / Episode Editor — one audio-tool
+     family. Gold outline + gold icon on cream, icon-first (Sophie, Aug 2026). */
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    --badbg:#F5E2DC; --selbg:#E7EFE2; --nowbg:#F6E3BE;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:150px}
+  [hidden]{display:none !important}
+  svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; display:block}
+
+  /* header — page-owned; top-right corner RESERVED for the shared autoscroll
+     pill (same calc as chats/editor/cuttingroom). In the app the native bar
+     carries the tool title + back chevron; this h1 is the RECORDING's name,
+     so the two never say the same thing twice. */
+  header{position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:12px 14px;
+    padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
+  .htext{min-width:0; flex:1}
+  .eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--soft); font-weight:600}
+  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:20px; margin:2px 0 0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hmeta{font-size:12px; color:var(--soft); margin-top:1px}
+
+  .wrap{padding:14px; max-width:720px; margin:0 auto}
+
+  button{font:inherit; cursor:pointer}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:11px 14px; display:inline-flex; align-items:center; gap:8px; font-weight:600}
+  .btn:active{background:#F1E6CE}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .btn.on{background:#F1E4C2}
+
+  h2.sec{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--soft);
+    margin:26px 0 8px; font-weight:600}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:8px}
+  .row{display:flex; gap:10px; align-items:center}
+  .muted{color:var(--soft); font-size:13px}
+  .tiny{font-size:12px; color:var(--soft)}
+
+  .mockbanner{background:var(--cream); border:1px solid var(--line); border-radius:6px;
+    padding:9px 12px; font-size:13px; color:var(--soft); margin-bottom:12px}
+
+  /* mode flip — labelled pair, never a lone icon */
+  .modes{display:flex; gap:8px; margin-bottom:12px}
+  .modes .btn{padding:8px 14px; font-size:13px; letter-spacing:.06em}
+
+  /* media area */
+  #vframe{background:#2A2620; border-radius:6px; aspect-ratio:16/9; position:relative;
+    display:flex; align-items:center; justify-content:center; margin-bottom:10px}
+  #vframe svg{width:44px; height:44px; color:#5C554A; stroke-width:1.2}
+  #vframe .tc{position:absolute; left:10px; bottom:8px; color:var(--gold);
+    font-size:15px; font-weight:600; font-variant-numeric:tabular-nums}
+  #aframe{background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:26px 14px; text-align:center; margin-bottom:10px}
+  #aframe .nm{font-size:13px; color:var(--soft)}
+  #aframe .tc{font-family:Georgia,serif; font-size:44px; margin-top:4px; font-variant-numeric:tabular-nums}
+  #aframe .mic{display:flex; justify-content:center; color:var(--goldline); margin-bottom:2px}
+
+  /* timeline strip — pieces between the marks; tap a piece to drop/keep it */
+  #strip{position:relative; height:46px; border:1px solid var(--goldline); border-radius:6px;
+    overflow:hidden; background:var(--cream)}
+  #strip .seg{position:absolute; top:0; bottom:0; background:var(--cream); cursor:pointer}
+  #strip .seg.dropped{background:var(--badbg)}
+  #strip .seg + .seg{border-left:2px solid var(--goldline)}
+  #strip .seg .no{position:absolute; left:6px; top:4px; font-size:11px; color:var(--soft); font-weight:600}
+  #strip .seg.dropped .no{color:var(--bad); text-decoration:line-through}
+  #strip #ph{position:absolute; top:0; bottom:0; width:2px; background:var(--ink); pointer-events:none; z-index:2}
+  .striphint{font-size:12px; color:var(--soft); margin-top:6px}
+
+  /* marks list */
+  .mrow{display:flex; align-items:center; gap:8px; padding:9px 4px; border-top:1px solid var(--line)}
+  .mrow:first-child{border-top:none}
+  .mrow .ic{color:var(--goldline); flex:none} .mrow .ic svg{width:15px; height:15px}
+  .mrow .t{font-weight:600; font-variant-numeric:tabular-nums; min-width:74px; cursor:pointer}
+  .mrow .btn{padding:7px 10px; font-size:13px}
+  .mrow .del{margin-left:auto; background:transparent; border:none; color:var(--soft); padding:8px}
+
+  /* fixed bottom bar: the sideways pill + time + MARK */
+  #bbar{position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--paper);
+    border-top:1px solid var(--line); padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:14px}
+  .hwrap{display:flex; flex-direction:column; align-items:center; gap:4px; flex:none}
+  .hseg{display:flex; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden;
+    background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09)}
+  .hseg button{border:none; background:transparent; color:var(--ink); width:52px; height:46px;
+    display:flex; align-items:center; justify-content:center; padding:0; touch-action:manipulation}
+  .hseg button + button{border-left:1.5px solid var(--ink)}
+  .hseg button.on{background:#F1E4C2; color:var(--goldline)}
+  .hseg button.dim{opacity:.3}
+  #hspd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--soft);
+    letter-spacing:.02em}
+  #btime{font-size:14px; color:var(--soft); font-variant-numeric:tabular-nums; flex:1; text-align:center}
+  #btime b{color:var(--ink); font-weight:600}
+  #mark{padding:13px 20px; flex:none}
+  #mark svg{width:19px; height:19px}
+
+  /* the ? circle + help card (icon-first tool rule) */
+  #help{width:34px; height:34px; border-radius:50%; background:var(--cream);
+    border:1px solid var(--goldline); color:var(--goldline); font-weight:700; font-size:16px;
+    padding:0; display:flex; align-items:center; justify-content:center; flex:none; font-family:Georgia,serif}
+  .veil{position:fixed; inset:0; z-index:8; background:rgba(250,247,241,.55)}
+  #helpcard{position:fixed; left:16px; right:16px; top:50%; transform:translateY(-50%); z-index:9;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px 16px 12px;
+    box-shadow:0 2px 18px rgba(35,32,27,.14); max-height:82vh; overflow-y:auto}
+  .hrow{display:flex; gap:12px; align-items:flex-start; padding:10px 0;
+    border-top:1px solid var(--line); font-size:14px; line-height:1.45}
+  .hrow:first-child{border-top:none}
+  .hrow .hic{width:32px; flex:none; color:var(--goldline); display:flex; justify-content:center; padding-top:2px}
+
+  #toast{position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(110px + env(safe-area-inset-bottom)); z-index:10; background:var(--ink); color:var(--paper);
+    border-radius:6px; padding:9px 16px; font-size:14px; max-width:84vw; text-align:center;
+    opacity:0; transition:opacity .25s; pointer-events:none}
+  #toast.on{opacity:1}
+
+  .ship .hrow{font-size:13.5px; color:var(--soft)}
+  .ship b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="htext">
+    <div class="eyebrow">CUT MARKS</div>
+    <h1 id="htitle">Evan film — rough cut</h1>
+    <div class="hmeta" id="hmeta">video · 2:14</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="mockbanner"><b>Mockup.</b> The playhead, marks and pieces all work against a
+    pretend 2:14 recording so you can feel the taps — nothing saves and nothing costs.
+    The pill in the top corner is the real shared one, injected the same way every page gets it.</div>
+
+  <div class="modes">
+    <button class="btn on" id="mVideo">VIDEO</button>
+    <button class="btn" id="mAudio">AUDIO</button>
+    <span class="tiny" style="margin-left:auto; align-self:center">one tool, either kind</span>
+  </div>
+
+  <div id="vframe">
+    <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M21 7.5h-4"/><path d="M21 16.5h-4"/></svg>
+    <div class="tc" id="vtc">0:00.0</div>
+  </div>
+  <div id="aframe" hidden>
+    <div class="mic"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
+    <div class="nm" id="anm">Morning narration — take 2</div>
+    <div class="tc" id="atc">0:00.0</div>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="render" title="Render the cut">
+      <svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg>
+    </button>
+    <button class="btn" id="send" title="Send a piece on">
+      <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+    </button>
+    <span class="tiny" id="markn" style="margin-left:auto"></span>
+    <button id="help" aria-label="how this works">?</button>
+  </div>
+
+  <h2 class="sec">The recording</h2>
+  <div id="strip"><div id="ph"></div></div>
+  <div class="striphint" id="striphint">Marks split it into pieces. Tap a piece to drop it; tap again to keep it.</div>
+
+  <div id="marksWrap" hidden>
+    <h2 class="sec">Marks</h2>
+    <div class="card" id="marks"></div>
+  </div>
+
+  <div class="ship">
+    <h2 class="sec">How it ships (the pattern)</h2>
+    <div class="card">
+      <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></div>
+        <div><b>One tile</b> on the making home. It opens recordings from the audio drop and videos from the Dump — same room either way.</div></div>
+      <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div><b>No double header.</b> The native wrapper is the Episode Editor pattern: the app's own bar carries the tool title and THE back chevron, and this page header only ever names the recording. On the pick-a-recording list the page header folds away entirely.</div></div>
+      <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg></div>
+        <div><b>The corner pill is the same shared autoscroll pill as Chats</b> — the server injects the one source onto the page and the app's native pill is switched off, so it scrolls the page exactly like every other tool. The sideways one below only drives the playhead.</div></div>
+      <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="M8 13V9a4 4 0 0 1 8 0v4"/><path d="M12 13v8"/></svg></div>
+        <div><b>Everything is a tap.</b> Nothing drags, scrubs or scrolls under your finger.</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="bbar">
+  <div class="hwrap">
+    <div class="hseg">
+      <button id="hleft" aria-label="Roll backward, or slower while moving"></button>
+      <button id="hmid" aria-label="Play or stop"></button>
+      <button id="hright" aria-label="Roll forward, or faster while moving"></button>
+    </div>
+    <span id="hspd">1×</span>
+  </div>
+  <div id="btime"><b id="bnow">0:00.0</b><br>of 2:14</div>
+  <button class="btn" id="mark" title="Mark a cut here">
+    <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>
+  </button>
+</div>
+
+<div class="veil" id="hveil" hidden></div>
+<div id="helpcard" hidden>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></div>
+    <div>The sideways pill drives the playhead. ◀◀ rolls backward, ▶ plays, ▶▶ rolls forward. While it's moving, the ends turn into slower / faster (¼× up to 4×) and the middle stops it — the same five-speed grammar as the scroll pill in the corner.</div></div>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></div>
+    <div>Scissors drop a cut mark exactly where the playhead is. Get close at 1×, creep at ¼×, then tap.</div></div>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="6" rx="2"/><path d="M9 6v12"/></svg></div>
+    <div>Every mark splits the recording into pieces. Tap a piece on the strip to drop it (rose, struck); tap again to keep it.</div></div>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></div>
+    <div>In the Marks list, −.1 / +.1 nudge a mark by a tenth of a second, and tapping its time jumps the playhead there so you can listen across it.</div></div>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></div>
+    <div>Render makes one new file with the dropped pieces gone — the original is never touched.</div></div>
+  <div class="hrow"><div class="hic"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg></div>
+    <div>Send hands a kept piece on — save it, or pass it to the Story Room or the Episode Editor.</div></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+  var DUR=134.0;                    // pretend 2:14 recording
+  var t=0, playing=false, dir=1, raf=null, last=null;
+  var SPEEDS=[['¼×',0.25],['½×',0.5],['1×',1],['2×',2],['4×',4]], si=2;
+  var marks=[], dropped={};         // dropped keyed by piece start-end
+  var mode='video';
+
+  var $=function(id){ return document.getElementById(id); };
+  var I={
+    left:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg>',
+    right:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg>',
+    play:'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+    pause:'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    minus:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+    scis:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
+    x:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+  };
+
+  function fmt(s){ var m=Math.floor(s/60), r=s-m*60;
+    return m+':'+(r<10?'0':'')+r.toFixed(1); }
+  function toast(msg){ var el=$('toast'); el.textContent=msg; el.classList.add('on');
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ el.classList.remove('on'); },1900); }
+
+  /* ── the sideways pill — the autoscroll pill's grammar, horizontal ── */
+  var hl=$('hleft'), hm=$('hmid'), hr=$('hright');
+  function paint(){
+    if(playing){
+      hl.innerHTML=I.minus; hr.innerHTML=I.plus; hm.innerHTML=I.pause; hm.classList.add('on');
+      hl.classList.toggle('dim', si===0); hr.classList.toggle('dim', si===SPEEDS.length-1);
+    } else {
+      hl.innerHTML=I.left; hr.innerHTML=I.right; hm.innerHTML=I.play; hm.classList.remove('on');
+      hl.classList.remove('dim'); hr.classList.remove('dim');
+    }
+    $('hspd').textContent=(playing&&dir<0?'◀ ':'')+SPEEDS[si][0];
+    var tc=fmt(t); $('vtc').textContent=tc; $('atc').textContent=tc; $('bnow').textContent=tc;
+    $('ph').style.left=(t/DUR*100)+'%';
+  }
+  function step(ts){
+    if(!playing) return;
+    if(last!=null){
+      t+=dir*(ts-last)/1000*SPEEDS[si][1];
+      if(t<=0){ t=0; stop(); } else if(t>=DUR){ t=DUR; stop(); }
+    }
+    last=ts; paint(); raf=requestAnimationFrame(step);
+  }
+  function start(d){ if(d<0&&t<=0) return; if(d>0&&t>=DUR) return;
+    dir=d; playing=true; last=null; paint(); raf=requestAnimationFrame(step); }
+  function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); paint(); }
+  hl.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
+  hr.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
+  hm.onclick=function(){ playing? stop() : start(1); };
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) stop(); });
+
+  /* ── marks + pieces ── */
+  function pieces(){
+    var cuts=[0].concat(marks).concat([DUR]), out=[];
+    for(var i=0;i<cuts.length-1;i++) out.push({s:cuts[i], e:cuts[i+1]});
+    return out;
+  }
+  function key(p){ return p.s.toFixed(2)+'-'+p.e.toFixed(2); }
+  function rebuild(){
+    var strip=$('strip');
+    strip.innerHTML='<div id="ph"></div>';
+    pieces().forEach(function(p,i){
+      var d=document.createElement('div');
+      d.className='seg'+(dropped[key(p)]?' dropped':'');
+      d.style.left=(p.s/DUR*100)+'%'; d.style.width=((p.e-p.s)/DUR*100)+'%';
+      d.innerHTML='<span class="no">'+(i+1)+'</span>';
+      d.onclick=function(){ dropped[key(p)]=!dropped[key(p)]; rebuild();
+        toast(dropped[key(p)]?'Piece '+(i+1)+' dropped':'Piece '+(i+1)+' kept'); };
+      strip.appendChild(d);
+    });
+    var list=$('marks'); list.innerHTML='';
+    marks.forEach(function(m,i){
+      var r=document.createElement('div'); r.className='mrow';
+      r.innerHTML='<span class="ic">'+I.scis+'</span><span class="t">'+fmt(m)+'</span>'
+        +'<button class="btn plain nud" data-d="-1">−.1</button>'
+        +'<button class="btn plain nud" data-d="1">+.1</button>'
+        +'<button class="del" aria-label="remove">'+I.x+'</button>';
+      r.querySelector('.t').onclick=function(){ stop(); t=m; paint(); toast('Jumped to '+fmt(m)); };
+      r.querySelectorAll('.nud').forEach(function(b){
+        b.onclick=function(){ marks[i]=Math.min(DUR,Math.max(0,marks[i]+0.1*(+b.dataset.d)));
+          marks.sort(function(a,b){return a-b;}); rebuild(); };
+      });
+      r.querySelector('.del').onclick=function(){ marks.splice(i,1); rebuild(); toast('Mark removed'); };
+      list.appendChild(r);
+    });
+    $('marksWrap').hidden=!marks.length;
+    $('markn').textContent=marks.length? marks.length+(marks.length===1?' mark':' marks') : '';
+    paint();
+  }
+  $('mark').onclick=function(){
+    if(marks.some(function(m){ return Math.abs(m-t)<0.15; })){ toast('A mark is already there'); return; }
+    marks.push(t); marks.sort(function(a,b){return a-b;}); rebuild(); toast('Cut marked at '+fmt(t));
+  };
+
+  /* ── mock-only bits ── */
+  $('render').onclick=function(){ toast('Real tool: renders ONE new file, original untouched'); };
+  $('send').onclick=function(){ toast('Real tool: save a piece, or send it to Story Room / Episode Editor'); };
+  $('mVideo').onclick=function(){ mode='video'; $('mVideo').classList.add('on'); $('mAudio').classList.remove('on');
+    $('vframe').hidden=false; $('aframe').hidden=true;
+    $('htitle').textContent='Evan film — rough cut'; $('hmeta').textContent='video · 2:14'; };
+  $('mAudio').onclick=function(){ mode='audio'; $('mAudio').classList.add('on'); $('mVideo').classList.remove('on');
+    $('vframe').hidden=true; $('aframe').hidden=false;
+    $('htitle').textContent='Morning narration — take 2'; $('hmeta').textContent='audio · 2:14'; };
+
+  var hc=$('helpcard'), hv=$('hveil');
+  $('help').onclick=function(e){ e.stopPropagation(); hc.hidden=false; hv.hidden=false; };
+  hv.onclick=function(){ hc.hidden=true; hv.hidden=true; };
+  hc.onclick=function(){ hc.hidden=true; hv.hidden=true; };
+
+  /* Compare-page rule: ANY tap pauses the page autoscroll. */
+  document.addEventListener('pointerdown', function(){ if(window.__scrollStop) window.__scrollStop(); }, true);
+
+  rebuild();
+})();
+</script>
+</body>
+</html>
