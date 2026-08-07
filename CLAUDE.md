@@ -2764,7 +2764,15 @@ the `forge-stories` collection is retired (see migration below).
   `ImageForge TestFlight` workflow in memory-library-react (holds the Apple
   secrets; `imageforge_ref` input picks the imageforge branch). Page/content
   changes ship via Render deploy — no build.
-- Approvals happen in chat with Sophie; sync after flipping statuses.
+- **The approve/candidate step is PARKED (Aug 2026, Sophie: "we don't really
+  use it anymore… we might put it back in eventually").** The data model keeps
+  it — a card still carries `status` (`approved`/`ok` > `candidate`/`cand` >
+  `draft` > `miss`), the draft-film stitcher still prefers the best-status art
+  per beat, and `/api/story/status` still flips it — so turning the flow back
+  on is a UI change, not a migration. But **nothing user-facing may show
+  approval state**: no approved-vs-made counts, no "0 of 12 approved" bars, no
+  candidate language on a story page or a Compare page. Approvals happened in
+  chat with Sophie when the flow was live; sync after flipping statuses.
 - **Claude may merge its own PRs without asking** (standing permission, July
   2026). When a PR is ready, merge it — then watch the Render deploy and fix
   anything that breaks.
