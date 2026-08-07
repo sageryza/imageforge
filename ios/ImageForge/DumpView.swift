@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Photos
 
 /// One Photos album, ready to dump. Its title becomes the bundle name, so
@@ -96,6 +97,22 @@ struct DumpView: View {
         }
         .background(Theme.bg.ignoresSafeArea())
         .task { await library.load() }
+        // Re-read the Photos albums whenever she comes back to this screen.
+        // `task` fires ONCE — this view is held alive in RootView's ZStack —
+        // so an album created in Photos after launch never appeared here, and
+        // it looked like the dump had lost it. (Sophie hit exactly this: she
+        // made "character references" and "style references", didn't see them,
+        // and made them again.)
+        .onReceive(NotificationCenter.default.publisher(for: .forgeScreenChanged)) { _ in
+            Task { await library.load() }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await library.load() }
+        }
+        .onChange(of: tab) { t in
+            if t == .send { Task { await library.load() } }
+        }
     }
 
     /// Labelled pair, never a bare icon — the Chats list/tiles lesson: an
