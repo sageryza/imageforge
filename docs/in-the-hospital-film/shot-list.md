@@ -64,14 +64,20 @@ earlier shot.
   pages at low (~2¢) + draft clips at 480p (~6¢); keepers get the page redrawn
   at HIGH and the animation at 720p (~16¢). The two panels must show visibly
   DIFFERENT poses/compositions or wan has nothing to do.
-- **A pair must be BOLD — Sophie rejected "small movements" twice.** A bold
-  pair is a frame TRANSFORMATION (the room floods with gray, a stone idol
-  collapses into a seated nurse, music drains from the air), a materialization
-  at scale (animals appear across a whole wall), or a body crossing the frame
-  (she steps INTO the glowing screen, shrinks into a child in enormous
-  pajamas). Hands-doing-tasks pairs — kneel, drop, place, pocket, reach — are
-  exactly what she keeps sending back. If the change between the panels could
-  be missed at a glance, it is not a pair; make it a single.
+- **A pair is a PLOT EVENT — "this is supposed to be a movie. Things actually
+  happen" (Sophie, Aug 2026, after two rejected rounds).** The round of tiny
+  hand-task pairs was "small movements again"; the round of bold METAPHOR
+  pairs (the idol collapsing into the nurse, animals materializing) was
+  "you're just showing weird metaphors." What she wants: **the actual actions
+  of the story** — things that really happened in the manuscript (she springs
+  out of push-up position and gets into bed when the nurse checks; she digs
+  the soup container out of the trash; she drinks the soap cup in front of
+  the nurse; the nurses make her take the statues down). A thought or an
+  image in her head (the flowers blooming, the idol) is NOT a pair — it
+  didn't happen. **Test each candidate by imagining the narration line
+  playing behind it** (her suggestion): the animation should show the thing
+  the voice says happening, with clear whole-body movement between the
+  panels, never a hand-scale gesture.
 - **Narration: Sophie — morning (`UTkHGl2ImiT6gwtAFCql`) on
   `eleven_multilingual_v2` — NEVER `eleven_v3`** (Aug 2026, Sophie; film v1
   shipped on v3 by mistake and was re-rendered). Settings: stability 0.5,
