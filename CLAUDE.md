@@ -888,6 +888,20 @@ lifted into a standalone tool later.
   `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
   This is on top of the existing image-lightbox rule below — opening an
   image still locks background scroll too.
+  **The tap gesture's exempt list is SHARED — never hand-roll one, and always
+  PASS THE EVENT (Aug 2026, Sophie: this "comes up a lot").** `pill.py` owns
+  `PILL_SKIP` (`a,button,summary,details,input,textarea,select,label,video,
+  audio,[onclick]`) and exposes it two ways: `window.__scrollTap(e)` applies
+  it for you, and `window.__pillInteractive(el)` answers it for a page's own
+  handler. **`__scrollTap()` called with no argument exempts NOTHING** — that
+  is exactly how a code block's COPY button in the Chats app both copied AND
+  started the autoscroll (Sophie caught it; the copy handler's own
+  `stopPropagation` is a document-level listener, so it runs after the page's
+  tap handler and can't help). A page may ADD its own exemptions on top
+  (chats: `pre`/`code`, so selecting text in a code block isn't a tap;
+  writing: `.notebox`), but the shared list is the floor. This is why a
+  Compare page with a copy button, a vote chip or a text field must route
+  through the shared helper rather than reinventing the skip list.
   **A page served with the injected pill must SCOPE its own script (IIFE).**
   The pill snippet runs in global scope and declares `var raf`, `var I`,
   `var playing`, … — a page-level `let raf`/`const I` collides and kills the

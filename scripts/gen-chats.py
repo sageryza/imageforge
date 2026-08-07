@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-07-31 — RESYNCED from public/chats.html. It had drifted
+# build marker: 2026-08-07 — RESYNCED from public/chats.html (again). It had drifted
 # again: #636 (Archive in the header) and #642 (the ask-first sheet) were
 # edited straight into the page, so running this would have reverted both and
 # taken the archive confirmation with it — the very accident it exists to stop.
@@ -44,7 +44,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
 .t-blank{display:flex; align-items:center; justify-content:center;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
-.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
+.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose); z-index:2;}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
 .t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
 .t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
@@ -169,7 +169,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .acctrow .tbtn{min-width:34px; text-align:center;}
-.archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
+/* Just the word (Sophie's ask) — no box, no border. Lit while the grid is
+   showing the archived chats instead of the live ones. */
+.archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2);
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+.archlink.on{color:var(--ink); font-weight:600;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -242,6 +246,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
+/* WORKING — the chat is mid-turn (its newest message is a live draft still
+   being written). Tinted rose on the home screen so an in-flight chat reads at
+   a glance and doesn't get opened and re-asked. Same signal as the thread's
+   "still writing…" marker, just visible from outside. */
+.tile.live .t-cover{border-color:var(--rose); background:color-mix(in srgb, var(--rose) 15%, var(--paper));}
+/* Most tiles carry a cover image, which would hide a background tint — so the
+   wash goes OVER the picture. The ♥/✕ marks (z-index 2) and the unread dot sit
+   above it; nothing tappable ends up under the wash. */
+.tile.live .t-cover::after{content:''; position:absolute; inset:0; background:var(--rose); opacity:.26; pointer-events:none;}
+.tile.live .t-new{box-shadow:0 0 0 2px var(--paper);}   /* rose dot on a rose wash needs an edge */
+.tile.live .t-name{color:var(--rose);}
+.crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
+.crow.live .cr-ic{border-color:var(--rose);}
+.crow.live .cr-name{color:var(--rose);}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
@@ -333,6 +351,14 @@ body.reading .backwrap{display:block;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
 
 __PILL_CSS__
+/* While a full-screen overlay is open (Compare page viewer, image lightbox)
+   this page's OWN pill must be hidden: the viewer supplies its own pill for
+   the iframe, and `.float` is promoted to its own layer (translateZ), which
+   iOS paints ABOVE the overlay despite the lower z-index — so Sophie saw TWO
+   pills stacked. Child selector: the viewer's pill lives inside .pageview.
+   NOTE: this is a CHATS-page rule, not a pill.py rule — it lives OUTSIDE the
+   shared-pill placeholder so a pill resync can never swallow it again. */
+body.ontop > .float{display:none !important;}
 
 </style>
 
@@ -348,6 +374,7 @@ __PILL_HTML__
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
         <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
       </div>
       <div class="rule"></div>
@@ -666,15 +693,16 @@ function renderHome(){
   var all=sortedChatNames(g);
   var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  document.getElementById('archlink').classList.toggle('on', showArchived);
+  // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
+  // the top of the screen swaps the grid over to the archived chats and back.
+  if(showArchived){
+    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived yet.</div>'; return; }
+    if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
+    return;
+  }
   if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
-  if(arch.length){
-    var tog=document.createElement('button'); tog.className='archtoggle';
-    tog.textContent=(showArchived?'\u25be':'\u25b8')+' Archived ('+arch.length+')';
-    tog.onclick=function(){ showArchived=!showArchived; renderHome(); };
-    el.appendChild(tog);
-    if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
-  }
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
 // message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
@@ -684,6 +712,17 @@ function stampActive(a,last){ if(!a) return false; return !last || a>=(last.crea
 function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
 function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
 function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
+// A chat is "working" while its newest message is a live draft (working:true —
+// the hook's PostToolUse pass posts the turn's prose as it's written and the
+// Stop post clears the flag). `postedAt` bumps on every growth, so a draft
+// that hasn't moved in hours belongs to a session that died mid-turn and is
+// no longer working — without that cap it would stay tinted forever.
+var LIVE_STALE=3*60*60*1000;
+function chatWorking(last){
+  if(!last||!last.working) return false;
+  var at=Date.parse(last.postedAt||last.created||'');
+  return !at || (Date.now()-at) < LIVE_STALE;
+}
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 var FL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M12 19h.01"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
@@ -691,6 +730,18 @@ function paintMarks(name,last,container){
   container.classList.toggle('done', chatMuted(name,last));
   var ck=container.querySelector('.ckbtn'); if(ck) ck.classList.toggle('on', chatDone(name,last));
   var fl=container.querySelector('.flagbtn'); if(fl) fl.classList.toggle('on', chatFlagged(name,last));
+}
+// Repaint just the working tint on the tiles/rows already on screen. A draft
+// starting or finishing must show up even when she's scrolled down the home
+// screen, where a full renderHome() would rebuild the grid under her.
+function paintLive(){
+  var nodes=document.querySelectorAll('#grid [data-chat]');
+  if(!nodes.length) return;
+  var g=groups();
+  nodes.forEach(function(node){
+    var list=g[node.dataset.chat]||[];
+    node.classList.toggle('live', chatWorking(list.length? list[list.length-1] : null));
+  });
 }
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
@@ -736,7 +787,8 @@ function renderTiles(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
-    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'');
+    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(last)?' live':'');
+    b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
@@ -753,7 +805,8 @@ function renderList(el,g,names){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'');
+    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(last)?' live':'');
+    row.dataset.chat=name;
     // Just the chat's name (Sophie's rule). The message snippet that used to sit
     // beside it was an inline span, so it never truncated — it ran over the
     // timestamp and the ✓ and off the side of the screen.
@@ -815,9 +868,16 @@ function renderMsg(m){
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
   // tapping the open message toggles autoscroll (stop/start). Closing is the
   // header row ("close ▲") so a tap never collapses it.
+  // PASS THE EVENT. __scrollTap's own PILL_SKIP list is what exempts every
+  // interactive control (button, link, input, media) from the tap gesture —
+  // called bare it exempts nothing, so tapping a code block's COPY button
+  // copied AND started the autoscroll (the copy handler's stopPropagation is
+  // a document-level listener, so it runs after this one, too late to help).
+  // pre/code stay on top of that list: selecting text in a code block is not
+  // a tap on the page.
   row.querySelector('.m-full').onclick=function(e){
-    if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollTap();
+    if(e.target.closest('pre')||e.target.closest('code')) return;
+    window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
@@ -1387,9 +1447,10 @@ function openPage(p){
       });
     }catch(_){}
   });
-  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
+  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove();
+    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
   document.body.appendChild(v);
-  document.body.style.overflow='hidden';
+  document.body.style.overflow='hidden'; document.body.classList.add('ontop');
 }
 // How a chat files the prompt behind an image, shown folded-away at the top of
 // every Assets tab — so the instructions live where the images do and can be
@@ -1543,9 +1604,9 @@ function lightbox(url, asset){
   }
   var cap=asset?(asset.description||asset.prompt||''):'';
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
-  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
-    lb.classList.remove('hastalk'); document.body.style.overflow=''; };
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop'); };
 }
 function goHome(){
   scrollStop(); cur=null; curTab='chat';
@@ -1648,6 +1709,9 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+document.getElementById('archlink').onclick=function(){
+  showArchived=!showArchived; renderHome(); window.scrollTo(0,0);
+};
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
@@ -1806,8 +1870,9 @@ function poll(){
         if(!grew) return;                       // never re-render for nothing
         saveCache();
         // a draft changed but nothing new arrived: thread rows swapped above;
-        // the home grid repaints only when she's at the top with no place to lose
-        if(!cur && window.scrollY<8) renderHome();
+        // the home grid repaints only when she's at the top with no place to
+        // lose — scrolled down, the working tint still updates in place
+        if(!cur){ if(window.scrollY<8) renderHome(); else paintLive(); }
         return;
       }
       saveCache();
@@ -1817,6 +1882,7 @@ function poll(){
       // Otherwise buffer and raise the bar. In a thread only THIS chat's
       // messages count: a reply landing in some other chat must not move the
       // page under her, and the home screen picks those up when she goes back.
+      if(!cur) paintLive();   // buffered below, but the working tint is not news to hold back
       var n = cur ? mine : added;
       if(!n) return;
       pendingNew+=n; paintNew();
