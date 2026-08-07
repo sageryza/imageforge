@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WebKit
 
 /// One wrapper for every "a tile that hosts a gated web page" tool — the
@@ -124,6 +125,27 @@ private struct GatedWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             parent.failed = true
         }
+        /// Keep her INSIDE the tool. A link on one of these pages navigates the
+        /// web view itself, and the page it lands on offers "← Hub" — which
+        /// walks her into the web hub with no way back to the app (Sophie hit
+        /// this from the Product Creator's Photo studio link). So: the tool's
+        /// own page may load; anything else opens in Safari instead, and the
+        /// tool stays put.
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard navigationAction.navigationType == .linkActivated,
+                  let url = navigationAction.request.url else {
+                decisionHandler(.allow); return
+            }
+            let mine = URL(string: MovieService.serverURL + parent.path)?.path  // query stripped
+            if url.path == mine {
+                decisionHandler(.allow)
+            } else {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            }
+        }
+
         func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
                      decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
             if let http = navigationResponse.response as? HTTPURLResponse, http.statusCode == 401 {
