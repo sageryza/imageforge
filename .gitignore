@@ -18,3 +18,6 @@ __pycache__/
 
 # Video clips pulled down by scripts/clip — big files, and this repo is public
 clips/
+
+# one-off mockup manifest (scripts/day-stickers-mockup.js)
+.day-stickers.json
