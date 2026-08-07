@@ -41,7 +41,8 @@ around them change, so verify the labels and use these for the URL.
   so no future chat has to ask twice.
 
 ## Live app
-- **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
+- **Deployed:** https://imageforge-q125.onrender.com (Render.com, **Starter**
+  instance — $7/mo, always-on; Sophie upgraded Aug 2026)
   - Hub: https://imageforge-q125.onrender.com/
   - Test Station: https://imageforge-q125.onrender.com/test
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
@@ -58,35 +59,33 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
-## Render keep-awake & running hours (READ THIS before blaming cold starts)
-- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
-  block) runs a `setInterval` every **10 min** that fetches
-  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
-  external uptime monitor / cron / GitHub Action. There is NO external pinger
-  anywhere in any of the four repos; do not go hunting for one. Render injects
-  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
-  (log line: `Keep-awake self-ping enabled for …`).
-- **Why it exists:** Render **free** web services spin down after ~15 min with
-  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
-  failed" / slow first render). The 10-min self-ping (under the 15-min idle
-  window) keeps the instance warm so Sophie doesn't hit that wait.
-- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
-  — right after a deploy/restart before any traffic, or if the ping ever lapses
-  — it can't ping itself back awake; the *next real visitor* eats the cold
-  start. So an occasional slow first load is still expected, especially just
-  after a deploy. (A slow generation is usually cold start **plus** the model
-  itself, e.g. gpt-image-2 medium ~30–90s.)
-- **Limited running hours (the trade-off):** Render's free tier gives **750
-  instance hours per workspace per calendar month** (reset on the 1st, no
-  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
-  is ~730 hours, so a single always-on free service *just* fits under 750 with
-  little slack. **If those 750 hours run out, Render suspends ALL free web
-  services in the workspace until the next month** — so a second free service,
-  or restart churn, can exhaust the budget early and take the app down till the
-  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
-  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
-  no hour cap); until then, the self-ping is the free-tier compromise.
-  (Verified against Render's current free-tier terms, July 2026.)
+## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
+- **The service runs on the $7/mo Starter instance** (`plan: starter` in
+  `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
+  simply gone, so **do not explain a slow load with either of them**:
+  - **No spin-down.** Free services slept after ~15 min idle and the next
+    visitor ate a ~30–60s cold start. Starter never sleeps, so there is no
+    cold start except the ~30–60s right after a deploy or restart, while the
+    new instance boots.
+  - **No 750-hour monthly cap.** The free tier's per-workspace hour budget
+    (which could suspend every free service until the 1st) does not apply.
+    "ImageForge is hard-down late in the month" is no longer a running-hours
+    question.
+- **CPU went 0.1 → 0.5 vCPU** (RAM is still 512MB, unchanged — the streaming
+  discipline around big audio/video buffers still matters exactly as much).
+  So the **server's own** work got roughly 5× the CPU: ffmpeg (film stitching,
+  Episode Editor / Cutting Room renders, pause detection), sharp (webp copies,
+  HEIC re-encodes, MPC prep), zip building.
+- **Model time did NOT change** and it dominates most waits: gpt-image-2,
+  Replicate, Whisper, ElevenLabs and the LLM calls all run on someone else's
+  hardware. A ~30–90s medium image is still ~30–90s.
+- **The keep-awake self-ping is now redundant but harmless.** `server.js`
+  (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
+  10 min via `setInterval` — an **internal self-ping**, not an external uptime
+  monitor / cron / GitHub Action (there is NO external pinger in any of the
+  four repos; don't go hunting for one). It was the free-tier compromise
+  against spin-down. Left in place deliberately: it costs one request per
+  10 min and it is the safety net if the instance is ever moved back to Free.
 
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
