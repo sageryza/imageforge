@@ -48,44 +48,12 @@ function bucket() {
 // it decides what the whole post is FOR, and a weak call there wastes every
 // step after it. See anthropic.js for the model choice and what it costs.
 //
-// Shape-compatible with the old openaiJSON so the callers below didn't change:
-// takes [{role, content}] with the system turn first, returns a parsed object.
+// Takes [{role, content}] with the system turn first (the shape the old
+// OpenAI helper used, so the callers below didn't change), returns a parsed object.
 async function claudeJSON(messages, { temperature = 0.7 } = {}) {
   const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const turns = messages.filter(m => m.role !== 'system');
   return anthropic.chatJSON({ system, messages: turns, temperature, maxTokens: 8000 });
-}
-
-// Kept for the image step's sibling helpers / any future OpenAI text need.
-// eslint-disable-next-line no-unused-vars
-async function openaiJSON(messages, { temperature = 0.7, retries = 2 } = {}) {
-  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
-  let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Connection': 'close',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          response_format: { type: 'json_object' },
-          temperature,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'openai error');
-      return JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    } catch (err) {
-      lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
-    }
-  }
-  throw lastErr;
 }
 
 // ─── OpenAI image (gpt-image-2) → permanent Firebase URL ────────────

@@ -73,37 +73,7 @@ function routePOD(productType = '') {
 // the listing is found at all — so it is words-a-human-reads, not bulk
 // extraction. See anthropic.js for the model and what it costs.
 //
-// The OpenAI helper below is kept for anything mechanical that wants it.
-async function openaiJSON(messages, retries = 2) {
-  let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Connection': 'close',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          response_format: { type: 'json_object' },
-          temperature: 0.8,
-        }),
-      });
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(text);
-    } catch (err) {
-      lastErr = err;
-      if (attempt < retries) await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
-    }
-  }
-  throw lastErr;
-}
-
-// Same call shape as openaiJSON (system turn first), on Claude.
+// Takes [{role, content}] with the system turn first; returns a parsed object.
 async function claudeJSON(messages) {
   const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const turns = messages.filter(m => m.role !== 'system');
