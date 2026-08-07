@@ -60,7 +60,7 @@ private struct BlogWebView: UIViewRepresentable {
         // forge.css --bg, so the page's own paper shows while it loads.
         web.backgroundColor = UIColor(red: 0.980, green: 0.976, blue: 0.969, alpha: 1)
         web.allowsBackForwardNavigationGestures = true
-        if let url = URL(string: MovieService.serverURL + "/blog") {
+        if let url = URL(string: MovieService.serverURL + "/blog?embed=1") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
         return web

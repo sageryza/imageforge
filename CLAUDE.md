@@ -704,6 +704,13 @@ lifted into a standalone tool later.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **A gated page hosted inside a native tool must be asked for with
+  `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
+  `.app-header` — its brand row duplicated the native nav-bar title, and its
+  "← Hub" button navigated the WEB VIEW to the web hub, stranding her outside
+  the tool with no way back (Sophie caught all three business tools like
+  this). One rule in `serveGated` covers every gated page, since they share
+  `.app-header` from `forge.css`. Pass it on every new `GatedWebTool` path.
 - **Gated pages must not be cached by the app.** `serveGated` sends
   `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
   and the iOS app's WKWebView served a heuristically-cached copy, so a shipped

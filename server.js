@@ -596,6 +596,14 @@ function serveGated(file, opts = {}) {
     // no-cache still allows a cheap 304 when nothing changed.
     res.set('Cache-Control', 'no-cache, must-revalidate');
     let out = html.replace('__STUDIO_TOKEN__', STUDIO_TOKEN);
+    // ?embed=1 — the page is hosted inside a native tool screen, which already
+    // carries the title in its nav bar. Hide the page's own web header: its
+    // brand row duplicated the title, and its "← Hub" button navigated the
+    // web view to the web hub, stranding her outside the tool with no way back.
+    // One rule here covers every gated page (they all share .app-header).
+    if (req.query.embed === '1') {
+      out += '<style>.app-header{display:none !important}</style>';
+    }
     if (opts.pill) out += require('./chatfeed').pillInject();
     res.type('html').send(out);
   };
