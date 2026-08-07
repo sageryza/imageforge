@@ -1962,27 +1962,43 @@ lifted into a standalone tool later.
   tiered pyramid, two cells along the base for the lows and the filled top
   tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
   that says nothing about how many).
-- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
-  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
-  ink — it sits on a text baseline, so the glyph is about cap height, not the
-  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
-  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
-  time, which is why the Test Station's tubes read half again the size of
-  every symbol beside them. **A bundled glyph MUST fill exactly 0.90 of its
-  own viewBox, centred — run `python3 scripts/normalize-glyphs.py` after
-  adding or editing one** (`--check` measures without writing; it's the
-  gate). That script is the real fix for "the hand-drawn icons are all
-  different sizes" (Sophie, Aug 2026): `ToolGlyph` applies ONE frame rule,
-  which is only correct if every glyph fills the SAME share of its box, and
-  measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
-  (playground)** — `.scaledToFit()` scales by the longer side, so the
-  Playground rendered ~17% bigger than the quilt at the same nominal size.
-  No frame number can fix that; the difference is in the ART, so the script
-  normalizes the art and leaves the Swift rule alone. An earlier pass got
-  this wrong by measuring ONE glyph and assuming the rest matched
-  (testtube.svg's comment claimed it filled "the same share the Playground
-  glyph fills" — 0.923 against 1.000), which is why the script RENDERS every
-  file and measures the ink instead of trusting any comment.
+- **Custom-icon sizing has TWO halves, and both were wrong for a long time —
+  the numbers below are MEASURED off a real 3x screenshot, never reasoned
+  about (Aug 2026, third attempt; the first two failed by reasoning).**
+  - **Half one — the frame (`ToolGlyph.customFrame` = 1.11·S).** The old note
+    here claimed "an SF Symbol at point size S draws only ~0.75·S of ink", so
+    custom art was framed SMALLER, at 0.86·S. **That premise is false.**
+    Measured on the home screen at declared S: `briefcase` 22.7w x 19.0h,
+    `film` 24.0 x 19.0, `photo` 24.0 x 19.0, `bubble.left.and.bubble.right`
+    28.0 x 22.3 — i.e. real symbols draw **0.90-0.95·S tall and ~1.13·S
+    wide**, not 0.75. The hand-drawn glyphs measured 15.3pt (test tube) and
+    15.7pt (quilt) against those, which is why Sophie kept seeing them as
+    different sizes. Custom art fills 0.90 of its frame, so a frame of
+    **1.11·S** puts its ink at ~1.00·S, inside the cluster the real symbols
+    occupy. History: 1.35·S (far too big — the tubes read half again the size
+    of everything), then 0.86·S (too small), now 1.11·S. **Only `ToolGlyph`
+    may hold this number** — `ToolGlyph.asset(_:size:)` renders any bundled
+    glyph, and a hand-picked frame anywhere else is how it drifts.
+  - **Half two — the art. A bundled glyph MUST fill exactly 0.90 of its own
+    viewBox, centred — run `python3 scripts/normalize-glyphs.py` after adding
+    or editing one** (`--check` measures without writing; it's the gate). One
+    frame rule is only correct if every glyph fills the SAME share of its
+    box, and measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
+    (playground)** — `.scaledToFit()` scales by the longer side, so the
+    Playground rendered ~17% bigger than the quilt at the same nominal size.
+    No frame number can fix that; the difference is in the ART, so the script
+    normalizes the art and leaves the Swift rule alone. An earlier pass got
+    this wrong by measuring ONE glyph and assuming the rest matched
+    (testtube.svg's comment claimed it filled "the same share the Playground
+    glyph fills" — 0.923 against 1.000), which is why the script RENDERS
+    every file and measures the ink instead of trusting any comment.
+  - **How to check this properly next time:** take a screenshot of the real
+    screen, find the accent ink with a colour test (`R-B > 45` — borders and
+    background are near-neutral), group it into icons by column runs, and
+    divide the bounding boxes by the device scale (3 on an iPhone 13). That
+    gives every icon's true rendered size in points, custom and SF alike, on
+    one comparable scale. It takes minutes and settles the question; two
+    earlier attempts guessed instead and shipped wrong.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
