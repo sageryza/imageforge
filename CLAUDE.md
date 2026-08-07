@@ -1657,6 +1657,17 @@ lifted into a standalone tool later.
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by
   ChatGPT").
+  **THE HOLE EVERY CHAT FALLS IN (Aug 2026, found on the hospital film):
+  images you send as chat FILES get auto-filed by the hook as
+  `claude-deliveries/<random>` copies with NO label and NO quality caption,
+  and they DON'T merge with your captioned tile (different filename, so the
+  filename union can't join them).** So captioning only what you POST is not
+  enough — after any SendUserFile that includes images, sweep
+  `GET /api/gallery/assets?chat=` for caption-less `claude-deliveries/*`
+  tiles and caption them too (match them to your originals by md5 of the
+  bytes; a backfill of 18 such tiles is what surfaced this). Until the
+  server unions by content hash instead of filename, this sweep is the only
+  thing that keeps the Assets tab fully captioned.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
