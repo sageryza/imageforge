@@ -915,11 +915,24 @@ function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last
 // hers that has gone hours unanswered belongs to a chat that is not coming
 // back. Without it either would stay tinted forever.
 var LIVE_STALE=3*60*60*1000;
-function chatWorking(last){
+// The PRIMARY signal is the registry's turn-start mark (`workingAt`, stamped
+// by the hook's UserPromptSubmit ping the moment she messages a session,
+// cleared by the reply's own registry write). The message-shaped signals are
+// fallbacks: they only become true at the END of a turn (the hook can't lift
+// her message from the transcript until then — measured live, her messages'
+// postedAt lands ~1s before the reply's), which is why the tint originally
+// never showed. The backstop comparison against the newest reply covers a
+// missed clear: a reply posted AFTER the mark means the turn finished.
+function chatWorking(name,last){
+  var now=Date.now();
+  var wa=Date.parse((chats[name]&&chats[name].workingAt)||'');
+  if(wa && (now-wa)<LIVE_STALE){
+    if(!last || last.from==='sophie' || wa>Date.parse(last.postedAt||last.created||'')) return true;
+  }
   if(!last) return false;
   if(!last.working && last.from!=='sophie') return false;
   var at=Date.parse(last.postedAt||last.created||'');
-  return !at || (Date.now()-at) < LIVE_STALE;
+  return !at || (now-at) < LIVE_STALE;
 }
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 var FL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M12 19h.01"/></svg>';
@@ -938,7 +951,7 @@ function paintLive(){
   var g=groups();
   nodes.forEach(function(node){
     var list=g[node.dataset.chat]||[];
-    node.classList.toggle('live', chatWorking(list.length? list[list.length-1] : null));
+    node.classList.toggle('live', chatWorking(node.dataset.chat, list.length? list[list.length-1] : null));
   });
 }
 function mkCheck(name,last,container){
@@ -985,7 +998,7 @@ function renderTiles(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
-    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(last)?' live':'');
+    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
@@ -1003,7 +1016,7 @@ function renderList(el,g,names){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(last)?' live':'');
+    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
     // Just the chat's name (Sophie's rule). The message snippet that used to sit
     // beside it was an inline span, so it never truncated — it ran over the
