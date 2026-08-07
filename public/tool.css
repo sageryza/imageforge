@@ -1,0 +1,121 @@
+/* tool.css — the shared look for a web page hosted inside a native tool tile.
+ *
+ * These pages (Product Creator, Blog Studio, Shop Report…) were built for the
+ * desktop web hub: every field, every explanation and every button on one long
+ * page. On a phone that reads as a wall of text with full-width button slabs.
+ * Sophie's brief (Aug 2026): less text, shorter buttons, and lay it out as the
+ * FLOW the user actually walks.
+ *
+ * The pattern this gives you:
+ *   .rail        — the step dots, so she can always see where she is
+ *   .step        — one move. Only the OPEN one shows its controls; a finished
+ *                  step collapses to a tappable one-line summary, so the page
+ *                  is never longer than the step you're on.
+ *   .btn         — hugs its text. Never a full-width slab.
+ *   .btn.star    — anything that spends a model call wears the house star
+ *                  (the witch app's STAR — see the generate-glyph rule).
+ *   #help / .helpcard — the explanation lives behind a "?" circle, the way the
+ *                  Cutting Room does it, instead of as a paragraph she reads
+ *                  every single time.
+ *
+ * Link it and set body class="tool". Don't hand-roll a per-page variant.
+ */
+
+:root{
+  --bg:#faf9f7; --surface:#fff; --surface2:#f5f0eb; --border:#e8e4df;
+  --accent:#b48b6a; --ink:#3a3530; --dim:#9e9590; --danger:#d4807a;
+  --ok:#3f7d56; --r:6px;
+}
+*{ box-sizing:border-box; }
+html,body.tool{ margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,'DM Sans',system-ui,sans-serif; -webkit-text-size-adjust:100%; }
+body.tool [hidden]{ display:none !important; }
+
+/* ── header: eyebrow + the "?" circle. Reserves the pill's corner. ── */
+.tool .head{ position:sticky; top:0; z-index:6; background:var(--bg);
+  display:flex; align-items:center; gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 56px 10px 16px;
+  border-bottom:1px solid var(--border); }
+.tool .eyebrow{ font-size:12px; font-weight:600; letter-spacing:2.5px; color:#8a8377; flex:1; }
+.tool #help{ width:26px; height:26px; border-radius:50%; flex:0 0 auto;
+  border:1px solid var(--accent); background:transparent; color:var(--accent);
+  font:inherit; font-size:14px; cursor:pointer; }
+.tool .helpcard{ background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; margin:10px 14px 0; padding:12px 14px;
+  font-size:13px; line-height:1.5; color:var(--dim); }
+.tool .helpcard b{ color:var(--ink); }
+/* An embedded page's native bar already carries the title. */
+body.embed .tool-eyebrow{ display:none; }
+
+/* ── the step rail ── */
+.tool .rail{ display:flex; gap:6px; padding:12px 16px 2px; }
+.tool .rail i{ height:3px; flex:1; border-radius:2px; background:var(--border); }
+.tool .rail i.on{ background:var(--accent); }
+
+/* ── steps ── */
+.tool main{ padding:8px 14px calc(40px + env(safe-area-inset-bottom)); }
+.tool .step{ background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; margin-bottom:10px; overflow:hidden; }
+.tool .step.done .body{ display:none; }
+.tool .step.shut .body{ display:none; }
+.tool .step > .cap{ display:flex; align-items:center; gap:10px; padding:12px 14px;
+  cursor:pointer; }
+.tool .step .n{ width:22px; height:22px; border-radius:50%; flex:0 0 auto;
+  background:var(--surface2); color:var(--dim); font-size:12px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; }
+.tool .step.open .n{ background:var(--accent); color:#fff; }
+.tool .step.done .n{ background:var(--ok); color:#fff; }
+.tool .step .t{ font-size:15px; font-weight:600; flex:1; }
+.tool .step .sum{ font-size:13px; color:var(--dim); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; max-width:52%; text-align:right; }
+.tool .step .body{ padding:0 14px 14px; }
+
+/* ── controls ── */
+.tool label{ display:block; font-size:11px; letter-spacing:1px;
+  text-transform:uppercase; color:var(--dim); margin:12px 0 5px; }
+.tool input[type=text], .tool input[type=number], .tool textarea{
+  width:100%; border:1px solid var(--border); border-radius:var(--r);
+  padding:10px; font:inherit; font-size:16px; background:var(--bg); color:var(--ink); }
+.tool textarea{ min-height:62px; resize:vertical; }
+.tool .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.tool .chip{ font-size:13px; border:1px solid var(--border); border-radius:var(--r);
+  padding:7px 12px; background:var(--bg); color:var(--dim); cursor:pointer; user-select:none; }
+.tool .chip.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* Buttons hug their text — never a full-width slab. */
+.tool .row{ display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+.tool .btn{ display:inline-flex; align-items:center; gap:7px; font:inherit;
+  font-size:15px; font-weight:600; border-radius:var(--r); padding:10px 18px;
+  background:var(--accent); color:#fff; border:0; cursor:pointer; }
+.tool .btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--border); }
+.tool .btn:disabled{ opacity:.5; }
+.tool .btn svg{ width:19px; height:19px; }
+.tool .btn.star{ padding:10px 16px; }
+.tool .note{ font-size:13px; color:var(--dim); }
+.tool .spin{ display:inline-block; width:13px; height:13px; border:2px solid var(--border);
+  border-top-color:var(--accent); border-radius:50%; animation:sp .7s linear infinite; }
+@keyframes sp{ to{ transform:rotate(360deg); } }
+
+/* ── status ── */
+.tool .status{ font-size:14px; margin-top:12px; padding:10px 12px; border-radius:var(--r);
+  display:flex; align-items:center; gap:8px; }
+.tool .status.ok{ background:#eef6f0; color:var(--ok); border:1px solid #cce6d6; }
+.tool .status.err{ background:#fbeeed; color:#b15049; border:1px solid #f0d2cf; }
+.tool .status.work{ background:var(--surface2); color:var(--dim); }
+.tool a.link{ color:var(--accent); }
+
+/* ── image grids (designs, mockups) ── */
+.tool .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.tool .cell{ position:relative; aspect-ratio:1; border:1px solid var(--border);
+  border-radius:var(--r); overflow:hidden; background:var(--surface2);
+  padding:0; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.tool .cell img{ width:100%; height:100%; object-fit:cover; display:block; }
+.tool .cell.on{ outline:3px solid var(--accent); outline-offset:-3px; }
+.tool .cell .tag{ position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.88);
+  font-size:10px; letter-spacing:.4px; text-transform:uppercase; color:var(--dim); padding:3px 5px; }
+.tool .pcard{ text-align:center; }
+.tool .pcard .cap{ font-size:12px; color:var(--dim); margin-top:5px; }
+.tool .sw{ display:flex; gap:5px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+.tool .sw button{ width:17px; height:17px; border-radius:50%; padding:0;
+  border:1px solid var(--border); cursor:pointer; }
+.tool .sw button.on{ outline:2px solid var(--accent); outline-offset:1px; }
