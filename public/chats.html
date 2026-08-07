@@ -337,12 +337,6 @@ body.reading .backwrap{display:block;}
 
 
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
-/* While a full-screen overlay is open (Compare page viewer, image lightbox)
-   this page's OWN pill must be hidden: the viewer supplies its own pill for
-   the iframe, and `.float` is promoted to its own layer (translateZ), which
-   iOS paints ABOVE the overlay despite the lower z-index — so Sophie saw TWO
-   pills stacked. Child selector: the viewer's pill lives inside .pageview. */
-body.ontop > .float{display:none !important;}
 .vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
 .vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
 .vseg button + button{border-top:1.5px solid var(--ink);}
@@ -350,7 +344,25 @@ body.ontop > .float{display:none !important;}
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
 #spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+/* The pill's glyphs must survive any HOST page's global svg rules — a page
+   that declares `svg{fill:none}` (editor.html, cuttingroom.html) was
+   hollowing the play triangle (Sophie: "the play arrow is normally filled
+   in, but the one I see on yours is hollow"). CSS beats an SVG's own
+   presentation attributes, so reassert each glyph's attributes at higher
+   specificity than any bare-`svg` page rule can reach. */
+.float svg{fill:none; stroke:currentColor; stroke-width:1.8; width:auto; height:auto;}
+.float svg[fill="currentColor"]{fill:currentColor;}
+.float svg[stroke-width="1"]{stroke-width:1;}
+.float svg:not([stroke]){stroke:none;}
 
+/* While a full-screen overlay is open (Compare page viewer, image lightbox)
+   this page's OWN pill must be hidden: the viewer supplies its own pill for
+   the iframe, and `.float` is promoted to its own layer (translateZ), which
+   iOS paints ABOVE the overlay despite the lower z-index — so Sophie saw TWO
+   pills stacked. Child selector: the viewer's pill lives inside .pageview.
+   NOTE: this is a CHATS-page rule, not a pill.py rule — it lives OUTSIDE the
+   shared-pill placeholder so a pill resync can never swallow it again. */
+body.ontop > .float{display:none !important;}
 
 </style>
 
@@ -375,6 +387,7 @@ body.ontop > .float{display:none !important;}
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
         <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
       </div>
       <div class="rule"></div>
@@ -382,7 +395,6 @@ body.ontop > .float{display:none !important;}
     <div style="display:flex; align-items:center; gap:10px; margin:0 0 1em; flex-wrap:wrap;">
       <div class="viewtog" style="margin:0"><button id="v-list">List</button><button id="v-tiles">Tiles</button></div>
       <button id="refresh" class="tbtn refreshbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Refresh</span></button>
-      <button id="archlink" class="archlink">Archive</button>
     </div>
     <div class="searchrow">
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
@@ -938,9 +950,16 @@ function renderMsg(m){
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
   // tapping the open message toggles autoscroll (stop/start). Closing is the
   // header row ("close ▲") so a tap never collapses it.
+  // PASS THE EVENT. __scrollTap's own PILL_SKIP list is what exempts every
+  // interactive control (button, link, input, media) from the tap gesture —
+  // called bare it exempts nothing, so tapping a code block's COPY button
+  // copied AND started the autoscroll (the copy handler's stopPropagation is
+  // a document-level listener, so it runs after this one, too late to help).
+  // pre/code stay on top of that list: selecting text in a code block is not
+  // a tap on the page.
   row.querySelector('.m-full').onclick=function(e){
-    if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollTap();
+    if(e.target.closest('pre')||e.target.closest('code')) return;
+    window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }

@@ -422,8 +422,8 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){{
 
 __PILL_JS__
 document.querySelector('.wrap').addEventListener('click',function(e){{
-  if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  window.__scrollTap();
+  if(e.target.closest('.notebox')) return;
+  window.__scrollTap(e);   // pass the event — PILL_SKIP exempts button/a/audio/input/…
 }});
 
 function toast(m){{ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){{t.style.opacity=0}},1800); }}
