@@ -171,25 +171,40 @@ struct ToolGlyph: View {
     var size: CGFloat = 21
     var weight: Font.Weight = .regular
 
+    /// Frame factor for a bundled glyph, so its ink matches the SF Symbols
+    /// beside it. MEASURED off a real 3x screenshot of this very screen
+    /// (Aug 2026) rather than reasoned about, because reasoning about it had
+    /// already failed twice:
+    ///
+    ///     SF Symbol ink at declared size S   height 0.90-0.95·S, width ~1.13·S
+    ///     custom art ink at frame 0.86·S     0.77·S both ways  <- visibly small
+    ///
+    /// The old rule was built on a note claiming an SF Symbol "draws only
+    /// ~0.75·S of ink". It does not — that figure is the myth that made every
+    /// previous attempt land wrong (first 1.35·S, far too big; then 0.86·S,
+    /// too small). Custom art fills 0.90 of its frame, so a frame of 1.11·S
+    /// puts its ink at ~1.00·S — inside the cluster the real symbols occupy.
+    static let customFrame: CGFloat = 1.11
+
+    /// A bundled glyph at the custom-icon size rule. Use this for any
+    /// hand-drawn asset, so there is ONE place the factor lives.
+    static func asset(_ name: String, size: CGFloat) -> some View {
+        Image(name)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size * customFrame, height: size * customFrame)
+    }
+
     var body: some View {
         if let asset = tool.customIcon {
-            Image(asset)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                // An SF Symbol at point size S draws only about 0.75·S of ink —
-                // it sits on a text baseline, so the glyph is roughly cap
-                // height, not the full box. Custom art fills ~0.9 of whatever
-                // frame it gets, so matching that ink means a frame SMALLER
-                // than S, not bigger. (This used to scale UP by 1.35, which is
-                // why the Test Station's tubes read half again the size of
-                // every symbol beside them.)
-                // This ONE rule is only right because every bundled glyph
-                // fills exactly 0.90 of its own viewBox — which is enforced by
-                // scripts/normalize-glyphs.py, not by hope. They didn't (0.85
-                // to 1.00), and that spread, not this number, was why the
-                // hand-drawn icons never matched each other.
-                .frame(width: size * 0.86, height: size * 0.86)
+            // This ONE rule is only right because every bundled glyph fills
+            // exactly 0.90 of its own viewBox — enforced by
+            // scripts/normalize-glyphs.py, not by hope. They didn't (0.853 to
+            // 1.000), and that spread was the OTHER half of why the hand-drawn
+            // icons never matched: the art was inconsistent AND the target was
+            // wrong. Both had to be fixed.
+            Self.asset(asset, size: size)
                 // …in a LAYOUT box the height an SF Symbol of this size would
                 // take, so a custom glyph never nudges whatever sits under it
                 // (the home grid stacks a title right below the icon) out of
@@ -639,16 +654,10 @@ private struct HomeGrid: View {
         filter = (filter == f) ? .all : f
     }
 
-    /// The hand-drawn quilt at the custom-icon size rule — a frame of 0.86 x
-    /// the SF point size beside it (see `ToolGlyph`). The art itself fills 0.90
-    /// of its own viewBox, same as every other bundled glyph, which is what
-    /// makes one rule size them all alike (scripts/normalize-glyphs.py).
+    /// The hand-drawn quilt, sized by the one custom-icon rule in `ToolGlyph`
+    /// — never a hand-picked number here, which is how it drifted before.
     private func quiltGlyph(_ size: CGFloat) -> some View {
-        Image("Quilt")
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size * 0.86, height: size * 0.86)
+        ToolGlyph.asset("Quilt", size: size)
     }
 
     /// A header corner icon — plain glyph, no chrome, 44pt tap target.
