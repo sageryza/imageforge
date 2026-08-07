@@ -71,7 +71,9 @@ struct DumpView: View {
     /// what's already there. Sophie's ask — they were one screen and a pushed
     /// page, which read as two separate tools.
     private enum Tab: String { case send, sort }
-    @State private var tab: Tab = .send
+    // Opens on SORT (Aug 2026, Sophie): sorting what's already in is the half
+    // she comes here for — sending is the share sheet's job most of the time.
+    @State private var tab: Tab = .sort
     // Bumped on every switch to Sort, so the page re-reads the inbox — an
     // album dumped from the Send tab must appear without a manual reload.
     @State private var sortTick = 0
