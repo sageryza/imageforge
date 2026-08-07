@@ -115,6 +115,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    thread and the box you type in fall off the bottom. */
 #clightbox.hastalk img{max-height:46vh;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+/* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
+   what she reviews by, the tag is how it was made. Showing only one of the
+   two meant a labelled image never said its quality (Sophie asked why). */
+#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
+#clightbox .cltag + .clcap{margin-top:4px;}
 /* the prompt behind the image: covers it completely (that's the point — you
    read the words instead of the picture), Style on the left of the toggle,
    Content on the right. .clwrap only wraps the img so the overlay lands on
@@ -1719,7 +1724,14 @@ function lightbox(url, asset){
     prow.onclick=function(e){ e.stopPropagation(); };
     prow.appendChild(promptBtn); lb.appendChild(prow);
   }
-  var cap=asset?(asset.description||asset.prompt||''):'';
+  // Two lines, not one: the curated model/quality tag (never the hook's
+  // generic "from <chat>") above the label. `description||prompt` hid the tag
+  // on every labelled image.
+  var tag=asset?String(asset.prompt||''):'';
+  if(/^from /.test(tag)) tag='';
+  var cap=asset?(asset.description||''):'';
+  if(!cap && tag){ cap=tag; tag=''; }
+  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
