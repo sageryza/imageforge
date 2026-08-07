@@ -1172,7 +1172,15 @@ lifted into a standalone tool later.
   (`dreamPageRefs` — a face is carried from the page it first appeared on),
   plus the whole dream for context and "THIS page tells ONLY this part".
   **The model decides each page's layout** (single drawing or panels — no
-  fixed 2x2). Pages store `{url, promptUsed, text, who}`; plan kept on
+  fixed 2x2). Pages store `{url, promptUsed, text, captions, who, softened}` —
+  **`text`/`captions` are what the picture ACTUALLY says**, so anything
+  rendering captions from the doc matches the drawing; when the safety filter
+  forced a rewording, **Sophie's own wording is kept beside them as
+  `textOriginal`/`captionsOriginal`** (present ONLY on a softened page, so
+  ordinary pages carry no redundant copy). The dream is a record of what she
+  said — a content filter must never silently replace her sentence with a
+  paraphrase, and `softened:true` alone couldn't tell you WHICH sentence
+  changed. Plan kept on
   `dream.pagePlan`. ~$0.06/page medium. Legacy beat docs still render
   through the old `makeDreamPages` 2x2 path (`order:[beatId]` still
   honored). Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`,
