@@ -713,6 +713,17 @@ lifted into a standalone tool later.
     rather than used to reject the message (they ride inside real messages).
   - First firing in a session **baselines her history and posts only her latest**,
     same policy as the reply poster, so installing it never floods a live feed.
+  - **MID-TURN messages need the queue records (Aug 2026, fixed).** A message
+    Sophie sends WHILE Claude is still working is queued, and a queued message
+    is written to the transcript ONLY as a `queue-operation`/`enqueue` record —
+    it never becomes a `user` record. The parser only read `user` records, so
+    those messages reached Claude but **silently never reached the Chats app**
+    (found live 2026-08-07: "Yeah. Do the images." was lost, and it was a
+    course-correction — exactly the kind worth keeping). The hook now also
+    collects enqueue records. EVERY message is enqueued, so a queued entry only
+    counts when no `user` record carries the same words — matched as a
+    **multiset** so repeating a short phrase can't let the first swallow the
+    second — and its dedupe key is `q:<timestamp>`.
   - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
