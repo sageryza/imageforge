@@ -548,9 +548,10 @@ private struct HomeGrid: View {
             .padding(.top, 12)
             .padding(.bottom, 4)
             // Two corner icons, as before: the Test Station's test tube left,
-            // Chats right (Sophie wants it in its old spot). The briefcase and
-            // the quilt left the corners for the shortcut row, where they're
-            // FILTERS rather than screens.
+            // Chats right — Chats is in the shortcut row too, and that's
+            // deliberate (Sophie: "it can be in two places, silly"). The
+            // briefcase and the quilt left the corners for that row, where
+            // they're FILTERS rather than screens.
             .overlay(alignment: .leading) {
                 Button { open(.test) } label: {
                     ToolGlyph(tool: .test, size: 20)
@@ -588,17 +589,20 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Five rounded squares across, icons only (Sophie: "just the icon").
-    /// One opens a tool; the other four are filters on the cards below — the
-    /// lit one clears back to everything when tapped again. Chats used to hold
-    /// slot two; it went back to its corner, which is what freed the slot for
-    /// the image-making filter.
+    /// Six rounded squares across, icons only (Sophie: "just the icon"). Two
+    /// open a tool; the other four are filters on the cards below — the lit one
+    /// clears back to everything when tapped again. Chats is here AND in its
+    /// top-right corner on purpose ("it can be in two places, silly"), which is
+    /// why the row is six rather than the five it started as.
     private var shortcutRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             // The Dump's inbox — opens on SORT, since sorting what's already
             // in is the half she comes here for.
             square(lit: false, label: "Dump") { open(.dump) } icon: {
                 ToolGlyph(tool: .dump, size: 22)
+            }
+            square(lit: false, label: "Chats") { open(.chats) } icon: {
+                Image(systemName: Tool.chats.icon).font(.system(size: 21))
             }
             // Deliberately NOT the generate star: that glyph is reserved for
             // controls that spend a model call, and a filter spends nothing.

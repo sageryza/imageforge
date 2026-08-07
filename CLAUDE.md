@@ -1985,10 +1985,10 @@ lifted into a standalone tool later.
   asked for). The pages still serve at their URLs for a chat or a browser.
 - **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
-  above the module cards sits a row of five rounded squares, **icons only**
+  above the module cards sits a row of six rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  ONE opens a tool (**Dump**, which itself now opens on SORT); the other four
-  FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  TWO open a tool (**Dump**, which itself now opens on SORT, and **Chats**);
+  the other four FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
   card at all), **briefcase** = business, **quilt** = old fashioned, **film**
   = everything that makes or cuts moving pictures AND sound (Movies, Films,
@@ -2001,9 +2001,10 @@ lifted into a standalone tool later.
   answers to, and keep it off the unfiltered list so the default home stays
   scannable — the picture and film sets are explicit lists, and their tools
   DO still appear on the unfiltered home. The two corner icons beside the
-  masthead are unchanged: test tube left, **Chats right** (it held a row slot
-  for one build and Sophie asked for the corner back — that's what freed slot
-  two for the picture filter).
+  masthead are unchanged: test tube left, **Chats right** — and Chats is in
+  the ROW as well, which is deliberate ("it can be in two places, silly") and
+  is why the row is six rather than the five it started as. Don't "fix" the
+  duplicate.
   **The set is not settled** — Sophie is still working out what the filters
   should be, so treat it as provisional, not as a rule. The filter icon must
   NOT be the generate star: that glyph is reserved for controls that spend a
