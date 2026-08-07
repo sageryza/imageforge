@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- ===========================================================================
+     THE COMPARE PAGE SHELL — copy this file, fill it in, POST it.
+
+       POST /api/chatfeed/page  { chat: "<your-chat-name>", title: "…", html }
+
+     It appears in your chat's Compare tab and opens full-screen in the app.
+     Starting from this file gets you, without thinking about any of it:
+
+       /compare.css  the ONE house look (warm paper, gold accent, serif) AND
+                     the :root tokens the injected autoscroll pill styles
+                     itself from — a page missing them renders the pill BLACK
+                     on transparent. Do NOT override the tokens.
+       /compare.js   the house behaviour: any tap pauses the autoscroll (with
+                     the pill itself exempt, or its own play button dies), and
+                     an image lightbox that stops the scroll, locks the page
+                     and restores the exact scroll position on close.
+
+     The pill is INJECTED BY THE SERVER. Never add your own scroll pill.
+
+     Two rules that bite if you ignore them:
+     - WRAP YOUR SCRIPT IN AN IIFE. The injected pill runs in global scope and
+       declares `var raf`, `var I`, `var playing`, …; a page-level `let raf`
+       collides and kills the pill's script at PARSE time (empty stretched
+       buttons, no scrolling).
+     - A NEW VERSION IS A NEW PAGE, never an edit of the old one. Put the
+       version in the TITLE ("Short 1 v4 — tightest cut") and point at new,
+       version-numbered media. The old pages stay as history.
+
+     Layout notes: mobile first; images in ROWS OF TWO (`.imgrow`), never one
+     full-width image per row. Skeleton blocks live at the top of compare.css.
+     Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
+=========================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title of this page</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <div class="eyebrow">CHAT NAME · DATE</div>
+  <h1>Title states the version and what it is</h1>
+  <div class="sub">One line on what she is looking at and what to decide.</div>
+
+  <div class="card">
+    <h2>A section</h2>
+    <p>Prose goes here.</p>
+    <!-- Images two to a row. Tapping one opens the lightbox — no wiring needed. -->
+    <div class="imgrow">
+      <img src="https://…/one.png" alt="what this one is">
+      <img src="https://…/two.png" alt="what this one is">
+    </div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+// YOUR page script — inside an IIFE (see the note above).
+(function () {
+  // Example: banking what she picks. A Compare page must NEVER post to
+  // /api/chatfeed/reply — her notes here are not chat messages, and the server
+  // reroutes such a post onto this page's verdict doc anyway.
+  window.__saveVerdict = function (item, text) {
+    return fetch('/api/chatfeed/verdict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: 'CHAT NAME', sheet: 'SHEET NAME', item: item, text: text })
+    });
+  };
+  // Read it back later with:
+  //   GET /api/chatfeed/verdict?chat=CHAT%20NAME&sheet=SHEET%20NAME
+})();
+</script>

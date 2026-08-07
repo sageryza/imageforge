@@ -847,6 +847,17 @@ lifted into a standalone tool later.
   ANY header control reaching that corner is untappable — the rename pencil was,
   for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
   reservation on any new header row, and never place a control in that corner.
+  **The home screen has THREE views, switched from the title row: chats,
+  ARCHIVE, and BOOKMARKS (Aug 2026, Sophie).** `homeView` in chats.html. The
+  serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
+  the word beside it becomes the way OUT, reading "← Chats" — a bold word
+  alone was "really confusing" and left her with no visible exit. The
+  bookmark icon next to it opens **every bookmarked message across all
+  chats**, newest first, tapping one jumps to it in its thread
+  (`GET /api/chatfeed/bookmarks`, one equality filter sorted in memory so
+  Firestore needs no composite index). Before that route existed the bookmark
+  button wrote a flag NOTHING ever read — a bookmark could only be found by
+  scrolling to that exact message in its own thread.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
   message first. The **App/Web account toggle is a plain on/off switch** on the
@@ -863,6 +874,22 @@ lifted into a standalone tool later.
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
   your own scroll pill.
+  **START FROM THE SHELL — `public/compare-shell.html` (Aug 2026, Sophie's
+  ask: "a shell every chat can use for their compare page that has the auto
+  scroll pill with everything exempt").** Copy that file and fill it in; it
+  links the two shared halves and carries the rules below as comments, so a
+  new page gets them without anyone remembering them:
+  - **`/compare.css`** — the one house look AND the `:root` tokens the
+    injected pill styles itself from.
+  - **`/compare.js`** — the one house BEHAVIOUR, in a single script tag:
+    any tap pauses the autoscroll **with the pill itself exempt** (an
+    unconditional handler eats the click on the pill's own play button) and
+    `[data-nostop]` as an opt-out; plus an image lightbox that stops the
+    scroll, locks the page, and restores the exact scroll position on close.
+    Do NOT hand-roll these handlers per page anymore — a page that includes
+    `/compare.js` has them right by construction. Tests:
+    `node scripts/test-compare-shell.js` (drives real taps against the real
+    injected pill in headless Chromium; skips if no Chromium).
   **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
   styled differently — there should be one style").** Start every new page
   from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
@@ -886,6 +913,8 @@ lifted into a standalone tool later.
   unconditional version makes the pill's own play button dead (found live on
   Cut Marks, fixed on the Cutting Room too):
   `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
+  **Including `/compare.js` does exactly this for you** — that snippet is now
+  only for a page that genuinely cannot load the shared script.
   This is on top of the existing image-lightbox rule below — opening an
   image still locks background scroll too.
   **The tap gesture's exempt list is SHARED — never hand-roll one, and always
