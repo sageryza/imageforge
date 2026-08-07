@@ -637,6 +637,32 @@ router.post('/bookmark', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Every bookmarked message, across every chat — the BOOKMARKS view on the home
+// screen. Until this existed a bookmark could only be seen by scrolling to that
+// exact message inside its own thread, which made the button close to useless.
+// ONE equality filter and the sort done in memory, so Firestore needs no
+// composite index (the same discipline as the crystals/audio queries).
+// The full `text` is deliberately NOT returned: it is only a list, and a chat
+// with long replies would otherwise send megabytes to a phone.
+router.get('/bookmarks', async (req, res) => {
+  try {
+    const snap = await db().collection(MSGS).where('bookmarked', '==', true).limit(500).get();
+    const reg = await registry();
+    const items = snap.docs.map((d) => {
+      const m = d.data() || {};
+      const line = String(m.tldr || m.text || '').replace(/\s+/g, ' ').trim();
+      return {
+        id: d.id,
+        chat: m.chat || '',
+        from: m.from || '',
+        created: m.created || m.postedAt || '',
+        snippet: line.slice(0, 220),
+      };
+    }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
+    res.json({ items, chats: reg.chats });
+  } catch (err) { fail(res, err); }
+});
+
 // ---- Compare pages -------------------------------------------------------
 // A chat can publish a full self-contained HTML page (a comparison sheet, an
 // options board — what used to be a claude.ai artifact) into its own Compare

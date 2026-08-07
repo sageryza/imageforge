@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-08-07 — RESYNCED from public/chats.html (again). It had drifted
-# again: #636 (Archive in the header) and #642 (the ask-first sheet) were
-# edited straight into the page, so running this would have reverted both and
-# taken the archive confirmation with it — the very accident it exists to stop.
-# Same rule as before: edit HERE and rebuild, or if you edit the page directly,
-# resync this template in the same commit. Check `grep -c askFirst` on BOTH
-# files before committing; if they disagree, the template is stale.
+# build marker: 2026-08-07 — RESYNCED from public/chats.html (third time). It
+# keeps drifting because several chats edit the page directly: #636 (Archive in
+# the header), #642 (the ask-first sheet), then the working-chat tint, the
+# ARCHIVE word and another chat's body.ontop overlay fix. Running a stale
+# generator REVERTS all of it — the very accident this file exists to stop.
+#
+# SO: DO NOT resync by hand, and do not run this script before syncing.
+#   1. edit public/chats.html
+#   2. python3 scripts/resync-gen-chats.py     <-- rebuilds this template from
+#      the page and verifies the round trip; --check tells you if it's stale
+#   3. commit BOTH files
+# Running gen-chats.py first overwrites the page from the stale template and
+# your edit is gone (this happened while writing the resync script).
 import base64, os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
@@ -169,11 +175,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .acctrow .tbtn{min-width:34px; text-align:center;}
-/* Just the word (Sophie's ask) — no box, no border. Lit while the grid is
-   showing the archived chats instead of the live ones. */
-.archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2);
+/* Just the word (Sophie's ask) — no box, no border. In a sub-view it becomes
+   the way OUT and says so ("← Chats"): the bold word alone read as decoration
+   and left her stuck ("it should make it clear that I'm in the archive and
+   then I wanna get out"). The big serif title is the other half of that —
+   it says Archive / Bookmarks while she's there. */
+.archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
 .archlink.on{color:var(--ink); font-weight:600;}
+.hdrbmk{flex:none; padding:6px 0 6px 8px;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -373,8 +383,9 @@ __PILL_HTML__
     <header>
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
-        <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
         <button id="archlink" class="archlink">Archive</button>
+        <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
       </div>
       <div class="rule"></div>
@@ -683,7 +694,47 @@ function statusFor(list){
   var sm=tldrs.length? tldrs[tldrs.length-1] : last;
   return sm? plain(sm.tldr||(sm.text||'').split('\n')[0]) : '';
 }
-var showArchived=false;
+// The home screen has THREE views: the live chats, the archived ones, and every
+// bookmarked message across all chats. `homeView` survives opening a chat and
+// coming back, so she returns to the list she was reading.
+var homeView='live';   // 'live' | 'archive' | 'bookmarks'
+// Where am I / how do I leave. The title carries the state (the word alone was
+// "really confusing" — Sophie), the archlink carries the exit.
+function paintHomeChrome(){
+  document.getElementById('htitle').textContent =
+    homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks' : 'Chats';
+  var a=document.getElementById('archlink');
+  a.textContent = homeView==='live' ? 'Archive' : '← Chats';
+  a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
+  a.classList.toggle('on', homeView!=='live');
+  document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
+  // LIST/TILES describes chat tiles; bookmarks are messages, so the pair would
+  // be a control that does nothing. (Search stays — it still searches everything.)
+  document.getElementById('v-list').parentNode.style.display = homeView==='bookmarks' ? 'none' : '';
+}
+function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
+// Every bookmarked message, newest first, whichever chat it is in. Tapping one
+// opens its chat and jumps to it — the same focus+flash the search results use.
+function renderBookmarks(el){
+  el.innerHTML='<div class="state">Loading…</div>';
+  api('/api/chatfeed/bookmarks?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(homeView!=='bookmarks') return;            // she left while it loaded
+      var items=(d&&d.items)||[];
+      if(d&&d.chats) chats=d.chats;                 // fresh display names
+      el.innerHTML='';
+      if(!items.length){ el.innerHTML='<div class="state">No bookmarks yet — tap the bookmark under a message to keep it here.</div>'; return; }
+      items.forEach(function(m){
+        var b=document.createElement('button'); b.className='sres';
+        b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
+          +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
+        b.onclick=function(){ openChat(m.chat, false, m.id); };
+        el.appendChild(b);
+      });
+    })
+    .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
@@ -693,10 +744,11 @@ function renderHome(){
   var all=sortedChatNames(g);
   var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
-  document.getElementById('archlink').classList.toggle('on', showArchived);
+  paintHomeChrome();
+  if(homeView==='bookmarks'){ renderBookmarks(el); return; }
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
   // the top of the screen swaps the grid over to the archived chats and back.
-  if(showArchived){
+  if(homeView==='archive'){
     if(!arch.length){ el.innerHTML='<div class="state">Nothing archived yet.</div>'; return; }
     if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
     return;
@@ -1709,9 +1761,8 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
-document.getElementById('archlink').onclick=function(){
-  showArchived=!showArchived; renderHome(); window.scrollTo(0,0);
-};
+document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
+document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
