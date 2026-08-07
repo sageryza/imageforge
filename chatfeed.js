@@ -78,6 +78,27 @@ const REG_TTL_MS = 5 * 60 * 1000;   // backstop only; writes invalidate directly
 // home-screen App/Web toggle writes it; the Open buttons route off it.
 const SETTINGS_DOC = '__settings';
 
+// ---- Which build of the page is live -------------------------------------
+// A WKWebView keeps the page it loaded — for DAYS, since the app is rarely
+// killed. Polling refreshes the DATA but never the CODE, so a shipped page
+// change silently doesn't reach her phone until something reloads the screen.
+// That is not theoretical: a whole afternoon of UI changes landed on Render
+// while her app kept running the morning's JavaScript, and the feature she was
+// testing "didn't work" because the code implementing it wasn't there.
+// So every feed response carries a stamp of the page file. The client keeps
+// the first one it sees (that IS the build it is running) and reloads when the
+// stamp changes. Computed once — the file cannot change without a restart.
+let pageBuildStamp = null;
+function pageBuild() {
+  if (pageBuildStamp === null) {
+    try {
+      const buf = fs.readFileSync(path.join(__dirname, 'public', 'chats.html'));
+      pageBuildStamp = crypto.createHash('md5').update(buf).digest('hex').slice(0, 12);
+    } catch (e) { pageBuildStamp = ''; }
+  }
+  return pageBuildStamp;
+}
+
 async function registry() {
   if (regCache && Date.now() - regCacheAt < REG_TTL_MS) return regCache;
   const snap = await db().collection(REG).get();
@@ -297,7 +318,7 @@ router.get('/', async (req, res) => {
       const messages = Array.from(byId.values());
       // `delta:true` tells the client to MERGE rather than replace — it still
       // holds the trimmed tail and any full threads it has already pulled.
-      return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true });
+      return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true, build: pageBuild() });
     }
 
     const [msnap, reg] = await Promise.all([
@@ -322,7 +343,7 @@ router.get('/', async (req, res) => {
     // pull the full thread when one is opened instead of guessing.
     const truncated = Object.keys(perChat)
       .filter((c) => perChat[c] > (rank[c] < DEEPCHATS ? DEEP : TAIL));
-    res.json({ chats: reg.chats, settings: reg.settings, messages, truncated });
+    res.json({ chats: reg.chats, settings: reg.settings, messages, truncated, build: pageBuild() });
   } catch (err) { fail(res, err); }
 });
 

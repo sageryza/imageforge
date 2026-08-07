@@ -287,6 +287,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
 .crow.live .cr-ic{border-color:var(--rose);}
 .crow.live .cr-name{color:var(--rose);}
+/* The unread dot still means "you need to check this" (Sophie) and must stay
+   readable on a tinted row — rose on rose disappears without an edge. */
+.crow.live .cr-dot{box-shadow:0 0 0 2px var(--paper);}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
@@ -1884,10 +1887,28 @@ function loadCache(){
   }catch(e){ return false; }
 }
 
+// The app keeps a page loaded for days, so polling refreshes the DATA while the
+// CODE stays whatever it was at load — a shipped change then silently never
+// reaches her phone (a whole afternoon of UI changes sat unreachable this way,
+// and the feature she was testing "didn't work" because its code wasn't there).
+// Every feed response carries a stamp of the page file: keep the first one seen
+// — that IS the build running — and reload when it changes. Only from the home
+// screen, never mid-thread or while she's typing, so a reload can't eat words
+// or lose her place.
+var BUILD=null;
+function checkBuild(data){
+  if(!data||!data.build) return;
+  if(!BUILD){ BUILD=data.build; return; }
+  if(BUILD===data.build) return;
+  var a=document.activeElement, typing=a&&/^(INPUT|TEXTAREA)$/.test(a.tagName||'');
+  if(cur||typing) return;             // it can wait until she's back on the list
+  location.reload();
+}
 function load(){
   // cache-bust: the webview heuristically cached the bare URL, which made the
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
+    checkBuild(data);
     chats=data.chats||{}; msgs=data.messages||[];
     settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
@@ -1950,6 +1971,7 @@ function poll(){
   api('/api/chatfeed?since='+encodeURIComponent(since)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(data){
+      checkBuild(data);
       if(data.chats) chats=data.chats;
       if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
