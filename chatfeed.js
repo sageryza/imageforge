@@ -678,6 +678,17 @@ router.post('/bookmark', async (req, res) => {
 // composite index (the same discipline as the crystals/audio queries).
 // The full `text` is deliberately NOT returned: it is only a list, and a chat
 // with long replies would otherwise send megabytes to a phone.
+// Sophie bookmarks two different things (Aug 2026, her own description): "code
+// I want to keep that has copy and paste instructions", and "a long explanation
+// I'll need to read later". That split is DERIVED, never asked for — she should
+// not have to categorise at bookmark time. A fenced code block is the signal,
+// and a precise one: it is exactly what the page renders as a copy-button code
+// box, i.e. the thing she copies. Inline `code` does not count — a sentence
+// mentioning a filename is still prose.
+function bookmarkKind(text) {
+  return /```/.test(String(text || '')) ? 'code' : 'read';
+}
+
 router.get('/bookmarks', async (req, res) => {
   try {
     const snap = await db().collection(MSGS).where('bookmarked', '==', true).limit(500).get();
@@ -691,6 +702,7 @@ router.get('/bookmarks', async (req, res) => {
         from: m.from || '',
         created: m.created || m.postedAt || '',
         snippet: line.slice(0, 220),
+        kind: bookmarkKind(m.text),
       };
     }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });

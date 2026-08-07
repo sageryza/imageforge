@@ -193,6 +193,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .sr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto; flex:none;}
 .sr-snip{font-size:15.5px; line-height:1.4; color:var(--ink);}
 .sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
+/* Bookmarks: the two kinds she keeps (code to copy vs. something to read),
+   derived server-side. The chips filter; the tag marks a code one in "All". */
+.bmkfilter{display:flex; gap:8px; margin:0 0 1.1em;}
+.sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
 .sres.schat .sr-chat{font-family:'EBGaramond',Georgia,serif; font-size:17px; letter-spacing:0; text-transform:none;}
 .sres.schat .sr-chat b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
@@ -794,23 +799,53 @@ function paintHomeChrome(){
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
 // Every bookmarked message, newest first, whichever chat it is in. Tapping one
 // opens its chat and jumps to it — the same focus+flash the search results use.
+// The two things she actually bookmarks (her words): something with code /
+// copy-paste instructions to keep, and a long explanation to read later. The
+// server derives which from the message itself (a fenced code block = the
+// first kind), so she never has to categorise anything — these chips only
+// filter what's already sorted. Kept for the session, not persisted: the
+// default should always be everything.
+var bmkFilter='all';   // 'all' | 'code' | 'read'
+var bmkCache=null;
+function paintBookmarks(el){
+  var items=(bmkCache||[]).filter(function(m){ return bmkFilter==='all' || (m.kind||'read')===bmkFilter; });
+  var counts={all:(bmkCache||[]).length, code:0, read:0};
+  (bmkCache||[]).forEach(function(m){ counts[(m.kind||'read')]++; });
+  el.innerHTML='';
+  var row=document.createElement('div'); row.className='bmkfilter';
+  [['all','All'],['code','Code'],['read','To read']].forEach(function(p){
+    var b=document.createElement('button');
+    b.className='tbtn'+(bmkFilter===p[0]?' on':'');
+    b.textContent=p[1]+' '+counts[p[0]];
+    b.onclick=function(){ bmkFilter=p[0]; paintBookmarks(el); };
+    row.appendChild(b);
+  });
+  el.appendChild(row);
+  if(!items.length){
+    var s=document.createElement('div'); s.className='state';
+    s.textContent = counts.all ? 'Nothing in this one.'
+      : 'No bookmarks yet — tap the bookmark under a message to keep it here.';
+    el.appendChild(s); return;
+  }
+  items.forEach(function(m){
+    var b=document.createElement('button'); b.className='sres';
+    b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
+      +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
+      +'<span class="sr-time">'+ago(m.created)+'</span></div>'
+      +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
+    b.onclick=function(){ openChat(m.chat, false, m.id); };
+    el.appendChild(b);
+  });
+}
 function renderBookmarks(el){
   el.innerHTML='<div class="state">Loading…</div>';
   api('/api/chatfeed/bookmarks?_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){
       if(homeView!=='bookmarks') return;            // she left while it loaded
-      var items=(d&&d.items)||[];
       if(d&&d.chats) chats=d.chats;                 // fresh display names
-      el.innerHTML='';
-      if(!items.length){ el.innerHTML='<div class="state">No bookmarks yet — tap the bookmark under a message to keep it here.</div>'; return; }
-      items.forEach(function(m){
-        var b=document.createElement('button'); b.className='sres';
-        b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
-          +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
-        b.onclick=function(){ openChat(m.chat, false, m.id); };
-        el.appendChild(b);
-      });
+      bmkCache=(d&&d.items)||[];
+      paintBookmarks(el);
     })
     .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
 }
