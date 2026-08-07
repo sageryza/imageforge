@@ -64,6 +64,17 @@ earlier shot.
   pages at low (~2¢) + draft clips at 480p (~6¢); keepers get the page redrawn
   at HIGH and the animation at 720p (~16¢). The two panels must show visibly
   DIFFERENT poses/compositions or wan has nothing to do.
+- **DEFAULT TO ONE DRAWING — a pair is the exception (Sophie, Aug 2026:
+  "putting one arm around Laura needs two illustrations? that could be done
+  with the animation").** wan animates a single finished shot from a motion
+  prompt alone (`image`, no `last_image`), and most of the movie's actions are
+  that: an arm going round a shoulder, a cup tipped back, cuffs rolled, a jump.
+  Drawing those twice is wasted money AND looks bad — the two panels come out
+  near-identical, which is what made the v3 audition "literally terrible".
+  **Draw a second panel ONLY when the end state is a genuinely DIFFERENT
+  PICTURE** the model could not invent from the first: a new location or scale,
+  a body somewhere it wasn't, a scene that has transformed. Everything else is
+  one shot + `scripts/…/single-animate.js`-style i2v.
 - **A pair is a PLOT EVENT — "this is supposed to be a movie. Things actually
   happen" (Sophie, Aug 2026, after two rejected rounds).** The round of tiny
   hand-task pairs was "small movements again"; the round of bold METAPHOR
