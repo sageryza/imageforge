@@ -162,7 +162,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
 .archlink.on{color:var(--ink); font-weight:600;}
-.hdrbmk{flex:none; padding:6px 0 6px 8px;}
+.hdrbmk{flex:none; padding:6px 4px;}   /* bookmark LEFT of the word (Sophie) */
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -176,8 +176,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
 /* Labeled Refresh button, left-grouped next to the view toggle so it never
-   sits under the floating autoscroll pill in the top-right corner. */
-.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
+   sits under the floating autoscroll pill in the top-right corner.
+   PILL-SHAPED BY REQUEST (Aug 2026, Sophie) — a deliberate exception to the
+   no-pills rule, which still holds for every other text button. Don't "fix"
+   this back to 6px. */
+.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:999px;}
 /* Search across every chat (in-memory index on the server). */
 .searchrow{position:relative; margin:0 0 1.4em;}
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
@@ -391,8 +394,8 @@ body.ontop > .float{display:none !important;}
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
         <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
-        <button id="archlink" class="archlink">Archive</button>
         <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
       </div>
       <div class="rule"></div>

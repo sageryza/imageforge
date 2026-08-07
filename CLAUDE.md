@@ -2004,7 +2004,11 @@ lifted into a standalone tool later.
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
-  Circular icon buttons (toggles, dots) are the only exception.
+  Circular icon buttons (toggles, dots) are the only exception. **Plus one
+  named exception Sophie asked for (Aug 2026): the Chats home screen's
+  REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
+  a loosening of the rule — don't round anything else off, and don't "fix"
+  that one back.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
