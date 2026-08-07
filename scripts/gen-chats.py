@@ -811,14 +811,29 @@ function stampActive(a,last){ if(!a) return false; return !last || a>=(last.crea
 function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
 function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
 function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
-// A chat is "working" while its newest message is a live draft (working:true —
-// the hook's PostToolUse pass posts the turn's prose as it's written and the
-// Stop post clears the flag). `postedAt` bumps on every growth, so a draft
-// that hasn't moved in hours belongs to a session that died mid-turn and is
-// no longer working — without that cap it would stay tinted forever.
+// A chat counts as WORKING on either of two signals, and it needs both:
+//
+//   1. its newest message is a live draft (working:true — the hook's
+//      PostToolUse pass posts the turn's prose as it is written, and the Stop
+//      post clears the flag), or
+//   2. its newest message is HERS — she asked and nothing has come back yet.
+//
+// (2) is not a nicety. Shipped with (1) alone, the tint never appeared once:
+// the hook installed in these sessions is the pre-v7 build, which registers
+// only Stop and UserPromptSubmit, so `working:true` is never written and the
+// live feed contains zero drafts (checked live, 2026-08-07). It also covers
+// the gap between her message and the turn's first prose, which even a v7
+// hook can't fill. Measured against the real feed, (2) tints 1 chat of 71 —
+// precise, not a wall of pink.
+//
+// The cap: `postedAt` bumps on every draft growth, so a draft that hasn't
+// moved in hours belongs to a session that died mid-turn, and a message of
+// hers that has gone hours unanswered belongs to a chat that is not coming
+// back. Without it either would stay tinted forever.
 var LIVE_STALE=3*60*60*1000;
 function chatWorking(last){
-  if(!last||!last.working) return false;
+  if(!last) return false;
+  if(!last.working && last.from!=='sophie') return false;
   var at=Date.parse(last.postedAt||last.created||'');
   return !at || (Date.now()-at) < LIVE_STALE;
 }

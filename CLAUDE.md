@@ -597,9 +597,21 @@ lifted into a standalone tool later.
   UserPromptSubmit sweep. After ANY edit to the hook, run
   `python3 scripts/build-chats-setup.py` — it rebuilds
   `docs/chats-autopost-setup-script.sh` + `public/setup.sh` with the hook
-  body verbatim-embedded; never hand-edit those two copies. Existing
-  environments pick v7 up automatically (the setup script re-runs each
-  session start and appends the missing PostToolUse registration).
+  body verbatim-embedded; never hand-edit those two copies.
+  **A NEW HOOK VERSION DOES NOT REACH AN EXISTING ENVIRONMENT ON ITS OWN —
+  this note used to claim it did, and it is wrong (checked live 2026-08-07).**
+  The Setup script is PASTED TEXT in the environment settings dialog; it
+  re-runs each session start, but it re-runs *the copy she pasted*, so an
+  environment set up before v7 keeps installing the pre-v7 hook forever. Live
+  proof: `/home/user/.claude/settings.json` in these sessions registers only
+  Stop and UserPromptSubmit, the installed hook contains no `working` logic
+  at all, and the feed therefore holds ZERO live drafts — which is why the
+  Chats app's working-chat tint never fired. Fixing it needs Sophie to edit
+  the environment once; the durable form is a Setup script that always
+  fetches the current one instead of embedding it:
+  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
+  (that domain is already on her allowed list — the hook posts to it). After
+  that, future hook versions land by themselves and this trap is closed.
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old
