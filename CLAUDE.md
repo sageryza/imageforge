@@ -2613,6 +2613,10 @@ lifted into a standalone tool later.
   rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
   snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
   order with its narration fills. 23 cards.
+- **Each render row has a SCISSORS → the Cutting Room** (Aug 2026), where the
+  pauses and filler words come out by tapping them. See the Cutting Room
+  section for the contract; nothing about the render itself changed, and
+  pause/filler removal deliberately does NOT happen inside a render.
 - **iOS:** `EpisodeEditorView.swift` = a WKWebView on `/editor` that answers the
   HTTP Basic gate with the studio token (same wrapper pattern as
   `WritingRoomView`), registered as the `editor` tool in `RootView` — home-grid
@@ -2690,6 +2694,29 @@ lifted into a standalone tool later.
   Keep it in step with the icons if any control changes.
 - The recordings list links out to **Search** (below) — the way in when she
   knows what was said but not which recording said it.
+- **A finished Episode Editor render comes here to have its pauses and filler
+  words taken out (Aug 2026, Sophie's ask).** Each render row in the editor
+  carries a **scissors** (that tool's own glyph) → `/cuttingroom?url=…&name=…`;
+  the page opens that url on boot and strips the param, so a reload lands
+  where she actually is. `POST /open` already accepted any https url, so this
+  needed NO new server code and NO TestFlight build — the nav chevron asks
+  `__navBack` (room → list) then falls through to the web view's history back
+  to the editor, exactly the path Search's memo hand-off uses.
+  **The cut number comes from the render's FILE** (`<episode>-7.mp3`), never
+  its row position: `renders` is capped at 10 and newest-first, so positions
+  drift as old cuts fall off while the files keep counting up.
+  Each render is its own content-addressed room, so marking cut 7 never
+  touches the marking on cut 6. Tests: `node scripts/test-cutroom-handoff.js`
+  (drives both real pages in headless Chromium; skips without one).
+- **Do NOT move pause/filler removal INTO the editor's render** (Aug 2026,
+  the decision behind the hand-off). The editor's cuts are safe because both
+  edges land in detected silences; removing an "um" from the MIDDLE of a clip
+  is a splice, and a splice is something to approve by ear, not have happen
+  invisibly inside a render. That is what this room is for. Caveat worth
+  knowing: **Whisper often doesn't transcribe "uh"/"um" at all** (that is what
+  caused the doubled-word bug — see phraseSpan in
+  `docs/nde-precise-cutting.md`), so filler removal by transcript is partial;
+  the pause detection catches many of them anyway as breath pauses.
 
 ## Search (`search.js`) — every transcript, one search
 - `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
