@@ -103,21 +103,6 @@
       transition: all 0.15s ease;
     }
 
-    .moment-row {
-      margin-bottom: 8px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .moment-num {
-      color: var(--text-dim);
-      font-size: 12px;
-      width: 20px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
     .remove-btn {
       background: none;
       border: none;
@@ -754,7 +739,7 @@
       <a class="project-card" href="/stickers">
         <span class="pc-icon">✷</span>
         <span class="pc-title">Sticker Page</span>
-        <span class="pc-desc">Describe a set and get one full-page sheet of kiss-cut stickers (ChatGPT), with reference images.</span>
+        <span class="pc-desc">Describe a set and get one full-page sheet of stickers, drawn in the house style — the same one the iOS app uses.</span>
         <span class="pc-ext">Opens sticker page →</span>
       </a>
       <a class="project-card" href="/set">
@@ -838,39 +823,8 @@
 
   <main id="workspace" style="display:none;">
 
-  <!-- ═══ Sticker Section ═══ -->
-  <div class="section active" id="section-sticker">
-    <label>Style</label>
-    <div class="style-grid" id="sticker-style-grid"></div>
-    <div style="margin-top: 20px;">
-      <label>Moments</label>
-    </div>
-    <div id="moments-list">
-      <div class="moment-row">
-        <span class="moment-num">1</span>
-        <input type="text" placeholder="A moment or thing you're grateful for...">
-        <button class="remove-btn" onclick="removeMoment(this)">×</button>
-      </div>
-      <div class="moment-row">
-        <span class="moment-num">2</span>
-        <input type="text" placeholder="A moment or thing you're grateful for...">
-        <button class="remove-btn" onclick="removeMoment(this)">×</button>
-      </div>
-      <div class="moment-row">
-        <span class="moment-num">3</span>
-        <input type="text" placeholder="A moment or thing you're grateful for...">
-        <button class="remove-btn" onclick="removeMoment(this)">×</button>
-      </div>
-    </div>
-    <button class="add-btn" id="add-moment-btn" onclick="addMoment()">+ add moment</button>
-    <div style="margin-top: 20px;">
-      <button class="btn" id="sticker-btn" onclick="generateStickers()">Generate Sticker Sheet</button>
-    </div>
-    <div id="sticker-result"></div>
-  </div>
-
   <!-- ═══ Deck Section ═══ -->
-  <div class="section" id="section-deck">
+  <div class="section active" id="section-deck">
 
     <!-- Deck Gallery -->
     <div class="deck-gallery" id="deck-gallery">
@@ -1067,10 +1021,6 @@
     let currentMode = null;
     let currentProvider = 'replicate';
 
-    // ── Style state for sticker/single ──
-    let stickerSelectedModel = null;
-    let stickerSelectedStylePrompt = '';
-    let stickerSelectedProvider = 'replicate';
     let singleSelectedModel = null;
     let singleSelectedStylePrompt = '';
     let singleSelectedProvider = 'replicate';
@@ -1247,11 +1197,6 @@
     }
 
     function initSectionGrids() {
-      renderStyleGrid('sticker-style-grid', stickerSelectedModel, (m) => {
-        stickerSelectedModel = m.id;
-        stickerSelectedStylePrompt = m.stylePrompt || '';
-        stickerSelectedProvider = m.provider;
-      });
       renderStyleGrid('single-style-grid', singleSelectedModel, (m) => {
         singleSelectedModel = m.id;
         singleSelectedStylePrompt = m.stylePrompt || '';
@@ -1276,7 +1221,7 @@
     // workspace and a "← Hub" control. Provider is derived from the chosen
     // style (each style knows whether it's Replicate or OpenAI), so there's
     // no separate provider switch to keep in sync.
-    const TOOL_NAMES = { sticker: 'Sticker Sheet', deck: 'Card Deck', single: 'Single Image', settings: 'Styles & Settings' };
+    const TOOL_NAMES = { deck: 'Card Deck', single: 'Single Image', settings: 'Styles & Settings' };
 
     function openTool(mode) {
       currentMode = mode;
@@ -1310,32 +1255,6 @@
       document.getElementById('error-bar').classList.remove('show');
     }
 
-    // ── Moments (Sticker) ───────────────
-    function addMoment() {
-      const list = document.getElementById('moments-list');
-      const count = list.children.length;
-      if (count >= 7) return;
-      const row = document.createElement('div');
-      row.className = 'moment-row';
-      row.innerHTML = `
-        <span class="moment-num">${count + 1}</span>
-        <input type="text" placeholder="A moment or thing you're grateful for...">
-        <button class="remove-btn" onclick="removeMoment(this)">×</button>
-      `;
-      list.appendChild(row);
-      if (count + 1 >= 7) document.getElementById('add-moment-btn').style.display = 'none';
-    }
-
-    function removeMoment(btn) {
-      const list = document.getElementById('moments-list');
-      if (list.children.length <= 1) return;
-      btn.parentElement.remove();
-      Array.from(list.children).forEach((row, i) => {
-        row.querySelector('.moment-num').textContent = i + 1;
-      });
-      document.getElementById('add-moment-btn').style.display = '';
-    }
-
     // ── Safe fetch helpers ──────────────
     async function safeFetchJson(url, opts) {
       const res = await fetch(url, opts);
@@ -1359,47 +1278,6 @@
         throw new Error('Expected event stream but got: ' + ct);
       }
       return res;
-    }
-
-    // ── Sticker Generation ──────────────
-    async function generateStickers() {
-      const inputs = document.querySelectorAll('#moments-list input');
-      const moments = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
-      if (!moments.length) return;
-
-      const btn = document.getElementById('sticker-btn');
-      btn.disabled = true;
-      btn.textContent = 'Generating...';
-      hideError();
-      document.getElementById('sticker-result').innerHTML = '';
-
-      try {
-        const settings = stickerSelectedProvider === 'replicate'
-          ? getModelSettings(stickerSelectedModel) : {};
-        const bgSuffix = getGlobalBgSuffix();
-        const data = await safeFetchJson('/api/generate/sticker-sheet', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            moments,
-            provider: stickerSelectedProvider,
-            model: stickerSelectedModel,
-            stylePrompt: stickerSelectedStylePrompt,
-            bgSuffix,
-            settings,
-          }),
-        });
-        if (data.error) throw new Error(data.error);
-        document.getElementById('sticker-result').innerHTML = `
-          <img class="result-img" src="${data.url}" alt="Sticker sheet">
-          <br><a class="download-link" href="${data.url}" download="sticker-sheet.png" target="_blank">↓ Download</a>
-        `;
-      } catch (err) {
-        showError(err.message);
-      }
-
-      btn.disabled = false;
-      btn.textContent = 'Generate Sticker Sheet';
     }
 
     // ═══════════════════════════════════════
