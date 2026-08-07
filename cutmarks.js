@@ -92,6 +92,18 @@ const nowIso = () => new Date().toISOString();
 // 3FFC80BC-…-IMG_3210.MOV") — and the extension; if nothing readable is
 // left, name it by kind + date.
 const UUID_PREFIX = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*)+/i;
+// A title saved before the cleaning existed (or by the older single-prefix
+// version) keeps its UUID junk FOREVER if only POST /open repairs it — the
+// app RESUMES an open recording straight through GET /:id and never calls
+// /open, so Sophie saw clean names in the browser list and a dirty title on
+// the resumed screen in the app. Every read path repairs it now. Keyed on a
+// UUID prefix actually being present, so a title she typed is never touched.
+function repairedTitle(doc) {
+  if (!doc || !UUID_PREFIX.test(doc.title || '')) return null;
+  const fixed = displayName(doc.title, doc.kind, doc.createdAt);
+  return fixed === doc.title ? null : fixed.slice(0, 120);
+}
+
 function displayName(raw, kind, createdAt) {
   const n = String(raw || '')
     .replace(UUID_PREFIX, '')
@@ -336,7 +348,7 @@ router.get('/status', (req, res) => {
 });
 
 const trimmed = (p) => ({
-  id: p.id, title: p.title, kind: p.kind, status: p.status,
+  id: p.id, title: repairedTitle(p) || p.title, kind: p.kind, status: p.status,
   seconds: p.seconds || null, marks: (p.marks || []).length,
   dropped: (p.dropped || []).length, renders: (p.renders || []).length,
   updatedAt: p.updatedAt || 0,
@@ -427,6 +439,13 @@ router.get('/:id', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such recording' });
+    // Repair a stale UUID title on the way out — this is the path the app's
+    // resume takes, so it's where a dirty title would otherwise live forever.
+    const fixed = repairedTitle(doc);
+    if (fixed) {
+      doc.title = fixed;
+      patchDoc(doc.id, { title: fixed }).catch(() => {});
+    }
     res.json(doc);
   } catch (err) { fail(res, err); }
 });
@@ -488,4 +507,4 @@ router.delete('/:id', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router, keptSegments, audioGraph, videoGraph };
+module.exports = { router, keptSegments, audioGraph, videoGraph, displayName, repairedTitle };
