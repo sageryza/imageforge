@@ -53,7 +53,15 @@ async function chat({ system, user, messages, model = WRITING_MODEL,
     messages: messages || [{ role: 'user', content: String(user || '') }],
   };
   if (system) body.system = String(system);
-  if (temperature != null) body.temperature = temperature;
+  // `temperature` is DEPRECATED on the Claude 5 models and the API hard-errors
+  // on it ("temperature is deprecated for this model" — hit live 2026-08-07 on
+  // claude-sonnet-5, which is why callers still pass one). Accept the argument
+  // so call sites read naturally and stay portable, but only forward it to the
+  // older models that still take it. Don't "simplify" this by deleting the
+  // parameter from the callers — the next model may want it again.
+  if (temperature != null && /^claude-(opus-4|sonnet-4|haiku-4)/.test(model)) {
+    body.temperature = temperature;
+  }
 
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
