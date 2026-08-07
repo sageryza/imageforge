@@ -184,6 +184,11 @@ struct ToolGlyph: View {
                 // than S, not bigger. (This used to scale UP by 1.35, which is
                 // why the Test Station's tubes read half again the size of
                 // every symbol beside them.)
+                // This ONE rule is only right because every bundled glyph
+                // fills exactly 0.90 of its own viewBox — which is enforced by
+                // scripts/normalize-glyphs.py, not by hope. They didn't (0.85
+                // to 1.00), and that spread, not this number, was why the
+                // hand-drawn icons never matched each other.
                 .frame(width: size * 0.86, height: size * 0.86)
                 // …in a LAYOUT box the height an SF Symbol of this size would
                 // take, so a custom glyph never nudges whatever sits under it
@@ -547,33 +552,36 @@ private struct HomeGrid: View {
             }
             .padding(.top, 12)
             .padding(.bottom, 4)
-            // Two corner icons, as before: the Test Station's test tube left,
-            // Chats right — Chats is in the shortcut row too, and that's
-            // deliberate (Sophie: "it can be in two places, silly"). The
-            // briefcase and the quilt left the corners for that row, where
-            // they're FILTERS rather than screens.
+            // Four corner icons, Sophie's arrangement: test tube + briefcase
+            // on the left, quilt + Chats on the right with Chats on the very
+            // END (its old spot). The briefcase and quilt are the same FILTERS
+            // as in the row below — several of these live in two places on
+            // purpose ("it can be in two places, silly").
             .overlay(alignment: .leading) {
-                Button { open(.test) } label: {
-                    ToolGlyph(tool: .test, size: 20)
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    corner(label: "Test Station") { open(.test) } icon: {
+                        ToolGlyph(tool: .test, size: 20)
+                    }
+                    corner(label: "Business") { toggle(.business) } icon: {
+                        Image(systemName: "briefcase").font(.system(size: 20))
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.leading, 8)
+                .padding(.leading, 4)
             }
             .overlay(alignment: .trailing) {
-                Button { open(.chats) } label: {
-                    Image(systemName: Tool.chats.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    corner(label: "Old fashioned") { toggle(.crafts) } icon: {
+                        quiltGlyph(20)
+                    }
+                    corner(label: "Chats") { open(.chats) } icon: {
+                        Image(systemName: Tool.chats.icon).font(.system(size: 20))
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.trailing, 12)
+                .padding(.trailing, 4)
             }
-            shortcutRow
+            // Sophie: "a tad lower under Deck Factory so it doesn't feel so
+            // crowded" — the row needs air between it and the masthead.
+            shortcutRow.padding(.top, 14)
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
                     ForEach(shown) { t in
@@ -589,17 +597,21 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Six rounded squares across, icons only (Sophie: "just the icon"). Two
+    /// Side of a shortcut button. Six of these plus even gaps fit the narrowest
+    /// phone we care about (375pt wide: 6 x 48 = 288 inside 343 of usable row).
+    private static let squareSide: CGFloat = 48
+
+    /// Six rounded SQUARES across, icons only (Sophie: "just the icon"). Two
     /// open a tool; the other four are filters on the cards below — the lit one
     /// clears back to everything when tapped again. Chats is here AND in its
     /// top-right corner on purpose ("it can be in two places, silly"), which is
     /// why the row is six rather than the five it started as.
     private var shortcutRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             // The Dump's inbox — opens on SORT, since sorting what's already
             // in is the half she comes here for.
             square(lit: false, label: "Dump") { open(.dump) } icon: {
-                ToolGlyph(tool: .dump, size: 22)
+                ToolGlyph(tool: .dump, size: 21)
             }
             square(lit: false, label: "Chats") { open(.chats) } icon: {
                 Image(systemName: Tool.chats.icon).font(.system(size: 21))
@@ -613,40 +625,66 @@ private struct HomeGrid: View {
                 Image(systemName: "briefcase").font(.system(size: 21))
             }
             square(lit: filter == .crafts, label: "Old fashioned") { toggle(.crafts) } icon: {
-                // Hand-drawn quilt glyph — sized by the custom-icon rule
-                // (~0.86 of the SF point size beside it).
-                Image("Quilt")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
+                quiltGlyph(21)
             }
             square(lit: filter == .movie, label: "Movies & sound") { toggle(.movie) } icon: {
                 Image(systemName: "film").font(.system(size: 21))
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 4)
-        .padding(.bottom, 2)
+        .padding(.bottom, 6)
     }
 
     private func toggle(_ f: HomeFilter) {
         filter = (filter == f) ? .all : f
     }
 
+    /// The hand-drawn quilt at the custom-icon size rule — a frame of 0.86 x
+    /// the SF point size beside it (see `ToolGlyph`). The art itself fills 0.90
+    /// of its own viewBox, same as every other bundled glyph, which is what
+    /// makes one rule size them all alike (scripts/normalize-glyphs.py).
+    private func quiltGlyph(_ size: CGFloat) -> some View {
+        Image("Quilt")
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size * 0.86, height: size * 0.86)
+    }
+
+    /// A header corner icon — plain glyph, no chrome, 44pt tap target.
+    private func corner<Icon: View>(label: String, _ tap: @escaping () -> Void,
+                                    @ViewBuilder icon: () -> Icon) -> some View {
+        Button(action: tap) {
+            icon()
+                .foregroundColor(Theme.accent)
+                .frame(width: 40, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    /// One shortcut button. A real SQUARE (Sophie — the first cut stretched
+    /// them into rectangles by sharing the width out), and the lit state is a
+    /// THICKER GOLD outline over a light gold tint, keeping the gold icon —
+    /// filling the square with solid accent read as "turned beige".
     private func square<Icon: View>(lit: Bool, label: String,
                                     _ tap: @escaping () -> Void,
                                     @ViewBuilder icon: () -> Icon) -> some View {
         Button(action: tap) {
             icon()
-                .foregroundColor(lit ? .white : Theme.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(lit ? Theme.accent : Theme.surface)
+                .foregroundColor(Theme.accent)
+                .frame(width: Self.squareSide, height: Self.squareSide)
+                .background(lit ? Theme.accent.opacity(0.14) : Theme.surface)
                 .cornerRadius(Theme.radiusLg)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg)
-                    .stroke(lit ? Theme.accent : Theme.border, lineWidth: 1))
-                .contentShape(Rectangle())
+                    .stroke(lit ? Theme.accent : Theme.border, lineWidth: lit ? 2.5 : 1))
+                .contentShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+                // Equal-width CELL, fixed-size square centred in it — the
+                // square keeps its shape whatever the screen width, and the
+                // gaps stay even. (Letting the square itself stretch to fill
+                // the cell is what made them rectangles.)
+                .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

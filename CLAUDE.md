@@ -1968,9 +1968,21 @@ lifted into a standalone tool later.
   full box — while custom art fills ~0.9 of whatever frame it gets. Matching
   the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
   time, which is why the Test Station's tubes read half again the size of
-  every symbol beside them. Bundled glyph SVGs should fill ~0.9 of their own
-  viewBox, centred (both `TestTube` and `Playground` do) so one rule sizes
-  them all.
+  every symbol beside them. **A bundled glyph MUST fill exactly 0.90 of its
+  own viewBox, centred — run `python3 scripts/normalize-glyphs.py` after
+  adding or editing one** (`--check` measures without writing; it's the
+  gate). That script is the real fix for "the hand-drawn icons are all
+  different sizes" (Sophie, Aug 2026): `ToolGlyph` applies ONE frame rule,
+  which is only correct if every glyph fills the SAME share of its box, and
+  measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
+  (playground)** — `.scaledToFit()` scales by the longer side, so the
+  Playground rendered ~17% bigger than the quilt at the same nominal size.
+  No frame number can fix that; the difference is in the ART, so the script
+  normalizes the art and leaves the Swift rule alone. An earlier pass got
+  this wrong by measuring ONE glyph and assuming the rest matched
+  (testtube.svg's comment claimed it filled "the same share the Playground
+  glyph fills" — 0.923 against 1.000), which is why the script RENDERS every
+  file and measures the ink instead of trusting any comment.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
@@ -2000,11 +2012,19 @@ lifted into a standalone tool later.
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
   answers to, and keep it off the unfiltered list so the default home stays
   scannable — the picture and film sets are explicit lists, and their tools
-  DO still appear on the unfiltered home. The two corner icons beside the
-  masthead are unchanged: test tube left, **Chats right** — and Chats is in
-  the ROW as well, which is deliberate ("it can be in two places, silly") and
-  is why the row is six rather than the five it started as. Don't "fix" the
-  duplicate.
+  DO still appear on the unfiltered home. **Four corner icons** beside the
+  masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
+  RIGHT with Chats on the very end (its original spot). The briefcase and
+  quilt corners fire the same filters as their row squares — several
+  controls live in two places on purpose ("it can be in two places, silly"),
+  which is also why the row is six rather than the five it started as. Don't
+  "fix" the duplicates.
+  **They are SQUARES, and the lit state is a thicker gold outline over a
+  light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
+  gold) — v1 stretched them into rectangles by sharing the row width out,
+  and filled the lit one with solid `Theme.accent`, which Sophie read as
+  "turning that beige color". A fixed-size square centred in an equal-width
+  flexible cell is what keeps the shape on every screen width.
   **The set is not settled** — Sophie is still working out what the filters
   should be, so treat it as provisional, not as a rule. The filter icon must
   NOT be the generate star: that glyph is reserved for controls that spend a
