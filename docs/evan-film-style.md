@@ -44,7 +44,7 @@ crimson-and-plum palette onto every frame.
 
 ## The reference files
 
-- **Style reference — `refs/evan-film-style.png`** (Sophie's own scanned
+- **Style reference — `refs/sage-sandy-mirror.png`** (Sophie's own scanned
   sketchbook page, "datescan0013"). Also public at
   `https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/refs/datescan0013.png`
 - **Evan character reference — `refs/evan-character.png`**. Sophie picked this

@@ -25,7 +25,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BUCKET = 'deckfactory-43176.firebasestorage.app';
-const REFS = ['storage:witch-school/refs/style-1.png', 'storage:witch-school/refs/style-2.png'];
+const REFS = ['storage:witch-school/refs/sophie-snake.png', 'storage:witch-school/refs/sophie-animals.png'];
 const BG_REMOVE_MODEL = '851-labs/background-remover';
 const MANIFEST = path.join(__dirname, '..', 'public', 'selfcare-stickers.json');
 

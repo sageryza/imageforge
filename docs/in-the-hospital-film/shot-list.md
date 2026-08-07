@@ -17,7 +17,7 @@ earlier shot.
 
 ## The engine (v2)
 
-- **gpt-image-2 EDITS** with `refs/evan-film-style.png` attached as a pure
+- **gpt-image-2 EDITS** with `refs/sage-sandy-mirror.png` attached as a pure
   style reference — the Playground's ChatGPT style recipe, verbatim
   (`PL_GPT_STYLES.evan` in server.js). Quality **medium** (6¢) unless decided
   otherwise; 1024x1536 portrait. Run via `scripts/hospital-gpt-gen.js`.

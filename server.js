@@ -662,7 +662,7 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // hearted render, and the page behind the gate is the only thing asking).
 app.get('/scratchpad-sophie.png', (req, res) => {
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.type('png').send(fs.readFileSync(path.join(__dirname, 'refs', 'sophie-character.png')));
+  res.type('png').send(fs.readFileSync(path.join(__dirname, 'refs', 'sophie-book.png')));
 });
 // The old static /story snapshot page is retired (July 2026) — the Story
 // Room (/storyroom, live) is the one story surface now.
@@ -2533,7 +2533,7 @@ const MODELS = {
       name: 'Pastel (house)',
       stylePrompt: 'Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. ',
       end: ' Absolutely no text, no words, no letters, no numbers, no captions.',
-      refs: ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'],
+      refs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
       whiten: true,
     },
   ],
@@ -2797,7 +2797,7 @@ app.post('/api/witch/dream-read', async (req, res) => {
 // ─── Dream illustration (diary-comic, background job) ───────────────
 // Public wrapper over the movies.js dreams engine: break the dream into
 // beats, then render the FIRST hand-lettered 2x2 comic page (free) in
-// Sophie's diary-comic style (refs/movie-style.jpg). Fire-and-forget job +
+// Sophie's diary-comic style (refs/dream-mystery.jpg). Fire-and-forget job +
 // poll (GET /:id) so a ~1-2 min render survives cold starts / phone lock —
 // the same resilient pattern the iOS dreams pipeline uses.
 // movies.js is require()d lazily (at request time) so it captures the keys
@@ -4176,8 +4176,8 @@ app.post('/api/generate/gptimage', async (req, res) => {
 // ─── House style: gpt-image-2 EDITS with Sophie's style-reference images ──
 // The same engine the illustrated lessons use (not a LoRA): the two style refs
 // are attached as pure STYLE anchors and the house style prompt is prepended.
-// Refs live privately in Storage (witch-school/refs/style-*.png) and are
-// cached in memory after the first fetch.
+// Refs live privately in Storage (witch-school/refs/sophie-snake.png and
+// sophie-animals.png) and are cached in memory after the first fetch.
 const houseRefCache = new Map();
 async function loadHouseRef(storagePath) {
   if (houseRefCache.has(storagePath)) return houseRefCache.get(storagePath);
@@ -4392,19 +4392,19 @@ const PROMPTLAB = 'forge-promptlab';
 // below is baked in server-side and her typed words follow it verbatim,
 // separated by a blank line; the page prints the whole thing in its "Sent as"
 // line, so nothing about the prompt is hidden from her.
-// The scan is the same file the Evan film uses (refs/evan-film-style.png =
+// The scan is the same file the Evan film uses (refs/sage-sandy-mirror.png =
 // "datescan0013" — the page she attached when asking for this option).
 const PL_GPT = {
   id: 'gpt-image-2', label: 'ChatGPT',
   quality: 'medium', qualities: ['low', 'medium', 'high'],
   size: '1024x1536', aspectRatio: '2:3', outputs: 1, maxOutputs: 4,
-  refFile: 'evan-film-style.png',
+  refFile: 'sage-sandy-mirror.png',
   // The Sophie character toggle (Aug 2026): when a run sends character:true,
   // this image rides along as the SECOND attachment and characterLine is
   // appended to the prefix, so "Sophie" in her prompt draws this girl. The
   // file is her hearted Playground render ("girl placing her book face down",
   // run AD3NW4comO2TZYRFjZoD) banked into refs/.
-  characterFile: 'sophie-character.png',
+  characterFile: 'sophie-book.png',
   // Keep BOTH in sync with STYLES.chatgpt in public/promptlab.html (the page
   // only uses its copies to PREVIEW the prompt; these are what gets sent).
   prefix: 'Use only the style of the attached style reference and ignore its ' +
@@ -4453,7 +4453,7 @@ const PL_GPT_STYLES = {
   // hers is the watercolor look, the wrong reference for this line.
   pastel: {
     label: 'Pastel',
-    storageRefs: ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'],
+    storageRefs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
     prefix: 'Use the attached images ONLY as a STYLE reference for the linework: ' +
       'bold confident black ink outlines, flat colors with NO gradients and minimal ' +
       'shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, ' +
@@ -5069,7 +5069,7 @@ async function openaiImage(body, retries = 2) {
 // web-served — only sent to OpenAI as a style guide.
 let styleRefBuffer = null;
 try {
-  styleRefBuffer = fs.readFileSync(__dirname + '/refs/style.jpg');
+  styleRefBuffer = fs.readFileSync(__dirname + '/refs/dream-mystery.jpg');
   console.log('Style reference loaded (', styleRefBuffer.length, 'bytes )');
 } catch {
   console.warn('No style reference image found — falling back to text-only style');

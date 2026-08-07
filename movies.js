@@ -120,7 +120,7 @@ const FLAT_COOL_PALETTE =
   'instead use a cool palette of lavender, mint green, powder blue and soft ' +
   'grey-pink. ';
 const MOVIE_STYLES = {
-  pencil: { label: 'Dreamy pencil', files: ['movie-style.jpg'], palettePrompt: '' },
+  pencil: { label: 'Dreamy pencil', files: ['dream-mystery.jpg'], palettePrompt: '' },
   flat: { label: 'Simple flat', files: ['flat-cool.png'], palettePrompt: '' },
 };
 for (const [id, s] of Object.entries(MOVIE_STYLES)) {
