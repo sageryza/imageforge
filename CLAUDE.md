@@ -2227,6 +2227,89 @@ lifted into a standalone tool later.
 - **The "?" circle on the tools row** is the instructions for an icon-first
   tool: tap → a card naming what every icon does, tap anywhere → hidden.
   Keep it in step with the icons if any control changes.
+- The recordings list links out to **Search** (below) — the way in when she
+  knows what was said but not which recording said it.
+
+## Search (`search.js`) — every transcript, one search
+- `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
+  `magnifyingglass`, deep link `deckfactory://search`) — one search across
+  **BOTH** transcript libraries: the 77 interview transcripts in
+  `forge-nde-videos` (~3.5M chars) and the 1,022 transcribed voice memos in the
+  membry archive (~2.2M chars). Nothing could search either before: the Cutting
+  Room only searches inside ONE recording already open, the Episode Editor only
+  shows a ±150s window around a snippet she already knows about.
+- **Results are PASSAGES, not files** — a ~48s window of transcript with its
+  timestamp, whose recording it is, and audio. Same paper/gold palette as
+  editor.html / cuttingroom.html; the three audio tools are one family.
+- **The hand-offs are the point** (a search that only lists is worse than
+  scrolling). Each hit goes to the tool that owns that kind of audio:
+  **interview → Episode Editor** (`editor.addExternalSnippet` — a snippet card
+  lands in an episode and the editor re-cuts it natively), **memo → Cutting
+  Room** (`POST /api/cutroom/open` with the recording's url). Search cuts no
+  audio of its own; both paths feed the ONE cutter in `editor.js`.
+- **A hit's Play NEVER points at the banked interview audio.** Those files are
+  what yt-dlp downloaded — webm/opus, one object per whole interview (the
+  Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once
+  via `editor.extractWindow` (ffmpeg seeking over HTTP — it never pulls the
+  whole file), banked at Storage `search-clips/<videoId>-<start>.mp3`,
+  immutable-cached, instant ever after. `GET /clip?src=&t=` is a background job
+  (`{status:'making'}` → poll → `{status:'ready', url}`). Two reasons:
+  **size** (measured — a 56s passage is ~800KB against 62MB; on a phone that is
+  the difference between a tap that plays and one that doesn't) and **format**
+  (iOS Safari has no WebM audio support; Opus plays there only inside CAF).
+  Voice memos skip all of it — m4a, minutes long, streamed through `/audio/:id`.
+- **Two things about audio CANNOT be tested from a chat's sandbox** (both cost
+  real debugging time — don't re-derive them): ffmpeg's **direct HTTP seek**
+  fails because the sandbox's outbound HTTPS proxy is one ffmpeg can't use (it
+  exits 2 with no message and falls back to downloading the source), and a
+  headless browser has **no network to `storage.googleapis.com` at all**, so
+  in-browser playback of any Storage URL is untestable — a `MEDIA_ERR code 4`
+  there is a network failure, NOT proof of a codec problem. Verify playback on
+  the phone.
+- **The index** lives at Storage `search-index/index-v1.json` (~10MB, ~600ms to
+  load, ~49MB heap) and is cached in process for 15 min. Built from Firestore +
+  the memo manifest; a rebuild is FREE (no paid API) and runs as a background
+  job via `POST /reindex` (the page has a "Rebuild the index" button). A
+  missing index builds itself on first use. **Re-index after ingesting new
+  videos or a batch of memos**, or they aren't findable.
+- **Chunks OVERLAP on purpose** (step 30s / span 48s; memos 700 chars / step
+  460). Terms are ANDed, so two words spoken in one breath either side of a
+  boundary would find NOTHING — "darius pyramids" really did miss the memo that
+  says "Darius is like … he describes how the pyramids are like a chamber"
+  because a 700-char cut fell between them. `search()` then dedupes the
+  near-duplicate hits overlap creates (by timestamp for interviews, by chunk
+  adjacency for memos).
+- **A term may match the recording's TITLE instead of its words**, scored well
+  below a spoken match and left out of the proximity test. Without it "darius
+  pyramids" finds nothing in the one interview entirely about Darius, because
+  YouTube's auto-caption mis-hears his name in the first sentence ("my name is
+  sh right") and he is never named again.
+- **Keyword only in v1, deliberately** — ANDed terms, `"quoted phrases"`,
+  proximity scoring, prefix matches at a discount, word-boundary matching (so
+  "art" never hits inside "heart"). Instant and free. **MEANING search is the
+  planned phase 2**: embed each chunk once with `text-embedding-3-small`
+  (~1.4M tokens ≈ $0.03, then free forever). Every chunk already carries a
+  stable `i` so vectors can be a parallel array — no reshaping.
+- **`/api/search/audio/:id` widens an existing restriction, on purpose.**
+  `memo-audio/**` is readable only by a signed-in Firebase user, and
+  `/api/memos/audio/:id` deliberately serves ONLY `cat:'dream'` recordings to
+  keep the other ~940 locked down. A hit you can't play isn't a result, so
+  Search's own route serves ANY memo — behind the same STUDIO_TOKEN gate. One
+  streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
+- **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
+  `GET /?q=&kind=&limit=&offset=`, `GET /sources`, `POST|GET /reindex`,
+  `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
+  Deep link a query with `/search?q=darius`.
+- **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
+  waiting for `loadedmetadata` BEFORE calling `play()` deadlocks — nothing
+  loads until play, so the event never fires. `play()` must be called
+  synchronously in the tap (iOS also requires that) and the seek hangs off
+  `loadedmetadata` as a backstop.
+- iOS: `SearchView.swift` = the Episode Editor wrapper pattern (native
+  `.forgeToolBar("Search")`, chevron asks `window.__navBack` then the web
+  view's own history — a memo hand-off really does navigate to
+  `/cuttingroom` — `__nativeNavBar` injected, audio paused on screen
+  changes). Page changes ship via Render deploy; the wrapper needs TestFlight.
 
 ## Sibling repos
 - `memory-library-react` — the games (incl. the Xi card deck), live at
