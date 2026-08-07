@@ -1749,7 +1749,7 @@ lifted into a standalone tool later.
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
   endpoints + a small set of stateless AI endpoints in `server.js`:
-  `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
+  `POST /api/witch/{tarot,spell,horoscope}` (all `openaiChat`,
   **Claude** via `anthropicChat`; `parseAnthropicJson` strips fences).
 - **The blog is a real NAVIGATION out of the app page, and the tab re-assert
   must not follow it (Aug 2026 — this bug made the blog unreachable in the
@@ -1779,7 +1779,7 @@ lifted into a standalone tool later.
   - **Tarot** — 1 / three-card / yes-no draws + AI reading; **save readings** to
     `localStorage['witch_saved_readings']`.
   - **Conjure** — spell/ritual maker (**save to grimoire**,
-    `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
+    `localStorage['witch_grimoire']`) and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
 - **Synchronicities order by SLOT, not by timestamp (Aug 2026).** A day's
@@ -1853,7 +1853,7 @@ lifted into a standalone tool later.
 - **Anything whose output is WORDS A HUMAN READS runs on Claude, never
   `gpt-4o-mini`.** Blog posts *and the keyword research behind them*, Etsy
   listing copy, the shop advice she makes spending decisions from, the witch
-  app's spells / familiars / natal readings / sky lessons. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
+  app's spells / natal readings / sky lessons. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
   default `claude-sonnet-5` via `CLAUDE_WRITING_MODEL`) — do NOT hand-copy the
   fetch a fifth time. `server.js`'s `anthropicChat` + `parseAnthropicJson` is
   the in-server equivalent for routes that already live there.
