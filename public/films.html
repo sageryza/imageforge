@@ -145,24 +145,6 @@ h2 { font-size:16px; color:var(--muted); font-weight:normal; font-style:italic; 
     <div class="stage" id="stageBox"></div>
     <div id="filmBox" style="display:none; margin-bottom:14px"></div>
     <div class="grid" id="sceneGrid"></div>
-    <div class="card sans" id="motionOpts" style="display:none">
-      <div style="display:flex; flex-direction:column; gap:14px">
-        <div>
-          <div class="optlabel">Morph moments</div>
-          <div class="seg" id="morphSeg">
-            <button data-v="on" class="sel">Model decides</button>
-            <button data-v="off">All hard cuts</button>
-          </div>
-        </div>
-        <div>
-          <div class="optlabel">Motion feel</div>
-          <div class="seg" id="motionSeg">
-            <button data-v="normal" class="sel">Normal</button>
-            <button data-v="subtle">Mostly still</button>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="row" style="margin-top:14px; flex-wrap:wrap" id="actions"></div>
   </section>
 
@@ -343,10 +325,10 @@ function render() {
     grid.appendChild(t);
   });
 
-  // actions
+  // actions — every transition/motion decision belongs to the breakdown model,
+  // so the stages here are pure progress taps, never creative choices.
   const a = $('actions');
   a.innerHTML = '';
-  let motionStage = false;
   const btn = (label, fn, ghost) => {
     const b = document.createElement('button');
     b.className = 'btn' + (ghost ? ' ghost' : '');
@@ -356,16 +338,33 @@ function render() {
     if (done.length === 0) btn('Draw the first image', () => act('/panels', { stage: 'first' }, 'Drawing the first image…'));
     else if (done.length === 1) btn('Looks right — draw 3 more', () => act('/panels', { stage: 'sample' }, 'Drawing three more…'));
     else if (done.length < total) btn(`Approved — draw the rest (${total - done.length})`, () => act('/panels', { stage: 'rest' }, 'Drawing the rest…'));
-    else if (clipsDone < scenes.filter((s, i) => !(i > 0 && scenes[i - 1].pairWithNext)).length) {
-      motionStage = true;
-      btn('Add motion', () => act('/clips', {
-        morphPairs: segVal('morphSeg') === 'on',
-        motionFeel: segVal('motionSeg'),
-      }, 'Animating the scenes…'));
+    else if (clipsDone < scenes.filter((s, i) => !(i > 0 && scenes[i - 1].pairWithNext)).length)
+      btn('Add motion', () => act('/clips', {}, 'Animating the scenes…'));
+    else if (missingDreamBridges()) {
+      // The model marked these cuts "dream" — bridge them automatically, one
+      // auto-attempt per film per page load; a failure leaves a retry button.
+      if (movie.job?.kind === 'bridges' && movie.job.status === 'error') {
+        btn('Retry the dream crossings', () => act('/bridges', {}, 'Dreaming the crossings…'));
+      } else if (!autoBridged.has(movie.id)) {
+        autoBridged.add(movie.id);
+        act('/bridges', {}, 'Dreaming the crossings…');
+      }
     }
     else btn(movie.movieUrl ? 'Re-stitch the film' : 'Stitch the film', () => act('/stitch', {}, 'Stitching…'), Boolean(movie.movieUrl));
   }
-  $('motionOpts').style.display = motionStage ? 'block' : 'none';
+}
+
+const autoBridged = new Set();
+function missingDreamBridges() {
+  const scenes = movie.scenes || [];
+  const playable = scenes.filter((s, i) =>
+    !(i > 0 && scenes[i - 1].pairWithNext) && s.edits?.enabled !== false && s.clip?.url);
+  for (let i = 0; i < playable.length - 1; i++) {
+    if (playable[i].transition !== 'dream') continue;
+    const b = (movie.bridges || []).find(x => x.fromSceneId === playable[i].id && x.toSceneId === playable[i + 1].id);
+    if (!b?.clip?.url) return true;
+  }
+  return false;
 }
 
 function styleLabel() { return movie.style === 'flat' ? 'Simple flat' : 'Dreamy pencil'; }

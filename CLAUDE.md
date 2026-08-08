@@ -1150,6 +1150,8 @@ lifted into a standalone tool later.
 - `movies.js` (`/api/movies`) — story → movie pipeline, validated end-to-end in
   a July 2026 prototyping run (~$1.35 for a 12-scene film with dream bridges).
   **No web page** — the native iOS app (`ios/`, Movies tab) is the frontend.
+- **Open breakdown-model experiment ideas: `docs/movies/breakdown-experiments.md`.**
+  Not started yet — check it before assuming the current breakdown call is final.
 - **Pipeline:** GPT breaks the story into ~8-12 SELF-CONTAINED scenes (each
   prompt renders alone — the video model can't infer beats between scenes),
   deliberately creating before/after panel pairs and repeating character
