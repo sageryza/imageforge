@@ -450,6 +450,15 @@ async function boot(){
   firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId,
     storageBucket: cfg.storageBucket, messagingSenderId: cfg.messagingSenderId, appId: cfg.appId });
   fbAuth = firebase.auth();
+  // Coming back from a redirect sign-in: surface a real failure instead of
+  // silently landing on the sign-in screen again.
+  fbAuth.getRedirectResult().catch(function(e){
+    if (e && e.code === 'auth/account-exists-with-different-credential') {
+      showErr('That Apple ID uses the same email as your Google account — tap "Continue with Google" instead.');
+    } else if (e && e.code) {
+      showErr(String(e.message || e).replace(/^Firebase: /, '').replace(/ \(auth.*\)\.?$/, ''));
+    }
+  });
 
   fbAuth.onAuthStateChanged(function(u){
     user = u;
@@ -463,10 +472,23 @@ async function boot(){
     }
   });
 
+  // A popup cannot open inside an embedded web view (and phone browsers block
+  // them freely), so every provider sign-in falls back to a full-page redirect
+  // rather than dead-ending on auth/popup-blocked.
+  var POPUP_FAILS = ['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment',
+                     'auth/popup-closed-by-user', 'auth/cancelled-popup-request', 'auth/web-storage-unsupported'];
+  async function providerSignIn(provider){
+    try {
+      await fbAuth.signInWithPopup(provider);
+    } catch (e) {
+      if (POPUP_FAILS.indexOf(e.code) !== -1) { await fbAuth.signInWithRedirect(provider); return; }
+      throw e;
+    }
+  }
   document.getElementById('googleBtn').addEventListener('click', async function(){
     hideErr();
-    try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    catch (e) { showErr(e.message); }
+    try { await providerSignIn(new firebase.auth.GoogleAuthProvider()); }
+    catch (e) { showErr(String(e.message || e).replace(/^Firebase: /, '').replace(/ \(auth.*\)\.?$/, '')); }
   });
   // Apple is already enabled on this Firebase project (set up for XI), and
   // this domain is authorized — so the provider needs no extra config here.
@@ -475,7 +497,7 @@ async function boot(){
     try {
       var p = new firebase.auth.OAuthProvider('apple.com');
       p.addScope('email'); p.addScope('name');
-      await fbAuth.signInWithPopup(p);
+      await providerSignIn(p);
     } catch (e) {
       // Same email on an existing Google account: both providers verify their
       // emails, so signing in with Google resolves it in one tap (XI's fallback).
