@@ -7,11 +7,17 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   [hidden] { display:none !important; }
+  /* TWO surfaces (Sophie): the entries are black and they SIT ON cream. So a
+     scroll down the feed reads black entry, a little cream, a black line, a
+     little more cream, the next black entry.
+       --card / --ink / --dim / --line   live INSIDE a black entry
+       --paper / --inkp / --dimp / --linep  live on the cream around them */
   :root {
-    --bg:#0e0e11; --ink:#ffffff; --dim:#9a9aa3; --line:#ffffff3d;
-    --fuchsia:#ff2fa0; --field:#17171c;
+    --card:#0e0e11; --ink:#ffffff; --dim:#9a9aa3; --line:#ffffff3d;
+    --paper:#f5efe2; --inkp:#2a2622; --dimp:#7d7368; --linep:#0e0e11;
+    --fuchsia:#ff2fa0; --field:#ece3d2;
   }
-  body { background:var(--bg); color:var(--ink);
+  body { background:var(--paper); color:var(--inkp);
          font:15px/1.6 -apple-system, "Helvetica Neue", sans-serif; padding-bottom:100px; }
   .serif { font-family:Georgia, "Times New Roman", serif; }
   svg.i { width:20px; height:20px; stroke:currentColor; stroke-width:1.8; fill:none;
@@ -19,46 +25,49 @@
   .star { display:inline-block; width:20px; height:20px; vertical-align:-4px; }
   .star svg { width:100%; height:100%; }
 
-  header { position:sticky; top:0; z-index:5; background:var(--bg); padding:16px 56px 12px 18px;
-           display:flex; align-items:baseline; gap:10px; border-bottom:1px solid var(--line); }
+  header { position:sticky; top:0; z-index:5; background:var(--paper); padding:16px 18px 12px;
+           display:flex; align-items:baseline; gap:10px; border-bottom:1px solid #0e0e1122; }
   .wordmark { font-family:Georgia, "Times New Roman", serif; font-size:26px; font-weight:400;
               color:var(--fuchsia); letter-spacing:0; }
   /* The header says the app's name and nothing else — the date belongs to the
      feed, where every day already has its own band (Sophie). */
-  header .gear { margin-left:auto; background:none; border:none; color:var(--dim);
+  header .gear { margin-left:auto; background:none; border:none; color:var(--dimp);
                  display:flex; align-items:center; padding:4px; align-self:center; }
-  .menu { position:fixed; top:56px; right:14px; z-index:20; background:var(--bg);
-          border:1px solid var(--line); border-radius:6px; overflow:hidden; min-width:140px; }
+  .menu { position:fixed; top:56px; right:14px; z-index:20; background:var(--paper);
+          border:1px solid #0e0e1133; border-radius:6px; overflow:hidden; min-width:140px; }
   .menu button { display:block; width:100%; text-align:left; background:none; border:none;
-                 color:var(--ink); font:14px -apple-system, sans-serif; padding:12px 16px; }
+                 color:var(--inkp); font:14px -apple-system, sans-serif; padding:12px 16px; }
   .scrim { position:fixed; inset:0; z-index:19; background:transparent; }
 
   main { padding:0 16px; }
   /* Buttons stay quiet — outlined, never solid blocks of fuchsia. */
   .btn { display:block; width:100%; background:none; color:var(--fuchsia); border:1px solid var(--fuchsia);
          border-radius:6px; padding:13px 16px; font:15px -apple-system, sans-serif; margin-top:14px; }
-  .btn.sub { color:var(--ink); border-color:var(--line); }
+  .btn.sub { color:var(--inkp); border-color:#0e0e1140; }
   .btn[disabled] { opacity:.45; }
-  .quiet { font-size:13px; color:var(--dim); margin-top:10px; }
+  /* .quiet reads on the cream by default; inside a black entry (the comment
+     thread, the drawing note) it takes that surface's dim instead. */
+  .quiet { font-size:13px; color:var(--dimp); margin-top:10px; }
+  .post .quiet, .sealmsg .quiet { color:var(--dim); }
   .err { font-size:13px; color:var(--fuchsia); margin-top:10px; }
 
   /* sign-in */
   .gate { padding:70px 26px 0; max-width:420px; margin:0 auto; }
   .gate .wordmark { font-size:42px; display:block; }
-  .gate .sub { color:var(--dim); margin:8px 0 32px; font-family:Georgia, serif; font-style:italic; }
-  .gate input { width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px;
-                color:var(--ink); font:15px -apple-system, sans-serif; padding:13px; margin-top:10px; outline:none; }
+  .gate .sub { color:var(--dimp); margin:8px 0 32px; font-family:Georgia, serif; font-style:italic; }
+  .gate input { width:100%; background:var(--field); border:1px solid #0e0e1133; border-radius:6px;
+                color:var(--inkp); font:15px -apple-system, sans-serif; padding:13px; margin-top:10px; outline:none; }
   .gate input:focus { border-color:var(--fuchsia); }
-  .gate .rule { display:flex; align-items:center; gap:12px; color:var(--dim); font-size:12px; margin:22px 0 8px; }
-  .gate .rule::before, .gate .rule::after { content:''; flex:1; height:1px; background:var(--line); }
-  .gate .swap { background:none; border:none; color:var(--dim); font-size:13px; margin-top:16px;
+  .gate .rule { display:flex; align-items:center; gap:12px; color:var(--dimp); font-size:12px; margin:22px 0 8px; }
+  .gate .rule::before, .gate .rule::after { content:''; flex:1; height:1px; background:#0e0e1126; }
+  .gate .swap { background:none; border:none; color:var(--dimp); font-size:13px; margin-top:16px;
                 text-decoration:underline; }
 
   /* feed */
   .sealwrap { position:relative; overflow:hidden; }
   .sealed { filter:blur(7px); pointer-events:none; user-select:none; }
   .sealmsg { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; }
-  .sealmsg .inner { background:var(--bg); border:1px solid var(--line); border-radius:10px;
+  .sealmsg .inner { background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:10px;
                     padding:24px 22px; margin:0 22px; text-align:center; }
   .sealmsg .big { font-size:17px; font-weight:700; }
   .sealmsg .sml { font-size:13.5px; color:var(--dim); margin-top:5px; }
@@ -66,13 +75,20 @@
   /* The feed reads as days: one date, then that day's dreams, unattributed.
      The date is its OWN band — a wide gap above it and a rule under it — so it
      never reads as the first line of the dream beneath (Sophie). */
-  .dayhead { font-family:Georgia, "Times New Roman", serif; font-size:15px; color:var(--dim);
-             padding:34px 2px 10px; border-bottom:1px solid var(--line); }
+  .dayhead { font-family:Georgia, "Times New Roman", serif; font-size:15px; color:var(--dimp);
+             padding:34px 2px 10px; border-bottom:1px solid #0e0e1126; margin-bottom:16px; }
   .dayhead:first-child { padding-top:16px; }
   /* A post is ONE PERSON'S dreams for that day: two dreams from the same
      dreamer on the same night sit in one post, parted by a fainter line than
-     the white one that divides different people. */
-  .post { padding:14px 2px 16px; border-bottom:1px solid var(--line); }
+     the one that divides different people.
+     The post is the BLACK ENTRY. Between two of them: cream, a black line,
+     cream — drawn as an absolute rule in the gap rather than a border, so the
+     line never touches either entry. A day header interrupts the run, and gets
+     no line, because the date band is already the separation there. */
+  .post { background:var(--card); color:var(--ink); border-radius:6px; padding:16px 14px; }
+  .post + .post { position:relative; margin-top:29px; }
+  .post + .post::before { content:''; position:absolute; left:0; right:0; top:-15px;
+                          height:1px; background:var(--linep); }
   .dream + .dream { margin-top:20px; padding-top:18px; border-top:1px solid #ffffff1f; }
   .post .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                font-size:19px; font-weight:400; }
@@ -89,7 +105,7 @@
      reading that SLIDES when you tap the other. */
   .tabs { position:relative; display:flex; margin-top:12px; border-bottom:1px solid var(--line); }
   .tab { flex:1 1 50%; padding:9px 6px 11px; border:none; background:none; color:var(--dim);
-         font:13px -apple-system, sans-serif; }
+         font:13px -apple-system, sans-serif; font-variant-caps:small-caps; letter-spacing:.09em; }
   .tab.on { color:var(--fuchsia); font-weight:600; }
   .tabs::after { content:''; position:absolute; left:0; bottom:-1px; width:50%; height:2px;
                  background:var(--fuchsia); transform:translateX(0); transition:transform .2s ease; }
@@ -106,7 +122,9 @@
   .cmt .said { font-size:13.5px; color:var(--ink); white-space:pre-wrap; margin-top:2px; }
   .cmt .when { font-size:11.5px; color:var(--dim); margin-left:6px; }
   .cbox { display:flex; gap:8px; margin-top:8px; }
-  .cbox input { flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px;
+  /* The comment box lives INSIDE a black entry, so it keeps a dark field —
+     --field is the cream page's input colour and would be unreadable here. */
+  .cbox input { flex:1; background:#17171c; border:1px solid var(--line); border-radius:6px;
                 color:var(--ink); font:14px -apple-system, sans-serif; padding:10px 12px; outline:none; }
   .cbox input:focus { border-color:var(--fuchsia); }
   .cbox button { background:none; border:1px solid var(--fuchsia); color:var(--fuchsia);
@@ -122,14 +140,14 @@
      of it first (Sophie). It rides above the nav, and carries its own solid
      background so the text can't show through it. */
   .morep.stuck { position:sticky; bottom:calc(66px + env(safe-area-inset-bottom)); z-index:4;
-                 color:var(--fuchsia); background:var(--bg); border:1px solid var(--line);
+                 color:var(--fuchsia); background:var(--card); border:1px solid var(--line);
                  border-radius:6px; padding:9px 0; margin-top:11px; }
 
   /* compose + dream detail */
   .h2 { font-family:Georgia, "Times New Roman", serif; font-size:20px; font-weight:400;
         color:var(--fuchsia); margin:22px 2px 12px; }
-  textarea { width:100%; background:var(--field); border:1px solid var(--line); border-radius:8px;
-             color:var(--ink); font:16px/1.6 -apple-system, sans-serif; padding:13px; min-height:140px;
+  textarea { width:100%; background:var(--field); border:1px solid #0e0e1133; border-radius:8px;
+             color:var(--inkp); font:16px/1.6 -apple-system, sans-serif; padding:13px; min-height:140px;
              resize:none; outline:none; }
   textarea:focus { border-color:var(--fuchsia); }
   .naming { color:var(--dim); font-size:14px; animation:pu 1.1s infinite alternate; }
@@ -137,11 +155,11 @@
   .drawing { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; color:var(--dim); }
   .pulse { width:9px; height:9px; border-radius:50%; background:var(--fuchsia); animation:pu 1s infinite alternate; }
   .skel { border-radius:6px; background:#1c1c22; animation:pu 1.1s infinite alternate; height:150px; }
-  .share-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #ffffff1c; }
+  .share-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #0e0e111c; }
   .share-item:last-of-type { border-bottom:none; }
   .share-item .thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; flex:none; }
   .share-item .lab { font-size:14.5px; }
-  .share-item .st { margin-left:auto; border:1px solid var(--line); background:none; color:var(--dim);
+  .share-item .st { margin-left:auto; border:1px solid #0e0e1140; background:none; color:var(--dimp);
                     border-radius:6px; padding:6px 13px; font:600 13px -apple-system, sans-serif; min-width:80px; }
   .share-item .st.pub { background:none; border-color:var(--fuchsia); color:var(--fuchsia); }
   .badge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em;
@@ -149,12 +167,15 @@
   .badge.pub { background:none; border:1px solid var(--fuchsia); color:var(--fuchsia); }
   .badge.priv { background:#212127; color:var(--dim); }
   .backrow { display:flex; align-items:center; gap:8px; padding:14px 0 0; }
-  .backrow button { background:none; border:none; color:var(--dim); display:flex; align-items:center;
+  .backrow button { background:none; border:none; color:var(--dimp); display:flex; align-items:center;
                     gap:5px; font:13px -apple-system, sans-serif; padding:4px 6px 4px 0; }
 
   /* journal list */
-  .jitem { width:100%; text-align:left; background:none; border:none; color:inherit; font:inherit;
-           padding:16px 2px 14px; border-bottom:1px solid var(--line); }
+  .jitem { width:100%; text-align:left; background:var(--card); color:var(--ink); border:none;
+           font:inherit; border-radius:6px; padding:15px 14px; }
+  .jitem + .jitem { position:relative; margin-top:29px; }
+  .jitem + .jitem::before { content:''; position:absolute; left:0; right:0; top:-15px;
+                            height:1px; background:var(--linep); }
   .jitem .row { display:flex; align-items:center; gap:9px; }
   .jitem .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                 font-weight:400; font-size:17px; }
@@ -163,11 +184,11 @@
                  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 
   nav { position:fixed; left:0; right:0; bottom:0; z-index:10; display:flex; align-items:center;
-        justify-content:space-around; background:var(--bg); border-top:1px solid var(--line);
+        justify-content:space-around; background:var(--paper); border-top:1px solid #0e0e1122;
         padding:8px 26px calc(10px + env(safe-area-inset-bottom)); }
-  nav button { background:none; border:none; color:var(--dim); font:11px -apple-system, sans-serif;
+  nav button { background:none; border:none; color:var(--dimp); font:11px -apple-system, sans-serif;
                display:flex; flex-direction:column; align-items:center; gap:3px; padding:2px 10px; }
-  nav button.here { color:var(--ink); }
+  nav button.here { color:var(--inkp); }
   nav .mid { width:50px; height:50px; border-radius:50%; background:none; color:var(--fuchsia);
              align-items:center; justify-content:center; margin-top:-16px;
              border:1px solid var(--fuchsia); display:flex; }
@@ -182,7 +203,7 @@
   .pgrid img { cursor:zoom-in; }
 
   .toast { position:fixed; left:50%; bottom:108px; transform:translateX(-50%); z-index:30;
-           background:var(--ink); color:#0e0e11; border-radius:6px; padding:9px 18px; font-size:13.5px;
+           background:var(--card); color:var(--paper); border-radius:6px; padding:9px 18px; font-size:13.5px;
            font-weight:600; opacity:0; transition:opacity .25s; pointer-events:none; white-space:nowrap; }
 </style>
 </head>
@@ -565,7 +586,7 @@ async function renderDream(){
   }
   el.innerHTML =
     '<div class="backrow"><button id="backBtn">' + BACK + 'back</button></div>' +
-    '<div class="post" style="border-bottom:none">' +
+    '<div class="post">' +
     (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
     '<div class="meta">' + ago(d.createdAt) + ' ago · ' +
     (shared ? '<span class="badge pub">in today’s feed</span>' : '<span class="badge priv">private</span>') + '</div>' +
