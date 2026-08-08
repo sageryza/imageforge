@@ -308,3 +308,71 @@ Transcripts pull straight from Firestore/Storage with the Deck Factory service
 account (`FIREBASE_SERVICE_ACCOUNT`); there is no committed helper because
 `scripts/nde-context.py` and the `find`/`win` pattern above cover it. Word-level
 narration cuts follow `docs/nde-precise-cutting.md`.
+
+---
+
+## Sophie's picks and the working cut (8 Aug 2026)
+
+Chosen: **B1** (opening) → **A** (classroom). **B4** cut but not placed. Out:
+B2, B3, B5, LAUGH2, Janet. LAUGH held as "iffy… we'll have to see the shape".
+
+**She wants ONLY the sentences that appeared in the review artifact — the text
+around the "…" is not to be reinstated.** The first cut restored those elided
+words (it read them as the natural continuous run) and she rejected it: *"You
+added all sorts of other words."* So the working cut is a **word-level splice**
+of exactly the quoted lines, verified by transcribing the finished audio back and
+diffing against the artifact text. This shortens the piece from ~2:57 to **~46s**
+and makes it deliberately elliptical — that is the intent, not an accident.
+
+Her edits, applied: B1 drops its first sentence and opens on *"It has been
+said…"*; A drops the whole classroom introduction (skirts / the teacher) and
+opens on *"There are rifts…"*; B4 opens on the SECOND thing the subject says,
+deletes Dolores's *"Was that when you were younger?"*, and moves the first thing
+he says to the end.
+
+**Assets.** Sixteen sentence-level mp3s at Storage
+`dolores-time/sentences/v3/<key>.mp3`, assembled passages and spine at
+`dolores-time/clips/v3/`. Sentence boundaries, speakers and timings are in the
+session's `sentences.json`; each was located by local alignment (Smith-Waterman
+over tokens) against whisper word timestamps, then hand-checked — the aligner
+reliably drops a leading word ("There's", "He's"), so **always verify the head of
+every fragment** rather than trusting the match score.
+
+**Arrangement is Sophie's, live.** The reorder page writes to
+`GET /api/chatfeed/verdict?chat=dolores-cannon-time&sheet=time-passages-v1`, one
+item per passage (`order-B1`, `order-A`, `order-B4`), value = comma-separated
+sentence keys with a `-` prefix meaning deleted. **Read that before re-cutting** —
+it, not this file, is the current running order.
+
+## Flagged for later — other time passages (not yet read in full)
+
+Swept at her request; flagged only, not vetted. Scene = someone is in it.
+
+- **Keepers 1 @ 1:49:04** — *"Everything is simultaneous. So everything that did
+  happen or will happen is happening. Time is simply a concept which humans have
+  devised…"* Entity, in session. The closest sibling to B1/B2 found so far, and
+  it says the measuring idea outright. **Strongest flag.**
+- **Custodians 2 @ 3:41:31** — a woman at work tries to explain being "in two
+  places at the same time", gets a flood of simultaneous-time knowledge, and has
+  to excuse herself to the ladies' room. **Scene**, ordinary setting.
+- **Custodians 1 @ 1:43:01** — *"Do you mean that time literally stopped outside
+  of her immediate environment?"* Time stopping around a car. **Scene.**
+- **Threewaves 1 @ 2:12:11** — the soul sends out "splinters, shards, or aspects"
+  of itself, so we are "truly living all our past, present and future lives at
+  the same time." Narration.
+- **Threewaves 1 @ 6:49:48** — *"there's a speeding up occurring, some people
+  don't have as much tolerance as others for this."* Time speeding up as
+  something felt in the body. **Scene.**
+- **Horns 2 @ 6:08:22** — Dolores on herself: *"For a brief while I was an
+  invisible participant in moments in history as an unwitting time traveler."*
+  Reads like a closing line.
+- **Horns 1 @ 0:22:41** — *"I discovered the true meaning of time travel during
+  my sessions with her."*
+- **Keepers 1 @ 2:57:57** — imprints: thousands could live the same life
+  simultaneously, and two people could be regressed to the *same* life.
+- **Custodians 2 @ 5:10:57** — a car moved through a dimension by "speeding up or
+  slowing down of the molecules". **Scene.**
+- **Custodians 1, chapter 2 entire** — the missing-time / condensed-time cases.
+  Janet is one of three; the other two are unread.
+
+No hits at all for déjà vu.
