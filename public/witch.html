@@ -222,8 +222,28 @@
     .btn-white svg { width: 15px; height: 15px; }
 
     /* Suspicious coincidence — describe it, AI draws it */
-    .coin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-    .coin-saved { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
+    /* The head is a WRAPPING flex row and the kicker never breaks. The old
+       label ("Saved to your Book of Shadows", 177px) plus the kicker (188px)
+       needed 397px inside a 316px card, so "Suspicious coincidence…" split
+       across two lines — Sophie's report. "Save to book" / "See in book" is
+       71/62px, which fits one line on a 390px phone with ~7px to spare; on
+       anything narrower the SAVE BUTTON drops to its own line (margin-left
+       auto keeps it right-aligned there) rather than the phrase breaking. */
+    .coin-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; margin-bottom: 4px; }
+    /* 1.8px instead of the house 2.5px, on THIS kicker only: measured, the
+       phrase is 209px at 2.5 and the row has 193px to give once the ⓘ and the
+       save button are placed. The nearest other kicker is a screen away, so
+       the tighter tracking doesn't read as inconsistent — and a broken phrase
+       very much did. */
+    .coin-head .kicker { white-space: nowrap; letter-spacing: 1.8px; }
+    .coin-title { display: flex; align-items: center; gap: 5px; }
+    /* The "what even is this?" circle — the way from the boxes to the
+       Synchronicity lesson that explains them (the lesson's last card points
+       back here, so the two are double-linked). */
+    .coin-info { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; padding: 0; flex: none; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; }
+    .coin-info svg { width: 16px; height: 16px; stroke: currentColor; fill: none; }
+    .coin-info:hover { color: var(--gold); }
+    .coin-saved { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
     .coin-saved.filled { color: var(--gold); }
     .coin-saved .coin-bm { line-height: 0; }
     .coin-saved .coin-bm svg { width: 15px; height: 15px; stroke: currentColor; fill: none; transition: fill 0.25s ease; }
@@ -1572,9 +1592,12 @@
         <div class="section-sub">Which ones have been put in your path today?</div>
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
           <div class="coin-head">
-            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
-            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
-              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
+            <div class="coin-title">
+              <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
+              <button class="coin-info" id="coin-info" type="button" aria-label="What is a synchronicity?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>
+            </div>
+            <button class="coin-saved" id="coin-saved" type="button" aria-label="Write a coincidence to save it to your Book of Shadows">
+              <span class="coin-saved-lbl">Save to book</span>
               <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
             </button>
           </div>
@@ -1794,6 +1817,11 @@
           <div class="lesson-card" id="open-signs">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span>
             <div><div class="lt">Reading Signs</div><div class="ld">Omens, synchronicity & discernment</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <div class="lesson-card" id="open-sync">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></span>
+            <div><div class="lt">Synchronicity</div><div class="ld">Meaningful coincidence, and how to keep a record</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
           <div class="lesson-card" id="open-divin">
@@ -5237,12 +5265,21 @@
     else if (accountsConfigured === false || witchAuthReady) { canCommit = true; }
     if (canCommit) { try { localStorage.setItem('witch_coin_reset', COIN_RESET_V); } catch {} }
   }
-  // "Saved to your Book of Shadows" bookmark — fills once you've drawn one today.
+  // The book bookmark, in two states (Aug 2026, Sophie). Nothing saved yet →
+  // "Save to book"; once a coincidence is drawn (drawing IS what files it into
+  // the Book of Shadows) → "See in book", and the tap jumps to today's page.
+  // The label carries the second tap: a bare bookmark icon made "there is a
+  // page to go and read" a secret, the same reason .bm-lbl exists.
   function coinSavedToday() { const d = coinDoneAll(); return Object.keys(d).some(i => { const st = d[i]; return st && st.v && st.v.length; }); }
   function updateCoinBookmark(animate) {
     const el = $('coin-saved'); if (!el) return;
     const on = coinSavedToday();
     el.classList.toggle('filled', on);
+    const lbl = el.querySelector('.coin-saved-lbl');
+    if (lbl) lbl.textContent = on ? 'See in book' : 'Save to book';
+    el.setAttribute('aria-label', on
+      ? 'See today\'s coincidences in your Book of Shadows'
+      : 'Write a coincidence to save it to your Book of Shadows');
     if (on && animate) { el.classList.remove('just'); void el.offsetWidth; el.classList.add('just'); }
   }
   const COIN_BTN_HTML = 'Draw it! <span class="js-star"></span>';
@@ -5426,7 +5463,19 @@
   // The "Saved to your Book of Shadows" bookmark jumps to the page TODAY's
   // coincidences were filed on — the newest Synchronicities page, not the first
   // one (that's the oldest day in the book, which is never what you just saved).
-  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign', { newest: true, dateISO: todayISO() }); }); }
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => {
+    // Nothing saved today: the book page doesn't exist yet, so opening it would
+    // land on an empty spread. Send her to the first empty box instead — that's
+    // where saving actually starts.
+    if (!coinSavedToday()) {
+      const box = ['coin-0', 'coin-1', 'coin-2'].map($).find(b => b && !b.textContent.trim()) || $('coin-0');
+      if (box) { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { box.focus(); } catch {} }
+      return;
+    }
+    go('book'); openBook('sign', { newest: true, dateISO: todayISO() });
+  }); }
+  // The ⓘ beside "Suspicious coincidence…" → the lesson that explains it.
+  { const ci = $('coin-info'); if (ci) ci.addEventListener('click', (e) => { e.stopPropagation(); go('school'); openLesson('sync'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
@@ -6033,6 +6082,30 @@
     { img: 'rs-09', bg: '#fef9f2', kicker: 'The answering', h: 'Answering a sign', body: 'Take a sign as an invitation rather than an order: the response is one small step in the direction it pointed — send the message, look up the class, take the walk.' },
     { img: 'rs-10', bg: '#fef9f4', kicker: 'After', h: 'Draw the coincidence', body: 'Your Book of Shadows has a page waiting for exactly this — <b>Signs</b>, your own dictionary of synchronicities.<br><br><b>This week:</b> when a sign finds you, write it down there — what appeared, and what was happening. (And the coincidence boxes on Home will draw it for you.) ✦', cta: { label: 'Open my Signs pages', go: 'book', book: 'sign' } },
   ];
+  /* Synchronicity — the sequel to Reading Signs, and the lesson behind the
+     coincidence boxes on Home. The ⓘ next to "Suspicious coincidence…" opens
+     it; its last card sends you back to the boxes, so the two are linked both
+     ways. 14 cards (the house 10 is a floor, not a rule). */
+  const SYNC_CARDS = [
+    { img: 'sy-01', bg: '#fdf8f1', kicker: 'Synchronicity', h: 'The word for it', body: 'You have been doing this already — the front door of this app asks you every morning which coincidences were put in your path. Behind that question sits a hundred years of argument: who named the thing, what they actually claimed, and how to tell a real one from a trick of your own attention. We\'ll take it one idea at a time.' },
+    { img: 'sy-02', bg: '#fefbf8', kicker: 'Munich, 1930', h: 'A word said at a funeral', body: 'The term arrives in a eulogy. In May 1930 <b>Jung</b> spoke at a Munich memorial for <b>Richard Wilhelm</b>, who had brought the <i>I Ching</i> into German, and tried to account for how such a book could work at all. Its science, he said, rests not on causality but on a principle “hitherto unnamed” — which he was tentatively calling <b>synchronistic</b>.' },
+    { img: 'sy-03', bg: '#fdf8ef', kicker: 'The definition', h: 'Two events, no thread', body: 'His full phrase was <b>an acausal connecting principle</b>. Two events with nothing running between them — no chain of cause in either direction — that nevertheless answer each other, because of what you happened to be carrying at the time. Jung\'s claim was that <b>meaning</b> can do the connecting where cause does not.' },
+    { img: 'sy-04-v2', bg: '#fdf9f3', kicker: 'The scarab', h: 'The beetle at the window', body: 'His famous case: a patient so armoured in rationalism that the work had stalled for months. She was describing a dream of being handed a golden scarab when Jung heard tapping at the glass — a <b>rose-chafer</b>, the nearest thing Switzerland has to a scarab, trying to get in. He caught it and passed it to her: <i>“Here is your scarab.”</i> Years of argument had not shifted her. The beetle did.' },
+    { img: 'sy-05', bg: '#fdfaf4', kicker: 'The physicist', h: 'Pauli’s half', body: '<b>Wolfgang Pauli</b> — Nobel laureate, one of the architects of quantum mechanics — spent years writing to Jung about all this, and in 1952 the two published <i>Naturerklärung und Psyche</i> together: Jung\'s essay on synchronicity bound with Pauli\'s on Kepler. Pauli\'s contribution came from physics. A radioactive atom decays at no particular moment, for no prior reason; events without causes were already on the books.' },
+    { img: 'sy-06', bg: '#fef6eb', kicker: 'Vienna, 1919', h: 'The law of series', body: 'Eleven years earlier the biologist <b>Paul Kammerer</b> had published <i>Das Gesetz der Serie</i> — the law of seriality. His method was to sit in Viennese parks for hours tallying passers-by: how many wore spectacles, how many carried umbrellas, the exact minute each arrived. They came in clumps. Jung read him.' },
+    { img: 'sy-07', bg: '#fdfaf4', kicker: 'Kammerer’s shapes', h: 'Series come in kinds', body: 'He did not only collect them, he <b>sorted</b> them — homologous and analogous series, pure and hybrid, inverted, alternating, cyclic — ranked by how many attributes the events shared. Statisticians since have argued he was watching ordinary random clustering. The habit is still worth stealing: a coincidence you have classified is one you can compare against the next.' },
+    { img: 'sy-08', bg: '#fdf8f1', kicker: 'The library angel', h: 'The book that finds you', body: 'By the early 1970s <b>Arthur Koestler</b> had gathered so many accounts of the right information arriving by accident rather than by catalogue that he named the culprit: the <b>library angel</b>. Rebecca West wrote to him about hunting a passage through the unindexed Nuremberg trial records at the Royal Institute of International Affairs, where what she needed reached her by no method at all. It favours second-hand shelves and the wrong search result.' },
+    { img: 'sy-09', bg: '#fdfcf8', kicker: 'The honest part', h: 'Why it is suddenly everywhere', body: 'Learn a word and it turns up four times that week. That is the <b>frequency illusion</b> — christened the Baader-Meinhof phenomenon in a 1994 letter to the <i>St. Paul Pioneer Press</i>, and given its proper name by the Stanford linguist Arnold Zwicky in 2005. Your attention changed; the world\'s supply of the thing did not. Jung took the objection seriously enough to run statistics on it himself.' },
+    { img: 'sy-10', bg: '#fcf9f4', kicker: 'The arithmetic', h: 'A miracle a month', body: 'The Cambridge mathematician <b>J. E. Littlewood</b> did the sum. Call a miracle a one-in-a-million event. You are awake some eight hours a day and things happen to you at roughly one a second — so a million events take about a month. Expect a miracle monthly. Read that as your <b>background rate</b>: the number a genuine sign has to beat.' },
+    { bg: '#fdfaf5', kicker: 'Try it', h: 'Check your knowing', know: { qs: [
+      { q: 'Jung used the word in public for the first time in 1930. Where?', a: ['In a lecture on dreams', 'At a memorial service', 'In a letter to Freud'], ok: 1, tell: 'At Richard Wilhelm\'s memorial in Munich — trying to explain how the I Ching could possibly work.' },
+      { q: 'Kammerer spent his hours in Viennese parks doing what?', a: ['Sketching the passers-by', 'Counting umbrellas and spectacles', 'Waiting for one particular woman'], ok: 1, tell: 'Tallying attributes and arrival times, watching for clumps — coincidence studied with a notebook and a clock.' },
+      { q: 'By Littlewood\'s arithmetic, a one-in-a-million event should reach you about…', a: ['Once in a lifetime', 'Once a month', 'Once a decade'], ok: 1, tell: 'About once a month. That is the baseline — the ones worth keeping are the ones that also arrive on topic.' },
+    ] } },
+    { img: 'sy-11', bg: '#fefcf7', kicker: 'The test', h: 'Three questions', body: 'The working discernment, once the arithmetic has been respected. <b>Does it repeat?</b> Kammerer would not have logged a single instance at all. <b>Does it land in the body</b> — the drop in the chest — rather than in your cleverness? <b>Does it point at a live decision</b>, something you are actually facing this week? The strong ones survive all three.' },
+    { img: 'sy-12', bg: '#fefbf6', kicker: 'The record', h: 'Why you write it down', body: 'Kammerer\'s entire science was a notebook — years of dated entries and nothing else. An unrecorded coincidence stays a good evening; a recorded one becomes evidence you can read backwards in six months. Date it, then write <b>both halves</b>: what happened outside, and what you had been turning over inside when it did. The inside half is the one everybody skips, and the only one that makes the entry legible later.' },
+    { img: 'sy-13', bg: '#fdfbf8', kicker: 'After', h: 'Tonight', body: 'Write down one from today. There is usually one, and you usually know which. Put the outside half and the inside half in the same entry — then draw it, because a picture is what you will still recognise a year from now.<br><br><b>Tonight:</b> one entry, both halves. ✦', cta: { label: 'Write today’s coincidence', go: 'home', el: 'coincidence-card' } },
+  ];
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'Attention, intention, and your two hands weigh nothing and pass every security check. This lesson covers witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
     { img: 'tw-02', bg: '#fcf6ef', kicker: 'The anchor', h: 'The moon comes with you', body: 'Wherever you land, the moon that rises is <b>your</b> moon — same phase, same face, as the one over your house. One glance up (or at this app\'s moon page) and you\'re oriented: the sky is a home that travels.' },
@@ -6137,7 +6210,7 @@
     ], done: 'The cauldron glows — mugwort for the dreams, lavender for the way in, chamomile for the calm. Warm cup, dark room. ✦' } },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, sync: SYNC_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -6149,7 +6222,7 @@
   // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
-    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'dream'] },
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'sync', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
@@ -6493,7 +6566,7 @@
   }
   function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
   // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
-  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', sync: 'Synchronicity', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
   function renderDeckNote() {
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
@@ -6614,6 +6687,7 @@
   { const pc = $('open-protect'); if (pc) pc.addEventListener('click', () => openLesson('protect')); }
   { const tr = $('open-tarot'); if (tr) tr.addEventListener('click', () => openLesson('tarot')); }
   { const rs = $('open-signs'); if (rs) rs.addEventListener('click', () => openLesson('signs')); }
+  { const sy = $('open-sync'); if (sy) sy.addEventListener('click', () => openLesson('sync')); }
   { const dv = $('open-divin'); if (dv) dv.addEventListener('click', () => openLesson('divin')); }
   { const cr = $('open-crystal'); if (cr) cr.addEventListener('click', () => openLesson('crystal')); }
   { const c2 = $('open-crystal2'); if (c2) c2.addEventListener('click', () => openLesson('crystal2')); }
