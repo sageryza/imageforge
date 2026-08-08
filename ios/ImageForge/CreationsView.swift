@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
 import Photos
+import ImageIO             // CGImageSource — downsampling tiles as they decode
+import FirebaseFirestore   // DocumentSnapshot — the paging cursor
 
 /// What a save attempt actually did. `failed` carries Photos' own words — a
 /// silent "Couldn't save" is undiagnosable, so the real message is surfaced.
@@ -79,6 +81,12 @@ final class PhotoSaver {
 struct CreationsView: View {
     @State private var creations: [Creation] = []
     @State private var loading = true
+    /// Where the next page starts, and whether there is one. The grid used to
+    /// be a single 60-item query with no way to ask for more, so everything
+    /// older than the newest 60 was unreachable.
+    @State private var cursor: DocumentSnapshot?
+    @State private var hasMore = false
+    @State private var loadingMore = false
     @State private var errorText: String?
     @State private var preview: Creation?
     @State private var filter: String? = nil   // nil = show everything
@@ -125,16 +133,21 @@ struct CreationsView: View {
                     emptyState(title: "None of those yet",
                                subtitle: "Nothing in this category — try another filter.")
                 } else {
-                    LazyVGrid(columns: grid, spacing: 10) {
-                        ForEach(filtered) { c in
-                            Button {
-                                AutoScrollDriver.shared.stop()   // stop autoscroll on tap
-                                preview = c
-                            } label: { tile(c) }
-                                .buttonStyle(.plain)
+                    // Explicit VStack: the grid and the Older button below it are
+                    // two views, and the grid stays lazy inside it.
+                    VStack(spacing: 0) {
+                        LazyVGrid(columns: grid, spacing: 10) {
+                            ForEach(filtered) { c in
+                                Button {
+                                    AutoScrollDriver.shared.stop()   // stop autoscroll on tap
+                                    preview = c
+                                } label: { tile(c) }
+                                    .buttonStyle(.plain)
+                            }
                         }
+                        .padding()
+                        olderButton
                     }
-                    .padding()
                 }
             }
         }
@@ -239,13 +252,40 @@ struct CreationsView: View {
         }
     }
 
+    /// The way further back. Deliberately a TAP, not load-on-scroll: this
+    /// screen carries the autoscroll pill, which would run to the bottom by
+    /// itself and pull page after page of full-size pictures over her data
+    /// without her having asked for any of them.
+    @ViewBuilder private var olderButton: some View {
+        // Shown under a filter too: hiding it there would put older stickers
+        // (or dreams, or cards) permanently out of reach, which is the very
+        // thing this fixes. A page with none of the filtered type just leaves
+        // the button sitting there to tap again — never a dead end.
+        if hasMore {
+            Button { Task { await loadMore() } } label: {
+                Text(loadingMore ? "Loading…" : "Older")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textDim)
+                    .padding(.vertical, 9).padding(.horizontal, 18)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Theme.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
+            }
+            .disabled(loadingMore)
+            .padding(.bottom, 24)
+        }
+    }
+
     private func tile(_ c: Creation) -> some View {
         // Uniform square tile: the cell is a square sized to the grid column, and
         // the image fills it (center-cropped). Any aspect ratio — square, wide
         // banner, or tall — tiles cleanly instead of breaking the grid.
+        //
+        // `maxPixel` is what makes paging safe: a tile decoded at full size is a
+        // ~1024x1536 bitmap (~6MB in memory), so a few hundred of them is a
+        // gigabyte of decoded pictures. At tile size it is ~0.4MB.
         Color.white
             .aspectRatio(1, contentMode: .fit)
-            .overlay(CachedImageView(url: c.url, contentMode: .fill))
+            .overlay(CachedImageView(url: c.url, contentMode: .fill, maxPixel: 400))
             .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
             .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
@@ -433,14 +473,36 @@ struct CreationsView: View {
         }
     }
 
+    /// Refresh from the top. Resets paging — pull-to-refresh means "start
+    /// again", and keeping a stale cursor would page from the wrong place.
     private func load() async {
         loading = true
         do {
-            creations = try await ForgeService.shared.fetchCreations()
+            let page = try await ForgeService.shared.fetchCreationPage()
+            creations = page.items
+            cursor = page.cursor
+            hasMore = page.hasMore
             if let f = filter, !creations.contains(where: { $0.type == f }) { filter = nil }
         }
         catch { errorText = error.localizedDescription }
         loading = false
+    }
+
+    /// One more page, behind the oldest creation held.
+    private func loadMore() async {
+        guard !loadingMore, let after = cursor else { return }
+        loadingMore = true
+        do {
+            let page = try await ForgeService.shared.fetchCreationPage(after: after)
+            // Guard against a doc arriving twice — a creation written while she
+            // was reading shifts the window, and ForEach traps on duplicate ids.
+            let known = Set(creations.map(\.id))
+            creations += page.items.filter { !known.contains($0.id) }
+            cursor = page.cursor
+            hasMore = page.hasMore
+        }
+        catch { errorText = error.localizedDescription }
+        loadingMore = false
     }
 }
 
@@ -449,7 +511,23 @@ struct CreationsView: View {
 /// app being closed and reopened (the memory cache alone is wiped on every
 /// launch, which made every picture re-download each time the app opened).
 enum ImageCache {
-    static let shared = NSCache<NSURL, UIImage>()
+    static let shared: NSCache<NSURL, UIImage> = {
+        let c = NSCache<NSURL, UIImage>()
+        // BOUNDED, because the grid is paged now. Unbounded, a few hundred
+        // full-size decodes (~6MB each at 1024x1536 RGBA) is more memory than
+        // the app is allowed to have. Cost is the decoded byte count, set by
+        // `store`; NSCache evicts the least useful when the limit is passed.
+        c.totalCostLimit = 96 * 1024 * 1024
+        return c
+    }()
+
+    /// Downsampled copies for the grid, kept apart from the full-size ones so a
+    /// tile can never evict the picture the popup is showing (or vice versa).
+    static let thumbs: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.totalCostLimit = 48 * 1024 * 1024
+        return c
+    }()
 
     private static let dir: URL = {
         let d = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -465,6 +543,50 @@ enum ImageCache {
         var h: UInt64 = 1469598103934665603
         for b in url.absoluteString.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
         return dir.appendingPathComponent(String(h, radix: 16))
+    }
+
+    /// Roughly what holding this decoded image costs, for the cache's budget.
+    private static func cost(_ img: UIImage) -> Int {
+        guard let cg = img.cgImage else { return 1 }
+        return cg.bytesPerRow * cg.height
+    }
+
+    /// Decode `data` straight to `maxPixel` on its longest side.
+    /// `CGImageSourceCreateThumbnailAtIndex` never materialises the full-size
+    /// bitmap on the way — decoding first and resizing after would spend exactly
+    /// the memory this exists to avoid.
+    ///
+    /// Falls back to a plain full-size decode if ImageIO won't thumbnail this
+    /// data. These urls are a mix of png, webp and jpeg, and a picture that
+    /// costs extra memory is still far better than a broken tile.
+    static func downsample(_ data: Data, maxPixel: Int) -> UIImage? {
+        guard let src = CGImageSourceCreateWithData(data as CFData,
+                                                    [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return UIImage(data: data) }
+        let opts: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary)
+        else { return UIImage(data: data) }
+        return UIImage(cgImage: cg)
+    }
+
+    /// A tile-sized copy: memory, then the original bytes on disk, then nil
+    /// (the caller downloads). Keyed by url AND size, so two sizes can coexist.
+    static func thumb(for url: URL, maxPixel: Int) -> UIImage? {
+        let key = "\(maxPixel)|\(url.absoluteString)" as NSString
+        if let m = thumbs.object(forKey: key) { return m }
+        guard let data = try? Data(contentsOf: fileURL(for: url)),
+              let img = downsample(data, maxPixel: maxPixel) else { return nil }
+        thumbs.setObject(img, forKey: key, cost: cost(img))
+        return img
+    }
+
+    static func storeThumb(_ img: UIImage, for url: URL, maxPixel: Int) {
+        thumbs.setObject(img, forKey: "\(maxPixel)|\(url.absoluteString)" as NSString, cost: cost(img))
     }
 
     /// The bytes exactly as they were downloaded, if this URL is on disk. Saving
@@ -485,16 +607,28 @@ enum ImageCache {
 
     /// Store an image in both layers (raw bytes to disk so decoding is lossless).
     static func store(_ data: Data, _ img: UIImage, for url: URL) {
-        shared.setObject(img, forKey: url as NSURL)
+        shared.setObject(img, forKey: url as NSURL, cost: cost(img))
+        try? data.write(to: fileURL(for: url), options: .atomic)
+    }
+
+    /// Keep the downloaded bytes without holding the full-size decode — what a
+    /// tile wants: the popup and Save-to-Photos still find the original later.
+    static func storeData(_ data: Data, for url: URL) {
         try? data.write(to: fileURL(for: url), options: .atomic)
     }
 }
 
 /// Loads a remote image once, caches the decoded `UIImage`, and reuses it on
 /// every later request for the same URL.
+///
+/// Pass `maxPixel` where the image is shown small (a grid tile): it decodes to
+/// that size instead of full resolution, which is roughly 15x less memory per
+/// picture and is what lets the grid page back through hundreds of them. Leave
+/// it nil for anything shown large — the popup, a dream page.
 struct CachedImageView: View {
     let url: URL
     var contentMode: ContentMode = .fill
+    var maxPixel: Int? = nil
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -512,6 +646,19 @@ struct CachedImageView: View {
     }
 
     private func load() async {
+        if let maxPixel {
+            if let t = ImageCache.thumb(for: url, maxPixel: maxPixel) { image = t; return }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                // Bytes to disk, but only the SMALL decode is kept in memory —
+                // the whole point of the tile path.
+                ImageCache.storeData(data, for: url)
+                guard let img = ImageCache.downsample(data, maxPixel: maxPixel) else { failed = true; return }
+                ImageCache.storeThumb(img, for: url, maxPixel: maxPixel)
+                image = img
+            } catch { failed = true }
+            return
+        }
         if let cached = ImageCache.image(for: url) {
             image = cached; return
         }
