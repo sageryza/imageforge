@@ -1824,6 +1824,11 @@
             <div><div class="lt">Synchronicity</div><div class="ld">Meaningful coincidence, and how to keep a record</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
+          <div class="lesson-card" id="open-blood">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></span>
+            <div><div class="lt">Blood, Spit and Hair</div><div class="ld">Sympathetic magic, witch bottles & consent</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
           <div class="lesson-card" id="open-divin">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg></span>
             <div><div class="lt">Divination 101</div><div class="ld">Scrying, pendulums, tea leaves & more</div></div>
@@ -6106,6 +6111,31 @@
     { img: 'sy-12', bg: '#fefbf6', kicker: 'The record', h: 'Why you write it down', body: 'Kammerer\'s entire science was a notebook — years of dated entries and nothing else. An unrecorded coincidence stays a good evening; a recorded one becomes evidence you can read backwards in six months. Date it, then write <b>both halves</b>: what happened outside, and what you had been turning over inside when it did. The inside half is the one everybody skips, and the only one that makes the entry legible later.' },
     { img: 'sy-13', bg: '#fdfbf8', kicker: 'After', h: 'Tonight', body: 'Write down one from today. There is usually one, and you usually know which. Put the outside half and the inside half in the same entry — then draw it, because a picture is what you will still recognise a year from now.<br><br><b>Tonight:</b> one entry, both halves. ✦', cta: { label: 'Write today’s coincidence', go: 'home', el: 'coincidence-card' } },
   ];
+  /* Blood, Spit and Hair — the first lesson of The Living World (Sophie asked
+     for a biology course, Aug 2026). Sympathetic magic's second law, the
+     archaeology that proves people really did this, and the modern honesty:
+     the material is real, the causal thread is not. Carries BOTH a consent
+     card and a blood-safety card — the topic doesn't ship without them. */
+  const BLOOD_CARDS = [
+    { img: 'bh-01', bg: '#fef6ec', kicker: 'Blood, Spit and Hair', h: 'The parts that leave you', body: 'You shed yourself constantly — hair on the pillow, skin on the sheets, spit on the rim of a glass. Nearly every tradition that works magic on a person works on those leavings. This lesson is what the old craft did with them, why English gardens keep turning up bottles of them, and where the practice stands now that a laboratory can read a single hair. One idea at a time.' },
+    { img: 'bh-02', bg: '#fefbf7', kicker: 'The two laws', h: 'Like, and contact', body: 'Cataloguing magic across the world in the 1890s, the anthropologist <b>James Frazer</b> kept finding the same two rules. <b>Similarity</b> — like produces like, so an image of a thing acts on the thing. <b>Contagion</b> — objects that have once touched go on acting on each other after they are parted. Hair, nails, blood and spit are the second law\'s favourite material: they were you, so by that logic they still are.' },
+    { img: 'bh-03', bg: '#fcfbf6', kicker: 'The other laboratory', h: 'Every contact leaves a trace', body: 'Thirty years on, <b>Edmond Locard</b> was running the first forensic laboratory in Lyon on a principle that reads like Frazer\'s second law with the magic taken out: when two things touch, each leaves something on the other. One correction for honesty\'s sake — Locard never wrote the famous sentence. “Every contact leaves a trace” was tidied out of his work by other people afterwards.' },
+    { img: 'bh-04', bg: '#fdf9f5', kicker: 'The honest part', h: 'What you actually shed', body: 'Frazer\'s law is wrong about cause and right about material. You do leave yourself on everything: skin cells by the thousand every minute, spit on every rim, and hair — with a root it carries your full <b>DNA</b>, without one it carries only your mother\'s line. So a working with your hair in it really does hold something of you. What it does not hold is a thread back to your body that anything can travel along.' },
+    { img: 'bh-05', bg: '#fefbf6', kicker: 'Greenwich, 2004', h: 'The bottle that was still corked', body: 'Builders turned up a stoneware <b>bellarmine</b> jar — the bearded face moulded on its shoulder — with the cork still in. Roughly two hundred had been found in England before it and every one had already been opened. Alan Massey\'s team catalogued the inside: urine, twelve bent iron nails, eight pins, hair, navel fluff, a leather heart pierced through with a nail, and traces of brimstone. The nail clippings were neatly manicured, so whoever made it was not poor.' },
+    { img: 'bh-06', bg: '#fefbf6', kicker: 'Suffolk, 1681', h: 'The recipe', body: 'These were <b>counter-magic</b>, not curses. Joseph Glanvill\'s <i>Saducismus Triumphatus</i> tells of a Suffolk man whose wife was ill and haunted by something in the shape of a bird, and of the travelling old man who gave him the method: <i>“Take your wife\'s urine… and cork it in a bottle with nails, pins and needles, and bury it in the earth; and that will do the feat.”</i> The harm is sent back up the same thread it arrived on.' },
+    { img: 'bh-07', bg: '#fdfaf3', kicker: 'Spit', h: 'The sealing agent', body: 'Spit binds a thing. On the palm before the handshake that seals a bargain, on the hands before heavy work, three times over the shoulder against the evil eye — a gesture still alive in Greek and Yiddish households. Of the three materials it is the most freely given and the least ceremonious, which is why it turns up in the ordinary contracts of daily life rather than in ritual.' },
+    { img: 'bh-08', bg: '#fdf9f3', kicker: 'Hair', h: 'The keepsake', body: 'Hair is the one people keep openly. The Victorians built an industry on it — <b>hairwork</b>: mourning brooches, rings and bracelets woven from the hair of the dead and sold by catalogue. A lock in a locket is the same instinct without the workshop. Hair holds its colour, lasts indefinitely, and is the only part of a body most people will willingly carry.' },
+    { bg: '#fdfaf5', kicker: 'Try it', h: 'Check your knowing', know: { qs: [
+      { q: 'Frazer\'s law of contagion says two things that have once touched…', a: ['Cancel each other out', 'Go on acting on each other', 'Must never touch again'], ok: 1, tell: 'They go on acting on each other at a distance, long after they are parted — which is why hair and nails are its favourite material.' },
+      { q: 'The Greenwich witch bottle mattered because…', a: ['It was made of gold', 'Its cork was still in', 'It was found under a church'], ok: 1, tell: 'Some two hundred had been found before it and every one was already open. This one still held its urine, bent nails, hair and a pierced leather heart.' },
+      { q: 'A witch bottle was buried in order to…', a: ['Curse a neighbour', 'Turn a harm back on whoever sent it', 'Bless a new house'], ok: 1, tell: 'Counter-magic. Glanvill\'s Suffolk recipe sends the sickness back the way it came.' },
+    ] } },
+    { img: 'bh-09', bg: '#fdf9f3', kicker: 'The asking', h: 'Whose hair is it', body: 'The rule the old books never bothered with: a person\'s leavings are theirs. Ask for them. A strand <b>given</b> is a person joining in, which is most of what makes the working worth doing — and a strand <b>taken</b> puts you in the role those bottles were buried against. This is the one place where the craft and the law of the land happen to agree with each other.' },
+    { img: 'bh-10', bg: '#fdf5eb', kicker: 'Safety', h: 'Blood, and how little', body: 'Blood is the one with real rules. Use only your <b>own</b> — never another person\'s, and never anyone\'s who cannot consent. Bloodborne infection is not folklore. A sterile single-use lancet, the side of a fingertip, <b>one drop</b>. Anything calling for more than a drop is not asking for blood, it is asking for a wound. On a blood thinner, or with a clotting condition: use spit, which the old craft treats as the same currency.' },
+    { img: 'bh-11', bg: '#fef9f4', kicker: 'Now', h: 'The spit in the post', body: 'The modern way to hand over a personal concern is a plastic tube of saliva mailed to a company. Same material, same logic — that a piece of you can be read at a distance — except this version works, and what acts on you afterwards is a database that can be sold, subpoenaed, or passed on in a bankruptcy. Read those terms as carefully as you would want a stranger to read yours before you posted them your hair.' },
+    { img: 'bh-12', bg: '#fdfaf5', kicker: 'The keeping', h: 'How to hold a concern', body: 'Two rules of housekeeping. <b>Label it</b> — whose, what, when, and what it was given for; an unlabelled envelope of hair is a thing your family finds one day and cannot read. <b>End it</b> — a concern belongs to a working, so when the working is over the material is burned, buried or given back. A drawer full of other people is not a practice.' },
+    { img: 'bh-13', bg: '#fcf9f4', kicker: 'After', h: 'Tonight', body: 'Start with your own, so nothing turns on anyone else\'s permission. One hair, wound around something that stays close to you — a key, a ring, a folded note saying what it is for. Write the working down while you still remember its exact terms, and come back and write down how it turned out.<br><br><b>Tonight:</b> one hair, one working, one page. ✦', cta: { label: 'Open my Spells pages', go: 'book', book: 'spell' } },
+  ];
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'Attention, intention, and your two hands weigh nothing and pass every security check. This lesson covers witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
     { img: 'tw-02', bg: '#fcf6ef', kicker: 'The anchor', h: 'The moon comes with you', body: 'Wherever you land, the moon that rises is <b>your</b> moon — same phase, same face, as the one over your house. One glance up (or at this app\'s moon page) and you\'re oriented: the sky is a home that travels.' },
@@ -6210,7 +6240,7 @@
     ], done: 'The cauldron glows — mugwort for the dreams, lavender for the way in, chamomile for the calm. Warm cup, dark room. ✦' } },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, sync: SYNC_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, sync: SYNC_CARDS, blood: BLOOD_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -6226,6 +6256,7 @@
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
+    { id: 'living', title: 'The Living World', sub: 'The body, and what the old craft did with it', cover: 'bh-05', lessons: ['blood'] },
   ];
   let schoolCourse = null; // null = catalog; a course id = that course's path
   function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
@@ -6566,7 +6597,7 @@
   }
   function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
   // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
-  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', sync: 'Synchronicity', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', sync: 'Synchronicity', blood: 'Blood, Spit and Hair', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
   function renderDeckNote() {
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
@@ -6688,6 +6719,7 @@
   { const tr = $('open-tarot'); if (tr) tr.addEventListener('click', () => openLesson('tarot')); }
   { const rs = $('open-signs'); if (rs) rs.addEventListener('click', () => openLesson('signs')); }
   { const sy = $('open-sync'); if (sy) sy.addEventListener('click', () => openLesson('sync')); }
+  { const bh = $('open-blood'); if (bh) bh.addEventListener('click', () => openLesson('blood')); }
   { const dv = $('open-divin'); if (dv) dv.addEventListener('click', () => openLesson('divin')); }
   { const cr = $('open-crystal'); if (cr) cr.addEventListener('click', () => openLesson('crystal')); }
   { const c2 = $('open-crystal2'); if (c2) c2.addEventListener('click', () => openLesson('crystal2')); }

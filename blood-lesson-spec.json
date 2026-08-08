@@ -1,0 +1,19 @@
+{
+  "refs": ["storage:witch-school/refs/sophie-snake.png",
+           "storage:witch-school/refs/sophie-animals.png"],
+  "cards": [
+    { "id": "bh-01", "char": true, "prompt": "A woman seen from the side holding up a single long strand of hair between her finger and thumb and looking at it, one small four-point star beside her hand. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-02", "prompt": "Two identical small simple hearts side by side with a wide gap between them, joined by one long thin curving thread that loops between them, one small four-point star above the thread. Both hearts exactly the same size. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-03", "prompt": "A single fingerprint drawn as a neat oval of concentric looping lines, with one small four-point star at its centre. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-04", "char": true, "prompt": "A woman seen from the side from the shoulders up, with a scatter of tiny identical dots drifting away from her outline into the empty space beside her, and one small four-point star among the drifting dots. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-05", "prompt": "A single round-bellied stoneware bottle with a narrow neck and a cork stopper standing upright, a small bearded face moulded on its shoulder, with three bent iron nails and two straight pins floating in the air beside it and one small four-point star above. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-06", "prompt": "A simple cross-section: a flat horizontal band of earth across the middle, and below it a single corked bottle buried upside down, with one small four-point star in the empty space above the ground line. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-07", "prompt": "Two hands clasped together in a handshake, seen from the side, one small four-point star above them. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-08", "prompt": "A single oval locket hanging open on a fine chain, with a small neat coil of braided hair resting inside the open half, one small four-point star beside it. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-09", "prompt": "One open hand held out flat and level, palm up, offering a small single lock of hair resting on the palm, with one small four-point star above it. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-10", "prompt": "A single small glass vial with a stopper standing upright, nearly empty, with one round drop resting in the bottom of it, and one small four-point star beside it. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-11", "prompt": "A single small test tube with a screw cap standing upright inside a plain open cardboard box, one small four-point star above it. No writing anywhere. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-12", "prompt": "A single small sealed paper envelope lying flat, seen from directly above, with one plain blank rectangular label on its front and one small four-point star in the upper corner. No writing on the label. One clear subject, generous cream space, flat and simple." },
+    { "id": "bh-13", "char": true, "prompt": "A woman sitting at a small plain table seen from the side, sealing a small paper envelope with both hands, one small four-point star in the air above her. One clear subject, generous cream space, flat and simple." }
+  ]
+}

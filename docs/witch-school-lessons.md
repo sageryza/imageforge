@@ -223,5 +223,24 @@ Witch's Apothecary (ap), Crystal Energy (ce), Synchronicity (sy).
   (pull the live list from the Shop tab / secretlyawitch.com Shopify), not
   just kitchen basics; link Dream Work to the **Mugwort Dream Tea** product
   once it exists.
-- Deferred lesson ideas: Moon Magic, Candle Magic, Sigil Craft, Familiars,
+- **The deferred list is a NO list, not a queue (Sophie, 2026-08-08: "all the
+  ones in the deferred list are ones I probably don't wanna do — that's why
+  they're in that list").** Do not pitch one of these as ready to build, and do
+  not treat "it's already on the roadmap" as a point in its favour; it is the
+  opposite. Deferred: Moon Magic, Candle Magic, Sigil Craft, ~~Familiars~~
+  (crossed out by Sophie 2026-08-08 when it was proposed for The Living World),
   Bath & Water Magic, Money Magic, Ancestor Work.
+- **Proposed course — The Living World** (Sophie asked for the shape of a
+  biology course, 2026-08-08). Shipped: **Blood, Spit and Hair** (`bh-`). The
+  rest of the proposed path, in level order, none of them started and none of
+  them approved: The Body as Instrument (goosebumps, the vagus nerve,
+  interoception — pays off the Synchronicity "does it land in your chest" rule);
+  The Moon and the Body (tides, the menstruation claim, the 2021 lunar
+  sleep-synchrony work — an honesty lesson); Beasts of the Craft (toads, hares,
+  cats, corvids — Betty the crow bending wire at Oxford in 2002); Rot and
+  Ferment (decay as transformation, Leeuwenhoek's animalcules); Mycelium (fairy
+  rings, plus an honest card on how oversold the "wood wide web" is — the 2023
+  *Nature Ecology & Evolution* critique); Bones (Shang oracle bones,
+  scapulimancy, and what is legal to keep). **Herbs stay in Plant Magic** — a
+  biology course must not re-teach them, and Poison & Dose belongs there too,
+  where the poison-path safety rule already lives.
