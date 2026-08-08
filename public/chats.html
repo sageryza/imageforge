@@ -1654,6 +1654,12 @@ function openPage(p){
       if(doc) doc.addEventListener('click', function(e){
         var t=e.target;
         if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
+        // `[data-nostop]` is compare.js's documented opt-out, and the EMBEDDED
+        // path used to ignore it — so on a page whose content is itself
+        // tappable (a word picker), every tap toggled the scroll on. A marked
+        // region's taps are the page's own: never START from one, but still
+        // PAUSE a running scroll, which is the house rule for any tap.
+        if(t && t.closest && t.closest('[data-nostop]')){ if(pill._stop) pill._stop(); return; }
         pill._tap();
       });
     }catch(_){}
