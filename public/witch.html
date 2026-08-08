@@ -5614,8 +5614,12 @@
     if (item) showDreamDetail(+item.dataset.past);
   });
   $('dream-past').addEventListener('click', openDreamPast);
-  // Dream "Unlock the symbolism" — dual-LLM reading as a background job, so it
-  // survives leaving the app (pending id saved + resumed on return).
+  // Dream "Unlock the symbolism" — the WRITTEN reading (one Claude call), run
+  // as a background job so it survives leaving the app (pending id saved +
+  // resumed on return). This button does NOT draw anything: "Illustrate" is a
+  // separate button, a separate endpoint (/api/witch/dream-illustrate) and a
+  // separate job. An earlier version of this comment called it a "dual-LLM
+  // reading", which was never true and read as though one button did both.
   const DREAMREAD_PEND = 'witch_dreamread_job'; // {id, dream}
   const DREAMREAD_BTN = 'Unlock the symbolism';
   function dreamReadSpinner() {
