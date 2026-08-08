@@ -6,16 +6,24 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 
 ## What a lesson is
 
-- **10 tap-through cards** in the Secretly a Witch web app
+- **Tap-through cards** in the Secretly a Witch web app
   (https://imageforge-q125.onrender.com/witch → School), Imprint-style:
   full-screen takeover, gold progress dashes, tap right to advance / left edge
   to go back.
 - Each card = one illustration + a kicker + a heading + a short body.
-- **Arc:** card 1 welcomes ("we'll go one small idea at a time"), cards 2–9
-  teach one idea each, card 10 is always kicker **"After"** — a tiny concrete
-  action for tonight/this week, ending with **✦**. If the app can DO the thing
-  (dream reader, birth chart, tarot draw, Book of Shadows), the last card gets
-  a CTA button (see Wiring).
+- **10 is the house size, not a limit (Sophie, Aug 2026: "you don't have to
+  stick to exactly 10 — you'd probably do more rather than less").** Let the
+  material decide, and err long. Synchronicity ships at 14. The progress dashes
+  and the path's percentage both read `LESSONS[key].length`, so nothing needs
+  changing for a longer deck.
+- **Arc:** card 1 welcomes ("we'll go one small idea at a time"), the middle
+  cards teach one idea each, the LAST card is always kicker **"After"** — a
+  tiny concrete action for tonight/this week, ending with **✦**. If the app can
+  DO the thing (dream reader, birth chart, tarot draw, Book of Shadows), the
+  last card gets a CTA button (see Wiring).
+- **A quiz card is optional and costs no art**: `{ bg, kicker, h, know: { qs:
+  [{ q, a:[…], ok, tell }] } }` (see `SYNC_CARDS` / `PLANT2_CARDS`). Place it
+  AFTER the cards whose facts it tests.
 
 ## Voice rules (this is what makes them feel the same)
 
@@ -79,7 +87,7 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
 
 1. **Write a spec JSON** (see any `*-spec.json` from past runs; shape below).
    Card ids use a 2-letter lesson prefix: `sw- pm- pa- as- dw- pc- tr- rs- dv-
-   cr- tw- al- sh- wy- ap- ce-` are taken.
+   cr- tw- al- sh- wy- ap- ce- sy-` are taken.
 
 ```json
 {
@@ -165,9 +173,30 @@ All in one place — search for `SPELL_CARDS` and copy the pattern:
 5. **CTA (optional, last card)**: `cta: { label, go: '<tab>', el: '<element
    id>', fallback: '<visible anchor id>' }` — or `{ go: 'book', book:
    '<sign|spell|dream|…>' }` to open the Book of Shadows to a section.
-6. **If shipping before the art is done**: hide the tile
+6. **Course path**: add the key to the right course's `lessons` array in
+   `SCHOOL_COURSES` — its position IS its level on that course's road. Add the
+   title to `LESSON_TITLES` too, or the end-of-lesson note screen sends the raw
+   key to the AI.
+7. **If shipping before the art is done**: hide the tile
    (`$('open-xx').style.display='none'` in a temporary list) and un-hide when
    the batch lands — the live app must never show broken images.
+8. **Convert the art to webp before deploying** — `node scripts/webp-assets.js`
+   then `node scripts/webp-assets-verify.js`. The page serves
+   `witch-school/webp/`, there is deliberately no PNG fallback, and a card with
+   no webp copy is a visibly broken picture in a live lesson. The verifier is
+   the gate; it sweeps every `img:`/`cover:` id out of the page.
+
+### Double-link it (Aug 2026, Sophie)
+
+A lesson and the app feature it explains should reach each other **both ways**.
+The last card's `cta` is the lesson → feature half. For feature → lesson, put a
+small **ⓘ circle** (Lucide `info`, 16px, `--gold-dim`) next to that section's
+kicker, firing `go('school'); openLesson('<key>')`. `.coin-info` on the Home
+coincidence boxes → the Synchronicity lesson is the reference pair. Two rules
+learned there: keep the ⓘ in the header row (never on the content, which is
+often contenteditable), and give it `flex: none` so it can't squeeze the kicker
+into a line break. The backlog of lessons still needing their ⓘ is in
+`docs/secretly-a-witch-todo.md`.
 
 ## Test, then ship
 
@@ -184,7 +213,7 @@ Spell Work (sw), The Magic of Plants (pm), Plant Magic II (pa), Astrology
 Basics (as), Dream Work (dw), Protection & Cleansing (pc), Tarot 101 (tr),
 Reading Signs (rs), Divination (dv), Crystals (cr), The Traveling Witch (tw),
 Building an Altar (al), Shadow Work (sh), The Wheel of the Year (wy), The
-Witch's Apothecary (ap), Crystal Energy (ce).
+Witch's Apothecary (ap), Crystal Energy (ce), Synchronicity (sy).
 
 ## Roadmap notes (Sophie's asks)
 

@@ -5,6 +5,39 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Double-link EVERY lesson to the place in the app that uses it (TODO)
+Sophie (2026-08-08), when the Synchronicity lesson landed: *"I want to link the
+other lessons and other places too — the dreams one should be linked in the
+dream area, for example."* A lesson and the feature it explains should reach
+each other **both ways**, so someone standing in front of a feature can ask
+what it is, and someone finishing a lesson can go and use it.
+
+The Synchronicity lesson is the worked example, and the pattern is two small
+pieces:
+- **Feature → lesson:** a `.coin-info` circle (the ⓘ, Lucide `info`, 16px,
+  `--gold-dim`) sits beside the section's kicker and does
+  `go('school'); openLesson('<key>')`. Put it in the header row, never on the
+  content itself, and give it `flex: none` so it can't squeeze the kicker into
+  a line break.
+- **Lesson → feature:** the last card's existing `cta` — `{ label, go, el }`
+  to scroll to a section, `{ go: 'book', book: '<sect>' }` for a Book of
+  Shadows section, `{ sky: true }` / `{ chart: true }` for the chart.
+
+Most lessons already have the CTA half; almost none have the ⓘ half. Still to
+place (feature → lesson):
+- **Dream Work** (`dream`) → the dream reader card on Home (`dream-card`).
+  Sophie named this one specifically.
+- **Tarot 101** (`tarot`) → the Tarot tab's draw controls. (Note `daily-learn`
+  on the daily reading already goes the other way to `tarot` — that's the CTA
+  half, not the ⓘ.)
+- **Astrology Basics** (`astro`) / **Your Sky, Read** (`mysky`) → the daily
+  reading + birth-chart cards.
+- **Reading Signs** (`signs`) → the Book of Shadows **Signs** section header.
+- **Spell Work** (`spell`) → Conjure's spell maker; **Crystals** (`crystal`) →
+  wherever crystals surface; **Shadow Work** (`shadow`) → its Book section.
+Do them in a batch once Sophie has seen the ⓘ on the coincidence boxes and
+confirmed the size/placement reads right on her phone.
+
 ### Weave products into every Witch School lesson (proposed placements — Sophie to approve)
 Sophie (2026-07-25): at least one shop product per lesson, placed where it
 naturally belongs. The mechanism already exists — any lesson card can carry
