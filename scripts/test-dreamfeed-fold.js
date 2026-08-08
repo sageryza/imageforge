@@ -183,9 +183,22 @@ const check = (name, ok, detail) => {
   const dark = (c) => { const n = c.match(/\d+/g).map(Number); return n[0] + n[1] + n[2] < 160; };
   check('the page is cream', !dark(paper), paper);
   check('an entry is black', dark(card), card);
-  check('the entry sits inset, with cream down both sides', await page.evaluate(() => {
-    const b = document.querySelector('.post').getBoundingClientRect();
-    return b.left > 4 && window.innerWidth - b.right > 4;
+  check('the entry runs edge to edge, square-cornered', await page.evaluate(() => {
+    const el = document.querySelector('.post');
+    const b = el.getBoundingClientRect();
+    const r = getComputedStyle(el).borderTopLeftRadius;
+    return b.left <= 0.5 && b.right >= window.innerWidth - 0.5 && parseFloat(r) === 0;
+  }));
+  check('the line between entries runs edge to edge too', await page.evaluate(() => {
+    const posts = [...document.querySelectorAll('.post')];
+    const second = posts.find((p, i) => i && p.previousElementSibling === posts[i - 1]);
+    if (!second) return false;
+    const s = getComputedStyle(second, '::before');
+    return parseFloat(s.left) === 0 && parseFloat(s.right) === 0;
+  }));
+  check('no rule sits between a date and its dreams', await page.evaluate(() => {
+    const w = getComputedStyle(document.querySelector('.dayhead')).borderBottomWidth;
+    return parseFloat(w) === 0;
   }));
   // between two entries: cream, a black line, cream — and the line touches neither
   const gap = await page.evaluate(() => {
