@@ -1,0 +1,185 @@
+<link rel="stylesheet" href="/compare.css">
+<style>
+  #read{font-size:1.06rem;line-height:2.05;margin:0 0 1.2rem}
+  w{cursor:pointer;padding:1px 0;border-radius:3px}
+  w.v1{background:rgba(0,0,0,.055)}
+  w.pick{background:var(--rose);color:#fff}
+  w.a{border-top-left-radius:6px;border-bottom-left-radius:6px;padding-left:3px}
+  w.z{border-top-right-radius:6px;border-bottom-right-radius:6px;padding-right:3px}
+  w.pend{outline:2px solid var(--rose);outline-offset:1px}
+  .bar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);
+       padding:.55rem 0;margin-bottom:.9rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding-right:56px}
+  .bar button{border-radius:6px}
+  .k{font-size:.82rem;color:var(--ink2)}
+  .sh{margin:0}
+  .sh img{width:100%;border-radius:6px;display:block}
+  .sh figcaption{font-size:.84rem;line-height:1.45;margin-top:.35rem}
+  .cite{color:var(--ink2);font-size:.76rem}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+  .rec{border-left:3px solid var(--rose);padding-left:.7rem;margin:.6rem 0}
+  .rec p{margin:.2rem 0}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Cannon · language film</div>
+  <h1>The whole passage</h1>
+  <p class="sub">Custodians of the Universe 2, 5:23–5:30. Everything before, during and after
+  the symbol passage and the Christmas example. Shaded words are already in v1.
+  The rose ones are what I'd add.</p>
+
+  <div class="bar">
+    <button id="openlist">the list</button>
+    <button id="undo" disabled>undo</button>
+    <button id="clearpend" >cancel</button>
+    <span class="k" id="cnt">no picks yet</span>
+    <span class="k" id="saved"></span>
+  </div>
+  <p class="k" id="sub2">tap a first word to start</p>
+
+  <div id="read"><w>But</w> <w>in</w> <w>order</w> <w>for</w> <w>containment</w> <w>thereof</w> <w>to</w> <w>be</w> <w>fully</w> <w>realized,</w> <w>that</w> <w>must</w> <w>be</w> <w>done</w> <w>in</w> <w>her</w> <w>physicalness</w> <w>because</w> <w>she</w> <w>is</w> <w>to</w> <w>return</w> <w>and</w> <w>live</w> <w>in</w> <w>her</w> <w>physicalness.</w> <w>&gt;&gt;</w> <w>Yes,</w> <w>she</w> <w>has</w> <w>to</w> <w>be</w> <w>in</w> <w>a</w> <w>physical</w> <w>body</w> <w>on</w> <w>this</w> <w>earth</w> <w>at</w> <w>this</w> <w>time.</w> <w>&gt;&gt;</w> <w>That's</w> <w>right.</w> <w>But</w> <w>the</w> <w>energy</w> <w>within</w> <w>her</w> <w>is</w> <w>not</w> <w>of</w> <w>the</w> <w>physicalness</w> <w>of</w> <w>this</w> <w>world</w> <w>that</w> <w>you</w> <w>live</w> <w>in.</w> <w>&gt;&gt;</w> <w>Would</w> <w>that</w> <w>be</w> <w>because</w> <w>she</w> <w>is</w> <w>really</w> <w>one</w> <w>of</w> <w>you?</w> <w>&gt;&gt;</w> <w>She</w> <w>has</w> <w>been</w> <w>one</w> <w>of</w> <w>us.</w> <w>She</w> <w>has</w> <w>passed</w> <w>us.</w> <w>Then</w> <w>in</w> <w>past</w> <w>lives,</w> <w>as</w> <w>we</w> <w>consider</w> <w>linear</w> <w>past</w> <w>lives,</w> <w>that's</w> <w>the</w> <w>only</w> <w>way</w> <w>I</w> <w>can</w> <w>understand</w> <w>it.</w> <w>She</w> <w>was</w> <w>one</w> <w>of</w> <w>you</w> <w>at</w> <w>another</w> <w>time.</w> <w>&gt;&gt;</w> <w>She</w> <w>is</w> <w>still</w> <w>one</w> <w>of</w> <w>us,</w> <w>but</w> <w>she</w> <w>is</w> <w>more</w> <w>than</w> <w>that.</w> <w>She</w> <w>is</w> <w>past</w> <w>us.</w> <w>She</w> <w>condescends</w> <w>to</w> <w>work</w> <w>with</w> <w>us.</w> <w>We</w> <w>feel</w> <w>honored</w> <w>to</w> <w>have</w> <w>her</w> <w>in</w> <w>our</w> <w>presence.</w> <w>&gt;&gt;</w> <w>That's</w> <w>very</w> <w>good.</w> <w>When</w> <w>most</w> <w>people</w> <w>see</w> <w>you</w> <w>beings,</w> <w>are</w> <w>you</w> <w>manifesting</w> <w>whatever</w> <w>form</w> <w>you</w> <w>think</w> <w>they</w> <w>should</w> <w>see?</w> <w>&gt;&gt;</w> <w>I</w> <w>do</w> <w>not</w> <w>understand</w> <w>your</w> <w>question.</w> <w>&gt;&gt;</w> <w>Okay.</w> <w>When</w> <w>other</w> <w>people</w> <w>say</w> <w>they</w> <w>have</w> <w>seen</w> <w>aliens,</w> <w>as</w> <w>we</w> <w>call</w> <w>them,</w> <w>or</w> <w>beings</w> <w>from</w> <w>outer</w> <w>space,</w> <w>they</w> <w>see</w> <w>them</w> <w>in</w> <w>different</w> <w>forms</w> <w>&gt;&gt;</w> <w>because</w> <w>there</w> <w>are</w> <w>different</w> <w>aliens.</w> <w>&gt;&gt;</w> <w>I</w> <w>was</w> <w>wondering</w> <w>if</w> <w>all</w> <w>these</w> <w>forms</w> <w>were</w> <w>just</w> <w>being</w> <w>manifested.</w> <w>&gt;&gt;</w> <w>They</w> <w>exist.</w> <w>They're</w> <w>not</w> <w>being</w> <w>They</w> <w>exist.</w> <w>They</w> <w>exist</w> <w>just</w> <w>as</w> <w>you</w> <w>exist.</w> <w>The</w> <w>difference</w> <w>in</w> <w>them</w> <w>is</w> <w>the</w> <w>same</w> <w>as</w> <w>the</w> <w>difference</w> <w>between</w> <w>you</w> <w>and</w> <w>someone</w> <w>who</w> <w>is</w> <w>Chinese.</w> <w>&gt;&gt;</w> <w>That's</w> <w>what</w> <w>I</w> <w>believed.</w> <w>But</w> <w>your</w> <w>type</w> <w>is</w> <w>different.</w> <w>We</w> <w>are</w> <w>an</w> <w>integration.</w> <w>Because</w> <w>of</w> <w>our</w> <w>development,</w> <w>we</w> <w>are</w> <w>able</w> <w>to</w> <w>do</w> <w>the</w> <w>things</w> <w>that</w> <w>the</w> <w>others</w> <w>do.</w> <w>That</w> <w>is</w> <w>not</w> <w>our</w> <w>main</w> <w>purpose.</w> <w>The</w> <w>experiments</w> <w>are</w> <w>something</w> <w>they</w> <w>are</w> <w>highly</w> <w>involved</w> <w>in.</w> <w>&gt;&gt;</w> <w>And</w> <w>you're</w> <w>not</w> <w>involved</w> <w>in</w> <w>that?</w> <w>&gt;&gt;</w> <w>Not</w> <w>in</w> <w>the</w> <w>medical</w> <w>experiments.</w> <w>We</w> <w>are</w> <w>working</w> <w>at</w> <w>levels</w> <w>much</w> <w>past</w> <w>there.</w> <w>&gt;&gt;</w> <w>Janice</w> <w>was</w> <w>breathing</w> <w>heavier,</w> <w>experiencing</w> <w>heat.</w> <w>I</w> <w>gave</w> <w>suggestions</w> <w>that</w> <w>she</w> <w>would</w> <w>become</w> <w>cooler.</w> <w>The</w> <w>heat</w> <w>seemed</w> <w>to</w> <w>be</w> <w>an</w> <w>energy</w> <w>buildup</w> <w>that</w> <w>fluctuated.</w> <w>I</w> <w>know</w> <w>my</w> <w>questions</w> <w>must</w> <w>seem</w> <w>very</w> <w>simple,</w> <w>but</w> <w>that</w> <w>is</w> <w>the</w> <w>only</w> <w>way</w> <w>I</w> <w>can</w> <w>learn.</w> <w>So,</w> <w>I</w> <w>hope</w> <w>you</w> <w>will</w> <w>be</w> <w>patient</w> <w>with</w> <w>me.</w> <w>&gt;&gt;</w> <w class="v1">Words</w> <w class="v1">are</w> <w class="v1">getting</w> <w class="v1">in</w> <w class="v1">the</w> <w class="v1">way</w> <w class="v1">of</w> <w class="v1">our</w> <w class="v1">explanations</w> <w class="v1">to</w> <w class="v1">you.</w> <w>&gt;&gt;</w> <w>That's</w> <w>the</w> <w>only</w> <w>way</w> <w>I</w> <w>can</w> <w>understand.</w> <w>Though</w> <w>&gt;&gt;</w> <w>we</w> <w>understand,</w> <w>but</w> <w>to</w> <w>fully</w> <w>explain</w> <w>a</w> <w>process</w> <w>in</w> <w>words</w> <w>in</w> <w>your</w> <w>human</w> <w>terms</w> <w>is</w> <w>sometimes</w> <w>difficult</w> <w>and</w> <w>the</w> <w>miscommunication</w> <w>of</w> <w>the</w> <w>intent</w> <w>or</w> <w>meaning</w> <w>is</w> <w>not</w> <w>fully</w> <w>realized</w> <w class="v1">because</w> <w class="v1">of</w> <w class="v1">the</w> <w class="v1">limitations</w> <w class="v1">of</w> <w class="v1">your</w> <w class="v1">language.</w> <w>&gt;&gt;</w> <w>I've</w> <w>heard</w> <w>that</w> <w>many</w> <w>times</w> <w>from</w> <w>other</w> <w>people.</w> <w>&gt;&gt;</w> <w>We</w> <w>find</w> <w>it</w> <w>very</w> <w>interesting</w> <w>as</w> <w>to</w> <w>why</w> <w>you</w> <w>write</w> <w>your</w> <w>sentences</w> <w>out.</w> <w class="v1">I</w> <w class="v1">will</w> <w class="v1">use</w> <w class="v1">the</w> <w class="v1">word</w> <w class="v1">comical.</w> <w class="v1">It</w> <w class="v1">seems</w> <w class="v1">comical</w> <w class="v1">to</w> <w class="v1">us</w> <w class="v1">as</w> <w class="v1">to</w> <w class="v1">why</w> <w class="v1">you</w> <w class="v1">have</w> <w class="v1">to</w> <w class="v1">write</w> <w class="v1">out</w> <w class="v1">every</w> <w class="v1">little</w> <w class="v1">tiny</w> <w class="v1">word.</w> <w>In</w> <w>our</w> <w>communication,</w> <w class="v1">we</w> <w class="v1">use</w> <w class="v1">one</w> <w class="v1">symbol</w> <w class="v1">and</w> <w class="v1">that</w> <w class="v1">symbol</w> <w class="v1">can</w> <w class="v1">convey</w> <w class="v1">paragraphs</w> <w class="v1">and</w> <w class="v1">paragraphs</w> <w class="v1">of</w> <w class="v1">information.</w> <w>We</w> <w>use</w> <w>symbols</w> <w>to</w> <w>describe</w> <w>or</w> <w>give</w> <w>information</w> <w>either</w> <w>in</w> <w>mental</w> <w>communication</w> <w>or</w> <w>in</w> <w>writing.</w> <w>Instead</w> <w>of</w> <w>writing</w> <w>a</w> <w>name</w> <w>for</w> <w>an</w> <w>individual</w> <w>on</w> <w>the</w> <w>craft,</w> <w>one</w> <w>symbol</w> <w>could</w> <w>tell</w> <w>what</w> <w>he</w> <w>does,</w> <w>what</w> <w>he</w> <w>has</w> <w>been</w> <w>doing,</w> <w>what</w> <w>his</w> <w>purpose</w> <w>is</w> <w>here</w> <w>on</w> <w>the</w> <w>Earth</w> <w>project,</w> <w>and</w> <w>where</w> <w>he</w> <w>comes</w> <w>from,</w> <w>what</w> <w>type</w> <w>of</w> <w>environment,</w> <w class="v1">his</w> <w class="v1">history,</w> <w class="v1">and</w> <w class="v1">his</w> <w class="v1">function</w> <w class="v1">is</w> <w class="v1">in</w> <w class="v1">that</w> <w class="v1">one</w> <w class="v1">symbol.</w> <w>Other</w> <w>symbols</w> <w>describe</w> <w>the</w> <w>planet</w> <w>and</w> <w>star</w> <w>system</w> <w>the</w> <w>individual</w> <w>comes</w> <w>from.</w> <w>&gt;&gt;</w> <w>That's</w> <w>a</w> <w>lot</w> <w>of</w> <w>information</w> <w>enclosed</w> <w>in</w> <w>one.</w> <w>Some</w> <w>of</w> <w>these</w> <w>symbols</w> <w>are</w> <w>on</w> <w>the</w> <w>walls</w> <w>of</w> <w>the</w> <w>craft</w> <w>and</w> <w>also</w> <w>in</w> <w>our</w> <w>books.</w> <w>&gt;&gt;</w> <w>Oh,</w> <w>there</w> <w>are</w> <w>books.</w> <w>&gt;&gt;</w> <w>Yes.</w> <w>Janice</w> <w>was</w> <w>shown</w> <w>a</w> <w>book</w> <w>with</w> <w>this</w> <w>type</w> <w>of</w> <w>writing.</w> <w>And</w> <w>although</w> <w>she</w> <w>insisted</w> <w>that</w> <w>she</w> <w>didn't</w> <w>understand</w> <w>what</w> <w>it</w> <w>said,</w> <w>she</w> <w>was</w> <w>told</w> <w>that</w> <w>she</w> <w>did</w> <w>understand,</w> <w>but</w> <w>only</w> <w>in</w> <w>a</w> <w>certain</w> <w>state</w> <w>of</w> <w>mind</w> <w>would</w> <w>she</w> <w>be</w> <w>able</w> <w>to</w> <w>interpret.</w> <w>This</w> <w>may</w> <w>help</w> <w>you</w> <w>to</w> <w>understand</w> <w>the</w> <w>difficulty</w> <w>we</w> <w>have</w> <w>attempting</w> <w>to</w> <w>communicate</w> <w>with</w> <w>you</w> <w>in</w> <w class="v1">the</w> <w class="v1">archaic</w> <w class="v1">and</w> <w class="v1">tediously</w> <w class="v1">slow</w> <w class="v1">method</w> <w class="v1">of</w> <w class="v1">spoken</w> <w class="v1">words</w> <w>especially</w> <w>when</w> <w>there</w> <w>are</w> <w>often</w> <w>no</w> <w>words</w> <w>for</w> <w>the</w> <w>concepts</w> <w>we</w> <w>are</w> <w>trying</w> <w>to</w> <w>explain.</w> <w>&gt;&gt;</w> <w>The</w> <w>entity</w> <w>then</w> <w>gave</w> <w>me</w> <w>an</w> <w>example</w> <w>of</w> <w>mental</w> <w>communication</w> <w>through</w> <w>symbols.</w> <w>He</w> <w>said</w> <w>we</w> <w>do</w> <w>the</w> <w>same</w> <w>thing</w> <w>without</w> <w>realizing</w> <w>it</w> <w>but</w> <w>we</w> <w>have</w> <w>not</w> <w>developed</w> <w>it</w> <w>to</w> <w>the</w> <w>point</w> <w>they</w> <w>have.</w> <w>For</w> <w class="v1">example,</w> <w class="v1">the</w> <w class="v1">symbol</w> <w class="v1">exmus</w> <w class="v1">contains</w> <w class="v1">and</w> <w class="v1">brings</w> <w class="v1">to</w> <w class="v1">mind</w> <w class="v1">thousands</w> <w class="v1">of</w> <w class="v1">images.</w> <w>Christmas</w> <w>trees,</w> <w>decorations,</w> <w>presents,</w> <w>baby</w> <w>Jesus,</w> <w>nativity,</w> <w>Santa</w> <w>Claus,</w> <w>the</w> <w>colors</w> <w>red</w> <w>and</w> <w>green,</w> <w>bells,</w> <w>and</w> <w>on</w> <w>and</w> <w>on.</w> <w class="v1">The</w> <w class="v1">pictures</w> <w class="v1">and</w> <w class="v1">also</w> <w class="v1">the</w> <w class="v1">feelings</w> <w class="v1">that</w> <w class="v1">one</w> <w class="v1">symbol</w> <w class="v1">brings</w> <w class="v1">to</w> <w class="v1">our</w> <w class="v1">minds</w> <w class="v1">could</w> <w class="v1">fill</w> <w class="v1">pages</w> <w class="v1">and</w> <w class="v1">pages</w> <w class="v1">of</w> <w class="v1">writing.</w> <w>I</w> <w>had</w> <w>no</w> <w>trouble</w> <w>bringing</w> <w>other</w> <w>such</w> <w>symbols</w> <w>to</w> <w>mind.</w> <w>The</w> <w>analogy</w> <w>was</w> <w>a</w> <w>good</w> <w>one.</w> <w>It</w> <w>explained</w> <w>the</w> <w>reasoning</w> <w>for</w> <w>communicating</w> <w>in</w> <w>symbols</w> <w>and</w> <w>incorporating</w> <w>whole</w> <w>concepts</w> <w>in</w> <w>such</w> <w>a</w> <w>simple</w> <w>device</w> <w>and</w> <w>often</w> <w>a</w> <w>lack</w> <w>of</w> <w>patience</w> <w>with</w> <w>our</w> <w>tedious</w> <w>methods</w> <w>of</w> <w>communicating</w> <w>in</w> <w>written</w> <w>and</w> <w>spoken</w> <w>language.</w> <w>I</w> <w>returned</w> <w>to</w> <w>the</w> <w>question</w> <w>I</w> <w>had</w> <w>asked</w> <w>before</w> <w>he</w> <w>began</w> <w>his</w> <w>lecture.</w> <w>Then</w> <w>when</w> <w>these</w> <w>other</w> <w>people</w> <w>have</w> <w>experiences</w> <w>with</w> <w>aliens,</w> <w>they</w> <w>are</w> <w>not</w> <w>all</w> <w>seeing</w> <w>manifested</w> <w>forms.</w> <w>These</w> <w>are</w> <w>definite</w> <w>physical</w> <w>breeds</w> <w>so</w> <w>to</w> <w>say</w> <w>species.</w> <w>Yes,</w> <w>&gt;&gt;</w> <w>I</w> <w>tried</w> <w>to</w> <w>put</w> <w>these</w> <w>aliens</w> <w>I've</w> <w>been</w> <w>told</w> <w>about</w> <w>into</w> <w>different</w> <w>categories</w> <w>as</w> <w>to</w> <w>jobs</w> <w>they</w> <w>do.</w> <w>Now,</w> <w>I</w> <w>don't</w> <w>know</w> <w>if</w> <w>that</w> <w>is</w> <w>possible</w> <w>or</w> <w>not,</w> <w>but</w> <w>I</w> <w>would</w> <w>like</w> <w>to</w> <w>ask</w> <w>some</w> <w>questions</w> <w>about</w> <w>that.</w> <w>For</w> <w>instance,</w> <w>the</w> <w>type</w> <w>of</w> <w>beings</w> <w>that</w> <w>we</w> <w>call</w> <w>the</w> <w>little</w> <w>grays.</w> <w>You</w> <w>said</w> <w>they</w> <w>are</w> <w>mostly</w> <w>involved</w> <w>with</w> <w>the</w> <w>medical</w> <w>experiments.</w> <w>&gt;&gt;</w> <w>At</w> <w>their</w> <w>level,</w> <w>they</w> <w>are</w> <w>involved</w> <w>and</w> <w>they</w> <w>are</w> <w>helpers.</w> <w>Many</w> <w>people</w> <w>have</w> <w>misunderstood</w> <w>them.</w> <w>They</w> <w>have</w> <w>been</w> <w>blamed</w> <w>for</w> <w>many</w> <w>things.</w> <w>There</w> <w>may</w> <w>be</w> <w>those</w> <w>of</w> <w>them</w> <w>who</w> <w>would</w> <w>do</w> <w>that</w> <w>sort</w> <w>of</w> <w>experiments</w> <w>that</w> <w>you</w> <w>hear</w> <w>people</w> <w>talk</w> <w>of.</w> <w>However,</w> <w>there</w> <w>are</w> <w>also</w> <w>the</w> <w>beings</w> <w>working</w> <w>in</w> <w>the</w> <w>area</w> <w>of</w> <w>helping</w> <w>the</w> <w>human</w> <w>being</w> <w>to</w> <w>withstand</w> <w>certain</w> <w>levels</w> <w>of</w> <w>energy</w> <w>because</w> <w>of</w> <w>the</w> <w>changes</w> <w>that</w> <w>must</w> <w>take</w> <w>place</w> <w>internally</w> <w>in</w> <w>an</w> <w>individual</w> <w>in</w> <w>order</w> <w>for</w> <w>them</w> <w>to</w> <w>operate</w> <w>in</w> <w>the</w> <w>realms</w> <w>of</w> <w>energy</w> <w>to</w> <w>which</w> <w>the</w> <w>person</w> <w>you</w> <w>are</w> <w>speaking</w> <w>to</w> <w>Janice</w> <w>operates.</w> <w>There</w> <w>must</w> <w>be</w> <w>physical</w> <w>changes</w> <w>within</w> <w>her</w> <w>body.</w> <w>Otherwise,</w> <w>it</w> <w>would</w> <w>disintegrate</w> <w>and</w> <w>it</w> <w>would</w> <w>not</w> <w>be</w> <w>able</w> <w>to</w> <w>return</w> <w>to</w> <w>your</w> <w>dimension.</w> <w>Therefore,</w> <w>the</w> <w>grays</w> <w>and</w> <w>those</w> <w>of</w> <w>our</w> <w>brothers</w> <w>who</w> <w>are</w> <w>engaged</w> <w>in</w> <w>that</w> <w>level</w> <w>of</w> <w>work</w> <w>would</w> <w>be</w> <w>considered</w> <w>as</w> <w>much</w> <w>as</w> <w>your</w> <w>doctors</w> <w>are</w> <w>considered</w> <w>in</w> <w>that</w> <w>they</w> <w>fix,</w> <w>reconstruct,</w> <w>maintain,</w> <w>and</w> <w>do</w> <w>the</w> <w>sort</w> <w>of</w> <w>work</w> <w>mechanically.</w> <w>They</w> <w>are</w> <w>not</w> <w>involved</w> <w>in</w> <w>energy</w> <w>work</w> <w>as</w> <w>we</w> <w>are</w> <w>involved.</w> <w>The</w> <w>energy</w> <w>work</w> <w>they</w> <w>are</w> <w>involved</w> <w>in</w> <w>is</w> <w>simply</w> <w>to</w> <w>accomplish</w> <w>the</w> <w>mechanical</w> <w>changes</w> <w>within</w> <w>an</w> <w>individual</w> <w>and</w> <w>actually</w> <w>when</w> <w>it</w> <w>is</w> <w>time</w> <w>for</w> <w>the</w> <w>change</w> <w>to</w> <w>take</w> <w>place.</w> <w>She</w> <w>was</w> <w>showing</w> <w>signs</w> <w>of</w> <w>discomfort</w> <w>again.</w> <w>Are</w> <w>you</w> <w>getting</w> <w>cold</w> <w>now?</w> <w>It</w> <w>seemed</w> <w>to</w> <w>be</w> <w>the</w> <w>opposite</w> <w>of</w> <w>the</w> <w>heat</w> <w>buildup.</w> <w>I</w> <w>pulled</w> <w>the</w> <w>cover</w> <w>over</w> <w>her</w> <w>again</w> <w>and</w> <w>gave</w> <w>suggestions.</w> <w>Then</w> <w>they</w> <w>are</w> <w>the</w> <w>ones</w> <w>involved</w> <w>with</w> <w>the</w> <w>testing</w> <w>and</w> <w>these</w> <w>different</w> <w>types</w> <w>of</w> <w>things.</w> <w>&gt;&gt;</w> <w>Yes.</w> <w>I've</w> <w>also</w> <w>been</w> <w>told</w> <w>of</w> <w>another</w> <w>one</w> <w>that</w> <w>resembles</w> <w>the</w> <w>grays,</w> <w>but</w> <w>they</w> <w>are</w> <w>very</w> <w>tall</w> <w>with</w> <w>long</w> <w>fingers</w> <w>and</w> <w>long</w> <w>limbs.</w></div>
+
+  <div class="card">
+    <h2>What I'd add, and why</h2>
+    <div class="rec"><p>the setup — that we already do this without realising it</p></div><div class="rec"><p>the list itself — what the one symbol actually unpacks into</p></div><div class="rec"><p>the closing — whole concepts in such a simple device</p></div>
+    <p class="k">Pre-marked in rose above. The two I'd offer but not push for:
+    their symbols are written down too — on the craft walls and in books; she was shown a book of it and told she did understand, in a certain state of mind.</p>
+  </div>
+
+  <h2>Act 1 — which alien examples stay</h2>
+  <p class="sub">The druid is already out. These are the seven that remain, in order.
+  Mark the ones that don't feel necessary and I'll drop them.</p>
+  <div class="grid2">
+    <figure class="sh" data-item="shot-2">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158669693-gf9wlo.webp" alt="">
+      <figcaption><b>2.</b> Although I can't explain what chronometers are.<br><span class="cite">Keepers of the Garden 1 @ 0:26:25</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-3">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158647044-ocqo3c.webp" alt="">
+      <figcaption><b>3.</b> They're making sounds, but I can't even describe the sound.<br><span class="cite">Custodians 1 @ 4:15:06</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-4">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158951510-xn7ae2.webp" alt="">
+      <figcaption><b>4.</b> Since communication is telepathic, it would be impossible to translate it in an equivalent sound energy.<br><span class="cite">Keepers of the Garden 1 @ 1:54:54</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-5">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158702557-nfrzli.webp" alt="">
+      <figcaption><b>5.</b> It would be impossible to translate as there are no equivalents in this realm of experience.<br><span class="cite">Keepers of the Garden 2 @ 6:46:31</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-6">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158697480-0ru63r.webp" alt="">
+      <figcaption><b>6.</b> there's not a real word for what I want to convey to you<br><span class="cite">Custodians 2 @ 9:11:00</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-7">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158700398-dgxcq3.webp" alt="">
+      <figcaption><b>7.</b> This is difficult to explain, but there is a definite change with what you would call time.<br><span class="cite">Keepers of the Garden 1 @ 2:32:46</span></figcaption>
+    </figure>
+    <figure class="sh" data-item="shot-8">
+      <img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786159054191-vu6m1f.webp" alt="">
+      <figcaption><b>8.</b> This is hard to translate because there is no concept of this here to translate into.<br><span class="cite">Keepers of the Garden 1 @ 1:31:47</span></figcaption>
+    </figure></div>
+</div>
+
+<div id="sheet" class="sheet">
+  <div class="sheethead"><b>Picks</b> <button id="closelist">close</button></div>
+  <div id="list"></div>
+  <p class="k" id="tot"></p>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function(){
+  var CHAT="illustrated-cannon-passage", SHEET="language-passage-picks";
+  var WORDS=["But","in","order","for","containment","thereof","to","be","fully","realized,","that","must","be","done","in","her","physicalness","because","she","is","to","return","and","live","in","her","physicalness.",">>","Yes,","she","has","to","be","in","a","physical","body","on","this","earth","at","this","time.",">>","That's","right.","But","the","energy","within","her","is","not","of","the","physicalness","of","this","world","that","you","live","in.",">>","Would","that","be","because","she","is","really","one","of","you?",">>","She","has","been","one","of","us.","She","has","passed","us.","Then","in","past","lives,","as","we","consider","linear","past","lives,","that's","the","only","way","I","can","understand","it.","She","was","one","of","you","at","another","time.",">>","She","is","still","one","of","us,","but","she","is","more","than","that.","She","is","past","us.","She","condescends","to","work","with","us.","We","feel","honored","to","have","her","in","our","presence.",">>","That's","very","good.","When","most","people","see","you","beings,","are","you","manifesting","whatever","form","you","think","they","should","see?",">>","I","do","not","understand","your","question.",">>","Okay.","When","other","people","say","they","have","seen","aliens,","as","we","call","them,","or","beings","from","outer","space,","they","see","them","in","different","forms",">>","because","there","are","different","aliens.",">>","I","was","wondering","if","all","these","forms","were","just","being","manifested.",">>","They","exist.","They're","not","being","They","exist.","They","exist","just","as","you","exist.","The","difference","in","them","is","the","same","as","the","difference","between","you","and","someone","who","is","Chinese.",">>","That's","what","I","believed.","But","your","type","is","different.","We","are","an","integration.","Because","of","our","development,","we","are","able","to","do","the","things","that","the","others","do.","That","is","not","our","main","purpose.","The","experiments","are","something","they","are","highly","involved","in.",">>","And","you're","not","involved","in","that?",">>","Not","in","the","medical","experiments.","We","are","working","at","levels","much","past","there.",">>","Janice","was","breathing","heavier,","experiencing","heat.","I","gave","suggestions","that","she","would","become","cooler.","The","heat","seemed","to","be","an","energy","buildup","that","fluctuated.","I","know","my","questions","must","seem","very","simple,","but","that","is","the","only","way","I","can","learn.","So,","I","hope","you","will","be","patient","with","me.",">>","Words","are","getting","in","the","way","of","our","explanations","to","you.",">>","That's","the","only","way","I","can","understand.","Though",">>","we","understand,","but","to","fully","explain","a","process","in","words","in","your","human","terms","is","sometimes","difficult","and","the","miscommunication","of","the","intent","or","meaning","is","not","fully","realized","because","of","the","limitations","of","your","language.",">>","I've","heard","that","many","times","from","other","people.",">>","We","find","it","very","interesting","as","to","why","you","write","your","sentences","out.","I","will","use","the","word","comical.","It","seems","comical","to","us","as","to","why","you","have","to","write","out","every","little","tiny","word.","In","our","communication,","we","use","one","symbol","and","that","symbol","can","convey","paragraphs","and","paragraphs","of","information.","We","use","symbols","to","describe","or","give","information","either","in","mental","communication","or","in","writing.","Instead","of","writing","a","name","for","an","individual","on","the","craft,","one","symbol","could","tell","what","he","does,","what","he","has","been","doing,","what","his","purpose","is","here","on","the","Earth","project,","and","where","he","comes","from,","what","type","of","environment,","his","history,","and","his","function","is","in","that","one","symbol.","Other","symbols","describe","the","planet","and","star","system","the","individual","comes","from.",">>","That's","a","lot","of","information","enclosed","in","one.","Some","of","these","symbols","are","on","the","walls","of","the","craft","and","also","in","our","books.",">>","Oh,","there","are","books.",">>","Yes.","Janice","was","shown","a","book","with","this","type","of","writing.","And","although","she","insisted","that","she","didn't","understand","what","it","said,","she","was","told","that","she","did","understand,","but","only","in","a","certain","state","of","mind","would","she","be","able","to","interpret.","This","may","help","you","to","understand","the","difficulty","we","have","attempting","to","communicate","with","you","in","the","archaic","and","tediously","slow","method","of","spoken","words","especially","when","there","are","often","no","words","for","the","concepts","we","are","trying","to","explain.",">>","The","entity","then","gave","me","an","example","of","mental","communication","through","symbols.","He","said","we","do","the","same","thing","without","realizing","it","but","we","have","not","developed","it","to","the","point","they","have.","For","example,","the","symbol","exmus","contains","and","brings","to","mind","thousands","of","images.","Christmas","trees,","decorations,","presents,","baby","Jesus,","nativity,","Santa","Claus,","the","colors","red","and","green,","bells,","and","on","and","on.","The","pictures","and","also","the","feelings","that","one","symbol","brings","to","our","minds","could","fill","pages","and","pages","of","writing.","I","had","no","trouble","bringing","other","such","symbols","to","mind.","The","analogy","was","a","good","one.","It","explained","the","reasoning","for","communicating","in","symbols","and","incorporating","whole","concepts","in","such","a","simple","device","and","often","a","lack","of","patience","with","our","tedious","methods","of","communicating","in","written","and","spoken","language.","I","returned","to","the","question","I","had","asked","before","he","began","his","lecture.","Then","when","these","other","people","have","experiences","with","aliens,","they","are","not","all","seeing","manifested","forms.","These","are","definite","physical","breeds","so","to","say","species.","Yes,",">>","I","tried","to","put","these","aliens","I've","been","told","about","into","different","categories","as","to","jobs","they","do.","Now,","I","don't","know","if","that","is","possible","or","not,","but","I","would","like","to","ask","some","questions","about","that.","For","instance,","the","type","of","beings","that","we","call","the","little","grays.","You","said","they","are","mostly","involved","with","the","medical","experiments.",">>","At","their","level,","they","are","involved","and","they","are","helpers.","Many","people","have","misunderstood","them.","They","have","been","blamed","for","many","things.","There","may","be","those","of","them","who","would","do","that","sort","of","experiments","that","you","hear","people","talk","of.","However,","there","are","also","the","beings","working","in","the","area","of","helping","the","human","being","to","withstand","certain","levels","of","energy","because","of","the","changes","that","must","take","place","internally","in","an","individual","in","order","for","them","to","operate","in","the","realms","of","energy","to","which","the","person","you","are","speaking","to","Janice","operates.","There","must","be","physical","changes","within","her","body.","Otherwise,","it","would","disintegrate","and","it","would","not","be","able","to","return","to","your","dimension.","Therefore,","the","grays","and","those","of","our","brothers","who","are","engaged","in","that","level","of","work","would","be","considered","as","much","as","your","doctors","are","considered","in","that","they","fix,","reconstruct,","maintain,","and","do","the","sort","of","work","mechanically.","They","are","not","involved","in","energy","work","as","we","are","involved.","The","energy","work","they","are","involved","in","is","simply","to","accomplish","the","mechanical","changes","within","an","individual","and","actually","when","it","is","time","for","the","change","to","take","place.","She","was","showing","signs","of","discomfort","again.","Are","you","getting","cold","now?","It","seemed","to","be","the","opposite","of","the","heat","buildup.","I","pulled","the","cover","over","her","again","and","gave","suggestions.","Then","they","are","the","ones","involved","with","the","testing","and","these","different","types","of","things.",">>","Yes.","I've","also","been","told","of","another","one","that","resembles","the","grays,","but","they","are","very","tall","with","long","fingers","and","long","limbs."];
+  var SEED=[{"a":686,"z":706},{"a":720,"z":738},{"a":784,"z":808}];
+  var read=document.getElementById('read');
+  var ws=[].slice.call(read.querySelectorAll('w'));
+  var picks=[], pend=null, undo=null, timer=null, loaded=false;
+
+  function textOf(p){ var t=''; for(var i=p.a;i<=p.z;i++) t+=WORDS[i]+(i<p.z?' ':''); return t; }
+  function inPick(i){ for(var k=0;k<picks.length;k++) if(i>=picks[k].a&&i<=picks[k].z) return k; return -1; }
+  function paint(){
+    ws.forEach(function(w){ w.classList.remove('pick','a','z','pend'); });
+    picks.forEach(function(p){
+      for(var i=p.a;i<=p.z;i++) if(ws[i]) ws[i].classList.add('pick');
+      if(ws[p.a]) ws[p.a].classList.add('a');
+      if(ws[p.z]) ws[p.z].classList.add('z');
+    });
+    if(pend!==null&&ws[pend]) ws[pend].classList.add('pend');
+    var n=picks.length;
+    document.getElementById('cnt').textContent=n?(n+(n===1?' pick':' picks')):'no picks yet';
+    document.getElementById('sub2').textContent=pend!==null?'now tap the last word'
+      :(n?'tap a first word to add another':'tap a first word to start');
+    document.getElementById('undo').disabled=!undo;
+  }
+  function save(){
+    if(!loaded) return;
+    clearTimeout(timer);
+    timer=setTimeout(function(){
+      fetch('/api/chatfeed/verdict',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat:CHAT,sheet:SHEET,item:'picks',
+          text:JSON.stringify(picks.map(function(p){return {a:p.a,z:p.z,text:textOf(p)};}))})})
+        .then(function(){document.getElementById('saved').textContent='saved';})
+        .catch(function(){document.getElementById('saved').textContent='not saved — try again';});
+    },700);
+  }
+  function tap(i){
+    if(window.__scrollStop) window.__scrollStop();
+    if(pend===null){
+      var k=inPick(i);
+      if(k>=0){ undo=picks[k]; picks.splice(k,1); paint(); save(); return; }
+      pend=i; paint(); return;
+    }
+    if(inPick(i)>=0){ pend=null; paint(); return; }
+    var a=Math.min(pend,i), z=Math.max(pend,i);
+    for(var j=a;j<=z;j++) if(inPick(j)>=0){ pend=null; paint(); return; }
+    picks.push({a:a,z:z}); picks.sort(function(x,y){return x.a-y.a;});
+    pend=null; paint(); save();
+  }
+  ws.forEach(function(w,i){ w.addEventListener('click',function(){ tap(i); }); });
+  document.getElementById('clearpend').addEventListener('click',function(){ pend=null; paint(); });
+  document.getElementById('undo').addEventListener('click',function(){
+    if(!undo) return; picks.push(undo); picks.sort(function(x,y){return x.a-y.a;});
+    undo=null; paint(); save();
+  });
+
+  function renderList(){
+    var el=document.getElementById('list'); el.innerHTML='';
+    var wc=0;
+    picks.forEach(function(p,n){
+      wc+=(p.z-p.a+1);
+      var d=document.createElement('div'); d.className='pk';
+      var t=document.createElement('p'); t.textContent='\u201C'+textOf(p)+'\u201D';
+      var row=document.createElement('div'); row.className='row';
+      var jump=document.createElement('button'); jump.textContent='find it';
+      jump.addEventListener('click',function(){ document.getElementById('sheet').classList.remove('on');
+        if(window.__scrollStop) window.__scrollStop();
+        ws[p.a].scrollIntoView({behavior:'smooth',block:'center'}); });
+      var del=document.createElement('button'); del.textContent='remove';
+      del.addEventListener('click',function(){ undo=picks[n]; picks.splice(n,1); paint(); save(); renderList(); });
+      row.appendChild(jump); row.appendChild(del);
+      d.appendChild(t); d.appendChild(row); el.appendChild(d);
+    });
+    document.getElementById('tot').textContent=picks.length
+      ? picks.length+' picks, about '+wc+' words — roughly '+Math.round(wc/2.6)+' seconds read aloud.'
+      : 'Nothing picked yet.';
+  }
+  document.getElementById('openlist').addEventListener('click',function(){ renderList();
+    document.getElementById('sheet').classList.add('on'); });
+  document.getElementById('closelist').addEventListener('click',function(){
+    document.getElementById('sheet').classList.remove('on'); });
+
+  // Load what was marked last time; fall back to my recommendations the first
+  // time the page is opened. Without this a reload silently lost her marking.
+  fetch('/api/chatfeed/verdict?chat='+encodeURIComponent(CHAT)+'&sheet='+encodeURIComponent(SHEET))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var raw=(j&&j.texts&&j.texts.picks)||null;
+      if(raw){ try{ picks=JSON.parse(raw).map(function(p){return {a:p.a,z:p.z};}); }catch(e){ picks=SEED.slice(); } }
+      else picks=SEED.slice();
+    })
+    .catch(function(){ picks=SEED.slice(); })
+    .then(function(){ loaded=true; paint(); });
+
+  if(window.__compareNotes) window.__compareNotes({chat:CHAT,sheet:SHEET});
+})();
+</script>
