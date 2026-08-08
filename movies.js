@@ -1820,13 +1820,22 @@ function dreamPagePersister(dream, quality) {
 // whole dream for context plus its allotment, the style ref, and ONLY that
 // slot's approved characters — and lays out its own page (no fixed 2x2).
 async function dreamPaginate(dream, castNames) {
-  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
+  // Page count follows the SHAPE of the dream, not a flat "lean toward few".
+  // The old wording ("lean toward FEW … even a long, rambly one is usually 2-3")
+  // over-steered: measured 2026-08-08 on the real dreams, it chose ONE image
+  // three times out of three for a dream that visits five different places, and
+  // the single page's captions then spanned the whole arc from arriving to
+  // waking. Swept over four dreams x3 runs each: a five-scene dream went 1,1,1
+  // -> 2,2,2 and a two-scene one 1,1,1 -> 3,3,3, while a genuinely one-scene
+  // dream stayed 1,1,1 — which is the property that matters, since the same
+  // planner serves the dream illustrator and must not inflate a short dream.
+  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs by the SHAPE OF THE DREAM: one image per distinct scene — a change of place, of company, or a real turn in what is happening. Moments that share a setting belong on ONE image (an image can be drawn as multiple panels), so do NOT make one image per sentence; but a dream that moves somewhere new needs a new image, because a single drawing cannot show two different places. A one-scene dream is ONE image; a dream that wanders through four places is FOUR. Return STRICT JSON and nothing else:
 {"pages": [
   {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
    "captions": [1 to 3 short hand-lettered caption lines for this image, IN ORDER, narrating this part in the DREAMER'S OWN WORDS AND VOICE. Use their actual phrasing — lightly clean the worst filler ("like", "you know", "I mean", "um", stutters/false starts) but KEEP their real words and tone; do NOT rewrite them to sound darker, more poetic, or more "haunting" to match the art. Each line up to ~15 words. Together the lines should let the dreamer narrate what's happening on this page — err toward keeping MORE of their voice, not less. [] only if this image truly needs no words],
    "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 6 pages — as many as the dream has scenes, merging only moments that share a setting. Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1850,7 +1859,7 @@ RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Caption
       };
     })
     .filter(p => p.text)
-    .slice(0, 4);
+    .slice(0, 6);
   if (!pages.length) throw new Error('page planning produced no pages');
   return pages;
 }
