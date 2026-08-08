@@ -542,10 +542,15 @@ private struct HomeGrid: View {
     // storybooks, and coloring pages pinned last; everything in between rotates
     // by most-recent use.
     private var tools: [Tool] {
-        // Voice Studio, Song Station, Characters and Films at the end of the
-        // list — Sophie's call: present, but at the bottom. (The four staples
-        // that used to be pinned here sit behind the quilt filter now.)
-        let pinnedBottom: [Tool] = [.voice, .song, .character, .films]
+        // Voice Studio, Characters and Films at the end of the list — Sophie's
+        // call: present, but at the bottom. (The four staples that used to be
+        // pinned here sit behind the quilt filter now.)
+        //
+        // Song Station is NOT here: she asked for it off the home screen
+        // (Aug 2026). It is not deleted — the tool, its page and its deep link
+        // all still work, and it still appears under the FILM filter (which
+        // covers sound too), so it's one tap away rather than on the grid.
+        let pinnedBottom: [Tool] = [.voice, .character, .films]
         // Chats and Test Station aren't grid cards — they're the two corner
         // icons beside the masthead. (The Test Station does get a card under
         // the pictures filter, which is the only place it has one.)
@@ -554,6 +559,7 @@ private struct HomeGrid: View {
         // tool twice. The case and view stay for deep links and history.
         // Business and old-fashioned tools show under their own filters.
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
+                                            && $0 != .song
                                             && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }

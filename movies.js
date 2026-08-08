@@ -168,18 +168,20 @@ function styleRefGridPrefix(style) {
     'quarter the image, separated by thin borders, with no captions and no text anywhere. ';
 }
 
-// Style lock that held the illustration style verbatim in the validated run.
-// The "mostly still" motion feel, choosable at the Add-motion step: most of
-// the frame holds still and only one small thing moves.
-const SUBTLE_MOTION_STYLE =
-  'Hand-drawn illustration, nearly still, on textured paper. Camera completely ' +
-  'static. The frame holds almost motionless — only ONE small, quiet movement ' +
-  '(a breath, drifting steam, a blink). The illustration style, linework and ' +
-  'colors are preserved exactly.';
-const DEFAULT_MOTION_STYLE =
-  'Hand-drawn ink and watercolor illustration, subtle limited animation on ' +
-  'textured paper. Camera completely static. Gentle storybook motion. The ' +
-  'illustration style, linework and colors are preserved exactly.';
+// What rides in front of every clip prompt. Deliberately ONLY the art-
+// preservation clause — it stops the video model redrawing the panel, and says
+// NOTHING about how much or how little should move.
+//
+// It used to carry "subtle limited animation … Gentle storybook motion", with a
+// "mostly still" variant beside it, and that vocabulary reached the model from
+// four independent places at once — so films came out gently drifting no matter
+// what the scene asked for, and turning the "mostly still" option off changed
+// almost nothing. Sophie never wanted that look (Aug 2026): "it doesn't need to
+// be anywhere — if I want that I'll ask for it directly." Motion now comes from
+// the scene's own motionPrompt and nowhere else. Do not reintroduce a house
+// motion feel here; per-movie `motionStyle` is hers to set.
+const ART_LOCK =
+  'The illustration style, linework and colors are preserved exactly.';
 const DEFAULT_NEGATIVE = 'photorealistic, 3d render, blurry, distorted face';
 const DEFAULT_IMAGE_STYLE =
   'Hand-drawn ink and watercolor illustration on textured paper, storybook ' +
@@ -858,7 +860,6 @@ async function concatClips(files, outFile) {
 // asking for it can pressure the breakdown into inventing one.
 async function breakdownStory(story, sceneCount, opts = {}) {
   const morphPairs = opts.morphPairs !== false;          // pairs allowed by default; the model picks which moments deserve one
-  const subtleMotion = opts.motionProfile === 'subtle';  // "mostly still" is an option, not a rule
   const target = sceneCount ? `exactly ${sceneCount}` : 'between 8 and 12';
   const pairField = morphPairs
     ? `\n   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,`
@@ -866,16 +867,18 @@ async function breakdownStory(story, sceneCount, opts = {}) {
   const pairRule = morphPairs
     ? '- For EACH moment, decide whether it wants a MORPH or a HARD CUT — purely your judgement for THIS story. There is NO quota and no expected ratio: one story might morph everywhere, another might be all hard cuts, most are somewhere between. A morph = a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty; a fist landing). Mark the FIRST of the pair with "pairWithNext": true. The pair\'s imagePrompts must describe the identical composition, differing only in the changed detail.'
     : '- Every scene is its own single still — do NOT create before/after pairs or repeat a composition with one small change.';
-  const motionRule = subtleMotion
-    ? '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move. Keep most scenes nearly still (breathing, wind, blinking); give pronounced action ONLY to the 1-3 most important beats — the contrast makes those beats land.'
-    : '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move.';
+  // MOTION ONLY, and no house opinion about how much of it. The old version of
+  // this rule insisted on "one continuous subtle action" and (optionally) that
+  // most scenes stay "nearly still" — see ART_LOCK. What the shot needs is the
+  // story's business, not this prompt's.
+  const motionRule = '- motionPrompt is about MOTION only — one continuous action within the shot, never a cut. Let the scene decide how much movement it wants.';
   const sys = `You are a storyboard artist breaking a story into scenes for an illustrated animated short film. Return STRICT JSON:
 {"title": short film title,
  "characters": one compact phrase of visual continuity tokens for the recurring character(s) — MUST specify hairstyle, facial features (beard/glasses/etc), AND the exact clothing worn for the whole story, e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat and red boots",
  "scenes": [{"title": 2-5 word scene label,
    "description": what happens in this scene, written SELF-CONTAINED,
    "imagePrompt": a full image-generation prompt for this scene's illustrated panel,
-   "motionPrompt": one sentence of the SMALL physical motion happening in the shot (subtle — steam rising, a hand reaching, eyes blinking, rain falling),
+   "motionPrompt": one sentence of the physical motion happening in the shot (steam rising, a hand reaching, a door slamming, rain falling),
    "hasText": true only if the panel should contain written text (a speech bubble, a sign, a screen),${pairField}
    "key": true on EXACTLY the 3 scenes that show the main character most clearly (well lit, framed large, face visible) — these render first so the character design can be approved}]}
 
@@ -896,7 +899,7 @@ ${motionRule}`;
     title: String(s.title || `Scene ${i + 1}`).trim(),
     description: String(s.description || '').trim(),
     imagePrompt: String(s.imagePrompt || s.description || '').trim(),
-    motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
+    motionPrompt: String(s.motionPrompt || '').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: morphPairs ? Boolean(s.pairWithNext) : false,
     key: Boolean(s.key),
@@ -1088,7 +1091,7 @@ function isMerged(movie, idx) {
 
 // The full motion prompt actually sent to the video model.
 function motionPromptFor(movie, scene) {
-  const style = (movie.motionStyle || DEFAULT_MOTION_STYLE).trim();
+  const style = (movie.motionStyle || ART_LOCK).trim();
   let p = `${style} ${scene.motionPrompt}`.trim();
   if (scene.hasText) p += STATIC_TEXT_SUFFIX;
   return p;
@@ -1332,7 +1335,7 @@ async function generateBridge(movie, bridge, tmpDir) {
   const frameUrl = await saveBufferToStorage(fs.readFileSync(frameFile), 'image/png', 'movies/frames');
   if (frameUrl.startsWith('data:')) throw new Error('bridges need Firebase Storage (permanent frame URLs)');
 
-  const style = (movie.motionStyle || DEFAULT_MOTION_STYLE).trim();
+  const style = (movie.motionStyle || ART_LOCK).trim();
   const prompt = `${style} ${bridge.prompt}`.trim();
   const m = VIDEO_MODELS.draft;
   const p = await replicatePredict(m.version, {
@@ -2324,7 +2327,7 @@ function authoredScene(s, i) {
     title: String(s.title || `Scene ${i + 1}`).trim(),
     description: String(s.description || s.imagePrompt || '').trim(),
     imagePrompt: String(s.imagePrompt || s.description || '').trim(),
-    motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
+    motionPrompt: String(s.motionPrompt || '').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: Boolean(s.pairWithNext),
     key: Boolean(s.key),
@@ -2344,7 +2347,7 @@ function authoredScene(s, i) {
 router.post('/', async (req, res) => {
   try {
     const { story, title, sceneCount, panelQuality, scenes, characters, aspect,
-            style, styles, characterRefs, motionProfile, morphPairs, storyId } = req.body || {};
+            style, styles, characterRefs, morphPairs, storyId } = req.body || {};
     // Two ways in: a story for GPT to break down, OR a hand-authored scene list
     // (exact beats, outfits, startAts) that skips the breakdown entirely.
     const authored = Array.isArray(scenes) && scenes.length;
@@ -2362,7 +2365,6 @@ router.post('/', async (req, res) => {
 
     const opts = {
       morphPairs: morphPairs !== false,                                // model's free morph-vs-cut judgement; false = all hard cuts
-      motionProfile: motionProfile === 'subtle' ? 'subtle' : 'normal', // 'subtle' = mostly-still option
     };
     let plan;
     if (authored) {
@@ -2397,10 +2399,9 @@ router.post('/', async (req, res) => {
       characters: plan.characters,
       style: sid,
       morphPairs: opts.morphPairs,
-      motionProfile: opts.motionProfile,
       characterRefs: cards,
       imageStyle: DEFAULT_IMAGE_STYLE,
-      motionStyle: DEFAULT_MOTION_STYLE,
+      motionStyle: ART_LOCK,
       negativePrompt: DEFAULT_NEGATIVE,
       dreamMode: false,
       aspect: CANVAS[aspect] ? aspect : undefined,   // 'portrait' | 'landscape' | 'square'; undefined = source-size (classic stitch)
@@ -2500,7 +2501,7 @@ router.post('/animate', async (req, res) => {
 
     (async () => {
       try {
-        const fullPrompt = (quick.prompt || 'subtle natural motion, gentle ambient movement') +
+        const fullPrompt = (quick.prompt || '') +
           '. The subject, style and composition of the image are preserved exactly.';
         let p;
         if (tier === 'draft') {
@@ -2666,7 +2667,7 @@ router.post('/morphfilm', async (req, res) => {
         const movie = {
           id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
           title: filmTitle, story: '', characters: '',
-          imageStyle: DEFAULT_IMAGE_STYLE, motionStyle: DEFAULT_MOTION_STYLE, negativePrompt: DEFAULT_NEGATIVE,
+          imageStyle: DEFAULT_IMAGE_STYLE, motionStyle: ART_LOCK, negativePrompt: DEFAULT_NEGATIVE,
           dreamMode: true, panelQuality: 'low', characterAnchor: null,
           kind: 'morph',
           scenes, bridges: [], cuts: [cut], job: null,
@@ -3173,14 +3174,11 @@ router.post('/:id/clips', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
-    const { tier = 'draft', only, force = false, morphPairs, motionFeel } = req.body || {};
+    const { tier = 'draft', only, force = false, morphPairs } = req.body || {};
     if (!VIDEO_MODELS[tier]) return res.status(400).json({ error: `unknown tier "${tier}"` });
     // Motion decisions arrive at THIS step (they're irrelevant while images
-    // are being made): morphPairs:false flattens every pair to hard cuts;
-    // motionFeel 'subtle'/'normal' swaps the movie-level motion style.
+    // are being made): morphPairs:false flattens every pair to hard cuts.
     if (morphPairs === false) movie.scenes.forEach(s => { s.pairWithNext = false; });
-    if (motionFeel === 'subtle') movie.motionStyle = SUBTLE_MOTION_STYLE;
-    else if (motionFeel === 'normal' && movie.motionStyle === SUBTLE_MOTION_STYLE) movie.motionStyle = DEFAULT_MOTION_STYLE;
     const targets = [];
     movie.scenes.forEach((s, idx) => {
       if (isMerged(movie, idx)) return;                 // folded into the previous pair-clip
