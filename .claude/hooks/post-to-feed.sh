@@ -341,14 +341,27 @@ flush()  # the final (current) turn
 # same words. Matched as a multiset, so sending the same short phrase twice
 # can't let the first one swallow the second.
 if queued:
-    from collections import Counter
     def _norm(s):
         return ' '.join((s or '').split()).lower()[:160]
-    have = Counter(_norm(u['text']) for u in users)
+    # A mid-turn message exists TWICE in the transcript over its lifetime: as a
+    # queue record while Claude is still working, and as an ordinary user record
+    # once the turn ends. They carry DIFFERENT ids, so posting it early under
+    # `q:<timestamp>` and then meeting it again as a uuid posted it a SECOND
+    # time — every mid-turn message she sent landed in the thread twice (found
+    # live 2026-08-08 in her own feed; the state file held the q: key while the
+    # duplicate went out under the uuid). So a swallowed queue entry HANDS ITS
+    # KEY to the record that replaced it, and the poster below treats either id
+    # as proof it already went out. Still a multiset — one queue entry is
+    # consumed per matching record — so repeating a short phrase can't let the
+    # first swallow the second.
+    by_text = {}
+    for u in users:
+        by_text.setdefault(_norm(u['text']), []).append(u)
     for q in queued:
-        k = _norm(q['text'])
-        if have.get(k):
-            have[k] -= 1
+        bucket = by_text.get(_norm(q['text'])) or []
+        target = next((u for u in bucket if not u.get('alias')), None)
+        if target is not None:
+            target['alias'] = q['uuid']
             continue
         users.append(q)
     users.sort(key=lambda u: u.get('at') or '')
@@ -373,7 +386,12 @@ if uf and users:
         for u in users[:-1]:
             new_useen.add(u['uuid'])
     for u in users:
-        if u['uuid'] in new_useen:
+        # either id counts as already-posted: the queue record's key and the
+        # user record's uuid are the SAME message (see the alias pass above)
+        if u['uuid'] in new_useen or (u.get('alias') and u['alias'] in new_useen):
+            new_useen.add(u['uuid'])          # remember both, so next run is a fast skip
+            if u.get('alias'):
+                new_useen.add(u['alias'])
             continue
         mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
         if u['at']:
@@ -386,6 +404,8 @@ if uf and users:
             mine["explicit"] = True
         print('U\t' + json.dumps(mine))
         new_useen.add(u['uuid'])
+        if u.get('alias'):
+            new_useen.add(u['alias'])
     os.makedirs(os.path.dirname(uf), exist_ok=True)
     open(uf, 'w').write('\n'.join(sorted(new_useen)))
 
