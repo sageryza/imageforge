@@ -189,17 +189,30 @@ being describing a state with no time in it, and gets corrected gently.
 
 ---
 
-## The laugh: NOT FOUND
+## The "laugh" was never a laugh — it is B1 (settled 8 Aug 2026)
 
-Sophie was specific that they find it funny. **Searched and not there** — no
-recorded laugh, chuckle or amusement anywhere in the seven books attached to a
-discussion of time or measurement. Searched: every `[laughter]` / `laughed` /
-`laughing` marker (19), every `amuse*` / `chuckl*` / `silly` (14), plus
-`you humans`, `curious to us`, `in a hurry`, `why do you worry`, `we do not
-understand you`, `strange that you`. Every hit read.
+**Do not repeat this hunt.** The memo's *"they think it's funny haha"* was read
+here as a recorded laugh, and a long search was run for one: every `[laughter]` /
+`laughed` / `laughing` marker (19), every `amuse*` / `chuckl*` / `silly` (14),
+plus `you humans`, `curious to us`, `in a hurry`, `why do you worry`, `strange
+that you`. Every hit read. **No laugh about time exists in these seven books.**
 
-What does exist, and is real, is that these beings are **on record finding human
-habits funny** — just not this one:
+Sophie then clarified: she never meant a literal laugh, only *"isn't it strange
+or interesting or funny that humans measure something that doesn't exist"* — and
+suggested searching the words **measure** and **doesn't exist**. That search
+(`measur[a-z]*[^.]{0,80}exist` either order) returns exactly **two hits, both in
+Custodians 1**:
+
+- 0:43:12 — *"…invented a way to **measure something that does not exist**"* (B1)
+- 0:46:21 — *"If they can't see it, **measure it**, touch it, or dissect it, **it
+  doesn't exist**"* (the nuts-and-bolts investigators, same essay)
+
+So the passage is **B1**, and the "funny" is the shape of the line, not an event
+in the room. Her wording is the pointer to a *phrase*, not to a *scene* — worth
+remembering the next time a memo describes a tone.
+
+The two passages below are **not** it. They are filed only as evidence that these
+beings are on record finding human habits funny, about other subjects:
 
 **Custodians 2 (`L0TSZDqQlnU`), 11:23:15–11:24:32.** Dolores stops to change the
 tape in her recorder:
@@ -232,9 +245,35 @@ God:
 Then they sober immediately when she asks if they're playing games: *"We are on
 a mission which has no humor to it."*
 
-**Conclusion:** the laugh Sophie remembers is most likely the *shape of the line
-itself* in B1 — which is a joke — coloured by the loving-amusement passage. Do
-not build a beat around a laugh that was never recorded.
+Do not build a beat around a laugh that was never recorded.
+
+---
+
+## Listening copies (cut 8 Aug 2026)
+
+Reading ten passages is a lot of work, so every candidate is cut from the real
+audiobook audio and banked at Storage `dolores-time/clips/v1/<ID>.mp3`
+(deckfactory, public, immutable-cached). 19.4 minutes across ten clips.
+
+`A` 2:28 · `A2` 4:09 · `B1` 2:41 · `B2` 2:14 · `B3` 0:28 · `B4` 0:56 ·
+`B5` 0:31 · `LAUGH` 1:07 · `LAUGH2` 2:36 · `JANET` 2:12
+
+**How they were cut, and why it cost nothing.** Cut points come from the
+transcript's own `segments` timings, snapped to segment boundaries and then
+anchored to the sentence the passage actually opens on — several naive cuts
+started mid-sentence ("cross-legged.", "she arrived home"). ffmpeg with 12ms edge
+fades, mono 128k mp3, **no loudnorm**. Source audio downloaded whole first
+(347MB–604MB each; ffmpeg HTTP seek does not work from a chat sandbox).
+
+**Segment timings are accurate enough for listening cuts — whisper is not needed
+for this step.** Word-level alignment is only required for a finished narration
+where a ragged word matters (`docs/nde-precise-cutting.md`). Total spend here was
+about **2¢**: a 14-second head of each clip transcribed with whisper-1 purely to
+*verify* the cut landed on the intended line, which caught one bad head (B4
+opened on "to do what I need to do") and nothing else.
+
+Verifying openings this way is cheap and worth doing every time — it is the only
+check that proves a cut list matches the audio rather than the transcript.
 
 ---
 
