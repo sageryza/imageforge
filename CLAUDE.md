@@ -654,12 +654,22 @@ lifted into a standalone tool later.
   proof: `/home/user/.claude/settings.json` in these sessions registers only
   Stop and UserPromptSubmit, the installed hook contains no `working` logic
   at all, and the feed therefore holds ZERO live drafts — which is why the
-  Chats app's working-chat tint never fired. Fixing it needs Sophie to edit
-  the environment once; the durable form is a Setup script that always
-  fetches the current one instead of embedding it:
-  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
-  (that domain is already on her allowed list — the hook posts to it). After
-  that, future hook versions land by themselves and this trap is closed.
+  Chats app's working-chat tint never fired. Fixing it needs Sophie to
+  re-paste the CURRENT script into the environment once — the whole file,
+  `docs/chats-autopost-setup-script.sh` (GitHub's file view has a one-tap
+  copy button, which matters: she does this on a phone).
+  **DO NOT recommend the elegant one-liner** — this file recommended
+  `curl -fsSL …/setup.sh | bash` for exactly one evening, and it does not
+  work: the Setup script runs BEFORE the session has network, so curl gets
+  nothing and the platform kills the session with "Setup script failed"
+  (`recoverable:false`). Measured 2026-08-08: three sessions created with
+  that one-liner in place ALL died at init — including one built with the
+  repos attached, matching her real sessions — while every session running
+  the big self-contained paste started fine. A fetch-the-latest Setup script
+  cannot work here; the script has to carry the hook body with it, which is
+  the whole reason `build-chats-setup.py` embeds it verbatim.
+  A running session CAN still self-heal (it has network by then) — see the
+  self-heal note below; that is where curl belongs.
 - **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
   usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
@@ -710,7 +720,10 @@ lifted into a standalone tool later.
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
 - **Self-heal if you're NOT posting, or posting with an OLD hook (any chat).**
-  Run `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`. It
+  Run `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
+  (Curl works HERE and not in the Setup script for one reason: a running
+  session has network, session INIT does not — see the trap above before
+  suggesting this to Sophie as an environment setting.) It
   rewrites the hook + `/home/user/.claude/settings.json`, and — **contrary to
   what this file said for weeks — it takes effect IMMEDIATELY, in the session
   you run it in** (proved live 2026-08-07: a container holding the Aug 1 hook
