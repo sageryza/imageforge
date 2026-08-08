@@ -72,6 +72,10 @@
   .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
   .post .words { margin-top:11px; color:var(--ink); white-space:pre-wrap;
                  font-family:Georgia, "Times New Roman", serif; font-size:13.5px; line-height:1.68; }
+  /* Every dream costs the same scroll until you ask for more: the words clamp
+     to six lines. The clamp lives on its OWN element — a line-clamp box clips
+     anything that follows the text, so the fold button must sit outside it. */
+  .wtext.clamped { display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
 
   /* words / pictures — the witch app's description/reviews toggle: no boxes,
      two half-width labels over a hairline, and a line under the one you're
@@ -106,6 +110,13 @@
   .pgrid img { width:100%; display:block; border-radius:6px; background:#1a1a20; }
   .morep { width:100%; background:none; border:none; color:var(--dim); font:12.5px -apple-system, sans-serif;
            display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 0 0; }
+  /* Opened, the button STICKS to the bottom of the screen for as long as the
+     thing it opened is on screen — so closing never means scrolling to the end
+     of it first (Sophie). It rides above the nav, and carries its own solid
+     background so the text can't show through it. */
+  .morep.stuck { position:sticky; bottom:calc(66px + env(safe-area-inset-bottom)); z-index:4;
+                 color:var(--fuchsia); background:var(--bg); border:1px solid var(--line);
+                 border-radius:6px; padding:9px 0; margin-top:11px; }
 
   /* compose + dream detail */
   .h2 { font-family:Georgia, "Times New Roman", serif; font-size:20px; font-weight:400;
@@ -249,16 +260,35 @@ function panelBlock(panels){
   var extra = panels.length - 3;
   return '<div class="pgrid">' + panels.slice(0, 3).map(cell).join('') + '</div>' +
     '<div class="pgrid" data-rest hidden>' + panels.slice(3).map(cell).join('') + '</div>' +
-    '<button class="morep" data-more>' + DOWN + '<span>see more · ' + extra + '</span></button>';
+    '<button class="morep" data-more data-label="see more · ' + extra + '"></button>';
+}
+
+/* ── ONE fold, used by the words and by the extra panels ──
+   `apply(open)` does the showing; `anchor` is the block being opened, so a
+   close can put its top back on screen instead of leaving her stranded
+   halfway down whatever she just collapsed. */
+function wireFold(btn, anchor, apply, moreLabel){
+  var open = false;
+  function paint(){
+    btn.innerHTML = open ? UP + '<span>see less</span>' : DOWN + '<span>' + moreLabel + '</span>';
+    btn.classList.toggle('stuck', open);
+  }
+  btn.addEventListener('click', function(){
+    var top = anchor.getBoundingClientRect().top;
+    open = !open;
+    apply(open);
+    paint();
+    // Content above the anchor didn't move, so this lands its top just under
+    // the header no matter how much height the collapse took away.
+    if (!open && top < 0) window.scrollBy(0, top - 8);
+  });
+  paint();
 }
 function wirePanels(root){
   root.querySelectorAll('[data-more]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var rest = btn.parentElement.querySelector('[data-rest]');
-      var open = rest.hidden;
-      rest.hidden = !open;
-      btn.innerHTML = open ? UP + '<span>see less</span>' : DOWN + '<span>see more · ' + rest.children.length + '</span>';
-    });
+    var rest = btn.parentElement.querySelector('[data-rest]');
+    var anchor = btn.closest('.dream') || btn.parentElement;
+    wireFold(btn, anchor, function(open){ rest.hidden = !open; }, btn.dataset.label);
   });
 }
 
@@ -290,7 +320,9 @@ function dreamBlock(d){
     : '';
   return '<div class="dream" data-id="' + d.id + '">' +
     '<div class="ttl">' + esc(d.title) + '</div>' + tabs +
-    (hasWords ? '<div class="words" data-pane="words"' + (pane === 'words' ? '' : ' hidden') + '>' + esc(d.words) + '</div>' : '') +
+    (hasWords ? '<div class="words" data-pane="words"' + (pane === 'words' ? '' : ' hidden') + '>' +
+        '<div class="wtext clamped">' + esc(d.words) + '</div>' +
+        '<button class="morep" data-wmore hidden></button></div>' : '') +
     (hasPics ? '<div data-pane="pics"' + (pane === 'pics' ? '' : ' hidden') + '>' + panelBlock(d.panels) + '</div>' : '') +
     '<div class="acts">' +
       '<button class="act heart' + (d.felt ? ' on' : '') + '">' + HEART + '<span>' + d.feltCount + '</span></button>' +
@@ -301,6 +333,13 @@ function dreamBlock(d){
 function wireDreams(root){
   root.querySelectorAll('.dream').forEach(function(dream){
     var id = dream.dataset.id;
+    // The fold is offered only where the clamp really cut the text — a short
+    // dream that already fits gets no button at all.
+    var wtext = dream.querySelector('.wtext'), wmore = dream.querySelector('[data-wmore]');
+    if (wtext && wmore && wtext.scrollHeight - wtext.clientHeight > 4) {
+      wmore.hidden = false;
+      wireFold(wmore, dream, function(open){ wtext.classList.toggle('clamped', !open); }, 'see more');
+    }
     var tabs = dream.querySelector('.tabs');
     if (tabs) tabs.querySelectorAll('.tab').forEach(function(tab){
       tab.addEventListener('click', function(){
