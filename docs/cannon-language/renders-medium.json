@@ -26,6 +26,15 @@
     "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA woman lying on her back on a raised flat table in a dim curved room, her eyes open and turned to one side, listening hard. Three narrow figures stand at the far edge of the room with their backs partly turned to her. Thin pale ripples hang in the air near their heads.\n\nDo not include any text in the image.",
     "at": "2026-08-08T03:10:49.758Z"
   },
+  "4": {
+    "n": 4,
+    "runId": "3Rs4Z9kiX1iK6IOVETwM",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158951510-xn7ae2.webp",
+    "prompt": "A tall thin figure with very large dark eyes and no mouth at all, standing in front of a wide window full of stars, one long hand lifted to its own smooth throat. The skin where a mouth would be is unbroken.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA tall thin figure with very large dark eyes and no mouth at all, standing in front of a wide window full of stars, one long hand lifted to its own smooth throat. The skin where a mouth would be is unbroken.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:15:53.326Z"
+  },
   "5": {
     "n": 5,
     "runId": "n0sDbTwZlSBHHZbj88ZV",
@@ -52,6 +61,15 @@
     "prompt": "A slender pale figure standing between two tall mirrors that face each other, its reflections receding away in both directions. Each reflection differs very slightly from the one before it in build and posture.",
     "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA slender pale figure standing between two tall mirrors that face each other, its reflections receding away in both directions. Each reflection differs very slightly from the one before it in build and posture.\n\nDo not include any text in the image.",
     "at": "2026-08-08T03:11:43.317Z"
+  },
+  "8": {
+    "n": 8,
+    "runId": "FwpX5E7A2ZekHDDexCrJ",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786159054191-vu6m1f.webp",
+    "prompt": "A bright open field where several small stooped figures covered in soft hair work together gathering something into baskets. A taller smooth-skinned figure stands among them with one hand resting gently on the shoulder of the nearest small one.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA bright open field where several small stooped figures covered in soft hair work together gathering something into baskets. A taller smooth-skinned figure stands among them with one hand resting gently on the shoulder of the nearest small one.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:17:35.760Z"
   },
   "9": {
     "n": 9,
@@ -116,6 +134,15 @@
     "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA single bold curling mark drawn at the centre of a pale surface, with dense pages of tiny handwriting unrolling outward from it in every direction, as though the one mark were unpacking itself.\n\nDo not include any text in the image.",
     "at": "2026-08-08T03:13:23.601Z"
   },
+  "16": {
+    "n": 16,
+    "runId": "lbLxSUFvICTB7YwnPAli",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158853934-5qw91e.webp",
+    "prompt": "A single glowing symbol on the curved metal wall of a corridor, with a tall slender figure in a plain garment standing beside it, one flat hand pressed against the mark as though it were their own name.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA single glowing symbol on the curved metal wall of a corridor, with a tall slender figure in a plain garment standing beside it, one flat hand pressed against the mark as though it were their own name.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:14:17.320Z"
+  },
   "17": {
     "n": 17,
     "runId": "CiAWPuj9sH0nql0CK6eS",
@@ -124,5 +151,32 @@
     "prompt": "A human hand cutting letters into a slab of stone with a chisel, one letter at a time. Above the slab, a long queue of small luminous shapes waits in the air, unable to land.",
     "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA human hand cutting letters into a slab of stone with a chisel, one letter at a time. Above the slab, a long queue of small luminous shapes waits in the air, unable to land.\n\nDo not include any text in the image.",
     "at": "2026-08-08T03:14:07.683Z"
+  },
+  "18": {
+    "n": 18,
+    "runId": "YMWabrKTE3tn6nxQcLlZ",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158858765-8of9hv.webp",
+    "prompt": "One small drawn mark at the centre of a page, with a decorated fir tree, wrapped parcels, hanging bells, a stable scene and drifts of deep red and green blooming outward from it like breath spreading on cold glass.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nOne small drawn mark at the centre of a page, with a decorated fir tree, wrapped parcels, hanging bells, a stable scene and drifts of deep red and green blooming outward from it like breath spreading on cold glass.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:14:21.012Z"
+  },
+  "19": {
+    "n": 19,
+    "runId": "KudFCMCLpLWw7kJEJ2Ns",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158856419-r32wox.webp",
+    "prompt": "A room where loose written pages are piled waist-deep across the entire floor. In the middle of them a hand holds up one small card between two fingers, with a single mark on it.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA room where loose written pages are piled waist-deep across the entire floor. In the middle of them a hand holds up one small card between two fingers, with a single mark on it.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:14:20.484Z"
+  },
+  "20": {
+    "n": 20,
+    "runId": "oMajsKYy6umXQz69LjKM",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786158897508-apcqhs.webp",
+    "prompt": "A woman in her sixties with short curled hair alone at a small desk with an early boxy computer in a dark farmhouse kitchen, typing now, her face lit by the screen. Through the window behind her shows the first grey light of dawn.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA woman in her sixties with short curled hair alone at a small desk with an early boxy computer in a dark farmhouse kitchen, typing now, her face lit by the screen. Through the window behind her shows the first grey light of dawn.\n\nDo not include any text in the image.",
+    "at": "2026-08-08T03:15:00.553Z"
   }
 }
