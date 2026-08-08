@@ -15,7 +15,8 @@
 //                         createdAt, publicOn (YYYY-MM-DD PT | null),
 //                         wordsPublic, panels:[{i, url, captions, promptUsed,
 //                         public}], drawJob, drawnAt, feltCount }
-//   forge-dreamapp-felt   one doc per dream+uid ("felt this")
+//   forge-dreamapp-felt   one doc per dream+uid (the heart)
+//   forge-dreamapp-comments  one doc per comment { dreamId, uid, name, text, at }
 //
 // The AI names each dream (2-5 words, shown in fuchsia in the app) as a
 // background job right after capture; drawing reuses the dream-zine engine
@@ -23,6 +24,7 @@
 // background job on the doc, ~2¢/page at the default low quality.
 
 const express = require('express');
+const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { makeDreamPagesV2 } = require('./movies');
 
@@ -40,9 +42,17 @@ const FEED_DAYS = 14;
 
 const DREAMS = 'forge-dreamapp';
 const FELT = 'forge-dreamapp-felt';
+const COMMENTS = 'forge-dreamapp-comments';
 const QUALITIES = new Set(['low', 'medium']);
 const TEXT_MIN = 10;
 const TEXT_MAX = 8000;
+const COMMENT_MAX = 800;
+
+// Two dreams from the SAME person on the SAME day sit together in the feed, so
+// the page needs to know which posts share an author — but dreams are shown
+// unattributed (Sophie), so the uid itself must not travel. `by` is a stable
+// one-way tag: enough to group, useless for identifying anyone.
+const byTag = (uid) => crypto.createHash('sha1').update(String(uid)).digest('hex').slice(0, 12);
 
 let deps = { membryAuth: null };
 function init(d) { deps = { ...deps, ...d }; }
@@ -277,6 +287,7 @@ router.get('/feed', async (req, res) => {
         // `name` still rides along for a later reader; the feed does not show
         // it — dreams are grouped under their DAY, unattributed (Sophie).
         name: doc.name,
+        by: byTag(doc.uid),
         mine: doc.uid === req.user.uid,
         createdAt: doc.createdAt,
         publicOn: doc.publicOn,
@@ -284,6 +295,7 @@ router.get('/feed', async (req, res) => {
         panels: (doc.panels || []).filter((p) => p.public).map((p) => ({ i: p.i, url: p.url, captions: p.captions })),
         feltCount: doc.feltCount || 0,
         felt: felt.has(doc.id),
+        commentCount: doc.commentCount || 0,
       }));
     res.json({ sealed: false, today, dreams });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -308,6 +320,56 @@ router.post('/dreams/:id/felt', async (req, res) => {
     });
     res.json(result);
   } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
+});
+
+// ── comments ────────────────────────────────────────────────────────────────
+// A comment is only readable where the dream itself is: it must be in the feed
+// (publicOn set) or be your own. Comments DO carry a name — an unsigned reply
+// is useless — which is the one place this app names anybody.
+async function readableDream(id, uid) {
+  const snap = await db().collection(DREAMS).doc(id).get();
+  if (!snap.exists) return null;
+  const doc = snap.data();
+  if (!doc.publicOn && doc.uid !== uid) return null;
+  return doc;
+}
+
+router.get('/dreams/:id/comments', async (req, res) => {
+  try {
+    const dream = await readableDream(req.params.id, req.user.uid);
+    if (!dream) return res.status(404).json({ error: 'not found' });
+    const snap = await db().collection(COMMENTS).where('dreamId', '==', req.params.id).get();
+    const comments = snap.docs.map((d) => d.data())
+      .sort((a, b) => (a.at < b.at ? -1 : 1)) // oldest first — a thread reads down
+      .map((c) => ({ id: c.id, name: c.name, text: c.text, at: c.at, mine: c.uid === req.user.uid }));
+    res.json({ comments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/dreams/:id/comments', async (req, res) => {
+  try {
+    if (limited(`comment:${req.user.uid}`, 40, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'slow down a moment' });
+    }
+    const dream = await readableDream(req.params.id, req.user.uid);
+    if (!dream) return res.status(404).json({ error: 'not found' });
+    const text = String(req.body?.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'write something first' });
+    if (text.length > COMMENT_MAX) return res.status(400).json({ error: `keep it under ${COMMENT_MAX} characters` });
+    const ref = db().collection(COMMENTS).doc();
+    const comment = {
+      id: ref.id, dreamId: req.params.id, uid: req.user.uid,
+      name: req.user.name, text, at: new Date().toISOString(),
+    };
+    await ref.set(comment);
+    // The count rides on the dream so the feed needs no second query per post.
+    const dreamRef = db().collection(DREAMS).doc(req.params.id);
+    await db().runTransaction(async (tx) => {
+      const cur = await tx.get(dreamRef);
+      if (cur.exists) tx.update(dreamRef, { commentCount: (cur.data().commentCount || 0) + 1 });
+    }).catch(() => {});
+    res.json({ comment: { ...comment, mine: true }, commentCount: (dream.commentCount || 0) + 1 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = { router, init };

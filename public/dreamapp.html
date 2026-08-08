@@ -56,19 +56,50 @@
   .sealmsg .big { font-size:17px; font-weight:700; }
   .sealmsg .sml { font-size:13.5px; color:var(--dim); margin-top:5px; }
 
-  /* The feed reads as days: one date, then that day's dreams, unattributed. */
+  /* The feed reads as days: one date, then that day's dreams, unattributed.
+     The date is its OWN band — a wide gap above it and a rule under it — so it
+     never reads as the first line of the dream beneath (Sophie). */
   .dayhead { font-family:Georgia, "Times New Roman", serif; font-size:15px; color:var(--dim);
-             padding:26px 2px 4px; }
-  .dayhead:first-child { padding-top:14px; }
+             padding:34px 2px 10px; border-bottom:1px solid var(--line); }
+  .dayhead:first-child { padding-top:16px; }
+  /* A post is ONE PERSON'S dreams for that day: two dreams from the same
+     dreamer on the same night sit in one post, parted by a fainter line than
+     the white one that divides different people. */
   .post { padding:14px 2px 16px; border-bottom:1px solid var(--line); }
+  .dream + .dream { margin-top:20px; padding-top:18px; border-top:1px solid #ffffff1f; }
   .post .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                font-size:19px; font-weight:400; }
   .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
-  .post .words { margin-top:9px; color:var(--ink); white-space:pre-wrap; }
-  .stars { background:none; border:none; font:inherit; font-size:13px; color:var(--dim);
-           display:flex; align-items:center; gap:7px; margin-top:11px; padding:0; }
-  .stars.on { color:var(--fuchsia); }
-  .stars.on svg.i { fill:var(--fuchsia); }
+  .post .words { margin-top:11px; color:var(--ink); white-space:pre-wrap;
+                 font-family:Georgia, "Times New Roman", serif; font-size:13.5px; line-height:1.68; }
+
+  /* words / pictures — the witch app's description/reviews toggle: no boxes,
+     two half-width labels over a hairline, and a line under the one you're
+     reading that SLIDES when you tap the other. */
+  .tabs { position:relative; display:flex; margin-top:12px; border-bottom:1px solid var(--line); }
+  .tab { flex:1 1 50%; padding:9px 6px 11px; border:none; background:none; color:var(--dim);
+         font:13px -apple-system, sans-serif; }
+  .tab.on { color:var(--fuchsia); font-weight:600; }
+  .tabs::after { content:''; position:absolute; left:0; bottom:-1px; width:50%; height:2px;
+                 background:var(--fuchsia); transform:translateX(0); transition:transform .2s ease; }
+  .tabs[data-on="pics"]::after { transform:translateX(100%); }
+
+  .acts { display:flex; align-items:center; gap:18px; margin-top:13px; }
+  .act { background:none; border:none; font:13px -apple-system, sans-serif; color:var(--dim);
+         display:flex; align-items:center; gap:6px; padding:2px 0; }
+  .act.on { color:var(--fuchsia); }
+  .act.on svg.i { fill:var(--fuchsia); }
+  .thread { margin-top:13px; }
+  .cmt { padding:8px 0; }
+  .cmt .who { font-size:12px; color:var(--fuchsia); }
+  .cmt .said { font-size:13.5px; color:var(--ink); white-space:pre-wrap; margin-top:2px; }
+  .cmt .when { font-size:11.5px; color:var(--dim); margin-left:6px; }
+  .cbox { display:flex; gap:8px; margin-top:8px; }
+  .cbox input { flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px;
+                color:var(--ink); font:14px -apple-system, sans-serif; padding:10px 12px; outline:none; }
+  .cbox input:focus { border-color:var(--fuchsia); }
+  .cbox button { background:none; border:1px solid var(--fuchsia); color:var(--fuchsia);
+                 border-radius:6px; padding:0 14px; font:13px -apple-system, sans-serif; }
 
   /* panels: three to a row, a lone panel stays one-third width */
   .pgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; margin-top:11px; }
@@ -170,7 +201,10 @@ document.addEventListener('pointerdown', function(){ if(window.__scrollStop) win
 
 var API = '/api/dreamapp';
 var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
-var STAR_LINE = '<svg class="i" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>';
+// Lucide heart + message-circle. The hand-fitted STAR above stays reserved for
+// "draw it" — the one control here that spends a model call.
+var HEART = '<svg class="i" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+var BUBBLE = '<svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
 var DOWN = '<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
 var UP = '<svg class="i" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>';
 var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
@@ -228,6 +262,112 @@ function wirePanels(root){
   });
 }
 
+/* ── one day's dreams, gathered per dreamer ──
+   Two dreams from the same person on the same day belong in one post. The
+   groups keep the order the day already had (newest first), and a person's
+   own dreams keep their order inside their group. */
+function groupsFor(dreams){
+  var out = [], at = {};
+  dreams.forEach(function(d){
+    var k = d.by || d.id;               // no tag (an older doc) = its own group
+    if (at[k] === undefined) { at[k] = out.length; out.push([]); }
+    out[at[k]].push(d);
+  });
+  return out;
+}
+
+/* ── one dream: title, words-or-pictures, heart, comments ── */
+function dreamBlock(d){
+  var hasWords = !!d.words, hasPics = !!(d.panels && d.panels.length);
+  // The toggle only exists where there is something to toggle BETWEEN; words
+  // open first, and a dream with only pictures opens on those.
+  var pane = hasWords ? 'words' : 'pics';
+  var tabs = (hasWords && hasPics)
+    ? '<div class="tabs" data-on="' + pane + '">' +
+        '<button class="tab' + (pane === 'words' ? ' on' : '') + '" data-t="words">words</button>' +
+        '<button class="tab' + (pane === 'pics' ? ' on' : '') + '" data-t="pics">pictures</button>' +
+      '</div>'
+    : '';
+  return '<div class="dream" data-id="' + d.id + '">' +
+    '<div class="ttl">' + esc(d.title) + '</div>' + tabs +
+    (hasWords ? '<div class="words" data-pane="words"' + (pane === 'words' ? '' : ' hidden') + '>' + esc(d.words) + '</div>' : '') +
+    (hasPics ? '<div data-pane="pics"' + (pane === 'pics' ? '' : ' hidden') + '>' + panelBlock(d.panels) + '</div>' : '') +
+    '<div class="acts">' +
+      '<button class="act heart' + (d.felt ? ' on' : '') + '">' + HEART + '<span>' + d.feltCount + '</span></button>' +
+      '<button class="act cmt">' + BUBBLE + '<span>' + (d.commentCount || 0) + '</span></button>' +
+    '</div><div class="thread" hidden></div></div>';
+}
+
+function wireDreams(root){
+  root.querySelectorAll('.dream').forEach(function(dream){
+    var id = dream.dataset.id;
+    var tabs = dream.querySelector('.tabs');
+    if (tabs) tabs.querySelectorAll('.tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var t = tab.dataset.t;
+        tabs.setAttribute('data-on', t);
+        tabs.querySelectorAll('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.t === t); });
+        dream.querySelectorAll('[data-pane]').forEach(function(p){ p.hidden = p.dataset.pane !== t; });
+      });
+    });
+    var heart = dream.querySelector('.heart');
+    heart.addEventListener('click', function(){
+      api('/dreams/' + id + '/felt').then(function(r){
+        heart.classList.toggle('on', r.felt);
+        heart.querySelector('span').textContent = r.feltCount;
+      }).catch(function(e){ toast(e.message); });
+    });
+    var cmt = dream.querySelector('.cmt'), thread = dream.querySelector('.thread');
+    cmt.addEventListener('click', function(){
+      thread.hidden = !thread.hidden;
+      if (!thread.hidden && !thread.dataset.loaded) loadComments(id, thread, cmt);
+    });
+  });
+}
+
+async function loadComments(id, thread, cmt){
+  thread.dataset.loaded = '1';
+  thread.innerHTML = '<div class="quiet">reading…</div>';
+  try {
+    var r = await api('/dreams/' + id + '/comments');
+    drawComments(r.comments, thread);
+    thread.insertAdjacentHTML('beforeend',
+      '<div class="cbox"><input placeholder="say something" maxlength="800"><button>send</button></div>');
+    var input = thread.querySelector('input'), send = thread.querySelector('button');
+    async function post(){
+      var text = input.value.trim();
+      if (!text) return;
+      send.disabled = true;
+      try {
+        var res = await api('/dreams/' + id + '/comments', { body: { text: text } });
+        input.value = '';
+        var list = thread.querySelector('.cmts');
+        var empty = list.querySelector('.quiet');
+        if (empty) empty.remove();
+        list.insertAdjacentHTML('beforeend', commentRow(res.comment));
+        cmt.querySelector('span').textContent = res.commentCount;
+      } catch (e) { toast(e.message); }
+      send.disabled = false;
+      input.focus();
+    }
+    send.addEventListener('click', post);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') post(); });
+  } catch (e) {
+    thread.dataset.loaded = '';
+    thread.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+  }
+}
+function commentRow(c){
+  return '<div class="cmt"><span class="who">' + esc(c.name) + '</span>' +
+    '<span class="when">' + ago(c.at) + '</span>' +
+    '<div class="said">' + esc(c.text) + '</div></div>';
+}
+function drawComments(comments, thread){
+  thread.innerHTML = '<div class="cmts">' +
+    (comments.length ? comments.map(commentRow).join('') : '<div class="quiet">no one has said anything yet.</div>') +
+    '</div>';
+}
+
 /* ── views ── */
 var scr = { feed: null, mine: null, compose: null, dream: null };
 function go(which){
@@ -263,7 +403,9 @@ async function renderFeed(){
       el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
       return;
     }
-    // Group under the day they were shared, newest day first; no names.
+    // Group under the day they were shared, newest day first; no names. Inside
+    // a day, one person's dreams stay together (`by`), in the order they were
+    // written down — so a night that produced two dreams reads as one night.
     var byDay = {}, days = [];
     f.dreams.forEach(function(d){
       var k = d.publicOn || String(d.createdAt || '').slice(0, 10);
@@ -272,25 +414,12 @@ async function renderFeed(){
     });
     days.sort().reverse();
     el.innerHTML = days.map(function(k){
-      return '<div class="dayhead">' + dayLabel(k) + '</div>' + byDay[k].map(function(d){
-        return '<article class="post" data-id="' + d.id + '">' +
-          '<div class="ttl">' + esc(d.title) + '</div>' +
-          (d.words ? '<div class="words">' + esc(d.words) + '</div>' : '') +
-          panelBlock(d.panels) +
-          '<button class="stars' + (d.felt ? ' on' : '') + '">' + STAR_LINE + '<span>' + d.feltCount + ' felt this</span></button>' +
-          '</article>';
+      return '<div class="dayhead">' + dayLabel(k) + '</div>' + groupsFor(byDay[k]).map(function(g){
+        return '<article class="post">' + g.map(dreamBlock).join('') + '</article>';
       }).join('');
     }).join('');
     wirePanels(el);
-    el.querySelectorAll('.post').forEach(function(post){
-      var btn = post.querySelector('.stars');
-      btn.addEventListener('click', function(){
-        api('/dreams/' + post.dataset.id + '/felt').then(function(r){
-          btn.classList.toggle('on', r.felt);
-          btn.querySelector('span').textContent = r.feltCount + ' felt this';
-        }).catch(function(e){ toast(e.message); });
-      });
-    });
+    wireDreams(el);
   } catch (e) {
     el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
   }
