@@ -21,3 +21,7 @@ clips/
 
 # one-off mockup manifest (scripts/day-stickers-mockup.js)
 .day-stickers.json
+
+# Local copies of scripts/dream-restyle.js renders — the real copies live in
+# Firebase Storage + the gallery, and this repo is public
+dream-restyle/
