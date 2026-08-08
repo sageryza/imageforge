@@ -2,185 +2,257 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>set — a game of three · ImageForge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Set Pyramid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
 <style>
+  /* ================================================================
+     Set Pyramid — styled to match the puzzle site's NYT Games look.
+
+     The source of truth for these tokens is
+     incaseofamnesia.com/puzzles/puzzles.css. They are duplicated here
+     rather than cross-linked because this page is served from a
+     different origin and must not depend on that one being up. If you
+     change the look there, change it here.
+
+     The rule that makes it work: the PAGE is black and white — white
+     paper, black type, thin grey rules — and the ONLY colour is
+     --accent, spent on the active tab, the primary button and the
+     "different" axis tags. Nothing else is ever tinted.
+
+     House rules: no pills (6px rounded rectangles), no gradients.
+     ================================================================ */
   :root{
-    --paper:#f5f4f0; --ink:#1c1b19; --soft:#6f6c63; --faint:#9a978d; --line:#dcd9d0; --hair:#ece9e0;
-    --frame:#7a5230; --frame-edge:#5e3d22;
-    --serif:Georgia,"Times New Roman",serif;
-    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --ink:#121212; --ink2:#5a5a5a; --ink3:#8b8b8b;
+    --paper:#ffffff; --line:#e2e2e2; --rule:#121212;
+    --accent:#7d5ba6;
+    --serif:'Zilla Slab',Georgia,'Times New Roman',serif;
+    --sans:'Libre Franklin',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
   }
   *{box-sizing:border-box}
-  html,body{margin:0}
-  body{background:var(--paper);color:var(--ink);font:15px/1.6 var(--sans);padding:0 22px 80px;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:620px;margin:0 auto}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans);
+    -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  /* [hidden] loses to any author display rule — every page that toggles it needs this */
+  [hidden]{display:none !important}
+  .wrap{max-width:620px;margin:0 auto;padding:0 18px 80px}
 
-  .topbar{padding:18px 0 0}
-  .back{color:var(--faint);text-decoration:none;font-size:12.5px;letter-spacing:.04em}
-  .back:hover{color:var(--soft)}
-  header{text-align:center;margin:14px 0 28px}
-  .mark{font:italic 30px/1 var(--serif);letter-spacing:.5px}
-  .tag{margin-top:9px;color:var(--soft);font-size:12.5px;letter-spacing:.04em}
+  /* ---------- chrome ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 0;border-bottom:1px solid var(--line)}
+  .back{color:var(--ink2);text-decoration:none;font-size:11px;font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase}
+  .brand{font:700 17px/1 var(--serif);letter-spacing:.02em}
 
-  nav.modes{display:flex;justify-content:center;gap:26px;margin-bottom:26px}
-  nav.modes button{background:none;border:none;cursor:pointer;font:inherit;color:var(--faint);padding:4px 0;
-    font-size:13px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid transparent}
-  nav.modes button.act{color:var(--ink);border-bottom-color:var(--ink)}
+  header{text-align:center;padding:26px 0 20px;border-bottom:2px solid var(--accent)}
+  header h1{font:700 36px/1.02 var(--serif);margin:0;letter-spacing:-.01em}
+  header .tag{margin:12px auto 0;max-width:30em;color:var(--ink2);font-size:15px;line-height:1.5}
 
-  /* ── flat case: three square cells in a thin brown frame ── */
-  .case{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;background:var(--frame);
-    border:1px solid var(--frame-edge);border-radius:3px;padding:5px}
-  .slot{position:relative;aspect-ratio:1;background:#fff;border-radius:1px;overflow:hidden;
+  nav.modes{display:flex;justify-content:center;gap:26px;padding:18px 0 4px}
+  nav.modes button{background:none;border:none;cursor:pointer;font:inherit;color:var(--ink3);
+    padding:5px 0;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+    border-bottom:2px solid transparent}
+  nav.modes button.act{color:var(--ink);border-bottom-color:var(--accent)}
+
+  /* ---------- the pyramid ----------
+     Two objects at the base decide the one on top, so the page is laid
+     out the way the game is described: the third sits centered above
+     the pair that produced it. */
+  .pyr{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:22px 0 6px}
+  .cell.top{grid-column:1 / -1;justify-self:center;width:calc(50% - 7px)}
+  .slot{position:relative;aspect-ratio:1;background:var(--paper);
+    border:1px solid var(--line);border-radius:6px;overflow:hidden;
     display:flex;align-items:center;justify-content:center}
+  .cell.top .slot{border-color:var(--accent)}
   .slot img{width:100%;height:100%;object-fit:cover;display:block;animation:fade .4s ease}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   .slot.tappable{cursor:pointer}
-  .slot.tappable::after{content:"↻";position:absolute;top:6px;right:8px;font-size:14px;color:#00000055;opacity:0;transition:opacity .15s}
-  .slot.tappable:hover::after{opacity:1}
-  .regen{position:absolute;bottom:6px;right:6px;width:26px;height:26px;border-radius:50%;border:none;
-    background:#ffffffd0;color:#3a2410;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 1px 4px rgba(0,0,0,.18);opacity:0;transition:opacity .15s}
-  .slot:hover .regen{opacity:1}
-  .spinner{width:22px;height:22px;border:2px solid #e6e2d8;border-top-color:#8a5e38;border-radius:50%;animation:spin .8s linear infinite}
+  .regen{position:absolute;bottom:6px;right:6px;width:28px;height:28px;border-radius:50%;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:14px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .spinner{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .hint{text-align:center;color:var(--faint);font-size:12px;margin-top:10px;font-style:italic}
-  .hint b{color:var(--soft);font-weight:600;font-style:normal}
-  .hint[hidden]{display:none}
-  .drawctl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px}
-  .drawctl[hidden]{display:none}
-  .dcol{display:flex;justify-content:center;gap:14px}
-  .dcol .link{font-size:12px;letter-spacing:.05em}
-  .dcol .link:disabled{opacity:.28;cursor:default;text-decoration:none}
-  .picker{position:fixed;inset:0;background:rgba(28,27,25,.5);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
-  .picker[hidden]{display:none}
-  .picker-inner{background:var(--paper);border-radius:6px;max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:18px}
-  .picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px;color:var(--soft);letter-spacing:.05em;text-transform:uppercase}
-  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
-  .pk{background:#fff;border:1px solid var(--line);border-radius:3px;cursor:pointer;padding:0;overflow:hidden;aspect-ratio:1}
-  .pk img{width:100%;height:100%;object-fit:cover;display:block}
-  .pk:hover{border-color:var(--soft)}
 
-  /* ── controls ── */
-  .ctl[hidden]{display:none}
-  .lead{text-align:center;color:var(--soft);font-size:13.5px;margin:22px auto 16px;max-width:440px}
-  .fields{display:flex;flex-direction:column;gap:12px;max-width:440px;margin:0 auto}
-  .field label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
-  .field input{width:100%;font:inherit;font-size:15px;color:var(--ink);background:none;border:none;
-    border-bottom:1px solid var(--line);padding:7px 2px}
-  .field input:focus{outline:none;border-bottom-color:var(--ink)}
-  .field input::placeholder{color:var(--faint);font-style:italic}
-  .actions{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:20px;flex-wrap:wrap}
-  .actions[hidden]{display:none}
-  button.primary{background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:6px;cursor:pointer;
-    font:inherit;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:10px 20px;transition:opacity .15s}
-  button.primary:hover{opacity:.85}
-  button.primary:disabled{opacity:.3;cursor:default}
-  button.link{background:none;border:none;cursor:pointer;color:var(--faint);font:inherit;font-size:12.5px;letter-spacing:.04em;padding:4px}
-  button.link:hover{color:var(--soft);text-decoration:underline}
+  .cap{text-align:center;font-size:10px;font-weight:700;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--ink3);padding-top:7px}
+  /* per-cell controls, only in draw mode */
+  .dcol{display:flex;justify-content:center;gap:14px;padding-top:5px}
+  .pyr:not(.drawmode) .dcol{display:none}
 
-  .spec{margin-top:22px}
-  .spec[hidden]{display:none}
-  .spec .rat{text-align:center;color:var(--soft);font-size:13px;font-style:italic;max-width:440px;margin:0 auto 12px}
-  .spec .rows{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;max-width:460px;margin:0 auto}
-  .spec .a{font-size:11.5px;color:var(--soft)}
-  .spec .a b{color:var(--ink);font-weight:600}
-  .err{text-align:center;color:#a23b2e;font-size:13px;margin-top:14px}
+  .hint{text-align:center;color:var(--ink3);font-size:12.5px;line-height:1.5;padding-top:12px}
+  .hint b{color:var(--ink2);font-weight:600}
 
-  .judge[hidden]{display:none}
-  .judge{margin-top:22px}
+  /* ---------- controls ---------- */
+  .lead{text-align:center;color:var(--ink2);font-size:14px;margin:24px auto 18px;max-width:440px}
+  .fields{display:flex;flex-direction:column;gap:14px;max-width:440px;margin:0 auto}
+  .field label{display:block;font-size:10px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+  .field input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--paper);
+    border:1px solid var(--line);border-radius:6px;padding:11px 12px}
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .field input::placeholder{color:var(--ink3)}
+
+  .actions{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap}
+  /* buttons HUG their text — never full width, never a pill */
+  button.primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:6px;
+    cursor:pointer;font:inherit;font-size:13px;font-weight:600;padding:11px 20px;
+    -webkit-tap-highlight-color:transparent}
+  button.primary:active{opacity:.75}
+  button.primary:disabled{opacity:.34;cursor:default}
+  button.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--ink);border-radius:6px;
+    cursor:pointer;font:inherit;font-size:13px;font-weight:600;padding:11px 20px}
+  button.link{background:none;border:none;cursor:pointer;color:var(--ink3);font:inherit;
+    font-size:12.5px;font-weight:600;padding:4px;text-decoration:underline}
+  button.link:disabled{opacity:.3;cursor:default;text-decoration:none}
+
+  .spec{margin-top:24px}
+  .spec .rat{text-align:center;color:var(--ink2);font:16px/1.5 var(--serif);max-width:440px;margin:0 auto 14px}
+  .spec .rows{display:flex;flex-wrap:wrap;gap:7px 14px;justify-content:center;max-width:460px;margin:0 auto}
+  .spec .a{font-size:11.5px;color:var(--ink2)}
+  .spec .a b{color:var(--accent);font-weight:700}
+  .err{text-align:center;color:#b3443f;font-size:13px;margin-top:14px}
+
+  .judge{margin-top:24px}
   .axis{display:flex;align-items:center;gap:14px;max-width:440px;margin:0 auto 10px}
-  .axis input{flex:1;font:inherit;font-size:14px;color:var(--ink);background:none;border:none;border-bottom:1px solid var(--line);padding:6px 2px}
-  .axis input:focus{outline:none;border-bottom-color:var(--ink)}
-  .axis input::placeholder{color:var(--faint)}
+  .axis input{flex:1;font:inherit;font-size:15px;color:var(--ink);background:var(--paper);
+    border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+  .axis input:focus{outline:none;border-color:var(--accent)}
+  .axis input::placeholder{color:var(--ink3)}
   .seg{display:inline-flex;gap:12px}
-  .seg span{cursor:pointer;color:var(--faint);font-size:12px;letter-spacing:.04em;padding:2px 0;border-bottom:1px solid transparent}
-  .seg span.sel{color:var(--ink);border-bottom-color:var(--ink)}
-  .axis .rm{color:var(--faint);cursor:pointer;font-size:16px;line-height:1}
+  .seg span{cursor:pointer;color:var(--ink3);font-size:11px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;padding:3px 0;border-bottom:2px solid transparent}
+  .seg span.sel{color:var(--ink);border-bottom-color:var(--accent)}
+  .axis .rm{color:var(--ink3);cursor:pointer;font-size:17px;line-height:1}
   .addwrap{text-align:center;margin-top:2px}
 
-  .coll{margin-top:50px;border-top:1px solid var(--line);padding-top:22px}
-  .collhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-  .collhead h3{font:12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--soft);margin:0;font-weight:600}
-  .vocab{color:var(--faint);font-size:12px;margin-bottom:16px;min-height:15px}
-  .vocab b{color:var(--soft);font-weight:400}
-  .empty{color:var(--faint);font-size:13px;font-style:italic}
-  .kept{margin-bottom:16px}
-  .kept.new .case{animation:rise .5s cubic-bezier(.2,.8,.25,1)}
+  .coll{margin-top:50px;border-top:1px solid var(--rule);padding-top:24px}
+  .collhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .collhead h3{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink);margin:0}
+  .vocab{color:var(--ink3);font-size:12px;margin-bottom:16px;min-height:15px}
+  .vocab b{color:var(--ink2);font-weight:600}
+  .empty{color:var(--ink3);font-size:13px}
+  .kept{margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .kept.new .pyr{animation:rise .5s cubic-bezier(.2,.8,.25,1)}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .notes{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;justify-content:center}
-  .atag{font-size:11.5px;color:var(--soft)}
-  .atag.diff{color:var(--ink)}
-  .muted{color:var(--faint);font-size:12px;font-style:italic}
+  .notes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center}
+  .atag{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink2)}
+  .atag.diff{color:var(--accent)}
+
+  footer{border-top:1px solid var(--rule);margin-top:34px;padding:22px 0 10px;
+    text-align:center;font-size:12px;color:var(--ink3);line-height:1.6}
+  footer a{color:inherit;text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="topbar"><a class="back" href="/">← hub</a></div>
+
+  <div class="topbar">
+    <a class="back" href="/">&larr; Hub</a>
+    <div class="brand">Set&nbsp;Pyramid</div>
+  </div>
+
   <header>
-    <div class="mark">set</div>
-    <div class="tag">three objects. a set is what they don't share.</div>
+    <h1>Set Pyramid</h1>
+    <div class="tag">Two objects at the base decide the one on top. A set is what they don't share.</div>
   </header>
 
   <nav class="modes">
-    <button data-mode="make" class="act">make a set</button>
-    <button data-mode="draw">draw three</button>
+    <button data-mode="make" class="act">Make a set</button>
+    <button data-mode="draw">Draw three</button>
   </nav>
 
-  <div class="case" id="case">
-    <div class="slot" data-i="0"></div>
-    <div class="slot" data-i="1"></div>
-    <div class="slot" data-i="2"></div>
+  <!-- The third sits above the pair that produced it. DOM order is
+       top-then-base for the layout; the JS indexes slots by data-i, never
+       by DOM position, so the two orders can differ safely. -->
+  <div class="pyr" id="case">
+    <div class="cell top" data-i="2">
+      <div class="slot" data-i="2"></div>
+      <div class="cap">the third</div>
+      <div class="dcol" data-i="2">
+        <button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button>
+      </div>
+    </div>
+    <div class="cell" data-i="0">
+      <div class="slot" data-i="0"></div>
+      <div class="cap">one</div>
+      <div class="dcol" data-i="0">
+        <button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button>
+      </div>
+    </div>
+    <div class="cell" data-i="1">
+      <div class="slot" data-i="1"></div>
+      <div class="cap">two</div>
+      <div class="dcol" data-i="1">
+        <button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button>
+      </div>
+    </div>
   </div>
-  <div class="drawctl" id="drawctl" hidden>
-    <div class="dcol" data-i="0"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
-    <div class="dcol" data-i="1"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
-    <div class="dcol" data-i="2"><button class="link" data-a="pick">pick</button><button class="link" data-a="new">new</button></div>
-  </div>
-  <div class="hint" id="hint" hidden>tap an object to reshuffle it · <b>pick</b> chooses one · <b>new</b> generates one to complete the other two</div>
+
+  <div class="hint" id="hint" hidden>Tap an object to reshuffle it &middot; <b>pick</b> chooses one &middot; <b>new</b> generates one to complete the other two</div>
 
   <section class="ctl" id="ctl-make">
-    <p class="lead">Describe the first two objects. They generate, and the third is designed to complete them. Regenerate any until it's right.</p>
+    <p class="lead">Describe the two objects at the base. They generate, and the third is designed to complete them. Regenerate any until it's right.</p>
     <div class="fields">
       <div class="field"><label>the first object</label><input id="desc1" placeholder="e.g. a spoonful of peas set in resin" /></div>
       <div class="field"><label>the second object</label><input id="desc2" placeholder="e.g. a brass doorknob on a scrap of door" /></div>
     </div>
     <div class="actions">
-      <button class="primary" id="genset">generate the set</button>
+      <button class="primary" id="genset">Generate the set</button>
       <button class="link" id="resetmake" hidden>clear</button>
     </div>
     <div class="spec" id="spec" hidden></div>
     <div class="actions" id="makekeep" hidden>
-      <button class="primary" id="keepmake">keep this set</button>
+      <button class="ghost" id="keepmake">Keep this set</button>
     </div>
   </section>
 
   <section class="ctl" id="ctl-draw" hidden>
-    <p class="lead">Draw three at random. Decide if they make a set — and name the axes they're same or different on.</p>
-    <div class="actions"><button class="primary" id="draw">draw three</button></div>
+    <p class="lead">Draw three at random. Decide if they make a set &mdash; and name the axes they're same or different on.</p>
+    <div class="actions"><button class="primary" id="draw">Draw three</button></div>
     <div class="judge" id="judge" hidden>
       <div id="axes"></div>
       <div class="addwrap"><button class="link" id="addax">+ name another axis</button></div>
       <div class="actions">
-        <button class="primary" id="callset">this is a set</button>
+        <button class="primary" id="callset">This is a set</button>
         <button class="link" id="callno">not a set — draw again</button>
       </div>
     </div>
   </section>
 
   <section class="coll">
-    <div class="collhead"><h3>kept sets</h3><span class="link" id="clear">clear all</span></div>
+    <div class="collhead"><h3>Kept sets</h3><button class="link" id="clear">clear all</button></div>
     <div class="vocab" id="vocab"></div>
     <div id="kept"></div>
   </section>
+
+  <footer>
+    Set Pyramid &mdash; part of <a href="https://incaseofamnesia.com/puzzles/">Puzzles</a>.
+  </footer>
 </div>
 
 <div class="picker" id="picker" hidden>
   <div class="picker-inner">
-    <div class="picker-head"><span>pick an object</span><button class="link" id="pickclose">close</button></div>
+    <div class="picker-head"><span>Pick an object</span><button class="link" id="pickclose">close</button></div>
     <div class="picker-grid" id="pickgrid"></div>
   </div>
 </div>
+<style>
+  .picker{position:fixed;inset:0;background:rgba(18,18,18,.55);display:flex;align-items:center;
+    justify-content:center;z-index:20;padding:20px}
+  .picker-inner{background:var(--paper);border-radius:6px;max-width:520px;width:100%;
+    max-height:80vh;overflow:auto;padding:18px;border:1px solid var(--line)}
+  .picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+    font-size:11px;font-weight:700;color:var(--ink);letter-spacing:.13em;text-transform:uppercase}
+  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+  .pk{background:var(--paper);border:1px solid var(--line);border-radius:6px;cursor:pointer;
+    padding:0;overflow:hidden;aspect-ratio:1}
+  .pk img{width:100%;height:100%;object-fit:cover;display:block}
+  .pk:hover{border-color:var(--accent)}
+</style>
 
 <script>
 const IMG="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/";
@@ -204,9 +276,11 @@ const DATA=[
 ];
 
 const $=s=>document.querySelector(s);
-const slots=[...document.querySelectorAll('#case .slot')];
+/* Indexed by data-i, NOT by DOM order — the pyramid draws the third slot
+   first, and reading these positionally would silently swap the objects. */
+const slots=[0,1,2].map(i=>document.querySelector('#case .slot[data-i="'+i+'"]'));
 let mode='make';
-let stage=[null,null,null];        // {img} per slot
+let stage=[null,null,null];        // {img} per slot — 0 and 1 are the base, 2 is the third
 let loading=[false,false,false];
 let desc=['',''];                  // make-mode text for the two described objects
 let thirdMeta=null;                // {name,axes,rationale} of the designed third
@@ -267,7 +341,7 @@ async function generateSet(){
   stage=[null,null,null]; thirdMeta=null; $('#spec').hidden=true; $('#makekeep').hidden=true; renderCase();
   await Promise.all([genObject(0), genObject(1)]);
   if(stage[0]&&stage[1]) await designThird();
-  busy=false; btn.disabled=false; btn.textContent='regenerate the set'; $('#resetmake').hidden=false;
+  busy=false; btn.disabled=false; btn.textContent='Regenerate the set'; $('#resetmake').hidden=false;
 }
 async function regenMake(i){
   if(busy) return; busy=true;
@@ -278,7 +352,7 @@ async function regenMake(i){
 function resetMake(){
   stage=[null,null,null]; loading=[false,false,false]; desc=['','']; thirdMeta=null;
   $('#desc1').value=''; $('#desc2').value='';
-  $('#genset').textContent='generate the set'; $('#genset').disabled=false;
+  $('#genset').textContent='Generate the set'; $('#genset').disabled=false;
   $('#resetmake').hidden=true; $('#spec').hidden=true; $('#makekeep').hidden=true;
   renderCase();
 }
@@ -290,7 +364,9 @@ function draw(){
   stage=[null,null,null]; renderCase();
   const chosen=[];
   for(let k=0;k<3;k++) chosen.push(pick(chosen));
-  chosen.forEach((o,i)=>setTimeout(()=>{ stage[i]=o; renderCase(); if(i===2){ drawing=false; openJudge(); } }, 300+i*480));
+  // the base lands first, then the third on top — the pyramid builds upward
+  const order=[0,1,2];
+  order.forEach((slot,n)=>setTimeout(()=>{ stage[slot]=chosen[n]; renderCase(); if(n===2){ drawing=false; openJudge(); } }, 300+n*480));
 }
 function redrawOne(i){
   const others=stage.filter((o,j)=>j!==i&&o);
@@ -298,10 +374,10 @@ function redrawOne(i){
 }
 let pickSlot=null;
 function renderDrawCtl(){
-  const dc=$('#drawctl');
-  if(mode!=='draw'){ dc.hidden=true; return; }
-  dc.hidden=false;
-  [...dc.querySelectorAll('.dcol')].forEach(col=>{
+  const pyr=$('#case');
+  pyr.classList.toggle('drawmode', mode==='draw');
+  if(mode!=='draw') return;
+  document.querySelectorAll('.dcol').forEach(col=>{
     const i=+col.dataset.i;
     const others=[0,1,2].filter(j=>j!==i);
     const canNew = others.every(j=>stage[j]) && !loading.some(Boolean) && !busy;
@@ -359,6 +435,11 @@ function keep(axes){
   arr.unshift({imgs:stage.map(o=>o.img), axes, t:Date.now()});
   save(arr); renderKept(true);
 }
+/* A kept set is redrawn as the same pyramid: index 2 on top, 0 and 1 below. */
+function keptPyr(imgs){
+  const cell=(i,cls)=>`<div class="cell${cls}"><div class="slot"><img src="${imgs[i]}" loading="lazy"></div></div>`;
+  return `<div class="pyr">${cell(2,' top')}${cell(0,'')}${cell(1,'')}</div>`;
+}
 function renderKept(animate){
   const arr=load(), kept=$('#kept'), vocab=$('#vocab');
   if(!arr.length){ kept.innerHTML='<div class="empty">No sets yet. Make one, or draw three and keep what your eye blesses.</div>'; vocab.innerHTML=''; return; }
@@ -367,7 +448,7 @@ function renderKept(animate){
   vocab.innerHTML = names.length? 'axes you\'ve named — '+names.map(n=>`<b>${esc(n)}</b>`).join(' · ') : '';
   kept.innerHTML = arr.map((s,idx)=>`
     <div class="kept ${animate&&idx===0?'new':''}">
-      <div class="case">${s.imgs.map(u=>`<div class="slot"><img src="${u}" loading="lazy"></div>`).join('')}</div>
+      ${keptPyr(s.imgs)}
       ${ (s.axes&&s.axes.length)? `<div class="notes">${s.axes.map(a=>`<span class="atag ${a.rel==='diff'?'diff':''}">${esc(a.name)} · ${a.rel==='diff'?'different':'same'}</span>`).join('')}</div>` : '' }
     </div>`).join('');
 }
@@ -383,7 +464,8 @@ function setMode(m){
 }
 
 document.querySelectorAll('nav.modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-$('#drawctl').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(!btn) return; const col=btn.closest('.dcol'); if(!col) return; const i=+col.dataset.i; if(btn.dataset.a==='pick') openPicker(i); else if(btn.dataset.a==='new') newFrom(i); });
+/* delegated on the pyramid, since each slot's controls now live in its own cell */
+$('#case').addEventListener('click',e=>{ const btn=e.target.closest('button.link'); if(!btn) return; const col=btn.closest('.dcol'); if(!col) return; const i=+col.dataset.i; if(btn.dataset.a==='pick') openPicker(i); else if(btn.dataset.a==='new') newFrom(i); });
 $('#pickclose').onclick=closePicker;
 $('#picker').onclick=e=>{ if(e.target.id==='picker') closePicker(); };
 $('#genset').onclick=generateSet;
