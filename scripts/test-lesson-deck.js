@@ -105,6 +105,34 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  FAIL ') + msg); i
     // thing the lesson taught. Reported, never failed.
     console.log(`  note   last card ${info.lastHasCta ? 'carries' : 'has no'} CTA`);
 
+    // The last card's CTA must not be clipped by the card's bottom edge, and
+    // any ⓘ FAQ must open and close without turning the card.
+    if (info.lastHasCta) {
+      await page.evaluate((k) => { deckIdx = LESSONS[k].length - 1; renderDeckCard(); }, key);
+      await page.waitForTimeout(300);
+      const cta = await page.evaluate(() => {
+        const c = document.getElementById('deck-cta'), st = document.getElementById('deck-stage');
+        if (!c) return null;
+        const cb = c.getBoundingClientRect(), sb = st.getBoundingClientRect();
+        return { gap: Math.round(sb.bottom - cb.bottom) };
+      });
+      ok(cta && cta.gap >= 8, `the CTA clears the card's bottom edge (${cta ? cta.gap : '?'}px)`);
+    }
+    const faqIdx = await page.evaluate((k) => LESSONS[k].findIndex(c => c.faq), key);
+    if (faqIdx >= 0) {
+      await page.evaluate((i) => { deckIdx = i; renderDeckCard(); }, faqIdx);
+      await page.waitForTimeout(300);
+      const at = await page.evaluate(() => deckIdx);
+      await page.click('#faq-btn'); await page.waitForTimeout(220);
+      const open = await page.evaluate(() => ({ on: document.getElementById('faq-wrap').classList.contains('on'), idx: deckIdx }));
+      await page.click('.faq-card'); await page.waitForTimeout(220);
+      const shut = await page.evaluate(() => ({ on: document.getElementById('faq-wrap').classList.contains('on'), idx: deckIdx }));
+      ok(open.on && !shut.on, 'the ⓘ FAQ opens and closes');
+      ok(open.idx === at && shut.idx === at, 'the ⓘ FAQ never turns the card');
+    }
+    await page.evaluate((k) => { deckIdx = 0; renderDeckCard(); }, key);
+    await page.waitForTimeout(200);
+
     // Tap all the way through, answering quiz cards as they come.
     let reachedNote = false;
     for (let i = 0; i < info.n + 8; i++) {

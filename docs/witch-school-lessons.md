@@ -71,6 +71,35 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
   pronouncing it, and let IMAGES do the charm (the mint-tin altar, the magpie
   rhyme) rather than verdicts about the images. Em dashes and playful specifics
   are fine — the ban is on sermonizing, not on personality.
+- **NEVER adjudicate the craft against science (Aug 2026, Sophie — a flag she
+  raised on a live card).** This is a witch app, written for witches. An honesty
+  card presents the skeptical account as something to reckon with; it must not
+  hand down a verdict that the craft is false. The line that earned this was in
+  the saliva card — *"same material, same logic … except this version works"* —
+  which says, plainly, that the magical version doesn't. Also caught in the same
+  sweep: *"Frazer's law is wrong about cause and right about material"* and
+  *"Frazer's second law with the magic taken out"*. The fix is not softer
+  wording, it's dropping the ruling: state what the laboratory can measure, state
+  what the craft claims, and let them stand side by side ("a laboratory reads
+  that as identity; a witch reads it as contact"). Watch for the tell — any
+  clause whose job is to say which one is *real*.
+  - Discernment cards are NOT this and stay: apophenia in Reading Signs, the
+    frequency illusion, Littlewood's arithmetic. They teach the reader to tell a
+    strong sign from a weak one, which is the craft's own tool. The banned move
+    is ruling on whether the practice works at all.
+- **The app is never the EVIDENCE (Aug 2026, Sophie).** A lesson may point at a
+  feature; it may not cite the app as proof of its own subject. *"Synchronicities
+  abound — the whole front door of this app says so"* and *"the front door of
+  this app asks you every morning …"* are circular, and on a first visit they
+  are also just false — she has not been doing this already. Open from the
+  READER's own experience instead ("you think of someone you have not spoken to
+  in years and they call that afternoon"). Feature pointers on an After card are
+  fine; "the site says so, therefore it is so" is not.
+- **A craft instruction starts with the INTENTION (Aug 2026, Sophie).** Telling a
+  beginner to wind a hair around a key without naming what it is FOR disrespects
+  the practice — magic starts with intention, and "write down your working" is
+  jargon to someone who has never had one. Name the intention first, give two or
+  three concrete examples of one, and only then the physical steps.
 - **Researched, not generic** — Sophie asked for real research passes. Do 1–2
   web searches per lesson and put actual material in the cards (Culpeper 1652,
   the horoskopos, Epidaurus temple sleep, witch bottles dug up under
@@ -82,6 +111,36 @@ no files from Sophie are needed (her style refs live in Firebase Storage).
   phone-sized.
 - Safety cards where the topic needs one (poison path: "never touch or brew";
   shadow work: therapist note, kindness container). Never skip these.
+
+### The ⓘ FAQ on a card (Aug 2026, Sophie — two samples live)
+
+Cards are invitations: they name a real thing in one sentence and point at a
+whole bank of knowledge behind it. A card can now answer the obvious follow-ups
+in place — add `faq: [{ q, a }, …]` and a small ⓘ appears beside its heading;
+tapping opens a panel over the card, tapping anywhere closes it. `a` may carry
+`<b>`/`<i>`.
+
+- **Order by which question the reader hits FIRST**, not by importance.
+- **Three is the usual number.** Four or five when the subject earns it, more
+  only if it genuinely needs it. Don't pad to a quota.
+- Live samples to copy: `bh-03` (the forensic laboratory — what it did, whether
+  a trace is DNA, whether it solved anything, why it's in a witchcraft lesson)
+  and `sy-03` (acausal — what the word means, the coincidence objection, whether
+  other psychologists accepted it, where to read the original).
+- The ⓘ and its panel both `stopPropagation`, or opening the FAQ also turns the
+  card. `scripts/test-lesson-deck.js` checks that for every lesson that has one.
+- **Not built yet** (Sophie's ask, on the to-do list): FAQs on every card, and
+  an organizational chart for the cards that point at whole *categories* of
+  knowledge rather than one fact.
+
+### The CTA button's row
+
+A last-card CTA lives in its own `.cta-row` UNDER the scrolling `.deck-text`,
+never inside it. Inside, it rested exactly on the container's clipped edge and
+its rounded bottom corners were cut off (Sophie's report). Padding doesn't fix
+that — `.deck-text` scrolls, so anything added below the button lands in the
+overflow and the button still sits on the edge. Measured before/after: 0px
+clearance → 16px.
 
 ## Illustrations
 

@@ -1026,6 +1026,32 @@
     .deck-text > :first-child { margin-top: auto; }
     .deck-text > :last-child { margin-bottom: auto; }
     .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+    /* A CTA button sat flush against .deck-text's scrolling edge, so its
+       rounded BOTTOM corners were clipped and it read as a half-rectangle
+       (Sophie caught it). Two fixes DON'T work here: padding on .deck-text
+       lands inside the scroll area (measured — the button still came within
+       2px of the edge), and a margin-bottom on the button itself defeats the
+       `> :last-child { margin-bottom: auto }` rule that centres a card's text.
+       Both failed for the same reason: .deck-text SCROLLS, so any space added
+       below the button lands in the overflow and the button still rests on the
+       clipped edge. So the CTA moved OUT of the scrolling text into its own
+       flex:none row under it — it can no longer be clipped, and on a long
+       card it no longer needs scrolling to reach. */
+    .cta-row { flex: none; padding: 0 24px 16px; }
+    /* The ⓘ FAQ: a card's obvious follow-up questions, answered in place.
+       Tap the circle by the heading, tap anywhere to close. */
+    #deck-stage .tcard { position: relative; }
+    .faq-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 7px; padding: 0; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; vertical-align: middle; }
+    .faq-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; }
+    .faq-btn:hover, .faq-btn.on { color: var(--gold); }
+    .faq-wrap { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; z-index: 6; }
+    .faq-wrap.on { display: flex; }
+    .faq-card { background: #fffdf8; border: 1px solid rgba(120, 90, 40, 0.18); border-radius: 8px; padding: 15px 16px 14px; max-height: 100%; overflow-y: auto; text-align: left; box-shadow: 0 10px 30px rgba(90, 66, 24, 0.16); }
+    .faq-card .faq-hd { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+    .faq-card .faq-q { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 13px; }
+    .faq-card .faq-q:first-of-type { margin-top: 0; }
+    .faq-card .faq-a { font-size: 14px; line-height: 1.5; color: var(--text); margin-top: 3px; }
+    .faq-card .faq-close { font-size: 11px; color: var(--gold-dim); text-align: center; margin-top: 14px; }
     .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
@@ -6076,7 +6102,7 @@
     { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: 'You\'re holding a deck right now — this app deals your daily three from the real 1909 deck.<br><br><b>Tonight:</b> pull your cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them. ✦', cta: { label: 'Draw today\'s cards', go: 'home', el: 'tarot-card', fallback: 'natal-form' } },
   ];
   const SIGNS_CARDS = [
-    { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'Synchronicities abound — the whole front door of this app says so. This lesson covers the craft behind that: how witches have always read feathers, birds, and uncanny repeats, and how to do it without fooling yourself.' },
+    { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'The world puts things in your path — a feather where you sat down, the same number three times before noon, a bird that will not leave the window. This lesson is the craft of reading them: how witches have always taken feathers, birds and uncanny repeats seriously, and how to do it without fooling yourself.' },
     { img: 'rs-02', bg: '#fdf9f3', kicker: 'The old office', h: 'The augurs', body: 'Rome kept official state priests — <b>augurs</b> — whose whole job was reading birds: which direction they flew, how high, how many. Nothing launched, no war, no vote, until the sky had spoken. Sign-reading used to be a government position.' },
     { img: 'rs-03', bg: '#fdf9f5', kicker: 'The counting', h: 'One for sorrow', body: '“One for sorrow, two for joy…” — the magpie rhyme is a surviving scrap of real augury, four hundred years old. Counting crows, greeting a lone magpie to soften the omen — folk sign-craft that never died out.' },
     { img: 'rs-04', bg: '#fefdfc', kicker: 'The word', h: 'Synchronicity', body: 'The psychologist <b>Carl Jung</b> coined it: a coincidence with no cause connecting the events — except that it lands, precisely, in the middle of your life. The outer event rhymes with the inner one.' },
@@ -6092,9 +6118,9 @@
      it; its last card sends you back to the boxes, so the two are linked both
      ways. 14 cards (the house 10 is a floor, not a rule). */
   const SYNC_CARDS = [
-    { img: 'sy-01', bg: '#fdf8f1', kicker: 'Synchronicity', h: 'The word for it', body: 'You have been doing this already — the front door of this app asks you every morning which coincidences were put in your path. Behind that question sits a hundred years of argument: who named the thing, what they actually claimed, and how to tell a real one from a trick of your own attention. We\'ll take it one idea at a time.' },
+    { img: 'sy-01', bg: '#fdf8f1', kicker: 'Synchronicity', h: 'The word for it', body: 'Everyone has had one. You think of someone you have not spoken to in years and they call that afternoon; a word you learned on Tuesday turns up three times before Friday. Behind that ordinary experience sits a hundred years of argument — who named it, what they actually claimed, and how to tell a real one from a trick of your own attention. We\'ll take it one idea at a time.' },
     { img: 'sy-02', bg: '#fefbf8', kicker: 'Munich, 1930', h: 'A word said at a funeral', body: 'The term arrives in a eulogy. In May 1930 <b>Jung</b> spoke at a Munich memorial for <b>Richard Wilhelm</b>, who had brought the <i>I Ching</i> into German, and tried to account for how such a book could work at all. Its science, he said, rests not on causality but on a principle “hitherto unnamed” — which he was tentatively calling <b>synchronistic</b>.' },
-    { img: 'sy-03', bg: '#fdf8ef', kicker: 'The definition', h: 'Two events, no thread', body: 'His full phrase was <b>an acausal connecting principle</b>. Two events with nothing running between them — no chain of cause in either direction — that nevertheless answer each other, because of what you happened to be carrying at the time. Jung\'s claim was that <b>meaning</b> can do the connecting where cause does not.' },
+    { img: 'sy-03', bg: '#fdf8ef', kicker: 'The definition', h: 'Two events, no thread', body: 'His full phrase was <b>an acausal connecting principle</b>. Two events with nothing running between them — no chain of cause in either direction — that nevertheless answer each other, because of what you happened to be carrying at the time. Jung\'s claim was that <b>meaning</b> can do the connecting where cause does not.', faq: [{ q: 'What does acausal actually mean?', a: 'That neither event caused the other, and no third thing caused both. Jung was not proposing a hidden mechanism we have yet to find — he was proposing a kind of connection that is not mechanical at all.' }, { q: 'Is that not just coincidence with a nicer name?', a: 'That was the standard objection in his own lifetime, and he took it seriously enough to run statistics himself. His answer: the defining ingredient is the <b>meaning it carries for the person it happens to</b>, which a frequency count neither confirms nor refutes.' }, { q: 'Did other psychologists accept it?', a: 'Largely not. It sits at the edge of Jung\'s work even among Jungians, and it is the part most often left out of introductions to him.' }, { q: 'Where can I read the original?', a: '<i>Synchronicity: An Acausal Connecting Principle</i>, published 1952 alongside Pauli\'s essay on Kepler, and collected in Volume 8 of Jung\'s Collected Works.' }] },
     { img: 'sy-04-v2', bg: '#fdf9f3', kicker: 'The scarab', h: 'The beetle at the window', body: 'His famous case: a patient so armoured in rationalism that the work had stalled for months. She was describing a dream of being handed a golden scarab when Jung heard tapping at the glass — a <b>rose-chafer</b>, the nearest thing Switzerland has to a scarab, trying to get in. He caught it and passed it to her: <i>“Here is your scarab.”</i> Years of argument had not shifted her. The beetle did.' },
     { img: 'sy-05', bg: '#fdfaf4', kicker: 'The physicist', h: 'Pauli’s half', body: '<b>Wolfgang Pauli</b> — Nobel laureate, one of the architects of quantum mechanics — spent years writing to Jung about all this, and in 1952 the two published <i>Naturerklärung und Psyche</i> together: Jung\'s essay on synchronicity bound with Pauli\'s on Kepler. Pauli\'s contribution came from physics. A radioactive atom decays at no particular moment, for no prior reason; events without causes were already on the books.' },
     { img: 'sy-06', bg: '#fef6eb', kicker: 'Vienna, 1919', h: 'The law of series', body: 'Eleven years earlier the biologist <b>Paul Kammerer</b> had published <i>Das Gesetz der Serie</i> — the law of seriality. His method was to sit in Viennese parks for hours tallying passers-by: how many wore spectacles, how many carried umbrellas, the exact minute each arrived. They came in clumps. Jung read him.' },
@@ -6119,8 +6145,8 @@
   const BLOOD_CARDS = [
     { img: 'bh-01', bg: '#fef6ec', kicker: 'Blood, Spit and Hair', h: 'The parts that leave you', body: 'You shed yourself constantly — hair on the pillow, skin on the sheets, spit on the rim of a glass. Nearly every tradition that works magic on a person works on those leavings. This lesson is what the old craft did with them, why English gardens keep turning up bottles of them, and where the practice stands now that a laboratory can read a single hair. One idea at a time.' },
     { img: 'bh-02', bg: '#fefbf7', kicker: 'The two laws', h: 'Like, and contact', body: 'Cataloguing magic across the world in the 1890s, the anthropologist <b>James Frazer</b> kept finding the same two rules. <b>Similarity</b> — like produces like, so an image of a thing acts on the thing. <b>Contagion</b> — objects that have once touched go on acting on each other after they are parted. Hair, nails, blood and spit are the second law\'s favourite material: they were you, so by that logic they still are.' },
-    { img: 'bh-03', bg: '#fcfbf6', kicker: 'The other laboratory', h: 'Every contact leaves a trace', body: 'Thirty years on, <b>Edmond Locard</b> was running the first forensic laboratory in Lyon on a principle that reads like Frazer\'s second law with the magic taken out: when two things touch, each leaves something on the other. One correction for honesty\'s sake — Locard never wrote the famous sentence. “Every contact leaves a trace” was tidied out of his work by other people afterwards.' },
-    { img: 'bh-04', bg: '#fdf9f5', kicker: 'The honest part', h: 'What you actually shed', body: 'Frazer\'s law is wrong about cause and right about material. You do leave yourself on everything: skin cells by the thousand every minute, spit on every rim, and hair — with a root it carries your full <b>DNA</b>, without one it carries only your mother\'s line. So a working with your hair in it really does hold something of you. What it does not hold is a thread back to your body that anything can travel along.' },
+    { img: 'bh-03', bg: '#fcfbf6', kicker: 'The other laboratory', h: 'Every contact leaves a trace', body: 'Thirty years on, <b>Edmond Locard</b> was running the first forensic laboratory in Lyon on a principle with the same shape as Frazer\'s second law: when two things touch, each leaves something on the other. Two fields a generation apart, both landing on contact as the thing that carries. One correction for honesty\'s sake — Locard never wrote the famous sentence. “Every contact leaves a trace” was tidied out of his work by other people afterwards.', faq: [{ q: 'What did the laboratory actually do?', a: 'Examined the physical traces left behind at a crime scene — dust, fibres, hair, soil, face powder — under a microscope, and matched them against a suspect\'s clothes and body. It opened in <b>Lyon in 1910</b>, in two attic rooms of the courthouse, with two assistants and almost no budget.' }, { q: 'Is a trace the same as DNA?', a: 'No — DNA fingerprinting arrived in <b>1984</b>, seventy years later. Locard worked with what a lens could see: the type of a fibre, the mineral makeup of dust, the particular dirt of one street.' }, { q: 'Did it actually solve anything?', a: 'His best-known case is a strangling in 1912. He scraped under the suspect\'s fingernails and found skin cells and the pink face powder the victim wore. The man confessed.' }, { q: 'Why is it in a witchcraft lesson?', a: 'Because it is the law of contagion stated as a testable claim — contact transfers material, and the material leads back. The craft and the laboratory disagree about what that connection can carry, not about whether the contact leaves something behind.' }] },
+    { img: 'bh-04', bg: '#fdf9f5', kicker: 'The material', h: 'What you actually shed', body: 'What the old craft asks for is real, measurable, and specifically yours. You shed skin cells by the thousand every minute, spit on every rim, and hair — with a root it carries your full <b>DNA</b>, without one it carries only your mother\'s line. A laboratory reads all that as identity; a witch reads it as contact. Both are working from the same fact: those parts were you, and they go on carrying you after they leave.' },
     { img: 'bh-05', bg: '#fefbf6', kicker: 'Greenwich, 2004', h: 'The bottle that was still corked', body: 'Builders turned up a stoneware <b>bellarmine</b> jar — the bearded face moulded on its shoulder — with the cork still in. Roughly two hundred had been found in England before it and every one had already been opened. Alan Massey\'s team catalogued the inside: urine, twelve bent iron nails, eight pins, hair, navel fluff, a leather heart pierced through with a nail, and traces of brimstone. The nail clippings were neatly manicured, so whoever made it was not poor.' },
     { img: 'bh-06', bg: '#fefbf6', kicker: 'Suffolk, 1681', h: 'The recipe', body: 'These were <b>counter-magic</b>, not curses. Joseph Glanvill\'s <i>Saducismus Triumphatus</i> tells of a Suffolk man whose wife was ill and haunted by something in the shape of a bird, and of the travelling old man who gave him the method: <i>“Take your wife\'s urine… and cork it in a bottle with nails, pins and needles, and bury it in the earth; and that will do the feat.”</i> The harm is sent back up the same thread it arrived on.' },
     { img: 'bh-07', bg: '#fdfaf3', kicker: 'Spit', h: 'The sealing agent', body: 'Spit binds a thing. On the palm before the handshake that seals a bargain, on the hands before heavy work, three times over the shoulder against the evil eye — a gesture still alive in Greek and Yiddish households. Of the three materials it is the most freely given and the least ceremonious, which is why it turns up in the ordinary contracts of daily life rather than in ritual.' },
@@ -6132,9 +6158,9 @@
     ] } },
     { img: 'bh-09', bg: '#fdf9f3', kicker: 'The asking', h: 'Whose hair is it', body: 'The rule the old books never bothered with: a person\'s leavings are theirs. Ask for them. A strand <b>given</b> is a person joining in, which is most of what makes the working worth doing — and a strand <b>taken</b> puts you in the role those bottles were buried against. This is the one place where the craft and the law of the land happen to agree with each other.' },
     { img: 'bh-10', bg: '#fdf5eb', kicker: 'Safety', h: 'Blood, and how little', body: 'Blood is the one with real rules. Use only your <b>own</b> — never another person\'s, and never anyone\'s who cannot consent. Bloodborne infection is not folklore. A sterile single-use lancet, the side of a fingertip, <b>one drop</b>. Anything calling for more than a drop is not asking for blood, it is asking for a wound. On a blood thinner, or with a clotting condition: use spit, which the old craft treats as the same currency.' },
-    { img: 'bh-11', bg: '#fef9f4', kicker: 'Now', h: 'The spit in the post', body: 'The modern way to hand over a personal concern is a plastic tube of saliva mailed to a company. Same material, same logic — that a piece of you can be read at a distance — except this version works, and what acts on you afterwards is a database that can be sold, subpoenaed, or passed on in a bankruptcy. Read those terms as carefully as you would want a stranger to read yours before you posted them your hair.' },
+    { img: 'bh-11', bg: '#fef9f4', kicker: 'Now', h: 'The spit in the post', body: 'The modern way to hand over a personal concern is a plastic tube of saliva mailed to a company. Same material, same logic — that a piece of you can be read at a distance. What acts on you afterwards is a database that can be sold, subpoenaed, or passed on in a bankruptcy, and the consent you gave was a checkbox. Read those terms as carefully as you would want a stranger to read yours before you posted them your hair.' },
     { img: 'bh-12', bg: '#fdfaf5', kicker: 'The keeping', h: 'How to hold a concern', body: 'Two rules of housekeeping. <b>Label it</b> — whose, what, when, and what it was given for; an unlabelled envelope of hair is a thing your family finds one day and cannot read. <b>End it</b> — a concern belongs to a working, so when the working is over the material is burned, buried or given back. A drawer full of other people is not a practice.' },
-    { img: 'bh-13', bg: '#fcf9f4', kicker: 'After', h: 'Tonight', body: 'Start with your own, so nothing turns on anyone else\'s permission. One hair, wound around something that stays close to you — a key, a ring, a folded note saying what it is for. Write the working down while you still remember its exact terms, and come back and write down how it turned out.<br><br><b>Tonight:</b> one hair, one working, one page. ✦', cta: { label: 'Open my Spells pages', go: 'book', book: 'spell' } },
+    { img: 'bh-13', bg: '#fcf9f4', kicker: 'After', h: 'Tonight', body: 'Start with your own, so nothing turns on anyone else\'s permission — and start with the <b>intention</b>, because without one you are only tying a knot. Name what you want carried: your nerve held through a particular conversation, safe travel on a particular road, staying findable to someone you are far from. Then pick the thing that will be near you while it matters — a key, a ring, a bag strap — say the intention aloud as you wind one hair around it, and write down both halves: what you asked for, and how you will know if it lands. (Spell Work teaches how to word one properly.)<br><br><b>Tonight:</b> the intention first, then the hair. ✦', cta: { label: 'Open my Spells pages', go: 'book', book: 'spell' } },
   ];
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'Attention, intention, and your two hands weigh nothing and pass every security check. This lesson covers witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
@@ -6433,6 +6459,18 @@
     if (schoolWarmed) return; schoolWarmed = true;
     Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
   }
+  /* The ⓘ FAQ (Aug 2026, Sophie: the cards "point at a whole bank of
+     knowledge" and she wants the obvious follow-ups answered). A card opts in
+     with `faq: [{ q, a }, …]` — three is the usual number, more when the
+     subject genuinely needs it. Ordered by which question a reader hits FIRST. */
+  const FAQ_BTN = '<button class="faq-btn" id="faq-btn" type="button" aria-label="More about this"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>';
+  function faqPanel(faq) {
+    return `<div class="faq-wrap" id="faq-wrap"><div class="faq-card">
+      <div class="faq-hd">More about this</div>
+      ${faq.map(f => `<div class="faq-q">${esc(f.q)}</div><div class="faq-a">${f.a}</div>`).join('')}
+      <div class="faq-close">tap anywhere to close</div>
+    </div></div>`;
+  }
   const TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   /* ── Lesson quizzes (from Sophie's quiz-ideas notes). House rules: no
      timers, no lives, no streak-shaming, nothing red — a wrong pick just
@@ -6551,16 +6589,31 @@
     else $('deck-stage').innerHTML = `<div class="tcard">
       <div class="deck-head">
         <div class="tcard-kicker">${esc(c.kicker)}</div>
-        <div class="tcard-h">${esc(c.h)}</div>
+        <div class="tcard-h">${esc(c.h)}${c.faq ? FAQ_BTN : ''}</div>
       </div>
       ${c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`}
       <div class="deck-text">
         <div class="tcard-body">${c.body}</div>
-        ${c.cta ? `<button class="btn deck-cta" id="deck-cta" style="margin:16px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button>` : ''}
         ${deckIdx === 0 ? TAP_HINT : ''}
       </div>
+      ${c.cta ? `<div class="cta-row"><button class="btn deck-cta" id="deck-cta" style="margin:6px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button></div>` : ''}
+      ${c.faq ? faqPanel(c.faq) : ''}
     </div>`;
     updateDeckBmk(c);
+    // The ⓘ and its panel live inside the tap-zone stage, so both swallow the
+    // tap — otherwise opening the FAQ would also turn the card.
+    const faqBtn = $('faq-btn'), faqWrap = $('faq-wrap');
+    if (faqBtn && faqWrap) {
+      faqBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const on = faqWrap.classList.toggle('on');
+        faqBtn.classList.toggle('on', on);
+      });
+      faqWrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        faqWrap.classList.remove('on'); faqBtn.classList.remove('on');
+      });
+    }
     // The CTA lives inside the tap-zone stage, so stop the tap from also
     // advancing the deck; jump to the feature the lesson taught.
     const ctaBtn = $('deck-cta');
