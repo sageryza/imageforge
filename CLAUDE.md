@@ -1228,7 +1228,7 @@ lifted into a standalone tool later.
   and "are these the characters?" (pick a candidate / unpick = not them /
   type a description). **Stage 3 — `POST /dream/:id/render {quality,
   characters:[{name, url|image|desc}]}`:** `dreamPaginate()` lets the model
-  decide how many IMAGES the dream needs (1-8, never padded) and allots each
+  decide how many IMAGES the dream needs (1-6, never padded) and allots each
   image a verbatim slice of the dreamer's words in TRUE chronological order
   (drift cues fix the narration order); then `makeDreamPagesV2` draws
   sequentially — each page gets the style ref FIRST, then ONLY that slot's
