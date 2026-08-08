@@ -658,18 +658,22 @@ lifted into a standalone tool later.
   re-paste the CURRENT script into the environment once — the whole file,
   `docs/chats-autopost-setup-script.sh` (GitHub's file view has a one-tap
   copy button, which matters: she does this on a phone).
-  **DO NOT recommend the elegant one-liner** — this file recommended
-  `curl -fsSL …/setup.sh | bash` for exactly one evening, and it does not
-  work: the Setup script runs BEFORE the session has network, so curl gets
-  nothing and the platform kills the session with "Setup script failed"
-  (`recoverable:false`). Measured 2026-08-08: three sessions created with
-  that one-liner in place ALL died at init — including one built with the
-  repos attached, matching her real sessions — while every session running
-  the big self-contained paste started fine. A fetch-the-latest Setup script
-  cannot work here; the script has to carry the hook body with it, which is
-  the whole reason `build-chats-setup.py` embeds it verbatim.
-  A running session CAN still self-heal (it has network by then) — see the
-  self-heal note below; that is where curl belongs.
+  **PREFER THE SELF-CONTAINED PASTE over the elegant one-liner** — this file
+  recommended `curl -fsSL …/setup.sh | bash` as the Setup script for exactly
+  one evening, on no evidence, and it is at best unproven here. What IS
+  established (2026-08-08): the big paste demonstrably installs a working
+  hook (it is what put the Aug 1 one there), needs no network, and cannot
+  fail on a server blip; whereas a Setup script that fetches at init dies
+  with "Setup script failed" (`recoverable:false`) the moment the fetch does
+  — which took out three probe sessions in one evening. **The honest limit of
+  that measurement: all three probes were MCP-seeded sessions whose network
+  was restricted anyway** (the one that recovered reported no hook file and
+  outbound POSTs blocked), so they do NOT prove a normal session's Setup
+  script lacks network. They only show the failure mode is real and fatal.
+  Given the script has to carry the hook body regardless — the whole reason
+  `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
+  it at init. A RUNNING session is different: it has network, and curl is the
+  right tool for self-healing there (see the self-heal note below).
 - **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
   usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
