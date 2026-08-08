@@ -76,7 +76,7 @@
      The date is its OWN band — a wide gap above it and a rule under it — so it
      never reads as the first line of the dream beneath (Sophie). */
   .dayhead { font-family:Georgia, "Times New Roman", serif; font-size:15px; color:var(--dimp);
-             padding:34px 2px 10px; border-bottom:1px solid #0e0e1126; margin-bottom:16px; }
+             padding:34px 2px 14px; }
   .dayhead:first-child { padding-top:16px; }
   /* A post is ONE PERSON'S dreams for that day: two dreams from the same
      dreamer on the same night sit in one post, parted by a fainter line than
@@ -85,7 +85,8 @@
      cream — drawn as an absolute rule in the gap rather than a border, so the
      line never touches either entry. A day header interrupts the run, and gets
      no line, because the date band is already the separation there. */
-  .post { background:var(--card); color:var(--ink); border-radius:6px; padding:16px 14px; }
+  .post { background:var(--card); color:var(--ink); margin-left:-16px; margin-right:-16px;
+          padding:16px; }
   .post + .post { position:relative; margin-top:29px; }
   .post + .post::before { content:''; position:absolute; left:0; right:0; top:-15px;
                           height:1px; background:var(--linep); }
@@ -171,8 +172,8 @@
                     gap:5px; font:13px -apple-system, sans-serif; padding:4px 6px 4px 0; }
 
   /* journal list */
-  .jitem { width:100%; text-align:left; background:var(--card); color:var(--ink); border:none;
-           font:inherit; border-radius:6px; padding:15px 14px; }
+  .jitem { width:calc(100% + 32px); text-align:left; background:var(--card); color:var(--ink);
+           border:none; font:inherit; margin-left:-16px; margin-right:-16px; padding:15px 16px; }
   .jitem + .jitem { position:relative; margin-top:29px; }
   .jitem + .jitem::before { content:''; position:absolute; left:0; right:0; top:-15px;
                             height:1px; background:var(--linep); }
