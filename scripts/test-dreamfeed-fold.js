@@ -154,6 +154,28 @@ const check = (name, ok, detail) => {
   const restHidden = await page.locator('.dream[data-id="pics"] [data-rest]').isHidden();
   check('and it closes the extra panels again', restHidden);
 
+  // header: the app's name and a gear, no date
+  const headerText = await page.locator('header').innerText();
+  check('the header carries no date', !/\d/.test(headerText), JSON.stringify(headerText));
+  check('the gear is there', await page.locator('#gearBtn').isVisible());
+  await page.locator('#gearBtn').click();
+  check('the gear opens a menu holding sign out', await page.locator('#gearMenu #signOut').isVisible());
+  await page.locator('#gearScrim').click({ position: { x: 5, y: 5 } });
+  check('tapping away puts it back', (await page.locator('#gearMenu').count()) === 0);
+
+  // lightbox: a tapped panel opens big, locks the page, and gives back the spot
+  await page.evaluate(() => window.scrollTo(0, 600));
+  const beforeY = await page.evaluate(() => window.scrollY);
+  await page.locator('.dream[data-id="pics"] .pgrid img').first().click();
+  check('a tapped panel opens the lightbox', await page.locator('#lb').isVisible());
+  const locked = await page.evaluate(() => getComputedStyle(document.body).overflow);
+  check('the page behind it is locked', locked === 'hidden', locked);
+  await page.locator('#lb').click({ position: { x: 5, y: 5 } });
+  await page.waitForTimeout(120);
+  check('tapping it closes', await page.locator('#lb').isHidden());
+  const afterY = await page.evaluate(() => window.scrollY);
+  check('and she lands back where she opened it', Math.abs(afterY - beforeY) < 2, `${beforeY} -> ${afterY}`);
+
   await browser.close();
   server.close();
   console.log(fails.length ? `\n${fails.length} FAILED` : '\nall good');
