@@ -135,6 +135,28 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
+- **The gallery is PAGED (Aug 2026) — 60 at a time, then an "Older" button.**
+  It used to be ONE capped 60-doc query with no way to ask for more, so
+  creation 61 and everything behind it was unreachable. That is a hard truncate
+  the same shape as the Assets tab's old one, and it hid almost everything:
+  1,396 creations existed, 442 of them made in eight days, so the visible
+  window had shrunk to about a day and Sophie reported her older images as
+  gone. **Never diagnose that report as data loss** — check the count first
+  (`node scripts/find-gallery-uid.js` prints it per uid).
+  `ForgeService.fetchCreationPage(limit:after:)` returns items plus a
+  `DocumentSnapshot` cursor; `hasMore` and the cursor are derived from the
+  SNAPSHOT count, never the mapped items, because a doc with no usable url is
+  dropped from the page but still occupies a slot.
+- **Tiles decode DOWNSAMPLED, and both image caches are cost-bounded.** A
+  gallery tile is ~110pt but its url is a full 1024x1536 picture (~6MB once
+  decoded), so paging back through hundreds of them would be a gigabyte of
+  bitmaps. `CachedImageView(url:contentMode:maxPixel:)` decodes to the tile's
+  size via `CGImageSourceCreateThumbnailAtIndex` (~0.4MB) and keeps the
+  downloaded BYTES on disk, so the popup and Save-to-Photos still get the
+  original. Leave `maxPixel` nil for anything shown large.
+  **The download is still full-size** — there is no server-side thumbnail for
+  creations (unlike `scripts/selfcare-thumbs.js` / `webp-assets.js`), so
+  paging deep costs real bandwidth. Worth building if she pages a lot.
 - **Label your images (July 2026).** The hook turns the markdown link text of
   a Firebase image URL in your finished reply into the asset's DESCRIPTION,
   shown on the Assets tile + lightbox (Sophie reviews with ♥/notes there). So
@@ -383,8 +405,8 @@ lifted into a standalone tool later.
   that **failed or was cancelled never blocks a retry** (only one that really
   produced a picture counts). The prompt is normalized the way the server
   does it — trimmed, trailing periods dropped — or a typed "." reads as a
-  different run. The check sees the loaded feed (40 runs) plus anything in
-  flight, so a duplicate of something much older still gets through.
+  different run. The check sees the loaded feed plus anything in flight, so a
+  duplicate of something older than she has paged back to still gets through.
 - **Identical runs share ONE box (Aug 2026, Sophie).** Tapping the stars twice
   on the same prompt is one job as far as she's concerned, so the feed merges
   runs whose prompt AND settings match — engine, model, status, quality,
@@ -399,6 +421,26 @@ lifted into a standalone tool later.
   X on a merged box cancels every run in it (`data-kill` holds a comma list).
   `groupBy`/`sameRunKey` in `promptlab.html` do it; the server knows nothing
   about it.
+- **The feed is PAGED, and it pages BACKWARDS THROUGH TIME (Aug 2026).** It
+  used to ask for the newest 40 runs and had no way to ask for more, so run 41
+  and everything behind it was simply unreachable — 213 runs existed and 40
+  could be seen, which Sophie reported as her older pictures being gone.
+  Nothing had been deleted; nothing ever deletes a run. Now an **Older** button
+  under both views loads the next 40 (`GET /api/promptlab?limit=&before=`,
+  `more` on the response says whether there is any point offering it).
+  - **The cursor is a `createdAt`, never an OFFSET.** Runs land at the TOP
+    while she reads, so an offset shifts under her and repeats or skips one.
+    The server does `where('createdAt','<',…)` on the field it already orders
+    by, so no composite index is needed.
+  - **A head refresh MERGES, it never replaces.** Every finished run calls
+    `loadRuns()`, and rebuilding the feed from page one there would throw away
+    everything she had paged back to. `feed` holds every run loaded, fresh
+    copies win (a vote or a status moved), and the list re-sorts by time.
+  - **It is a TAP, deliberately not load-on-scroll** — the autoscroll pill
+    would run the page to the bottom by itself and pull page after page of
+    pictures over her data without her asking.
+  - Tests: `node scripts/test-playground-paging.js` (drives the real page in
+    headless Chromium against a stub API; skips without Playwright).
 - **The feed has TWO views: LIST and TILES** (`promptlab_view` in
   localStorage, default list). List = a box per run, prompt above its
   pictures. Tiles = every picture from every run as uniform SQUARE thumbnails

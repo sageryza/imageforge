@@ -4789,13 +4789,27 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
   }
 });
 
+// The feed, newest first. `before` (a createdAt in millis) pages BACKWARDS
+// THROUGH TIME rather than by offset: runs land at the TOP while she reads, so
+// an offset would shift under her and repeat or skip a run. `more` tells the
+// page whether there is anything older still to ask for.
+//
+// Until Aug 2026 this route had no cursor at all and the page only ever asked
+// for the newest 40 — so every run older than that was unreachable, which read
+// as her older pictures having disappeared (213 runs existed, 40 were visible).
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const limit = Math.min(Number(req.query.limit) || 40, 100);
-    const q = await admin.firestore().collection(PROMPTLAB)
-      .orderBy('createdAt', 'desc').limit(limit).get();
-    res.json({ runs: q.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }) });
+    const before = Number(req.query.before) || 0;
+    let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
+    // Inequality on the same field the query orders by — no composite index.
+    if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
+    const snap = await q.limit(limit).get();
+    res.json({
+      runs: snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }),
+      more: snap.size === limit,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
