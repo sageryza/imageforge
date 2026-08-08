@@ -642,9 +642,15 @@ lifted into a standalone tool later.
   body verbatim-embedded; never hand-edit those two copies.
   **A NEW HOOK VERSION DOES NOT REACH AN EXISTING ENVIRONMENT ON ITS OWN —
   this note used to claim it did, and it is wrong (checked live 2026-08-07).**
-  The Setup script is PASTED TEXT in the environment settings dialog; it
-  re-runs each session start, but it re-runs *the copy she pasted*, so an
-  environment set up before v7 keeps installing the pre-v7 hook forever. Live
+  The Setup script is PASTED TEXT in the environment settings dialog, and it
+  re-runs *the copy she pasted*, so an environment set up before v7 keeps
+  installing the pre-v7 hook forever. **It may not even re-run per session:
+  measured 2026-08-08, `/home/user/.claude/` and `.claude/hooks/` in a fresh
+  container both carried an mtime of Aug 1 23:32 — the environment SNAPSHOT
+  date — so nothing had written them in a week of sessions.** Treat the hook
+  as baked into the snapshot: after changing the Setup script, VERIFY in a
+  brand-new session (`grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`)
+  rather than assuming the edit took. Live
   proof: `/home/user/.claude/settings.json` in these sessions registers only
   Stop and UserPromptSubmit, the installed hook contains no `working` logic
   at all, and the feed therefore holds ZERO live drafts — which is why the
