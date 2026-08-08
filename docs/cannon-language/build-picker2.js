@@ -123,7 +123,7 @@ const sectionsHtml = SECTIONS.map((sec, k) => {
       <h2>${esc(sec.book)}</h2>
       <p class="k">${fmt(sec.from)} – ${fmt(sec.to)} · holds ${esc(holds)}${sec.main ? ' · the symbol passage and the Christmas example' : ''}</p>
     </div>
-    <div class="ptext">${body}</div>
+    <div class="ptext" data-nostop>${body}</div>
   </section>`;
 }).join('\n<hr class="div">\n');
 
