@@ -176,6 +176,39 @@ const check = (name, ok, detail) => {
   const afterY = await page.evaluate(() => window.scrollY);
   check('and she lands back where she opened it', Math.abs(afterY - beforeY) < 2, `${beforeY} -> ${afterY}`);
 
+  // the two surfaces: black entries sitting on cream, a black line between
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const paper = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const card = await page.evaluate(() => getComputedStyle(document.querySelector('.post')).backgroundColor);
+  const dark = (c) => { const n = c.match(/\d+/g).map(Number); return n[0] + n[1] + n[2] < 160; };
+  check('the page is cream', !dark(paper), paper);
+  check('an entry is black', dark(card), card);
+  check('the entry sits inset, with cream down both sides', await page.evaluate(() => {
+    const b = document.querySelector('.post').getBoundingClientRect();
+    return b.left > 4 && window.innerWidth - b.right > 4;
+  }));
+  // between two entries: cream, a black line, cream — and the line touches neither
+  const gap = await page.evaluate(() => {
+    const posts = [...document.querySelectorAll('.post')];
+    let a = null;
+    for (let i = 1; i < posts.length; i++) {
+      if (posts[i].previousElementSibling === posts[i - 1]) { a = [posts[i - 1], posts[i]]; break; }
+    }
+    if (!a) return null;
+    const top = a[0].getBoundingClientRect().bottom;
+    const bot = a[1].getBoundingClientRect().top;
+    const rule = getComputedStyle(a[1], '::before');
+    return { gap: bot - top, ruleTop: parseFloat(rule.top), height: parseFloat(rule.height), bg: rule.backgroundColor };
+  });
+  check('two adjacent entries are parted by a real gap', gap && gap.gap > 20, gap && `${Math.round(gap.gap)}px`);
+  check('with a black hairline floating in the middle of it',
+    gap && gap.height === 1 && dark(gap.bg) && Math.abs(Math.abs(gap.ruleTop) - gap.gap / 2) < 2,
+    gap && `line ${gap.height}px at ${gap.ruleTop}px of a ${Math.round(gap.gap)}px gap`);
+
+  // words / pictures in small caps
+  const caps = await page.evaluate(() => getComputedStyle(document.querySelector('.tab')).fontVariantCaps);
+  check('the words/pictures labels are small caps', caps === 'small-caps', caps);
+
   await browser.close();
   server.close();
   console.log(fails.length ? `\n${fails.length} FAILED` : '\nall good');
