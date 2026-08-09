@@ -2545,16 +2545,65 @@ const MODELS = {
   ],
   // House styles that render through gpt-image-2's EDITS endpoint with Sophie's
   // own style-reference images (the same engine the illustrated lessons use) —
-  // NOT a Replicate LoRA. "Pastel" is the pastel-variant-2 look she picked from
-  // the prompt review: pastel palette on white, whitened background.
+  // NOT a Replicate LoRA. All four attach the SAME two Witch School refs.
+  //
+  // THESE FOUR ARE A 2x2, ON PURPOSE (Aug 2026, Sophie). The Witch School
+  // lesson-card style and the Pastel one differ in more than palette: when the
+  // pastel variant was made (July 2026) it was a hand-COPY of the lesson-card
+  // generator, and three composition instructions were dropped in the copying
+  // without anyone deciding to —
+  //     "lots of generous negative space"
+  //     "Draw a brand-new, SIMPLE, uncluttered illustration with one clear
+  //      subject (not a busy scene)."
+  //     "Subject centered with lots of empty cream space around it."
+  // So "warm" and "roomy" had been welded together and couldn't be judged
+  // apart. The grid crosses them: palette (warm / pastel) x composition
+  // (roomy / lean). Run one prompt through all four and the question "is it
+  // the colour or the space I like?" answers itself.
+  //
+  // What is deliberately NOT crossed: the reference clause. Warm says "match
+  // their exact look", pastel says "for the linework" — that is what LETS the
+  // pastel recolour the warm refs at all, so it stays tied to its palette.
+  // Crossing it too would change colour fidelity and muddy the one thing this
+  // grid exists to isolate.
   house: [
     {
+      id: 'house-witch',
+      name: 'Witch School (warm + roomy)',
+      // Verbatim from scripts/witch-school-cards.js — this IS the live lesson-
+      // card recipe, so the tile shows the real thing, not an approximation.
+      stylePrompt: 'Use the attached images ONLY as a STYLE reference — match their exact look: bold confident black ink outlines, a flat limited palette (warm golden yellow, salmon pink, bright orange, black) on a soft cream off-white background, playful modern editorial illustration, flat colors with NO gradients and minimal shading, lots of generous negative space. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ',
+      end: ' Subject centered with lots of empty cream space around it. Absolutely no text, no words, no letters, no numbers, no captions.',
+      refs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
+    },
+    {
       id: 'house-pastel',
-      name: 'Pastel (house)',
+      name: 'Pastel (pastel + lean)',
       stylePrompt: 'Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. ',
       end: ' Absolutely no text, no words, no letters, no numbers, no captions.',
       refs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
       whiten: true,
+    },
+    {
+      id: 'house-pastel-roomy',
+      name: 'Pastel + roomy',
+      // Pastel, with the three dropped composition lines put back. "cream" in
+      // the centering line becomes "white" — this style's ground IS white, and
+      // leaving the word in would smuggle a colour instruction into the half
+      // of the grid that is supposed to vary only composition.
+      stylePrompt: 'Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration, lots of generous negative space. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ',
+      end: ' Subject centered with lots of empty white space around it. Absolutely no text, no words, no letters, no numbers, no captions.',
+      refs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
+      whiten: true,
+    },
+    {
+      id: 'house-witch-lean',
+      name: 'Witch School + lean',
+      // The warm lesson-card style with those same three lines taken OUT —
+      // i.e. what the warm palette looks like framed the way pastel is.
+      stylePrompt: 'Use the attached images ONLY as a STYLE reference — match their exact look: bold confident black ink outlines, a flat limited palette (warm golden yellow, salmon pink, bright orange, black) on a soft cream off-white background, playful modern editorial illustration, flat colors with NO gradients and minimal shading. ',
+      end: ' Absolutely no text, no words, no letters, no numbers, no captions.',
+      refs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
     },
   ],
 };
