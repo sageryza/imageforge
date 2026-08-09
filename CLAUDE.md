@@ -1349,8 +1349,17 @@ lifted into a standalone tool later.
   then cut the real audio with the precise cutter — preview clips are
   previews. Word times can be segment-interpolated; with no times the
   picker still picks, just without play buttons. Seed your suggested spans
-  via `seed:`, shade already-used words via `shade:`. Tests:
-  `node scripts/test-cut-picker.js`.
+  via `seed:`, shade already-used words via `shade:`; the scissors on a
+  pick tile splits it into two back-to-back picks (so each part can get a
+  different picture or speaker).
+  **Send-to-episode (Aug 2026, Sophie):** for an INDEXED source the picker
+  bar carries a "to the Episode Editor" button — every pick, in her order,
+  becomes a snippet card in ONE NEW episode (`POST
+  /api/search/picks-to-editor {src, title, picks:[{text,timeSec}]}`), where
+  narration cards, gaps and the real render already live. Each send makes a
+  NEW episode (never appends — the new-version rule); a chat asked to "put
+  these in an episode" should call the same route rather than hand-building
+  episode docs. Tests: `node scripts/test-cut-picker.js`.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.

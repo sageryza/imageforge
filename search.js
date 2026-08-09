@@ -64,6 +64,9 @@
 //   GET  /audio/:id       → stream one memo's audio (range-capable)
 //   POST /to-editor       → { src, timeSec, text, episodeId?, episodeTitle? }
 //                           → a snippet card in the Episode Editor
+//   POST /picks-to-editor → { src, title?, picks:[{text, timeSec, name?}] }
+//                           → ONE new episode holding every pick, in order —
+//                           the cut picker's send button
 //   POST /to-cutroom      → { src } → { url } to open in the Cutting Room
 
 const express = require('express');
@@ -937,6 +940,44 @@ router.post('/to-editor', async (req, res) => {
       experiencer: source.who || source.title,
     });
     res.json({ ok: true, ...out });
+  } catch (err) { fail(res, err); }
+});
+
+// A whole SET of picks → one new episode (Aug 2026, Sophie: "let's
+// definitely add a send to episode thingy"). The cut picker's send button
+// posts every pick in her order; each becomes a snippet card in ONE fresh
+// episode, in that order, and the editor re-cuts them natively — narration
+// cards, gaps and the render all live there. A new send makes a NEW episode
+// on purpose (the new-version-is-a-new-thing house rule); an unwanted one is
+// one delete in the editor.
+router.post('/picks-to-editor', async (req, res) => {
+  try {
+    const src = String(req.body.src || '');
+    const title = String(req.body.title || '').trim().slice(0, 120) || 'From the cut picker';
+    const picks = Array.isArray(req.body.picks) ? req.body.picks.slice(0, 80) : [];
+    if (!src) return res.status(400).json({ error: 'src required' });
+    if (!picks.length) return res.status(400).json({ error: 'no picks to send' });
+    const index = await loadIndex();
+    const source = index.sources[`v:${src}`];
+    if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+    let epId = null, out = null;
+    for (const p of picks) {
+      const text = String(p.text || '').trim();
+      if (!text) continue;
+      out = await editor.addExternalSnippet({
+        episodeId: epId,
+        episodeTitle: title,
+        name: String(p.name || '').trim() || undefined,
+        videoId: src,
+        audioUrl: source.audioUrl,
+        text,
+        timeSec: Number(p.timeSec) || 0,
+        experiencer: source.who || source.title,
+      });
+      epId = out.id;
+    }
+    if (!out) return res.status(400).json({ error: 'no usable picks' });
+    res.json({ ok: true, id: out.id, title: out.title, count: picks.length });
   } catch (err) { fail(res, err); }
 });
 
