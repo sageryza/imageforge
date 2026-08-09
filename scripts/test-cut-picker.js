@@ -185,7 +185,43 @@ __PILL__
                      && p.timeSec===inst.picks[i].a;   // words are 1s apart at t=i
                  });
             ok(!!good, 'send posts every pick, in order, with text and anchor');
-            fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+
+            // 12. two tabs — Words and Picks — instead of a long scroll
+            var tabBtns = document.querySelectorAll('#p1 .ckp-tabs button');
+            var wordsVisible = function(){ return !!W(0).offsetParent; };
+            var tilesEl = document.querySelector('#p1 .ckp-list');
+            var tabsOk = tabBtns.length===2 && wordsVisible() && !tilesEl.offsetParent;
+            tabBtns[1].click();          // → Picks
+            tabsOk = tabsOk && !wordsVisible() && !!tilesEl.offsetParent
+              && /Picks.*[0-9]/.test(tabBtns[1].textContent);
+            ok(tabsOk, 'Words/Picks tabs switch the two halves, Picks shows the count');
+
+            // 13. the scissors jumps back to Words (the split point is a word)
+            var scis2 = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+              .filter(function(b){ return b.title.indexOf('split')>=0; })[0];
+            if (scis2) scis2.click();
+            ok(wordsVisible() && inst.splitting!==null,
+               'tapping a scissors returns to the Words tab in split mode');
+            inst.splitting=null; inst.setTab('words');
+
+            // 14. follow-along highlight — the spoken word lights up
+            var play2 = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+              .filter(function(b){ return b.title.indexOf('hear')>=0; })[0];
+            if (play2) play2.click();
+            setTimeout(function(){
+              var a2 = document.querySelector('audio');
+              // words are at t=i and the clip starts at pick.a-0.25 — fake
+              // being 1.3s into playback and fire a timeupdate
+              try { Object.defineProperty(a2,'currentTime',{ get:function(){ return 1.3; }, configurable:true }); } catch(_){}
+              a2.dispatchEvent(new Event('timeupdate'));
+              var lit = document.querySelector('#p1 w.now');
+              // abs = (a - .25) + 1.3 → the word past a, clamped to the pick
+              var fp = inst.picks[0];
+              var expect = W(Math.min(fp.a+1, fp.z));
+              ok(!!lit && lit===expect,
+                 'the word being spoken lights up as the clip plays');
+              fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+            }, 350);
           }, 300);
         }, 400);
       }, 900);

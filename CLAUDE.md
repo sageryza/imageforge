@@ -1333,6 +1333,11 @@ lifted into a standalone tool later.
   pick-saving again. What it gives you, debugged once:
   - tap-a-first-word / tap-a-last-word span picking (her own preferred
     model, from the "grasshopper" chat's page), tap a pick to remove, undo;
+  - WORDS / PICKS tabs (the witch shop's description-vs-reviews pattern —
+    Sophie's ask, so the tiles aren't a long scroll below the transcript),
+    and a follow-along highlight: the word being spoken lights up and
+    auto-centers while a pick plays (the Voice Memos / Cutting Room
+    pattern; only as exact as the page's word times);
   - **a ▶ on every pick that plays THAT EXACT SPAN within seconds** — the
     server cuts it once via `GET /api/search/clip-span?src=&t0=&t1=`
     (editor.js's transcoder + the search-clips immutable cache), so she
