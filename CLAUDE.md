@@ -1297,6 +1297,27 @@ lifted into a standalone tool later.
   that liveable and are load-bearing: the title has `z-index:2` so the word
   she is reading wins, and `pointer-events:none` so every tap falls through
   to the buttons underneath. Verified across 375/390/430 × all five titles.
+- **THE TITLE IS THE WAY BACK, and the handler must live on the ROW (Aug 2026,
+  Sophie: "I'm supposed to be able to click on the archive title and it goes
+  back to chats and same with hidden").** Tapping the big serif word returns
+  to the chat list from Archive / Bookmarks / To do / Status, and closes the
+  hidden pile; on the chat list it does nothing, because she is already
+  there. **Do NOT do this by putting a click handler on `#htitle`** — its
+  `pointer-events:none` is exactly what keeps the overlapped buttons
+  tappable, and turning it back on swallows the bookmark button under the
+  word "Bookmarks" (147px of title over ~78px of room). Instead `.hrow`
+  carries the handler: a tap that arrives as `.hrow` itself is one that
+  missed every button, and it counts as the title only when it lands inside
+  the text's own rect. `#htxt` is an inner span that exists ONLY to measure
+  that rect — the h1 is zero-width by design, so it cannot report where its
+  letters are; `paintHomeChrome` writes the word into the span, never the h1.
+  **The ARCHIVE title is green** (`#htitle.arch`, `#5d7a5a` — the same green
+  as the thread header's ARCHIVE word), the hidden pile's stays red, and both
+  classes are toggled together so a view swap can never leave the wrong one
+  on. Tests: `node scripts/test-chats-title-back.js` — it taps the real word
+  in every view AND hit-tests all four header controls with `elementFromPoint`
+  at 375/390/430 across all five titles, so a future layout change cannot
+  quietly re-bury one.
 - **The view words never rename themselves (Aug 2026, Sophie: "when I press
   hidden or archive it just takes me back to chats rather than having a
   button that says chats and a back arrow — get rid of that button").** TO DO

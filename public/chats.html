@@ -27,6 +27,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* While the hidden pile is open the masthead says HIDDEN, in the bar's red —
    the pile is a place, so the screen has to say which one you are in. */
 #htitle.hid{color:var(--chg);}
+/* …and the ARCHIVE view's title is green, the same green as the thread
+   header's ARCHIVE word (Aug 2026, Sophie: "can you tint the archive title
+   header that's in a bigger font green also"). Both titles say "you are
+   somewhere other than the chat list", in that place's own colour. */
+#htitle.arch{color:#5d7a5a;}
 /* A shade smaller than the thread's h1: this row also carries TO DO, ARCHIVE,
    the bookmark and the account switch, inside the pill's 56px reserve.
    Measured across 375/390/430 — at 2.3em the word "Chats" needed 88px and only
@@ -38,7 +43,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    the row is always one line; a long title simply draws across it.
    Two details that make that liveable: the title is on TOP (z-index) so the
    word she is reading wins, and `pointer-events:none` lets every tap fall
-   through to the buttons underneath it. */
+   through to the buttons underneath it.
+   THE TITLE IS ALSO THE WAY BACK (Aug 2026, Sophie: "I'm supposed to be able
+   to click on the archive title and it goes back to chats and same with
+   hidden"). That cannot be a handler on the title itself — `pointer-events`
+   is what keeps the overlapped buttons tappable, and turning it back on would
+   swallow the bookmark button under the word "Bookmarks" (147px of title over
+   ~78px of room). So the handler lives on the ROW: a tap that reached .hrow
+   itself missed every button, and if it landed inside the title text's own
+   rect it means the title. #htxt exists only to measure that rect — the h1 is
+   zero-width by design, so it can't report where its letters are. */
 #htitle{font-size:2.0em; margin:0; flex:0 0 auto; width:0; min-width:0;
   overflow:visible; white-space:nowrap; position:relative; z-index:2; pointer-events:none;}
 .hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
@@ -613,7 +627,7 @@ body.ontop > .float{display:none !important;}
            header keeps its own .no row — that one carries Archive, Hide and
            the star, so it is doing work. -->
       <div class="hrow">
-        <h1 id="htitle">Chats</h1>
+        <h1 id="htitle"><span id="htxt">Chats</span></h1>
         <div class="hctl">
           <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <button id="todolink" class="archlink">To do</button>
@@ -1058,10 +1072,11 @@ var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo'
 function paintHomeChrome(){
   var t=document.getElementById('htitle');
   var inHidden = (homeView==='live' && hideOpen);
-  t.textContent = inHidden ? 'Hidden'
+  document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do' : 'Chats';
   t.classList.toggle('hid', inHidden);
+  t.classList.toggle('arch', homeView==='archive');
   // The words never change and never disappear (Aug 2026, Sophie: "when I
   // press hidden or archive it just takes me back to chats rather than having
   // a button that says chats and a back arrow — get rid of that button"). Each
@@ -1091,6 +1106,24 @@ function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); w
 // is the only way in — the headless tests drive it, and it is what a restored
 // entrance would call. Deliberately kept so the retained view stays testable.
 window.__setHomeView=setHomeView;
+// The big title is the way back out of a sub-view (Sophie: "I'm supposed to be
+// able to click on the archive title and it goes back to chats and same with
+// hidden"). The handler is on the ROW, not the title: the title is
+// pointer-events:none so the buttons it overlaps stay tappable, so a tap that
+// arrives here as .hrow itself is one that missed every button — and if it
+// landed inside the title text's rect, it was aimed at the word.
+function titleBack(){
+  if(homeView!=='live'){ setHomeView('live'); return true; }
+  if(hideOpen){ hideOpen=false; renderHome(); window.scrollTo(0,0); return true; }
+  return false;   // already on the chat list — the word is just a word
+}
+window.__titleBack=titleBack;
+document.querySelector('.hrow').addEventListener('click', function(e){
+  if(e.target!==this && e.target.id!=='htitle' && e.target.id!=='htxt') return;
+  var r=document.getElementById('htxt').getBoundingClientRect();
+  if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom) return;
+  titleBack();
+});
 // Every bookmarked message, newest first, whichever chat it is in. Tapping one
 // opens its chat and jumps to it — the same focus+flash the search results use.
 // The two things she actually bookmarks (her words): something with code /
