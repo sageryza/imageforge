@@ -1224,8 +1224,14 @@ lifted into a standalone tool later.
     is in her head then and nowhere else — and it **stays under the message
     for as long as it is bookmarked**, so editing it later needs no gesture to
     discover. Un-bookmarking takes it away. Saves on tap-away.
-  - In the BOOKMARKS view her note **leads the row** above the snippet: the
-    snippet is the message's first line, which is rarely why she kept it.
+  - In the BOOKMARKS view her note **leads the row** above the snippet (the
+    snippet is the message's first line, which is rarely why she kept it) and
+    it is **editable right there** — naming a backlog of old bookmarks must
+    not mean opening each message in turn (her ask). That is why a bookmark
+    row is a `div` with a handler and not a `<button>`: an `<input>` cannot
+    live inside a button, and the note has to sit between the chat line and
+    the snippet. A tap on the input is skipped so typing never opens the chat.
+    The field is borderless until focused, so the list still reads as a list.
   - Tests: `node scripts/test-chats-star-bookmark.js`.
 - **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
   running to-do list").** `/chats` home view `todo`, entered by the word **To
