@@ -74,7 +74,7 @@ __PILL__
   };
   var inst = window.__cutPicker({
     mount:'#p1', id:'s1', chat:'t', sheet:'sh',
-    src:'https://storage.googleapis.com/x/rec.webm',
+    src:'vid123',                     // indexed-style id → send button shows
     words:${WORDS},
     seed:[{a:0,z:1}],
   });
@@ -85,19 +85,33 @@ __PILL__
     ok(inst.picks.length===1 && inst.picks[0].a===0 && inst.picks[0].z===1,
        'a suggested span seeds an untouched sheet as a pick');
 
+    // 8. the mount opts out of the Chats viewer's tap-toggles-scroll gesture
+    //    (without data-nostop, tapping a word STARTED the autoscroll in the
+    //    app's embedded viewer — Sophie hit it on the first demo)
+    ok(document.getElementById('p1').hasAttribute('data-nostop'),
+       'the picker region carries data-nostop by construction');
+
+    // 9. tapping the same word twice deselects it — no one-word pick
+    W(3).click(); W(3).click();
+    ok(inst.picks.length===1 && inst.pend===null,
+       'tapping the pending word again deselects it');
+
     // 1. tap first + last word → a pick
     W(4).click(); W(6).click();
     ok(inst.picks.length===2 && inst.picks[1].a===4 && inst.picks[1].z===6,
        'tap a first word then a last word makes a pick');
     ok(W(5).classList.contains('pick'), 'the picked words paint');
 
-    // 6. a tap on a word pauses a running autoscroll (compare.js contract)
+    // 6. a tap on a word pauses a running autoscroll. The picker region is
+    //    data-nostop (so the embedded viewer's tap gesture can't START the
+    //    scroll from it), which also means compare.js's pointerdown handler
+    //    skips it — the picker's own click handler does the pausing.
     window.__scrollStart(1);
     var playing = !!document.querySelector('.vseg button.on');
-    W(8).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+    W(8).click();
     ok(playing && !document.querySelector('.vseg button.on'),
        'a tap on a transcript word pauses the autoscroll');
-    // (a pointerdown alone starts no pend — pend only starts on a click)
+    W(8).click();                       // same word again — deselects the pend
 
     setTimeout(function(){
       // 2. saves are per-pick fields
@@ -140,7 +154,75 @@ __PILL__
              && Math.abs(window.__clipAsk.t1-(7+0.35))<0.01,
              'the asked span is the pick, padded (t0='+ (window.__clipAsk&&window.__clipAsk.t0)
              +' t1='+(window.__clipAsk&&window.__clipAsk.t1)+')');
-          fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+
+          // 10. the scissors splits a pick into two adjacent picks — so one
+          //     part can get a different picture / speaker downstream
+          var target = inst.picks.filter(function(p){ return p.z-p.a>=1; })[0];
+          var before2 = inst.picks.length;
+          var scis = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+            .filter(function(b){ return b.title.indexOf('split')>=0; })[0];
+          if (scis) scis.click();
+          var mid = target ? target.a+1 : 0;
+          var az = target ? {a:target.a, z:target.z} : null;
+          W(mid).click();
+          var halves = inst.picks.filter(function(p){
+            return az && ((p.a===az.a && p.z===mid-1) || (p.a===mid && p.z===az.z));
+          });
+          ok(az && inst.picks.length===before2+1 && halves.length===2,
+             'the scissors splits a pick into two back-to-back picks');
+
+          // 11. send to the Episode Editor — every pick, in her order
+          posts.length = 0;
+          var send = [].slice.call(document.querySelectorAll('#p1 .ckp-bar button'))
+            .filter(function(b){ return b.title.indexOf('episode')>=0; })[0];
+          if (send) send.click();
+          setTimeout(function(){
+            var sp = posts.filter(function(x){ return x.u.indexOf('/api/search/picks-to-editor')===0; })[0];
+            var good = sp && sp.b.src==='vid123' && Array.isArray(sp.b.picks)
+              && sp.b.picks.length===inst.picks.length
+              && sp.b.picks.every(function(p,i){
+                   return p.text && typeof p.timeSec==='number'
+                     && p.timeSec===inst.picks[i].a;   // words are 1s apart at t=i
+                 });
+            ok(!!good, 'send posts every pick, in order, with text and anchor');
+
+            // 12. two tabs — Words and Picks — instead of a long scroll
+            var tabBtns = document.querySelectorAll('#p1 .ckp-tabs button');
+            var wordsVisible = function(){ return !!W(0).offsetParent; };
+            var tilesEl = document.querySelector('#p1 .ckp-list');
+            var tabsOk = tabBtns.length===2 && wordsVisible() && !tilesEl.offsetParent;
+            tabBtns[1].click();          // → Picks
+            tabsOk = tabsOk && !wordsVisible() && !!tilesEl.offsetParent
+              && /Picks.*[0-9]/.test(tabBtns[1].textContent);
+            ok(tabsOk, 'Words/Picks tabs switch the two halves, Picks shows the count');
+
+            // 13. the scissors jumps back to Words (the split point is a word)
+            var scis2 = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+              .filter(function(b){ return b.title.indexOf('split')>=0; })[0];
+            if (scis2) scis2.click();
+            ok(wordsVisible() && inst.splitting!==null,
+               'tapping a scissors returns to the Words tab in split mode');
+            inst.splitting=null; inst.setTab('words');
+
+            // 14. follow-along highlight — the spoken word lights up
+            var play2 = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+              .filter(function(b){ return b.title.indexOf('hear')>=0; })[0];
+            if (play2) play2.click();
+            setTimeout(function(){
+              var a2 = document.querySelector('audio');
+              // words are at t=i and the clip starts at pick.a-0.25 — fake
+              // being 1.3s into playback and fire a timeupdate
+              try { Object.defineProperty(a2,'currentTime',{ get:function(){ return 1.3; }, configurable:true }); } catch(_){}
+              a2.dispatchEvent(new Event('timeupdate'));
+              var lit = document.querySelector('#p1 w.now');
+              // abs = (a - .25) + 1.3 → the word past a, clamped to the pick
+              var fp = inst.picks[0];
+              var expect = W(Math.min(fp.a+1, fp.z));
+              ok(!!lit && lit===expect,
+                 'the word being spoken lights up as the clip plays');
+              fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+            }, 350);
+          }, 300);
         }, 400);
       }, 900);
     }, 900);
@@ -168,6 +250,10 @@ const server = http.createServer((req, res) => {
     // GET → empty sheet (so seeds apply); POST → accept
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(req.method === 'GET' ? '{"ok":true,"items":{},"texts":{}}' : '{"ok":true}');
+  }
+  if (route === '/api/search/picks-to-editor') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end('{"ok":true,"id":"ep1","title":"pending","count":3}');
   }
   if (route === '/api/search/clip-span') {
     // record the asked span for the page to assert on, answer ready at once

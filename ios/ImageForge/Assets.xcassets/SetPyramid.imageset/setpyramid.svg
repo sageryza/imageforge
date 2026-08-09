@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#000" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+  <g class="norm" transform="translate(-3.0537 -3.0537) scale(1.09714)">
+  <!-- "Set pyramid": a run of images as a tiered pyramid. EQUILATERAL — base 48
+       wide, apex 24*sqrt(3) = 41.57 above it, so all three angles are 60°. The
+       horizontal cut sits at half the HEIGHT, which lands its ends exactly
+       halfway along each side, so the filled cap is this same triangle at half
+       scale. Two cells along the base, one filled tier on top. -->
+  <path d="M32 11.21 56 52.78H8Z"/>
+  <path d="M20 32h24"/>
+  <path d="M32 32v20.78"/>
+  <path d="M32 11.21 44 32H20Z" fill="#000"/>
+</g>
+</svg>

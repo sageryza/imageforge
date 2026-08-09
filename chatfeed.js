@@ -13,6 +13,12 @@
 //                                  drafts; working:true = still being written)
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
+//   POST /api/chatfeed/status    → { chat, session, need?, doing? } — the chat's
+//                                  living status card, shown under its name on
+//                                  the home list ("" clears a field)
+//   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
+//   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
+//                                  chats read it, only the app writes it)
 //   GET  /api/chatfeed/search?q= → substring search across every message
 //                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
 //   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
@@ -30,6 +36,10 @@
 //   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
 //                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
+//   GET  /api/chatfeed/todos     → her running to-do list (open items first).
+//                                  ANY chat may read it and act on an item.
+//   POST /api/chatfeed/todo      → { text } — add one
+//   PATCH/DELETE /api/chatfeed/todo/:id → { done?, text? } / remove
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -711,6 +721,26 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
+// I want to refer back to, but I'm not actively using them". Imprint and the
+// original Anthony Chene chat were the two she named. A starred chat wears a
+// red star at the front of its row and can be pulled up from anywhere with the
+// ★ chip, INCLUDING out of the archive — which is where these end up, and the
+// whole reason the chip ignores `archived`.
+//
+// A plain boolean, like `archived`: it is a permanent judgement about the chat,
+// not a state that anything newer should clear.
+router.post('/star', async (req, res) => {
+  try {
+    const { chat, starred } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = starred !== false;
+    await regRef(chat)
+      .set({ starred: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, starred: on });
+  } catch (err) { fail(res, err); }
+});
+
 // File chats under a category — the chips where the LIST/TILES toggle used to
 // be (Aug 2026, Sophie: "category tags, the first two I can think of are
 // stories and tech"). One field on the registry doc, so it rides the cached
@@ -719,18 +749,116 @@ router.post('/hide', async (req, res) => {
 // Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
 // gesture there: she picks several rows in select mode and taps a category
 // once. An empty category clears the field back to unfiled.
+// A CATEGORY IS A THING, not just a side effect of filing (Aug 2026 — Sophie
+// made one and it wasn't there: she typed a name in select mode with no chats
+// picked, so nothing was written and the chip never existed). The name is now
+// remembered on the `__settings` doc, so an EMPTY folder survives, and a
+// request with no chats at all is valid — that is how a category gets created
+// on its own.
 router.post('/category', async (req, res) => {
   try {
     const body = req.body || {};
     const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
       .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
-    if (!names.length) return res.status(400).json({ error: 'chat required' });
     const category = String(body.category || '').trim().slice(0, 40);
-    const val = category || admin.firestore.FieldValue.delete();
-    const batch = db().batch();
-    names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
-    await batch.commit();
+    if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
+    if (names.length) {
+      const val = category || admin.firestore.FieldValue.delete();
+      const batch = db().batch();
+      names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+      await batch.commit();
+    }
+    if (category) {
+      await regRef(SETTINGS_DOC).set(
+        { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
+    }
     res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- Status cards (Aug 2026, Sophie) --------------------------------------
+// Every chat keeps ONE living status card it rewrites on purpose at the end
+// of a turn: `need` = what it needs from Sophie, in her words ("pick a
+// palette — 10 seconds"; EMPTY when nothing is needed), and `doing` = one
+// line on what it's working on. Both live on the registry doc, so they ride
+// the same cached read the home list already makes — the app shows them
+// under the chat's name. Session-first resolution like every other post.
+// A status line is ONE LINE under a chat's name on a phone. 110 chars is
+// about what fits before the row ellipsis eats it, and the cap is the only
+// thing that actually stops a chat pasting a changelog into the home screen
+// (one did, into her note field, within a day of that field existing).
+// Truncation is at a word boundary — a status line cut mid-word reads broken.
+function statusLine(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (s.length <= 110) return s;
+  const cut = s.slice(0, 110);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > 60 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
+router.post('/status', async (req, res) => {
+  try {
+    const { chat, session, need, doing } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const del = admin.firestore.FieldValue.delete();
+    const patch = { statusAt: new Date().toISOString() };
+    // Only the fields sent change; sending "" clears one.
+    if (need !== undefined) patch.statusNeed = statusLine(need) || del;
+    if (doing !== undefined) patch.statusDoing = statusLine(doing) || del;
+    await regRef(resolved).set(patch, { merge: true });
+    res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+// The note on a chat — the where-things-stand line, mostly hers ("research
+// it, karaoke, tabs") but NOT locked to her (Aug 2026: "it's not that I
+// wanted the field to myself, I just wanted them to know how to write
+// notes"). A chat may write one; the rule is STYLE, not permission —
+// telegraphic fragments, her length, never a changelog.
+//
+// This route briefly required `app:true` and 403'd everything else. That was
+// the wrong fix twice over: it wasn't what she asked for, and it broke HER
+// OWN editing — the app keeps a cached page for days, so the copy on her
+// phone didn't send the new flag and her save came back refused. Never gate
+// a field the app already writes on a flag only a NEW build sends.
+//
+// 200 chars is the cap because her own notes run 26-66. A field that can
+// hold a paragraph invites one.
+router.post('/chatnote', async (req, res) => {
+  try {
+    const { chat, note } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const target = await followMoves(chat);
+    const del = admin.firestore.FieldValue.delete();
+    // collapse newlines too — the row is one line, and a pasted multi-line
+    // note rendered as a wall of text at the top of the thread
+    const val = String(note || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    await regRef(target).set({
+      sophieNote: val || del,
+      sophieNoteAt: val ? new Date().toISOString() : del,
+    }, { merge: true });
+    res.json({ ok: true, chat: target, note: val || null });
+  } catch (err) { fail(res, err); }
+});
+// A chat reads its own card + her note (pass session for session-first
+// resolution, same contract as GET /name).
+router.get('/status', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    let chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const session = String(req.query.session || '').slice(0, 120);
+    chat = session ? await resolveChat(chat, session) : await followMoves(chat);
+    // plain read — regRef() is the WRITE path and drops the registry cache
+    const snap = await db().collection(REG).doc(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({
+      chat,
+      need: d.statusNeed || null,
+      doing: d.statusDoing || null,
+      statusAt: d.statusAt || null,
+      note: d.sophieNote || null,
+      noteAt: d.sophieNoteAt || null,
+    });
   } catch (err) { fail(res, err); }
 });
 
@@ -749,6 +877,11 @@ router.post('/working', async (req, res) => {
     const { chat, session } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    // Marks the chat working; it does NOT park it (see POST /reply for why the
+    // two defeat each other). This is the path for a message sent in the CLAUDE
+    // app rather than the Chats app's reply box, and it only fires from a hook
+    // new enough to send the ping — an environment on an older setup script
+    // never calls /working at all, which is why the tint sat dead for weeks.
     await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
@@ -757,12 +890,24 @@ router.post('/working', async (req, res) => {
 // Bookmark a message Sophie wants to find later — a flag on the message doc
 // itself, so it rides along on GET / (every message already spreads its data)
 // and any chat can read which of its messages she flagged.
+// `note` = why she kept it (Aug 2026, Sophie: "when I bookmark messages I want
+// to leave a note or title the message so I remember what it was and why I
+// bookmarked it"). A bookmark's snippet is the message's first line, which is
+// rarely the reason she saved it. Sent on its own it only edits the note, so
+// typing one never toggles the bookmark off.
 router.post('/bookmark', async (req, res) => {
   try {
-    const { id, bookmarked } = req.body || {};
+    const { id, bookmarked, note } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
-    await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
-    res.json({ ok: true, bookmarked: !!bookmarked });
+    const patch = {};
+    if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
+    if (note !== undefined) {
+      const t = String(note).trim().slice(0, 300);
+      patch.bookmarkNote = t || admin.firestore.FieldValue.delete();
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
+    res.json({ ok: true, bookmarked: patch.bookmarked, note: note });
   } catch (err) { fail(res, err); }
 });
 
@@ -797,10 +942,74 @@ router.get('/bookmarks', async (req, res) => {
         from: m.from || '',
         created: m.created || m.postedAt || '',
         snippet: line.slice(0, 220),
+        note: m.bookmarkNote || '',
         kind: bookmarkKind(m.text),
       };
     }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- The running to-do list ----------------------------------------------
+// Sophie, Aug 2026: "I kind of wanna do like a running to-do list." Things she
+// thinks of on her phone and would otherwise lose — a bug she noticed, an art
+// direction to try — kept in one place instead of scattered across whichever
+// chat happened to be open.
+//
+// Deliberately NOT per-chat: the whole point is that an idea arrives while she
+// is somewhere else. A chat READS the list (GET /todos) and can act on an item
+// the next time she messages it, the same snail-mail rhythm as asset notes.
+//
+// One tiny collection, no index: the list is short, so it is fetched whole and
+// sorted in memory (open items first, newest at the top of each group).
+const TODOS = 'forge-chat-todos';
+
+router.get('/todos', async (req, res) => {
+  try {
+    const snap = await db().collection(TODOS).limit(500).get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (!!a.done !== !!b.done)
+        ? (a.done ? 1 : -1)
+        : ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1));
+    res.json({ items });
+  } catch (err) { fail(res, err); }
+});
+
+router.post('/todo', async (req, res) => {
+  try {
+    const text = String((req.body || {}).text || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const doc = {
+      text,
+      done: false,
+      createdAt: new Date().toISOString(),
+      // who wrote it — she types most of them, a chat can file one too
+      from: String((req.body || {}).from || 'sophie').slice(0, 20),
+    };
+    const ref = await db().collection(TODOS).add(doc);
+    res.json({ ok: true, id: ref.id, item: { id: ref.id, ...doc } });
+  } catch (err) { fail(res, err); }
+});
+
+router.patch('/todo/:id', async (req, res) => {
+  try {
+    const { done, text } = req.body || {};
+    const patch = {};
+    if (done !== undefined) {
+      patch.done = !!done;
+      patch.doneAt = done ? new Date().toISOString() : admin.firestore.FieldValue.delete();
+    }
+    if (text !== undefined) patch.text = String(text).trim().slice(0, 2000);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(TODOS).doc(String(req.params.id)).set(patch, { merge: true });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
+router.delete('/todo/:id', async (req, res) => {
+  try {
+    await db().collection(TODOS).doc(String(req.params.id)).delete();
+    res.json({ ok: true });
   } catch (err) { fail(res, err); }
 });
 
@@ -1078,10 +1287,16 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
-    // She just gave that chat something to do, so mark it working (the app
-    // tints it until the chat's reply lands and clears the mark). This path
-    // covers the app's own reply box; a message sent from the Claude app is
-    // marked by the hook's turn-start ping instead — see POST /working.
+    // She just gave that chat something to do, so mark it working — the app
+    // tints it rose until the reply lands and clears the mark.
+    //
+    // It does NOT also park the chat in the hidden pile. That shipped for a few
+    // hours and Sophie retired it the moment the tint started working, because
+    // the two DEFEAT EACH OTHER: a chat that hides itself the instant she
+    // answers is off the list, so there is nothing left to tint — and knowing
+    // who is working was the whole point of parking it. Manual hiding (the ⊖)
+    // is untouched. To bring auto-parking back, add `hiddenAt: doc.postedAt`
+    // here and in POST /working — but only instead of the tint, not alongside.
     await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }

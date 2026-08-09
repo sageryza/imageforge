@@ -15,13 +15,48 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 /* In a thread the back button is FIXED over the top-left (x 15-59) and the
    autoscroll pill over the top-right, so this row has to start clear of one
    and stop short of the other. Archive rides at its right end. */
-#thread header .no{display:flex; align-items:center; gap:10px; min-height:34px;
-  padding-left:48px; padding-right:56px;}
-#thread header .no .crumb{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* The "chats" crumb that used to lead this row is GONE (Aug 2026, Sophie:
+   "each chat says chats at the top right above the title, that seems
+   redundant") — the back chevron on its left already says where you are, and
+   the row's own buttons say what you can do. `justify-content:flex-end` is
+   what the crumb's `flex:1` used to do: hold Archive / Hide / ★ against the
+   right, clear of the pill's 56px reserve. */
+#thread header .no{display:flex; align-items:center; justify-content:flex-end; gap:10px;
+  min-height:34px; padding-left:48px; padding-right:56px;}
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* While the hidden pile is open the masthead says HIDDEN, in the bar's red —
    the pile is a place, so the screen has to say which one you are in. */
 #htitle.hid{color:var(--chg);}
+/* …and the ARCHIVE view's title is green, the same green as the thread
+   header's ARCHIVE word (Aug 2026, Sophie: "can you tint the archive title
+   header that's in a bigger font green also"). Both titles say "you are
+   somewhere other than the chat list", in that place's own colour. */
+#htitle.arch{color:#5d7a5a;}
+/* A shade smaller than the thread's h1: this row also carries TO DO, ARCHIVE,
+   the bookmark and the account switch, inside the pill's 56px reserve.
+   Measured across 375/390/430 — at 2.3em the word "Chats" needed 88px and only
+   had 70 on the narrowest phone, so it ran under the bookmark. */
+/* The masthead OVERLAPS instead of wrapping (Aug 2026, Sophie: "hidden and
+   archive create extra rows because they are longer than the word chats —
+   can you just make it overlap with the other things"). The title takes NO
+   width (`width:0`, overflow visible), so the control group never moves and
+   the row is always one line; a long title simply draws across it.
+   Two details that make that liveable: the title is on TOP (z-index) so the
+   word she is reading wins, and `pointer-events:none` lets every tap fall
+   through to the buttons underneath it.
+   THE TITLE IS ALSO THE WAY BACK (Aug 2026, Sophie: "I'm supposed to be able
+   to click on the archive title and it goes back to chats and same with
+   hidden"). That cannot be a handler on the title itself — `pointer-events`
+   is what keeps the overlapped buttons tappable, and turning it back on would
+   swallow the bookmark button under the word "Bookmarks" (147px of title over
+   ~78px of room). So the handler lives on the ROW: a tap that reached .hrow
+   itself missed every button, and if it landed inside the title text's own
+   rect it means the title. #htxt exists only to measure that rect — the h1 is
+   zero-width by design, so it can't report where its letters are. */
+#htitle{font-size:2.0em; margin:0; flex:0 0 auto; width:0; min-width:0;
+  overflow:visible; white-space:nowrap; position:relative; z-index:2; pointer-events:none;}
+.hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
+.hctl{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
@@ -167,12 +202,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    and left her stuck ("it should make it clear that I'm in the archive and
    then I wanna get out"). The big serif title is the other half of that —
    it says Archive / Bookmarks while she's there. */
+/* Tighter than it was: TO DO joined ARCHIVE on this row (Aug 2026) and at the
+   old size the serif masthead got squeezed 21px under its natural width and
+   ran UNDER the bookmark. Measured at 390px: the row has 295px inside the
+   pill's reserve, the title needs 88, so the words and the gaps had to give it
+   back. Anything else added here has to be measured the same way. */
 .archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
-  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.04em; text-transform:uppercase;}
 /* NOT bold in a sub-view (Aug 2026, Sophie): the big title already says
    Archive / Bookmarks, so bolding the exit as well said the same thing twice.
    It still darkens to full ink — it is the live control on that row. */
 .archlink.on{color:var(--ink);}
+/* the two decisions in the thread header, tinted so the pair reads at a
+   glance: ARCHIVE = away for good (green), HIDE = not now (red). Fixed
+   colours — like the row's ⊖ and ✓, they sit on cream in both themes. */
+.archlink.arch-g{color:#5d7a5a;}
+.archlink.hide-r{color:#b3443f;}
 /* Bookmark LEFT of the word (Sophie), and ALWAYS filled red — it reads as the
    bookmark thing at a glance. Which view is open is the title's job, so this
    one doesn't change with state. Selector is `.bmk.hdrbmk`, not `.hdrbmk`: the
@@ -183,7 +228,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
-.openrow{display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px;}
+.openrow{display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px; flex-wrap:wrap;}
 /* Bookmark toggle — a message you want to find later. Same glyph as the stories
    bookmark; circular icon button (the sanctioned exception to no-pills). */
 .bmk{background:none; border:none; color:var(--ink2); cursor:pointer; padding:6px; border-radius:6px; display:inline-flex; align-items:center; -webkit-tap-highlight-color:transparent;}
@@ -239,6 +284,32 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* list view */
 .clist{display:flex; flex-direction:column;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.bmknote{flex:1 0 100%; margin:8px 0 0;}
+.bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
+  color:var(--ink); background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:7px 10px;}
+.bmknote input:focus{outline:none; border-color:var(--chg);}
+/* The note on a bookmark row is an INPUT that doesn't look like one until she
+   taps it — the list has to read as a list, but every note has to be editable
+   in place or naming a backlog means opening each message in turn. */
+.bmkrow{border-bottom:1px solid var(--line); padding:12px 2px 10px; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; color:var(--ink);}
+.sr-note-in{width:100%; box-sizing:border-box; margin:1px 0 4px; padding:4px 7px;
+  font-family:'EBGaramond',Georgia,serif; font-size:16px; font-weight:600; color:var(--ink);
+  background:transparent; border:1.5px solid transparent; border-radius:6px;}
+.sr-note-in::placeholder{font-weight:400; color:var(--ink2); opacity:.75;}
+.sr-note-in:focus{outline:none; border-color:var(--chg); background:var(--paper);}
+.sr-note{font-family:'EBGaramond',Georgia,serif; font-size:16px; color:var(--ink); font-weight:600; margin:2px 0 3px;}
+.starbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.starbtn svg{width:16px; height:16px; display:block;}
+.starbtn.on{color:var(--chg);}
+.cr-star{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
+.cr-star svg{width:14px; height:14px; display:block;}
+.catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
+.catchip.starchip svg{width:14px; height:14px; display:block;}
+.catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+.cr-acct{flex:none; width:11px; font-family:-apple-system,sans-serif; font-size:11px;
+  color:var(--ink2); text-align:center; font-variant-numeric:tabular-nums;}
 .crow .cr-ic{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
@@ -277,6 +348,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
+/* ---- The running to-do list ---------------------------------------------- */
+/* The add row RESERVES THE PILL'S CORNER. On this view the tool row and the
+   search bar are hidden, so the add row rides up into the pill's band (y
+   14–192) and the Add button landed underneath it, untappable — Sophie caught
+   it the first time she used the list. Same 56px reservation every other row
+   on this page carries. */
+.todoadd{display:flex; gap:8px; margin:0 0 14px; padding-right:56px;}
+.todoadd input{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; color:var(--ink); background:var(--barbg); border:1px solid var(--line);
+  border-radius:6px; padding:10px 12px;}
+.todoadd input:focus{outline:none; border-color:var(--chg);}
+.todoadd .tbtn{flex:none;}
+.todorow{display:flex; align-items:flex-start; gap:11px; padding:10px 2px; border-bottom:1px solid var(--line);}
+.todorow .ckbtn{width:28px; height:28px; flex:none; margin-top:1px;}
+.todotext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.35; color:var(--ink); word-wrap:break-word;}
+.todorow.done .todotext{text-decoration:line-through; color:var(--ink2);}
+.tododel{flex:none; background:none; border:none; color:var(--ink2); font-size:20px; line-height:1;
+  padding:2px 4px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
 /* ---- Status view (the fourth home view) ----------------------------------
    One prioritized screen: what's waiting on her, what's working right now,
    what just landed. Rows reuse the .crow look (and its ✓/! buttons); thumbs
@@ -285,6 +374,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+/* ---- Status cards (Aug 2026, Sophie): a chat's own one-line report, shown
+   under its name. `need` (what it wants from her) reads in rose so the asks
+   stand out on a skim; `doing` is the quiet what-I'm-on line; her own pinned
+   note shows italic with a "you:" prefix. */
+.cr-need{display:block; font-size:14.5px; line-height:1.35; color:var(--rose); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+.cr-note{display:block; font-size:13.5px; line-height:1.35; font-style:italic; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+.t-tldr.t-need{color:var(--rose); font-weight:600;}
+/* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
+.noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
+/* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
+   464-char changelog in here once and it owned the whole top of the thread.
+   Tapping opens the full text in the textarea, so nothing is hidden. */
+.noterow .noteshow{color:var(--ink2); font-style:italic; cursor:pointer; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.noterow .noteshow.has{color:var(--ink);}
+.noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
+.noterow textarea:focus{outline:none; border-color:var(--rose);}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
 .stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
 .stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
@@ -297,22 +402,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
-/* WORKING — the chat is mid-turn (its newest message is a live draft still
-   being written). Tinted rose on the home screen so an in-flight chat reads at
-   a glance and doesn't get opened and re-asked. Same signal as the thread's
-   "still writing…" marker, just visible from outside. */
+/* WORKING — the rose tint on a mid-turn chat is BACK ON (Aug 2026). It was
+   switched off for one evening because it "just never worked", and the reason
+   was never the CSS: the hook installed in her environments predated the
+   turn-start ping, so `workingAt` was never written and there was nothing to
+   tint. She re-pasted the current setup script on 2026-08-09 and a fresh
+   session now reports the v8 hook, so the signal is real for the first time.
+   If it ever looks dead again, check the HOOK before touching this block:
+   `grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh` in a NEW
+   session (0 = stale environment snapshot, re-paste the setup script). */
 .tile.live .t-cover{border-color:var(--rose); background:color-mix(in srgb, var(--rose) 15%, var(--paper));}
 /* Most tiles carry a cover image, which would hide a background tint — so the
-   wash goes OVER the picture. The ♥/✕ marks (z-index 2) and the unread dot sit
-   above it; nothing tappable ends up under the wash. */
+   wash goes OVER the picture; the marks and the unread dot sit above it. */
 .tile.live .t-cover::after{content:''; position:absolute; inset:0; background:var(--rose); opacity:.26; pointer-events:none;}
 .tile.live .t-new{box-shadow:0 0 0 2px var(--paper);}   /* rose dot on a rose wash needs an edge */
 .tile.live .t-name{color:var(--rose);}
 .crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
 .crow.live .cr-ic{border-color:var(--rose);}
 .crow.live .cr-name{color:var(--rose);}
-/* The unread dot still means "you need to check this" (Sophie) and must stay
-   readable on a tinted row — rose on rose disappears without an edge. */
+/* The unread dot still means "you need to check this" and must stay readable
+   on a tinted row — rose on rose disappears without an edge. */
 .crow.live .cr-dot{box-shadow:0 0 0 2px var(--paper);}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
@@ -374,7 +483,17 @@ body.reading .backwrap{display:block;}
 .newbar svg{flex:none;}
 .nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
-.totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
+/* The jump pair, bottom-right: back to the top, and all the way DOWN beside it
+   (Aug 2026, Sophie). Each shows only when it would actually go somewhere, so
+   at the top of a short list there is nothing floating over the page at all.
+   Hidden in select mode — the filing bar owns the bottom of the screen then,
+   and these would sit on top of it. */
+.jumps{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom));
+  z-index:9; display:flex; gap:8px; transform:translateZ(0);}
+body.selecting .jumps{display:none;}
+.totop{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg);
+  color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none;
+  align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; padding:0;}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
 /* ---- The tool row: category chips + select + refresh ----------------------
@@ -388,6 +507,16 @@ body.reading .backwrap{display:block;}
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
   padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper)); font-weight:600;}
+.catchip .cc-n{opacity:.6; margin-left:1px;}
+/* HOW MANY ANSWERED (Sophie, Aug 2026: "a little number next to stories that
+   says if there's chats that just recently answered to me"). A dot said only
+   "something happened in here"; the number says how much. It is a badge — a
+   dot with a number in it — which is the "dots" exception to the no-pills
+   rule, not a pill button. */
+.catchip .cc-new{display:inline-flex; align-items:center; justify-content:center;
+  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px;
+  background:var(--chg); color:var(--paper); font-size:10px; font-weight:700;
+  letter-spacing:0; margin-left:5px; vertical-align:middle;}
 .iconbtn{flex:none; width:34px; height:34px; border:1.5px solid var(--line); border-radius:6px; background:transparent;
   color:var(--ink2); cursor:pointer; display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
@@ -488,17 +617,23 @@ body.ontop > .float{display:none !important;}
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
 <button id="newbar" class="newbar" aria-label="Show new messages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg><span id="newtxt">New message</span></button>
-<button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
+<div class="jumps"><button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button id="tobot" class="totop" aria-label="Jump to the bottom"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
 <div class="wrap">
   <section id="home">
     <header>
-      <div class="no">deck factory &middot; every chat, one place</div>
-      <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
-        <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
-        <button id="stlink" class="stbtn" aria-label="Status — what&rsquo;s waiting on you"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></button>
-        <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-        <button id="archlink" class="archlink">Archive</button>
-        <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+      <!-- The "deck factory · every chat, one place" eyebrow is GONE (Aug 2026,
+           Sophie: "that's wasted real estate"). It told her where she was on a
+           screen she opens from a tile that already says Chats. The thread
+           header keeps its own .no row — that one carries Archive, Hide and
+           the star, so it is doing work. -->
+      <div class="hrow">
+        <h1 id="htitle"><span id="htxt">Chats</span></h1>
+        <div class="hctl">
+          <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          <button id="todolink" class="archlink">To do</button>
+          <button id="archlink" class="archlink">Archive</button>
+          <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+        </div>
       </div>
       <div class="rule"></div>
     </header>
@@ -856,9 +991,56 @@ function groups(){
 // (branch-derived); a custom displayName set in-app overrides it. Messages
 // still group by the real key, so renaming only changes the label.
 function dispName(name){ return (chats[name]&&chats[name].displayName)||name; }
-function iconHtml(name, cls){
+// A chat's deliberate status card (registry statusNeed/statusDoing — see
+// POST /api/chatfeed/status) + Sophie's own pinned note. These are what the
+// home rows show under the name; the auto TLDR is only the fallback.
+function statusLines(name){
+  var r=chats[name]||{};
+  return {
+    need:String(r.statusNeed||'').trim(),
+    doing:String(r.statusDoing||'').trim(),
+    note:String(r.sophieNote||'').trim(),
+  };
+}
+// The under-the-name lines as HTML: the ask in rose, the working line quiet,
+// her note italic — falling back to the latest auto TLDR when a chat hasn't
+// filed a card yet (so old chats don't go blank).
+function statusLinesHtml(name, fallback){
+  var st=statusLines(name), h='';
+  if(st.need) h+='<span class="cr-need">'+esc(st.need)+'</span>';
+  if(st.doing) h+='<span class="cr-snip">'+esc(st.doing)+'</span>';
+  if(!st.need && !st.doing && fallback) h+='<span class="cr-snip">'+esc(fallback)+'</span>';
+  // Her note is HER OWN reminder of where things stand (Aug 2026, Sophie) —
+  // no "you:" prefix, the italic is enough to read as hers.
+  if(st.note) h+='<span class="cr-note">'+esc(st.note)+'</span>';
+  return h;
+}
+// A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
+// box with a giant italic initial in it, and Sophie asked for that gone ("a
+// little icon with a giant letter on all the chats — get rid of that"). So a
+// chat with no picture now contributes NOTHING and the row starts at its name.
+// `blank:true` keeps the old placeholder for the TILE cover, which is a fixed
+// square that has to be filled to hold its shape.
+// Which Claude ACCOUNT a chat belongs to, as a bare 1 or 2 at the front of the
+// row (Sophie, Aug 2026 — the slot the letter icon vacated). It is deliberately
+// not a button: the account picker lives in the thread, and a tappable-looking
+// number here would just be a mis-tap on the way into a chat. 130 of ~190 chats
+// carry the tag; an untagged one shows a blank of the same width so the names
+// still line up.
+// The star sits on the LEFT, beside the account digit (her spec). Drawn only
+// when the chat is starred — an empty slot on every other row would be a
+// column of nothing running down the whole list.
+function starHtml(name){
+  return chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '';
+}
+function acctHtml(name){
+  var a=(chats[name]&&chats[name].account)||'';
+  return '<span class="cr-acct">'+(a==='1'||a==='2'? a : '')+'</span>';
+}
+function iconHtml(name, cls, blank){
   var icon=chats[name]&&chats[name].icon;
   if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
+  if(!blank) return '';
   return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((dispName(name)||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
@@ -884,31 +1066,64 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo'
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
   var t=document.getElementById('htitle');
   var inHidden = (homeView==='live' && hideOpen);
-  t.textContent = inHidden ? 'Hidden'
+  document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
-    : homeView==='status' ? 'Status' : 'Chats';
+    : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do' : 'Chats';
   t.classList.toggle('hid', inHidden);
+  t.classList.toggle('arch', homeView==='archive');
+  // The words never change and never disappear (Aug 2026, Sophie: "when I
+  // press hidden or archive it just takes me back to chats rather than having
+  // a button that says chats and a back arrow — get rid of that button"). Each
+  // word is its own toggle: tap it to go there, tap it again to come back. The
+  // lit state and the big title say which one she is in.
+  var tl=document.getElementById('todolink');
+  tl.classList.toggle('on', homeView==='todo');
   var a=document.getElementById('archlink');
-  a.textContent = homeView==='live' ? 'Archive' : '← Chats';
-  a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
-  a.classList.toggle('on', homeView!=='live');
+  a.setAttribute('aria-label', homeView==='archive' ? 'Back to all chats' : 'Show archived chats');
+  a.classList.toggle('on', homeView==='archive');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
-  document.getElementById('stlink').classList.toggle('on', homeView==='status');
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
   // useful everywhere, so it stays and the row keeps its place.
-  var other=(homeView==='bookmarks'||homeView==='status');
+  var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo');
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   if(other && selMode) exitSelect();
+  // The to-do list is not chats: the whole tool row and the search bar (which
+  // searches MESSAGES) would both be controls that do nothing to it.
+  var todoing=(homeView==='todo');
+  document.getElementById('toolrow').style.display = todoing ? 'none' : '';
+  document.querySelector('.searchrow').style.display = todoing ? 'none' : '';
 }
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
+// The STATUS view has no button anymore (Sophie had the icon removed), so this
+// is the only way in — the headless tests drive it, and it is what a restored
+// entrance would call. Deliberately kept so the retained view stays testable.
+window.__setHomeView=setHomeView;
+// The big title is the way back out of a sub-view (Sophie: "I'm supposed to be
+// able to click on the archive title and it goes back to chats and same with
+// hidden"). The handler is on the ROW, not the title: the title is
+// pointer-events:none so the buttons it overlaps stay tappable, so a tap that
+// arrives here as .hrow itself is one that missed every button — and if it
+// landed inside the title text's rect, it was aimed at the word.
+function titleBack(){
+  if(homeView!=='live'){ setHomeView('live'); return true; }
+  if(hideOpen){ hideOpen=false; renderHome(); window.scrollTo(0,0); return true; }
+  return false;   // already on the chat list — the word is just a word
+}
+window.__titleBack=titleBack;
+document.querySelector('.hrow').addEventListener('click', function(e){
+  if(e.target!==this && e.target.id!=='htitle' && e.target.id!=='htxt') return;
+  var r=document.getElementById('htxt').getBoundingClientRect();
+  if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom) return;
+  titleBack();
+});
 // Every bookmarked message, newest first, whichever chat it is in. Tapping one
 // opens its chat and jumps to it — the same focus+flash the search results use.
 // The two things she actually bookmarks (her words): something with code /
@@ -940,13 +1155,45 @@ function paintBookmarks(el){
     el.appendChild(s); return;
   }
   items.forEach(function(m){
-    var b=document.createElement('button'); b.className='sres';
-    b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
+    // The row is a wrapper, not a bare button, because the note is EDITABLE
+    // right here (Sophie: naming a backlog of old bookmarks one at a time by
+    // opening each message was a round trip per bookmark). An <input> cannot
+    // live inside a <button>, so the tappable part is its own button and the
+    // note sits above it.
+    var row=document.createElement('div'); row.className='bmkrow';
+    var inp=document.createElement('input'); inp.type='text';
+    inp.className='sr-note-in'; inp.value=m.note||'';
+    inp.placeholder='Name this one…';
+    inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+    inp.setAttribute('aria-label','Why you kept this');
+    function save(){
+      var v=(inp.value||'').trim().slice(0,300);
+      if(v===(m.note||'')) return;
+      var prev=m.note||''; m.note=v;          // bmkCache holds this object
+      api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ m.note=prev; inp.value=prev; toast('Couldn’t save that'); });
+    }
+    inp.onblur=save;
+    inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } };
+    // Her note LEADS, above the snippet — the snippet is the message's first
+    // line and is rarely why she kept it, so it is the subtitle here. That
+    // ordering is why the row is a div with a handler rather than a <button>:
+    // an <input> can't live inside a button, and the note has to sit between
+    // the chat line and the snippet.
+    var head=document.createElement('div');
+    head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
-      +'<span class="sr-time">'+ago(m.created)+'</span></div>'
-      +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
-    b.onclick=function(){ openChat(m.chat, false, m.id); };
-    el.appendChild(b);
+      +'<span class="sr-time">'+ago(m.created)+'</span></div>';
+    var snip=document.createElement('div'); snip.className='sr-snip';
+    snip.textContent=m.snippet||'';
+    row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
+    row.setAttribute('role','button'); row.tabIndex=0;
+    row.onclick=function(e){
+      if(e.target===inp) return;          // typing a name must not open the chat
+      openChat(m.chat, false, m.id);
+    };
+    el.appendChild(row);
   });
 }
 function renderBookmarks(el){
@@ -961,7 +1208,103 @@ function renderBookmarks(el){
     })
     .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
 }
-// ---- Status view -----------------------------------------------------------
+// ---- The running to-do list (Aug 2026, Sophie) -----------------------------
+// "I kind of wanna do like a running to-do list." Things she thinks of on her
+// phone — a bug she noticed, an art direction to try — kept in one place
+// instead of scattered across whichever chat happened to be open.
+//
+// Not per-chat on purpose: the whole point is that an idea arrives while she is
+// somewhere else. Any chat can READ it (GET /api/chatfeed/todos) and act on an
+// item the next time she messages it — the same snail-mail rhythm as the notes
+// on an image.
+//
+// Open items first, newest at the top of each group (the server sorts). A done
+// item stays, struck through, until she deletes it — crossing something off is
+// most of the point.
+var todoCache=null;
+function renderTodo(el){
+  el.innerHTML='';
+  var add=document.createElement('div'); add.className='todoadd';
+  var inp=document.createElement('input'); inp.type='text';
+  inp.placeholder='Add something…';
+  inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+  var go=document.createElement('button'); go.className='tbtn'; go.textContent='Add';
+  function submit(){
+    var v=(inp.value||'').trim();
+    if(!v) return;
+    inp.value='';
+    var tmp={id:'tmp'+Date.now(), text:v, done:false, createdAt:new Date().toISOString()};
+    todoCache=[tmp].concat(todoCache||[]);
+    paintTodo(el);
+    api('/api/chatfeed/todo',{method:'POST',body:JSON.stringify({text:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0; tmp.id=d.id; })
+      .catch(function(){
+        todoCache=(todoCache||[]).filter(function(x){ return x!==tmp; });
+        paintTodo(el); toast('Couldn’t save that');
+      });
+  }
+  go.onclick=submit;
+  inp.onkeydown=function(e){ if(e.key==='Enter') submit(); };
+  add.appendChild(inp); add.appendChild(go);
+  el.appendChild(add);
+  var box=document.createElement('div'); box.id='todolist'; el.appendChild(box);
+  if(todoCache) paintTodo(el);
+  else box.innerHTML='<div class="state">Loading…</div>';
+  api('/api/chatfeed/todos?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(homeView!=='todo') return;          // she left while it loaded
+      todoCache=(d&&d.items)||[];
+      paintTodo(el);
+    })
+    .catch(function(){ if(homeView==='todo'&&!todoCache) box.innerHTML='<div class="state">Couldn’t load the list.</div>'; });
+}
+function paintTodo(el){
+  var box=el.querySelector('#todolist'); if(!box) return;
+  var items=(todoCache||[]).slice().sort(function(a,b){
+    if(!!a.done!==!!b.done) return a.done?1:-1;
+    return (a.createdAt||'')<(b.createdAt||'')?1:-1;
+  });
+  box.innerHTML='';
+  if(!items.length){
+    box.innerHTML='<div class="state">Nothing on the list — type something above.</div>';
+    return;
+  }
+  items.forEach(function(it){
+    var row=document.createElement('div'); row.className='todorow'+(it.done?' done':'');
+    var ck=document.createElement('button'); ck.className='ckbtn'+(it.done?' on':'');
+    ck.innerHTML=CK; ck.setAttribute('aria-label', it.done?'Not done after all':'Cross it off');
+    ck.onclick=function(){
+      var was=!!it.done; it.done=!was;
+      paintTodo(el);
+      api('/api/chatfeed/todo/'+encodeURIComponent(it.id),{method:'PATCH',body:JSON.stringify({done:it.done})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ it.done=was; paintTodo(el); toast('Couldn’t save that'); });
+    };
+    var txt=document.createElement('span'); txt.className='todotext'; txt.textContent=it.text||'';
+    var del=document.createElement('button'); del.className='tododel';
+    del.setAttribute('aria-label','Delete'); del.innerHTML='&times;';
+    del.onclick=function(){
+      askFirst('Delete this?', 'Delete', function(ok){
+        if(!ok) return;
+        todoCache=(todoCache||[]).filter(function(x){ return x.id!==it.id; });
+        paintTodo(el);
+        api('/api/chatfeed/todo/'+encodeURIComponent(it.id),{method:'DELETE'});
+      });
+    };
+    row.appendChild(ck); row.appendChild(txt); row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+// ---- Status view — NO WAY IN FROM THE PAGE (Aug 2026) -----------------------
+// Its entrance was the list-todo icon beside the masthead, and Sophie had it
+// removed ("the weird check-plus next to the big chat's name — I don't
+// actually know what it does"). Everything below still works; it just has no
+// button. Two of the four sections had also gone quiet by then — the ✓ that
+// filled MARKED DONE is gone, and the rose working signal is off — so ask her
+// what she wants it to say before wiring an entrance back up.
+// ----------------------------------------------------------------------------
 // One prioritized screen (Sophie's ask, Aug 2026: "this is what's done, this
 // is what's waiting on you, these are the assets that were just delivered"):
 //   WAITING ON YOU  — her flagged come-back-later chats first, then finished
@@ -996,19 +1339,25 @@ function stHead(txt, n){
   h.innerHTML=esc(txt)+(n?' <span class="stn">'+n+'</span>':'');
   return h;
 }
-// A status row is the home list's .crow — same icon, same ✓/hide buttons (mark
-// answered, or take it off the list, without opening anything) — plus a
-// one-line snippet.
+// A status row is the home list's .crow — same hide button (take it off the
+// list without opening anything) — plus a one-line snippet.
+// The ✓ is GONE from here too (Aug 2026, Sophie: "the checkmark next to chats,
+// I don't actually know what it does — take it off"). It wrote `answeredAt`,
+// which grayed a chat until anything newer arrived and fed the MARKED DONE
+// section below. Nothing writes that field from the app now, so that section
+// only ever shows chats stamped before today; `chatDone`/`toggleMark`/`mkCheck`
+// are all still here, so putting the ✓ back is one appendChild.
 function stRow(name, list, last, snip, live){
   var row=document.createElement('button');
   row.className='crow'+(chatMuted(name,last)?' done':'')+(live?' live':'');
   row.dataset.chat=name;
-  row.innerHTML=iconHtml(name,'cr-ic')
+  // The deliberate status card wins here too; `snip` (the auto TLDR / draft
+  // line) is only the fallback for a chat that hasn't filed one.
+  row.innerHTML=acctHtml(name)+starHtml(name)+iconHtml(name,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
-    +(snip?'<span class="cr-snip">'+esc(snip)+'</span>':'')+'</span>'
+    +statusLinesHtml(name, snip)+'</span>'
     +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-  row.insertBefore(mkHide(name,last), row.firstChild.nextSibling);
-  row.appendChild(mkCheck(name,last,row));
+  row.appendChild(mkHide(name,last));
   row.onclick=function(){ openChat(name); };
   return row;
 }
@@ -1133,22 +1482,61 @@ function lastOf(g,name){ var l=g[name]||[]; return l.length? l[l.length-1] : nul
 // three chats one morning and read as the rest having vanished.
 var CAT_SEEDS=['stories','tech'];
 var cat='';
+// The ★ chip is a filter like a category, with one deliberate difference: it
+// IGNORES `archived`. Starred chats are the ones she has finished with and put
+// away, so a star pile that stopped at the archive would miss most of them.
+var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// STARRED — "important, work I want to refer back to, but I'm not actively
+// using them" (Sophie, Aug 2026). A permanent judgement about the chat, so a
+// plain boolean like `archived`, never a self-clearing stamp.
+function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
+// Seeds + every name she has ever created (kept on the __settings doc) + every
+// name actually in use. The middle one is why an EMPTY folder still shows: she
+// made a category, nothing happened to be picked at the time, and it vanished
+// — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
+  ((settings&&settings.categories)||[]).forEach(function(c){
+    c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
+  });
   Object.keys(chats).forEach(function(n){
     var c=chatCat(n); if(c && out.indexOf(c)<0) out.push(c);
   });
   return out;
 }
 function catLabel(c){ return c.charAt(0).toUpperCase()+c.slice(1); }
-function paintCatRow(){
+// The chips carry a COUNT, and a dot when something in there is unread.
+// Filing takes a chat OUT of the main list, so without those two the chats she
+// files would simply vanish and a reply inside a folder would be silent — the
+// same reason the hidden bar names what is behind it.
+function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
+  var sb=document.createElement('button');
+  sb.className='catchip starchip'+(starOnly?' on':'');
+  sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
+  sb.onclick=function(){ starOnly=!starOnly; if(starOnly) cat=''; renderHome(); window.scrollTo(0,0); };
+  row.appendChild(sb);
   catList().forEach(function(c){
+    var mine=Object.keys(chats).filter(function(n){
+      return chatCat(n)===c && !(chats[n]&&chats[n].archived);
+    });
+    // how many chats in here have ANSWERED her — a finished reply she has not
+    // opened. Counted per CHAT, not per message: "3" means three of them came
+    // back, which is the thing she is deciding whether to go look at.
+    var fresh=mine.filter(function(n){
+      var last=lastOf(g,n);
+      return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
+    }).length;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
-    b.textContent=catLabel(c);
-    b.onclick=function(){ cat=(cat===c?'':c); renderHome(); window.scrollTo(0,0); };
+    // ONE number, and it is the red one (Aug 2026, Sophie: "I don't need to
+    // see the number on the categories — it should just say the number of
+    // chats I haven't read yet, just the one in red"). The dim total was mine,
+    // not hers, and two numbers on a chip read as noise.
+    b.innerHTML=esc(catLabel(c))+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
+    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   });
 }
@@ -1177,13 +1565,21 @@ function mkPick(name){
 }
 // One filing call for the whole selection, then out of select mode — filing is
 // the end of the gesture, not a thing to keep doing.
+// Files the picked chats under `c` — and with NOTHING picked but a name given,
+// just creates the category. That combination used to toast "Nothing picked"
+// and throw the name away, which is how a category Sophie made never appeared.
 function filePicked(c){
   var names=Object.keys(picked);
-  if(!names.length){ toast('Nothing picked'); return; }
+  if(!names.length && !c){ toast('Nothing picked'); return; }
   var prev={}; names.forEach(function(n){ prev[n]=chatCat(n); chats[n]=chats[n]||{}; chats[n].category=c; });
+  if(c){
+    settings=settings||{};
+    settings.categories=(settings.categories||[]).slice();
+    if(settings.categories.indexOf(c)<0) settings.categories.push(c);
+  }
   exitSelect();
   renderHome();
-  toast(c? (names.length+' → '+catLabel(c)) : 'Cleared');
+  toast(!c ? 'Cleared' : names.length ? (names.length+' → '+catLabel(c)) : ('Made '+catLabel(c)));
   api('/api/chatfeed/category',{method:'POST',body:JSON.stringify({chats:names, category:c})})
     .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
     .catch(function(){ names.forEach(function(n){ chats[n].category=prev[n]; }); renderHome(); toast('Couldn’t save that'); });
@@ -1202,11 +1598,17 @@ function paintSelBar(){
   });
   var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
   inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
-  inp.onkeydown=function(e){
-    if(e.key!=='Enter') return;
+  // Enter OR tapping away — she dictates these, and dictation often ends with a
+  // tap somewhere else rather than a press of return. Losing the name that way
+  // is exactly how a category she made went missing.
+  function takeNew(){
     var v=(inp.value||'').trim().toLowerCase().slice(0,40);
-    if(v) filePicked(v);
-  };
+    if(!v) return;
+    inp.value='';
+    filePicked(v);
+  }
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
+  inp.onblur=takeNew;
   row.appendChild(inp);
   var none=document.createElement('button'); none.className='catchip'; none.textContent='None';
   none.onclick=function(){ filePicked(''); };
@@ -1239,17 +1641,38 @@ function renderHome(){
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
   var all=sortedChatNames(g);
+  // ★ is its own pile and it reaches INTO the archive: these are chats she has
+  // finished with and put away, so stopping at `archived` would hide most of
+  // them. It replaces the whole list rather than narrowing it.
+  if(starOnly){
+    var st=all.filter(chatStar);
+    paintHomeChrome(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!st.length){ el.innerHTML='<div class="state">No starred chats yet — open one and tap the star in its header.</div>'; return; }
+    renderList(el,g,st);
+    return;
+  }
   var live=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
-  // A category chip narrows the WHOLE screen, the hidden pile included — a bar
-  // counting chats from a category she isn't looking at would be noise.
-  if(cat) live=live.filter(function(n){ return chatCat(n)===cat; });
+  // FILING MOVES A CHAT (Aug 2026, Sophie: "when I mark something as a story,
+  // it takes it out of the normal list"). So the unfiltered home is the
+  // UNFILED pile — an inbox — and a lit chip is that folder. A chip narrows
+  // the WHOLE screen, the hidden pile included: a bar counting chats from a
+  // folder she isn't looking at would be noise.
+  live=live.filter(function(n){ return cat? chatCat(n)===cat : !chatCat(n); });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
+  // ARCHIVE deliberately does NOT hide filed chats: it is already the "away
+  // for good" pile, and filtering it down to the unfiled ones would leave a
+  // filed+archived chat reachable only by lighting the right chip first. A
+  // chip still narrows it.
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
   paintHomeChrome();
-  paintCatRow();
+  paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
+  if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
   if(homeView==='status'){ renderStatus(el); return; }
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
@@ -1266,10 +1689,12 @@ function renderHome(){
     // reads as empty and looks like the chats are gone
     el.appendChild(Object.assign(document.createElement('div'),
       {className:'state', textContent: hid.length ? 'Everything is hidden — tap Hidden to see it.'
-        : ('Nothing filed under ' + catLabel(cat) + ' yet — tap the checkbox to file some chats.')}));
+        : cat ? ('Nothing filed under ' + catLabel(cat) + ' yet — tap the checkbox to file some chats.')
+        : 'Everything is filed — tap a category to see it.'}));
     return;
   }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+  if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
 // message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
@@ -1282,12 +1707,14 @@ function chatMuted(name,last){ return chatDone(name,last); }
 // hide a chat and then it answers me I'd actually like it to pop out of the
 // hidden area"). So a hidden chat comes back the moment anything newer lands
 // — hiding means "not now", not "away for good"; Archive is for good.
-// `hidden:true` is the retired v1 boolean, still honoured so the chats she
-// hid that day didn't all reappear at once.
+// The retired v1 boolean `hidden:true` is GONE and is no longer honoured. It
+// could never pop out — which is exactly the bug Sophie reported ("when I hide
+// something and then it answers me I want it to become unhidden"): the 11
+// chats she hid on the day v1 shipped were stuck behind the bar forever. Every
+// one was migrated onto a stamp on 2026-08-09 (`POST /hide` rewrites both
+// fields), so reading it back would only keep the trap alive.
 function chatHidden(name,last){
-  var c=chats[name]||{};
-  if(c.hiddenAt) return stampActive(c.hiddenAt, last);
-  return !!c.hidden;
+  return stampActive((chats[name]&&chats[name].hiddenAt)||'', last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
@@ -1335,6 +1762,10 @@ var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=
 // the two read as one control in two states, the way ✓ does.
 var HD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
 var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+// A filled star in the bookmark's red — "a red star would be nice to match the
+// bookmark colour" (Sophie). Filled, not outlined: on a row it is a state, not
+// a control; the one place it IS a control is the thread header's button.
+var STAR='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 2.6 2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>';
 var CHEV='<svg class="hb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
 function paintMarks(name,last,container){
@@ -1407,12 +1838,18 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
-    b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
+    // The chat's own status card wins the tile's line: the ask (rose) and/or
+    // the working line; only a chat with no card falls back to the auto TLDR.
+    var st=statusLines(name);
+    var lineHtml=(st.need?'<span class="t-tldr t-need">'+esc(st.need)+'</span>':'')
+      +(st.doing?'<span class="t-tldr">'+esc(st.doing)+'</span>':'')
+      +((!st.need&&!st.doing&&status)?'<span class="t-tldr">'+esc(status)+'</span>':'');
+    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
-      +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
+      +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
-    var cov=b.querySelector('.t-cover'); cov.appendChild(mkCheck(name,last,b)); cov.appendChild(mkHide(name,last));
+    var cov=b.querySelector('.t-cover'); cov.appendChild(mkHide(name,last));
     if(selMode){ b.classList.toggle('picked', !!picked[name]); cov.appendChild(mkPick(name)); }
     b.onclick=function(){ if(selMode) togglePick(name,b); else openChat(name); };
     grid.appendChild(b);
@@ -1426,15 +1863,21 @@ function renderList(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
-    // Just the chat's name (Sophie's rule). The message snippet that used to sit
-    // beside it was an inline span, so it never truncated — it ran over the
-    // timestamp and the ✓ and off the side of the screen.
-    row.innerHTML=iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
+    // The name, plus the chat's own status card underneath (Aug 2026, Sophie:
+    // "a line on what they need and maybe a summary of what that chat is
+    // currently working on"). No auto-TLDR fallback here — the old inline
+    // snippet ran over the timestamp and was removed by her rule; only lines
+    // a chat wrote ON PURPOSE (or her own pinned note) earn the space.
+    // No ✓ on the home rows for now (Sophie's ask) and the hide ⊖ takes the
+    // spot it had, on the right. Marking a chat answered still lives on the
+    // STATUS view, which is the screen that has a "Marked done" section to
+    // feed — pulling it from there too would leave that section dead.
+    row.innerHTML=acctHtml(name)+starHtml(name)+iconHtml(name,'cr-ic')
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
+      +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    row.insertBefore(mkHide(name,last), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
-    row.appendChild(mkCheck(name,last,row));
+    row.appendChild(mkHide(name,last));
     if(selMode){ row.classList.toggle('picked', !!picked[name]); row.appendChild(mkPick(name)); }
     row.onclick=function(){ if(selMode) togglePick(name,row); else openChat(name); };
     wrap.appendChild(row);
@@ -1504,9 +1947,12 @@ function renderMsg(m){
   };
   // Bottom row: bookmark (left) + Open-in-Claude (right).
   var ob=document.createElement('div'); ob.className='openrow';
-  ob.appendChild(bookmarkBtn(m));
+  ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
+  // an already-bookmarked message carries its note box from the first paint,
+  // so what she wrote is visible and editable without hunting for a gesture
+  if(m.bookmarked) ob.appendChild(mkBmkNote(m));
   row.appendChild(ob);
   return row;
 }
@@ -1514,17 +1960,59 @@ function renderMsg(m){
 // Bookmark toggle for a message — saves server-side (a field on the message
 // doc) so a flagged message stays marked across reloads and any chat can find
 // what Sophie marked to keep.
-function bookmarkBtn(m){
+// The bookmark, plus the NOTE that says why she kept it (Aug 2026, Sophie: "I
+// want to leave a note or title the message so I remember what it was and why
+// I bookmarked it"). Bookmarking opens the box straight away — the reason is
+// in her head at that moment and nowhere else — and the box stays reachable
+// afterwards by tapping the lit bookmark. It saves on tap-away, the same
+// contract as everything else she dictates into.
+// The note box lives under a bookmarked message for as long as it IS
+// bookmarked — appearing when she saves it and going when she un-saves it.
+// That is why there is no separate "edit the note" gesture: the box is simply
+// there, holding whatever she wrote, and it saves on tap-away like everything
+// else she dictates into.
+function mkBmkNote(m){
+  var box=document.createElement('div'); box.className='bmknote';
+  var inp=document.createElement('input'); inp.type='text';
+  inp.placeholder='Why keep this?'; inp.value=m.bookmarkNote||'';
+  inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+  function save(){
+    var v=(inp.value||'').trim().slice(0,300);
+    if(v===(m.bookmarkNote||'')) return;
+    var prev=m.bookmarkNote||''; m.bookmarkNote=v;
+    // note ONLY — sending it without `bookmarked` means saving a note can
+    // never quietly un-save the message
+    api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ m.bookmarkNote=prev; inp.value=prev; toast('Couldn’t save that'); });
+  }
+  inp.onblur=save;
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } };
+  inp.onclick=function(e){ e.stopPropagation(); };
+  box.appendChild(inp);
+  return box;
+}
+function bookmarkBtn(m, row){
   var BM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
   var b=document.createElement('button'); b.className='bmk'+(m.bookmarked?' on':'');
   b.setAttribute('aria-label','Bookmark this message'); b.innerHTML=BM;
   b.onclick=function(e){
     e.stopPropagation();
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
+    var open=row.querySelector('.bmknote');
+    if(nv && !open){
+      var box=mkBmkNote(m);
+      row.querySelector('.openrow').appendChild(box);
+      box.querySelector('input').focus();   // the reason is in her head NOW
+    } else if(!nv && open) open.remove();
     api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, bookmarked:nv})})
       .then(function(r){return r.json()})
       .then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){ m.bookmarked=!nv; b.classList.toggle('on',!nv); toast('Couldn’t save that'); });
+      .catch(function(){
+        m.bookmarked=!nv; b.classList.toggle('on',!nv);
+        var bx=row.querySelector('.bmknote'); if(bx&&!m.bookmarked) bx.remove();
+        toast('Couldn’t save that');
+      });
   };
   return b;
 }
@@ -1551,6 +2039,7 @@ function ensureFullThread(name){
     .catch(function(){ fullLoaded[name]=0; });   // let a later open retry
 }
 function openChat(name, keepScroll, focusId, noFetch){
+  if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   if(!noFetch) ensureFullThread(name);
@@ -1564,7 +2053,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
-  head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
+  head.innerHTML='<div class="no"></div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
@@ -1590,8 +2079,47 @@ function openChat(name, keepScroll, focusId, noFetch){
         })
         .catch(function(){ toast('Couldn\u2019t save that'); });
     }
-    ab.className='archlink';   // reads as text, still a button
+    // "away for good" in green, "not now" in red — a glance at the pair says
+    // which is the bigger decision (Sophie's ask). Tinted TEXT, not filled
+    // buttons: these are words on a crumb row, not controls to shout.
+    ab.className='archlink arch-g';   // reads as text, still a button
     head.querySelector('.no').appendChild(ab);
+  })();
+  // HIDE, beside Archive — the two are the same family of decision ("not now"
+  // vs "away for good"), so they belong in the same row. This is the way to
+  // park a chat she has just read without going back to the list for its ⊖.
+  (function(){
+    var list0=(groups()[name])||[];
+    var last0=list0.length? list0[list0.length-1] : null;
+    var hb=document.createElement('button');
+    hb.className='archlink hide-r';
+    hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
+    hb.onclick=function(){
+      toggleHide(name,last0);          // optimistic + POSTs + repaints the home
+      goHome();
+    };
+    head.querySelector('.no').appendChild(hb);
+  })();
+  // STAR — keep this one for later. It is the only place the star is a
+  // control; everywhere else it is just the red mark on the row.
+  (function(){
+    var sb=document.createElement('button');
+    sb.className='starbtn'+(chatStar(name)?' on':'');
+    sb.innerHTML=STAR;
+    function paintS(){
+      sb.classList.toggle('on', chatStar(name));
+      sb.setAttribute('aria-label', chatStar(name)?'Unstar this chat':'Star this chat');
+    }
+    paintS();
+    sb.onclick=function(){
+      var was=chatStar(name);
+      chats[name]=chats[name]||{}; chats[name].starred=!was;
+      paintS(); toast(was?'Unstarred':'Starred');
+      api('/api/chatfeed/star',{method:'POST',body:JSON.stringify({chat:name, starred:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].starred=was; paintS(); toast('Couldn’t save that'); });
+    };
+    head.querySelector('.no').appendChild(sb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -1612,6 +2140,38 @@ function openChat(name, keepScroll, focusId, noFetch){
   sclr.style.display='none'; sclr.setAttribute('aria-label','Clear search');
   srow.appendChild(sinp); srow.appendChild(sclr);
   var scount=document.createElement('div'); scount.className='msgcount'; scount.style.display='none';
+  // Her pinned note on this chat (Aug 2026): HER OWN reminder of what's going
+  // on here ("waiting on the palette", "this one makes the zine"). Not
+  // direction for the chat — it's for her, shown on the home row and here.
+  // A chat never clears it; she edits or clears it right here (save on
+  // tap-away, empty clears).
+  var nrow=document.createElement('div'); nrow.className='noterow';
+  function paintNote(){
+    var v=(chats[name]&&chats[name].sophieNote)||'';
+    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
+    nrow.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+  }
+  function editChatNote(){
+    var v=(chats[name]&&chats[name].sophieNote)||'';
+    var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
+    ta.placeholder='A note to yourself about this chat';
+    nrow.innerHTML=''; nrow.appendChild(ta); ta.focus();
+    var done=false;
+    function save(){
+      if(done) return; done=true;
+      var nv=ta.value.trim();
+      if(nv===v){ paintNote(); return; }
+      api('/api/chatfeed/chatnote',{method:'POST',body:JSON.stringify({chat:name, note:nv})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          chats[name]=chats[name]||{}; chats[name].sophieNote=nv||null; saveCache();
+          paintNote(); toast(nv?'Note saved':'Note cleared'); })
+        .catch(function(){ done=false; toast('Couldn’t save that'); });
+    }
+    ta.addEventListener('blur',save);
+  }
+  paintNote();
+  chatPanel.appendChild(nrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
   if(!list.length) chatPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
   // Each row is indexed once against the text it was built from, not re-read
@@ -2361,20 +2921,32 @@ document.getElementById('back').onclick=goHome;
   window.addEventListener('pagehide', end);
 })();
 
-// Floating jump-to-top arrow: appears once you've scrolled down; stops any
-// autoscroll and glides back to the top.
+// The floating jump pair: back to the top, and all the way to the bottom.
+// Both stop any autoscroll first — otherwise the page keeps creeping after it
+// arrives — and each appears only when it has somewhere to go, so neither
+// floats over a list that already fits on the screen.
 (function(){
-  var toTop=document.getElementById('totop');
-  toTop.onclick=function(){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:0,behavior:'smooth'}); };
-  function upd(){ toTop.classList.toggle('show', window.scrollY>400); }
+  var toTop=document.getElementById('totop'), toBot=document.getElementById('tobot');
+  function go(y){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:y, behavior:'smooth'}); }
+  toTop.onclick=function(){ go(0); };
+  toBot.onclick=function(){ go(document.documentElement.scrollHeight); };
+  function upd(){
+    var left=document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+    toTop.classList.toggle('show', window.scrollY>400);
+    toBot.classList.toggle('show', left>400);
+  }
   window.addEventListener('scroll', upd, {passive:true});
+  window.addEventListener('resize', upd, {passive:true});
+  // the list rebuilds constantly (polls, filters, opening a chat), and the page
+  // height changes with it — recheck on the next frame after any repaint
+  window.__jumpsRecheck=function(){ requestAnimationFrame(upd); };
   upd();
 })();
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
+document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
-document.getElementById('stlink').onclick=function(){ setHomeView('status'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =

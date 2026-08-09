@@ -57,6 +57,8 @@ const server = http.createServer((req, res) => {
         'chat-b': { lastSeen: MSGS[1].created },
         // already hidden before she opens the page. hiddenAt is NEWER than its
         // last message, which is what "hidden" means now — a stamp, not a flag.
+        // (The v1 boolean `hidden:true` is gone and no longer read: it could
+        // never pop out, which is the bug that retired it.)
         'chat-parked': { lastSeen: MSGS[2].created, hiddenAt: iso(T0) },
       },
       settings: {}, truncated: [],
@@ -161,7 +163,7 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   // 6b. a hidden chat leads Status's WAITING ON YOU (the slot the ! flag had)
   await page.click('#grid > .clist .crow[data-chat="chat-parked"] .hidebtn');
   await page.waitForFunction(() => !!document.querySelector('.hidebar'));
-  await page.click('#stlink');
+  await page.evaluate(() => window.__setHomeView('status'));
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status');
   const stRows = await page.$$eval('#grid .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
   if (stRows[0] !== 'chat-parked') fail('hidden chat does not lead Waiting on you: ' + stRows.join(','));
@@ -169,7 +171,7 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   // 7. a hidden chat that answers pops back out into the list by itself.
   //    Back to the live list first — Status's rows are .clist .crow as well,
   //    so asserting from there would pass on the wrong element.
-  await page.click('#stlink');
+  await page.evaluate(() => window.__setHomeView('status'));
   // the pile is still open from step 5, so the masthead reads HIDDEN here —
   // wait for "not Status" rather than for the word Chats
   await page.waitForFunction(() => document.getElementById('htitle').textContent !== 'Status');

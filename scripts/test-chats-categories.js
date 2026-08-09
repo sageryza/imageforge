@@ -7,9 +7,16 @@
 //   1. the LIST/TILES toggle is gone and the home is the list,
 //   2. the seeded chips (Stories, Tech) are there before anything is filed,
 //   3. select mode picks chats and one chip files the lot (POST /category),
-//   4. a lit chip filters the list; tapping it again clears back to everything,
+//   4. FILING MOVES a chat: it leaves the unfiltered list, the chip counts it,
+//      and a lit chip is that folder (tapping it again clears back),
 //   5. a category typed into the bar's New… box becomes a chip of its own,
-//   6. the filter narrows the HIDDEN pile too, not just the visible list.
+//   6. the filter narrows the HIDDEN pile too, not just the visible list,
+//   7. the chip badges HOW MANY chats in there have answered her, counted per
+//      chat, and the badge goes once she has seen them,
+//   8. a category she MAKES survives with nothing filed under it — typed with
+//      no chats picked, and committed by tapping away rather than pressing
+//      return (that pair is how one she made went missing), and a name the
+//      server remembers on __settings shows as a chip on the next load.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-categories.js
 //
@@ -52,7 +59,9 @@ const server = http.createServer((req, res) => {
         // pile as well as the list
         'chat-hid': { lastSeen: MSGS[3].created, hiddenAt: iso(T0), category: 'stories' },
       },
-      settings: {}, truncated: [],
+      // a name she made earlier, with nothing filed under it — the chip has to
+      // outlive the filing that created it
+      settings: { categories: ['crystals'] }, truncated: [],
       messages: since ? [] : MSGS, delta: !!since,
     }));
   }
@@ -77,7 +86,10 @@ const server = http.createServer((req, res) => {
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 // the MAIN list only — the hidden pile renders its own .clist inside .hidelist
 const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
-const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.textContent.trim()));
+// the label only: the row LEADS with the ★ chip (no text), and a chip's label
+// runs straight into its red unread badge with no space between them
+const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip)',
+  (ns) => ns.map((n) => n.firstChild.textContent.trim()));
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -97,7 +109,14 @@ const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.
 
   // 2. both seeded chips exist before anything is filed
   let cs = await chips(page);
-  if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech'])) fail('seeded chips wrong: ' + cs.join(','));
+  if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech', 'Crystals'])) fail('seeded chips wrong: ' + cs.join(','));
+  // ONE number on a chip, and it is the red unread one — the dim total came
+  // off at Sophie's ask ("just the one in red")
+  if (await page.$('#catrow .cc-n')) fail('the dim total is still on the chips');
+  const badge = await page.$$eval('#catrow .catchip:not(.starchip)', (ns) =>
+    ns.filter((n) => n.firstChild.textContent.trim() === 'Stories')
+      .map((n) => (n.querySelector('.cc-new') || {}).textContent || '')[0]);
+  if (badge !== '1') fail('Stories chip did not badge its unread hidden chat: ' + badge);
 
   // 3. select mode picks two chats and one chip files them
   await page.click('#selbtn');
@@ -108,30 +127,33 @@ const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.
   if (pickedN !== 2) fail('expected 2 picked rows, got ' + pickedN);
   // a tap in select mode must PICK, never open the chat
   if (await page.$eval('#thread', (n) => n.style.display !== 'none')) fail('a tap in select mode opened the chat');
-  await page.$$eval('#selbar .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#selbar .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
   await page.waitForFunction(() => !document.getElementById('selbar'), null, { timeout: 4000 })
     .catch(() => fail('filing did not leave select mode'));
   const post = catPosts.find((p) => p.category === 'tech');
   if (!post || post.chats.length !== 2) fail('POST /category wrong: ' + JSON.stringify(catPosts));
 
-  // 4. the chip filters, and tapping the lit one clears back to everything
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  // 4. the two filed chats LEFT the unfiltered list, and the chip counts them
   let rows = await listed(page);
-  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['chat-a', 'chat-b'])) fail('Tech filter wrong: ' + rows.join(','));
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('filed chats did not leave the list: ' + rows.join(','));
+  // the lit chip IS that folder, and tapping it again goes back to the unfiled
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
   rows = await listed(page);
-  if (rows.length !== 3) fail('tapping the lit chip did not clear the filter: ' + rows.join(','));
+  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['chat-a', 'chat-b'])) fail('Tech folder wrong: ' + rows.join(','));
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
+  rows = await listed(page);
+  if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('tapping the lit chip did not clear the filter: ' + rows.join(','));
 
   // 6. the filter reaches the hidden pile: under Stories the only live chat is
   //    hidden, so the list is empty and the bar carries it
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Stories').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Stories').click(); });
   if (await page.$('#grid > .clist')) fail('Stories should have no visible chats');
   const barTxt = await page.$eval('.hidebar .hb-n', (n) => n.textContent.replace(/\s+/g, ' ').trim());
   if (!/^Hidden 1\b/.test(barTxt)) fail('hidden pile not filtered to Stories: ' + barTxt);
   // and under Tech the pile is empty, so there is no bar at all
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
   if (await page.$('.hidebar')) fail('a bar was drawn for a category with nothing hidden');
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
 
   // 5. a typed category becomes a chip of its own
   await page.click('#selbtn');
@@ -144,6 +166,43 @@ const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.
   cs = await chips(page);
   if (cs.indexOf('Crystals') < 0) fail('typed category never became a chip: ' + cs.join(','));
   if (!catPosts.some((p) => p.category === 'crystals' && p.chats[0] === 'chat-c')) fail('POST /category missed the typed one');
+
+  // 8. a name typed with NOTHING picked, committed by tapping away — this pair
+  //    is exactly how a category she made never appeared
+  await page.click('#selbtn');
+  await page.waitForSelector('#selbar');
+  await page.fill('#selbar input', 'errands');
+  await page.click('#qsearch');                      // tap away, never Enter
+                                                     // (not #htitle — the
+                                                     // masthead is now
+                                                     // pointer-events:none so
+                                                     // long titles can overlap)
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('#catrow .catchip')].some((n) => n.firstChild && n.firstChild.textContent.trim() === 'Errands'),
+    null, { timeout: 4000 }).catch(() => fail('a category made with nothing picked did not appear'));
+  const made = catPosts.find((p) => p.category === 'errands');
+  if (!made) fail('POST /category never fired for the empty category');
+  if (made && made.chats.length) fail('the empty category filed chats it should not have: ' + JSON.stringify(made));
+
+  // 7. the answered badge: chat-a and chat-b are filed under Tech and neither
+  //    has been opened, so Tech carries a 2
+  const techBadge = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.filter((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech')
+      .map((n) => (n.querySelector('.cc-new') || {}).textContent || '')[0]);
+  if (techBadge !== '2') fail('Tech chip did not badge 2 answered: ' + JSON.stringify(techBadge));
+  // seeing them clears it: mark both chats seen the way opening them does
+  await page.evaluate(() => {
+    const seen = JSON.parse(localStorage.getItem('chats-seen-v1') || '{}');
+    seen['chat-a'] = new Date(Date.now() + 60000).toISOString();
+    seen['chat-b'] = new Date(Date.now() + 60000).toISOString();
+    localStorage.setItem('chats-seen-v1', JSON.stringify(seen));
+  });
+  await page.reload();
+  await page.waitForSelector('#catrow .catchip');
+  const after = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.filter((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech')
+      .map((n) => !!n.querySelector('.cc-new'))[0]);
+  if (after) fail('the answered badge survived her seeing the chats');
 
   await browser.close();
   server.close();
