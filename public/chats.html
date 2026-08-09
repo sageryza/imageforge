@@ -18,8 +18,11 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 #thread header .no{display:flex; align-items:center; gap:10px; min-height:34px;
   padding-left:48px; padding-right:56px;}
 #thread header .no .crumb{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
-.rule{height:1px; background:var(--line); margin:1em 0 1.6em;}
+h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
+/* While the hidden pile is open the masthead says HIDDEN, in the bar's red —
+   the pile is a place, so the screen has to say which one you are in. */
+#htitle.hid{color:var(--chg);}
+.rule{height:1px; background:var(--line); margin:.7em 0 1em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
 .tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
@@ -196,7 +199,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    this back to 6px. */
 .refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:3px 14px; border-radius:999px; line-height:1.5;}
 /* Search across every chat (in-memory index on the server). */
-.searchrow{position:relative; margin:0 0 1.4em;}
+.searchrow{position:relative; margin:0 0 .9em;}
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
@@ -235,8 +238,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .viewtog button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); font-weight:600;}
 /* list view */
 .clist{display:flex; flex-direction:column;}
-.crow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
-.crow .cr-ic{width:46px; height:46px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
+.crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.crow .cr-ic{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
 /* The name is the whole row now, so it can be bigger. display:block is what
@@ -257,20 +260,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
 .t-cover .hidebtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
 .crow .ckbtn,.crow .hidebtn{width:31px; height:31px; flex:none; margin-left:2px;}
-/* The HIDDEN bar — a red bar at the top of where the chats live (Aug 2026,
-   Sophie). Only drawn when something is actually hidden; tapping it opens the
-   pile underneath it, tapping again puts it away. The red is a FIXED colour in
-   both themes: --chg goes salmon in dark, and this has to read as red. */
-.hidebar{display:flex; align-items:center; gap:9px; width:100%; margin:0 0 10px; padding:9px 12px;
-  background:#b3443f; color:#fff6ef; border:none; border-radius:6px; cursor:pointer; text-align:left;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+/* The HIDDEN bar — at the top of where the chats live (Aug 2026, Sophie).
+   Only drawn when something is actually hidden; tapping it opens the pile
+   underneath it, tapping again puts it away. It wears the LIT CATEGORY CHIP's
+   look at her ask ("the same style as the red outline version") — same tokens,
+   so bar and chips can never drift apart, and it stops being the one solid
+   block of colour on the screen. */
+.hidebar{display:flex; align-items:center; gap:8px; width:100%; margin:0 0 8px; padding:7px 10px;
+  background:color-mix(in srgb, var(--chg) 12%, var(--paper)); color:var(--chg);
+  border:1.5px solid var(--chg); border-radius:6px; cursor:pointer; text-align:left;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   font-weight:600; -webkit-tap-highlight-color:transparent;}
 .hidebar svg{width:15px; height:15px; flex:none; display:block;}
 .hidebar .hb-n{flex:1; min-width:0;}
-.hidebar .hb-new{letter-spacing:.06em; opacity:.85; text-transform:none;}
+.hidebar .hb-new{letter-spacing:.04em; opacity:.8; text-transform:none;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
-.hidelist{margin:0 0 16px;}
+.hidelist{margin:0 0 10px;}
 /* ---- Status view (the fourth home view) ----------------------------------
    One prioritized screen: what's waiting on her, what's working right now,
    what just landed. Rows reuse the .crow look (and its ✓/! buttons); thumbs
@@ -376,7 +382,7 @@ body.reading .backwrap{display:block;}
    using tiles, so the toggle was two taps of nothing). The two icon buttons
    sit at the RIGHT, so the row keeps the pill's corner clear (the pill covers
    y 14–192, and this row lands inside that band). */
-.toolrow{display:flex; align-items:flex-start; gap:8px; margin:0 0 1em; padding-right:64px;}
+.toolrow{display:flex; align-items:flex-start; gap:8px; margin:0 0 .7em; padding-right:64px;}
 .catrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0;}
 .catchip{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
@@ -882,9 +888,12 @@ var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status'
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
-  document.getElementById('htitle').textContent =
-    homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
+  var t=document.getElementById('htitle');
+  var inHidden = (homeView==='live' && hideOpen);
+  t.textContent = inHidden ? 'Hidden'
+    : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : 'Chats';
+  t.classList.toggle('hid', inHidden);
   var a=document.getElementById('archlink');
   a.textContent = homeView==='live' ? 'Archive' : '← Chats';
   a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
