@@ -938,7 +938,9 @@ function statusLinesHtml(name, fallback){
   if(st.need) h+='<span class="cr-need">'+esc(st.need)+'</span>';
   if(st.doing) h+='<span class="cr-snip">'+esc(st.doing)+'</span>';
   if(!st.need && !st.doing && fallback) h+='<span class="cr-snip">'+esc(fallback)+'</span>';
-  if(st.note) h+='<span class="cr-note">you: '+esc(st.note)+'</span>';
+  // Her note is HER OWN reminder of where things stand (Aug 2026, Sophie) —
+  // no "you:" prefix, the italic is enough to read as hers.
+  if(st.note) h+='<span class="cr-note">'+esc(st.note)+'</span>';
   return h;
 }
 // A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
@@ -1886,20 +1888,21 @@ function openChat(name, keepScroll, focusId, noFetch){
   sclr.style.display='none'; sclr.setAttribute('aria-label','Clear search');
   srow.appendChild(sinp); srow.appendChild(sclr);
   var scount=document.createElement('div'); scount.className='msgcount'; scount.style.display='none';
-  // Her pinned note on this chat (Aug 2026): standing direction the chat reads
-  // the next time she messages it ("keep it loose", "don't touch the palette").
-  // It is HERS — a chat never clears it; she edits or clears it right here
-  // (save on tap-away, empty clears). Shown on the home rows too.
+  // Her pinned note on this chat (Aug 2026): HER OWN reminder of what's going
+  // on here ("waiting on the palette", "this one makes the zine"). Not
+  // direction for the chat — it's for her, shown on the home row and here.
+  // A chat never clears it; she edits or clears it right here (save on
+  // tap-away, empty clears).
   var nrow=document.createElement('div'); nrow.className='noterow';
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
-    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? 'you: '+esc(v) : '+ note for this chat')+'</span>';
+    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
     nrow.querySelector('.noteshow').onclick=function(){ editChatNote(); };
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=500;
-    ta.placeholder='A note this chat reads next time you message it';
+    ta.placeholder='A note to yourself about this chat';
     nrow.innerHTML=''; nrow.appendChild(ta); ta.focus();
     var done=false;
     function save(){

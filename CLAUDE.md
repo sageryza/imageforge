@@ -840,14 +840,14 @@ lifted into a standalone tool later.
   - Refresh it at the end of ANY turn that changed your state (200 chars
     each; the fields you don't send are left alone). Stored on the registry
     doc, so it rides the feed's already-cached read — costs nothing.
-- **Her PINNED NOTE on a chat (`sophieNote`) is standing direction — read it,
-  follow it, NEVER write it.** Sophie pins it from the thread ("+ note for
-  this chat"): things like "keep it loose" or "don't touch the palette".
-  Read it with `GET /api/chatfeed/status?chat=<slug>&session=<sid>` in the
-  same sweep as asset votes/notes whenever she messages you. It is hers
-  alone — `POST /chatnote` belongs to the app; a chat never clears or edits
-  it (unlike asset-note threads, there is nothing to "answer" — it stays
-  until she changes it).
+- **Her PINNED NOTE on a chat (`sophieNote`) is HER OWN reminder — not
+  direction to you, and NEVER yours to write (Aug 2026, Sophie: "it's not
+  really for the chat to read, it's for me").** She pins it from the thread
+  ("+ note for this chat") as a where-things-stand note to herself; it shows
+  on the chat's home row with no prefix. `GET /api/chatfeed/status` returns
+  it (`note`) — you may read it for context, but it is not an instruction,
+  it needs no action and no reply, and `POST /chatnote` belongs to the app:
+  a chat never writes, edits, or clears it.
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
