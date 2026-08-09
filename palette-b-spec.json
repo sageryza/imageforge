@@ -1,0 +1,14 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading, and generous negative space. Do NOT copy their colors. Use instead a flat limited COOL palette: deep teal #1F6F6B, sea green #4FA88B, sky blue #8FC6E3, warm sand #E8D9B5, and black, on a soft cool off-white background. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ",
+  "end": " Subject centered with lots of empty space around it. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    {
+      "id": "pal-b",
+      "prompt": "A single round cell seen from directly above: one clear circular outline, a solid round nucleus inside it slightly off centre, and five small simple organelle shapes of different kinds scattered around the nucleus, plus one small four-point star beside the cell. One clear subject, generous empty space, flat and simple."
+    }
+  ]
+}
