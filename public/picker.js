@@ -256,8 +256,15 @@
     instances.push(inst);
     var hasTimes = !!opts.src && opts.words.some(function (w) { return typeof w.t === 'number'; });
 
-    /* build the DOM */
+    /* build the DOM.
+       data-nostop is load-bearing (Aug 2026, Sophie hit this on the first
+       demo): in the app the page runs inside the Chats viewer's iframe,
+       whose tap-anywhere gesture TOGGLES the autoscroll — so without the
+       opt-out, tapping a word started the page scrolling. A data-nostop
+       region's taps stay the page's own there (they still pause a running
+       scroll, never start one). */
     mount.classList.add('ckp');
+    mount.setAttribute('data-nostop', '');
     var read = document.createElement('div');
     read.className = 'ckp-read';
     var ws = [];                       // word elements by index — repaints
@@ -298,10 +305,14 @@
       return b;
     }
 
-    /* word taps — event delegation, one listener for the whole transcript */
+    /* word taps — event delegation, one listener for the whole transcript.
+       A word tap is a deliberate interaction, so it pauses a running
+       autoscroll itself (compare.js's document handler skips data-nostop
+       regions, so it can't do it for us here). */
     read.addEventListener('click', function (e) {
       var el = e.target && e.target.closest ? e.target.closest('w') : null;
       if (!el) return;
+      if (window.__scrollStop) window.__scrollStop();
       tap(Number(el.dataset.i));
     });
 
@@ -317,6 +328,9 @@
         if (k >= 0) { removePick(k); return; }
         inst.pend = i; paint(); return;
       }
+      // tapping the SAME word again deselects it (Sophie's ask — a mis-tap
+      // must not become a one-word pick; her first demo left a stray "dark")
+      if (inst.pend === i) { inst.pend = null; paint(); return; }
       if (inPick(i) >= 0) { inst.pend = null; paint(); return; }
       var a = Math.min(inst.pend, i), z = Math.max(inst.pend, i);
       for (var j = a; j <= z; j++) if (inPick(j) >= 0) { inst.pend = null; paint(); return; }
