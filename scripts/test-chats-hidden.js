@@ -12,7 +12,9 @@
 //   4. tapping the bar opens the pile in place; tapping it again closes it,
 //   5. the ⊕ inside the pile puts the chat back and the bar goes away,
 //   6. a chat the registry already has hidden starts out of the list, and
-//      leads Status's WAITING ON YOU (hiding took the ! flag's place).
+//      leads Status's WAITING ON YOU (hiding took the ! flag's place),
+//   7. a hidden chat that ANSWERS pops back out on its own (Sophie, Aug 2026:
+//      hiding is "not now", not "away for good").
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-hidden.js
 //
@@ -38,6 +40,9 @@ const MSGS = [
   { id: 'm3', chat: 'chat-parked', from: 'claude', text: 'parked reply', tldr: 'parked', created: iso(T0 - 10800000), postedAt: iso(T0 - 10800000) },
 ];
 const hidePosts = [];
+// flipped by the test to make chat-parked answer while it is hidden
+let answered = false;
+const ANSWER = { id: 'm4', chat: 'chat-parked', from: 'claude', text: 'it answered', tldr: 'answered', created: iso(T0 + 3600000), postedAt: iso(T0 + 3600000) };
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -49,11 +54,13 @@ const server = http.createServer((req, res) => {
       chats: {
         'chat-a': { lastSeen: MSGS[0].created },
         'chat-b': { lastSeen: MSGS[1].created },
-        // already hidden before she opens the page
-        'chat-parked': { lastSeen: MSGS[2].created, hidden: true },
+        // already hidden before she opens the page. hiddenAt is NEWER than its
+        // last message, which is what "hidden" means now — a stamp, not a flag.
+        'chat-parked': { lastSeen: MSGS[2].created, hiddenAt: iso(T0) },
       },
       settings: {}, truncated: [],
-      messages: since ? [] : MSGS, delta: !!since,
+      messages: since ? (answered ? [ANSWER] : []) : MSGS.concat(answered ? [ANSWER] : []),
+      delta: !!since,
     }));
   }
   if (url.pathname === '/api/chatfeed/hide' && req.method === 'POST') {
@@ -84,7 +91,9 @@ const server = http.createServer((req, res) => {
 });
 
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
-const listed = (page) => page.$$eval('#grid .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
+// the MAIN list only: the hidden pile renders its own .clist inside .hidelist,
+// so a plain '#grid .clist' would count hidden rows whenever the pile is open
+const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -107,8 +116,8 @@ const listed = (page) => page.$$eval('#grid .clist .crow[data-chat]', (ns) => ns
   if (!/1 new/.test(barTxt)) fail('bar did not name the unread behind it: ' + barTxt);
 
   // 2 + 3. hiding chat-b from its row takes it out and bumps the bar
-  await page.click('#grid .clist .crow[data-chat="chat-b"] .hidebtn');
-  await page.waitForFunction(() => !document.querySelector('#grid .clist .crow[data-chat="chat-b"]'),
+  await page.click('#grid > .clist .crow[data-chat="chat-b"] .hidebtn');
+  await page.waitForFunction(() => !document.querySelector('#grid > .clist .crow[data-chat="chat-b"]'),
     null, { timeout: 4000 }).catch(() => fail('hiding a chat did not take it out of the list'));
   rows = await listed(page);
   if (JSON.stringify(rows) !== JSON.stringify(['chat-a'])) fail('list after hiding is wrong: ' + rows.join(','));
@@ -133,7 +142,7 @@ const listed = (page) => page.$$eval('#grid .clist .crow[data-chat]', (ns) => ns
   await page.click('.hidebar');
   await page.waitForSelector('#grid .hidelist .crow[data-chat="chat-b"]');
   await page.click('#grid .hidelist .crow[data-chat="chat-b"] .hidebtn');
-  await page.waitForFunction(() => !!document.querySelector('#grid .clist .crow[data-chat="chat-b"]'),
+  await page.waitForFunction(() => !!document.querySelector('#grid > .clist .crow[data-chat="chat-b"]'),
     null, { timeout: 4000 }).catch(() => fail('putting a chat back did not return it to the list'));
   if (!hidePosts.some((p) => p.chat === 'chat-b' && p.hidden === false)) fail('POST /hide {hidden:false} never fired');
   await page.click('#grid .hidelist .crow[data-chat="chat-parked"] .hidebtn');
@@ -144,12 +153,24 @@ const listed = (page) => page.$$eval('#grid .clist .crow[data-chat]', (ns) => ns
   if (await page.$('.hidebar')) fail('bar drawn with nothing hidden');
 
   // 6b. a hidden chat leads Status's WAITING ON YOU (the slot the ! flag had)
-  await page.click('#grid .clist .crow[data-chat="chat-parked"] .hidebtn');
+  await page.click('#grid > .clist .crow[data-chat="chat-parked"] .hidebtn');
   await page.waitForFunction(() => !!document.querySelector('.hidebar'));
   await page.click('#stlink');
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status');
   const stRows = await page.$$eval('#grid .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
   if (stRows[0] !== 'chat-parked') fail('hidden chat does not lead Waiting on you: ' + stRows.join(','));
+
+  // 7. a hidden chat that answers pops back out into the list by itself.
+  //    Back to the live list first — Status's rows are .clist .crow as well,
+  //    so asserting from there would pass on the wrong element.
+  await page.click('#stlink');
+  await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats');
+  if (!(await page.$('.hidebar'))) fail('chat-parked was not hidden going into the pop-out check');
+  answered = true;
+  await page.click('#refresh');
+  await page.waitForFunction(() => !!document.querySelector('#grid > .clist .crow[data-chat="chat-parked"]'),
+    null, { timeout: 6000 }).catch(() => fail('a hidden chat that answered did not pop out'));
+  if (await page.$('.hidebar')) fail('bar stayed after the last hidden chat popped out');
 
   await browser.close();
   server.close();
