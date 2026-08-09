@@ -12,11 +12,27 @@ description: >
 
 # Building a new page
 
-Two page kinds, one shared hazard (the autoscroll pill). Decide which you're
-building, then read the pill contract — it applies to both.
+Pick the TEMPLATE first (Aug 2026, Sophie: pages should be filled-in
+templates — "less choices to make, but not no choices"), then read the pill
+contract — it applies to everything.
 
-- **Compare page** — reviewable HTML posted to the app's Compare tab.
+- **Compare page** (`compare-shell.html`) — she LOOKS at things side by side
+  (medium vs high, ref A vs ref B, v1 vs v2).
+- **Judge page** (`judge-shell.html`) — she PICKS/CHOOSES across a set, one
+  at a time, ♥/✕/maybe/later. Any "which ones do you like" job. A judge item
+  can be a labeled pair, which covers compare-AND-choose (PDF page vs text).
+- **Cut picker** (`picker-shell.html`) — she picks SPANS of a recording.
 - **Tool page** — a new `public/*.html` served by a route (a new room/tool).
+
+Two rules on every review page, both Sophie's, both asked for repeatedly:
+
+- **MINIMAL TEXT.** The page is a VISUAL reference, not an extension of the
+  chat — she had to ask for less text on page after page (the dice chat
+  progression). Title, ONE line under it, labels on the pictures. No
+  paragraphs, no explanations, no recap of the conversation.
+- **Compared things sit SIDE BY SIDE, never stacked** so she scrolls between
+  them. Use `.duo` (labels ON TOP — "medium" / "high") for every A-vs-B
+  pair; `.imgrow` is only for plain sets that aren't versus.
 
 ## Compare pages: START FROM THE SHELL, and don't hand-roll ANYTHING
 
@@ -62,6 +78,18 @@ Read picks back: `GET /api/chatfeed/verdict?chat=&sheet=` → keys `<id>:p*`,
 `{a, z, o, note}`, empty = removed. Cut the real audio with the precise
 cutter (editor.js) — the ▶ clips are previews. Test:
 `node scripts/test-cut-picker.js`.
+
+## Judge pages: the ♥/✕/maybe/later template
+
+**Copy `public/judge-shell.html`** — `/judge.js` does the whole surface: one
+thing at a time, big, NO scrolling (her explicit spec), verdicts saved live
+to the chat's verdict doc (♥ = `true`, ✕ = `false`, `'maybe'` and `'later'`
+as their own piles — 'later' is "declined to sort now", grouped so she can
+come back to all of them), resume on reopen, the piles view where any tile
+re-opens for re-judging, undo, a note box per card, the "?" icon card.
+Read her answers back with `GET /api/chatfeed/verdict?chat=&sheet=`.
+Item shape: `{id, label, img}` or `{id, label, pair:[{img,label},{img,label}]}`.
+Test: `node scripts/test-judge.js`.
 
 ## The autoscroll pill contract (BOTH page kinds — this is where pages break)
 

@@ -1388,6 +1388,24 @@ lifted into a standalone tool later.
   are the review surface. Build a page only when Sophie asks for one or the
   set genuinely can't be reviewed as tiles. And when you DO build one, lay the
   images out in **rows of TWO**, never one full-width image per row.
+  **MINIMAL TEXT, and compared things SIDE BY SIDE (Aug 2026, Sophie — asked
+  for on page after page).** A review page is a VISUAL reference, not an
+  extension of the chat: title, ONE line under it, labels on the pictures —
+  no paragraphs. And the things being compared sit NEXT TO each other (the
+  `.duo` block in compare.css — labels ON TOP, "medium" / "high"), never
+  stacked so she scrolls between them. Full rules live in the `new-page`
+  skill and the shells' own comments.
+  **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
+  is PICKING/CHOOSING across a set rather than reading a comparison, start
+  from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,
+  NO scrolling, ♥/✕/maybe/later (maybe and later are real piles — 'later' is
+  "declined to sort now", reviewable as a group), verdicts saved live to the
+  chat's verdict doc (`ok` accepts those short strings since Aug 2026),
+  resume on reopen, piles view with re-judging, undo, a note box per card. A
+  judge item can be a labeled PAIR judged as one thing — the
+  compare-and-choose case (medium vs high of the same portrait, PDF page vs
+  its text). Read answers back via `GET /api/chatfeed/verdict?chat=&sheet=`.
+  Tests: `node scripts/test-judge.js`.
 - **THE CUT PICKER IS THE REQUIRED SURFACE for "pick spans of a recording"
   jobs (Aug 2026, Sophie — after FOUR chats each hand-rolled their own
   span-picking page in one week and each re-shipped the same bugs).** Any

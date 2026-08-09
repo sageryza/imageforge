@@ -1290,8 +1290,16 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     const db = admin.firestore();
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const patch = { chat, sheet, updatedAt: new Date().toISOString() };
-    // a vote and a dictation are separate fields so writing one never clears the other
-    if (ok !== undefined) patch.items = { [String(item)]: ok === null ? null : !!ok };
+    // a vote and a dictation are separate fields so writing one never clears the other.
+    // Booleans stay booleans (♥/✕ and every older vote page). A SHORT STRING
+    // rides through unchanged for the judge template's piles ('maybe' /
+    // 'later' — judge.js, Aug 2026); anything else coerces to boolean as before.
+    if (ok !== undefined) {
+      patch.items = {
+        [String(item)]: ok === null ? null
+          : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
+      };
+    }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
     res.json({ ok: true });

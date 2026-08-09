@@ -115,6 +115,21 @@ li::before { content: '•'; position: absolute; left: 4px; color: #c9b48f; }
 figure { margin: 0; }
 figcaption { font-size: 13px; color: var(--ink2); padding-top: 4px; }
 
+/* The COMPARISON UNIT (Aug 2026, Sophie): things being compared sit NEXT TO
+   each other — never stacked so she scrolls between them — with each side's
+   label ON TOP ("medium" / "high"), the Mason-art layout made the default.
+   <div class="duo">
+     <figure><span class="tag">medium</span><img …></figure>
+     <figure><span class="tag">high</span><img …></figure>
+   </div> */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.duo .tag {
+  display: block; font: 700 11px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gold); padding-bottom: 5px;
+}
+.duo img { width: 100%; height: auto; border-radius: 6px; display: block; }
+
 /* Video — these films are PORTRAIT (1024×1536 / 1080×1920). A <video> with
    only a width set has no aspect until its metadata loads, so it lays out in
    the browser's default box and reads SQUARE (Sophie caught this on the Bath

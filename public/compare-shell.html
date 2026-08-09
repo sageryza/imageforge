@@ -31,6 +31,18 @@
      Layout notes: mobile first; images in ROWS OF TWO (`.imgrow`), never one
      full-width image per row. Skeleton blocks live at the top of compare.css.
      Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
+
+     MINIMAL TEXT (Aug 2026, Sophie — asked for on page after page): this is
+     a VISUAL reference, not an extension of the chat. Title, ONE line under
+     it, labels on the pictures — no paragraphs, no explanations, no recap of
+     the conversation. She knows what's going on from the chat.
+
+     THE THINGS BEING COMPARED SIT SIDE BY SIDE — never stacked so she
+     scrolls between them. Use `.duo` (labels ON TOP: "medium" / "high") for
+     every A-vs-B pair; `.imgrow` is for plain sets that aren't versus.
+
+     Picking/choosing across a set instead of reading a comparison? That is
+     the JUDGE page — start from judge-shell.html, not this file.
 =========================================================================== -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -45,12 +57,17 @@
   <!-- Every REVIEWABLE item carries data-item="<id>" — that is all it takes
        to get a note box on it (wired at the bottom). -->
   <div class="card" data-item="thing-1">
-    <h2>A section</h2>
-    <p>Prose goes here.</p>
-    <!-- Images two to a row. Tapping one opens the lightbox — no wiring needed. -->
+    <h2>A short label, not a paragraph</h2>
+    <!-- An A-vs-B pair is a .duo: side by side, labels ON TOP. Tapping an
+         image opens the lightbox — no wiring needed. -->
+    <div class="duo">
+      <figure><span class="tag">medium</span><img src="https://…/one-med.webp" alt="Penny — medium"></figure>
+      <figure><span class="tag">high</span><img src="https://…/one-high.webp" alt="Penny — high"></figure>
+    </div>
+    <!-- A plain set (not versus) is an .imgrow, two to a row. -->
     <div class="imgrow">
-      <img src="https://…/one.png" alt="what this one is">
-      <img src="https://…/two.png" alt="what this one is">
+      <img src="https://…/one.webp" alt="what this one is">
+      <img src="https://…/two.webp" alt="what this one is">
     </div>
   </div>
 </div>
