@@ -177,6 +177,9 @@
         + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
         + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
 
+      // data-nostop: in the app a Compare page is EMBEDDED (chats.html's
+      // parent pill + its tap-to-toggle gesture on this document). A judge
+      // page has nothing to scroll, so no tap here may ever START the scroll.
       if (view === 'piles') {
         var sections = PILES.map(function (p) {
           var members = items.filter(function (it) { return verdicts[it.id] === p.key; });
@@ -188,11 +191,11 @@
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>';
         }).join('');
-        mount.innerHTML = '<div class="jg">' + top + '<div class="jg-piles">'
+        mount.innerHTML = '<div class="jg" data-nostop>' + top + '<div class="jg-piles">'
           + (sections || '<p class="mini">Nothing here yet.</p>') + '</div></div>';
       } else {
         var it = items[cur];
-        mount.innerHTML = '<div class="jg">' + top
+        mount.innerHTML = '<div class="jg" data-nostop>' + top
           + '<div class="jg-card' + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it)
           + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')

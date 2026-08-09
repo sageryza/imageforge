@@ -2036,6 +2036,7 @@ function mkPagePill(getWin){
   vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
   vm.onclick=function(){ playing? stop() : start(1); };
   paint(); pill._stop=stop;
+  pill._playing=function(){ return playing; };
   pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
   return pill;
 }
@@ -2059,8 +2060,21 @@ function openPage(p){
   // own, so we ignore it entirely (same skip list as the injected pill).
   frame.addEventListener('load', function(){
     try{
-      var doc=frame.contentDocument;
+      var w=frame.contentWindow, doc=frame.contentDocument;
+      // The page's own shared handlers — compare.js's tap-pauses-scroll and
+      // its lightbox open() — talk to `window.__scrollStop`, which an EMBEDDED
+      // page doesn't have (embed=1 means no injected pill). Hand them THIS
+      // pill's stop, so the one shared contract drives the app's pill too.
+      // The wrapper remembers when it REALLY stopped something: compare.js's
+      // pointerdown fires before our click toggle, so without the memory a
+      // bare tap on a playing page paused (pointerdown) and then restarted
+      // (click toggle) — every tap ended PLAYING. The flag is per-GESTURE
+      // (set at pointerdown, consumed by the next click), not a time window —
+      // a clock window either misses slow fingers or eats the next tap.
+      var pausedThisTap=false;
+      if(w) w.__scrollStop=function(){ if(pill._playing && pill._playing()) pausedThisTap=true; pill._stop(); };
       if(doc) doc.addEventListener('click', function(e){
+        var paused=pausedThisTap; pausedThisTap=false;
         var t=e.target;
         if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
         // `[data-nostop]` is compare.js's documented opt-out, and the EMBEDDED
@@ -2068,7 +2082,15 @@ function openPage(p){
         // tappable (a word picker), every tap toggled the scroll on. A marked
         // region's taps are the page's own: never START from one, but still
         // PAUSE a running scroll, which is the house rule for any tap.
-        if(t && t.closest && t.closest('[data-nostop]')){ if(pill._stop) pill._stop(); return; }
+        // PICTURES and the lightbox joined the list (Aug 2026 — Sophie caught
+        // it on the judge demo): tapping an image opens compare.js's lightbox,
+        // and the toggle ALSO started the scroll behind it; tapping the dark
+        // backdrop to close toggled it again. A tap on an image is the page's
+        // own, everywhere.
+        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb')){ if(pill._stop) pill._stop(); return; }
+        // this tap's own pointerdown just paused a running scroll — the tap
+        // meant PAUSE, not toggle-back-on
+        if(paused) return;
         pill._tap();
       });
     }catch(_){}

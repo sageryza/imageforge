@@ -89,7 +89,10 @@
   }                                    // happened behind the overlay
 
   document.addEventListener('click', function (e) {
-    var img = e.target && e.target.closest ? e.target.closest('img.zoom, .imgrow img') : null;
+    // .duo joined the list (Aug 2026): a labeled side-by-side's images are as
+    // tappable as any — the icon-swaps chat shipped images the lightbox
+    // ignored because their markup matched neither selector.
+    var img = e.target && e.target.closest ? e.target.closest('img.zoom, .imgrow img, .duo img') : null;
     if (!img) return;
     e.preventDefault();
     open(img.getAttribute('data-full') || img.src, img.alt);

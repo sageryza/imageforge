@@ -1149,6 +1149,20 @@ lifted into a standalone tool later.
   writing: `.notebox`), but the shared list is the floor. This is why a
   Compare page with a copy button, a vote chip or a text field must route
   through the shared helper rather than reinventing the skip list.
+  **IN THE APP the page runs EMBEDDED, and that is a SECOND pill (Aug 2026 —
+  Sophie caught it on the judge demo; the standalone tests were all green).**
+  chats.html opens a Compare page in an IFRAME with `?embed=1` (no injected
+  pill) and its own parent pill drives the iframe, with a tap-to-TOGGLE
+  gesture bound inside the page's document. That gesture used to start the
+  autoscroll from taps on IMAGES (while the lightbox opened over it) and on
+  the lightbox backdrop. Now: the parent forwards `__scrollStop` into the
+  iframe (per-gesture memory so a pause isn't re-toggled by its own click),
+  exempts `img`/`figure`/`.cmp-lb` as pause-only, and honours
+  `[data-nostop]`; `.duo img` joined the lightbox selector. A page whose
+  ordinary content is tappable (a judge card, a word picker) marks that
+  region `data-nostop`. Tests: `node scripts/test-page-embed.js` (drives the
+  REAL chats.html viewer end to end) — testing only the standalone page
+  misses this entire path.
   **A page served with the injected pill must SCOPE its own script (IIFE).**
   The pill snippet runs in global scope and declares `var raf`, `var I`,
   `var playing`, … — a page-level `let raf`/`const I` collides and kills the
