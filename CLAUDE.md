@@ -1004,6 +1004,37 @@ lifted into a standalone tool later.
   message first. The **App/Web account toggle is a plain on/off switch** on the
   home header's title line (`.swi`, off = account 1, on = account 2, no text —
   the toast names the account).
+  **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
+  chat she wants to come back to but not look at right now gets hidden: it
+  leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
+  · 1 new"). Tapping the bar opens the pile in place; tapping it again puts it
+  away. Details that are load-bearing:
+  - **`hidden` is a plain BOOLEAN on the registry doc**
+    (`POST /api/chatfeed/hide {chat, hidden}`), never a self-clearing stamp
+    like `answeredAt`/`flaggedAt`. Those clear the moment a newer message
+    lands, which for hiding would walk the chat straight back into the list
+    she just took it out of. Same shape as `archived` for the same reason —
+    hidden is the lighter of the pair (come back to this soon), archive is
+    the shelf.
+  - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
+    the ! with it") — hiding *is* the come-back-to-this mark now, and it does
+    what the flag only implied. `flaggedAt` still exists server-side
+    (`POST /flag`) but nothing in the page writes or reads it; **don't
+    re-add a flag button without asking her.**
+  - The glyph is a **circle-minus** on a visible chat and a **circle-plus**
+    (lit red) on a hidden one — take it off the list / put it back.
+    Deliberately NOT an eye: she rejected the eye by name.
+  - **The bar only exists when something is hidden**, and open/closed is
+    session-only, always starting CLOSED — persisting "open" would quietly
+    undo the feature overnight. Hiding a chat never opens the pile.
+  - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
+    that is the one screen where her parked pile should surface; the home
+    list is exactly where she doesn't want it. The bar's "· N new" is the
+    other signal, so a hidden chat that replied is never invisible.
+  - The red is a FIXED `#b3443f` in both themes (`--chg` goes salmon in dark
+    and this has to read as red). Tests:
+    `node scripts/test-chats-hidden.js` (headless Chromium against a stub
+    feed; skips without playwright).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
