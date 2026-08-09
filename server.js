@@ -2036,6 +2036,59 @@ app.get('/api/gallery/assets', async (req, res) => {
   }
 });
 
+// The Status view's "just delivered" strip: the newest images across EVERY
+// chat in one query, so the Chats app never has to ask per-chat to answer
+// "what landed recently". Single-field orderBy on `created` — no composite
+// index. Same direct-thumb contract as the per-chat route above (content-
+// addressed 480px webp URL, warmed in the background when not made yet), so
+// the strip never pulls raw generated PNGs onto a phone.
+app.get('/api/gallery/assets/recent', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    if (!admin.apps.length) return res.json({ assets: [] });
+    const limit = Math.min(60, Math.max(1, parseInt(req.query.limit, 10) || 24));
+    // Over-fetch: audio rides the same collection, and one picture can be
+    // filed at two storage paths (where it was generated + the server's
+    // claude-deliveries copy) — dedupe by FILENAME the way the per-chat
+    // union does, then cut to `limit`.
+    const snap = await admin.firestore().collection('forge-chat-assets')
+      .orderBy('created', 'desc').limit(limit * 4).get();
+    const seen = new Set();
+    const out = [];
+    for (const d of snap.docs) {
+      const a = d.data() || {};
+      const url = String(a.url || '');
+      if (!url || a.kind === 'audio' || AUDIO_URL_RE.test(url)) continue;
+      const clean = url.split('?')[0].split('#')[0];
+      let key = clean.split('/').pop() || clean;
+      // decodeURIComponent throws on malformed %-sequences (a literal
+      // "%s.webp" template string has really been filed as an image) —
+      // fall back to the raw name rather than aborting the whole list.
+      try { key = decodeURIComponent(key).toLowerCase(); } catch (e) { key = key.toLowerCase(); }
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const o = { url, chat: a.chat || '', created: a.created || '' };
+      if (a.description) o.description = a.description;
+      out.push(o);
+      if (out.length >= limit) break;
+    }
+    const bucket = admin.storage().bucket();
+    const warm = [];
+    out.forEach((a) => {
+      if (!THUMB_HOSTS.test(a.url)) return;
+      a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
+      warm.push(a.url);
+    });
+    if (warm.length) warmThumbs(warm, 480);
+    res.json({ assets: out });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Cleanup: delete forge-chat-assets caption records for a chat, optionally
 // only those whose url contains a substring (e.g. "/characters/" to remove the
 // duplicate label records that pointed at the portrait's own url instead of

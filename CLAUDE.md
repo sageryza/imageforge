@@ -974,8 +974,22 @@ lifted into a standalone tool later.
   ANY header control reaching that corner is untappable — the rename pencil was,
   for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
   reservation on any new header row, and never place a control in that corner.
-  **The home screen has THREE views, switched from the title row: chats,
-  ARCHIVE, and BOOKMARKS (Aug 2026, Sophie).** `homeView` in chats.html. The
+  **The home screen has FOUR views, switched from the title row: chats,
+  ARCHIVE, BOOKMARKS, and STATUS (Aug 2026, Sophie).** `homeView` in
+  chats.html. **STATUS** (the list-todo icon left of the bookmark) is the
+  prioritized front door Sophie asked for ("this is what's done, this is
+  what's waiting on you, these are the assets that were just delivered"):
+  WAITING ON YOU (her flagged come-back-later chats first, then finished
+  replies she hasn't opened, each row carrying the same ✓/! triage buttons as
+  the home list so she can mark answered without opening anything), WORKING
+  RIGHT NOW (the pink-tint chats), JUST DELIVERED (the newest images across
+  every chat — `GET /api/gallery/assets/recent`, server-side filename dedupe
+  + 480px thumbs, a thumb opens that chat's Assets tab — plus the newest
+  Compare pages via `GET /api/chatfeed/pages-recent`), and MARKED DONE (what
+  she has checked off). The chat sections derive from the registry + feed the
+  page already holds, so they paint instantly; only the delivered strip
+  fetches (cached 60s). Tests: `node scripts/test-chats-status.js` (headless
+  Chromium against a stub feed; skips without playwright). The
   serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
   the word beside it becomes the way OUT, reading "← Chats" — a bold word
   alone was "really confusing" and left her with no visible exit. The

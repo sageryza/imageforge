@@ -254,6 +254,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
 .t-cover .flagbtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
 .crow .ckbtn,.crow .flagbtn{width:31px; height:31px; flex:none; margin-left:2px;}
+/* ---- Status view (the fourth home view) ----------------------------------
+   One prioritized screen: what's waiting on her, what's working right now,
+   what just landed. Rows reuse the .crow look (and its ✓/! buttons); thumbs
+   are the uniform-square convention the app uses everywhere. */
+.sthead{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:1.9em 0 .35em; display:flex; align-items:baseline; gap:8px;}
+.sthead .stn{color:var(--rose); font-weight:600;}
+#grid .sthead:first-child{margin-top:.3em;}
+.cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+.stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
+.stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
+.stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
+.stcell img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
+.stcell .stlab{display:block; font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink2); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* Its own class, NOT .bmk: the generic `.bmk.on svg{fill:currentColor}` rule
+   would flood this stroke-drawn glyph into solid blobs when lit. */
+.stbtn{background:none; border:none; cursor:pointer; padding:6px 4px; color:var(--ink2); display:inline-flex; align-items:center; flex:none; -webkit-tap-highlight-color:transparent;}
+.stbtn.on{color:var(--ink);}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
@@ -416,6 +433,7 @@ body.ontop > .float{display:none !important;}
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
         <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="stlink" class="stbtn" aria-label="Status — what&rsquo;s waiting on you"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></button>
         <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
         <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
@@ -795,23 +813,27 @@ function statusFor(list){
   var sm=tldrs.length? tldrs[tldrs.length-1] : last;
   return sm? plain(sm.tldr||(sm.text||'').split('\n')[0]) : '';
 }
-// The home screen has THREE views: the live chats, the archived ones, and every
-// bookmarked message across all chats. `homeView` survives opening a chat and
-// coming back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks'
+// The home screen has FOUR views: the live chats, the archived ones, every
+// bookmarked message across all chats, and STATUS (what's waiting on her /
+// working / just delivered). `homeView` survives opening a chat and coming
+// back, so she returns to the list she was reading.
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status'
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
   document.getElementById('htitle').textContent =
-    homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks' : 'Chats';
+    homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
+    : homeView==='status' ? 'Status' : 'Chats';
   var a=document.getElementById('archlink');
   a.textContent = homeView==='live' ? 'Archive' : '← Chats';
   a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
   a.classList.toggle('on', homeView!=='live');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
-  // LIST/TILES describes chat tiles; bookmarks are messages, so the pair would
-  // be a control that does nothing. (Search stays — it still searches everything.)
-  document.getElementById('v-list').parentNode.style.display = homeView==='bookmarks' ? 'none' : '';
+  document.getElementById('stlink').classList.toggle('on', homeView==='status');
+  // LIST/TILES describes chat tiles; bookmarks are messages and status is its
+  // own layout, so the pair would be a control that does nothing there.
+  // (Search stays — it still searches everything.)
+  document.getElementById('v-list').parentNode.style.display = (homeView==='bookmarks'||homeView==='status') ? 'none' : '';
 }
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
 // Every bookmarked message, newest first, whichever chat it is in. Tapping one
@@ -866,6 +888,145 @@ function renderBookmarks(el){
     })
     .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
 }
+// ---- Status view -----------------------------------------------------------
+// One prioritized screen (Sophie's ask, Aug 2026: "this is what's done, this
+// is what's waiting on you, these are the assets that were just delivered"):
+//   WAITING ON YOU  — her flagged come-back-later chats first, then finished
+//                     replies she hasn't opened yet, newest first.
+//   WORKING NOW     — the pink-tint chats (same chatWorking signal).
+//   JUST DELIVERED  — the newest images across EVERY chat (one server query,
+//                     GET /api/gallery/assets/recent) + the newest Compare
+//                     pages (GET /api/chatfeed/pages-recent). A thumb opens
+//                     that chat's ASSETS tab — the labels/♥/notes live there.
+//   MARKED DONE     — what she has checked off, so "done" is visible too.
+// The chat sections are derived from data the page already holds (registry +
+// feed tail) so they paint instantly; only the delivered strip fetches, into
+// placeholders, cached for a minute.
+var stCache={assets:null, pages:null, at:0};
+function stFetch(cb){
+  if(stCache.at && Date.now()-stCache.at<60000) return cb();
+  var pend=2;
+  function one(){ if(--pend===0){ stCache.at=Date.now(); cb(); } }
+  api('/api/gallery/assets/recent?limit=24&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){ stCache.assets=(d&&d.assets)||[]; })
+    .catch(function(){ stCache.assets=stCache.assets||[]; })
+    .then(one);
+  api('/api/chatfeed/pages-recent?limit=6&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){ stCache.pages=(d&&d.pages)||[]; })
+    .catch(function(){ stCache.pages=stCache.pages||[]; })
+    .then(one);
+}
+function stHead(txt, n){
+  var h=document.createElement('div'); h.className='sthead';
+  h.innerHTML=esc(txt)+(n?' <span class="stn">'+n+'</span>':'');
+  return h;
+}
+// A status row is the home list's .crow — same icon, same ✓/! triage buttons
+// (mark answered / flag without opening anything) — plus a one-line snippet.
+function stRow(name, list, last, snip, live){
+  var row=document.createElement('button');
+  row.className='crow'+(chatMuted(name,last)?' done':'')+(live?' live':'');
+  row.dataset.chat=name;
+  row.innerHTML=iconHtml(name,'cr-ic')
+    +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
+    +(snip?'<span class="cr-snip">'+esc(snip)+'</span>':'')+'</span>'
+    +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
+  row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);
+  row.appendChild(mkCheck(name,last,row));
+  row.onclick=function(){ openChat(name); };
+  return row;
+}
+function paintStAssets(box){
+  var a=stCache.assets||[];
+  box.innerHTML='';
+  if(!a.length){ box.innerHTML='<div class="stquiet">No images delivered yet.</div>'; return; }
+  var grid=document.createElement('div'); grid.className='stgrid';
+  a.forEach(function(it){
+    var c=document.createElement('button'); c.className='stcell';
+    var img=document.createElement('img'); img.alt=''; img.decoding='async'; img.loading='lazy';
+    var triedFb=false;
+    img.src=it.thumb||assetThumb(it.url);
+    // direct storage thumb → on-demand /api/story/thumb → hide (image gone)
+    img.onerror=function(){
+      if(!triedFb && it.thumb){ triedFb=true; img.src=assetThumb(it.url); return; }
+      c.style.display='none';
+    };
+    var lab=document.createElement('span'); lab.className='stlab';
+    lab.textContent=dispName(it.chat)+' · '+ago(it.created);
+    c.appendChild(img); c.appendChild(lab);
+    c.onclick=function(){ curTab='assets'; openChat(it.chat); };
+    grid.appendChild(c);
+  });
+  box.appendChild(grid);
+}
+function paintStPages(box){
+  var ps=stCache.pages||[];
+  box.innerHTML='';
+  if(!ps.length) return;
+  box.appendChild(stHead('New pages'));
+  ps.forEach(function(p){
+    var row=document.createElement('button'); row.className='pagerow';
+    row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span>'
+      +'<span class="pr-time">'+esc(dispName(p.chat))+' · '+ago(p.created)+'</span>';
+    row.onclick=function(){ openPage(p); };
+    box.appendChild(row);
+  });
+}
+function renderStatus(el){
+  var g=groups();
+  var names=sortedChatNames(g).filter(function(n){ return !(chats[n]&&chats[n].archived); });
+  var waiting=[], working=[], done=[];
+  names.forEach(function(name){
+    var list=g[name]||[]; var last=list.length? list[list.length-1]:null;
+    if(!last) return;
+    if(chatWorking(name,last)){ working.push([name,list,last]); return; }
+    if(chatFlagged(name,last)){ waiting.push([name,list,last,true]); return; }
+    if(chatDone(name,last)){ done.push([name,list,last]); return; }
+    // unread = a finished reply she hasn't opened — the only honest
+    // "waiting on you" signal for an unmarked chat
+    if(last.from!=='sophie' && (seen[name]||'')<(last.created||'')) waiting.push([name,list,last,false]);
+  });
+  // her flagged queue first; the sort is stable, so within each group the
+  // newest-first order from sortedChatNames holds
+  waiting.sort(function(a,b){ return (b[3]?1:0)-(a[3]?1:0); });
+  el.appendChild(stHead('Waiting on you', waiting.length));
+  if(!waiting.length){
+    var q=document.createElement('div'); q.className='stquiet';
+    q.textContent='Nothing waiting — all caught up.'; el.appendChild(q);
+  } else {
+    var wl=document.createElement('div'); wl.className='clist';
+    waiting.forEach(function(w){ wl.appendChild(stRow(w[0],w[1],w[2],statusFor(w[1]),false)); });
+    el.appendChild(wl);
+  }
+  if(working.length){
+    el.appendChild(stHead('Working right now', working.length));
+    var kl=document.createElement('div'); kl.className='clist';
+    working.forEach(function(w){
+      var last=w[2];
+      var snip=last.working? plain((last.text||'').split('\n')[0])
+        : (last.from==='sophie'? '“'+plain((last.text||'').split('\n')[0])+'”' : statusFor(w[1]));
+      kl.appendChild(stRow(w[0],w[1],last,snip||'still writing…',true));
+    });
+    el.appendChild(kl);
+  }
+  el.appendChild(stHead('Just delivered'));
+  var abox=document.createElement('div'); abox.innerHTML='<div class="stquiet">Loading…</div>';
+  el.appendChild(abox);
+  var pbox=document.createElement('div'); el.appendChild(pbox);
+  stFetch(function(){
+    if(homeView!=='status') return;   // she left while it loaded
+    paintStAssets(abox);
+    paintStPages(pbox);
+  });
+  if(done.length){
+    el.appendChild(stHead('Marked done', done.length));
+    var dl=document.createElement('div'); dl.className='clist';
+    done.slice(0,10).forEach(function(w){ dl.appendChild(stRow(w[0],w[1],w[2],statusFor(w[1]),false)); });
+    el.appendChild(dl);
+  }
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
@@ -877,6 +1038,7 @@ function renderHome(){
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
   paintHomeChrome();
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
+  if(homeView==='status'){ renderStatus(el); return; }
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
   // the top of the screen swaps the grid over to the archived chats and back.
   if(homeView==='archive'){
@@ -1935,6 +2097,7 @@ document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localSt
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
+document.getElementById('stlink').onclick=function(){ setHomeView('status'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =

@@ -27,6 +27,8 @@
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
 //                                  (self-contained HTML shown in the chat's Compare tab)
 //   GET  /api/chatfeed/pages?chat=name → list a chat's Compare pages
+//   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
+//                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
 
 const express = require('express');
@@ -792,6 +794,20 @@ router.get('/pages', async (req, res) => {
     const pages = snap.docs
       .map((d) => ({ id: d.id, title: d.data().title, created: d.data().created }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ pages });
+  } catch (err) { fail(res, err); }
+});
+
+// The Status view's "new pages" strip — the newest Compare pages across every
+// chat, one query. Single-field orderBy on `created`, so no composite index.
+router.get('/pages-recent', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 8));
+    const snap = await db().collection(PAGES).orderBy('created', 'desc').limit(limit).get();
+    const pages = snap.docs.map((d) => ({
+      id: d.id, title: d.data().title, chat: d.data().chat || '', created: d.data().created,
+    }));
     res.json({ pages });
   } catch (err) { fail(res, err); }
 });
