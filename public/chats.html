@@ -319,6 +319,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+/* ---- Status cards (Aug 2026, Sophie): a chat's own one-line report, shown
+   under its name. `need` (what it wants from her) reads in rose so the asks
+   stand out on a skim; `doing` is the quiet what-I'm-on line; her own pinned
+   note shows italic with a "you:" prefix. */
+.cr-need{display:block; font-size:14.5px; line-height:1.35; color:var(--rose); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+.cr-note{display:block; font-size:13.5px; line-height:1.35; font-style:italic; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+.t-tldr.t-need{color:var(--rose); font-weight:600;}
+/* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
+.noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
+.noterow .noteshow{color:var(--ink2); font-style:italic; cursor:pointer;}
+.noterow .noteshow.has{color:var(--ink);}
+.noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
+.noterow textarea:focus{outline:none; border-color:var(--rose);}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
 .stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
 .stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
@@ -906,6 +919,28 @@ function groups(){
 // (branch-derived); a custom displayName set in-app overrides it. Messages
 // still group by the real key, so renaming only changes the label.
 function dispName(name){ return (chats[name]&&chats[name].displayName)||name; }
+// A chat's deliberate status card (registry statusNeed/statusDoing — see
+// POST /api/chatfeed/status) + Sophie's own pinned note. These are what the
+// home rows show under the name; the auto TLDR is only the fallback.
+function statusLines(name){
+  var r=chats[name]||{};
+  return {
+    need:String(r.statusNeed||'').trim(),
+    doing:String(r.statusDoing||'').trim(),
+    note:String(r.sophieNote||'').trim(),
+  };
+}
+// The under-the-name lines as HTML: the ask in rose, the working line quiet,
+// her note italic — falling back to the latest auto TLDR when a chat hasn't
+// filed a card yet (so old chats don't go blank).
+function statusLinesHtml(name, fallback){
+  var st=statusLines(name), h='';
+  if(st.need) h+='<span class="cr-need">'+esc(st.need)+'</span>';
+  if(st.doing) h+='<span class="cr-snip">'+esc(st.doing)+'</span>';
+  if(!st.need && !st.doing && fallback) h+='<span class="cr-snip">'+esc(fallback)+'</span>';
+  if(st.note) h+='<span class="cr-note">you: '+esc(st.note)+'</span>';
+  return h;
+}
 // A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
 // box with a giant italic initial in it, and Sophie asked for that gone ("a
 // little icon with a giant letter on all the chats — get rid of that"). So a
@@ -1185,9 +1220,11 @@ function stRow(name, list, last, snip, live){
   var row=document.createElement('button');
   row.className='crow'+(chatMuted(name,last)?' done':'')+(live?' live':'');
   row.dataset.chat=name;
+  // The deliberate status card wins here too; `snip` (the auto TLDR / draft
+  // line) is only the fallback for a chat that hasn't filed one.
   row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
-    +(snip?'<span class="cr-snip">'+esc(snip)+'</span>':'')+'</span>'
+    +statusLinesHtml(name, snip)+'</span>'
     +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
   row.appendChild(mkHide(name,last));
   row.onclick=function(){ openChat(name); };
@@ -1617,10 +1654,16 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
+    // The chat's own status card wins the tile's line: the ask (rose) and/or
+    // the working line; only a chat with no card falls back to the auto TLDR.
+    var st=statusLines(name);
+    var lineHtml=(st.need?'<span class="t-tldr t-need">'+esc(st.need)+'</span>':'')
+      +(st.doing?'<span class="t-tldr">'+esc(st.doing)+'</span>':'')
+      +((!st.need&&!st.doing&&status)?'<span class="t-tldr">'+esc(status)+'</span>':'');
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
-      +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
+      +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
     var cov=b.querySelector('.t-cover'); cov.appendChild(mkHide(name,last));
     if(selMode){ b.classList.toggle('picked', !!picked[name]); cov.appendChild(mkPick(name)); }
@@ -1636,15 +1679,18 @@ function renderList(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
-    // Just the chat's name (Sophie's rule). The message snippet that used to sit
-    // beside it was an inline span, so it never truncated — it ran over the
-    // timestamp and the ✓ and off the side of the screen.
+    // The name, plus the chat's own status card underneath (Aug 2026, Sophie:
+    // "a line on what they need and maybe a summary of what that chat is
+    // currently working on"). No auto-TLDR fallback here — the old inline
+    // snippet ran over the timestamp and was removed by her rule; only lines
+    // a chat wrote ON PURPOSE (or her own pinned note) earn the space.
     // No ✓ on the home rows for now (Sophie's ask) and the hide ⊖ takes the
     // spot it had, on the right. Marking a chat answered still lives on the
     // STATUS view, which is the screen that has a "Marked done" section to
     // feed — pulling it from there too would leave that section dead.
     row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
-      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
+      +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
     row.appendChild(mkHide(name,last));
@@ -1840,6 +1886,37 @@ function openChat(name, keepScroll, focusId, noFetch){
   sclr.style.display='none'; sclr.setAttribute('aria-label','Clear search');
   srow.appendChild(sinp); srow.appendChild(sclr);
   var scount=document.createElement('div'); scount.className='msgcount'; scount.style.display='none';
+  // Her pinned note on this chat (Aug 2026): standing direction the chat reads
+  // the next time she messages it ("keep it loose", "don't touch the palette").
+  // It is HERS — a chat never clears it; she edits or clears it right here
+  // (save on tap-away, empty clears). Shown on the home rows too.
+  var nrow=document.createElement('div'); nrow.className='noterow';
+  function paintNote(){
+    var v=(chats[name]&&chats[name].sophieNote)||'';
+    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? 'you: '+esc(v) : '+ note for this chat')+'</span>';
+    nrow.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+  }
+  function editChatNote(){
+    var v=(chats[name]&&chats[name].sophieNote)||'';
+    var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=500;
+    ta.placeholder='A note this chat reads next time you message it';
+    nrow.innerHTML=''; nrow.appendChild(ta); ta.focus();
+    var done=false;
+    function save(){
+      if(done) return; done=true;
+      var nv=ta.value.trim();
+      if(nv===v){ paintNote(); return; }
+      api('/api/chatfeed/chatnote',{method:'POST',body:JSON.stringify({chat:name, note:nv})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          chats[name]=chats[name]||{}; chats[name].sophieNote=nv||null; saveCache();
+          paintNote(); toast(nv?'Note saved':'Note cleared'); })
+        .catch(function(){ done=false; toast('Couldn’t save that'); });
+    }
+    ta.addEventListener('blur',save);
+  }
+  paintNote();
+  chatPanel.appendChild(nrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
   if(!list.length) chatPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
   // Each row is indexed once against the text it was built from, not re-read

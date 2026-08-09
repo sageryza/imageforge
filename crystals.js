@@ -549,3 +549,252 @@ router.delete('/items/:id', async (req, res) => {
 });
 
 module.exports = { router, COL, slug };
+// Exported below the splitter so scripts/test-crystal-split.js can drive the
+// pure part without Firebase.
+module.exports.deriveStones = (...a) => deriveStones(...a);
+module.exports.TREATMENTS = () => TREATMENTS;
+
+// ---------------------------------------------------------------------------
+// THE SPLITTER (Aug 2026)
+//
+// The crystal photos never came through /upload above — Sophie dumped them into
+// the Dump instead (`forge-drops`, folder "Crystals": 15 albums, 629 photos +
+// 33 videos). And the assumption this module was built on turned out to be
+// wrong for most of them: an album is NOT one stone. Only two are ("Clear
+// quartz cluster", "Selenite sphere"). The rest are catalogue runs — she shot
+// one stone, moved to the next, and kept going, so a single album holds 20-50
+// separate stones at 1-3 photos each.
+//
+// Which means the one fact that turns 629 photos into an inventory — where one
+// stone stops and the next begins — exists nowhere. It can't be derived either:
+// three consecutive frames of a yellow septarian are either one stone turned
+// around or three different stones, and reading it wrong is not a cosmetic bug.
+// It puts a number on a pick-your-own grid that two customers can buy.
+//
+// So this is the surface that asks HER, in the cheapest gesture that answers
+// it: the album's photos in shooting order, one tap on any photo that starts a
+// NEW stone. Everything between two marks is one stone, which is one listing.
+//
+// WHY MARKS ARE FILE IDS, NOT INDEXES: re-dumping an album tops it up and
+// `photoIndex` is allocated per arrival, so an index-keyed split would silently
+// re-point at different photos the next time she adds to an album. A file id is
+// the photo. Same reason `names`/`treatment` key off the id of the stone's
+// FIRST photo rather than its position.
+//
+// THE SPLIT NEVER TOUCHES THE DUMP'S OWN DATA. It is its own small doc per
+// album (`forge-crystal-splits`, doc id = the bundle slug) and the photos are
+// read live, so a split is always re-openable, re-editable, and throwing one
+// away costs nothing but the taps. (The one thing written back onto a drop doc
+// is `thumbUrl` — an additive display copy from scripts/crystal-thumbs.js, not
+// a change to any grouping or label.)
+//
+// TILES SHOW `thumb`, NEVER `url`: a Dump photo is the full-resolution original
+// (~3.7MB — correct, Etsy wants 2000px+) and an album is up to 100 of them, so
+// a page pointed at the originals is a third of a gigabyte per album. Run
+// scripts/crystal-thumbs.js after any new crystal dump.
+//
+// Routes (same STUDIO_TOKEN gate as the rest of the module):
+//   GET   /split/albums          → every Crystals album + how far its split got
+//   GET   /split/:bundle         → photos in order + the marks so far
+//   POST  /split/:bundle         → { marks?, skip?, names?, treatment? }
+//   GET   /split/:bundle/stones  → the derived stones (what a listing reads)
+
+const DROPS = 'forge-drops';
+const SPLITS = 'forge-crystal-splits';
+
+// The Dump folder these live in. `track` is the Dump's folder field; Sophie
+// filed them by hand as "Crystals".
+const CRYSTAL_TRACK = 'Crystals';
+
+// A stone is sold one of two ways (Sophie, Aug 2026) — its own listing, or a
+// numbered slot in a pick-your-own grid. Chosen per stone, not per album.
+const TREATMENTS = ['own', 'grid', 'skip'];
+
+// Shooting order within an album. Same ordering the Dump itself uses, minus
+// the cross-album parts — inside one album `photoIndex` is the shot order and
+// `createdAt` breaks ties for anything dumped before the transaction fix.
+function byShot(a, b) {
+  return (a.photoIndex || 0) - (b.photoIndex || 0)
+    || (a.createdAt || 0) - (b.createdAt || 0);
+}
+
+// Every file of one album, in the order she shot them. ONE equality filter
+// (`bundle`) so no composite index is needed — the rest is sorted in memory,
+// the house rule.
+async function albumPhotos(bundle) {
+  const snap = await db().collection(DROPS).where('bundle', '==', slug(bundle)).get();
+  const items = [];
+  snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+  items.sort(byShot);
+  return items;
+}
+
+async function readSplit(bundle) {
+  const d = await db().collection(SPLITS).doc(slug(bundle)).get();
+  const v = d.exists ? d.data() : {};
+  return {
+    marks: Array.isArray(v.marks) ? v.marks : [],
+    skip: Array.isArray(v.skip) ? v.skip : [],
+    names: v.names && typeof v.names === 'object' ? v.names : {},
+    treatment: v.treatment && typeof v.treatment === 'object' ? v.treatment : {},
+    updatedAt: v.updatedAt || null,
+  };
+}
+
+// Cut the ordered photo list at every mark. The first photo always starts a
+// stone whether or not it carries a mark — an album's opening shot is by
+// definition the first stone, and requiring a tap there would make "no taps
+// yet" and "one stone" indistinguishable.
+//
+// Skipped photos (group shots, the tray at the end, a lightbox test, a sticker
+// close-up she took to read a weight) belong to no stone but must NOT split
+// one: a photo dropped out of the middle of a run leaves that run intact.
+function deriveStones(photos, split) {
+  const marks = new Set(split.marks || []);
+  const skip = new Set(split.skip || []);
+  const stones = [];
+  let cur = null;
+  for (const p of photos) {
+    if (skip.has(p.id)) continue;
+    if (!cur || marks.has(p.id)) {
+      cur = { startId: p.id, photos: [], videos: 0 };
+      stones.push(cur);
+    }
+    if ((p.media || 'image') === 'video') cur.videos += 1;
+    cur.photos.push({
+      id: p.id, url: p.url, media: p.media || 'image',
+      thumb: p.thumbUrl || p.posterUrl || p.url,
+      posterUrl: p.posterUrl || null,
+    });
+  }
+  return stones.map((s, i) => ({
+    n: i + 1,                       // its number in a pick-your-own grid
+    startId: s.startId,
+    name: split.names[s.startId] || '',
+    treatment: TREATMENTS.includes(split.treatment[s.startId])
+      ? split.treatment[s.startId] : '',
+    cover: (s.photos.find((p) => p.media !== 'video') || s.photos[0] || {}).url || null,
+    photoCount: s.photos.length - s.videos,
+    videoCount: s.videos,
+    photos: s.photos,
+    // Etsy wants 5-10 images on a listing. Below that a stone can still take a
+    // numbered grid slot (one good shot is enough there) but not its own
+    // listing — which is exactly the re-shoot list, derived rather than typed.
+    enoughForOwnListing: s.photos.length - s.videos >= 5,
+  }));
+}
+
+// GET /split/albums — the picker: every Crystals album with its split progress.
+router.get('/split/albums', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const snap = await db().collection(DROPS).where('track', '==', CRYSTAL_TRACK).get();
+    const byBundle = new Map();
+    snap.forEach((d) => {
+      const it = { id: d.id, ...d.data() };
+      const key = it.bundle || ('loose:' + it.id);
+      if (!byBundle.has(key)) {
+        byBundle.set(key, {
+          bundle: it.bundle || null, bundleName: it.bundleName || null,
+          seq: it.seq || 0, cover: it.posterUrl || it.url,
+          photos: 0, videos: 0, newest: 0,
+        });
+      }
+      const b = byBundle.get(key);
+      if ((it.media || 'image') === 'video') b.videos += 1; else b.photos += 1;
+      if ((Number(it.createdAt) || 0) > b.newest) b.newest = Number(it.createdAt) || 0;
+    });
+    const albums = [...byBundle.values()].filter((a) => a.bundle);
+    // Split docs are small; read them all rather than one round trip per album.
+    const splits = await db().collection(SPLITS).get();
+    const splitBy = new Map();
+    splits.forEach((d) => splitBy.set(d.id, d.data()));
+    for (const a of albums) {
+      const s = splitBy.get(a.bundle);
+      a.marks = s && Array.isArray(s.marks) ? s.marks.length : 0;
+      a.skipped = s && Array.isArray(s.skip) ? s.skip.length : 0;
+      a.started = Boolean(s);
+      // Marks + the implied first stone, less anything skipped outright.
+      a.stones = a.started ? a.marks + 1 : 0;
+      a.updatedAt = (s && s.updatedAt) || null;
+    }
+    albums.sort((x, y) => (x.seq || 0) - (y.seq || 0));
+    res.json({ count: albums.length, albums });
+  } catch (e) { fail(res, e); }
+});
+
+// GET /split/:bundle — the album to split: photos in shooting order + marks.
+router.get('/split/:bundle', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const photos = await albumPhotos(req.params.bundle);
+    if (!photos.length) return res.status(404).json({ error: 'no such album' });
+    const split = await readSplit(req.params.bundle);
+    res.json({
+      bundle: slug(req.params.bundle),
+      bundleName: photos[0].bundleName || null,
+      // `thumb` is what tiles render; `url` stays the full-resolution original
+      // for the lightbox and, later, the listing itself.
+      photos: photos.map((p) => ({
+        id: p.id, url: p.url, media: p.media || 'image',
+        thumb: p.thumbUrl || p.posterUrl || p.url,
+        posterUrl: p.posterUrl || null,
+      })),
+      thumbsMissing: photos.filter((p) => (p.media || 'image') !== 'video' && !p.thumbUrl).length,
+      ...split,
+      stones: deriveStones(photos, split),
+    });
+  } catch (e) { fail(res, e); }
+});
+
+// POST /split/:bundle — save the marking. The page sends the WHOLE state (it's
+// a few hundred ids at most), so this is a set-with-merge rather than a diff:
+// one tap can't half-apply, and a reload always shows what she last saw.
+router.post('/split/:bundle', async (req, res) => {
+  try {
+    const bundle = slug(req.params.bundle);
+    const body = req.body || {};
+    const patch = { bundle, updatedAt: Date.now() };
+    const ids = (v) => (Array.isArray(v) ? v.map(String).slice(0, 2000) : null);
+    if (ids(body.marks)) patch.marks = ids(body.marks);
+    if (ids(body.skip)) patch.skip = ids(body.skip);
+    // names/treatment are keyed by a stone's first-photo id; keep only sane
+    // entries so a client bug can't fill the doc with junk.
+    if (body.names && typeof body.names === 'object') {
+      const n = {};
+      for (const [k, v] of Object.entries(body.names)) {
+        if (String(v || '').trim()) n[String(k)] = String(v).trim().slice(0, 80);
+      }
+      patch.names = n;
+    }
+    if (body.treatment && typeof body.treatment === 'object') {
+      const t = {};
+      for (const [k, v] of Object.entries(body.treatment)) {
+        if (TREATMENTS.includes(v)) t[String(k)] = v;
+      }
+      patch.treatment = t;
+    }
+    await db().collection(SPLITS).doc(bundle).set(patch, { merge: true });
+    const photos = await albumPhotos(bundle);
+    const split = await readSplit(bundle);
+    res.json({ ok: true, bundle, stones: deriveStones(photos, split) });
+  } catch (e) { fail(res, e); }
+});
+
+// GET /split/:bundle/stones — just the derived stones. What a listing writer,
+// a grid builder or a re-shoot list reads; no photo payload for the album.
+router.get('/split/:bundle/stones', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const photos = await albumPhotos(req.params.bundle);
+    if (!photos.length) return res.status(404).json({ error: 'no such album' });
+    const stones = deriveStones(photos, await readSplit(req.params.bundle));
+    res.json({
+      bundle: slug(req.params.bundle),
+      bundleName: photos[0].bundleName || null,
+      count: stones.length,
+      needReshoot: stones.filter((s) => !s.enoughForOwnListing && s.treatment === 'own').length,
+      stones,
+    });
+  } catch (e) { fail(res, e); }
+});
