@@ -57,6 +57,8 @@ const server = http.createServer((req, res) => {
         'chat-b': { lastSeen: MSGS[1].created },
         // already hidden before she opens the page. hiddenAt is NEWER than its
         // last message, which is what "hidden" means now — a stamp, not a flag.
+        // (The v1 boolean `hidden:true` is gone and no longer read: it could
+        // never pop out, which is the bug that retired it.)
         'chat-parked': { lastSeen: MSGS[2].created, hiddenAt: iso(T0) },
       },
       settings: {}, truncated: [],

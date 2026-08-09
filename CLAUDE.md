@@ -1015,9 +1015,15 @@ lifted into a standalone tool later.
     so **the moment it answers her it pops back out into the list**. That is
     Sophie's explicit call — v1 shipped this as a permanent boolean and she
     asked for the opposite the same day. Hiding means "not now"; **Archive**
-    is the one that means "away for good". The retired v1 field `hidden:true`
-    is still HONOURED on read (or the chats she hid that day would all have
-    reappeared at once) and cleared by any write.
+    is the one that means "away for good". **The retired v1 field
+    `hidden:true` is GONE and is no longer read** — it could never pop out,
+    which is precisely the bug she reported the same evening ("when I hide
+    something and then it answers me I want it to become unhidden"): the 11
+    chats she hid before the stamp shipped were stuck behind the bar
+    forever. All 11 were migrated onto stamps on 2026-08-09 by re-POSTing
+    `/hide`, which rewrites both fields. If a hidden chat ever "won't come
+    back", check for a doc still carrying the boolean before suspecting
+    `stampActive`.
   - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
     the ! with it") — hiding *is* the come-back-to-this mark now, and it does
     what the flag only implied. `flaggedAt` still exists server-side
@@ -1074,10 +1080,19 @@ lifted into a standalone tool later.
     untappable without it. Measured live at 390px wide: the icons end at
     x≈306, the pill starts at x≈324. Tests:
     `node scripts/test-chats-categories.js`.
-  - **PARKED at her ask (Aug 2026): a chat filed into a category does NOT
-    leave the main list.** She raised it and then said to wait — "I'm not
-    sure how that will work". Filing is a label, not a move; don't build the
-    disappearing behaviour without her saying so.
+  - **FILING MOVES A CHAT (Aug 2026, Sophie — this replaced the one-evening
+    "parked" note above it).** "When I mark something as a story, it takes it
+    out of the normal list." So the unfiltered home is the UNFILED pile, an
+    inbox, and a lit chip is that folder. Two consequences to keep in mind:
+    - **The chips carry a count and an unread dot.** Without them a filed
+      chat would simply vanish and a reply inside a folder would be silent —
+      the same reason the hidden bar names what is behind it. A filed chat
+      no longer shows its working tint on the home; STATUS still shows it,
+      and STATUS is deliberately NOT category-filtered.
+    - **ARCHIVE deliberately does NOT hide filed chats.** It is already the
+      "away for good" pile; filtering it down to the unfiled ones would
+      leave a filed+archived chat reachable only by lighting the right chip
+      first. A chip still narrows it.
   - The home screen was tightened vertically in the same pass (rule, h1,
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".

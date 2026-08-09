@@ -7,7 +7,8 @@
 //   1. the LIST/TILES toggle is gone and the home is the list,
 //   2. the seeded chips (Stories, Tech) are there before anything is filed,
 //   3. select mode picks chats and one chip files the lot (POST /category),
-//   4. a lit chip filters the list; tapping it again clears back to everything,
+//   4. FILING MOVES a chat: it leaves the unfiltered list, the chip counts it,
+//      and a lit chip is that folder (tapping it again clears back),
 //   5. a category typed into the bar's New… box becomes a chip of its own,
 //   6. the filter narrows the HIDDEN pile too, not just the visible list.
 //
@@ -77,7 +78,8 @@ const server = http.createServer((req, res) => {
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 // the MAIN list only — the hidden pile renders its own .clist inside .hidelist
 const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
-const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.textContent.trim()));
+const chips = (page) => page.$$eval('#catrow .catchip',
+  (ns) => ns.map((n) => n.textContent.replace(/\s+/g, ' ').trim().split(' ')[0]));
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -98,6 +100,10 @@ const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.
   // 2. both seeded chips exist before anything is filed
   let cs = await chips(page);
   if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech'])) fail('seeded chips wrong: ' + cs.join(','));
+  // and the seeded Stories chip already counts the hidden chat filed under it
+  const seeded = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.map((n) => n.textContent.replace(/\s+/g, ' ').trim()));
+  if (seeded[0] !== 'Stories 1') fail('Stories chip did not count its hidden chat: ' + seeded[0]);
 
   // 3. select mode picks two chats and one chip files them
   await page.click('#selbtn');
@@ -108,30 +114,36 @@ const chips = (page) => page.$$eval('#catrow .catchip', (ns) => ns.map((n) => n.
   if (pickedN !== 2) fail('expected 2 picked rows, got ' + pickedN);
   // a tap in select mode must PICK, never open the chat
   if (await page.$eval('#thread', (n) => n.style.display !== 'none')) fail('a tap in select mode opened the chat');
-  await page.$$eval('#selbar .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#selbar .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
   await page.waitForFunction(() => !document.getElementById('selbar'), null, { timeout: 4000 })
     .catch(() => fail('filing did not leave select mode'));
   const post = catPosts.find((p) => p.category === 'tech');
   if (!post || post.chats.length !== 2) fail('POST /category wrong: ' + JSON.stringify(catPosts));
 
-  // 4. the chip filters, and tapping the lit one clears back to everything
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  // 4. the two filed chats LEFT the unfiltered list, and the chip counts them
   let rows = await listed(page);
-  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['chat-a', 'chat-b'])) fail('Tech filter wrong: ' + rows.join(','));
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('filed chats did not leave the list: ' + rows.join(','));
+  const techChip = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.map((n) => n.textContent.replace(/\s+/g, ' ').trim()).find((t) => t.indexOf('Tech') === 0));
+  if (techChip !== 'Tech 2') fail('chip did not count what it holds: ' + techChip);
+  // the lit chip IS that folder, and tapping it again goes back to the unfiled
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
   rows = await listed(page);
-  if (rows.length !== 3) fail('tapping the lit chip did not clear the filter: ' + rows.join(','));
+  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['chat-a', 'chat-b'])) fail('Tech folder wrong: ' + rows.join(','));
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
+  rows = await listed(page);
+  if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('tapping the lit chip did not clear the filter: ' + rows.join(','));
 
   // 6. the filter reaches the hidden pile: under Stories the only live chat is
   //    hidden, so the list is empty and the bar carries it
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Stories').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Stories') === 0).click(); });
   if (await page.$('#grid > .clist')) fail('Stories should have no visible chats');
   const barTxt = await page.$eval('.hidebar .hb-n', (n) => n.textContent.replace(/\s+/g, ' ').trim());
   if (!/^Hidden 1\b/.test(barTxt)) fail('hidden pile not filtered to Stories: ' + barTxt);
   // and under Tech the pile is empty, so there is no bar at all
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
   if (await page.$('.hidebar')) fail('a bar was drawn for a category with nothing hidden');
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim() === 'Tech').click(); });
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
 
   // 5. a typed category becomes a chip of its own
   await page.click('#selbtn');

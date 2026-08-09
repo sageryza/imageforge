@@ -388,6 +388,8 @@ body.reading .backwrap{display:block;}
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
   padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper)); font-weight:600;}
+.catchip .cc-n{opacity:.6; margin-left:1px;}
+.catchip .cc-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--rose); margin-left:5px; vertical-align:middle;}
 .iconbtn{flex:none; width:34px; height:34px; border:1.5px solid var(--line); border-radius:6px; background:transparent;
   color:var(--ink2); cursor:pointer; display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
@@ -1142,12 +1144,24 @@ function catList(){
   return out;
 }
 function catLabel(c){ return c.charAt(0).toUpperCase()+c.slice(1); }
-function paintCatRow(){
+// The chips carry a COUNT, and a dot when something in there is unread.
+// Filing takes a chat OUT of the main list, so without those two the chats she
+// files would simply vanish and a reply inside a folder would be silent — the
+// same reason the hidden bar names what is behind it.
+function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
   catList().forEach(function(c){
+    var mine=Object.keys(chats).filter(function(n){
+      return chatCat(n)===c && !(chats[n]&&chats[n].archived);
+    });
+    var fresh=mine.some(function(n){
+      var last=lastOf(g,n);
+      return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
+    });
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
-    b.textContent=catLabel(c);
+    b.innerHTML=esc(catLabel(c))+(mine.length?' <span class="cc-n">'+mine.length+'</span>':'')
+      +(fresh?'<span class="cc-dot"></span>':'');
     b.onclick=function(){ cat=(cat===c?'':c); renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   });
@@ -1240,14 +1254,22 @@ function renderHome(){
   var g=groups();
   var all=sortedChatNames(g);
   var live=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
-  // A category chip narrows the WHOLE screen, the hidden pile included — a bar
-  // counting chats from a category she isn't looking at would be noise.
-  if(cat) live=live.filter(function(n){ return chatCat(n)===cat; });
+  // FILING MOVES A CHAT (Aug 2026, Sophie: "when I mark something as a story,
+  // it takes it out of the normal list"). So the unfiltered home is the
+  // UNFILED pile — an inbox — and a lit chip is that folder. A chip narrows
+  // the WHOLE screen, the hidden pile included: a bar counting chats from a
+  // folder she isn't looking at would be noise.
+  live=live.filter(function(n){ return cat? chatCat(n)===cat : !chatCat(n); });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
+  // ARCHIVE deliberately does NOT hide filed chats: it is already the "away
+  // for good" pile, and filtering it down to the unfiled ones would leave a
+  // filed+archived chat reachable only by lighting the right chip first. A
+  // chip still narrows it.
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
   paintHomeChrome();
-  paintCatRow();
+  paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -1266,7 +1288,8 @@ function renderHome(){
     // reads as empty and looks like the chats are gone
     el.appendChild(Object.assign(document.createElement('div'),
       {className:'state', textContent: hid.length ? 'Everything is hidden — tap Hidden to see it.'
-        : ('Nothing filed under ' + catLabel(cat) + ' yet — tap the checkbox to file some chats.')}));
+        : cat ? ('Nothing filed under ' + catLabel(cat) + ' yet — tap the checkbox to file some chats.')
+        : 'Everything is filed — tap a category to see it.'}));
     return;
   }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
@@ -1282,12 +1305,14 @@ function chatMuted(name,last){ return chatDone(name,last); }
 // hide a chat and then it answers me I'd actually like it to pop out of the
 // hidden area"). So a hidden chat comes back the moment anything newer lands
 // — hiding means "not now", not "away for good"; Archive is for good.
-// `hidden:true` is the retired v1 boolean, still honoured so the chats she
-// hid that day didn't all reappear at once.
+// The retired v1 boolean `hidden:true` is GONE and is no longer honoured. It
+// could never pop out — which is exactly the bug Sophie reported ("when I hide
+// something and then it answers me I want it to become unhidden"): the 11
+// chats she hid on the day v1 shipped were stuck behind the bar forever. Every
+// one was migrated onto a stamp on 2026-08-09 (`POST /hide` rewrites both
+// fields), so reading it back would only keep the trap alive.
 function chatHidden(name,last){
-  var c=chats[name]||{};
-  if(c.hiddenAt) return stampActive(c.hiddenAt, last);
-  return !!c.hidden;
+  return stampActive((chats[name]&&chats[name].hiddenAt)||'', last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
