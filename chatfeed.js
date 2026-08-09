@@ -688,22 +688,49 @@ router.post('/archive', async (req, res) => {
 
 // Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
 // the chat list. A hidden chat leaves the list so she can see the rest, and
-// waits behind the bar until she taps it open.
+// waits behind the bar.
 //
-// Deliberately a BOOLEAN, not a stamp like answeredAt/flaggedAt. Those clear
-// themselves the moment a newer message lands, which is right for "answered"
-// and exactly wrong here: the chat she just took out of the list would pop
-// back into it on its next reply. Hidden stays hidden until she puts it back.
-// Archived is the same shape for the same reason — hidden is the lighter one
-// of the pair (come back to this soon), archive is the shelf.
+// It is a STAMP (`hiddenAt`), the same shape as answeredAt: a chat stays
+// hidden only while nothing newer has arrived, so **the moment it answers her
+// it pops back out into the list** (Sophie's call, Aug 2026 — v1 shipped this
+// as a permanent boolean and she asked for the opposite). Hiding is "not now",
+// not "away for good"; that's what Archive is for.
+//
+// `hidden:true` is the retired v1 boolean. Reads still honour it (a chat she
+// hid that day must not silently reappear), writes always clear it.
 router.post('/hide', async (req, res) => {
   try {
     const { chat, hidden } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const on = hidden !== false;
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = new Date().toISOString();
     await regRef(chat)
-      .set({ hidden: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
-    res.json({ ok: true, hidden: on });
+      .set({ hiddenAt: on ? stamp : del, hidden: del }, { merge: true });
+    res.json({ ok: true, hiddenAt: on ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// File chats under a category — the chips where the LIST/TILES toggle used to
+// be (Aug 2026, Sophie: "category tags, the first two I can think of are
+// stories and tech"). One field on the registry doc, so it rides the cached
+// read the icons already use, exactly like the Dump's `track`.
+//
+// Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
+// gesture there: she picks several rows in select mode and taps a category
+// once. An empty category clears the field back to unfiled.
+router.post('/category', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const category = String(body.category || '').trim().slice(0, 40);
+    const val = category || admin.firestore.FieldValue.delete();
+    const batch = db().batch();
+    names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, chats: names, category: category || null });
   } catch (err) { fail(res, err); }
 });
 

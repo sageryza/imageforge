@@ -1009,13 +1009,15 @@ lifted into a standalone tool later.
   leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
   · 1 new"). Tapping the bar opens the pile in place; tapping it again puts it
   away. Details that are load-bearing:
-  - **`hidden` is a plain BOOLEAN on the registry doc**
-    (`POST /api/chatfeed/hide {chat, hidden}`), never a self-clearing stamp
-    like `answeredAt`/`flaggedAt`. Those clear the moment a newer message
-    lands, which for hiding would walk the chat straight back into the list
-    she just took it out of. Same shape as `archived` for the same reason —
-    hidden is the lighter of the pair (come back to this soon), archive is
-    the shelf.
+  - **`hiddenAt` is a self-clearing STAMP on the registry doc**
+    (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
+    `answeredAt`: a chat stays hidden only while nothing newer has arrived,
+    so **the moment it answers her it pops back out into the list**. That is
+    Sophie's explicit call — v1 shipped this as a permanent boolean and she
+    asked for the opposite the same day. Hiding means "not now"; **Archive**
+    is the one that means "away for good". The retired v1 field `hidden:true`
+    is still HONOURED on read (or the chats she hid that day would all have
+    reappeared at once) and cleared by any write.
   - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
     the ! with it") — hiding *is* the come-back-to-this mark now, and it does
     what the flag only implied. `flaggedAt` still exists server-side
@@ -1032,9 +1034,37 @@ lifted into a standalone tool later.
     list is exactly where she doesn't want it. The bar's "· N new" is the
     other signal, so a hidden chat that replied is never invisible.
   - The red is a FIXED `#b3443f` in both themes (`--chg` goes salmon in dark
-    and this has to read as red). Tests:
-    `node scripts/test-chats-hidden.js` (headless Chromium against a stub
-    feed; skips without playwright).
+    and this has to read as red), and the row's ⊖ is that red UNLIT too — it
+    belongs to the bar, so it reads as its colour before it is ever tapped.
+    Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
+    stub feed; skips without playwright).
+  **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
+  2026, Sophie).** She stopped using the tile view, so the toggle was two taps
+  of nothing: the home is always the list (`view='list'` — **`renderTiles()`
+  is deliberately kept**, her ask, flip the const to bring it back), and the
+  tool row now holds category chips plus two icon-only buttons (select,
+  refresh — refresh lost its word to save the space).
+  - **A category is one `category` field on the registry doc**
+    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
+    `track` in another costume, and it takes a whole selection in one call
+    because filing is a bulk gesture. Empty category clears it.
+  - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
+    exist before anything is filed; anything typed into select mode's New…
+    box joins them. Tapping the LIT chip clears back to everything — the Dump
+    sort page's convention, and why there is no "All" chip.
+  - **The filter is session-only, never persisted.** A sticky filter would
+    show her three chats one morning and read as the rest having vanished.
+  - **A chip narrows the WHOLE screen, hidden pile included** — a bar
+    counting chats from a category she isn't looking at is noise.
+  - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
+    fixed bottom bar files the lot, filing exits the mode. While it is on a
+    tap anywhere on a row PICKS instead of opening, and the row's own ⊖/✓ are
+    hidden — two checkmarks on one row means the wrong one is the easy tap.
+  - **The tool row reserves the pill's corner** (`padding-right:64px`): it
+    sits inside the pill's y 14–192 band, so its right-hand icons would be
+    untappable without it. Measured live at 390px wide: the icons end at
+    x≈306, the pill starts at x≈324. Tests:
+    `node scripts/test-chats-categories.js`.
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
