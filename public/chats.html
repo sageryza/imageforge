@@ -558,7 +558,11 @@ body.ontop > .float{display:none !important;}
 <div class="wrap">
   <section id="home">
     <header>
-      <div class="no">deck factory &middot; every chat, one place</div>
+      <!-- The "deck factory · every chat, one place" eyebrow is GONE (Aug 2026,
+           Sophie: "that's wasted real estate"). It told her where she was on a
+           screen she opens from a tile that already says Chats. The thread
+           header keeps its own .no row — that one carries the crumb, Archive
+           and Hide, so it is doing work. -->
       <div class="hrow">
         <h1 id="htitle">Chats</h1>
         <div class="hctl">
@@ -1359,8 +1363,15 @@ function lastOf(g,name){ var l=g[name]||[]; return l.length? l[l.length-1] : nul
 var CAT_SEEDS=['stories','tech'];
 var cat='';
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// Seeds + every name she has ever created (kept on the __settings doc) + every
+// name actually in use. The middle one is why an EMPTY folder still shows: she
+// made a category, nothing happened to be picked at the time, and it vanished
+// — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
+  ((settings&&settings.categories)||[]).forEach(function(c){
+    c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
+  });
   Object.keys(chats).forEach(function(n){
     var c=chatCat(n); if(c && out.indexOf(c)<0) out.push(c);
   });
@@ -1419,13 +1430,21 @@ function mkPick(name){
 }
 // One filing call for the whole selection, then out of select mode — filing is
 // the end of the gesture, not a thing to keep doing.
+// Files the picked chats under `c` — and with NOTHING picked but a name given,
+// just creates the category. That combination used to toast "Nothing picked"
+// and throw the name away, which is how a category Sophie made never appeared.
 function filePicked(c){
   var names=Object.keys(picked);
-  if(!names.length){ toast('Nothing picked'); return; }
+  if(!names.length && !c){ toast('Nothing picked'); return; }
   var prev={}; names.forEach(function(n){ prev[n]=chatCat(n); chats[n]=chats[n]||{}; chats[n].category=c; });
+  if(c){
+    settings=settings||{};
+    settings.categories=(settings.categories||[]).slice();
+    if(settings.categories.indexOf(c)<0) settings.categories.push(c);
+  }
   exitSelect();
   renderHome();
-  toast(c? (names.length+' → '+catLabel(c)) : 'Cleared');
+  toast(!c ? 'Cleared' : names.length ? (names.length+' → '+catLabel(c)) : ('Made '+catLabel(c)));
   api('/api/chatfeed/category',{method:'POST',body:JSON.stringify({chats:names, category:c})})
     .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
     .catch(function(){ names.forEach(function(n){ chats[n].category=prev[n]; }); renderHome(); toast('Couldn’t save that'); });
@@ -1444,11 +1463,17 @@ function paintSelBar(){
   });
   var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
   inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
-  inp.onkeydown=function(e){
-    if(e.key!=='Enter') return;
+  // Enter OR tapping away — she dictates these, and dictation often ends with a
+  // tap somewhere else rather than a press of return. Losing the name that way
+  // is exactly how a category she made went missing.
+  function takeNew(){
     var v=(inp.value||'').trim().toLowerCase().slice(0,40);
-    if(v) filePicked(v);
-  };
+    if(!v) return;
+    inp.value='';
+    filePicked(v);
+  }
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
+  inp.onblur=takeNew;
   row.appendChild(inp);
   var none=document.createElement('button'); none.className='catchip'; none.textContent='None';
   none.onclick=function(){ filePicked(''); };

@@ -12,7 +12,11 @@
 //   5. a category typed into the bar's New… box becomes a chip of its own,
 //   6. the filter narrows the HIDDEN pile too, not just the visible list,
 //   7. the chip badges HOW MANY chats in there have answered her, counted per
-//      chat, and the badge goes once she has seen them.
+//      chat, and the badge goes once she has seen them,
+//   8. a category she MAKES survives with nothing filed under it — typed with
+//      no chats picked, and committed by tapping away rather than pressing
+//      return (that pair is how one she made went missing), and a name the
+//      server remembers on __settings shows as a chip on the next load.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-categories.js
 //
@@ -55,7 +59,9 @@ const server = http.createServer((req, res) => {
         // pile as well as the list
         'chat-hid': { lastSeen: MSGS[3].created, hiddenAt: iso(T0), category: 'stories' },
       },
-      settings: {}, truncated: [],
+      // a name she made earlier, with nothing filed under it — the chip has to
+      // outlive the filing that created it
+      settings: { categories: ['crystals'] }, truncated: [],
       messages: since ? [] : MSGS, delta: !!since,
     }));
   }
@@ -101,7 +107,7 @@ const chips = (page) => page.$$eval('#catrow .catchip',
 
   // 2. both seeded chips exist before anything is filed
   let cs = await chips(page);
-  if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech'])) fail('seeded chips wrong: ' + cs.join(','));
+  if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech', 'Crystals'])) fail('seeded chips wrong: ' + cs.join(','));
   // and the seeded Stories chip already counts the hidden chat filed under it
   const seeded = await page.$$eval('#catrow .catchip', (ns) =>
     ns.map((n) => n.firstChild.textContent.trim() + '|' + ((n.querySelector('.cc-n') || {}).textContent || '')));
@@ -159,6 +165,19 @@ const chips = (page) => page.$$eval('#catrow .catchip',
   cs = await chips(page);
   if (cs.indexOf('Crystals') < 0) fail('typed category never became a chip: ' + cs.join(','));
   if (!catPosts.some((p) => p.category === 'crystals' && p.chats[0] === 'chat-c')) fail('POST /category missed the typed one');
+
+  // 8. a name typed with NOTHING picked, committed by tapping away — this pair
+  //    is exactly how a category she made never appeared
+  await page.click('#selbtn');
+  await page.waitForSelector('#selbar');
+  await page.fill('#selbar input', 'errands');
+  await page.click('#htitle');                       // tap away, never Enter
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('#catrow .catchip')].some((n) => n.textContent.trim().indexOf('Errands') === 0),
+    null, { timeout: 4000 }).catch(() => fail('a category made with nothing picked did not appear'));
+  const made = catPosts.find((p) => p.category === 'errands');
+  if (!made) fail('POST /category never fired for the empty category');
+  if (made && made.chats.length) fail('the empty category filed chats it should not have: ' + JSON.stringify(made));
 
   // 7. the answered badge: chat-a and chat-b are filed under Tech and neither
   //    has been opened, so Tech carries a 2

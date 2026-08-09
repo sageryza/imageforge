@@ -729,17 +729,29 @@ router.post('/hide', async (req, res) => {
 // Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
 // gesture there: she picks several rows in select mode and taps a category
 // once. An empty category clears the field back to unfiled.
+// A CATEGORY IS A THING, not just a side effect of filing (Aug 2026 — Sophie
+// made one and it wasn't there: she typed a name in select mode with no chats
+// picked, so nothing was written and the chip never existed). The name is now
+// remembered on the `__settings` doc, so an EMPTY folder survives, and a
+// request with no chats at all is valid — that is how a category gets created
+// on its own.
 router.post('/category', async (req, res) => {
   try {
     const body = req.body || {};
     const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
       .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
-    if (!names.length) return res.status(400).json({ error: 'chat required' });
     const category = String(body.category || '').trim().slice(0, 40);
-    const val = category || admin.firestore.FieldValue.delete();
-    const batch = db().batch();
-    names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
-    await batch.commit();
+    if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
+    if (names.length) {
+      const val = category || admin.firestore.FieldValue.delete();
+      const batch = db().batch();
+      names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+      await batch.commit();
+    }
+    if (category) {
+      await regRef(SETTINGS_DOC).set(
+        { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
+    }
     res.json({ ok: true, chats: names, category: category || null });
   } catch (err) { fail(res, err); }
 });
