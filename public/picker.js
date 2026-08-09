@@ -86,6 +86,11 @@
     '.ckp-read w.z{border-top-right-radius:6px; border-bottom-right-radius:6px;}' +
     '.ckp-read w.pend{outline:2px solid var(--chg,#b3443f); outline-offset:1px;}' +
     '.ckp-read w.cut{outline:2px dashed var(--chg,#b3443f); outline-offset:1px;}' +
+    '.ckp-read w.now{background:color-mix(in srgb, var(--chg,#b3443f) 30%, transparent);}' +
+    '.ckp-tabs{display:flex; gap:2px; border-bottom:1px solid var(--line,#d8cfc0); margin:0 0 10px;}' +
+    '.ckp .ckp-tabs button{border:none; background:none; border-radius:6px 6px 0 0; padding:8px 14px;' +
+    ' color:var(--ink2); border-bottom:2px solid transparent; margin-bottom:-1px; font-size:14.5px;}' +
+    '.ckp .ckp-tabs button.on{color:var(--ink); border-bottom:2px solid var(--chg,#b3443f); font-weight:600;}' +
     '.ckp-bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0 0;' +
     ' font-size:13.5px; color:var(--ink2);}' +
     '.ckp-bar b{color:var(--ink); font-weight:600;}' +
@@ -127,10 +132,14 @@
 
   /* ── one shared audio element per page ───────────────────────────── */
   var audio = null, playingBtn = null, playQueue = null;
+  // what's playing right now, for the follow-along word highlight
+  // (the Voice Memos / Cutting Room pattern — Sophie's ask, Aug 2026)
+  var playCtx = null, nowEl = null;
+  function clearNow() { if (nowEl) { nowEl.classList.remove('now'); nowEl = null; } }
   function stopAudio() {
     if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
     if (playingBtn) { playingBtn.innerHTML = I.play; playingBtn = null; }
-    playQueue = null;
+    playQueue = null; playCtx = null; clearNow();
   }
   function ensureAudio() {
     if (audio) return audio;
@@ -139,8 +148,34 @@
     document.body.appendChild(audio);
     audio.addEventListener('ended', function () {
       var q = playQueue;
+      playCtx = null; clearNow();
       if (playingBtn) { playingBtn.innerHTML = I.play; playingBtn = null; }
       if (q && q.length) { playQueue = null; playSeq(q); } else playQueue = null;
+    });
+    // Follow the words as they're spoken (Voice Memos' transcript pattern):
+    // absolute time = the clip's own start + playback position, and the
+    // word whose start we've passed lights up. Times are only as exact as
+    // the page's word times (often segment-interpolated), so the highlight
+    // can lead or trail by a beat — same as rough captions, and honest.
+    audio.addEventListener('timeupdate', function () {
+      if (!playCtx) return;
+      var abs = playCtx.t0 + audio.currentTime;
+      var ws = playCtx.inst.opts.words, p = playCtx.pick, hit = null;
+      for (var i = p.a; i <= p.z; i++) {
+        if (typeof ws[i].t === 'number' && ws[i].t <= abs) hit = i; else if (ws[i].t > abs) break;
+      }
+      if (hit === null) return;
+      var el = playCtx.inst.wordEl(hit);
+      if (!el || el === nowEl) return;
+      clearNow(); nowEl = el; el.classList.add('now');
+      // keep the spoken word in the middle of the screen — but only when
+      // the words are actually on screen (never scroll under the picks tab)
+      if (el.offsetParent !== null) {
+        var r = el.getBoundingClientRect(), h = window.innerHeight;
+        if (r.top < h * 0.2 || r.bottom > h * 0.8) {
+          try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { el.scrollIntoView(); }
+        }
+      }
     });
     return audio;
   }
@@ -163,6 +198,7 @@
       fetch(url).then(function (r) { return r.json(); }).then(function (d) {
         if (d.status === 'ready' && d.url) {
           var a = ensureAudio();
+          playCtx = { inst: inst, pick: pick, t0: span.t0 };
           a.src = d.url;
           a.play().catch(function () { if (btn) btn.innerHTML = I.play; });
           if (btn) { btn.innerHTML = I.stop; playingBtn = btn; }
@@ -286,6 +322,7 @@
       frag.appendChild(document.createTextNode(' '));
     });
     read.appendChild(frag);
+    inst.wordEl = function (i) { return ws[i]; };
     (opts.shade || []).forEach(function (s) {
       for (var i = s.a; i <= s.z; i++) if (ws[i]) ws[i].classList.add('old');
     });
@@ -315,7 +352,32 @@
 
     var list = document.createElement('div');
     list.className = 'ckp-list';
-    mount.appendChild(read); mount.appendChild(bar); mount.appendChild(list);
+
+    // Two tabs — WORDS and PICKS — instead of the pick tiles living a long
+    // scroll below the transcript (Sophie's ask, Aug 2026; the pattern is
+    // Secretly a Witch's shop sheet, description vs reviews). The bar stays
+    // visible on both, so the status line, play-all, send and undo are
+    // always in reach.
+    var tabs = document.createElement('div');
+    tabs.className = 'ckp-tabs';
+    var tabWords = mkBtn('Words', 'the transcript');
+    var tabPicks = mkBtn('Picks', 'what you have picked, in order');
+    tabs.appendChild(tabWords); tabs.appendChild(tabPicks);
+    var wordsWrap = document.createElement('div');
+    var picksWrap = document.createElement('div');
+    wordsWrap.appendChild(read); picksWrap.appendChild(list);
+    inst.setTab = function (t) {
+      inst.tab = t;
+      tabWords.classList.toggle('on', t === 'words');
+      tabPicks.classList.toggle('on', t === 'picks');
+      if (t === 'words') { wordsWrap.removeAttribute('hidden'); picksWrap.setAttribute('hidden', ''); }
+      else { picksWrap.removeAttribute('hidden'); wordsWrap.setAttribute('hidden', ''); }
+    };
+    tabWords.addEventListener('click', function () { inst.setTab('words'); });
+    tabPicks.addEventListener('click', function () { inst.setTab('picks'); });
+    mount.appendChild(tabs); mount.appendChild(bar);
+    mount.appendChild(wordsWrap); mount.appendChild(picksWrap);
+    inst.setTab('words');
 
     function mkBtn(html, title) {
       var b = document.createElement('button');
@@ -446,6 +508,7 @@
       }
       var n = inst.picks.length;
       cnt.textContent = n ? (n + (n === 1 ? ' pick' : ' picks')) : 'no picks yet';
+      tabPicks.textContent = n ? ('Picks \u00b7 ' + n) : 'Picks';
       statusEl.textContent = inst.splitting !== null
         ? 'tap the word where the new part starts'
         : inst.pend !== null ? 'now tap the last word'
@@ -483,6 +546,7 @@
           cut.addEventListener('click', function () {
             inst.pend = null;
             inst.splitting = (inst.splitting === p.k) ? null : p.k;
+            if (inst.splitting !== null) inst.setTab('words');   // the split point is a word
             paint();
           });
           row.appendChild(cut);
