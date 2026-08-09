@@ -1163,7 +1163,10 @@ lifted into a standalone tool later.
     "parked" note above it).** "When I mark something as a story, it takes it
     out of the normal list." So the unfiltered home is the UNFILED pile, an
     inbox, and a lit chip is that folder. Two consequences to keep in mind:
-    - **The chips carry a dim TOTAL and a red ANSWERED badge.** Without them
+    - **The chips carry ONE number, the red ANSWERED badge** (the dim total
+      came off at her ask: "I don't need to see the number on the categories,
+      it should just say the number of chats I haven't read yet — just the
+      one in red"). Without them
       a filed chat would simply vanish and a reply inside a folder would be
       silent — the same reason the hidden bar names what is behind it. The
       badge counts CHATS that came back and she hasn't opened (Sophie's ask:
@@ -1196,6 +1199,34 @@ lifted into a standalone tool later.
   - The home screen was tightened vertically in the same pass (rule, h1,
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".
+- **STARRED CHATS (Aug 2026, Sophie: "chats that were important, that have
+  work I want to refer back to, but I'm not actively using them" — Imprint
+  and the original Anthony Chene chat were the two she named).** `starred` on
+  the registry doc (`POST /api/chatfeed/star {chat, starred}`), a plain
+  boolean like `archived`: it is a permanent judgement about the chat, not a
+  state anything newer should clear.
+  - The mark is a **filled red star at the FRONT of the row**, in the
+    bookmark's `--chg` ("a red star would be nice to match the bookmark
+    colour"). Drawn only when starred — an empty slot on every row would be a
+    column of nothing down the list.
+  - **The ★ chip leads the category row and REACHES INTO THE ARCHIVE.** These
+    are chats she has finished with and put away, so a star filter that
+    stopped at `archived` would miss most of them. It replaces the list
+    rather than narrowing it, and clears the category filter.
+  - Setting it is the **star button in the thread header**, beside Archive and
+    Hide — the only place the star is a control.
+- **A BOOKMARK CARRIES A NOTE (Aug 2026, Sophie: "when I bookmark messages I
+  want to leave a note or title the message so I remember what it was and why
+  I bookmarked it").** `bookmarkNote` on the MESSAGE doc;
+  `POST /bookmark {id, note}` with no `bookmarked` edits only the note, so
+  writing one can never quietly un-save the message.
+  - The box **appears the moment she bookmarks and is focused** — the reason
+    is in her head then and nowhere else — and it **stays under the message
+    for as long as it is bookmarked**, so editing it later needs no gesture to
+    discover. Un-bookmarking takes it away. Saves on tap-away.
+  - In the BOOKMARKS view her note **leads the row** above the snippet: the
+    snippet is the message's first line, which is rarely why she kept it.
+  - Tests: `node scripts/test-chats-star-bookmark.js`.
 - **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
   running to-do list").** `/chats` home view `todo`, entered by the word **To
   do** beside Archive; Firestore `forge-chat-todos`;
@@ -1220,16 +1251,24 @@ lifted into a standalone tool later.
   account picker lives in the thread, and a tappable-looking number there
   would just be a mis-tap on the way into a chat. An untagged chat renders a
   blank of the same width so the names still line up.
-- **THE MASTHEAD ROW WRAPS — measure before adding anything to it.** Title +
-  bookmark + To do + Archive + the account switch, inside the pill's 56px
-  reserve, leave the title ~78px on a 375px phone: enough for "Chats", not
-  for "Archive" (102) or "Bookmarks" (147). Adding TO DO squeezed the serif
-  title under the bookmark, for real. `.hrow` is now `flex-wrap:wrap` with
-  the controls grouped in `.hctl`, so the group drops to its own line only in
-  the views whose title is long; `#htitle` is 2.0em (the thread's h1 stays
-  2.3em). Verified across 375/390/430 × all five titles — no clipping, no
-  same-row overlap, controls ending at x=315 on a 390px screen against the
-  pill's 324.
+- **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
+  archive create extra rows because they are longer than the word chats —
+  can you just make it overlap with the other things").** Title + bookmark +
+  To do + Archive + the account switch, inside the pill's 56px reserve, leave
+  the title ~78px on a 375px phone: enough for "Chats", not for "Archive"
+  (102) or "Bookmarks" (147). It briefly WRAPPED to fit, which cost her a row
+  of screen in those views. Now `#htitle` takes **no width at all**
+  (`width:0`, `overflow:visible`) so the control group never moves and the row
+  is always one line; a long title simply draws across it. Two details make
+  that liveable and are load-bearing: the title has `z-index:2` so the word
+  she is reading wins, and `pointer-events:none` so every tap falls through
+  to the buttons underneath. Verified across 375/390/430 × all five titles.
+- **The view words never rename themselves (Aug 2026, Sophie: "when I press
+  hidden or archive it just takes me back to chats rather than having a
+  button that says chats and a back arrow — get rid of that button").** TO DO
+  and ARCHIVE each stay put and toggle: tap to go, tap again to come back.
+  The lit state and the big serif title say which view she is in. The old
+  "← Chats" relabel is gone.
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to

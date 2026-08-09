@@ -721,6 +721,26 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
+// I want to refer back to, but I'm not actively using them". Imprint and the
+// original Anthony Chene chat were the two she named. A starred chat wears a
+// red star at the front of its row and can be pulled up from anywhere with the
+// ★ chip, INCLUDING out of the archive — which is where these end up, and the
+// whole reason the chip ignores `archived`.
+//
+// A plain boolean, like `archived`: it is a permanent judgement about the chat,
+// not a state that anything newer should clear.
+router.post('/star', async (req, res) => {
+  try {
+    const { chat, starred } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = starred !== false;
+    await regRef(chat)
+      .set({ starred: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, starred: on });
+  } catch (err) { fail(res, err); }
+});
+
 // File chats under a category — the chips where the LIST/TILES toggle used to
 // be (Aug 2026, Sophie: "category tags, the first two I can think of are
 // stories and tech"). One field on the registry doc, so it rides the cached
@@ -846,12 +866,24 @@ router.post('/working', async (req, res) => {
 // Bookmark a message Sophie wants to find later — a flag on the message doc
 // itself, so it rides along on GET / (every message already spreads its data)
 // and any chat can read which of its messages she flagged.
+// `note` = why she kept it (Aug 2026, Sophie: "when I bookmark messages I want
+// to leave a note or title the message so I remember what it was and why I
+// bookmarked it"). A bookmark's snippet is the message's first line, which is
+// rarely the reason she saved it. Sent on its own it only edits the note, so
+// typing one never toggles the bookmark off.
 router.post('/bookmark', async (req, res) => {
   try {
-    const { id, bookmarked } = req.body || {};
+    const { id, bookmarked, note } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
-    await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
-    res.json({ ok: true, bookmarked: !!bookmarked });
+    const patch = {};
+    if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
+    if (note !== undefined) {
+      const t = String(note).trim().slice(0, 300);
+      patch.bookmarkNote = t || admin.firestore.FieldValue.delete();
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
+    res.json({ ok: true, bookmarked: patch.bookmarked, note: note });
   } catch (err) { fail(res, err); }
 });
 
@@ -886,6 +918,7 @@ router.get('/bookmarks', async (req, res) => {
         from: m.from || '',
         created: m.created || m.postedAt || '',
         snippet: line.slice(0, 220),
+        note: m.bookmarkNote || '',
         kind: bookmarkKind(m.text),
       };
     }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
