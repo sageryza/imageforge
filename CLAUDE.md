@@ -1184,6 +1184,34 @@ lifted into a standalone tool later.
   are the review surface. Build a page only when Sophie asks for one or the
   set genuinely can't be reviewed as tiles. And when you DO build one, lay the
   images out in **rows of TWO**, never one full-width image per row.
+- **THE CUT PICKER IS THE REQUIRED SURFACE for "pick spans of a recording"
+  jobs (Aug 2026, Sophie — after FOUR chats each hand-rolled their own
+  span-picking page in one week and each re-shipped the same bugs).** Any
+  time Sophie needs to pick which parts of a long recording to keep — an
+  audiobook passage, an interview, one of her own recordings — start from
+  **`public/picker-shell.html`** and `window.__cutPicker` (`/picker.js`).
+  Do NOT hand-roll word-tap handlers, per-pick audio, reorder tiles, or
+  pick-saving again. What it gives you, debugged once:
+  - tap-a-first-word / tap-a-last-word span picking (her own preferred
+    model, from the "grasshopper" chat's page), tap a pick to remove, undo;
+  - **a ▶ on every pick that plays THAT EXACT SPAN within seconds** — the
+    server cuts it once via `GET /api/search/clip-span?src=&t0=&t1=`
+    (editor.js's transcoder + the search-clips immutable cache), so she
+    never waits for a chat to wake up and render before hearing a cut;
+  - pick tiles with ▲▼ reorder, a note box per pick, play-them-in-order
+    (the "TIME — move the sentences around" page's model);
+  - live saving as **ONE verdict field per pick** (`<id>:p<key>` →
+    `{a, z, o, note}`) — never one big JSON string, which silently
+    truncates at the verdict route's 2000-char cap around 15 picks;
+  - the autoscroll-pill tap contract via `/compare.js`, so the
+    tap-starts-the-scroll bug cannot ship again.
+  Read her picks back with `GET /api/chatfeed/verdict?chat=&sheet=` (keys
+  `<id>:p*`, empty = removed, order by `o`, indexes into YOUR words array),
+  then cut the real audio with the precise cutter — preview clips are
+  previews. Word times can be segment-interpolated; with no times the
+  picker still picks, just without play buttons. Seed your suggested spans
+  via `seed:`, shade already-used words via `shade:`. Tests:
+  `node scripts/test-cut-picker.js`.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.

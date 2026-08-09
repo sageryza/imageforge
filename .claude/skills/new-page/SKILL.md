@@ -47,6 +47,22 @@ halves and carries the rules as comments. Post with
 - Test: `node scripts/test-compare-shell.js` (drives real taps against the
   real injected pill in headless Chromium; skips without one).
 
+### Picking spans of a recording? Use the SHARED CUT PICKER — never hand-roll
+
+If the page's job is "Sophie picks which parts of a long recording to keep"
+(an audiobook passage, an interview, her own recording), **copy
+`public/picker-shell.html`** instead and call `window.__cutPicker`
+(`/picker.js`). Four chats each hand-rolled this in one week (Aug 2026) and
+each re-shipped the same bugs; the shared picker is now the required surface.
+It gives you word-tap span picking, a ▶ per pick that plays the exact span in
+seconds (server-cut once via `GET /api/search/clip-span`), ▲▼ reorder +
+per-pick notes + play-all, and live saving as one verdict field per pick
+(a single JSON field truncates at 2000 chars ≈ 15 picks — that's why).
+Read picks back: `GET /api/chatfeed/verdict?chat=&sheet=` → keys `<id>:p*`,
+`{a, z, o, note}`, empty = removed. Cut the real audio with the precise
+cutter (editor.js) — the ▶ clips are previews. Test:
+`node scripts/test-cut-picker.js`.
+
 ## The autoscroll pill contract (BOTH page kinds — this is where pages break)
 
 The pill is ONE shared implementation, `scripts/pill.py`, injected by the
