@@ -809,29 +809,29 @@ router.post('/status', async (req, res) => {
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
-// Sophie's own note on a chat — HER reminder of where things stand, written
-// in the app and read by her ("research it, karaoke, tabs"). Not direction
-// for the chat, and NOT a place for a chat to write: one filed a 464-char
-// changelog here the day the field shipped, which is exactly the failure a
-// documented rule can't prevent. So the route REFUSES anything that doesn't
-// come from the app (`app:true`, sent by chats.html's editor) — the field is
-// hers by construction, not by good behaviour.
+// The note on a chat — the where-things-stand line, mostly hers ("research
+// it, karaoke, tabs") but NOT locked to her (Aug 2026: "it's not that I
+// wanted the field to myself, I just wanted them to know how to write
+// notes"). A chat may write one; the rule is STYLE, not permission —
+// telegraphic fragments, her length, never a changelog.
 //
-// 200 chars is the cap because her own notes run 26-66: telegraphic
-// fragments with commas. A field that can hold a paragraph invites one.
+// This route briefly required `app:true` and 403'd everything else. That was
+// the wrong fix twice over: it wasn't what she asked for, and it broke HER
+// OWN editing — the app keeps a cached page for days, so the copy on her
+// phone didn't send the new flag and her save came back refused. Never gate
+// a field the app already writes on a flag only a NEW build sends.
+//
+// 200 chars is the cap because her own notes run 26-66. A field that can
+// hold a paragraph invites one.
 router.post('/chatnote', async (req, res) => {
   try {
-    const { chat, note, app } = req.body || {};
+    const { chat, note } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    if (!app) {
-      return res.status(403).json({
-        error: 'this note belongs to Sophie — it is written in the app, not by a chat. '
-          + 'Post your own status card to /api/chatfeed/status instead.',
-      });
-    }
     const target = await followMoves(chat);
     const del = admin.firestore.FieldValue.delete();
-    const val = String(note || '').trim().slice(0, 200);
+    // collapse newlines too — the row is one line, and a pasted multi-line
+    // note rendered as a wall of text at the top of the thread
+    const val = String(note || '').replace(/\s+/g, ' ').trim().slice(0, 200);
     await regRef(target).set({
       sophieNote: val || del,
       sophieNoteAt: val ? new Date().toISOString() : del,

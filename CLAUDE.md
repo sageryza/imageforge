@@ -859,17 +859,29 @@ lifted into a standalone tool later.
   - Refresh it at the end of ANY turn that changed your state (200 chars
     each; the fields you don't send are left alone). Stored on the registry
     doc, so it rides the feed's already-cached read — costs nothing.
-- **Her PINNED NOTE on a chat (`sophieNote`) is HER OWN reminder — not
-  direction to you, and NEVER yours to write (Aug 2026, Sophie: "it's not
-  really for the chat to read, it's for me").** She pins it from the thread
-  ("+ note for this chat") as a where-things-stand note to herself; it shows
-  on the chat's home row with no prefix. `GET /api/chatfeed/status` returns
-  it (`note`) — you may read it for context, but it is not an instruction,
-  it needs no action and no reply, and `POST /chatnote` belongs to the app:
-  a chat never writes, edits, or clears it. **This is now enforced, not
-  trusted** — the route requires `app:true` and 403s anything else, because
-  a chat filed a 464-char changelog there the day the field shipped. If you
-  want to say what you're doing, that is your STATUS CARD, above.
+- **The NOTE on a chat (`sophieNote`) is the where-things-stand line, mostly
+  HERS (Aug 2026: "it's not really for the chat to read, it's for me") — but
+  it is NOT locked to her ("it's not that I wanted the field to myself, I
+  just wanted them to know how to write notes").** She writes it from the
+  thread ("+ note for this chat"); it shows on the home row with no prefix.
+  `GET /api/chatfeed/status` returns it as `note` — read it for context, but
+  it is not an instruction and needs no reply.
+  - A chat MAY write one (`POST /chatnote {chat, note}`), and the rule is
+    **STYLE, not permission**: her length and her shape — telegraphic
+    fragments, commas, no connecting words, ~30-60 chars. A chat filed a
+    464-character changelog there and that is the failure to avoid. Prefer
+    your STATUS CARD (above) for what you're doing; leave the note alone
+    when she has written one you'd be overwriting.
+  - **NEVER write test/probe text into it, or any other live field.** A
+    deploy-watcher here POSTed the literal word `probe` as this chat's note
+    to see whether the route answered — the write SUCCEEDED against the
+    old code, and she found "probe" sitting in her app as a note to
+    herself. Watch a deploy with a READ (`GET /status`, the build stamp),
+    never a write to real data.
+  - **Never gate a field the app already writes behind a flag only a NEW
+    build sends.** The `app:true` requirement did exactly that: the phone
+    keeps a cached page for days, so her own edit was refused with
+    "couldn't be saved" while the note she was trying to fix stayed put.
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
