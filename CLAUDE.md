@@ -2751,7 +2751,12 @@ lifted into a standalone tool later.
   Playground's **pyramid** (low·low·medium, a picture of how many — an actual
   tiered pyramid, two cells along the base for the lows and the filled top
   tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
-  that says nothing about how many).
+  that says nothing about how many). **It is EQUILATERAL** — Sophie asked, and
+  she was right that it wasn't: base 18 on y 19.8 with the apex 9√3 = 15.59
+  above it puts all three angles at 60.00°, where the first version was
+  isosceles at 53°/63° (base 17, height 17) and read noticeably narrow. The
+  horizontal cut sits at half the HEIGHT, which lands its ends exactly halfway
+  along each side, so the filled cap is the same triangle at half scale.
 - **Custom-icon sizing has TWO halves, and both were wrong for a long time —
   the numbers below are MEASURED off a real 3x screenshot, never reasoned
   about (Aug 2026, third attempt; the first two failed by reasoning).**

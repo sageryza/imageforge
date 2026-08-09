@@ -215,7 +215,13 @@
     // about how many. An actual pyramid drawn in the Lucide idiom instead,
     // tiered: two cells along the base for the two low draws, the filled top
     // tier for the better one, so the button is a picture of what the tap does.
-    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20.5 20.5H3.5Z"/><path d="M7.75 12h8.5"/><path d="M12 12v8.5"/><path d="M12 3.5 16.25 12H7.75Z" fill="currentColor"/></svg>',
+    // EQUILATERAL (Aug 2026, Sophie asked) — base 18 wide on y 19.8, apex at
+    // 9√3 = 15.59 above it, so all three angles are 60.00°. The first version
+    // was isosceles at 53°/63°: base 17 with a height of 17, which reads
+    // noticeably narrow beside a real triangle. The horizontal cut sits at
+    // half the HEIGHT (y 12.01), which puts its ends exactly halfway along
+    // each side — so the filled cap is the same triangle at half scale.
+    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
   document.getElementById('lowmed').innerHTML = ICONS.pyramid;
