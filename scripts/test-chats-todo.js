@@ -9,7 +9,9 @@
 //   3. typing something adds it optimistically and POSTs it,
 //   4. the ✓ crosses an item off (PATCH done:true) and it sinks below the
 //      open ones, struck through,
-//   5. the word turns into "← Chats" and takes her back,
+//   5. the word STAYS "To do" and tapping it again is the way back (the
+//      "← Chats" relabel came off at Sophie's ask — each word is its own
+//      toggle now),
 //   6. the Add button clears the autoscroll pill's corner and is really
 //      tappable (this view hides the tool row and the search bar, so the add
 //      row rides up into the pill's band — the button landed under it).
@@ -154,9 +156,10 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   });
   if (addHit !== 'ok') fail('the Add button is covered (the autoscroll pill?)');
 
-  // 5. the word is the way back out
+  // 5. the word is the way back out, and it never renames itself
   const label = await page.$eval('#todolink', (n) => n.textContent.trim());
-  if (label !== '← Chats') fail('the To do word did not become the way out: ' + label);
+  if (label !== 'To do') fail('the To do word renamed itself: ' + label);
+  if (!(await page.$eval('#todolink', (n) => n.classList.contains('on')))) fail('the To do word is not lit while she is in the list');
   await page.click('#todolink');
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats', null, { timeout: 4000 })
     .catch(() => fail('could not get back to the chats list'));

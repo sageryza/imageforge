@@ -26,15 +26,17 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    the bookmark and the account switch, inside the pill's 56px reserve.
    Measured across 375/390/430 — at 2.3em the word "Chats" needed 88px and only
    had 70 on the narrowest phone, so it ran under the bookmark. */
-#htitle{font-size:2.0em; margin:0; flex:0 1 auto; min-width:max-content;}
-/* The masthead row WRAPS instead of clipping. Four controls plus the pill's
-   56px reserve leave the title about 78px on a 375px phone — enough for
-   "Chats" and "To do", not for "Archive" (102) or "Bookmarks" (147). Rather
-   than shrink the title into an ellipsis or let it run under the bookmark
-   (which is exactly what it did once TO DO joined the row), the control group
-   drops to its own line in the views whose title is long, and stays inline in
-   the ones where it fits. Measured at 375/390/430 across all five titles. */
-.hrow{display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-right:56px;}
+/* The masthead OVERLAPS instead of wrapping (Aug 2026, Sophie: "hidden and
+   archive create extra rows because they are longer than the word chats —
+   can you just make it overlap with the other things"). The title takes NO
+   width (`width:0`, overflow visible), so the control group never moves and
+   the row is always one line; a long title simply draws across it.
+   Two details that make that liveable: the title is on TOP (z-index) so the
+   word she is reading wins, and `pointer-events:none` lets every tap fall
+   through to the buttons underneath it. */
+#htitle{font-size:2.0em; margin:0; flex:0 0 auto; width:0; min-width:0;
+  overflow:visible; white-space:nowrap; position:relative; z-index:2; pointer-events:none;}
+.hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
 .hctl{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
@@ -202,7 +204,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
-.openrow{display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px;}
+.openrow{display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px; flex-wrap:wrap;}
 /* Bookmark toggle — a message you want to find later. Same glyph as the stories
    bookmark; circular icon button (the sanctioned exception to no-pills). */
 .bmk{background:none; border:none; color:var(--ink2); cursor:pointer; padding:6px; border-radius:6px; display:inline-flex; align-items:center; -webkit-tap-highlight-color:transparent;}
@@ -258,6 +260,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* list view */
 .clist{display:flex; flex-direction:column;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.bmknote{flex:1 0 100%; margin:8px 0 0;}
+.bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
+  color:var(--ink); background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:7px 10px;}
+.bmknote input:focus{outline:none; border-color:var(--chg);}
+.sr-note{font-family:'EBGaramond',Georgia,serif; font-size:16px; color:var(--ink); font-weight:600; margin:2px 0 3px;}
+.starbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.starbtn svg{width:16px; height:16px; display:block;}
+.starbtn.on{color:var(--chg);}
+.cr-star{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
+.cr-star svg{width:14px; height:14px; display:block;}
+.catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
+.catchip.starchip svg{width:14px; height:14px; display:block;}
+.catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .cr-acct{flex:none; width:11px; font-family:-apple-system,sans-serif; font-size:11px;
   color:var(--ink2); text-align:center; font-variant-numeric:tabular-nums;}
 .crow .cr-ic{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
@@ -964,6 +980,12 @@ function statusLinesHtml(name, fallback){
 // number here would just be a mis-tap on the way into a chat. 130 of ~190 chats
 // carry the tag; an untagged one shows a blank of the same width so the names
 // still line up.
+// The star sits on the LEFT, beside the account digit (her spec). Drawn only
+// when the chat is starred — an empty slot on every other row would be a
+// column of nothing running down the whole list.
+function starHtml(name){
+  return chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '';
+}
 function acctHtml(name){
   var a=(chats[name]&&chats[name].account)||'';
   return '<span class="cr-acct">'+(a==='1'||a==='2'? a : '')+'</span>';
@@ -1007,16 +1029,16 @@ function paintHomeChrome(){
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do' : 'Chats';
   t.classList.toggle('hid', inHidden);
+  // The words never change and never disappear (Aug 2026, Sophie: "when I
+  // press hidden or archive it just takes me back to chats rather than having
+  // a button that says chats and a back arrow — get rid of that button"). Each
+  // word is its own toggle: tap it to go there, tap it again to come back. The
+  // lit state and the big title say which one she is in.
   var tl=document.getElementById('todolink');
-  tl.textContent = homeView==='todo' ? '← Chats' : 'To do';
   tl.classList.toggle('on', homeView==='todo');
-  // the archive word is the way out of ARCHIVE only — from the to-do list the
-  // way out is the to-do word itself, or there would be two "← Chats"
-  document.getElementById('archlink').style.display = homeView==='todo' ? 'none' : '';
   var a=document.getElementById('archlink');
-  a.textContent = homeView==='live' ? 'Archive' : '← Chats';
-  a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
-  a.classList.toggle('on', homeView!=='live');
+  a.setAttribute('aria-label', homeView==='archive' ? 'Back to all chats' : 'Show archived chats');
+  a.classList.toggle('on', homeView==='archive');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
@@ -1068,9 +1090,12 @@ function paintBookmarks(el){
   }
   items.forEach(function(m){
     var b=document.createElement('button'); b.className='sres';
+    // Her note LEADS the row when she wrote one — a bookmark's snippet is the
+    // message's first line, which is rarely why she kept it.
     b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>'
+      +(m.note?'<div class="sr-note">'+esc(m.note)+'</div>':'')
       +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
     b.onclick=function(){ openChat(m.chat, false, m.id); };
     el.appendChild(b);
@@ -1233,7 +1258,7 @@ function stRow(name, list, last, snip, live){
   row.dataset.chat=name;
   // The deliberate status card wins here too; `snip` (the auto TLDR / draft
   // line) is only the fallback for a chat that hasn't filed one.
-  row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
+  row.innerHTML=acctHtml(name)+starHtml(name)+iconHtml(name,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
     +statusLinesHtml(name, snip)+'</span>'
     +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
@@ -1362,7 +1387,15 @@ function lastOf(g,name){ var l=g[name]||[]; return l.length? l[l.length-1] : nul
 // three chats one morning and read as the rest having vanished.
 var CAT_SEEDS=['stories','tech'];
 var cat='';
+// The ★ chip is a filter like a category, with one deliberate difference: it
+// IGNORES `archived`. Starred chats are the ones she has finished with and put
+// away, so a star pile that stopped at the archive would miss most of them.
+var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// STARRED — "important, work I want to refer back to, but I'm not actively
+// using them" (Sophie, Aug 2026). A permanent judgement about the chat, so a
+// plain boolean like `archived`, never a self-clearing stamp.
+function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -1384,6 +1417,11 @@ function catLabel(c){ return c.charAt(0).toUpperCase()+c.slice(1); }
 // same reason the hidden bar names what is behind it.
 function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
+  var sb=document.createElement('button');
+  sb.className='catchip starchip'+(starOnly?' on':'');
+  sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
+  sb.onclick=function(){ starOnly=!starOnly; if(starOnly) cat=''; renderHome(); window.scrollTo(0,0); };
+  row.appendChild(sb);
   catList().forEach(function(c){
     var mine=Object.keys(chats).filter(function(n){
       return chatCat(n)===c && !(chats[n]&&chats[n].archived);
@@ -1397,11 +1435,13 @@ function paintCatRow(g){
     }).length;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
-    b.innerHTML=esc(catLabel(c))+(mine.length?' <span class="cc-n">'+mine.length+'</span>':'')
-      +(fresh?'<span class="cc-new">'+fresh+'</span>':'');
-    b.setAttribute('aria-label', catLabel(c)+' — '+mine.length+' chats'
-      +(fresh? ', '+fresh+' answered you' : ''));
-    b.onclick=function(){ cat=(cat===c?'':c); renderHome(); window.scrollTo(0,0); };
+    // ONE number, and it is the red one (Aug 2026, Sophie: "I don't need to
+    // see the number on the categories — it should just say the number of
+    // chats I haven't read yet, just the one in red"). The dim total was mine,
+    // not hers, and two numbers on a chip read as noise.
+    b.innerHTML=esc(catLabel(c))+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
+    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   });
 }
@@ -1506,6 +1546,18 @@ function renderHome(){
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
   var all=sortedChatNames(g);
+  // ★ is its own pile and it reaches INTO the archive: these are chats she has
+  // finished with and put away, so stopping at `archived` would hide most of
+  // them. It replaces the whole list rather than narrowing it.
+  if(starOnly){
+    var st=all.filter(chatStar);
+    paintHomeChrome(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!st.length){ el.innerHTML='<div class="state">No starred chats yet — open one and tap the star in its header.</div>'; return; }
+    renderList(el,g,st);
+    return;
+  }
   var live=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
   // FILING MOVES A CHAT (Aug 2026, Sophie: "when I mark something as a story,
   // it takes it out of the normal list"). So the unfiltered home is the
@@ -1614,6 +1666,10 @@ var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=
 // the two read as one control in two states, the way ✓ does.
 var HD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
 var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+// A filled star in the bookmark's red — "a red star would be nice to match the
+// bookmark colour" (Sophie). Filled, not outlined: on a row it is a state, not
+// a control; the one place it IS a control is the thread header's button.
+var STAR='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 2.6 2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>';
 var CHEV='<svg class="hb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
 function paintMarks(name,last,container){
@@ -1720,7 +1776,7 @@ function renderList(el,g,names){
     // spot it had, on the right. Marking a chat answered still lives on the
     // STATUS view, which is the screen that has a "Marked done" section to
     // feed — pulling it from there too would leave that section dead.
-    row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
+    row.innerHTML=acctHtml(name)+starHtml(name)+iconHtml(name,'cr-ic')
       +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
       +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
@@ -1795,9 +1851,12 @@ function renderMsg(m){
   };
   // Bottom row: bookmark (left) + Open-in-Claude (right).
   var ob=document.createElement('div'); ob.className='openrow';
-  ob.appendChild(bookmarkBtn(m));
+  ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
+  // an already-bookmarked message carries its note box from the first paint,
+  // so what she wrote is visible and editable without hunting for a gesture
+  if(m.bookmarked) ob.appendChild(mkBmkNote(m));
   row.appendChild(ob);
   return row;
 }
@@ -1805,17 +1864,59 @@ function renderMsg(m){
 // Bookmark toggle for a message — saves server-side (a field on the message
 // doc) so a flagged message stays marked across reloads and any chat can find
 // what Sophie marked to keep.
-function bookmarkBtn(m){
+// The bookmark, plus the NOTE that says why she kept it (Aug 2026, Sophie: "I
+// want to leave a note or title the message so I remember what it was and why
+// I bookmarked it"). Bookmarking opens the box straight away — the reason is
+// in her head at that moment and nowhere else — and the box stays reachable
+// afterwards by tapping the lit bookmark. It saves on tap-away, the same
+// contract as everything else she dictates into.
+// The note box lives under a bookmarked message for as long as it IS
+// bookmarked — appearing when she saves it and going when she un-saves it.
+// That is why there is no separate "edit the note" gesture: the box is simply
+// there, holding whatever she wrote, and it saves on tap-away like everything
+// else she dictates into.
+function mkBmkNote(m){
+  var box=document.createElement('div'); box.className='bmknote';
+  var inp=document.createElement('input'); inp.type='text';
+  inp.placeholder='Why keep this?'; inp.value=m.bookmarkNote||'';
+  inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+  function save(){
+    var v=(inp.value||'').trim().slice(0,300);
+    if(v===(m.bookmarkNote||'')) return;
+    var prev=m.bookmarkNote||''; m.bookmarkNote=v;
+    // note ONLY — sending it without `bookmarked` means saving a note can
+    // never quietly un-save the message
+    api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ m.bookmarkNote=prev; inp.value=prev; toast('Couldn’t save that'); });
+  }
+  inp.onblur=save;
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } };
+  inp.onclick=function(e){ e.stopPropagation(); };
+  box.appendChild(inp);
+  return box;
+}
+function bookmarkBtn(m, row){
   var BM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
   var b=document.createElement('button'); b.className='bmk'+(m.bookmarked?' on':'');
   b.setAttribute('aria-label','Bookmark this message'); b.innerHTML=BM;
   b.onclick=function(e){
     e.stopPropagation();
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
+    var open=row.querySelector('.bmknote');
+    if(nv && !open){
+      var box=mkBmkNote(m);
+      row.querySelector('.openrow').appendChild(box);
+      box.querySelector('input').focus();   // the reason is in her head NOW
+    } else if(!nv && open) open.remove();
     api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, bookmarked:nv})})
       .then(function(r){return r.json()})
       .then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){ m.bookmarked=!nv; b.classList.toggle('on',!nv); toast('Couldn’t save that'); });
+      .catch(function(){
+        m.bookmarked=!nv; b.classList.toggle('on',!nv);
+        var bx=row.querySelector('.bmknote'); if(bx&&!m.bookmarked) bx.remove();
+        toast('Couldn’t save that');
+      });
   };
   return b;
 }
@@ -1898,6 +1999,27 @@ function openChat(name, keepScroll, focusId, noFetch){
       goHome();
     };
     head.querySelector('.no').appendChild(hb);
+  })();
+  // STAR — keep this one for later. It is the only place the star is a
+  // control; everywhere else it is just the red mark on the row.
+  (function(){
+    var sb=document.createElement('button');
+    sb.className='starbtn'+(chatStar(name)?' on':'');
+    sb.innerHTML=STAR;
+    function paintS(){
+      sb.classList.toggle('on', chatStar(name));
+      sb.setAttribute('aria-label', chatStar(name)?'Unstar this chat':'Star this chat');
+    }
+    paintS();
+    sb.onclick=function(){
+      var was=chatStar(name);
+      chats[name]=chats[name]||{}; chats[name].starred=!was;
+      paintS(); toast(was?'Unstarred':'Starred');
+      api('/api/chatfeed/star',{method:'POST',body:JSON.stringify({chat:name, starred:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].starred=was; paintS(); toast('Couldn’t save that'); });
+    };
+    head.querySelector('.no').appendChild(sb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
