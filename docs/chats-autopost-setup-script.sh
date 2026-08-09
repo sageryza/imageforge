@@ -165,6 +165,24 @@ with open(path, encoding='utf-8') as f:
                 continue
             raw_since.append(ln)
             continue
+        # A message Sophie sends WHILE a turn is running is not a user record —
+        # the harness queues it and stores it as a `queued_command` attachment,
+        # so the role-based walk above never sees it and those messages were
+        # silently missing from the feed (verified live 2026-08-09: three in one
+        # session). Its `source_uuid` is her original message's id, which keeps
+        # the de-dupe key stable. commandMode/origin separate her real typing
+        # from queued task-notifications, which are machinery, not her.
+        if r.get('type') == 'attachment':
+            a = r.get('attachment') or {}
+            if (a.get('type') == 'queued_command'
+                    and a.get('commandMode') == 'prompt'
+                    and (a.get('origin') or {}).get('kind') == 'human'):
+                mine = her_words(r, a.get('prompt') or '')
+                uid = a.get('source_uuid') or r.get('uuid')
+                if mine and uid:
+                    users.append({'uuid': uid, 'text': mine,
+                                  'at': a.get('timestamp') or r.get('timestamp') or ''})
+            continue
         if role != 'assistant':
             continue
         raw_since.append(ln)
