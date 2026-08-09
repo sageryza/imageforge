@@ -95,7 +95,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   }));
   if (card.need.indexOf('Pick a palette') < 0) fail('list row missing the need line: ' + JSON.stringify(card));
   if (card.doing.indexOf('Drawing the six') < 0) fail('list row missing the doing line');
-  if (card.note.indexOf('keep it loose') < 0 || card.note.indexOf('you:') !== 0) fail('list row missing her note: ' + card.note);
+  // Her note is her own reminder — shown bare, no "you:" prefix (Aug 2026)
+  if (card.note.indexOf('keep it loose') < 0) fail('list row missing her note: ' + card.note);
+  if (card.note.indexOf('you:') === 0) fail('note grew a "you:" prefix again: ' + card.note);
   const bare = await page.$eval('#grid .crow[data-chat="chat-bare"]', (n) =>
     !!(n.querySelector('.cr-need') || n.querySelector('.cr-snip') || n.querySelector('.cr-note')));
   if (bare) fail('card-less chat grew status lines on the list');
