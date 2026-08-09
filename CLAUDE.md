@@ -674,6 +674,17 @@ lifted into a standalone tool later.
   `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
   it at init. A RUNNING session is different: it has network, and curl is the
   right tool for self-healing there (see the self-heal note below).
+- **THE ROSE WORKING TINT IS SWITCHED OFF (Aug 2026, Sophie: "the pink tint
+  on things that were working just never worked, so from now on I'll just
+  hide them if they're working and then they'll come back when they're
+  done").** Her workaround beats the feature and needs no hook at all: hide
+  the chat, and the `hiddenAt` stamp pops it back out the moment it answers.
+  **It is CSS-ONLY** — the `.crow.live`/`.tile.live` block in chats.html is
+  commented out, and `chatWorking()`, the `workingAt` registry mark,
+  `paintLive()` and the class still going onto the rows are all untouched,
+  because STATUS's "Working right now" section reads the same signal. Bring
+  the tint back by un-commenting that block; read the note below FIRST, since
+  the reason it "never worked" for her is upstream of the CSS.
 - **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
   usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
@@ -1093,6 +1104,13 @@ lifted into a standalone tool later.
       the no-pills rule, not a pill. A filed chat no longer shows its working
       tint on the home; STATUS still shows it, and STATUS is deliberately NOT
       category-filtered.
+    - **NOTHING in the app writes `answeredAt` anymore (Aug 2026, Sophie:
+      "the checkmark next to chats — I don't actually know what it does,
+      take it off").** The ✓ came off the STATUS rows too, so MARKED DONE
+      only ever shows chats stamped before that day. `chatDone` /
+      `toggleMark` / `mkCheck` and `POST /answered` all still exist — the ✓
+      is one `appendChild` away in `renderList` or `stRow`. **Ask her before
+      putting it back**; hiding is what she reaches for now.
     - **The home rows carry NO ✓ and NO letter icon (Aug 2026, Sophie).** A
       chat with no picture used to get a box with a giant italic initial —
       gone; 18 of ~190 chats have a real picture and those still show, so
