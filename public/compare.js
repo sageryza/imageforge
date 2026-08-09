@@ -90,8 +90,7 @@
 
   document.addEventListener('click', function (e) {
     // .duo joined the list (Aug 2026): a labeled side-by-side's images are as
-    // tappable as any — the icon-swaps chat shipped images the lightbox
-    // ignored because their markup matched neither selector.
+    // tappable as any other picture on a Compare page.
     var img = e.target && e.target.closest ? e.target.closest('img.zoom, .imgrow img, .duo img') : null;
     if (!img) return;
     e.preventDefault();
