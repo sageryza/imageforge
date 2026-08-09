@@ -57,9 +57,13 @@
   .muted{color:var(--soft); font-size:13px}
   .tiny{font-size:12px; color:var(--soft)}
 
-  /* help card (icon-first tool → a "?" that explains the icons) */
+  /* help card (icon-first tool → a "?" that explains the icons). It is a
+     POPUP, not a block in the flow: v1 sat in the page and pushed every tile
+     down when opened, which moved the thing she was looking at (Sophie). */
+  #helpwrap{position:fixed; inset:0; z-index:60; display:flex; align-items:center;
+    justify-content:center; padding:20px; background:rgba(28,25,21,.45)}
   #helpcard{background:var(--cream); border:1px solid var(--goldline); border-radius:6px;
-    padding:12px 14px; margin-bottom:12px; font-size:14px}
+    padding:14px 16px; font-size:14px; max-width:420px; max-height:80vh; overflow:auto}
   #helpcard b{font-weight:600}
   #helpcard .r{display:flex; gap:9px; align-items:flex-start; margin:7px 0}
   #helpcard .r svg{flex:none; margin-top:3px; color:var(--goldline)}
@@ -104,7 +108,9 @@
     color:var(--bad); font-size:10px; font-weight:600; text-align:center; padding:2px}
 
   /* lightbox — the careful path: look closely, then decide */
-  #lb{position:fixed; inset:0; background:rgba(28,25,21,.94); z-index:40; display:flex;
+  /* Above the injected pill (z-index 9) AND above the help popup, so a tap
+     meant for the picture can never reach a control underneath it. */
+  #lb{position:fixed; inset:0; background:rgba(28,25,21,.94); z-index:80; display:flex;
     flex-direction:column}
   #lb img{flex:1; min-height:0; width:100%; object-fit:contain}
   #lbbar{padding:10px 12px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px;
@@ -143,7 +149,7 @@
 </header>
 
 <div class="wrap">
-  <div id="helpcard" hidden>
+  <div id="helpwrap" hidden><div id="helpcard">
     <div class="r">
       <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>
       <div><b>Scissors</b> — this photo is a <b>new stone</b>. Everything after it belongs to that stone until the next pair of scissors. Gold means it's already the start of one.</div>
@@ -160,7 +166,7 @@
       <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
       <div><b>Own / Grid</b> — how that stone gets sold. Its own listing, or a numbered slot in a pick-your-own grid. Nothing here writes to Etsy.</div>
     </div>
-  </div>
+  </div></div>
 
   <div id="home">
     <p class="muted" id="homehint">Pick an album. Tap the scissors on any photo that's a new stone — everything between two pairs of scissors is one stone, which is one listing.</p>
@@ -361,6 +367,10 @@
   function closeLb(){
     $('lb').hidden = true; lbIndex = -1;
     document.body.style.overflow = '';
+    // Stop again on the way out. The closing tap usually lands on a <button>,
+    // which the shared exempt list skips, so the page's tap handler won't stop
+    // it — and the scroll would resume the moment the overlay went away.
+    if (window.__scrollStop) window.__scrollStop();
     // Locking scroll does NOT stop window.scrollBy, so anything that restarted
     // the autoscroll under the overlay would have moved the page — restore the
     // exact position she opened it from (house rule).
@@ -383,12 +393,20 @@
       return void touched();
     }
     if (t.closest && t.closest('#help')) {
-      var h = $('helpcard'); h.hidden = !h.hidden; return;
+      var h = $('helpwrap'); h.hidden = !h.hidden; return;
     }
+    if (t.closest && t.closest('#helpwrap')) { $('helpwrap').hidden = true; return; }
     if (t.closest && t.closest('#back')) return void window.__navBack();
   });
 
   $('lbclose').addEventListener('click', closeLb);
+  // Tapping OFF the picture closes it — she tried that first and nothing
+  // happened, so the tap fell through to whatever it landed on (Sophie).
+  // Anything inside the button bar is excluded so the two choices still work.
+  $('lb').addEventListener('click', function(e){
+    if (e.target.closest('#lbbar') || e.target.closest('#lbclose')) return;
+    closeLb();
+  });
   $('lbcut').addEventListener('click', function(){
     if (lbIndex < 0) return;
     toggleCut(cur.photos[lbIndex].id);
