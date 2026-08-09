@@ -1029,13 +1029,22 @@ lifted into a standalone tool later.
   - **The bar only exists when something is hidden**, and open/closed is
     session-only, always starting CLOSED — persisting "open" would quietly
     undo the feature overnight. Hiding a chat never opens the pile.
+  - **While the pile is OPEN the masthead says "Hidden" in the same red**
+    (`#htitle.hid`) — the pile is a place, so the screen has to name the one
+    she is in. It slightly overlaps the status icon at that width; Sophie
+    said that is fine for now.
   - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
     that is the one screen where her parked pile should surface; the home
     list is exactly where she doesn't want it. The bar's "· N new" is the
     other signal, so a hidden chat that replied is never invisible.
-  - The red is a FIXED `#b3443f` in both themes (`--chg` goes salmon in dark
-    and this has to read as red), and the row's ⊖ is that red UNLIT too — it
-    belongs to the bar, so it reads as its colour before it is ever tapped.
+  - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
+    red outline over a light red tint, at Sophie's ask ("the same style as
+    the red outline version of the categories"). It shipped for one evening
+    as a solid red block; matching the chip means the two can never drift
+    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
+    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
+    colour before it is ever tapped, and its circle background is cream in
+    both themes so a fixed red is right there.
     Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
     stub feed; skips without playwright).
   **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
@@ -1065,6 +1074,13 @@ lifted into a standalone tool later.
     untappable without it. Measured live at 390px wide: the icons end at
     x≈306, the pill starts at x≈324. Tests:
     `node scripts/test-chats-categories.js`.
+  - **PARKED at her ask (Aug 2026): a chat filed into a category does NOT
+    leave the main list.** She raised it and then said to wait — "I'm not
+    sure how that will work". Filing is a label, not a move; don't build the
+    disappearing behaviour without her saying so.
+  - The home screen was tightened vertically in the same pass (rule, h1,
+    tool row, search row and `.crow` padding, 46px row icon → 40px) — her
+    ask, "a little bit too much space between the different lines".
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to

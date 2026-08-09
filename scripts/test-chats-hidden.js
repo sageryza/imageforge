@@ -9,7 +9,8 @@
 //   3. the bar appears, counts what is behind it, and names anything unread
 //      there ("Hidden 1 · 1 new") — a hidden chat that replied must not be
 //      invisible everywhere,
-//   4. tapping the bar opens the pile in place; tapping it again closes it,
+//   4. tapping the bar opens the pile in place and the masthead says HIDDEN;
+//      tapping it again closes it and the masthead goes back to Chats,
 //   5. the ⊕ inside the pile puts the chat back and the bar goes away,
 //   6. a chat the registry already has hidden starts out of the list, and
 //      leads Status's WAITING ON YOU (hiding took the ! flag's place),
@@ -132,10 +133,15 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   await page.click('.hidebar');
   await page.waitForSelector('#grid .hidelist .crow[data-chat="chat-b"]', { timeout: 4000 })
     .catch(() => fail('tapping the bar never showed the hidden chats'));
+  // the masthead names the place she is in, in the bar's red
+  const openTitle = await page.$eval('#htitle', (n) => n.textContent.trim() + '|' + n.classList.contains('hid'));
+  if (openTitle !== 'Hidden|true') fail('masthead did not say HIDDEN in red: ' + openTitle);
   const pile = await page.$$eval('#grid .hidelist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
   if (pile.length !== 2 || pile.indexOf('chat-parked') < 0) fail('pile contents wrong: ' + pile.join(','));
   await page.click('.hidebar');
   if (await page.$('#grid .hidelist')) fail('tapping the bar again did not close the pile');
+  const shutTitle = await page.$eval('#htitle', (n) => n.textContent.trim() + '|' + n.classList.contains('hid'));
+  if (shutTitle !== 'Chats|false') fail('masthead stayed on HIDDEN after closing: ' + shutTitle);
 
   // 5. the ⊕ inside the pile puts a chat back, and with nothing left hidden
   //    the bar disappears entirely
@@ -164,7 +170,9 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   //    Back to the live list first — Status's rows are .clist .crow as well,
   //    so asserting from there would pass on the wrong element.
   await page.click('#stlink');
-  await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats');
+  // the pile is still open from step 5, so the masthead reads HIDDEN here —
+  // wait for "not Status" rather than for the word Chats
+  await page.waitForFunction(() => document.getElementById('htitle').textContent !== 'Status');
   if (!(await page.$('.hidebar'))) fail('chat-parked was not hidden going into the pop-out check');
   answered = true;
   await page.click('#refresh');
