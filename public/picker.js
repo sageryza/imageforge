@@ -118,6 +118,11 @@
     undo: '<svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>',
     scissors: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>' +
       '<path d="M20 4 8.12 15.88"/><path d="M14.47 14.48 20 20"/><path d="M8.12 8.12 12 12"/></svg>',
+    // the Episode Editor's own glyph (SF `waveform` on the tile; Lucide's
+    // audio-waveform here) — a button that opens another tool wears THAT
+    // tool's icon (design rule)
+    waveform: '<svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/>' +
+      '<path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
   };
 
   /* ── one shared audio element per page ───────────────────────────── */
@@ -251,9 +256,9 @@
         savedEl.classList.add('on');
         setTimeout(function () { savedEl.classList.remove('on'); }, 1200);
       },
-      flash: function (msg) {
+      flash: function (msg, ms) {
         statusEl.textContent = msg;
-        setTimeout(paint, 2600);
+        setTimeout(paint, ms || 2600);
       },
     };
     instances.push(inst);
@@ -291,11 +296,21 @@
     var statusEl = document.createElement('span');
     var undoBtn = mkBtn(I.undo, 'put the last removed pick back');
     var playAllBtn = hasTimes ? mkBtn(I.play + ' play them in order', 'play every pick, in her order') : null;
+    // Send-to-Episode-Editor (Aug 2026, Sophie's ask): every pick, in her
+    // order, becomes a snippet card in ONE NEW episode — narration, gaps and
+    // the real render live there. Needs word times for the anchors, and an
+    // INDEXED recording id (the editor's transcript view and cutter key off
+    // it); a raw-URL source hides the button and the chat does the hand-off
+    // itself when asked.
+    var sendable = hasTimes && !/^https?:/.test(String(opts.src || ''));
+    var sendBtn = sendable ? mkBtn(I.waveform + ' to the Episode Editor',
+      'send every pick, in order, to a new episode') : null;
     var savedEl = document.createElement('span');
     savedEl.className = 'ckp-saved';
     savedEl.textContent = 'saved';
     bar.appendChild(cnt); bar.appendChild(statusEl);
     if (playAllBtn) bar.appendChild(playAllBtn);
+    if (sendBtn) bar.appendChild(sendBtn);
     bar.appendChild(undoBtn); bar.appendChild(savedEl);
 
     var list = document.createElement('div');
@@ -382,6 +397,31 @@
     if (playAllBtn) playAllBtn.addEventListener('click', function () {
       stopAudio();
       playSeq(inst.picks.map(function (p) { return { inst: inst, pick: p }; }));
+    });
+    if (sendBtn) sendBtn.addEventListener('click', function () {
+      if (!inst.picks.length || sendBtn.disabled) return;
+      sendBtn.disabled = true;
+      var title = (opts.editorTitle || document.title || 'From the cut picker').slice(0, 120);
+      fetch('/api/search/picks-to-editor', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          src: opts.src, title: title,
+          picks: inst.picks.map(function (p) {
+            return { text: textOf(p), timeSec: opts.words[p.a].t, note: p.note || undefined };
+          }),
+        }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        sendBtn.disabled = false;
+        if (d && d.ok) {
+          inst.flash('in the Episode Editor as “' + d.title + '” — ' +
+            d.count + (d.count === 1 ? ' card' : ' cards'), 12000);
+        } else {
+          inst.flash((d && d.error) ? d.error : 'could not send — try again');
+        }
+      }).catch(function () {
+        sendBtn.disabled = false;
+        inst.flash('could not send — try again');
+      });
     });
 
     function textOf(p) {

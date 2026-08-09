@@ -74,7 +74,7 @@ __PILL__
   };
   var inst = window.__cutPicker({
     mount:'#p1', id:'s1', chat:'t', sheet:'sh',
-    src:'https://storage.googleapis.com/x/rec.webm',
+    src:'vid123',                     // indexed-style id → send button shows
     words:${WORDS},
     seed:[{a:0,z:1}],
   });
@@ -171,7 +171,22 @@ __PILL__
           ok(az && inst.picks.length===before2+1 && halves.length===2,
              'the scissors splits a pick into two back-to-back picks');
 
-          fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+          // 11. send to the Episode Editor — every pick, in her order
+          posts.length = 0;
+          var send = [].slice.call(document.querySelectorAll('#p1 .ckp-bar button'))
+            .filter(function(b){ return b.title.indexOf('episode')>=0; })[0];
+          if (send) send.click();
+          setTimeout(function(){
+            var sp = posts.filter(function(x){ return x.u.indexOf('/api/search/picks-to-editor')===0; })[0];
+            var good = sp && sp.b.src==='vid123' && Array.isArray(sp.b.picks)
+              && sp.b.picks.length===inst.picks.length
+              && sp.b.picks.every(function(p,i){
+                   return p.text && typeof p.timeSec==='number'
+                     && p.timeSec===inst.picks[i].a;   // words are 1s apart at t=i
+                 });
+            ok(!!good, 'send posts every pick, in order, with text and anchor');
+            fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+          }, 300);
         }, 400);
       }, 900);
     }, 900);
@@ -199,6 +214,10 @@ const server = http.createServer((req, res) => {
     // GET → empty sheet (so seeds apply); POST → accept
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(req.method === 'GET' ? '{"ok":true,"items":{},"texts":{}}' : '{"ok":true}');
+  }
+  if (route === '/api/search/picks-to-editor') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end('{"ok":true,"id":"ep1","title":"pending","count":3}');
   }
   if (route === '/api/search/clip-span') {
     // record the asked span for the page to assert on, answer ready at once
