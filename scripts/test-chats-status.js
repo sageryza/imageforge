@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const reg = {
       'chat-wait': { lastSeen: MSGS[0].created },
-      'chat-hide': { lastSeen: MSGS[1].created, hidden: true },
+      'chat-hide': { lastSeen: MSGS[1].created, hiddenAt: iso(T0) },
       'chat-done': { lastSeen: MSGS[2].created, answeredAt: iso(T0) },
       'chat-work': { lastSeen: MSGS[3].created, workingAt: iso(T0) },
     };
