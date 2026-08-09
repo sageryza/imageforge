@@ -1183,7 +1183,12 @@ lifted into a standalone tool later.
   - Open items first, newest at the top of each group (the server sorts). A
     crossed-off item stays, struck through, until she deletes it.
   - The view hides the tool row and the search bar — both act on CHATS, and
-    neither does anything to this list.
+    neither does anything to this list. **That is exactly why the add row
+    carries `padding-right:56px`**: with those two gone it rides up into the
+    pill's y 14–192 band, and the Add button shipped underneath the pill,
+    untappable (Sophie caught it the first time she used the list). The test
+    hit-tests the button with `elementFromPoint` rather than comparing
+    numbers, so a future layout change cannot quietly re-bury it.
 - **The chat rows carry their ACCOUNT as a bare 1 or 2 at the front** (Aug
   2026, Sophie, in the slot the letter icon vacated). Not a button: the
   account picker lives in the thread, and a tappable-looking number there

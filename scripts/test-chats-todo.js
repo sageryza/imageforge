@@ -9,7 +9,10 @@
 //   3. typing something adds it optimistically and POSTs it,
 //   4. the ✓ crosses an item off (PATCH done:true) and it sinks below the
 //      open ones, struck through,
-//   5. the word turns into "← Chats" and takes her back.
+//   5. the word turns into "← Chats" and takes her back,
+//   6. the Add button clears the autoscroll pill's corner and is really
+//      tappable (this view hides the tool row and the search bar, so the add
+//      row rides up into the pill's band — the button landed under it).
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-todo.js
 //
@@ -141,6 +144,15 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     fail('a crossed-off item did not sink below the open ones: ' + JSON.stringify(after));
   }
   if (!patches.some((p) => p.body.done === true)) fail('PATCH /todo/:id never fired');
+
+  // 6. the Add button is not under the pill — asserted by hit-testing, not by
+  //    arithmetic, so a future layout change cannot quietly re-bury it
+  const addHit = await page.evaluate(() => {
+    const b = document.querySelector('.todoadd .tbtn').getBoundingClientRect();
+    const el = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+    return el && el.closest && el.closest('.todoadd .tbtn') ? 'ok' : 'blocked';
+  });
+  if (addHit !== 'ok') fail('the Add button is covered (the autoscroll pill?)');
 
   // 5. the word is the way back out
   const label = await page.$eval('#todolink', (n) => n.textContent.trim());
