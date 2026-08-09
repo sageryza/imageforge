@@ -2757,6 +2757,12 @@ lifted into a standalone tool later.
   isosceles at 53°/63° (base 17, height 17) and read noticeably narrow. The
   horizontal cut sits at half the HEIGHT, which lands its ends exactly halfway
   along each side, so the filled cap is the same triangle at half scale.
+  **It is a REUSABLE named glyph: `SetPyramid`** (Sophie's name, Aug 2026) —
+  `ios/ImageForge/Assets.xcassets/SetPyramid.imageset/setpyramid.svg`, so
+  `ToolGlyph.asset("SetPyramid", size:)` draws it anywhere in the app, and it
+  is in `normalize-glyphs.py`'s `GLYPHS` list like the other three. TWO copies
+  exist by necessity (64-box bundled for iOS, 24-box inline in
+  `promptlab.html` for the web) and each names the other — move both.
 - **Custom-icon sizing has TWO halves, and both were wrong for a long time —
   the numbers below are MEASURED off a real 3x screenshot, never reasoned
   about (Aug 2026, third attempt; the first two failed by reasoning).**

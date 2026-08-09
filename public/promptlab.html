@@ -221,6 +221,10 @@
     // noticeably narrow beside a real triangle. The horizontal cut sits at
     // half the HEIGHT (y 12.01), which puts its ends exactly halfway along
     // each side — so the filled cap is the same triangle at half scale.
+    // REUSABLE as **SetPyramid** — the same glyph is bundled at
+    // ios/…/Assets.xcassets/SetPyramid.imageset/setpyramid.svg (64 box, the
+    // house stroke, normalized by scripts/normalize-glyphs.py). Move BOTH if
+    // this ever changes; this 24-box copy is the web one.
     pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;

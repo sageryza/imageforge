@@ -28,7 +28,8 @@ Usage:  python3 scripts/normalize-glyphs.py [--check] [--target 0.90]
 import argparse, os, re, subprocess, sys, tempfile
 
 ART = os.path.join(os.path.dirname(__file__), "..", "ios", "ImageForge", "Assets.xcassets")
-GLYPHS = ["Playground/playground", "Quilt/quilt", "TestTube/testtube"]
+GLYPHS = ["Playground/playground", "Quilt/quilt", "TestTube/testtube",
+          "SetPyramid/setpyramid"]
 CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell"
 PX = 640          # render size; viewBox units are PX/64
 TOL = 0.005       # a glyph within half a percent of target is fine
