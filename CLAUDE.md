@@ -1199,6 +1199,17 @@ lifted into a standalone tool later.
   - The home screen was tightened vertically in the same pass (rule, h1,
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".
+- **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
+  arrow next to it that brings me all the way down to the bottom").** `.jumps`
+  holds the back-to-top arrow and its new twin. Three rules worth keeping:
+  each shows only when it has somewhere to go (>400px that way), so nothing
+  floats over a list that already fits; both call `__scrollStop` FIRST, or the
+  autoscroll keeps creeping after the jump arrives; and they hide under
+  `body.selecting`, where the filing bar owns the bottom of the screen. The
+  page height changes on every rebuild, so `window.__jumpsRecheck()` is called
+  after renderHome and openChat. Tests: `node scripts/test-chats-jumps.js`
+  (which starts the real autoscroll and proves it moved before asserting that
+  the jump stopped it).
 - **STARRED CHATS (Aug 2026, Sophie: "chats that were important, that have
   work I want to refer back to, but I'm not actively using them" — Imprint
   and the original Anthony Chene chat were the two she named).** `starred` on
