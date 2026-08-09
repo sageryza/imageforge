@@ -689,6 +689,20 @@ lifted into a standalone tool later.
   with a 3h cap and a backstop (a reply newer than the mark means the turn
   finished, even if the clear was lost). The app's own reply box stamps the
   same mark server-side, so that path works with no hook at all.
+  **The mark arrives on polls that carry ZERO new messages — repaint anyway
+  (Aug 2026, the "it doesn't work" bug).** `workingAt` lives on the REGISTRY,
+  so a turn starting or ending changes no message doc, and chats.html's
+  `poll()` early-returned on an empty message list BEFORE repainting — the
+  fresh mark was stored in memory and never painted, so the tint effectively
+  only ever showed on a first-ever load or a manual Refresh tap (a normal app
+  open paints from the localStorage cache and then polls). The whole server
+  loop was verified working the entire time; when this tint "doesn't fire",
+  check the CLIENT repaint path before the hook or the server. `poll()` now
+  calls `paintLive()` whenever fresh `chats` arrive, before that return
+  (paintLive only toggles classes on tiles already on screen — no rebuild, no
+  scroll jump, safe every poll). Test:
+  `node scripts/test-chats-working-tint.js` (headless Chromium against a stub
+  feed; skips without playwright).
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old
@@ -960,8 +974,22 @@ lifted into a standalone tool later.
   ANY header control reaching that corner is untappable — the rename pencil was,
   for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
   reservation on any new header row, and never place a control in that corner.
-  **The home screen has THREE views, switched from the title row: chats,
-  ARCHIVE, and BOOKMARKS (Aug 2026, Sophie).** `homeView` in chats.html. The
+  **The home screen has FOUR views, switched from the title row: chats,
+  ARCHIVE, BOOKMARKS, and STATUS (Aug 2026, Sophie).** `homeView` in
+  chats.html. **STATUS** (the list-todo icon left of the bookmark) is the
+  prioritized front door Sophie asked for ("this is what's done, this is
+  what's waiting on you, these are the assets that were just delivered"):
+  WAITING ON YOU (her flagged come-back-later chats first, then finished
+  replies she hasn't opened, each row carrying the same ✓/! triage buttons as
+  the home list so she can mark answered without opening anything), WORKING
+  RIGHT NOW (the pink-tint chats), JUST DELIVERED (the newest images across
+  every chat — `GET /api/gallery/assets/recent`, server-side filename dedupe
+  + 480px thumbs, a thumb opens that chat's Assets tab — plus the newest
+  Compare pages via `GET /api/chatfeed/pages-recent`), and MARKED DONE (what
+  she has checked off). The chat sections derive from the registry + feed the
+  page already holds, so they paint instantly; only the delivered strip
+  fetches (cached 60s). Tests: `node scripts/test-chats-status.js` (headless
+  Chromium against a stub feed; skips without playwright). The
   serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
   the word beside it becomes the way OUT, reading "← Chats" — a bold word
   alone was "really confusing" and left her with no visible exit. The
@@ -976,6 +1004,83 @@ lifted into a standalone tool later.
   message first. The **App/Web account toggle is a plain on/off switch** on the
   home header's title line (`.swi`, off = account 1, on = account 2, no text —
   the toast names the account).
+  **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
+  chat she wants to come back to but not look at right now gets hidden: it
+  leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
+  · 1 new"). Tapping the bar opens the pile in place; tapping it again puts it
+  away. Details that are load-bearing:
+  - **`hiddenAt` is a self-clearing STAMP on the registry doc**
+    (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
+    `answeredAt`: a chat stays hidden only while nothing newer has arrived,
+    so **the moment it answers her it pops back out into the list**. That is
+    Sophie's explicit call — v1 shipped this as a permanent boolean and she
+    asked for the opposite the same day. Hiding means "not now"; **Archive**
+    is the one that means "away for good". The retired v1 field `hidden:true`
+    is still HONOURED on read (or the chats she hid that day would all have
+    reappeared at once) and cleared by any write.
+  - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
+    the ! with it") — hiding *is* the come-back-to-this mark now, and it does
+    what the flag only implied. `flaggedAt` still exists server-side
+    (`POST /flag`) but nothing in the page writes or reads it; **don't
+    re-add a flag button without asking her.**
+  - The glyph is a **circle-minus** on a visible chat and a **circle-plus**
+    (lit red) on a hidden one — take it off the list / put it back.
+    Deliberately NOT an eye: she rejected the eye by name.
+  - **The bar only exists when something is hidden**, and open/closed is
+    session-only, always starting CLOSED — persisting "open" would quietly
+    undo the feature overnight. Hiding a chat never opens the pile.
+  - **While the pile is OPEN the masthead says "Hidden" in the same red**
+    (`#htitle.hid`) — the pile is a place, so the screen has to name the one
+    she is in. It slightly overlaps the status icon at that width; Sophie
+    said that is fine for now.
+  - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
+    that is the one screen where her parked pile should surface; the home
+    list is exactly where she doesn't want it. The bar's "· N new" is the
+    other signal, so a hidden chat that replied is never invisible.
+  - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
+    red outline over a light red tint, at Sophie's ask ("the same style as
+    the red outline version of the categories"). It shipped for one evening
+    as a solid red block; matching the chip means the two can never drift
+    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
+    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
+    colour before it is ever tapped, and its circle background is cream in
+    both themes so a fixed red is right there.
+    Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
+    stub feed; skips without playwright).
+  **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
+  2026, Sophie).** She stopped using the tile view, so the toggle was two taps
+  of nothing: the home is always the list (`view='list'` — **`renderTiles()`
+  is deliberately kept**, her ask, flip the const to bring it back), and the
+  tool row now holds category chips plus two icon-only buttons (select,
+  refresh — refresh lost its word to save the space).
+  - **A category is one `category` field on the registry doc**
+    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
+    `track` in another costume, and it takes a whole selection in one call
+    because filing is a bulk gesture. Empty category clears it.
+  - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
+    exist before anything is filed; anything typed into select mode's New…
+    box joins them. Tapping the LIT chip clears back to everything — the Dump
+    sort page's convention, and why there is no "All" chip.
+  - **The filter is session-only, never persisted.** A sticky filter would
+    show her three chats one morning and read as the rest having vanished.
+  - **A chip narrows the WHOLE screen, hidden pile included** — a bar
+    counting chats from a category she isn't looking at is noise.
+  - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
+    fixed bottom bar files the lot, filing exits the mode. While it is on a
+    tap anywhere on a row PICKS instead of opening, and the row's own ⊖/✓ are
+    hidden — two checkmarks on one row means the wrong one is the easy tap.
+  - **The tool row reserves the pill's corner** (`padding-right:64px`): it
+    sits inside the pill's y 14–192 band, so its right-hand icons would be
+    untappable without it. Measured live at 390px wide: the icons end at
+    x≈306, the pill starts at x≈324. Tests:
+    `node scripts/test-chats-categories.js`.
+  - **PARKED at her ask (Aug 2026): a chat filed into a category does NOT
+    leave the main list.** She raised it and then said to wait — "I'm not
+    sure how that will work". Filing is a label, not a move; don't build the
+    disappearing behaviour without her saying so.
+  - The home screen was tightened vertically in the same pass (rule, h1,
+    tool row, search row and `.crow` padding, 46px row icon → 40px) — her
+    ask, "a little bit too much space between the different lines".
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
@@ -1095,6 +1200,34 @@ lifted into a standalone tool later.
   are the review surface. Build a page only when Sophie asks for one or the
   set genuinely can't be reviewed as tiles. And when you DO build one, lay the
   images out in **rows of TWO**, never one full-width image per row.
+- **THE CUT PICKER IS THE REQUIRED SURFACE for "pick spans of a recording"
+  jobs (Aug 2026, Sophie — after FOUR chats each hand-rolled their own
+  span-picking page in one week and each re-shipped the same bugs).** Any
+  time Sophie needs to pick which parts of a long recording to keep — an
+  audiobook passage, an interview, one of her own recordings — start from
+  **`public/picker-shell.html`** and `window.__cutPicker` (`/picker.js`).
+  Do NOT hand-roll word-tap handlers, per-pick audio, reorder tiles, or
+  pick-saving again. What it gives you, debugged once:
+  - tap-a-first-word / tap-a-last-word span picking (her own preferred
+    model, from the "grasshopper" chat's page), tap a pick to remove, undo;
+  - **a ▶ on every pick that plays THAT EXACT SPAN within seconds** — the
+    server cuts it once via `GET /api/search/clip-span?src=&t0=&t1=`
+    (editor.js's transcoder + the search-clips immutable cache), so she
+    never waits for a chat to wake up and render before hearing a cut;
+  - pick tiles with ▲▼ reorder, a note box per pick, play-them-in-order
+    (the "TIME — move the sentences around" page's model);
+  - live saving as **ONE verdict field per pick** (`<id>:p<key>` →
+    `{a, z, o, note}`) — never one big JSON string, which silently
+    truncates at the verdict route's 2000-char cap around 15 picks;
+  - the autoscroll-pill tap contract via `/compare.js`, so the
+    tap-starts-the-scroll bug cannot ship again.
+  Read her picks back with `GET /api/chatfeed/verdict?chat=&sheet=` (keys
+  `<id>:p*`, empty = removed, order by `o`, indexes into YOUR words array),
+  then cut the real audio with the precise cutter — preview clips are
+  previews. Word times can be segment-interpolated; with no times the
+  picker still picks, just without play buttons. Seed your suggested spans
+  via `seed:`, shade already-used words via `shade:`. Tests:
+  `node scripts/test-cut-picker.js`.
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.

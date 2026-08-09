@@ -27,6 +27,8 @@
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
 //                                  (self-contained HTML shown in the chat's Compare tab)
 //   GET  /api/chatfeed/pages?chat=name → list a chat's Compare pages
+//   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
+//                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
 
 const express = require('express');
@@ -684,6 +686,54 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
+// the chat list. A hidden chat leaves the list so she can see the rest, and
+// waits behind the bar.
+//
+// It is a STAMP (`hiddenAt`), the same shape as answeredAt: a chat stays
+// hidden only while nothing newer has arrived, so **the moment it answers her
+// it pops back out into the list** (Sophie's call, Aug 2026 — v1 shipped this
+// as a permanent boolean and she asked for the opposite). Hiding is "not now",
+// not "away for good"; that's what Archive is for.
+//
+// `hidden:true` is the retired v1 boolean. Reads still honour it (a chat she
+// hid that day must not silently reappear), writes always clear it.
+router.post('/hide', async (req, res) => {
+  try {
+    const { chat, hidden } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = hidden !== false;
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = new Date().toISOString();
+    await regRef(chat)
+      .set({ hiddenAt: on ? stamp : del, hidden: del }, { merge: true });
+    res.json({ ok: true, hiddenAt: on ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// File chats under a category — the chips where the LIST/TILES toggle used to
+// be (Aug 2026, Sophie: "category tags, the first two I can think of are
+// stories and tech"). One field on the registry doc, so it rides the cached
+// read the icons already use, exactly like the Dump's `track`.
+//
+// Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
+// gesture there: she picks several rows in select mode and taps a category
+// once. An empty category clears the field back to unfiled.
+router.post('/category', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const category = String(body.category || '').trim().slice(0, 40);
+    const val = category || admin.firestore.FieldValue.delete();
+    const batch = db().batch();
+    names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
 // Turn started (v8, Aug 2026) — the hook pings this from UserPromptSubmit the
 // moment Sophie messages a session, and the app tints that chat pink until the
 // reply lands. This tiny route exists because the obvious signal doesn't work:
@@ -792,6 +842,20 @@ router.get('/pages', async (req, res) => {
     const pages = snap.docs
       .map((d) => ({ id: d.id, title: d.data().title, created: d.data().created }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ pages });
+  } catch (err) { fail(res, err); }
+});
+
+// The Status view's "new pages" strip — the newest Compare pages across every
+// chat, one query. Single-field orderBy on `created`, so no composite index.
+router.get('/pages-recent', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 8));
+    const snap = await db().collection(PAGES).orderBy('created', 'desc').limit(limit).get();
+    const pages = snap.docs.map((d) => ({
+      id: d.id, title: d.data().title, chat: d.data().chat || '', created: d.data().created,
+    }));
     res.json({ pages });
   } catch (err) { fail(res, err); }
 });
