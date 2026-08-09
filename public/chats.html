@@ -15,9 +15,14 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 /* In a thread the back button is FIXED over the top-left (x 15-59) and the
    autoscroll pill over the top-right, so this row has to start clear of one
    and stop short of the other. Archive rides at its right end. */
-#thread header .no{display:flex; align-items:center; gap:10px; min-height:34px;
-  padding-left:48px; padding-right:56px;}
-#thread header .no .crumb{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* The "chats" crumb that used to lead this row is GONE (Aug 2026, Sophie:
+   "each chat says chats at the top right above the title, that seems
+   redundant") — the back chevron on its left already says where you are, and
+   the row's own buttons say what you can do. `justify-content:flex-end` is
+   what the crumb's `flex:1` used to do: hold Archive / Hide / ★ against the
+   right, clear of the pill's 56px reserve. */
+#thread header .no{display:flex; align-items:center; justify-content:flex-end; gap:10px;
+  min-height:34px; padding-left:48px; padding-right:56px;}
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* While the hidden pile is open the masthead says HIDDEN, in the bar's red —
    the pile is a place, so the screen has to say which one you are in. */
@@ -194,6 +199,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    Archive / Bookmarks, so bolding the exit as well said the same thing twice.
    It still darkens to full ink — it is the live control on that row. */
 .archlink.on{color:var(--ink);}
+/* the two decisions in the thread header, tinted so the pair reads at a
+   glance: ARCHIVE = away for good (green), HIDE = not now (red). Fixed
+   colours — like the row's ⊖ and ✓, they sit on cream in both themes. */
+.archlink.arch-g{color:#5d7a5a;}
+.archlink.hide-r{color:#b3443f;}
 /* Bookmark LEFT of the word (Sophie), and ALWAYS filled red — it reads as the
    bookmark thing at a glance. Which view is open is the title's job, so this
    one doesn't change with state. Selector is `.bmk.hdrbmk`, not `.hdrbmk`: the
@@ -597,8 +607,8 @@ body.ontop > .float{display:none !important;}
       <!-- The "deck factory · every chat, one place" eyebrow is GONE (Aug 2026,
            Sophie: "that's wasted real estate"). It told her where she was on a
            screen she opens from a tile that already says Chats. The thread
-           header keeps its own .no row — that one carries the crumb, Archive
-           and Hide, so it is doing work. -->
+           header keeps its own .no row — that one carries Archive, Hide and
+           the star, so it is doing work. -->
       <div class="hrow">
         <h1 id="htitle">Chats</h1>
         <div class="hctl">
@@ -2007,7 +2017,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
-  head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
+  head.innerHTML='<div class="no"></div>'
     +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
@@ -2033,7 +2043,10 @@ function openChat(name, keepScroll, focusId, noFetch){
         })
         .catch(function(){ toast('Couldn\u2019t save that'); });
     }
-    ab.className='archlink';   // reads as text, still a button
+    // "away for good" in green, "not now" in red — a glance at the pair says
+    // which is the bigger decision (Sophie's ask). Tinted TEXT, not filled
+    // buttons: these are words on a crumb row, not controls to shout.
+    ab.className='archlink arch-g';   // reads as text, still a button
     head.querySelector('.no').appendChild(ab);
   })();
   // HIDE, beside Archive — the two are the same family of decision ("not now"
@@ -2043,7 +2056,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     var list0=(groups()[name])||[];
     var last0=list0.length? list0[list0.length-1] : null;
     var hb=document.createElement('button');
-    hb.className='archlink';
+    hb.className='archlink hide-r';
     hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
     hb.onclick=function(){
       toggleHide(name,last0);          // optimistic + POSTs + repaints the home

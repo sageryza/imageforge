@@ -1108,7 +1108,13 @@ lifted into a standalone tool later.
     newest message reads as not-hidden.
   - **The thread header carries HIDE beside Archive** — "not now" next to
     "away for good", so a chat she has just read can be parked without going
-    back to the list for its ⊖.
+    back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
+    2026, her ask) so the pair says which is the bigger decision at a glance;
+    fixed colours, like the row's ⊖ and ✓, since that row is cream in both
+    themes. The **"chats" crumb that used to lead the row is gone** ("that
+    seems redundant") — the back chevron already says where she is — and
+    `#thread header .no` is `justify-content:flex-end`, which is what the
+    crumb's `flex:1` used to do for the buttons' position.
   - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
