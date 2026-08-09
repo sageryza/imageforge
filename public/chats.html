@@ -2161,10 +2161,7 @@ function openChat(name, keepScroll, focusId, noFetch){
       if(done) return; done=true;
       var nv=ta.value.trim();
       if(nv===v){ paintNote(); return; }
-      // `app:true` is what the route checks — the note field is hers by
-      // construction, so a chat's POST is refused (one wrote a changelog
-      // into it the day it shipped).
-      api('/api/chatfeed/chatnote',{method:'POST',body:JSON.stringify({chat:name, note:nv, app:true})})
+      api('/api/chatfeed/chatnote',{method:'POST',body:JSON.stringify({chat:name, note:nv})})
         .then(function(r){return r.json()})
         .then(function(d){ if(!d.ok) throw 0;
           chats[name]=chats[name]||{}; chats[name].sophieNote=nv||null; saveCache();
