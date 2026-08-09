@@ -833,16 +833,12 @@ router.post('/working', async (req, res) => {
     const { chat, session } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
-    // Same as /reply: her turn starting means she has answered that chat, so
-    // park it until it comes back. This is the path for a message sent in the
-    // CLAUDE app rather than the Chats app's reply box — but only a hook new
-    // enough to send this ping can reach it (an environment running an older
-    // setup script never calls /working at all, which is the same reason the
-    // rose working tint never fired for her).
-    const now = new Date().toISOString();
-    await regRef(resolved).set(
-      { workingAt: now, hiddenAt: now, hidden: admin.firestore.FieldValue.delete() },
-      { merge: true });
+    // Marks the chat working; it does NOT park it (see POST /reply for why the
+    // two defeat each other). This is the path for a message sent in the CLAUDE
+    // app rather than the Chats app's reply box, and it only fires from a hook
+    // new enough to send the ping — an environment on an older setup script
+    // never calls /working at all, which is why the tint sat dead for weeks.
+    await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
@@ -1234,19 +1230,17 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
-    // She just gave that chat something to do, so mark it working AND park it
-    // in the hidden pile (Aug 2026, Sophie: "is there any way you could
-    // directly send a chat that I answered to the hidden section until it
-    // comes back?"). Parking is the SAME `hiddenAt` stamp she sets by hand, so
-    // the chat pops back out by itself the moment its reply lands — no new
-    // rule, no second field.
+    // She just gave that chat something to do, so mark it working — the app
+    // tints it rose until the reply lands and clears the mark.
     //
-    // The stamp is `postedAt`, not her message's `created`: `created` is her
-    // real send time and can run behind, and a stamp older than the newest
-    // message reads as not-hidden.
-    await regRef(doc.chat).set(
-      { workingAt: doc.postedAt, hiddenAt: doc.postedAt, hidden: admin.firestore.FieldValue.delete() },
-      { merge: true });
+    // It does NOT also park the chat in the hidden pile. That shipped for a few
+    // hours and Sophie retired it the moment the tint started working, because
+    // the two DEFEAT EACH OTHER: a chat that hides itself the instant she
+    // answers is off the list, so there is nothing left to tint — and knowing
+    // who is working was the whole point of parking it. Manual hiding (the ⊖)
+    // is untouched. To bring auto-parking back, add `hiddenAt: doc.postedAt`
+    // here and in POST /working — but only instead of the tint, not alongside.
+    await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });

@@ -349,27 +349,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
-/* WORKING — the rose tint on a mid-turn chat is OFF (Aug 2026, Sophie: "the
-   pink tint on things that were working just never worked, so from now on I'll
-   just hide them if they're working and then they'll come back when they're
-   done"). Her workaround is better than the feature: hiding needs no hook at
-   all, and a hidden chat pops back out the moment it answers.
-   Everything BEHIND the tint is untouched and still live — `chatWorking()`,
-   the `workingAt` registry mark, `paintLive()`'s repaint-on-empty-poll fix and
-   the class still being put on the rows — because the signal also feeds
-   STATUS's "Working right now" section. So this is CSS-only: un-comment the
-   block below to bring the tint back, and read the WORKING TINT note in
-   CLAUDE.md first (the hook installed in these environments predates the
-   turn-start ping, which is why it almost never fired for her).
+/* WORKING — the rose tint on a mid-turn chat is BACK ON (Aug 2026). It was
+   switched off for one evening because it "just never worked", and the reason
+   was never the CSS: the hook installed in her environments predated the
+   turn-start ping, so `workingAt` was never written and there was nothing to
+   tint. She re-pasted the current setup script on 2026-08-09 and a fresh
+   session now reports the v8 hook, so the signal is real for the first time.
+   If it ever looks dead again, check the HOOK before touching this block:
+   `grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh` in a NEW
+   session (0 = stale environment snapshot, re-paste the setup script). */
 .tile.live .t-cover{border-color:var(--rose); background:color-mix(in srgb, var(--rose) 15%, var(--paper));}
+/* Most tiles carry a cover image, which would hide a background tint — so the
+   wash goes OVER the picture; the marks and the unread dot sit above it. */
 .tile.live .t-cover::after{content:''; position:absolute; inset:0; background:var(--rose); opacity:.26; pointer-events:none;}
-.tile.live .t-new{box-shadow:0 0 0 2px var(--paper);}
+.tile.live .t-new{box-shadow:0 0 0 2px var(--paper);}   /* rose dot on a rose wash needs an edge */
 .tile.live .t-name{color:var(--rose);}
 .crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
 .crow.live .cr-ic{border-color:var(--rose);}
 .crow.live .cr-name{color:var(--rose);}
+/* The unread dot still means "you need to check this" and must stay readable
+   on a tinted row — rose on rose disappears without an edge. */
 .crow.live .cr-dot{box-shadow:0 0 0 2px var(--paper);}
-*/
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
