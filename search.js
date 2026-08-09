@@ -58,6 +58,9 @@
 //   GET  /reindex         → { job } — poll the rebuild
 //   POST /embed           → embed every passage for meaning search (~$0.05,
 //                           background job); GET /embed reports state+staleness
+//   GET  /clip-span?src=&t0=&t1=
+//                         → cut an EXACT span to mp3, once, and bank it —
+//                           what the shared cut picker's play buttons call
 //   GET  /audio/:id       → stream one memo's audio (range-capable)
 //   POST /to-editor       → { src, timeSec, text, episodeId?, episodeTitle? }
 //                           → a snippet card in the Episode Editor
@@ -65,6 +68,7 @@
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -814,6 +818,82 @@ router.get('/clip', async (req, res) => {
         clipJobs.delete(dest);
       } catch (err) {
         console.warn('search clip failed:', err.message);
+        clipJobs.set(dest, { error: err.message });
+      } finally {
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+      }
+    })();
+    res.json({ status: 'making' });
+  } catch (err) { fail(res, err); }
+});
+
+// ─── exact spans, for the shared cut picker ─────────────────────────
+// GET /clip-span?src=&t0=&t1= — cut EXACTLY [t0, t1] of a source to mp3,
+// once, and bank it. This is what makes a pick on a Compare-page cut picker
+// (public/picker.js) playable the moment she makes it, instead of waiting for
+// a chat to wake up and render — the whole pain the four cutting chats shared
+// (Aug 2026). Same background-job + immutable-cache pattern as /clip above;
+// same transcoder (editor.extractWindow) underneath.
+//
+// `src` is either an indexed interview id (resolved through the search index,
+// like /clip) or a full https URL — but URLs are restricted to this app's own
+// Storage hosts. This route runs ffmpeg against whatever it is handed, so an
+// open "fetch any URL" would let anyone burn the instance's CPU on arbitrary
+// files; every audio source a picker legitimately plays already lives in
+// Storage.
+const SPAN_MAX_SEC = 180;      // a pick is a passage, not a download service
+const spanOkUrl = (u) => {
+  try {
+    const p = new URL(u);
+    return p.protocol === 'https:' &&
+      (p.hostname === 'storage.googleapis.com' ||
+       p.hostname === 'firebasestorage.googleapis.com' ||
+       p.hostname.endsWith('.firebasestorage.app'));
+  } catch (_) { return false; }
+};
+
+router.get('/clip-span', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const src = String(req.query.src || '');
+    // hundredth-of-a-second grid so equal asks share one cache object
+    const t0 = Math.max(0, Math.round((Number(req.query.t0) || 0) * 100) / 100);
+    const t1 = Math.round((Number(req.query.t1) || 0) * 100) / 100;
+    if (!src) return res.status(400).json({ error: 'src required' });
+    if (!(t1 > t0)) return res.status(400).json({ error: 't1 must be after t0' });
+    if (t1 - t0 > SPAN_MAX_SEC) return res.status(400).json({ error: `span is capped at ${SPAN_MAX_SEC}s` });
+
+    let url = src;
+    if (!/^https?:\/\//.test(src)) {
+      const index = await loadIndex();
+      const source = index.sources[`v:${src}`];
+      if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+      url = source.audioUrl;
+    } else if (!spanOkUrl(src)) {
+      return res.status(400).json({ error: 'src must be a Storage url or an indexed recording id' });
+    }
+
+    const key = crypto.createHash('sha1').update(url).digest('hex').slice(0, 12);
+    const dest = `${CLIP_PREFIX}span-${key}-${Math.round(t0 * 100)}-${Math.round(t1 * 100)}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(503).json({ error: 'Storage unavailable' });
+    const [exists] = await b.file(dest).exists();
+    if (exists) return res.json({ status: 'ready', url: publicUrl(dest) });
+
+    const state = clipJobs.get(dest);
+    if (state && state.error) { clipJobs.delete(dest); return res.json({ status: 'failed', error: state.error }); }
+    if (state) return res.json({ status: 'making' });
+
+    clipJobs.set(dest, 'making');
+    (async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'span-clip-'));
+      const out = path.join(dir, 'clip.mp3');
+      try {
+        await editor.extractWindow(url, t0, t1 - t0, out, { log: [], dir, downloads: new Map() });
+        await editor.uploadPublic(out, dest, 'audio/mpeg', 'public, max-age=31536000, immutable');
+        clipJobs.delete(dest);
+      } catch (err) {
+        console.warn('span clip failed:', err.message);
         clipJobs.set(dest, { error: err.message });
       } finally {
         try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
