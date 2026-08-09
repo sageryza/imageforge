@@ -154,6 +154,23 @@ __PILL__
              && Math.abs(window.__clipAsk.t1-(7+0.35))<0.01,
              'the asked span is the pick, padded (t0='+ (window.__clipAsk&&window.__clipAsk.t0)
              +' t1='+(window.__clipAsk&&window.__clipAsk.t1)+')');
+
+          // 10. the scissors splits a pick into two adjacent picks — so one
+          //     part can get a different picture / speaker downstream
+          var target = inst.picks.filter(function(p){ return p.z-p.a>=1; })[0];
+          var before2 = inst.picks.length;
+          var scis = [].slice.call(document.querySelectorAll('#p1 .ckp-pk button'))
+            .filter(function(b){ return b.title.indexOf('split')>=0; })[0];
+          if (scis) scis.click();
+          var mid = target ? target.a+1 : 0;
+          var az = target ? {a:target.a, z:target.z} : null;
+          W(mid).click();
+          var halves = inst.picks.filter(function(p){
+            return az && ((p.a===az.a && p.z===mid-1) || (p.a===mid && p.z===az.z));
+          });
+          ok(az && inst.picks.length===before2+1 && halves.length===2,
+             'the scissors splits a pick into two back-to-back picks');
+
           fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
         }, 400);
       }, 900);
