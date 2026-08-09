@@ -5,10 +5,13 @@
 // public/chats.html in a headless browser against a stub API and asserts:
 //   1. the header's status icon opens the view (title says Status),
 //   2. chats bucket correctly — the chats she HID lead WAITING, then unread;
-//      a working chat rows under WORKING with the live tint; an answered
+//      a working chat rows under WORKING carrying the .live class (its rose
+//      tint is switched off in CSS, the class and signal stay); an answered
 //      chat rows under MARKED DONE, grayed,
 //   3. the delivered strip renders the cross-chat assets + the new page row,
-//   4. the ✓ on a waiting row marks the chat answered without opening it,
+//   4. the ⊖ on a waiting row hides it without opening anything (the ✓ that
+//      used to sit there came off at Sophie's ask — she didn't know what it
+//      did; `mkCheck` is still in the file, just not on any row),
 //   5. tapping a delivered thumb opens that chat (its Assets tab).
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-status.js
@@ -39,6 +42,7 @@ const MSGS = [
   { id: 'm4', chat: 'chat-work', from: 'claude', text: 'older reply', tldr: 'older', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
 ];
 const answeredPosts = [];
+const hidePosts = [];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -68,6 +72,16 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ pages: [
       { id: 'p1', title: 'Storyboard v2 — tightest cut', chat: 'chat-wait', created: iso(T0 - 900000) },
     ] }));
+  }
+  if (url.pathname === '/api/chatfeed/hide' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => body += c);
+    req.on('end', () => {
+      hidePosts.push(JSON.parse(body || '{}'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, hiddenAt: iso(Date.now()) }));
+    });
+    return;
   }
   if (url.pathname === '/api/chatfeed/answered' && req.method === 'POST') {
     let body = '';
@@ -123,7 +137,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     fail('row order wrong: ' + order.join(','));
   }
   const work = rows.find((r) => r.chat === 'chat-work');
-  if (!work || !work.live) fail('working chat missing the live tint');
+  if (!work || !work.live) fail('working chat missing the .live class');
   const doneRow = rows.find((r) => r.chat === 'chat-done');
   if (!doneRow || !doneRow.done) fail('answered chat not grayed under Marked done');
   const heads = await page.$$eval('#grid .sthead', (ns) => ns.map((n) => n.textContent.trim()));
@@ -137,14 +151,16 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const pageRow = await page.$$eval('#grid .pagerow .pr-title', (ns) => ns.map((n) => n.textContent));
   if (!pageRow.some((t) => t.indexOf('Storyboard v2') >= 0)) fail('new Compare page row missing');
 
-  // 4. the ✓ on a waiting row marks answered without opening the chat
-  await page.click('#grid .crow[data-chat="chat-wait"] .ckbtn');
-  await page.waitForFunction(() =>
-    document.querySelector('#grid .crow[data-chat="chat-wait"]').classList.contains('done'),
-    null, { timeout: 4000 }).catch(() => fail('✓ did not gray the waiting row'));
+  // 4. the ⊖ on a waiting row hides it without opening the chat, and the view
+  //    stays put
+  if (await page.$('#grid .crow .ckbtn')) fail('a ✓ is still on a Status row');
+  await page.click('#grid .crow[data-chat="chat-wait"] .hidebtn');
+  await page.waitForFunction(
+    () => !!document.querySelector('#grid .crow[data-chat="chat-wait"] .hidebtn.on'),
+    null, { timeout: 4000 }).catch(() => fail('⊖ did not mark the waiting row hidden'));
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status')
-    .catch(() => fail('marking answered left the Status view'));
-  if (!answeredPosts.some((p) => p.chat === 'chat-wait' && p.answered)) fail('POST /answered never fired for chat-wait');
+    .catch(() => fail('hiding from a Status row left the Status view'));
+  if (!hidePosts.some((p) => p.chat === 'chat-wait' && p.hidden)) fail('POST /hide never fired for chat-wait');
 
   // 5. a delivered thumb opens its chat (the Assets tab)
   await page.click('#grid .stgrid .stcell');
