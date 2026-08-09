@@ -20,7 +20,21 @@
  *
  *   node scripts/dream-restyle.js <dreamId> [--style sage-sandy-mirror.png]
  *                                 [--quality low|medium|high] [--out ./dir]
- *                                 [--pages 0,2] [--dry-run]
+ *                                 [--pages 0,2] [--spans spans.json] [--dry-run]
+ *
+ * --spans is the VERBATIM-WORDS mode, and it is the prototype of a real fix.
+ * `dreamPaginate`'s per-page `text` is a PARAPHRASE — its prompt asks for "the
+ * slice of the dream this image covers", never for exact words — and
+ * `renderDreamPageV2` then makes that paraphrase authoritative ("THIS page
+ * covers ONLY this part of it") while demoting her actual transcript to "for
+ * context only". So concrete detail dies in the reading step, before the
+ * illustrator ever sees it: "one of my paper bowls that I had abandoned in the
+ * fridge" became "an old, crusty bowl", and the page came back with a ceramic
+ * bowl. (The project notes claim this step allots a "verbatim slice" — it does
+ * not, and never did.)
+ *   --spans takes {"<pageNumber>": "<her exact words>"} and swaps that page's
+ * paraphrase for the span, refusing to run unless the span is an EXACT
+ * substring of dreamText — a paraphrase can never sneak through that check.
  *
  * Needs FIREBASE_SERVICE_ACCOUNT (Deck Factory) + OPENAI_API_KEY.
  */
@@ -43,6 +57,7 @@ const styleFile = arg('style', 'sage-sandy-mirror.png');
 const quality = arg('quality', 'medium');
 const outDir = arg('out', path.join(ROOT, 'dream-restyle', String(dreamId)));
 const onlyPages = arg('pages', null);
+const spansFile = arg('spans', null);
 const dryRun = process.argv.includes('--dry-run');
 if (!dreamId) { console.error('usage: node scripts/dream-restyle.js <dreamId> [--style file.png]'); process.exit(1); }
 
@@ -132,17 +147,38 @@ async function fetchBuf(url) {
   const styleRef = fs.readFileSync(path.join(ROOT, 'refs', styleFile));
   const cast = Array.isArray(dream.castApproved) ? dream.castApproved : [];
   const total = plan.length;
+  const dreamText = String(dream.dreamText || dream.dream || '');
+
+  // Verbatim mode. Every span must appear in her transcript character for
+  // character — that check is the whole point, so it aborts rather than
+  // quietly drawing from something she never said.
+  const spans = spansFile ? JSON.parse(fs.readFileSync(spansFile, 'utf8')) : {};
+  for (const [page, span] of Object.entries(spans)) {
+    if (!dreamText.includes(span)) throw new Error(`span for page ${page} is NOT an exact substring of the dream transcript`);
+    console.log(`page ${page}: verbatim span verified, ${span.length} chars of her own words`);
+  }
 
   console.log(`${dream.title} — ${wanted.length} of ${total} page(s), style ref ${styleFile}, quality ${quality}`);
   console.log(`estimated cost $${(wanted.length * (PANEL_COST[quality] || 0.06)).toFixed(2)}`);
   if (dryRun) { process.exit(0); }
   fs.mkdirSync(outDir, { recursive: true });
 
-  const rendered = [];   // pages drawn IN THIS RUN — the new style feeds itself
+  // Pages drawn in THIS style — the new look feeds itself forward. Re-drawing a
+  // single page (--pages) still needs the pages BEFORE it as character/scene
+  // references, so a previous run's prompts.json is read back and its pages
+  // ride along; otherwise a one-page re-draw would silently lose the
+  // continuity the full run had.
+  const priorFile = path.join(outDir, 'prompts.json');
+  const prior = fs.existsSync(priorFile) ? JSON.parse(fs.readFileSync(priorFile, 'utf8')).pages || [] : [];
+  const rendered = [];
   const out = [];
   for (let i = 0; i < total; i++) {
     const p = plan[i];
-    if (!wanted.includes(i)) continue;
+    if (!wanted.includes(i)) {
+      const was = prior.find(x => x.page === i + 1);
+      if (was) { rendered.push({ url: was.url, who: was.who || [] }); out.push(was); }
+      continue;
+    }
     const who = p.who || [];
     const onPage = cast.filter(c => who.includes(c.name));
     const refs = [styleRef];
@@ -172,10 +208,23 @@ async function fetchBuf(url) {
     const capInstr = caps.length
       ? `Hand-letter ${caps.length === 1 ? 'this caption' : 'these ' + caps.length + ' captions, in order,'} onto the page as small caption boxes in the dreamer's handwriting, each spelled EXACTLY as written and nothing added: ${caps.map(c => `"${c}"`).join(', ')}.`
       : "Add a short hand-lettered caption in the dreamer's own voice.";
+    // The slice line. Verbatim mode says the words ARE the dreamer's, so the
+    // model stops treating them as a summary it may re-interpret: her own
+    // concrete nouns are the spec, and where she hedges between two things
+    // ("i don't know if it was shlomo") it has to commit to one rather than
+    // averaging them into something generic.
+    const span = spans[String(i + 1)];
+    const sliceLine = span
+      ? `THIS page covers ONLY this part of it, quoted VERBATIM in the dreamer's own spoken words: "${span}". `
+        + 'Draw only that part. These are her actual words, not a summary — every concrete detail in them is a '
+        + 'specification: draw the exact objects she names, in the material, size and state she gives them, and '
+        + 'ignore only her speech filler ("like", "um", false starts). Where she is unsure between two '
+        + 'possibilities, pick one and draw it plainly. '
+      : `THIS page covers ONLY this part of it: "${String(p.text || '')}". Draw only that part. `;
     const prompt = `${styleIntro}${continuity}`
       + `This is page ${i + 1} of ${total} of a hand-drawn comic telling a real dream. `
-      + `The whole dream, for context only: "${String(dream.dreamText || dream.dream || '')}". `
-      + `THIS page covers ONLY this part of it: "${String(p.text || '')}". Draw only that part. `
+      + `The whole dream, for context only: "${dreamText}". `
+      + sliceLine
       + 'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. '
       + capInstr;
 
