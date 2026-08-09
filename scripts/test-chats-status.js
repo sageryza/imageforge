@@ -123,8 +123,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-wait"]');
 
-  // 1. the header icon opens the view
-  await page.click('#stlink');
+  // 1. the view opens (its header icon was removed at Sophie's ask, so the
+  //    page's own __setHomeView hook is the way in now)
+  await page.evaluate(() => window.__setHomeView('status'));
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status');
 
   // 2. bucketing + ordering: hidden first among waiting, working tinted,

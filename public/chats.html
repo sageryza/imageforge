@@ -509,7 +509,6 @@ body.ontop > .float{display:none !important;}
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
         <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
-        <button id="stlink" class="stbtn" aria-label="Status — what&rsquo;s waiting on you"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></button>
         <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
         <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
@@ -920,7 +919,6 @@ function paintHomeChrome(){
   a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
   a.classList.toggle('on', homeView!=='live');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
-  document.getElementById('stlink').classList.toggle('on', homeView==='status');
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
   // useful everywhere, so it stays and the row keeps its place.
@@ -930,6 +928,10 @@ function paintHomeChrome(){
   if(other && selMode) exitSelect();
 }
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
+// The STATUS view has no button anymore (Sophie had the icon removed), so this
+// is the only way in — the headless tests drive it, and it is what a restored
+// entrance would call. Deliberately kept so the retained view stays testable.
+window.__setHomeView=setHomeView;
 // Every bookmarked message, newest first, whichever chat it is in. Tapping one
 // opens its chat and jumps to it — the same focus+flash the search results use.
 // The two things she actually bookmarks (her words): something with code /
@@ -982,7 +984,14 @@ function renderBookmarks(el){
     })
     .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
 }
-// ---- Status view -----------------------------------------------------------
+// ---- Status view — NO WAY IN FROM THE PAGE (Aug 2026) -----------------------
+// Its entrance was the list-todo icon beside the masthead, and Sophie had it
+// removed ("the weird check-plus next to the big chat's name — I don't
+// actually know what it does"). Everything below still works; it just has no
+// button. Two of the four sections had also gone quiet by then — the ✓ that
+// filled MARKED DONE is gone, and the rose working signal is off — so ask her
+// what she wants it to say before wiring an entrance back up.
+// ----------------------------------------------------------------------------
 // One prioritized screen (Sophie's ask, Aug 2026: "this is what's done, this
 // is what's waiting on you, these are the assets that were just delivered"):
 //   WAITING ON YOU  — her flagged come-back-later chats first, then finished
@@ -1648,6 +1657,21 @@ function openChat(name, keepScroll, focusId, noFetch){
     }
     ab.className='archlink';   // reads as text, still a button
     head.querySelector('.no').appendChild(ab);
+  })();
+  // HIDE, beside Archive — the two are the same family of decision ("not now"
+  // vs "away for good"), so they belong in the same row. This is the way to
+  // park a chat she has just read without going back to the list for its ⊖.
+  (function(){
+    var list0=(groups()[name])||[];
+    var last0=list0.length? list0[list0.length-1] : null;
+    var hb=document.createElement('button');
+    hb.className='archlink';
+    hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
+    hb.onclick=function(){
+      toggleHide(name,last0);          // optimistic + POSTs + repaints the home
+      goHome();
+    };
+    head.querySelector('.no').appendChild(hb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -2408,7 +2432,6 @@ document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026')
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
-document.getElementById('stlink').onclick=function(){ setHomeView('status'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
