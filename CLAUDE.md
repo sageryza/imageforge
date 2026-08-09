@@ -823,6 +823,31 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **STATUS CARDS — every chat keeps one, updated at the END of every turn
+  (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
+  that chat is currently working on").** The card shows under the chat's name
+  on the `/chats` home (list, tiles, and the Status view — the ask reads in
+  rose). `POST /api/chatfeed/status { chat, session, need, doing }`:
+  - `need` = what you need from Sophie, in her words, with the size of the
+    ask — "pick a palette — 10 seconds", "listen to the two cuts". Send `""`
+    when nothing is needed; an empty `need` is the honest default, and a
+    stale ask is worse than none.
+  - `doing` = one plain line on what you're working on ("drawing the six
+    lesson cards"). Clear it (`""`) when you finish.
+  - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
+    is session-first like every other post, so the card lands on your
+    effective chat whatever your branch slug says.
+  - Refresh it at the end of ANY turn that changed your state (200 chars
+    each; the fields you don't send are left alone). Stored on the registry
+    doc, so it rides the feed's already-cached read — costs nothing.
+- **Her PINNED NOTE on a chat (`sophieNote`) is standing direction — read it,
+  follow it, NEVER write it.** Sophie pins it from the thread ("+ note for
+  this chat"): things like "keep it loose" or "don't touch the palette".
+  Read it with `GET /api/chatfeed/status?chat=<slug>&session=<sid>` in the
+  same sweep as asset votes/notes whenever she messages you. It is hers
+  alone — `POST /chatnote` belongs to the app; a chat never clears or edits
+  it (unlike asset-note threads, there is nothing to "answer" — it stays
+  until she changes it).
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
