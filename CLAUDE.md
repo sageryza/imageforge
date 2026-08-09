@@ -1051,9 +1051,28 @@ lifted into a standalone tool later.
     she is in. It slightly overlaps the status icon at that width; Sophie
     said that is fine for now.
   - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
-    that is the one screen where her parked pile should surface; the home
-    list is exactly where she doesn't want it. The bar's "· N new" is the
-    other signal, so a hidden chat that replied is never invisible.
+    though **STATUS now has NO ENTRANCE**: its list-todo icon beside the
+    masthead came off at Sophie's ask ("the weird check-plus next to the big
+    chat's name — I don't actually know what it does"). The view and its
+    tests survive (`window.__setHomeView` is the only way in, kept so the
+    retained code stays testable); ask her what it should say before wiring
+    a button back, since the ✓ that filled MARKED DONE and the rose working
+    signal are both switched off now.
+  - **ANSWERING A CHAT PARKS IT (Aug 2026, Sophie: "is there any way you
+    could directly send a chat that I answered to the hidden section until
+    it comes back?").** `POST /reply` and `POST /working` both stamp
+    `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list
+    and the stamp's own rule brings it back when the reply lands — no new
+    field, no new rule. **The `/reply` path (the app's own reply box) is the
+    one that actually fires today**; `/working` is the Claude-app path and
+    needs a hook new enough to send the turn-start ping, which her
+    environments' pasted setup script predates — the same root cause as the
+    rose tint never firing. The stamp is `postedAt`, never her message's
+    `created`: `created` is her real send time and a stamp older than the
+    newest message reads as not-hidden.
+  - **The thread header carries HIDE beside Archive** — "not now" next to
+    "away for good", so a chat she has just read can be parked without going
+    back to the list for its ⊖.
   - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
