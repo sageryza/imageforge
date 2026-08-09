@@ -456,7 +456,17 @@ body.reading .backwrap{display:block;}
 .newbar svg{flex:none;}
 .nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
-.totop{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom)); z-index:9; width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg); color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transform:translateZ(0);}
+/* The jump pair, bottom-right: back to the top, and all the way DOWN beside it
+   (Aug 2026, Sophie). Each shows only when it would actually go somewhere, so
+   at the top of a short list there is nothing floating over the page at all.
+   Hidden in select mode — the filing bar owns the bottom of the screen then,
+   and these would sit on top of it. */
+.jumps{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom));
+  z-index:9; display:flex; gap:8px; transform:translateZ(0);}
+body.selecting .jumps{display:none;}
+.totop{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg);
+  color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none;
+  align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; padding:0;}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
 /* ---- The tool row: category chips + select + refresh ----------------------
@@ -580,7 +590,7 @@ body.ontop > .float{display:none !important;}
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
 <button id="newbar" class="newbar" aria-label="Show new messages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg><span id="newtxt">New message</span></button>
-<button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
+<div class="jumps"><button id="totop" class="totop" aria-label="Back to top"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button id="tobot" class="totop" aria-label="Jump to the bottom"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
 <div class="wrap">
   <section id="home">
     <header>
@@ -1638,6 +1648,7 @@ function renderHome(){
     return;
   }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+  if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
 // message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
@@ -1982,6 +1993,7 @@ function ensureFullThread(name){
     .catch(function(){ fullLoaded[name]=0; });   // let a later open retry
 }
 function openChat(name, keepScroll, focusId, noFetch){
+  if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   if(!noFetch) ensureFullThread(name);
@@ -2838,13 +2850,25 @@ document.getElementById('back').onclick=goHome;
   window.addEventListener('pagehide', end);
 })();
 
-// Floating jump-to-top arrow: appears once you've scrolled down; stops any
-// autoscroll and glides back to the top.
+// The floating jump pair: back to the top, and all the way to the bottom.
+// Both stop any autoscroll first — otherwise the page keeps creeping after it
+// arrives — and each appears only when it has somewhere to go, so neither
+// floats over a list that already fits on the screen.
 (function(){
-  var toTop=document.getElementById('totop');
-  toTop.onclick=function(){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:0,behavior:'smooth'}); };
-  function upd(){ toTop.classList.toggle('show', window.scrollY>400); }
+  var toTop=document.getElementById('totop'), toBot=document.getElementById('tobot');
+  function go(y){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:y, behavior:'smooth'}); }
+  toTop.onclick=function(){ go(0); };
+  toBot.onclick=function(){ go(document.documentElement.scrollHeight); };
+  function upd(){
+    var left=document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+    toTop.classList.toggle('show', window.scrollY>400);
+    toBot.classList.toggle('show', left>400);
+  }
   window.addEventListener('scroll', upd, {passive:true});
+  window.addEventListener('resize', upd, {passive:true});
+  // the list rebuilds constantly (polls, filters, opening a chat), and the page
+  // height changes with it — recheck on the next frame after any repaint
+  window.__jumpsRecheck=function(){ requestAnimationFrame(upd); };
   upd();
 })();
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
