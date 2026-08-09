@@ -36,6 +36,10 @@
 //   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
 //                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
+//   GET  /api/chatfeed/todos     → her running to-do list (open items first).
+//                                  ANY chat may read it and act on an item.
+//   POST /api/chatfeed/todo      → { text } — add one
+//   PATCH/DELETE /api/chatfeed/todo/:id → { done?, text? } / remove
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -878,6 +882,69 @@ router.get('/bookmarks', async (req, res) => {
       };
     }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- The running to-do list ----------------------------------------------
+// Sophie, Aug 2026: "I kind of wanna do like a running to-do list." Things she
+// thinks of on her phone and would otherwise lose — a bug she noticed, an art
+// direction to try — kept in one place instead of scattered across whichever
+// chat happened to be open.
+//
+// Deliberately NOT per-chat: the whole point is that an idea arrives while she
+// is somewhere else. A chat READS the list (GET /todos) and can act on an item
+// the next time she messages it, the same snail-mail rhythm as asset notes.
+//
+// One tiny collection, no index: the list is short, so it is fetched whole and
+// sorted in memory (open items first, newest at the top of each group).
+const TODOS = 'forge-chat-todos';
+
+router.get('/todos', async (req, res) => {
+  try {
+    const snap = await db().collection(TODOS).limit(500).get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (!!a.done !== !!b.done)
+        ? (a.done ? 1 : -1)
+        : ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1));
+    res.json({ items });
+  } catch (err) { fail(res, err); }
+});
+
+router.post('/todo', async (req, res) => {
+  try {
+    const text = String((req.body || {}).text || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const doc = {
+      text,
+      done: false,
+      createdAt: new Date().toISOString(),
+      // who wrote it — she types most of them, a chat can file one too
+      from: String((req.body || {}).from || 'sophie').slice(0, 20),
+    };
+    const ref = await db().collection(TODOS).add(doc);
+    res.json({ ok: true, id: ref.id, item: { id: ref.id, ...doc } });
+  } catch (err) { fail(res, err); }
+});
+
+router.patch('/todo/:id', async (req, res) => {
+  try {
+    const { done, text } = req.body || {};
+    const patch = {};
+    if (done !== undefined) {
+      patch.done = !!done;
+      patch.doneAt = done ? new Date().toISOString() : admin.firestore.FieldValue.delete();
+    }
+    if (text !== undefined) patch.text = String(text).trim().slice(0, 2000);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(TODOS).doc(String(req.params.id)).set(patch, { merge: true });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
+router.delete('/todo/:id', async (req, res) => {
+  try {
+    await db().collection(TODOS).doc(String(req.params.id)).delete();
+    res.json({ ok: true });
   } catch (err) { fail(res, err); }
 });
 

@@ -22,6 +22,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* While the hidden pile is open the masthead says HIDDEN, in the bar's red —
    the pile is a place, so the screen has to say which one you are in. */
 #htitle.hid{color:var(--chg);}
+/* A shade smaller than the thread's h1: this row also carries TO DO, ARCHIVE,
+   the bookmark and the account switch, inside the pill's 56px reserve.
+   Measured across 375/390/430 — at 2.3em the word "Chats" needed 88px and only
+   had 70 on the narrowest phone, so it ran under the bookmark. */
+#htitle{font-size:2.0em; margin:0; flex:0 1 auto; min-width:max-content;}
+/* The masthead row WRAPS instead of clipping. Four controls plus the pill's
+   56px reserve leave the title about 78px on a 375px phone — enough for
+   "Chats" and "To do", not for "Archive" (102) or "Bookmarks" (147). Rather
+   than shrink the title into an ellipsis or let it run under the bookmark
+   (which is exactly what it did once TO DO joined the row), the control group
+   drops to its own line in the views whose title is long, and stays inline in
+   the ones where it fits. Measured at 375/390/430 across all five titles. */
+.hrow{display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-right:56px;}
+.hctl{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
@@ -167,8 +181,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    and left her stuck ("it should make it clear that I'm in the archive and
    then I wanna get out"). The big serif title is the other half of that —
    it says Archive / Bookmarks while she's there. */
+/* Tighter than it was: TO DO joined ARCHIVE on this row (Aug 2026) and at the
+   old size the serif masthead got squeezed 21px under its natural width and
+   ran UNDER the bookmark. Measured at 390px: the row has 295px inside the
+   pill's reserve, the title needs 88, so the words and the gaps had to give it
+   back. Anything else added here has to be measured the same way. */
 .archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
-  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.04em; text-transform:uppercase;}
 /* NOT bold in a sub-view (Aug 2026, Sophie): the big title already says
    Archive / Bookmarks, so bolding the exit as well said the same thing twice.
    It still darkens to full ink — it is the live control on that row. */
@@ -239,6 +258,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* list view */
 .clist{display:flex; flex-direction:column;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.cr-acct{flex:none; width:11px; font-family:-apple-system,sans-serif; font-size:11px;
+  color:var(--ink2); text-align:center; font-variant-numeric:tabular-nums;}
 .crow .cr-ic{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
@@ -277,6 +298,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
+/* ---- The running to-do list ---------------------------------------------- */
+.todoadd{display:flex; gap:8px; margin:0 0 14px;}
+.todoadd input{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; color:var(--ink); background:var(--barbg); border:1px solid var(--line);
+  border-radius:6px; padding:10px 12px;}
+.todoadd input:focus{outline:none; border-color:var(--chg);}
+.todoadd .tbtn{flex:none;}
+.todorow{display:flex; align-items:flex-start; gap:11px; padding:10px 2px; border-bottom:1px solid var(--line);}
+.todorow .ckbtn{width:28px; height:28px; flex:none; margin-top:1px;}
+.todotext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.35; color:var(--ink); word-wrap:break-word;}
+.todorow.done .todotext{text-decoration:line-through; color:var(--ink2);}
+.tododel{flex:none; background:none; border:none; color:var(--ink2); font-size:20px; line-height:1;
+  padding:2px 4px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
 /* ---- Status view (the fourth home view) ----------------------------------
    One prioritized screen: what's waiting on her, what's working right now,
    what just landed. Rows reuse the .crow look (and its ✓/! buttons); thumbs
@@ -520,11 +554,14 @@ body.ontop > .float{display:none !important;}
   <section id="home">
     <header>
       <div class="no">deck factory &middot; every chat, one place</div>
-      <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
-        <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
-        <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-        <button id="archlink" class="archlink">Archive</button>
-        <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+      <div class="hrow">
+        <h1 id="htitle">Chats</h1>
+        <div class="hctl">
+          <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          <button id="todolink" class="archlink">To do</button>
+          <button id="archlink" class="archlink">Archive</button>
+          <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+        </div>
       </div>
       <div class="rule"></div>
     </header>
@@ -910,6 +947,16 @@ function statusLinesHtml(name, fallback){
 // chat with no picture now contributes NOTHING and the row starts at its name.
 // `blank:true` keeps the old placeholder for the TILE cover, which is a fixed
 // square that has to be filled to hold its shape.
+// Which Claude ACCOUNT a chat belongs to, as a bare 1 or 2 at the front of the
+// row (Sophie, Aug 2026 — the slot the letter icon vacated). It is deliberately
+// not a button: the account picker lives in the thread, and a tappable-looking
+// number here would just be a mis-tap on the way into a chat. 130 of ~190 chats
+// carry the tag; an untagged one shows a blank of the same width so the names
+// still line up.
+function acctHtml(name){
+  var a=(chats[name]&&chats[name].account)||'';
+  return '<span class="cr-acct">'+(a==='1'||a==='2'? a : '')+'</span>';
+}
 function iconHtml(name, cls, blank){
   var icon=chats[name]&&chats[name].icon;
   if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
@@ -939,7 +986,7 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo'
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
@@ -947,8 +994,14 @@ function paintHomeChrome(){
   var inHidden = (homeView==='live' && hideOpen);
   t.textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
-    : homeView==='status' ? 'Status' : 'Chats';
+    : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do' : 'Chats';
   t.classList.toggle('hid', inHidden);
+  var tl=document.getElementById('todolink');
+  tl.textContent = homeView==='todo' ? '← Chats' : 'To do';
+  tl.classList.toggle('on', homeView==='todo');
+  // the archive word is the way out of ARCHIVE only — from the to-do list the
+  // way out is the to-do word itself, or there would be two "← Chats"
+  document.getElementById('archlink').style.display = homeView==='todo' ? 'none' : '';
   var a=document.getElementById('archlink');
   a.textContent = homeView==='live' ? 'Archive' : '← Chats';
   a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
@@ -957,10 +1010,15 @@ function paintHomeChrome(){
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
   // useful everywhere, so it stays and the row keeps its place.
-  var other=(homeView==='bookmarks'||homeView==='status');
+  var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo');
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   if(other && selMode) exitSelect();
+  // The to-do list is not chats: the whole tool row and the search bar (which
+  // searches MESSAGES) would both be controls that do nothing to it.
+  var todoing=(homeView==='todo');
+  document.getElementById('toolrow').style.display = todoing ? 'none' : '';
+  document.querySelector('.searchrow').style.display = todoing ? 'none' : '';
 }
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
 // The STATUS view has no button anymore (Sophie had the icon removed), so this
@@ -1019,6 +1077,95 @@ function renderBookmarks(el){
     })
     .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
 }
+// ---- The running to-do list (Aug 2026, Sophie) -----------------------------
+// "I kind of wanna do like a running to-do list." Things she thinks of on her
+// phone — a bug she noticed, an art direction to try — kept in one place
+// instead of scattered across whichever chat happened to be open.
+//
+// Not per-chat on purpose: the whole point is that an idea arrives while she is
+// somewhere else. Any chat can READ it (GET /api/chatfeed/todos) and act on an
+// item the next time she messages it — the same snail-mail rhythm as the notes
+// on an image.
+//
+// Open items first, newest at the top of each group (the server sorts). A done
+// item stays, struck through, until she deletes it — crossing something off is
+// most of the point.
+var todoCache=null;
+function renderTodo(el){
+  el.innerHTML='';
+  var add=document.createElement('div'); add.className='todoadd';
+  var inp=document.createElement('input'); inp.type='text';
+  inp.placeholder='Add something…';
+  inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+  var go=document.createElement('button'); go.className='tbtn'; go.textContent='Add';
+  function submit(){
+    var v=(inp.value||'').trim();
+    if(!v) return;
+    inp.value='';
+    var tmp={id:'tmp'+Date.now(), text:v, done:false, createdAt:new Date().toISOString()};
+    todoCache=[tmp].concat(todoCache||[]);
+    paintTodo(el);
+    api('/api/chatfeed/todo',{method:'POST',body:JSON.stringify({text:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0; tmp.id=d.id; })
+      .catch(function(){
+        todoCache=(todoCache||[]).filter(function(x){ return x!==tmp; });
+        paintTodo(el); toast('Couldn’t save that');
+      });
+  }
+  go.onclick=submit;
+  inp.onkeydown=function(e){ if(e.key==='Enter') submit(); };
+  add.appendChild(inp); add.appendChild(go);
+  el.appendChild(add);
+  var box=document.createElement('div'); box.id='todolist'; el.appendChild(box);
+  if(todoCache) paintTodo(el);
+  else box.innerHTML='<div class="state">Loading…</div>';
+  api('/api/chatfeed/todos?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(homeView!=='todo') return;          // she left while it loaded
+      todoCache=(d&&d.items)||[];
+      paintTodo(el);
+    })
+    .catch(function(){ if(homeView==='todo'&&!todoCache) box.innerHTML='<div class="state">Couldn’t load the list.</div>'; });
+}
+function paintTodo(el){
+  var box=el.querySelector('#todolist'); if(!box) return;
+  var items=(todoCache||[]).slice().sort(function(a,b){
+    if(!!a.done!==!!b.done) return a.done?1:-1;
+    return (a.createdAt||'')<(b.createdAt||'')?1:-1;
+  });
+  box.innerHTML='';
+  if(!items.length){
+    box.innerHTML='<div class="state">Nothing on the list — type something above.</div>';
+    return;
+  }
+  items.forEach(function(it){
+    var row=document.createElement('div'); row.className='todorow'+(it.done?' done':'');
+    var ck=document.createElement('button'); ck.className='ckbtn'+(it.done?' on':'');
+    ck.innerHTML=CK; ck.setAttribute('aria-label', it.done?'Not done after all':'Cross it off');
+    ck.onclick=function(){
+      var was=!!it.done; it.done=!was;
+      paintTodo(el);
+      api('/api/chatfeed/todo/'+encodeURIComponent(it.id),{method:'PATCH',body:JSON.stringify({done:it.done})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ it.done=was; paintTodo(el); toast('Couldn’t save that'); });
+    };
+    var txt=document.createElement('span'); txt.className='todotext'; txt.textContent=it.text||'';
+    var del=document.createElement('button'); del.className='tododel';
+    del.setAttribute('aria-label','Delete'); del.innerHTML='&times;';
+    del.onclick=function(){
+      askFirst('Delete this?', 'Delete', function(ok){
+        if(!ok) return;
+        todoCache=(todoCache||[]).filter(function(x){ return x.id!==it.id; });
+        paintTodo(el);
+        api('/api/chatfeed/todo/'+encodeURIComponent(it.id),{method:'DELETE'});
+      });
+    };
+    row.appendChild(ck); row.appendChild(txt); row.appendChild(del);
+    box.appendChild(row);
+  });
+}
 // ---- Status view — NO WAY IN FROM THE PAGE (Aug 2026) -----------------------
 // Its entrance was the list-todo icon beside the masthead, and Sophie had it
 // removed ("the weird check-plus next to the big chat's name — I don't
@@ -1075,7 +1222,7 @@ function stRow(name, list, last, snip, live){
   row.dataset.chat=name;
   // The deliberate status card wins here too; `snip` (the auto TLDR / draft
   // line) is only the fallback for a chat that hasn't filed one.
-  row.innerHTML=iconHtml(name,'cr-ic')
+  row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
     +statusLinesHtml(name, snip)+'</span>'
     +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
@@ -1346,6 +1493,7 @@ function renderHome(){
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
+  if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
   if(homeView==='status'){ renderStatus(el); return; }
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
@@ -1540,7 +1688,7 @@ function renderList(el,g,names){
     // spot it had, on the right. Marking a chat answered still lives on the
     // STATUS view, which is the screen that has a "Marked done" section to
     // feed — pulling it from there too would leave that section dead.
-    row.innerHTML=iconHtml(name,'cr-ic')
+    row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
       +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
       +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
@@ -2508,6 +2656,7 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
+document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
