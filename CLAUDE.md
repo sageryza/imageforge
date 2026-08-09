@@ -1145,6 +1145,35 @@ lifted into a standalone tool later.
   - The home screen was tightened vertically in the same pass (rule, h1,
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".
+- **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
+  running to-do list").** `/chats` home view `todo`, entered by the word **To
+  do** beside Archive; Firestore `forge-chat-todos`;
+  `GET /api/chatfeed/todos`, `POST /todo {text}`,
+  `PATCH|DELETE /todo/:id {done?, text?}`.
+  - **Deliberately NOT per-chat.** The whole point is that an idea arrives
+    while she is somewhere else — a bug she noticed, an art direction to try.
+  - **ANY chat may read it** and act on an item the next time she messages
+    that chat — the same snail-mail rhythm as the notes on an image. Read it
+    in the same sweep as asset votes/notes. Do NOT poll it on a timer.
+  - Open items first, newest at the top of each group (the server sorts). A
+    crossed-off item stays, struck through, until she deletes it.
+  - The view hides the tool row and the search bar — both act on CHATS, and
+    neither does anything to this list.
+- **The chat rows carry their ACCOUNT as a bare 1 or 2 at the front** (Aug
+  2026, Sophie, in the slot the letter icon vacated). Not a button: the
+  account picker lives in the thread, and a tappable-looking number there
+  would just be a mis-tap on the way into a chat. An untagged chat renders a
+  blank of the same width so the names still line up.
+- **THE MASTHEAD ROW WRAPS — measure before adding anything to it.** Title +
+  bookmark + To do + Archive + the account switch, inside the pill's 56px
+  reserve, leave the title ~78px on a 375px phone: enough for "Chats", not
+  for "Archive" (102) or "Bookmarks" (147). Adding TO DO squeezed the serif
+  title under the bookmark, for real. `.hrow` is now `flex-wrap:wrap` with
+  the controls grouped in `.hctl`, so the group drops to its own line only in
+  the views whose title is long; `#htitle` is 2.0em (the thread's h1 stays
+  2.3em). Verified across 375/390/430 × all five titles — no clipping, no
+  same-row overlap, controls ending at x=315 on a 390px screen against the
+  pill's 324.
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
