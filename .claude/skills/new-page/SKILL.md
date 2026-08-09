@@ -129,6 +129,18 @@ your own pill and never re-implement its script.** The contract:
 7. Editing `pill.py` itself? Re-run `python3 scripts/gen-pill-inject.py`
    after, and know the pill defends its glyphs against host `svg` globals
    (`svg{fill:none}` once hollowed its play triangle).
+8. **In the APP the page runs EMBEDDED, and that is a second pill** (Aug
+   2026 — Sophie caught this on the judge demo). chats.html opens a Compare
+   page in an IFRAME with `?embed=1` (no injected pill) and its own parent
+   pill drives the iframe, with a tap-to-TOGGLE gesture bound inside your
+   document. The parent forwards `__scrollStop` into the iframe (so
+   compare.js's handlers work there) and exempts the interactive skip list
+   plus `img`/`figure`/`.cmp-lb` (a tap on a picture or the lightbox never
+   starts the scroll). If your page's ordinary content is tappable — a word
+   picker, a judge card — mark that region `data-nostop`: its taps still
+   PAUSE a running scroll but never start one. Testing only the standalone
+   page misses all of this; `scripts/test-page-embed.js` covers the
+   embedded path.
 
 ## Tool pages (a new room in public/)
 
