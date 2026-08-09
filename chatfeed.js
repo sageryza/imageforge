@@ -13,6 +13,12 @@
 //                                  drafts; working:true = still being written)
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
+//   POST /api/chatfeed/status    → { chat, session, need?, doing? } — the chat's
+//                                  living status card, shown under its name on
+//                                  the home list ("" clears a field)
+//   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
+//   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
+//                                  chats read it, only the app writes it)
 //   GET  /api/chatfeed/search?q= → substring search across every message
 //                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
 //   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
@@ -734,6 +740,68 @@ router.post('/category', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- Status cards (Aug 2026, Sophie) --------------------------------------
+// Every chat keeps ONE living status card it rewrites on purpose at the end
+// of a turn: `need` = what it needs from Sophie, in her words ("pick a
+// palette — 10 seconds"; EMPTY when nothing is needed), and `doing` = one
+// line on what it's working on. Both live on the registry doc, so they ride
+// the same cached read the home list already makes — the app shows them
+// under the chat's name. Session-first resolution like every other post.
+router.post('/status', async (req, res) => {
+  try {
+    const { chat, session, need, doing } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const del = admin.firestore.FieldValue.delete();
+    const patch = { statusAt: new Date().toISOString() };
+    // Only the fields sent change; sending "" clears one.
+    if (need !== undefined) patch.statusNeed = String(need || '').trim().slice(0, 200) || del;
+    if (doing !== undefined) patch.statusDoing = String(doing || '').trim().slice(0, 200) || del;
+    await regRef(resolved).set(patch, { merge: true });
+    res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+// Sophie's own note on a chat — standing direction pinned to the chat ("keep
+// it loose", "don't touch the palette"), written from the app. It is HERS:
+// a chat reads it (GET /status below) and acts on it when she next messages,
+// but never clears it — she edits or clears it in the app herself.
+router.post('/chatnote', async (req, res) => {
+  try {
+    const { chat, note } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const target = await followMoves(chat);
+    const del = admin.firestore.FieldValue.delete();
+    const val = String(note || '').trim().slice(0, 500);
+    await regRef(target).set({
+      sophieNote: val || del,
+      sophieNoteAt: val ? new Date().toISOString() : del,
+    }, { merge: true });
+    res.json({ ok: true, chat: target, note: val || null });
+  } catch (err) { fail(res, err); }
+});
+// A chat reads its own card + her note (pass session for session-first
+// resolution, same contract as GET /name).
+router.get('/status', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    let chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const session = String(req.query.session || '').slice(0, 120);
+    chat = session ? await resolveChat(chat, session) : await followMoves(chat);
+    // plain read — regRef() is the WRITE path and drops the registry cache
+    const snap = await db().collection(REG).doc(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({
+      chat,
+      need: d.statusNeed || null,
+      doing: d.statusDoing || null,
+      statusAt: d.statusAt || null,
+      note: d.sophieNote || null,
+      noteAt: d.sophieNoteAt || null,
+    });
+  } catch (err) { fail(res, err); }
+});
+
 // Turn started (v8, Aug 2026) — the hook pings this from UserPromptSubmit the
 // moment Sophie messages a session, and the app tints that chat pink until the
 // reply lands. This tiny route exists because the obvious signal doesn't work:
@@ -749,7 +817,16 @@ router.post('/working', async (req, res) => {
     const { chat, session } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
-    await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
+    // Same as /reply: her turn starting means she has answered that chat, so
+    // park it until it comes back. This is the path for a message sent in the
+    // CLAUDE app rather than the Chats app's reply box — but only a hook new
+    // enough to send this ping can reach it (an environment running an older
+    // setup script never calls /working at all, which is the same reason the
+    // rose working tint never fired for her).
+    const now = new Date().toISOString();
+    await regRef(resolved).set(
+      { workingAt: now, hiddenAt: now, hidden: admin.firestore.FieldValue.delete() },
+      { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
@@ -1078,11 +1155,19 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
-    // She just gave that chat something to do, so mark it working (the app
-    // tints it until the chat's reply lands and clears the mark). This path
-    // covers the app's own reply box; a message sent from the Claude app is
-    // marked by the hook's turn-start ping instead — see POST /working.
-    await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
+    // She just gave that chat something to do, so mark it working AND park it
+    // in the hidden pile (Aug 2026, Sophie: "is there any way you could
+    // directly send a chat that I answered to the hidden section until it
+    // comes back?"). Parking is the SAME `hiddenAt` stamp she sets by hand, so
+    // the chat pops back out by itself the moment its reply lands — no new
+    // rule, no second field.
+    //
+    // The stamp is `postedAt`, not her message's `created`: `created` is her
+    // real send time and can run behind, and a stamp older than the newest
+    // message reads as not-hidden.
+    await regRef(doc.chat).set(
+      { workingAt: doc.postedAt, hiddenAt: doc.postedAt, hidden: admin.firestore.FieldValue.delete() },
+      { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });

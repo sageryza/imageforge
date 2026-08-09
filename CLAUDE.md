@@ -674,6 +674,17 @@ lifted into a standalone tool later.
   `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
   it at init. A RUNNING session is different: it has network, and curl is the
   right tool for self-healing there (see the self-heal note below).
+- **THE ROSE WORKING TINT IS SWITCHED OFF (Aug 2026, Sophie: "the pink tint
+  on things that were working just never worked, so from now on I'll just
+  hide them if they're working and then they'll come back when they're
+  done").** Her workaround beats the feature and needs no hook at all: hide
+  the chat, and the `hiddenAt` stamp pops it back out the moment it answers.
+  **It is CSS-ONLY** — the `.crow.live`/`.tile.live` block in chats.html is
+  commented out, and `chatWorking()`, the `workingAt` registry mark,
+  `paintLive()` and the class still going onto the rows are all untouched,
+  because STATUS's "Working right now" section reads the same signal. Bring
+  the tint back by un-commenting that block; read the note below FIRST, since
+  the reason it "never worked" for her is upstream of the CSS.
 - **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
   usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
@@ -812,6 +823,31 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **STATUS CARDS — every chat keeps one, updated at the END of every turn
+  (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
+  that chat is currently working on").** The card shows under the chat's name
+  on the `/chats` home (list, tiles, and the Status view — the ask reads in
+  rose). `POST /api/chatfeed/status { chat, session, need, doing }`:
+  - `need` = what you need from Sophie, in her words, with the size of the
+    ask — "pick a palette — 10 seconds", "listen to the two cuts". Send `""`
+    when nothing is needed; an empty `need` is the honest default, and a
+    stale ask is worse than none.
+  - `doing` = one plain line on what you're working on ("drawing the six
+    lesson cards"). Clear it (`""`) when you finish.
+  - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
+    is session-first like every other post, so the card lands on your
+    effective chat whatever your branch slug says.
+  - Refresh it at the end of ANY turn that changed your state (200 chars
+    each; the fields you don't send are left alone). Stored on the registry
+    doc, so it rides the feed's already-cached read — costs nothing.
+- **Her PINNED NOTE on a chat (`sophieNote`) is standing direction — read it,
+  follow it, NEVER write it.** Sophie pins it from the thread ("+ note for
+  this chat"): things like "keep it loose" or "don't touch the palette".
+  Read it with `GET /api/chatfeed/status?chat=<slug>&session=<sid>` in the
+  same sweep as asset votes/notes whenever she messages you. It is hers
+  alone — `POST /chatnote` belongs to the app; a chat never clears or edits
+  it (unlike asset-note threads, there is nothing to "answer" — it stays
+  until she changes it).
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
@@ -1040,9 +1076,28 @@ lifted into a standalone tool later.
     she is in. It slightly overlaps the status icon at that width; Sophie
     said that is fine for now.
   - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
-    that is the one screen where her parked pile should surface; the home
-    list is exactly where she doesn't want it. The bar's "· N new" is the
-    other signal, so a hidden chat that replied is never invisible.
+    though **STATUS now has NO ENTRANCE**: its list-todo icon beside the
+    masthead came off at Sophie's ask ("the weird check-plus next to the big
+    chat's name — I don't actually know what it does"). The view and its
+    tests survive (`window.__setHomeView` is the only way in, kept so the
+    retained code stays testable); ask her what it should say before wiring
+    a button back, since the ✓ that filled MARKED DONE and the rose working
+    signal are both switched off now.
+  - **ANSWERING A CHAT PARKS IT (Aug 2026, Sophie: "is there any way you
+    could directly send a chat that I answered to the hidden section until
+    it comes back?").** `POST /reply` and `POST /working` both stamp
+    `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list
+    and the stamp's own rule brings it back when the reply lands — no new
+    field, no new rule. **The `/reply` path (the app's own reply box) is the
+    one that actually fires today**; `/working` is the Claude-app path and
+    needs a hook new enough to send the turn-start ping, which her
+    environments' pasted setup script predates — the same root cause as the
+    rose tint never firing. The stamp is `postedAt`, never her message's
+    `created`: `created` is her real send time and a stamp older than the
+    newest message reads as not-hidden.
+  - **The thread header carries HIDE beside Archive** — "not now" next to
+    "away for good", so a chat she has just read can be parked without going
+    back to the list for its ⊖.
   - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
@@ -1093,6 +1148,13 @@ lifted into a standalone tool later.
       the no-pills rule, not a pill. A filed chat no longer shows its working
       tint on the home; STATUS still shows it, and STATUS is deliberately NOT
       category-filtered.
+    - **NOTHING in the app writes `answeredAt` anymore (Aug 2026, Sophie:
+      "the checkmark next to chats — I don't actually know what it does,
+      take it off").** The ✓ came off the STATUS rows too, so MARKED DONE
+      only ever shows chats stamped before that day. `chatDone` /
+      `toggleMark` / `mkCheck` and `POST /answered` all still exist — the ✓
+      is one `appendChild` away in `renderList` or `stRow`. **Ask her before
+      putting it back**; hiding is what she reaches for now.
     - **The home rows carry NO ✓ and NO letter icon (Aug 2026, Sophie).** A
       chat with no picture used to get a box with a giant italic initial —
       gone; 18 of ~190 chats have a real picture and those still show, so
