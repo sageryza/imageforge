@@ -14,7 +14,9 @@
 //      POSTs the note without touching the bookmark itself,
 //   5. the note box STAYS under a bookmarked message (no hunting for a gesture
 //      to edit it) and goes when she un-bookmarks,
-//   6. the note LEADS the row in the Bookmarks view.
+//   6. the note is EDITABLE right on the row in the Bookmarks view — naming a
+//      backlog must not mean opening each message in turn — and typing there
+//      POSTs the note without touching the bookmark.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-star-bookmark.js
 //
@@ -153,13 +155,27 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.click('#back');
   await page.waitForSelector('#grid');
   await page.click('#bmklink');
-  await page.waitForSelector('#grid .sres', { timeout: 4000 })
+  await page.waitForSelector('#grid .bmkrow', { timeout: 4000 })
     .catch(() => fail('the bookmarks view never rendered'));
-  const led = await page.$eval('#grid .sres', (n) => {
-    const note = n.querySelector('.sr-note'), snip = n.querySelector('.sr-snip');
-    return note && snip ? (note.textContent + '|' + (note.getBoundingClientRect().y < snip.getBoundingClientRect().y)) : 'missing';
+  const shown = await page.$eval('#grid .bmkrow .sr-note-in', (n) => n.value);
+  if (shown !== 'the montage cut list') fail('the row did not show the saved note: ' + shown);
+  // and it LEADS: above the snippet, below the chat line
+  const order = await page.$eval('#grid .bmkrow', (n) => {
+    const top = n.querySelector('.sr-top').getBoundingClientRect().y;
+    const note = n.querySelector('.sr-note-in').getBoundingClientRect().y;
+    const snip = n.querySelector('.sr-snip').getBoundingClientRect().y;
+    return top < note && note < snip;
   });
-  if (led !== 'the montage cut list|true') fail('the note does not lead the bookmark row: ' + led);
+  if (!order) fail('the note is not between the chat line and the snippet');
+  // and it can be renamed WITHOUT opening the message
+  const before2 = bmkPosts.length;
+  await page.fill('#grid .bmkrow .sr-note-in', 'darius cage prompt');
+  await page.click('#grid .bmkfilter .tbtn');            // tap away to save
+  await page.waitForFunction(() => true, null, { timeout: 300 }).catch(() => {});
+  const renamed = bmkPosts[bmkPosts.length - 1];
+  if (!renamed || renamed.note !== 'darius cage prompt') fail('renaming on the row never POSTed: ' + JSON.stringify(bmkPosts.slice(before2)));
+  if (renamed && renamed.bookmarked !== undefined) fail('renaming on the row also wrote the bookmark flag');
+  if (await page.$eval('#thread', (n) => n.style.display !== 'none')) fail('editing the note opened the chat');
 
   await browser.close();
   server.close();

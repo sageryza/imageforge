@@ -264,6 +264,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
   color:var(--ink); background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:7px 10px;}
 .bmknote input:focus{outline:none; border-color:var(--chg);}
+/* The note on a bookmark row is an INPUT that doesn't look like one until she
+   taps it — the list has to read as a list, but every note has to be editable
+   in place or naming a backlog means opening each message in turn. */
+.bmkrow{border-bottom:1px solid var(--line); padding:12px 2px 10px; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; color:var(--ink);}
+.sr-note-in{width:100%; box-sizing:border-box; margin:1px 0 4px; padding:4px 7px;
+  font-family:'EBGaramond',Georgia,serif; font-size:16px; font-weight:600; color:var(--ink);
+  background:transparent; border:1.5px solid transparent; border-radius:6px;}
+.sr-note-in::placeholder{font-weight:400; color:var(--ink2); opacity:.75;}
+.sr-note-in:focus{outline:none; border-color:var(--chg); background:var(--paper);}
 .sr-note{font-family:'EBGaramond',Georgia,serif; font-size:16px; color:var(--ink); font-weight:600; margin:2px 0 3px;}
 .starbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
@@ -1089,16 +1099,45 @@ function paintBookmarks(el){
     el.appendChild(s); return;
   }
   items.forEach(function(m){
-    var b=document.createElement('button'); b.className='sres';
-    // Her note LEADS the row when she wrote one — a bookmark's snippet is the
-    // message's first line, which is rarely why she kept it.
-    b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
+    // The row is a wrapper, not a bare button, because the note is EDITABLE
+    // right here (Sophie: naming a backlog of old bookmarks one at a time by
+    // opening each message was a round trip per bookmark). An <input> cannot
+    // live inside a <button>, so the tappable part is its own button and the
+    // note sits above it.
+    var row=document.createElement('div'); row.className='bmkrow';
+    var inp=document.createElement('input'); inp.type='text';
+    inp.className='sr-note-in'; inp.value=m.note||'';
+    inp.placeholder='Name this one…';
+    inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
+    inp.setAttribute('aria-label','Why you kept this');
+    function save(){
+      var v=(inp.value||'').trim().slice(0,300);
+      if(v===(m.note||'')) return;
+      var prev=m.note||''; m.note=v;          // bmkCache holds this object
+      api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ m.note=prev; inp.value=prev; toast('Couldn’t save that'); });
+    }
+    inp.onblur=save;
+    inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } };
+    // Her note LEADS, above the snippet — the snippet is the message's first
+    // line and is rarely why she kept it, so it is the subtitle here. That
+    // ordering is why the row is a div with a handler rather than a <button>:
+    // an <input> can't live inside a button, and the note has to sit between
+    // the chat line and the snippet.
+    var head=document.createElement('div');
+    head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
-      +'<span class="sr-time">'+ago(m.created)+'</span></div>'
-      +(m.note?'<div class="sr-note">'+esc(m.note)+'</div>':'')
-      +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
-    b.onclick=function(){ openChat(m.chat, false, m.id); };
-    el.appendChild(b);
+      +'<span class="sr-time">'+ago(m.created)+'</span></div>';
+    var snip=document.createElement('div'); snip.className='sr-snip';
+    snip.textContent=m.snippet||'';
+    row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
+    row.setAttribute('role','button'); row.tabIndex=0;
+    row.onclick=function(e){
+      if(e.target===inp) return;          // typing a name must not open the chat
+      openChat(m.chat, false, m.id);
+    };
+    el.appendChild(row);
   });
 }
 function renderBookmarks(el){
