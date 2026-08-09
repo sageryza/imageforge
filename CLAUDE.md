@@ -689,6 +689,20 @@ lifted into a standalone tool later.
   with a 3h cap and a backstop (a reply newer than the mark means the turn
   finished, even if the clear was lost). The app's own reply box stamps the
   same mark server-side, so that path works with no hook at all.
+  **The mark arrives on polls that carry ZERO new messages — repaint anyway
+  (Aug 2026, the "it doesn't work" bug).** `workingAt` lives on the REGISTRY,
+  so a turn starting or ending changes no message doc, and chats.html's
+  `poll()` early-returned on an empty message list BEFORE repainting — the
+  fresh mark was stored in memory and never painted, so the tint effectively
+  only ever showed on a first-ever load or a manual Refresh tap (a normal app
+  open paints from the localStorage cache and then polls). The whole server
+  loop was verified working the entire time; when this tint "doesn't fire",
+  check the CLIENT repaint path before the hook or the server. `poll()` now
+  calls `paintLive()` whenever fresh `chats` arrive, before that return
+  (paintLive only toggles classes on tiles already on screen — no rebuild, no
+  scroll jump, safe every poll). Test:
+  `node scripts/test-chats-working-tint.js` (headless Chromium against a stub
+  feed; skips without playwright).
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old

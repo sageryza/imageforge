@@ -2082,6 +2082,13 @@ function poll(){
       if(data.chats) chats=data.chats;
       if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
+      // The working tint lives on the REGISTRY (workingAt), not on any message:
+      // a turn starting or ending usually arrives as fresh `chats` with ZERO new
+      // messages, which is exactly the early return below — so the mark landed
+      // in memory and was never painted, and the home screen never turned pink.
+      // paintLive() only toggles a class on tiles already on screen (no rebuild,
+      // no scroll jump), so it's safe to run on every poll.
+      if(!cur && data.chats) paintLive();
       if(!incoming.length) return;              // the common case: nothing to do
       // The delta is capped at 200 server-side. Hitting the cap means the
       // cache is so far behind (a long-untouched install) that messages fell
