@@ -137,6 +137,16 @@ body.native header #storiesbtn{position:static;}
   height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+/* The sheet is its own scroller, so the page's pill cannot drive it — it gets
+   one of its own, same look, in the same corner. */
+.sfloat{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:41;
+  display:flex; flex-direction:column; gap:8px; align-items:center;}
+.sfloat .vseg{display:flex; flex-direction:column; width:44px; border:1.5px solid var(--ink);
+  border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.sfloat button{border:none; background:transparent; color:var(--ink); width:44px; height:46px;
+  display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer;}
+.sfloat button+button{border-top:1.5px solid var(--ink);}
+.sfloat button.on{background:color-mix(in srgb, var(--gold,#a8845c) 18%, var(--paper)); color:var(--gold,#a8845c);}
 .sheet .wrap{padding-top:3vh;}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
 #inboxgrid button{aspect-ratio:2/3; border:1px solid var(--line); border-radius:4px; background:var(--barbg);
@@ -683,8 +693,39 @@ document.getElementById('newstory').onclick=function(ev){
    beat popup's inbox icon (fillBeat set → the choice becomes THAT beat's
    art, no placement step). */
 var fillBeat=null;
+// A pill for a sheet: same three buttons as the page's, but it scrolls the
+// sheet, which is its own scroller.
+function sheetPill(sheet){
+  var old=sheet.querySelector('.sfloat'); if(old) old.remove();
+  var I={up:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+         down:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+         play:'<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+         pause:'<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>'};
+  var el=document.createElement('div'); el.className='sfloat';
+  el.innerHTML='<div class="vseg"><button class="su"></button><button class="sm"></button><button class="sd"></button></div>';
+  var up=el.querySelector('.su'), mid=el.querySelector('.sm'), dn=el.querySelector('.sd');
+  var playing=false, raf=null, last=null, dir=1, acc=0;
+  function paint(){ up.innerHTML=I.up; dn.innerHTML=I.down; mid.innerHTML=playing?I.pause:I.play;
+    mid.classList.toggle('on',playing); }
+  function step(ts){ if(!playing) return;
+    if(last!=null){ acc+=dir*(ts-last)/1000*80;
+      var m=acc>0?Math.floor(acc):Math.ceil(acc);
+      if(m){ sheet.scrollTop+=m; acc-=m; }
+      if(dir>0 && sheet.scrollTop+sheet.clientHeight>=sheet.scrollHeight-4) return stop();
+      if(dir<0 && sheet.scrollTop<=2) return stop(); }
+    last=ts; raf=requestAnimationFrame(step); }
+  function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
+  function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
+  up.onclick=function(e){ e.stopPropagation(); playing?stop():start(-1); };
+  dn.onclick=function(e){ e.stopPropagation(); playing?stop():start(1); };
+  mid.onclick=function(e){ e.stopPropagation(); playing?stop():start(1); };
+  sheet.addEventListener('pointerdown',function(ev){ if(!ev.target.closest('.sfloat')) stop(); },true);
+  paint(); sheet.appendChild(el); sheet._stopPill=stop;
+  return el;
+}
 function openInbox(){
-  document.getElementById('inbox').hidden=false; lock(true);
+  var sh=document.getElementById('inbox');
+  sh.hidden=false; lock(true); sheetPill(sh);
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
     // A story that carries its own gathered art says so; otherwise this is
@@ -693,9 +734,13 @@ function openInbox(){
     if(hd) hd.textContent = (d.source==='story') ? 'This story\u2019s art' : 'From the Playground';
     var g=document.getElementById('inboxgrid'); g.innerHTML='';
     document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
+    // A picture she has already placed is gone from here, not dimmed: the
+    // inbox is what is still waiting to be used (Sophie, Aug 2026).
     var onPad={}; beats.forEach(function(b){onPad[b.url]=1;});
+    inboxItems=inboxItems.filter(function(it){ return !onPad[it.url]; });
+    document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
     inboxItems.forEach(function(it){
-      var el=document.createElement('button'); if(onPad[it.url])el.className='used';
+      var el=document.createElement('button');
       var im=document.createElement('img'); im.src=it.url; im.alt=''; im.loading='lazy'; el.appendChild(im);
       // stopPropagation matters: this click must not reach the document-level
       // cancel handler, which would clear the placing mode it just started.
@@ -706,7 +751,8 @@ function openInbox(){
 }
 document.getElementById('inboxbtn').onclick=function(){ fillBeat=null; openInbox(); };
 document.getElementById('inboxclose').onclick=function(){
-  document.getElementById('inbox').hidden=true;
+  var sh=document.getElementById('inbox'); if(sh._stopPill) sh._stopPill();
+  sh.hidden=true;
   if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); return; }
   lock(false);
 };
