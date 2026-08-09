@@ -1084,11 +1084,23 @@ lifted into a standalone tool later.
     "parked" note above it).** "When I mark something as a story, it takes it
     out of the normal list." So the unfiltered home is the UNFILED pile, an
     inbox, and a lit chip is that folder. Two consequences to keep in mind:
-    - **The chips carry a count and an unread dot.** Without them a filed
-      chat would simply vanish and a reply inside a folder would be silent —
-      the same reason the hidden bar names what is behind it. A filed chat
-      no longer shows its working tint on the home; STATUS still shows it,
-      and STATUS is deliberately NOT category-filtered.
+    - **The chips carry a dim TOTAL and a red ANSWERED badge.** Without them
+      a filed chat would simply vanish and a reply inside a folder would be
+      silent — the same reason the hidden bar names what is behind it. The
+      badge counts CHATS that came back and she hasn't opened (Sophie's ask:
+      "a little number next to stories that says if there's chats that just
+      recently answered to me"), not messages; it is the dots exception to
+      the no-pills rule, not a pill. A filed chat no longer shows its working
+      tint on the home; STATUS still shows it, and STATUS is deliberately NOT
+      category-filtered.
+    - **The home rows carry NO ✓ and NO letter icon (Aug 2026, Sophie).** A
+      chat with no picture used to get a box with a giant italic initial —
+      gone; 18 of ~190 chats have a real picture and those still show, so
+      the left edge is deliberately ragged. The ✓ came off the rows and the
+      hide ⊖ took its place on the right. **`mkCheck` is still on the STATUS
+      rows on purpose** — that view has a "Marked done" section, and pulling
+      the only control that writes `answeredAt` would leave it dead. Bring
+      the ✓ back to the rows by re-adding `mkCheck` in `renderList`.
     - **ARCHIVE deliberately does NOT hide filed chats.** It is already the
       "away for good" pile; filtering it down to the unfiled ones would
       leave a filed+archived chat reachable only by lighting the right chip

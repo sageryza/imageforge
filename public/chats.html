@@ -389,7 +389,15 @@ body.reading .backwrap{display:block;}
   padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper)); font-weight:600;}
 .catchip .cc-n{opacity:.6; margin-left:1px;}
-.catchip .cc-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--rose); margin-left:5px; vertical-align:middle;}
+/* HOW MANY ANSWERED (Sophie, Aug 2026: "a little number next to stories that
+   says if there's chats that just recently answered to me"). A dot said only
+   "something happened in here"; the number says how much. It is a badge — a
+   dot with a number in it — which is the "dots" exception to the no-pills
+   rule, not a pill button. */
+.catchip .cc-new{display:inline-flex; align-items:center; justify-content:center;
+  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px;
+  background:var(--chg); color:var(--paper); font-size:10px; font-weight:700;
+  letter-spacing:0; margin-left:5px; vertical-align:middle;}
 .iconbtn{flex:none; width:34px; height:34px; border:1.5px solid var(--line); border-radius:6px; background:transparent;
   color:var(--ink2); cursor:pointer; display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
@@ -858,9 +866,16 @@ function groups(){
 // (branch-derived); a custom displayName set in-app overrides it. Messages
 // still group by the real key, so renaming only changes the label.
 function dispName(name){ return (chats[name]&&chats[name].displayName)||name; }
-function iconHtml(name, cls){
+// A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
+// box with a giant italic initial in it, and Sophie asked for that gone ("a
+// little icon with a giant letter on all the chats — get rid of that"). So a
+// chat with no picture now contributes NOTHING and the row starts at its name.
+// `blank:true` keeps the old placeholder for the TILE cover, which is a fixed
+// square that has to be filled to hold its shape.
+function iconHtml(name, cls, blank){
   var icon=chats[name]&&chats[name].icon;
   if(icon) return '<img alt="" src="'+esc(icon)+'"'+(cls?' class="'+cls+'"':'')+'>';
+  if(!blank) return '';
   return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((dispName(name)||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
@@ -1154,14 +1169,19 @@ function paintCatRow(g){
     var mine=Object.keys(chats).filter(function(n){
       return chatCat(n)===c && !(chats[n]&&chats[n].archived);
     });
-    var fresh=mine.some(function(n){
+    // how many chats in here have ANSWERED her — a finished reply she has not
+    // opened. Counted per CHAT, not per message: "3" means three of them came
+    // back, which is the thing she is deciding whether to go look at.
+    var fresh=mine.filter(function(n){
       var last=lastOf(g,n);
       return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
-    });
+    }).length;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
     b.innerHTML=esc(catLabel(c))+(mine.length?' <span class="cc-n">'+mine.length+'</span>':'')
-      +(fresh?'<span class="cc-dot"></span>':'');
+      +(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', catLabel(c)+' — '+mine.length+' chats'
+      +(fresh? ', '+fresh+' answered you' : ''));
     b.onclick=function(){ cat=(cat===c?'':c); renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   });
@@ -1432,12 +1452,12 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
-    b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
+    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
-    var cov=b.querySelector('.t-cover'); cov.appendChild(mkCheck(name,last,b)); cov.appendChild(mkHide(name,last));
+    var cov=b.querySelector('.t-cover'); cov.appendChild(mkHide(name,last));
     if(selMode){ b.classList.toggle('picked', !!picked[name]); cov.appendChild(mkPick(name)); }
     b.onclick=function(){ if(selMode) togglePick(name,b); else openChat(name); };
     grid.appendChild(b);
@@ -1454,12 +1474,15 @@ function renderList(el,g,names){
     // Just the chat's name (Sophie's rule). The message snippet that used to sit
     // beside it was an inline span, so it never truncated — it ran over the
     // timestamp and the ✓ and off the side of the screen.
+    // No ✓ on the home rows for now (Sophie's ask) and the hide ⊖ takes the
+    // spot it had, on the right. Marking a chat answered still lives on the
+    // STATUS view, which is the screen that has a "Marked done" section to
+    // feed — pulling it from there too would leave that section dead.
     row.innerHTML=iconHtml(name,'cr-ic')
       +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    row.insertBefore(mkHide(name,last), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
-    row.appendChild(mkCheck(name,last,row));
+    row.appendChild(mkHide(name,last));
     if(selMode){ row.classList.toggle('picked', !!picked[name]); row.appendChild(mkPick(name)); }
     row.onclick=function(){ if(selMode) togglePick(name,row); else openChat(name); };
     wrap.appendChild(row);
