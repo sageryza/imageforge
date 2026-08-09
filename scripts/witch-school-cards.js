@@ -41,6 +41,9 @@ const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
 const STYLE = spec.style || DEFAULT_STYLE;
 const CHAR = spec.charDesc || DEFAULT_CHAR;
 const END = spec.end || DEFAULT_END;
+// Cards are square by default. A spec may set "size" (e.g. "1536x1024") — used by the
+// grid experiments, where a wider frame gives each cell more room.
+const SIZE = spec.size || '1024x1024';
 const KEY = process.env.OPENAI_API_KEY;
 if (!KEY) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 
@@ -66,7 +69,7 @@ async function generate(prompt) {
   const fd = new FormData();
   fd.append('model', 'gpt-image-2');
   fd.append('prompt', STYLE + prompt + END);
-  fd.append('size', '1024x1024');
+  fd.append('size', SIZE);
   fd.append('quality', 'medium');
   fd.append('n', '1');
   for (const p of spec.refs) {

@@ -1,0 +1,15 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited palette of ROYAL PURPLE #5B3A9B and BURNT ORANGE AMBER #C8701F with black ink, all on a warm IVORY CREAM background #F6EFE0. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions, no labels anywhere.",
+  "size": "1536x1024",
+  "cards": [
+    {
+      "id": "grid-2",
+      "prompt": "Two equal cells side by side with one thin ruled line between them, one simple object drawn centered in each cell, both drawn at the same size and weight: on the left a round cell with a nucleus, on the right a DNA double helix."
+    }
+  ]
+}
