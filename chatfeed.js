@@ -783,6 +783,18 @@ router.post('/category', async (req, res) => {
 // line on what it's working on. Both live on the registry doc, so they ride
 // the same cached read the home list already makes — the app shows them
 // under the chat's name. Session-first resolution like every other post.
+// A status line is ONE LINE under a chat's name on a phone. 110 chars is
+// about what fits before the row ellipsis eats it, and the cap is the only
+// thing that actually stops a chat pasting a changelog into the home screen
+// (one did, into her note field, within a day of that field existing).
+// Truncation is at a word boundary — a status line cut mid-word reads broken.
+function statusLine(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (s.length <= 110) return s;
+  const cut = s.slice(0, 110);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > 60 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
 router.post('/status', async (req, res) => {
   try {
     const { chat, session, need, doing } = req.body || {};
@@ -791,23 +803,35 @@ router.post('/status', async (req, res) => {
     const del = admin.firestore.FieldValue.delete();
     const patch = { statusAt: new Date().toISOString() };
     // Only the fields sent change; sending "" clears one.
-    if (need !== undefined) patch.statusNeed = String(need || '').trim().slice(0, 200) || del;
-    if (doing !== undefined) patch.statusDoing = String(doing || '').trim().slice(0, 200) || del;
+    if (need !== undefined) patch.statusNeed = statusLine(need) || del;
+    if (doing !== undefined) patch.statusDoing = statusLine(doing) || del;
     await regRef(resolved).set(patch, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
-// Sophie's own note on a chat — standing direction pinned to the chat ("keep
-// it loose", "don't touch the palette"), written from the app. It is HERS:
-// a chat reads it (GET /status below) and acts on it when she next messages,
-// but never clears it — she edits or clears it in the app herself.
+// Sophie's own note on a chat — HER reminder of where things stand, written
+// in the app and read by her ("research it, karaoke, tabs"). Not direction
+// for the chat, and NOT a place for a chat to write: one filed a 464-char
+// changelog here the day the field shipped, which is exactly the failure a
+// documented rule can't prevent. So the route REFUSES anything that doesn't
+// come from the app (`app:true`, sent by chats.html's editor) — the field is
+// hers by construction, not by good behaviour.
+//
+// 200 chars is the cap because her own notes run 26-66: telegraphic
+// fragments with commas. A field that can hold a paragraph invites one.
 router.post('/chatnote', async (req, res) => {
   try {
-    const { chat, note } = req.body || {};
+    const { chat, note, app } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!app) {
+      return res.status(403).json({
+        error: 'this note belongs to Sophie — it is written in the app, not by a chat. '
+          + 'Post your own status card to /api/chatfeed/status instead.',
+      });
+    }
     const target = await followMoves(chat);
     const del = admin.firestore.FieldValue.delete();
-    const val = String(note || '').trim().slice(0, 500);
+    const val = String(note || '').trim().slice(0, 200);
     await regRef(target).set({
       sophieNote: val || del,
       sophieNoteAt: val ? new Date().toISOString() : del,
