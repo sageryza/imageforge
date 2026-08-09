@@ -85,6 +85,7 @@
     '.ckp-read w.a{border-top-left-radius:6px; border-bottom-left-radius:6px;}' +
     '.ckp-read w.z{border-top-right-radius:6px; border-bottom-right-radius:6px;}' +
     '.ckp-read w.pend{outline:2px solid var(--chg,#b3443f); outline-offset:1px;}' +
+    '.ckp-read w.cut{outline:2px dashed var(--chg,#b3443f); outline-offset:1px;}' +
     '.ckp-bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0 0;' +
     ' font-size:13.5px; color:var(--ink2);}' +
     '.ckp-bar b{color:var(--ink); font-weight:600;}' +
@@ -115,6 +116,8 @@
     down: '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
     x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     undo: '<svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>',
+    scissors: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>' +
+      '<path d="M20 4 8.12 15.88"/><path d="M14.47 14.48 20 20"/><path d="M8.12 8.12 12 12"/></svg>',
   };
 
   /* ── one shared audio element per page ───────────────────────────── */
@@ -242,7 +245,7 @@
     });
 
     var inst = {
-      opts: opts, picks: [], pend: null, undoStack: [],
+      opts: opts, picks: [], pend: null, splitting: null, undoStack: [],
       dirty: {}, saveTimer: null,
       savedFlag: function () {
         savedEl.classList.add('on');
@@ -323,6 +326,26 @@
       return -1;
     }
     function tap(i) {
+      // split mode (the tile's scissors): the tapped word becomes the FIRST
+      // word of the second part — so one pick becomes two, back to back, and
+      // each part can get its own picture / speaker / note downstream
+      // (Sophie's ask, Aug 2026: "this is where one part starts and another
+      // part stops"). A tap anywhere else just leaves split mode.
+      if (inst.splitting !== null) {
+        var sn = -1;
+        inst.picks.forEach(function (p, m) { if (p.k === inst.splitting) sn = m; });
+        inst.splitting = null;
+        if (sn >= 0) {
+          var sp = inst.picks[sn];
+          if (i > sp.a && i <= sp.z) {
+            var second = { k: 'p' + Math.random().toString(36).slice(2, 7), a: i, z: sp.z, note: '' };
+            sp.z = i - 1;                          // the note stays on part one
+            inst.picks.splice(sn + 1, 0, second);
+            scheduleSave(inst, [sp.k].concat(orderKeys()));
+          }
+        }
+        paint(); return;
+      }
       if (inst.pend === null) {
         var k = inPick(i);
         if (k >= 0) { removePick(k); return; }
@@ -368,16 +391,24 @@
     }
 
     function paint() {
-      ws.forEach(function (w) { w.classList.remove('pick', 'a', 'z', 'pend'); });
+      ws.forEach(function (w) { w.classList.remove('pick', 'a', 'z', 'pend', 'cut'); });
       inst.picks.forEach(function (p) {
         for (var i = p.a; i <= p.z; i++) if (ws[i]) ws[i].classList.add('pick');
         if (ws[p.a]) ws[p.a].classList.add('a');
         if (ws[p.z]) ws[p.z].classList.add('z');
       });
       if (inst.pend !== null && ws[inst.pend]) ws[inst.pend].classList.add('pend');
+      if (inst.splitting !== null) {
+        inst.picks.forEach(function (p) {
+          if (p.k !== inst.splitting) return;
+          for (var i = p.a; i <= p.z; i++) if (ws[i]) ws[i].classList.add('cut');
+        });
+      }
       var n = inst.picks.length;
       cnt.textContent = n ? (n + (n === 1 ? ' pick' : ' picks')) : 'no picks yet';
-      statusEl.textContent = inst.pend !== null ? 'now tap the last word'
+      statusEl.textContent = inst.splitting !== null
+        ? 'tap the word where the new part starts'
+        : inst.pend !== null ? 'now tap the last word'
         : (n ? 'tap a first word to add another' : 'tap a first word to start');
       undoBtn.disabled = !inst.undoStack.length;
       if (playAllBtn) playAllBtn.disabled = !n;
@@ -406,9 +437,19 @@
         up.disabled = n === 0; down.disabled = n === inst.picks.length - 1;
         up.addEventListener('click', function () { move(n, -1); });
         down.addEventListener('click', function () { move(n, 1); });
+        row.appendChild(up); row.appendChild(down);
+        if (p.z > p.a) {                 // a one-word pick has nowhere to cut
+          var cut = mkBtn(I.scissors, 'split this pick in two');
+          cut.addEventListener('click', function () {
+            inst.pend = null;
+            inst.splitting = (inst.splitting === p.k) ? null : p.k;
+            paint();
+          });
+          row.appendChild(cut);
+        }
         var del = mkBtn(I.x, 'remove this pick');
         del.addEventListener('click', function () { removePick(n); });
-        row.appendChild(up); row.appendChild(down); row.appendChild(del);
+        row.appendChild(del);
         if (hasTimes) {
           var span = spanOf(inst, p);
           if (span) {
