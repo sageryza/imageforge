@@ -152,10 +152,29 @@ async function fetchBuf(url) {
   // Verbatim mode. Every span must appear in her transcript character for
   // character — that check is the whole point, so it aborts rather than
   // quietly drawing from something she never said.
-  const spans = spansFile ? JSON.parse(fs.readFileSync(spansFile, 'utf8')) : {};
-  for (const [page, span] of Object.entries(spans)) {
-    if (!dreamText.includes(span)) throw new Error(`span for page ${page} is NOT an exact substring of the dream transcript`);
-    console.log(`page ${page}: verbatim span verified, ${span.length} chars of her own words`);
+  // An entry is either "<span>" or {span, must:[{quote, draw}]}. `must` is the
+  // second lever, and it exists because the span alone is NOT enough: handed
+  // her whole passage, gpt-image-2 still drew a ceramic bowl for "one of my
+  // paper bowls" and big rigatoni for "little penne pieces" — a strong object
+  // prior beats a detail buried in 1,387 chars of speech. Each `quote` is
+  // checked against her transcript too, so a must-draw item can only ever be
+  // something she actually said.
+  const raw = spansFile ? JSON.parse(fs.readFileSync(spansFile, 'utf8')) : {};
+  const spans = {};
+  for (const [page, v] of Object.entries(raw)) {
+    const e = typeof v === 'string' ? { span: v, must: [] } : { must: [], ...v };
+    if (!dreamText.includes(e.span)) throw new Error(`span for page ${page} is NOT an exact substring of the dream transcript`);
+    // A quote may come from the transcript OR from an approved cast
+    // description — both are hers. The cast descriptions matter because a
+    // person's look often lives ONLY there ("moroccan adult with like gray
+    // hair, kind of stocky" was never spoken in the dream itself).
+    const herWords = [dreamText, ...cast.map(c => c.desc || '')];
+    for (const m of e.must) {
+      if (!herWords.some(t => t.includes(m.quote))) throw new Error(`must-draw quote for page ${page} is not her words: "${m.quote}"`);
+    }
+    spans[page] = e;
+    console.log(`page ${page}: verbatim span verified, ${e.span.length} chars of her own words`
+      + (e.must.length ? `, ${e.must.length} must-draw detail(s) verified` : ''));
   }
 
   console.log(`${dream.title} — ${wanted.length} of ${total} page(s), style ref ${styleFile}, quality ${quality}`);
@@ -213,13 +232,17 @@ async function fetchBuf(url) {
     // concrete nouns are the spec, and where she hedges between two things
     // ("i don't know if it was shlomo") it has to commit to one rather than
     // averaging them into something generic.
-    const span = spans[String(i + 1)];
-    const sliceLine = span
-      ? `THIS page covers ONLY this part of it, quoted VERBATIM in the dreamer's own spoken words: "${span}". `
+    const e = spans[String(i + 1)];
+    const mustLine = e && e.must.length
+      ? 'These details of hers are frequently drawn wrong by default — get each one right exactly as described: '
+        + e.must.map(m => `she said "${m.quote}" — ${m.draw}`).join('; ') + '. '
+      : '';
+    const sliceLine = e
+      ? `THIS page covers ONLY this part of it, quoted VERBATIM in the dreamer's own spoken words: "${e.span}". `
         + 'Draw only that part. These are her actual words, not a summary — every concrete detail in them is a '
         + 'specification: draw the exact objects she names, in the material, size and state she gives them, and '
         + 'ignore only her speech filler ("like", "um", false starts). Where she is unsure between two '
-        + 'possibilities, pick one and draw it plainly. '
+        + `possibilities, pick one and draw it plainly. ${mustLine}`
       : `THIS page covers ONLY this part of it: "${String(p.text || '')}". Draw only that part. `;
     const prompt = `${styleIntro}${continuity}`
       + `This is page ${i + 1} of ${total} of a hand-drawn comic telling a real dream. `
@@ -239,10 +262,13 @@ async function fetchBuf(url) {
     const url = `https://storage.googleapis.com/${bucket.name}/${name}`;
     console.log(`  ${url}`);
     rendered.push({ url, who });
-    out.push({ page: i + 1, url, file, prompt, text: p.text, captions: caps, who, attachments: refs.length });
+    out.push({ page: i + 1, url, file, prompt, text: p.text, captions: caps, who, attachments: refs.length, drawnNow: true });
     fs.writeFileSync(path.join(outDir, 'prompts.json'),
       JSON.stringify({ dreamId, title: dream.title, styleFile, quality, pages: out }, null, 2));
   }
-  console.log(`done — ${out.length} page(s), $${(out.length * (PANEL_COST[quality] || 0.06)).toFixed(2)}`);
+  // Count only what was DRAWN — pages carried in from a previous run for their
+  // references cost nothing and must not be billed in the log.
+  const drawn = out.filter(o => o.drawnNow).length;
+  console.log(`done — ${drawn} page(s) drawn, $${(drawn * (PANEL_COST[quality] || 0.06)).toFixed(2)}`);
   process.exit(0);
 })().catch(err => { console.error(err); process.exit(1); });
