@@ -686,6 +686,27 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
+// the chat list. A hidden chat leaves the list so she can see the rest, and
+// waits behind the bar until she taps it open.
+//
+// Deliberately a BOOLEAN, not a stamp like answeredAt/flaggedAt. Those clear
+// themselves the moment a newer message lands, which is right for "answered"
+// and exactly wrong here: the chat she just took out of the list would pop
+// back into it on its next reply. Hidden stays hidden until she puts it back.
+// Archived is the same shape for the same reason — hidden is the lighter one
+// of the pair (come back to this soon), archive is the shelf.
+router.post('/hide', async (req, res) => {
+  try {
+    const { chat, hidden } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = hidden !== false;
+    await regRef(chat)
+      .set({ hidden: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, hidden: on });
+  } catch (err) { fail(res, err); }
+});
+
 // Turn started (v8, Aug 2026) — the hook pings this from UserPromptSubmit the
 // moment Sophie messages a session, and the app tints that chat pink until the
 // reply lands. This tiny route exists because the obvious signal doesn't work:

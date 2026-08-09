@@ -4,7 +4,7 @@
 // these are the assets that were just delivered"). Drives the REAL
 // public/chats.html in a headless browser against a stub API and asserts:
 //   1. the header's status icon opens the view (title says Status),
-//   2. chats bucket correctly — flagged first in WAITING, then unread;
+//   2. chats bucket correctly — the chats she HID lead WAITING, then unread;
 //      a working chat rows under WORKING with the live tint; an answered
 //      chat rows under MARKED DONE, grayed,
 //   3. the delivered strip renders the cross-chat assets + the new page row,
@@ -34,7 +34,7 @@ const PX = Buffer.from(
 
 const MSGS = [
   { id: 'm1', chat: 'chat-wait', from: 'claude', text: 'finished the storyboard', tldr: 'storyboard done', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
-  { id: 'm2', chat: 'chat-flag', from: 'claude', text: 'options are up', tldr: 'options ready', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
+  { id: 'm2', chat: 'chat-hide', from: 'claude', text: 'options are up', tldr: 'options ready', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
   { id: 'm3', chat: 'chat-done', from: 'claude', text: 'shipped it', tldr: 'shipped', created: iso(T0 - 10800000), postedAt: iso(T0 - 10800000) },
   { id: 'm4', chat: 'chat-work', from: 'claude', text: 'older reply', tldr: 'older', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
 ];
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const reg = {
       'chat-wait': { lastSeen: MSGS[0].created },
-      'chat-flag': { lastSeen: MSGS[1].created, flaggedAt: iso(T0) },
+      'chat-hide': { lastSeen: MSGS[1].created, hidden: true },
       'chat-done': { lastSeen: MSGS[2].created, answeredAt: iso(T0) },
       'chat-work': { lastSeen: MSGS[3].created, workingAt: iso(T0) },
     };
@@ -60,7 +60,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ assets: [
       { url: '/px.png?a=1', thumb: '/px.png?a=1', chat: 'chat-wait', created: iso(T0 - 600000), description: 'Penny — the blue Kleenex' },
-      { url: '/px.png?a=2', thumb: '/px.png?a=2', chat: 'chat-flag', created: iso(T0 - 1200000) },
+      { url: '/px.png?a=2', thumb: '/px.png?a=2', chat: 'chat-hide', created: iso(T0 - 1200000) },
     ] }));
   }
   if (url.pathname === '/api/chatfeed/pages-recent') {
@@ -113,13 +113,13 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.click('#stlink');
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status');
 
-  // 2. bucketing + ordering: flagged first among waiting, working tinted,
+  // 2. bucketing + ordering: hidden first among waiting, working tinted,
   //    answered grayed under done
   const rows = await page.$$eval('#grid .crow[data-chat]', (ns) => ns.map((n) => ({
     chat: n.dataset.chat, live: n.classList.contains('live'), done: n.classList.contains('done'),
   })));
   const order = rows.map((r) => r.chat);
-  if (JSON.stringify(order) !== JSON.stringify(['chat-flag', 'chat-wait', 'chat-work', 'chat-done'])) {
+  if (JSON.stringify(order) !== JSON.stringify(['chat-hide', 'chat-wait', 'chat-work', 'chat-done'])) {
     fail('row order wrong: ' + order.join(','));
   }
   const work = rows.find((r) => r.chat === 'chat-work');

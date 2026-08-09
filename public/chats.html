@@ -247,13 +247,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
 /* "Answered" check — mark a chat done; it grays until a newer message arrives */
-.ckbtn,.flagbtn{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92); color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
-.ckbtn svg,.flagbtn svg{width:14px; height:14px; display:block;}
+.ckbtn,.hidebtn{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92); color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.ckbtn svg,.hidebtn svg{width:14px; height:14px; display:block;}
 .ckbtn.on{background:#5d7a5a; color:#fff;}
-.flagbtn.on{background:#c2703a; color:#fff;}
+.hidebtn.on{background:#b3443f; color:#fff;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
-.t-cover .flagbtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
-.crow .ckbtn,.crow .flagbtn{width:31px; height:31px; flex:none; margin-left:2px;}
+.t-cover .hidebtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
+.crow .ckbtn,.crow .hidebtn{width:31px; height:31px; flex:none; margin-left:2px;}
+/* The HIDDEN bar — a red bar at the top of where the chats live (Aug 2026,
+   Sophie). Only drawn when something is actually hidden; tapping it opens the
+   pile underneath it, tapping again puts it away. The red is a FIXED colour in
+   both themes: --chg goes salmon in dark, and this has to read as red. */
+.hidebar{display:flex; align-items:center; gap:9px; width:100%; margin:0 0 10px; padding:9px 12px;
+  background:#b3443f; color:#fff6ef; border:none; border-radius:6px; cursor:pointer; text-align:left;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  font-weight:600; -webkit-tap-highlight-color:transparent;}
+.hidebar svg{width:15px; height:15px; flex:none; display:block;}
+.hidebar .hb-n{flex:1; min-width:0;}
+.hidebar .hb-new{letter-spacing:.06em; opacity:.85; text-transform:none;}
+.hidebar .hb-chev{transition:transform .16s ease;}
+.hidebar.open .hb-chev{transform:rotate(180deg);}
+.hidelist{margin:0 0 16px;}
 /* ---- Status view (the fourth home view) ----------------------------------
    One prioritized screen: what's waiting on her, what's working right now,
    what just landed. Rows reuse the .crow look (and its ✓/! buttons); thumbs
@@ -923,8 +937,9 @@ function stHead(txt, n){
   h.innerHTML=esc(txt)+(n?' <span class="stn">'+n+'</span>':'');
   return h;
 }
-// A status row is the home list's .crow — same icon, same ✓/! triage buttons
-// (mark answered / flag without opening anything) — plus a one-line snippet.
+// A status row is the home list's .crow — same icon, same ✓/hide buttons (mark
+// answered, or take it off the list, without opening anything) — plus a
+// one-line snippet.
 function stRow(name, list, last, snip, live){
   var row=document.createElement('button');
   row.className='crow'+(chatMuted(name,last)?' done':'')+(live?' live':'');
@@ -933,7 +948,7 @@ function stRow(name, list, last, snip, live){
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
     +(snip?'<span class="cr-snip">'+esc(snip)+'</span>':'')+'</span>'
     +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-  row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);
+  row.insertBefore(mkHide(name), row.firstChild.nextSibling);
   row.appendChild(mkCheck(name,last,row));
   row.onclick=function(){ openChat(name); };
   return row;
@@ -982,13 +997,17 @@ function renderStatus(el){
     var list=g[name]||[]; var last=list.length? list[list.length-1]:null;
     if(!last) return;
     if(chatWorking(name,last)){ working.push([name,list,last]); return; }
-    if(chatFlagged(name,last)){ waiting.push([name,list,last,true]); return; }
+    // The chats she HID lead this list. Hiding is her deliberate come-back-to
+    // pile (it took the ! flag's place), and Status is the one screen where
+    // they should surface — the home list is exactly where she doesn't want
+    // them.
+    if(chatHidden(name)){ waiting.push([name,list,last,true]); return; }
     if(chatDone(name,last)){ done.push([name,list,last]); return; }
     // unread = a finished reply she hasn't opened — the only honest
     // "waiting on you" signal for an unmarked chat
     if(last.from!=='sophie' && (seen[name]||'')<(last.created||'')) waiting.push([name,list,last,false]);
   });
-  // her flagged queue first; the sort is stable, so within each group the
+  // her hidden queue first; the sort is stable, so within each group the
   // newest-first order from sortedChatNames holds
   waiting.sort(function(a,b){ return (b[3]?1:0)-(a[3]?1:0); });
   el.appendChild(stHead('Waiting on you', waiting.length));
@@ -1027,6 +1046,36 @@ function renderStatus(el){
     el.appendChild(dl);
   }
 }
+// ---- The HIDDEN bar --------------------------------------------------------
+// A red bar at the top of where the chats live (Aug 2026, Sophie): the chats
+// she has taken out of the list wait behind it, so the rest of the list is
+// what she actually wants to look at. Tapping the bar opens the pile in place,
+// tapping it again puts it away.
+//
+// Open/closed is SESSION-ONLY and every load starts CLOSED — persisting "open"
+// would quietly undo the whole feature the next morning.
+//
+// The bar only exists when something is hidden. There is nothing to explain
+// when the pile is empty, and the way in is the ⊖ on any chat, not the bar.
+var hideOpen=false;
+function renderHiddenBar(el,g,hid){
+  if(!hid.length) return;
+  // Anything new behind the bar is named on it — otherwise a hidden chat that
+  // replied would be invisible everywhere until she happened to look.
+  var fresh=hid.filter(function(n){
+    var l=g[n]||[]; var last=l.length? l[l.length-1] : null;
+    return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
+  }).length;
+  var bar=document.createElement('button'); bar.className='hidebar'+(hideOpen?' open':'');
+  bar.setAttribute('aria-expanded', hideOpen?'true':'false');
+  bar.innerHTML=HD+'<span class="hb-n">Hidden '+hid.length
+    +(fresh? ' <span class="hb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV;
+  bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
+  el.appendChild(bar);
+  if(!hideOpen) return;
+  var box=document.createElement('div'); box.className='hidelist'; el.appendChild(box);
+  if(view==='list') renderList(box,g,hid); else renderTiles(box,g,hid);
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
@@ -1034,7 +1083,9 @@ function renderHome(){
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
   var all=sortedChatNames(g);
-  var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
+  var live=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
+  var names=live.filter(function(n){ return !chatHidden(n); });
+  var hid=live.filter(chatHidden);
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
   paintHomeChrome();
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -1047,6 +1098,13 @@ function renderHome(){
     return;
   }
   if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
+  renderHiddenBar(el,g,hid);
+  if(!names.length){
+    // every live chat is behind the bar — say so, or the screen reads as empty
+    el.appendChild(Object.assign(document.createElement('div'),
+      {className:'state', textContent:'Everything is hidden — tap Hidden to see it.'}));
+    return;
+  }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
@@ -1055,8 +1113,11 @@ function renderHome(){
 // exclusive; either one grays the tile.
 function stampActive(a,last){ if(!a) return false; return !last || a>=(last.created||''); }
 function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
-function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
-function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
+function chatMuted(name,last){ return chatDone(name,last); }
+// HIDDEN is a plain boolean on the registry, NOT a self-clearing stamp like
+// answeredAt: a chat she took out of the list must not walk back into it the
+// moment it posts a reply. It stays hidden until she puts it back.
+function chatHidden(name){ return !!(chats[name]&&chats[name].hidden); }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
 //   1. its newest message is a live draft (working:true — the hook's
@@ -1097,12 +1158,17 @@ function chatWorking(name,last){
   return !at || (now-at) < LIVE_STALE;
 }
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-var FL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M12 19h.01"/></svg>';
+// Hide / put back. Deliberately NOT an eye (Sophie's call) — an eye says
+// "look at this", and the pair below says what actually happens to the row:
+// minus takes it OFF the list, plus puts it back. Same circle either way, so
+// the two read as one control in two states, the way ✓ does.
+var HD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
+var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+var CHEV='<svg class="hb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
 function paintMarks(name,last,container){
   container.classList.toggle('done', chatMuted(name,last));
   var ck=container.querySelector('.ckbtn'); if(ck) ck.classList.toggle('on', chatDone(name,last));
-  var fl=container.querySelector('.flagbtn'); if(fl) fl.classList.toggle('on', chatFlagged(name,last));
 }
 // Repaint just the working tint on the tiles/rows already on screen. A draft
 // starting or finishing must show up even when she's scrolled down the home
@@ -1119,38 +1185,43 @@ function paintLive(){
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
   ck.innerHTML=CK; ck.setAttribute('aria-label','Mark answered');
-  ck.onclick=function(e){ e.stopPropagation(); toggleMark(name,last,container,'done'); };
+  ck.onclick=function(e){ e.stopPropagation(); toggleMark(name,last,container); };
   return ck;
 }
-function mkFlag(name,last,container){
-  var fl=document.createElement('button'); fl.className='flagbtn'+(chatFlagged(name,last)?' on':'');
-  fl.innerHTML=FL; fl.setAttribute('aria-label','Flag to come back to');
-  fl.onclick=function(e){ e.stopPropagation(); toggleMark(name,last,container,'flag'); };
-  return fl;
+// The hide button sits where the ! flag used to (Sophie, Aug 2026: "you could
+// replace the ! with it"). Hiding IS the come-back-to-this-later mark now, and
+// it does the thing the flag only implied — the chat leaves the list.
+function mkHide(name){
+  var hid=chatHidden(name);
+  var b=document.createElement('button'); b.className='hidebtn'+(hid?' on':'');
+  b.innerHTML=hid?UNHD:HD;
+  b.setAttribute('aria-label', hid?'Put this chat back in the list':'Hide this chat');
+  b.onclick=function(e){ e.stopPropagation(); toggleHide(name); };
+  return b;
 }
-// One toggler for both marks. Setting one clears the other (exclusive); the
-// server enforces the same so a reload matches. Optimistic with rollback.
-function toggleMark(name,last,container,kind){
-  var prevA=(chats[name]&&chats[name].answeredAt)||null, prevF=(chats[name]&&chats[name].flaggedAt)||null;
+// Optimistic with rollback, and a full repaint either way: the row has to move
+// between the list and the pile behind the bar, so there is nothing to patch
+// in place. Hiding never opens the pile — that would undo what she just asked
+// for — so the row simply goes and the bar's count goes up by one.
+function toggleHide(name){
+  var prev=chatHidden(name);
+  chats[name]=chats[name]||{}; chats[name].hidden=!prev;
+  renderHome();
+  toast(prev? 'Back in the list' : 'Hidden');
+  api('/api/chatfeed/hide',{method:'POST',body:JSON.stringify({chat:name, hidden:!prev})})
+    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    .catch(function(){ chats[name].hidden=prev; renderHome(); toast('Couldn’t save that'); });
+}
+// Answered (the green ✓). Optimistic with rollback.
+function toggleMark(name,last,container){
+  var prevA=(chats[name]&&chats[name].answeredAt)||null;
   chats[name]=chats[name]||{};
-  var now=new Date().toISOString();
-  if(kind==='done'){
-    var willDone=!chatDone(name,last);
-    chats[name].answeredAt = willDone? now : null;
-    if(willDone) chats[name].flaggedAt=null;
-    paintMarks(name,last,container);
-    api('/api/chatfeed/answered',{method:'POST',body:JSON.stringify({chat:name, answered:willDone})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){ chats[name].answeredAt=prevA; chats[name].flaggedAt=prevF; paintMarks(name,last,container); toast('Couldn’t save that'); });
-  } else {
-    var willFlag=!chatFlagged(name,last);
-    chats[name].flaggedAt = willFlag? now : null;
-    if(willFlag) chats[name].answeredAt=null;
-    paintMarks(name,last,container);
-    api('/api/chatfeed/flag',{method:'POST',body:JSON.stringify({chat:name, flagged:willFlag})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){ chats[name].answeredAt=prevA; chats[name].flaggedAt=prevF; paintMarks(name,last,container); toast('Couldn’t save that'); });
-  }
+  var willDone=!chatDone(name,last);
+  chats[name].answeredAt = willDone? new Date().toISOString() : null;
+  paintMarks(name,last,container);
+  api('/api/chatfeed/answered',{method:'POST',body:JSON.stringify({chat:name, answered:willDone})})
+    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    .catch(function(){ chats[name].answeredAt=prevA; paintMarks(name,last,container); toast('Couldn’t save that'); });
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
@@ -1167,7 +1238,7 @@ function renderTiles(el,g,names){
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +(status? '<span class="t-tldr">'+esc(status)+'</span>':'')
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
-    var cov=b.querySelector('.t-cover'); cov.appendChild(mkCheck(name,last,b)); cov.appendChild(mkFlag(name,last,b));
+    var cov=b.querySelector('.t-cover'); cov.appendChild(mkCheck(name,last,b)); cov.appendChild(mkHide(name));
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
@@ -1187,7 +1258,7 @@ function renderList(el,g,names){
       +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span></span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    row.insertBefore(mkFlag(name,last,row), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
+    row.insertBefore(mkHide(name), row.firstChild.nextSibling);   // far from the check, so it's not an accidental tap
     row.appendChild(mkCheck(name,last,row));
     row.onclick=function(){ openChat(name); };
     wrap.appendChild(row);
