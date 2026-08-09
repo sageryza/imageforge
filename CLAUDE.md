@@ -674,19 +674,30 @@ lifted into a standalone tool later.
   `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
   it at init. A RUNNING session is different: it has network, and curl is the
   right tool for self-healing there (see the self-heal note below).
-- **THE ROSE WORKING TINT IS SWITCHED OFF (Aug 2026, Sophie: "the pink tint
-  on things that were working just never worked, so from now on I'll just
-  hide them if they're working and then they'll come back when they're
-  done").** Her workaround beats the feature and needs no hook at all: hide
-  the chat, and the `hiddenAt` stamp pops it back out the moment it answers.
-  **It is CSS-ONLY** — the `.crow.live`/`.tile.live` block in chats.html is
-  commented out, and `chatWorking()`, the `workingAt` registry mark,
-  `paintLive()` and the class still going onto the rows are all untouched,
-  because STATUS's "Working right now" section reads the same signal. Bring
-  the tint back by un-commenting that block; read the note below FIRST, since
-  the reason it "never worked" for her is upstream of the CSS.
-- **THE WORKING TINT NEEDS A TURN-START PING — her own message is NOT a
-  usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
+- **THE ROSE WORKING TINT IS BACK ON, AND THE CAUSE WAS NEVER THE PAGE (Aug
+  2026 — the day this was finally understood).** It was switched off for one
+  evening ("the pink tint on things that were working just never worked"),
+  then Sophie re-pasted the current setup script into her cloud environment
+  and a fresh session reported the v8 hook (`grep -c PostToolUse …` → 7).
+  `workingAt` had simply never been written: the environment's snapshot held
+  a pre-v7 hook that does not send the turn-start ping, so there was nothing
+  to tint. **Weeks of work went into the wrong layer** — #931 and #933 fixed
+  the client repaint, #901/#908/#910/#911 corrected this file's own wrong
+  claims — while the fix was one paste into the environment dialog that
+  nobody had handed her as a step. **When the tint looks dead, check the HOOK
+  FIRST**, in a NEW session (the setup script never re-runs in a resumed
+  one): `grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`, 0 =
+  stale snapshot → re-paste `docs/chats-autopost-setup-script.sh`.
+- **AUTO-PARKING A CHAT SHE ANSWERED IS RETIRED — it defeats the tint (Aug
+  2026, same conversation, Sophie: "now that they can show the pink tint,
+  maybe they don't need to hide automatically since the main point was just
+  to know who is working").** `POST /reply` and `POST /working` stamped
+  `hiddenAt` alongside `workingAt` for a few hours; a chat that hides itself
+  the instant she answers is off the list, so there is nothing left to tint.
+  They can't both be on. Only `workingAt` is stamped now; **manual hiding
+  (the ⊖) is untouched**. Bringing it back means taking the tint off again.
+- **HOW THE PING GOT THERE — the turn-start ping, and why her own message is
+  NOT a usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
   hers") looks right and is useless: the hook can only lift her message out of
   the TRANSCRIPT, and at UserPromptSubmit the transcript does not contain it
@@ -1163,7 +1174,9 @@ lifted into a standalone tool later.
       category-filtered.
     - **NOTHING in the app writes `answeredAt` anymore (Aug 2026, Sophie:
       "the checkmark next to chats — I don't actually know what it does,
-      take it off").** The ✓ came off the STATUS rows too, so MARKED DONE
+      take it off" — she meant the STATUS icon beside the masthead, but the
+      ✓ had already gone from the rows and came off Status in the same
+      pass).** The ✓ came off the STATUS rows too, so MARKED DONE
       only ever shows chats stamped before that day. `chatDone` /
       `toggleMark` / `mkCheck` and `POST /answered` all still exist — the ✓
       is one `appendChild` away in `renderList` or `stRow`. **Ask her before
