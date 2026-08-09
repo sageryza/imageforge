@@ -299,7 +299,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
 /* ---- The running to-do list ---------------------------------------------- */
-.todoadd{display:flex; gap:8px; margin:0 0 14px;}
+/* The add row RESERVES THE PILL'S CORNER. On this view the tool row and the
+   search bar are hidden, so the add row rides up into the pill's band (y
+   14–192) and the Add button landed underneath it, untappable — Sophie caught
+   it the first time she used the list. Same 56px reservation every other row
+   on this page carries. */
+.todoadd{display:flex; gap:8px; margin:0 0 14px; padding-right:56px;}
 .todoadd input{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif;
   font-size:16px; color:var(--ink); background:var(--barbg); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px;}
