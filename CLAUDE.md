@@ -1122,6 +1122,19 @@ lifted into a standalone tool later.
     exist before anything is filed; anything typed into select mode's New…
     box joins them. Tapping the LIT chip clears back to everything — the Dump
     sort page's convention, and why there is no "All" chip.
+  - **A CATEGORY IS A THING, not a side effect of filing (Aug 2026 — she made
+    one and it wasn't there).** Two bugs, both real: typing a name with NO
+    chats picked toasted "Nothing picked" and threw the name away, and the
+    New… box only committed on Enter — she DICTATES these and dictation ends
+    with a tap elsewhere, not a press of return. So the name is now stored on
+    the `__settings` doc (`categories`, arrayUnion), `POST /category` accepts
+    an empty `chats`, the box commits on blur too, and `catList()` = seeds +
+    settings.categories + names in use. An empty folder outlives the filing
+    that created it.
+  - **The home header has NO eyebrow** (Aug 2026, Sophie: "that's wasted real
+    estate"). It said "deck factory · every chat, one place" above a screen
+    she opens from a tile that already says Chats. The THREAD header keeps
+    its `.no` row — that one carries the crumb, Archive and Hide.
   - **The filter is session-only, never persisted.** A sticky filter would
     show her three chats one morning and read as the rest having vanished.
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
