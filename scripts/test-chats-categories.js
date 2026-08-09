@@ -10,7 +10,9 @@
 //   4. FILING MOVES a chat: it leaves the unfiltered list, the chip counts it,
 //      and a lit chip is that folder (tapping it again clears back),
 //   5. a category typed into the bar's New… box becomes a chip of its own,
-//   6. the filter narrows the HIDDEN pile too, not just the visible list.
+//   6. the filter narrows the HIDDEN pile too, not just the visible list,
+//   7. the chip badges HOW MANY chats in there have answered her, counted per
+//      chat, and the badge goes once she has seen them.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-categories.js
 //
@@ -102,8 +104,8 @@ const chips = (page) => page.$$eval('#catrow .catchip',
   if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech'])) fail('seeded chips wrong: ' + cs.join(','));
   // and the seeded Stories chip already counts the hidden chat filed under it
   const seeded = await page.$$eval('#catrow .catchip', (ns) =>
-    ns.map((n) => n.textContent.replace(/\s+/g, ' ').trim()));
-  if (seeded[0] !== 'Stories 1') fail('Stories chip did not count its hidden chat: ' + seeded[0]);
+    ns.map((n) => n.firstChild.textContent.trim() + '|' + ((n.querySelector('.cc-n') || {}).textContent || '')));
+  if (seeded[0] !== 'Stories|1') fail('Stories chip did not count its hidden chat: ' + seeded[0]);
 
   // 3. select mode picks two chats and one chip files them
   await page.click('#selbtn');
@@ -124,8 +126,9 @@ const chips = (page) => page.$$eval('#catrow .catchip',
   let rows = await listed(page);
   if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('filed chats did not leave the list: ' + rows.join(','));
   const techChip = await page.$$eval('#catrow .catchip', (ns) =>
-    ns.map((n) => n.textContent.replace(/\s+/g, ' ').trim()).find((t) => t.indexOf('Tech') === 0));
-  if (techChip !== 'Tech 2') fail('chip did not count what it holds: ' + techChip);
+    ns.filter((n) => n.textContent.trim().indexOf('Tech') === 0)
+      .map((n) => (n.querySelector('.cc-n') || {}).textContent || '')[0]);
+  if (techChip !== '2') fail('chip did not count what it holds: ' + techChip);
   // the lit chip IS that folder, and tapping it again goes back to the unfiled
   await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.textContent.trim().indexOf('Tech') === 0).click(); });
   rows = await listed(page);
@@ -156,6 +159,26 @@ const chips = (page) => page.$$eval('#catrow .catchip',
   cs = await chips(page);
   if (cs.indexOf('Crystals') < 0) fail('typed category never became a chip: ' + cs.join(','));
   if (!catPosts.some((p) => p.category === 'crystals' && p.chats[0] === 'chat-c')) fail('POST /category missed the typed one');
+
+  // 7. the answered badge: chat-a and chat-b are filed under Tech and neither
+  //    has been opened, so Tech carries a 2
+  const techBadge = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.filter((n) => n.textContent.trim().indexOf('Tech') === 0)
+      .map((n) => (n.querySelector('.cc-new') || {}).textContent || '')[0]);
+  if (techBadge !== '2') fail('Tech chip did not badge 2 answered: ' + JSON.stringify(techBadge));
+  // seeing them clears it: mark both chats seen the way opening them does
+  await page.evaluate(() => {
+    const seen = JSON.parse(localStorage.getItem('chats-seen-v1') || '{}');
+    seen['chat-a'] = new Date(Date.now() + 60000).toISOString();
+    seen['chat-b'] = new Date(Date.now() + 60000).toISOString();
+    localStorage.setItem('chats-seen-v1', JSON.stringify(seen));
+  });
+  await page.reload();
+  await page.waitForSelector('#catrow .catchip');
+  const after = await page.$$eval('#catrow .catchip', (ns) =>
+    ns.filter((n) => n.textContent.trim().indexOf('Tech') === 0)
+      .map((n) => !!n.querySelector('.cc-new'))[0]);
+  if (after) fail('the answered badge survived her seeing the chats');
 
   await browser.close();
   server.close();
