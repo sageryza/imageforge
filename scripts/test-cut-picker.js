@@ -85,19 +85,33 @@ __PILL__
     ok(inst.picks.length===1 && inst.picks[0].a===0 && inst.picks[0].z===1,
        'a suggested span seeds an untouched sheet as a pick');
 
+    // 8. the mount opts out of the Chats viewer's tap-toggles-scroll gesture
+    //    (without data-nostop, tapping a word STARTED the autoscroll in the
+    //    app's embedded viewer — Sophie hit it on the first demo)
+    ok(document.getElementById('p1').hasAttribute('data-nostop'),
+       'the picker region carries data-nostop by construction');
+
+    // 9. tapping the same word twice deselects it — no one-word pick
+    W(3).click(); W(3).click();
+    ok(inst.picks.length===1 && inst.pend===null,
+       'tapping the pending word again deselects it');
+
     // 1. tap first + last word → a pick
     W(4).click(); W(6).click();
     ok(inst.picks.length===2 && inst.picks[1].a===4 && inst.picks[1].z===6,
        'tap a first word then a last word makes a pick');
     ok(W(5).classList.contains('pick'), 'the picked words paint');
 
-    // 6. a tap on a word pauses a running autoscroll (compare.js contract)
+    // 6. a tap on a word pauses a running autoscroll. The picker region is
+    //    data-nostop (so the embedded viewer's tap gesture can't START the
+    //    scroll from it), which also means compare.js's pointerdown handler
+    //    skips it — the picker's own click handler does the pausing.
     window.__scrollStart(1);
     var playing = !!document.querySelector('.vseg button.on');
-    W(8).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+    W(8).click();
     ok(playing && !document.querySelector('.vseg button.on'),
        'a tap on a transcript word pauses the autoscroll');
-    // (a pointerdown alone starts no pend — pend only starts on a click)
+    W(8).click();                       // same word again — deselects the pend
 
     setTimeout(function(){
       // 2. saves are per-pick fields
