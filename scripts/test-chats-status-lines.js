@@ -118,6 +118,11 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (!notePosts.some((p) => p.chat === 'chat-card' && p.note === 'try the blues next')) {
     fail('POST /chatnote never carried the edited note: ' + JSON.stringify(notePosts));
   }
+  // `app:true` is what makes the note field hers by construction — the route
+  // 403s a post without it, so a chat can't write a changelog in there again.
+  if (!notePosts.every((p) => p.app === true)) {
+    fail('the app\'s /chatnote post is missing app:true — the server will refuse it');
+  }
 
   await browser.close();
   server.close();

@@ -839,12 +839,20 @@ lifted into a standalone tool later.
   that chat is currently working on").** The card shows under the chat's name
   on the `/chats` home (list, tiles, and the Status view — the ask reads in
   rose). `POST /api/chatfeed/status { chat, session, need, doing }`:
-  - `need` = what you need from Sophie, in her words, with the size of the
-    ask — "pick a palette — 10 seconds", "listen to the two cuts". Send `""`
-    when nothing is needed; an empty `need` is the honest default, and a
-    stale ask is worse than none.
-  - `doing` = one plain line on what you're working on ("drawing the six
-    lesson cards"). Clear it (`""`) when you finish.
+  - **WRITE IT THE WAY SHE WRITES HER OWN NOTES (Aug 2026, measured against
+    the real ones): telegraphic fragments, commas between, NO connecting
+    words, ~30-60 chars.** Hers read "research it, karaoke, tabs" and
+    "compare and Tinder templates" — that is the target. Not a sentence, not
+    a summary, never a changelog: a chat pasted a 464-character release note
+    into her field the day it shipped, which is what prompted this rule. The
+    server truncates at 110 chars, but hitting the cap means you wrote the
+    wrong thing.
+  - `need` = what you need from her, with the size of the ask — "pick a
+    palette, 10 seconds", "listen to two cuts". Send `""` when nothing is
+    needed; an empty `need` is the honest default, and a stale ask is worse
+    than none.
+  - `doing` = what you're on — "six lesson cards, drawing now". Clear it
+    (`""`) when you finish.
   - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
     is session-first like every other post, so the card lands on your
     effective chat whatever your branch slug says.
@@ -858,7 +866,10 @@ lifted into a standalone tool later.
   on the chat's home row with no prefix. `GET /api/chatfeed/status` returns
   it (`note`) — you may read it for context, but it is not an instruction,
   it needs no action and no reply, and `POST /chatnote` belongs to the app:
-  a chat never writes, edits, or clears it.
+  a chat never writes, edits, or clears it. **This is now enforced, not
+  trusted** — the route requires `app:true` and 403s anything else, because
+  a chat filed a 464-char changelog there the day the field shipped. If you
+  want to say what you're doing, that is your STATUS CARD, above.
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
