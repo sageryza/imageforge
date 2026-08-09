@@ -687,6 +687,10 @@ function openInbox(){
   document.getElementById('inbox').hidden=false; lock(true);
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
+    // A story that carries its own gathered art says so; otherwise this is
+    // still the Playground hearts.
+    var hd=document.querySelector('#inbox .no');
+    if(hd) hd.textContent = (d.source==='story') ? 'This story\u2019s art' : 'From the Playground';
     var g=document.getElementById('inboxgrid'); g.innerHTML='';
     document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
     var onPad={}; beats.forEach(function(b){onPad[b.url]=1;});

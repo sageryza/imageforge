@@ -157,6 +157,7 @@ async function readPad(padId) {
   return {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
+    inbox: Array.isArray(v.inbox) ? v.inbox : null,
     updatedAt: v.updatedAt || 0,
   };
 }
@@ -213,11 +214,18 @@ router.post('/pads', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// The inbox: every Playground image Sophie hearted, newest run first. Votes
-// live on the run docs, so this is a pure read — nothing is copied anywhere.
+// The inbox. A story that carries its OWN inbox shows that instead of the
+// Playground hearts (Aug 2026, Sophie): the art a story already has —
+// gathered from the chats that made it — is what she wants to place on the
+// timeline, not whatever she last hearted in the Playground. A pad with no
+// inbox of its own behaves exactly as before, so nothing that exists breaks.
 router.get('/inbox', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
+    const own = (await readPad(padIdOf(req))).inbox;
+    if (own && own.length) {
+      return res.json({ count: own.length, items: own, source: 'story' });
+    }
     const q = await db().collection(PROMPTLAB)
       .orderBy('createdAt', 'desc').limit(300).get();
     const items = [];
@@ -234,7 +242,34 @@ router.get('/inbox', async (req, res) => {
         });
       });
     });
-    res.json({ count: items.length, items });
+    res.json({ count: items.length, items, source: 'playground' });
+  } catch (e) { fail(res, e); }
+});
+
+// Fill a story's own inbox — the art it already has, gathered from wherever it
+// was made. `items` is [{url, prompt?, model?, quality?, style?, src?}];
+// `replace:false` appends and skips urls already there.
+router.post('/inbox', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const incoming = (Array.isArray(req.body.items) ? req.body.items : [])
+      .filter((x) => x && typeof x.url === 'string' && /^https?:\/\//.test(x.url))
+      .slice(0, 600)
+      .map((x) => ({
+        url: x.url,
+        prompt: x.prompt == null ? null : String(x.prompt).slice(0, 600),
+        model: x.model == null ? null : String(x.model).slice(0, 80),
+        quality: x.quality == null ? null : String(x.quality).slice(0, 40),
+        style: x.style == null ? null : String(x.style).slice(0, 60),
+        src: x.src == null ? null : String(x.src).slice(0, 80),
+        at: Number(x.at) || null,
+      }));
+    const cur = (await readPad(pid)).inbox || [];
+    const keep = req.body.replace ? [] : cur;
+    const seen = new Set(keep.map((x) => x.url));
+    const merged = keep.concat(incoming.filter((x) => !seen.has(x.url) && seen.add(x.url)));
+    await padRef(pid).set({ inbox: merged, updatedAt: Date.now() }, { merge: true });
+    res.json({ ok: true, pad: pid, count: merged.length, added: merged.length - keep.length });
   } catch (e) { fail(res, e); }
 });
 
