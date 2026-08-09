@@ -2537,6 +2537,11 @@ app.get('/import', serveGated('ingest.html'));
 // Firebase so a chat can pull them back out to price, sort into listings, and
 // build the numbered pick-your-own grids. Engine is /api/crystals (crystals.js).
 app.get('/crystals', serveGated('crystals.html'));
+// The Crystal Splitter — an album's photos in shooting order, one tap on any
+// photo that starts a NEW stone. Most of the dumped albums are catalogue runs
+// (20-50 stones each), and nothing in the data says where one stops, so this is
+// the surface that asks. Pill injected: it's a long scrolling wall of photos.
+app.get('/crystalsplit', serveGated('crystalsplit.html', { pill: true }));
 
 // Audio drop: recordings off the phone (the Files app's picker is multi-select)
 // into Firebase, each one back as a permanent public url anything downstream can

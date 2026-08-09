@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crystal Splitter</title>
+<style>
+  /* Sibling palette to the Cutting Room / Cut Marks / Episode Editor — gold
+     outline + gold icon on cream. The five names the INJECTED autoscroll pill
+     styles itself from must exist on :root or it renders black on transparent
+     (house gotcha), so they are defined here alongside the tool's own. */
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    --badbg:#F5E2DC;
+    /* the pill's five */
+    --ink2:#7A7266; --chg:#C79633; --rose:#B4462F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:110px}
+  /* [hidden] must ALWAYS win over author display rules (house gotcha). */
+  [hidden]{display:none !important}
+  /* Inside the app the native nav bar carries the title + back chevron. */
+  body.native #back{display:none !important}
+  body.native .eyebrow{display:none}
+  body.native.at-home header{display:none}
+  body.at-home header h1, body.at-home .hmeta{display:none}
+  svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; display:block}
+
+  /* header — page-owned. The top-right corner is RESERVED for the pill. */
+  header{position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:8px 14px;
+    padding-right:calc(max(14px, 4vw) + 54px); display:flex; align-items:center; gap:10px}
+  #back{width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:transparent; border:none; color:var(--goldline); flex:none}
+  .htext{min-width:0; flex:1}
+  .eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--soft); font-weight:600}
+  header h1{font-family:Georgia,'Times New Roman',serif; font-weight:400; font-size:17px; margin:1px 0 0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hmeta{font-size:12px; color:var(--soft); margin-top:1px}
+  #hicons{display:flex; gap:6px; align-items:center; flex:none}
+  .hbtn{width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--cream); border:1px solid var(--goldline); color:var(--goldline); border-radius:6px}
+  .hbtn svg{width:15px; height:15px}
+  .hbtn.dim{opacity:.35}
+
+  .wrap{padding:14px; max-width:760px; margin:0 auto}
+  button{font:inherit; cursor:pointer}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:11px 14px; display:inline-flex; align-items:center; gap:8px; font-weight:600}
+  .btn:active{background:#F1E6CE}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .muted{color:var(--soft); font-size:13px}
+  .tiny{font-size:12px; color:var(--soft)}
+
+  /* help card (icon-first tool → a "?" that explains the icons) */
+  #helpcard{background:var(--cream); border:1px solid var(--goldline); border-radius:6px;
+    padding:12px 14px; margin-bottom:12px; font-size:14px}
+  #helpcard b{font-weight:600}
+  #helpcard .r{display:flex; gap:9px; align-items:flex-start; margin:7px 0}
+  #helpcard .r svg{flex:none; margin-top:3px; color:var(--goldline)}
+
+  /* album list */
+  .album{display:flex; gap:11px; align-items:center; background:var(--card);
+    border:1px solid var(--line); border-radius:6px; padding:10px; margin-bottom:8px; width:100%;
+    text-align:left; color:inherit}
+  .album img{width:56px; height:56px; border-radius:6px; object-fit:cover; flex:none;
+    background:var(--cream); border:1px solid var(--line)}
+  .album .n{font-weight:600}
+  .album .grow{flex:1; min-width:0}
+  .done{color:var(--goldline); font-weight:600}
+
+  /* stone sections */
+  .stone{margin:18px 0 6px}
+  .stonehead{display:flex; gap:8px; align-items:center; padding:6px 2px;
+    border-top:2px solid var(--goldline); margin-bottom:7px}
+  .stonen{font-family:Georgia,serif; font-size:15px; color:var(--goldline); font-weight:600; flex:none}
+  .stonehead input{flex:1; min-width:0; font:inherit; font-size:14px; padding:6px 8px;
+    border:1px solid var(--line); border-radius:6px; background:var(--card); color:inherit}
+  .tmt{display:flex; gap:4px; flex:none}
+  .tmt button{border:1px solid var(--line); background:var(--card); color:var(--soft);
+    border-radius:6px; padding:5px 8px; font-size:12px; font-weight:600}
+  .tmt button.on{border-color:var(--goldline); color:var(--goldline); background:var(--cream)}
+  .warn{font-size:12px; color:var(--bad); background:var(--badbg); border-radius:6px;
+    padding:4px 8px; display:inline-block; margin-bottom:6px}
+
+  /* photo tiles — 3 up. `thumb`, never the full-res original. */
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+  .tile{position:relative; aspect-ratio:1; border-radius:6px; overflow:hidden;
+    border:1px solid var(--line); background:var(--cream); padding:0}
+  .tile img{width:100%; height:100%; object-fit:cover; display:block}
+  .tile .cut{position:absolute; left:4px; bottom:4px; width:28px; height:28px; border-radius:6px;
+    background:rgba(255,255,255,.92); border:1px solid var(--goldline); color:var(--goldline);
+    display:flex; align-items:center; justify-content:center; padding:0}
+  .tile .cut svg{width:15px; height:15px}
+  .tile.first .cut{border-color:var(--goldline); background:var(--gold); color:#fff}
+  .tile .vid{position:absolute; right:4px; top:4px; color:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+  .tile.skipped img{opacity:.28}
+  .tile.skipped:after{content:'not a stone'; position:absolute; inset:auto 0 0 0; background:var(--badbg);
+    color:var(--bad); font-size:10px; font-weight:600; text-align:center; padding:2px}
+
+  /* lightbox — the careful path: look closely, then decide */
+  #lb{position:fixed; inset:0; background:rgba(28,25,21,.94); z-index:40; display:flex;
+    flex-direction:column}
+  #lb img{flex:1; min-height:0; width:100%; object-fit:contain}
+  #lbbar{padding:10px 12px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px;
+    background:#1C1915}
+  #lbbar .btn{flex:1; justify-content:center; background:transparent; color:var(--gold);
+    border-color:var(--gold)}
+  #lbbar .btn.on{background:var(--gold); color:#1C1915}
+  #lbclose{position:absolute; top:calc(8px + env(safe-area-inset-top)); right:10px; width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:#fff}
+
+  /* the running count */
+  #foot{position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--paper);
+    border-top:1px solid var(--line); padding:9px 14px calc(9px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:10px}
+  #foot .c{font-family:Georgia,serif; font-size:16px}
+  #foot .grow{flex:1}
+  #saving{font-size:12px; color:var(--soft)}
+</style>
+</head>
+<body class="at-home">
+
+<header>
+  <button id="back" aria-label="Back">
+    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div class="htext">
+    <div class="eyebrow">CRYSTAL SPLITTER</div>
+    <h1 id="title">—</h1>
+    <div class="hmeta" id="meta"></div>
+  </div>
+  <div id="hicons">
+    <button class="hbtn" id="help" aria-label="What the icons do">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="helpcard" hidden>
+    <div class="r">
+      <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>
+      <div><b>Scissors</b> — this photo is a <b>new stone</b>. Everything after it belongs to that stone until the next pair of scissors. Gold means it's already the start of one.</div>
+    </div>
+    <div class="r">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
+      <div><b>Tap the picture</b> to see it big. The same two choices are there, so you can look properly before deciding.</div>
+    </div>
+    <div class="r">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <div><b>Not a stone</b> — a tray shot, a lightbox test, a close-up of a weight sticker. It leaves the count without breaking the run it sits in.</div>
+    </div>
+    <div class="r">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+      <div><b>Own / Grid</b> — how that stone gets sold. Its own listing, or a numbered slot in a pick-your-own grid. Nothing here writes to Etsy.</div>
+    </div>
+  </div>
+
+  <div id="home">
+    <p class="muted" id="homehint">Pick an album. Tap the scissors on any photo that's a new stone — everything between two pairs of scissors is one stone, which is one listing.</p>
+    <div id="albums"></div>
+  </div>
+
+  <div id="split" hidden>
+    <div id="stones"></div>
+  </div>
+</div>
+
+<div id="foot" hidden>
+  <div class="c"><span id="count">0</span> stones</div>
+  <div class="grow"></div>
+  <div id="saving"></div>
+</div>
+
+<div id="lb" hidden>
+  <button id="lbclose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  <img id="lbimg" alt="">
+  <div id="lbbar">
+    <button class="btn" id="lbcut">Starts a new stone</button>
+    <button class="btn" id="lbskip">Not a stone</button>
+  </div>
+</div>
+
+<script>
+/* Wrapped in an IIFE on purpose: the injected autoscroll pill runs in GLOBAL
+   scope declaring `var raf`, `var I`, `var playing`… and a page-level `let` of
+   any of those kills the pill's script at parse time (house gotcha). Only
+   window.__navBack is exposed. */
+(function(){
+  'use strict';
+  var API = '/api/crystals';
+  var albums = [], cur = null, lbIndex = -1, saveTimer = null, dirty = false;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  function api(path, opts){
+    return fetch(API + path, opts).then(function(r){
+      if (!r.ok) return r.text().then(function(t){ throw new Error(t || r.status); });
+      return r.json();
+    });
+  }
+
+  /* ---------- album list ---------- */
+  function loadAlbums(){
+    return api('/split/albums').then(function(d){
+      albums = d.albums || [];
+      $('albums').innerHTML = albums.map(function(a){
+        var done = a.started ? '<span class="done">' + a.stones + ' stones marked</span>'
+                             : '<span class="tiny">not split yet</span>';
+        return '<button class="album" data-b="' + esc(a.bundle) + '">' +
+          '<img src="' + esc(a.cover || '') + '" alt="">' +
+          '<span class="grow"><span class="n">' + esc(a.bundleName || a.bundle) + '</span><br>' +
+          '<span class="tiny">' + a.photos + ' photos' +
+          (a.videos ? ' · ' + a.videos + ' videos' : '') + ' · </span>' + done + '</span></button>';
+      }).join('');
+    });
+  }
+
+  /* ---------- one album ---------- */
+  function openAlbum(bundle){
+    return api('/split/' + encodeURIComponent(bundle)).then(function(d){
+      cur = d;
+      cur.markSet = {}; (d.marks||[]).forEach(function(id){ cur.markSet[id] = 1; });
+      cur.skipSet = {}; (d.skip||[]).forEach(function(id){ cur.skipSet[id] = 1; });
+      cur.names = d.names || {}; cur.treatment = d.treatment || {};
+      document.body.classList.remove('at-home');
+      $('home').hidden = true; $('split').hidden = false; $('foot').hidden = false;
+      $('title').textContent = d.bundleName || d.bundle;
+      try { localStorage.setItem('crystalsplit_open', bundle); } catch(e){}
+      render();
+    });
+  }
+
+  function backHome(){
+    flush();
+    cur = null;
+    document.body.classList.add('at-home');
+    $('home').hidden = false; $('split').hidden = true; $('foot').hidden = true;
+    $('title').textContent = '—'; $('meta').textContent = '';
+    try { localStorage.removeItem('crystalsplit_open'); } catch(e){}
+    loadAlbums();
+  }
+
+  /* Group the album's photos exactly the way the server's deriveStones does —
+     the page must never disagree with the numbers the listings will use. */
+  function stones(){
+    var out = [], curStone = null;
+    (cur.photos||[]).forEach(function(p){
+      if (cur.skipSet[p.id]) return;
+      if (!curStone || cur.markSet[p.id]) { curStone = { startId: p.id, photos: [] }; out.push(curStone); }
+      curStone.photos.push(p);
+    });
+    return out;
+  }
+
+  var CUT = '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>';
+  var PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>';
+
+  function tile(p, isFirst){
+    var skipped = cur.skipSet[p.id] ? ' skipped' : '';
+    return '<div class="tile' + (isFirst ? ' first' : '') + skipped + '" data-id="' + esc(p.id) + '">' +
+      '<img loading="lazy" src="' + esc(p.thumb || p.url) + '" alt="" data-zoom="' + esc(p.id) + '">' +
+      (p.media === 'video' ? '<span class="vid">' + PLAY + '</span>' : '') +
+      '<button class="cut" data-cut="' + esc(p.id) + '" aria-label="New stone starts here">' + CUT + '</button>' +
+      '</div>';
+  }
+
+  function render(){
+    var st = stones(), html = '';
+    st.forEach(function(s, i){
+      var t = cur.treatment[s.startId] || '';
+      var few = s.photos.filter(function(p){ return p.media !== 'video'; }).length < 5;
+      html += '<div class="stone"><div class="stonehead">' +
+        '<span class="stonen">' + (i+1) + '</span>' +
+        '<input placeholder="name it (optional)" value="' + esc(cur.names[s.startId] || '') +
+          '" data-name="' + esc(s.startId) + '">' +
+        '<span class="tmt">' +
+          '<button data-t="own" data-for="' + esc(s.startId) + '"' + (t==='own'?' class="on"':'') + '>Own</button>' +
+          '<button data-t="grid" data-for="' + esc(s.startId) + '"' + (t==='grid'?' class="on"':'') + '>Grid</button>' +
+        '</span></div>';
+      if (few && t === 'own') html += '<div class="warn">only ' + s.photos.length + ' photos — needs a re-shoot for its own listing</div>';
+      html += '<div class="tiles">' + s.photos.map(function(p, j){ return tile(p, j === 0); }).join('') + '</div></div>';
+    });
+    // Skipped photos still have to be reachable to un-skip, so they render in
+    // place inside the stone they sit in — as a dimmed tile, not hidden.
+    var skipped = (cur.photos||[]).filter(function(p){ return cur.skipSet[p.id]; });
+    if (skipped.length) {
+      html += '<div class="stone"><div class="stonehead"><span class="stonen">Not stones</span></div>' +
+        '<div class="tiles">' + skipped.map(function(p){ return tile(p, false); }).join('') + '</div></div>';
+    }
+    $('stones').innerHTML = html;
+    $('count').textContent = st.length;
+    var vids = (cur.photos||[]).filter(function(p){ return p.media === 'video'; }).length;
+    $('meta').textContent = (cur.photos||[]).length - vids + ' photos' + (vids ? ' · ' + vids + ' videos' : '');
+  }
+
+  /* ---------- edits ---------- */
+  function toggleCut(id){
+    // The album's first photo always starts a stone; a mark there would be a
+    // no-op that reads as a broken button, so it simply isn't offered.
+    if (cur.photos.length && cur.photos[0].id === id) return;
+    if (cur.markSet[id]) delete cur.markSet[id]; else cur.markSet[id] = 1;
+    touched();
+  }
+  function toggleSkip(id){
+    if (cur.skipSet[id]) delete cur.skipSet[id]; else cur.skipSet[id] = 1;
+    touched();
+  }
+  function touched(){ dirty = true; render(); queueSave(); }
+
+  function queueSave(){
+    $('saving').textContent = 'saving…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 600);
+  }
+  function body(){
+    return JSON.stringify({
+      marks: Object.keys(cur.markSet), skip: Object.keys(cur.skipSet),
+      names: cur.names, treatment: cur.treatment,
+    });
+  }
+  function flush(){
+    if (!cur || !dirty) return;
+    dirty = false; clearTimeout(saveTimer);
+    api('/split/' + encodeURIComponent(cur.bundle), {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: body(),
+    }).then(function(){ $('saving').textContent = 'saved'; })
+      .catch(function(){ dirty = true; $('saving').textContent = 'not saved — retrying'; queueSave(); });
+  }
+  // A half-typed name must survive navigating away (sendBeacon still delivers
+  // during pagehide, fetch does not).
+  window.addEventListener('pagehide', function(){
+    if (!cur || !dirty) return;
+    try { navigator.sendBeacon(API + '/split/' + encodeURIComponent(cur.bundle),
+      new Blob([body()], { type:'application/json' })); dirty = false; } catch(e){}
+  });
+
+  /* ---------- lightbox ---------- */
+  var savedY = 0;
+  function openLb(id){
+    var i = cur.photos.findIndex(function(p){ return p.id === id; });
+    if (i < 0) return;
+    lbIndex = i;
+    savedY = window.scrollY;
+    if (window.__scrollStop) window.__scrollStop();
+    document.body.style.overflow = 'hidden';
+    var p = cur.photos[i];
+    $('lbimg').src = p.url;              // full-res here, on purpose
+    $('lbcut').classList.toggle('on', !!cur.markSet[id]);
+    $('lbskip').classList.toggle('on', !!cur.skipSet[id]);
+    $('lb').hidden = false;
+  }
+  function closeLb(){
+    $('lb').hidden = true; lbIndex = -1;
+    document.body.style.overflow = '';
+    // Locking scroll does NOT stop window.scrollBy, so anything that restarted
+    // the autoscroll under the overlay would have moved the page — restore the
+    // exact position she opened it from (house rule).
+    window.scrollTo(0, savedY);
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    var alb = t.closest && t.closest('[data-b]');
+    if (alb) return void openAlbum(alb.getAttribute('data-b'));
+    var cut = t.closest && t.closest('[data-cut]');
+    if (cut) return void toggleCut(cut.getAttribute('data-cut'));
+    var zoom = t.closest && t.closest('[data-zoom]');
+    if (zoom) return void openLb(zoom.getAttribute('data-zoom'));
+    var tm = t.closest && t.closest('[data-t]');
+    if (tm) {
+      var key = tm.getAttribute('data-for'), val = tm.getAttribute('data-t');
+      if (cur.treatment[key] === val) delete cur.treatment[key]; else cur.treatment[key] = val;
+      return void touched();
+    }
+    if (t.closest && t.closest('#help')) {
+      var h = $('helpcard'); h.hidden = !h.hidden; return;
+    }
+    if (t.closest && t.closest('#back')) return void window.__navBack();
+  });
+
+  $('lbclose').addEventListener('click', closeLb);
+  $('lbcut').addEventListener('click', function(){
+    if (lbIndex < 0) return;
+    toggleCut(cur.photos[lbIndex].id);
+    $('lbcut').classList.toggle('on', !!cur.markSet[cur.photos[lbIndex].id]);
+  });
+  $('lbskip').addEventListener('click', function(){
+    if (lbIndex < 0) return;
+    toggleSkip(cur.photos[lbIndex].id);
+    $('lbskip').classList.toggle('on', !!cur.skipSet[cur.photos[lbIndex].id]);
+  });
+
+  document.addEventListener('input', function(e){
+    var n = e.target.closest && e.target.closest('[data-name]');
+    if (!n) return;
+    var k = n.getAttribute('data-name');
+    if (n.value.trim()) cur.names[k] = n.value.trim(); else delete cur.names[k];
+    dirty = true; queueSave();          // no re-render — it would eat the caret
+  });
+
+  /* Any tap pauses the autoscroll, with the SHARED exempt list applied — and
+     the pill itself exempt, or repainting it mid-press eats its own click. */
+  document.addEventListener('pointerdown', function(e){
+    if (e.target && e.target.closest && e.target.closest('.float')) return;
+    if (window.__scrollTap) window.__scrollTap(e);
+    else if (window.__scrollStop) window.__scrollStop();
+  }, true);
+
+  // The native chevron asks the page first: album → list → leave the tool.
+  window.__navBack = function(){
+    if (!$('lb').hidden) { closeLb(); return true; }
+    if (cur) { backHome(); return true; }
+    return false;
+  };
+
+  loadAlbums().then(function(){
+    var open = null;
+    try { open = localStorage.getItem('crystalsplit_open'); } catch(e){}
+    var q = new URLSearchParams(location.search).get('album');
+    if (q || open) openAlbum(q || open).catch(backHome);
+  }).catch(function(e){
+    $('albums').innerHTML = '<p class="muted">Could not load the albums: ' + esc(e.message) + '</p>';
+  });
+})();
+</script>
+</body>
+</html>

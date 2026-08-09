@@ -1589,6 +1589,66 @@ lifted into a standalone tool later.
 - PATCH writes are whitelisted to `EDITABLE` — everything else on the doc
   (url, storagePath, createdAt) is server-owned. Queries use a single equality
   filter and sort in memory, so no composite Firestore index is needed.
+### The Splitter — `/crystalsplit` (Aug 2026), where one stone stops and the next begins
+- **The album-is-one-stone model above is WRONG for most of the real data.** The
+  photos never came through `/upload` — Sophie dumped them into the **Dump**
+  (`forge-drops`, folder "Crystals": **15 albums, 629 photos + 33 videos**). Only
+  TWO albums are one stone ("Clear quartz cluster", "Selenite sphere", plus the
+  one tiger's-eye sphere shot properly). The rest are catalogue runs — one stone,
+  a couple of shots, next stone — so a single album holds 20-50 separate stones.
+  "Individual crystals" is ~20 labradorite freeforms; "Sectarian day two" is
+  **septarian** (voice-to-text) and ~50 pieces in the lightbox. **Roughly 175
+  stones in total.** Don't rebuild anything on album=stone.
+- **Most stones have 1-3 photos, which is a grid slot but NOT a listing** (Etsy
+  wants 5-10). `enoughForOwnListing` derives the re-shoot list from that; the
+  re-shoot itself is physical work, not a computer job.
+- **How they get sold (Sophie, Aug 2026): treatments 1 and 2 MIXED, per stone** —
+  its own listing for the individually striking pieces (big labradorite
+  freeforms, amethyst clusters), a numbered **pick-your-own grid** slot for the
+  many-similar ones (septarian, tiger's eye spheres, pink quartz). Her older
+  idea from the July brief still stands: run "you choose" and "you get what you
+  get" as two listings over the same stones, two price points (the one case
+  where Etsy's duplicate-listing policy really applies — word them as genuinely
+  distinct).
+- **Nothing can DERIVE the stone boundaries and a wrong guess is expensive** —
+  three consecutive frames of a yellow septarian are either one stone turned
+  around or three different stones, and reading it wrong puts a number on a grid
+  that two customers can buy. So the splitter asks: the album's photos in
+  shooting order, one tap on any photo that starts a NEW stone; everything
+  between two marks is one stone is one listing.
+- **Marks are FILE IDS, never indexes.** Re-dumping an album tops it up and
+  `photoIndex` is allocated per arrival, so an index-keyed split would silently
+  re-point at different photos. `names`/`treatment` key off the id of a stone's
+  FIRST photo for the same reason.
+- **The split is its own doc** (`forge-crystal-splits`, id = the bundle slug) and
+  the photos are read live — it never changes any grouping or label in the Dump,
+  so a split is always re-editable and throwing one away costs only the taps.
+- **TILES MUST USE `thumb`, NEVER `url`.** A Dump photo is the full-resolution
+  original (~3.7MB — correct, Etsy wants 2000px+) and an album is up to 100 of
+  them. `node scripts/crystal-thumbs.js` writes a 480px webp beside each photo
+  (content-addressed off the source bytes, one-year immutable cache) and adds
+  `thumbUrl` to the drop doc — the one field the splitter writes back. **Re-run
+  it after any new crystal dump**; `--force` rebuilds, `--bundle`/`--track`
+  narrow it. Ran once over all 629 on 2026-08-09.
+- **Routes** (on `/api/crystals`, same gate): `GET /split/albums` (every Crystals
+  album + split progress), `GET /split/:bundle` (photos in order + marks),
+  `POST /split/:bundle` `{marks?, skip?, names?, treatment?}` (whole state, merge
+  write), `GET /split/:bundle/stones` (the derived stones — what a listing
+  writer, a grid builder or the re-shoot list reads).
+- **`deriveStones` rules, pinned by tests** (`node scripts/test-crystal-split.js`,
+  12 cases): no marks = ONE stone (not zero — the first photo starts a stone by
+  definition); a mark on photo 0 is a harmless no-op and the page refuses to
+  offer it; **a skipped photo does NOT break the run it sits in** (that is how a
+  tray shot or a weight-sticker close-up leaves the count without splitting a
+  stone in two); numbering is positional, so **any re-split renumbers and a grid
+  must be re-rendered, never patched**. Page tested headless:
+  `node scripts/test-crystal-split-page.js`.
+- **Weights are already on some stones** — several septarian carry blue stickers
+  with the weight written on them (14.4oz, 11.7oz), readable straight off the
+  photos.
+- The Dump album **"crystals"** (#62, 15 files) is NOT photos — it's AI-generated
+  crystal illustrations mis-filed into the Crystals folder. "Light box review" is
+  4 shots of Sophie testing the lightbox, not a stone.
 - **A/B testing note (July 2026 research):** Etsy has NO native split test, and
   changing tags/title on a live listing resets its ranking clock (7–14 days to
   restabilize, 30–90 to fully re-rank). The safe method is a **duplicate
