@@ -1826,7 +1826,16 @@ function openPage(p){
       });
     }catch(_){}
   });
-  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove();
+  // Back means ONE step. A page with its own inner levels (the Story Room
+  // prototype's shelf → story → version) answers __navBack and steps itself
+  // back; only when it says it's at its own top does this close the viewer.
+  // Without this, one tap threw away however deep she'd navigated.
+  bar.querySelector('.pv-back').onclick=function(){
+    try{
+      var w=frame.contentWindow;
+      if(w && typeof w.__navBack==='function' && w.__navBack()===true) return;
+    }catch(_){}
+    if(pill._stop) pill._stop(); v.remove();
     document.body.style.overflow=''; document.body.classList.remove('ontop'); };
   document.body.appendChild(v);
   document.body.style.overflow='hidden'; document.body.classList.add('ontop');
