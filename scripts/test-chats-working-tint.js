@@ -89,6 +89,14 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-a"]');
+  // THE TINT IS SWITCHED OFF on the live page (Aug 2026 — it could not be made
+  // honest: it needs the hook's turn-start ping, and sessions older than the
+  // setup-script re-paste never send one, so it missed working chats and lit
+  // idle ones). The machinery is all still there behind `TINT`, so this test
+  // flips it on the way `__setHomeView` keeps the retained Status view
+  // testable — the repaint path stays proven for whenever it comes back.
+  await page.evaluate(() => window.__setTint(true));
+  await page.evaluate(() => window.__repaintLive && window.__repaintLive());
 
   // 1. nothing working → no tint anywhere
   let live = await liveChats();

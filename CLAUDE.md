@@ -674,28 +674,43 @@ lifted into a standalone tool later.
   `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
   it at init. A RUNNING session is different: it has network, and curl is the
   right tool for self-healing there (see the self-heal note below).
-- **THE ROSE WORKING TINT IS BACK ON, AND THE CAUSE WAS NEVER THE PAGE (Aug
-  2026 — the day this was finally understood).** It was switched off for one
-  evening ("the pink tint on things that were working just never worked"),
-  then Sophie re-pasted the current setup script into her cloud environment
-  and a fresh session reported the v8 hook (`grep -c PostToolUse …` → 7).
-  `workingAt` had simply never been written: the environment's snapshot held
-  a pre-v7 hook that does not send the turn-start ping, so there was nothing
-  to tint. **Weeks of work went into the wrong layer** — #931 and #933 fixed
-  the client repaint, #901/#908/#910/#911 corrected this file's own wrong
-  claims — while the fix was one paste into the environment dialog that
-  nobody had handed her as a step. **When the tint looks dead, check the HOOK
-  FIRST**, in a NEW session (the setup script never re-runs in a resumed
-  one): `grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`, 0 =
-  stale snapshot → re-paste `docs/chats-autopost-setup-script.sh`.
-- **AUTO-PARKING A CHAT SHE ANSWERED IS RETIRED — it defeats the tint (Aug
-  2026, same conversation, Sophie: "now that they can show the pink tint,
-  maybe they don't need to hide automatically since the main point was just
-  to know who is working").** `POST /reply` and `POST /working` stamped
-  `hiddenAt` alongside `workingAt` for a few hours; a chat that hides itself
-  the instant she answers is off the list, so there is nothing left to tint.
-  They can't both be on. Only `workingAt` is stamped now; **manual hiding
-  (the ⊖) is untouched**. Bringing it back means taking the tint off again.
+- **THE ROSE WORKING TINT IS OFF FOR GOOD, AND IT IS A COVERAGE PROBLEM, NOT
+  A BUG (Aug 2026, Sophie: "skill is tinted pink and it's not working whereas
+  Imprint is working and it wasn't tinted pink").** Both halves of that report
+  were true at once, and neither is fixable in `chats.html`:
+  - **The miss.** The tint's only honest signal is `workingAt`, stamped by the
+    hook's turn-start ping. A session keeps whatever hook its CONTAINER
+    SNAPSHOT holds, forever — so every chat started before Sophie re-pasted
+    the setup script can never tint, however long we wait. Measured
+    2026-08-10: of **77 chats that posted replies in six days, 3 had ever
+    carried `workingAt`**, and her own messages first appear in the feed on
+    Aug 9 — the day of the re-paste. Imprint is one of the ~190 older ones.
+  - **The false positive.** The fallback signal "her message is the newest
+    thing in this chat" is really WAITING ON THE CHAT, not working. `skill`
+    was pink for exactly that reason, correctly by the code and wrongly by
+    the word.
+  So the tint was wrong in both directions simultaneously, and a signal she
+  cannot trust is worse than none. `TINT=false` in chats.html switches it off;
+  `chatWorking`, `paintLive` and Status's WORKING RIGHT NOW are all left in
+  place and go quiet, and `window.__setTint(true)` is how the two tests still
+  prove the machinery (the page script is inside an IIFE, so `window.TINT` is
+  a stray global that proves nothing — don't reach for it).
+  **Do not "fix" this by hunting the client repaint again.** #931/#933 did
+  that, #901/#908/#910/#911 corrected this file's own wrong claims about it,
+  and the layer was never the problem.
+- **AUTO-PARKING A CHAT SHE ANSWERED IS BACK — it replaced the tint (Aug 2026,
+  Sophie: "we need to go back to the hiding method we tried before").** `POST
+  /reply` and `POST /working` stamp `hiddenAt` alongside `workingAt` again, so
+  a chat she answers leaves the list and the stamp's own rule brings it back
+  when the reply lands. **The two can never both be on** — a chat that parks
+  itself is off the list, so there is nothing left to tint.
+  **Why parking survives where the tint could not, and it is not the same
+  coverage:** parking rides on HER MESSAGE arriving (`POST /reply`), which the
+  hook has lifted since July 2026, well before the v7 ping. And its failure
+  mode is graceful — a chat whose hook is too old simply doesn't park, which
+  is the ordinary list, not a wrong colour. `workingAt` is still stamped (the
+  Status view reads it and it costs nothing). Manual hiding (the ⊖) is
+  untouched.
 - **HOW THE PING GOT THERE — the turn-start ping, and why her own message is
   NOT a usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
   working on something. The obvious signal ("the chat's newest message is
@@ -1110,11 +1125,12 @@ lifted into a standalone tool later.
     it comes back?").** `POST /reply` and `POST /working` both stamp
     `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list
     and the stamp's own rule brings it back when the reply lands — no new
-    field, no new rule. **The `/reply` path (the app's own reply box) is the
-    one that actually fires today**; `/working` is the Claude-app path and
-    needs a hook new enough to send the turn-start ping, which her
-    environments' pasted setup script predates — the same root cause as the
-    rose tint never firing. The stamp is `postedAt`, never her message's
+    field, no new rule. **`/reply` is the path that carries it** — it is both
+    the app's own reply box AND where the hook POSTs her lifted Claude-app
+    messages, a feature that predates the v7 ping, so parking reaches chats
+    the tint never could. `/working` parks too and fires earlier in the turn,
+    but only from a hook new enough to send the ping. The stamp is
+    `postedAt`, never her message's
     `created`: `created` is her real send time and a stamp older than the
     newest message reads as not-hidden.
   - **The thread header carries HIDE beside Archive** — "not now" next to
@@ -1180,6 +1196,23 @@ lifted into a standalone tool later.
     "parked" note above it).** "When I mark something as a story, it takes it
     out of the normal list." So the unfiltered home is the UNFILED pile, an
     inbox, and a lit chip is that folder. Two consequences to keep in mind:
+    - **…BUT IT COMES BACK WHEN IT ANSWERS (Aug 2026, Sophie: "it's been a
+      problem when chats are in stories and they don't pop out back into the
+      main list when they're done, so let's have them pop back out").** Same
+      idea as the hidden pile: filing means "not in my way", not "gone". It
+      takes BOTH halves of `chatBack`, and the second is the load-bearing one:
+      the reply must be **unread** (so reading it settles the chat back into
+      its folder, and the next reply brings it out again) **and must have
+      landed after `filedAt`** — the moment she filed it, stamped by
+      `POST /category`. Without that second half, filing a chat whose last
+      reply she had never opened would put it straight back on the list and
+      read as filing doing nothing; the whole folder would land on the main
+      list at once. The chat NEVER leaves its folder — it is in two places.
+      Chats filed before the field existed carry no stamp and can't pop; all
+      20 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
+      idempotent, stamps NOW rather than back-dating for exactly that
+      reason), so a missing `filedAt` now means the chat isn't filed. Tests:
+      `node scripts/test-chats-filed-popout.js`.
     - **The chips carry ONE number, the red ANSWERED badge** (the dim total
       came off at her ask: "I don't need to see the number on the categories,
       it should just say the number of chats I haven't read yet — just the
