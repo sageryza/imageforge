@@ -1,5 +1,9 @@
 # Precise voice cutting — how a transcript snippet becomes a clean audio cut
 
+> Working on Sophie's audio? Load the **`sophie-audio` skill** first — it is
+> the short version of this file plus the verification gate
+> (`node scripts/vo-verify.js`).
+
 The documentation of record for the NDE pipeline's millisecond-accurate
 cutting. Read this BEFORE cutting interview audio anywhere in this repo.
 (CLAUDE.md's Episode Editor section summarizes it; this file is the full story.)
@@ -136,3 +140,53 @@ showed as a gap. Three fixes, all in `vo-remove-pauses.js`:
 Ablation while we're at it: on the same track, the word-timing breath pass
 found 21 pauses (27.8s) vs room tone's 13 runs (7.1s), with only 3 overlapping
 — the breath pass is the workhorse, room tone is the sweeper. Both stay.
+
+### Assembling a narration FILM from a voice memo (Aug 2026, the Evan film)
+Cutting selected takes out of a long read-through and hanging pictures on them
+hits five failures that pause removal alone does not. All five shipped wrong at
+least once; the verifier below is what caught them.
+
+1. **Run the detector on the ORIGINAL continuous recording, never on audio you
+   already spliced.** A track assembled from padded cuts has no true room tone
+   left, so `roomToneCuts`' 8th-percentile floor lands inside quiet speech and
+   it deletes whole sentences (measured: verification 90.7%, sixteen contiguous
+   runs gone including "I asked God to send me a sign"). On the real master the
+   same code verified 94.8%.
+2. **Do NOT remap take times arithmetically through `--edits`.** It looks
+   equivalent and is not: cuts that straddle a take's boundary collapse it.
+   Measured, this lost speech on 9 of 35 takes. Instead re-locate every take in
+   the CLEANED master with `editor.js`'s `phraseSpan` + `clampBounds` +
+   `snapToSilence` — the one cutter, against fresh chunked word timestamps.
+3. **Word gaps do not find holes — energy does.** Whisper folds trailing noise
+   into a word, so a span that looks continuous by word timing can carry a
+   multi-second hole (one carried **16 seconds** of untranscribed audio). After
+   locating a take, measure its own energy and compress any dead run to ~0.28s.
+4. **Spans disjoint in WORD INDEX can still overlap in TIME.** `clampBounds`
+   pads +0.30s and `snapToSilence` may run to the next word's onset, so a sliver
+   of the next word plays at the end of one cut and again at the start of the
+   next — Sophie heard "…the proof behind | behind the end of the tunnel". Clamp
+   each span's start to the previous span's end in PLAY order (17 joins needed
+   it on one film).
+5. **Word-anchored cutting drops non-word vocalisations at the edges.** Whisper
+   transcribes no word for a laugh, so "He said, HAHA, what…" cut as "what…"
+   (Sophie: "I said ha but I was supposed to say ha ha"). Extend each edge
+   outward across contiguous audio above **floor + 8dB** before cutting. For the
+   same reason a run only counts as DEAD if its PEAK is near the floor — a laugh
+   sits below speech−20dB but well above room tone, and compressing it eats a
+   syllable.
+
+### Verifying a cut: `node scripts/vo-verify.js cut.mp4 [--script script.txt]`
+**"The code removed the pauses" is not verification.** Two checks, both required:
+- **Dead air, measured RELATIVE TO SPEECH** (`speech85 − 20dB`), with a blip
+  tolerance so a noise tick inside a gap doesn't split the run. A
+  floor-relative test (`floor + 4`) is right *inside* the detector but wrong as
+  a verifier: her floor wobbles several dB, so a genuinely dead **6.8s** stretch
+  broke into sub-second pieces and reported "0 runs". `silencedetect` is worse.
+- **Speech loss by LCS diff** against the expected script, reporting CONTIGUOUS
+  missing runs. A bag-of-words ratio cannot tell a deleted sentence from
+  scattered ASR noise and will pass a cut that ate a whole line.
+- The chunker **retries**: one DNS blip put the literal words "dns resolution
+  failed" into a transcript and faked a 31.5% loss. Always check `res.ok` and
+  reject an error body arriving as text.
+Numbers from the Evan film, before → after: dead-air runs ≥1s **18 (29.8s) → 0**,
+word match **99.2%**, zero contiguous missing runs.

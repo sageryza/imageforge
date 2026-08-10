@@ -22,6 +22,10 @@
         | [{ id, label, pair: [{img,label},{img,label}] }] — a labeled
           side-by-side judged as ONE thing (medium vs high, PDF page vs text —
           the compare-and-choose case).
+        | [{ id, label, card: '<html>' }]                  — a TEXT card (Aug
+          2026, the chat-survey page): `card` is PAGE-AUTHORED trusted HTML
+          rendered in the picture's place — never user/remote input. In the
+          piles view a card item shows as a small text tile named by `label`.
 
    Verdicts save LIVE to the chat's verdict doc (POST /api/chatfeed/verdict,
    ok = true/false/'maybe'/'later'), so a chat reads them back with
@@ -70,6 +74,11 @@
     '.jg-grid button{border:1px solid var(--line);border-radius:6px;background:var(--surface);' +
     ' padding:0;overflow:hidden;aspect-ratio:1;}' +
     '.jg-grid img{width:100%;height:100%;object-fit:cover;display:block;}' +
+    '.jg-grid button.txt{aspect-ratio:auto;min-height:64px;padding:6px;' +
+    ' font-size:12px;line-height:1.3;color:var(--ink);word-break:break-word;}' +
+    '.jg-cardtext{font-size:15px;line-height:1.5;color:var(--ink);text-align:left;' +
+    ' overflow-y:auto;max-height:58vh;}' +
+    '.jg-cardtext a{color:var(--gold);}' +
     '.jg-help{position:fixed;inset:0;background:rgba(20,18,15,.35);z-index:50;' +
     ' display:flex;align-items:center;justify-content:center;padding:24px;}' +
     '.jg-help>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;' +
@@ -151,6 +160,8 @@
     }
 
     function mediaHtml(it) {
+      // page-authored trusted HTML judged in the picture's place (see header)
+      if (it.card) return '<div class="jg-cardtext">' + it.card + '</div>';
       if (it.pair) {
         return '<div class="jg-media">' + it.pair.map(function (p) {
           return '<figure><span class="tag">' + esc(p.label || '') + '</span>'
@@ -186,6 +197,10 @@
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
             + members.map(function (it) {
+              if (it.card) {
+                return '<button class="txt" data-open="' + esc(it.id) + '">'
+                  + esc(it.label || it.id) + '</button>';
+              }
               var src = it.pair ? it.pair[0].img : it.img;
               return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
                 + '" alt="' + esc(it.label || '') + '"></button>';

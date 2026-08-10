@@ -763,9 +763,16 @@ router.post('/category', async (req, res) => {
     const category = String(body.category || '').trim().slice(0, 40);
     if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
     if (names.length) {
-      const val = category || admin.firestore.FieldValue.delete();
+      const del = admin.firestore.FieldValue.delete();
+      const val = category || del;
+      // `filedAt` = the moment it went into the folder, so the app can tell a
+      // reply that arrived AFTER filing from the one that was already sitting
+      // there unread. Without it, filing a chat she hadn't opened would put it
+      // straight back on the main list and read as filing not working. A chat
+      // taken out of every folder loses the stamp with the category.
+      const stamp = category ? new Date().toISOString() : del;
       const batch = db().batch();
-      names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+      names.forEach((n) => batch.set(regRef(n), { category: val, filedAt: stamp }, { merge: true }));
       await batch.commit();
     }
     if (category) {
@@ -839,6 +846,32 @@ router.post('/chatnote', async (req, res) => {
     res.json({ ok: true, chat: target, note: val || null });
   } catch (err) { fail(res, err); }
 });
+// THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just
+// the title, and when I press play it opens full screen"). A chat that has
+// just made a film/audio pins it here and it sits at the top of the thread —
+// she should not have to open a Compare page to get at the thing she asked
+// for. One field on the registry doc, same shape as the status card, so it
+// rides the feed's already-cached read. Empty url clears it.
+router.post('/pin', async (req, res) => {
+  try {
+    const { chat, session, title, url, kind } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const target = await resolveChat(chat, session);
+    const del = admin.firestore.FieldValue.delete();
+    const u = String(url || '').trim();
+    if (u && !/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
+    await regRef(target).set({
+      pinned: u ? {
+        url: u,
+        title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        kind: kind === 'audio' ? 'audio' : 'video',
+        at: new Date().toISOString(),
+      } : del,
+    }, { merge: true });
+    res.json({ ok: true, chat: target, pinned: u || null });
+  } catch (err) { fail(res, err); }
+});
+
 // A chat reads its own card + her note (pass session for session-first
 // resolution, same contract as GET /name).
 router.get('/status', async (req, res) => {
@@ -877,12 +910,14 @@ router.post('/working', async (req, res) => {
     const { chat, session } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
-    // Marks the chat working; it does NOT park it (see POST /reply for why the
-    // two defeat each other). This is the path for a message sent in the CLAUDE
-    // app rather than the Chats app's reply box, and it only fires from a hook
-    // new enough to send the ping — an environment on an older setup script
-    // never calls /working at all, which is why the tint sat dead for weeks.
-    await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
+    // Parks the chat as well as marking it (see POST /reply). This is the
+    // turn-start ping from the CLAUDE app rather than the Chats app's reply
+    // box, and it only fires from a hook new enough to send it — an environment
+    // still on an older setup script never calls /working at all, which is
+    // exactly why the tint could never be trusted. Where it DOES fire it parks
+    // the chat earlier than /reply can, which is the better moment.
+    const stamp = new Date().toISOString();
+    await regRef(resolved).set({ workingAt: stamp, hiddenAt: stamp }, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
@@ -1287,17 +1322,26 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
-    // She just gave that chat something to do, so mark it working — the app
-    // tints it rose until the reply lands and clears the mark.
+    // ANSWERING A CHAT PARKS IT (Aug 2026, Sophie: "is there any way you could
+    // directly send a chat that I answered to the hidden section until it comes
+    // back?"). `hiddenAt` is a self-clearing stamp, so this needs no new field
+    // and no new rule: the chat leaves the list now and the stamp's own
+    // comparison brings it back the moment the reply lands.
     //
-    // It does NOT also park the chat in the hidden pile. That shipped for a few
-    // hours and Sophie retired it the moment the tint started working, because
-    // the two DEFEAT EACH OTHER: a chat that hides itself the instant she
-    // answers is off the list, so there is nothing left to tint — and knowing
-    // who is working was the whole point of parking it. Manual hiding (the ⊖)
-    // is untouched. To bring auto-parking back, add `hiddenAt: doc.postedAt`
-    // here and in POST /working — but only instead of the tint, not alongside.
-    await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
+    // This REPLACES the rose working tint, which is off — the two defeat each
+    // other (a chat that parks itself is off the list, so there is nothing left
+    // to tint) and the tint could not be made honest: it needs the hook's
+    // turn-start ping, which only sessions started since the setup script was
+    // re-pasted ever send. Parking rides on HER MESSAGE arriving instead, which
+    // is what this route already is — and when a chat's hook is too old to post
+    // it, parking just doesn't happen, which is the plain list rather than a
+    // wrong signal. `workingAt` is still stamped: the Status view reads it, and
+    // it costs nothing.
+    //
+    // The stamp is `postedAt`, never her message's `created` — `created` is her
+    // real send time and a stamp older than the newest message reads as
+    // not-hidden, i.e. it would park nothing.
+    await regRef(doc.chat).set({ workingAt: doc.postedAt, hiddenAt: doc.postedAt }, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });

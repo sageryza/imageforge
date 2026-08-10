@@ -101,6 +101,8 @@
       font-family: var(--serif); font-style: italic; font-weight: 500;
       font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
     }
+    header h1#app-title { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    header h1#app-title:active { opacity: 0.7; }
 
     /* ── Sections ── */
     main { padding: 18px 16px 8px; }
@@ -402,6 +404,16 @@
 
     /* End-of-lesson note screen — pick a path, nothing to type until you do. */
     .deck-note .tcard-img { cursor: default; }
+    /* The note screen sits at the TOP of its slot, not centred (Aug 2026,
+       Sophie: "move everything up so that whichever one you click, the
+       envelope appears under it"). A lesson CARD is centred because its text
+       is short; this screen is a question, two choices and then a whole
+       envelope, and the auto-margins were pushing the first line 306px down —
+       so on a real phone the letter's Send button fell off the bottom, and
+       further still once the keyboard opened. Cancels the .deck-text auto
+       margins for this screen only. */
+    .deck-note .deck-text > :first-child { margin-top: 0; }
+    .deck-note .deck-text > :last-child { margin-bottom: 0; }
     .note-lead { font-family: var(--serif); font-size: 18px; line-height: 1.35; text-align: center; color: var(--text); margin: 2px auto 6px; max-width: 300px; }
     /* Two choices side by side: Tell Sophie (real, slow) + Ask (AI, instant). */
     .note-choices { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
@@ -1225,6 +1237,13 @@
        box gives each one an edge to end at. */
     .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
                    border: 2px solid var(--gold); border-radius: 14px; background: var(--surface); }
+    /* Home's school card leads with ART (Aug 2026, Sophie: "the first thing
+       they should see is pictures"). Three course covers in a row, same
+       outlined-square treatment as the catalog tiles so the two read as one
+       set. Square via aspect-ratio, so a slow image never collapses the row. */
+    .sch-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }  /* TWO to a row, matching #school-path .cat (Aug 2026, Sophie) */
+    .sch-covers img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                      border: 2px solid var(--gold); border-radius: 12px; background: var(--surface); }
     .wcourse .meta { padding: 8px 2px 0; }
     .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
     .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
@@ -1323,6 +1342,16 @@
        flat spine crease — on the app's own dark background (flat tones only,
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    /* ON THE WEBSITE the reader stops ABOVE the bottom nav (Aug 2026, Sophie:
+       opening the Book of Shadows "gets rid of the bottom navigation bar").
+       It never removed it — `inset: 0` at z-index 90 simply painted the
+       reader's own Previous / Add / Next row on top of a nav still sitting
+       there at z-index 50, so the tabs were unreachable behind the book.
+       It shows up on the WEB only: in the app the page's nav is hidden
+       (html.in-app) and the native tab bar lives outside the web view, where
+       nothing in here can cover it. Nothing to do with the long pages — the
+       reader is fixed to the viewport, so page length never moved it. */
+    html:not(.in-app) #bos-reader { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 20px 12px; }
     .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
@@ -1376,6 +1405,11 @@
     .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
     /* Section title page: the art on its own tinted leaf, section name under it. */
     /* Centred in the leaf — a part-title sits in the middle of its page. */
+    /* The empty leaf — a page that says the section is empty and points at
+       where to make one. Same centred part-title feel, no art. */
+    .bos-empty { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12%; gap: 16px; }
+    .bos-empty-line { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.35; color: #6d5c3f; }
+    .bos-empty-cta { width: auto; padding: 10px 18px; }
     .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
     /* The art's box is SIZED BEFORE THE PICTURE ARRIVES (`aspect-ratio`, and a
        width that folds the old max-width/max-height into one min()), so the
@@ -1586,6 +1620,17 @@
     .modal .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; font-weight: 500; color: #3a3a3a; cursor: pointer; margin-bottom: 14px; }
     .modal .gbtn:hover { border-color: var(--text-dim); }
     .modal .gbtn svg { width: 17px; height: 17px; }
+    /* Sign in with Apple — guideline 4.8 requires it beside Google. Black is
+       one of Apple's sanctioned button styles and keeps it distinct from the
+       white Google button stacked above it. */
+    .modal .abtn { background: #000; border-color: #000; color: #fff; }
+    .modal .abtn:hover { border-color: #000; }
+    .modal .abtn svg { width: 16px; height: 16px; fill: #fff; margin-top: -2px; }
+    /* Account deletion (guideline 5.1.1(v)) — quiet until tapped; it must be
+       findable, not prominent. */
+    .modal .del-link { background: none; border: none; color: var(--text-faint); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: inherit; margin: 16px auto 0; display: block; }
+    .modal .del-warn { font-size: 11.5px; color: var(--text-dim); margin: 14px 0 10px; line-height: 1.5; }
+    .modal .btn-danger { width: 100%; padding: 12px; background: #8c2f2f; border: 1px solid #8c2f2f; border-radius: var(--radius); color: #fff; font-family: inherit; font-size: 14px; cursor: pointer; }
     .modal .divider { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin: 4px 0 14px; }
     .modal .close-x { background: none; border: none; color: var(--text-faint); font-size: 13px; cursor: pointer; margin-top: 14px; font-family: inherit; }
     .modal .acct-email { font-size: 13px; color: var(--text); margin-bottom: 2px; word-break: break-all; }
@@ -1601,7 +1646,9 @@
   <div class="app">
     <header>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
-      <h1>Secretly a Witch</h1>
+      <!-- The title is also the way HOME (Aug 2026, Sophie). go() closes any
+           open overlay first, so it works from inside a lesson or the book. -->
+      <h1 id="app-title" role="button" tabindex="0" aria-label="Secretly a Witch — back to home">Secretly a Witch</h1>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
       <button class="menu-btn" id="menu-btn" aria-label="Jump to a section" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
     </header>
@@ -1614,6 +1661,10 @@
              feature (moved to Shadows once by mistake; never again). Boxes
              reset at midnight; every draw also files permanently into the
              Book of Shadows' Synchronicities pages. -->
+        <!-- The date opens Home. It used to sit under Synchronicities as the
+             daily reading's kicker; with the astrology gone it was stranded
+             above Witch School, reading as if the school were dated. -->
+        <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Synchronicities abound…</div>
         <div class="section-sub">Which ones have been put in your path today?</div>
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
@@ -1634,7 +1685,35 @@
           </div>
         </div>
 
-        <div class="kicker" id="today-date">Today</div>
+        <!-- Witch School — the home entrance to the curriculum (Aug 2026). It
+             sits in the slot the daily astrology reading used to hold: the
+             first thing under Synchronicities is now the school, not a
+             horoscope. Filled by renderSchoolHome(). -->
+        <!-- The SAME header the School tab wears (Aug 2026, Sophie: "make it
+             say learn the craft in the same gold style just like it does in
+             the actual app tab") — gold kicker over the title, so arriving at
+             the tab feels like the same place. -->
+        <div class="kicker">Learn the craft</div>
+        <div class="section-title">Everything you ever wanted to know about witchcraft</div>
+        <!-- ART FIRST (Aug 2026, Sophie: "the first thing they should see is
+             pictures"). The course covers lead; the words sit under them. The
+             card never names which course — that is the tab's job. -->
+        <div class="card" id="school-home-card" role="button" tabindex="0">
+          <div class="sch-covers" id="sch-home-covers"></div>
+          <div id="sch-home-next" style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;"></div>
+          <div id="sch-home-moons" style="margin-bottom:10px;"></div>
+          <p class="hint" id="sch-home-prog"></p>
+          <button class="btn" id="sch-home-btn" type="button">Open the school</button>
+        </div>
+
+        <!-- ASTROLOGY — taken off Home (Aug 2026, Sophie). The daily sky
+             reading and the birth-chart form were the app's front door and
+             read as a horoscope app; App Review cited exactly that under
+             4.3(b). The markup and every function are kept intact and simply
+             not shown, so the birth chart can come back inside the "Your Sky,
+             Read" lesson when Sophie decides how she wants it. renderHome()
+             force-hides everything in here — see HOME_DIVINATION. -->
+        <div id="home-astro" style="display:none;">
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
@@ -1696,8 +1775,9 @@
             <div class="note" id="astro-note"></div>
           </div>
         </div>
+        </div><!-- /#home-astro -->
 
-        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0]; sits under the daily reading -->
+        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0] -->
         <div class="prow" id="prow-1"></div>
 
         <!-- "Are you secretly a witch?" — Home entry; opens the full-screen quiz app -->
@@ -2351,6 +2431,19 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+  // Tapping the masthead goes Home (Aug 2026, Sophie). It reaches the header
+  // itself only when no full-page surface is up — a lesson deck and the Book
+  // of Shadows are fixed at z-index 90 and cover it (measured: the click is
+  // intercepted by .deck-top). Those have their own back control, so that is
+  // the right behaviour; go() still calls closeFullPages() first in case
+  // anything ever sits under the header rather than over it.
+  (function () {
+    const t = $('app-title'); if (!t) return;
+    t.addEventListener('click', () => go('home'));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('home'); }
+    });
+  })();
 
   // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
@@ -3719,6 +3812,19 @@
     dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
     lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
+  /* What an empty section offers. `el` is a Home element to scroll to after
+     the book closes. Readings and Spell work have NO button on purpose:
+     tarot came off the Home screen (App Review 4.3(b)) and there is no spell
+     maker in the current four tabs, so there is nowhere honest to send her —
+     a button that goes nowhere is worse than a line that admits it. Give one
+     a `go`/`el` the day its maker exists. */
+  const BOS_EMPTY = {
+    reading: { line: 'No readings saved yet.' },
+    sync:    { line: 'No coincidences yet.', cta: 'Write one down', go: 'home', el: 'coincidence-card' },
+    spell:   { line: 'No spells written down yet.' },
+    dream:   { line: 'No dreams yet.', cta: 'Write down a dream', go: 'home', el: 'dream-home-slot' },
+    lesson:  { line: 'No lesson pages saved yet.', cta: 'Go to Witch School', go: 'school' },
+  };
   const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   // The leaf being written on, if any (see "Writing a page" below) — declared
@@ -3815,10 +3921,18 @@
         pages.forEach(p => { p.sect = s.key; });
         if (s.reverse) pages = pages.slice().reverse();   // bosAllPages() is oldest-first
       }
-      // The title page leads its section — but only once the section has
-      // something in it, so an unused section doesn't pad the book with a
-      // part-title in front of nothing.
-      if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      // The title page leads its section, and an EMPTY section now gets one
+      // too, followed by an empty leaf (Aug 2026, Sophie: tapping Dreams with
+      // no dreams saved "doesn't go to the Dreams" — bosSectStart() answered
+      // with where the section WOULD start, which is another section's page,
+      // so the contents quietly sent you to the wrong place). Her ask: land on
+      // the section, then a leaf that says there's nothing here yet and points
+      // at where to make one.
+      // 'lesson' is the exception and stays invisible until the first bookmark
+      // — that was deliberate, and its contents row is filtered out to match.
+      if (s.key === 'lesson' && !pages.length) continue;
+      if (BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      if (!pages.length) out.push({ sect: s.key, page: 'empty', name: s.name });
       pages.forEach(p => out.push(p));
     }
     // The writing leaf — a real page of the book, only while one is being
@@ -4083,6 +4197,14 @@
       }
       return;   // a part-title carries no page number, like a real book
     }
+    if (p.page === 'empty') {
+      const cfg = BOS_EMPTY[p.sect] || { line: 'Nothing here yet.' };
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">
+        <div class="bos-empty-line">${esc(cfg.line)}</div>
+        ${cfg.cta ? `<button class="btn bos-empty-cta" type="button" data-empty-go="${esc(cfg.go)}" data-empty-el="${esc(cfg.el || '')}">${esc(cfg.cta)}</button>` : ''}
+      </div>`;
+      return;
+    }
     if (p.page === 'write') { renderWriteLeaf(); return; }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
@@ -4242,6 +4364,13 @@
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const eg = e.target.closest('[data-empty-go]');
+    if (eg) {
+      const view = eg.dataset.emptyGo, el = eg.dataset.emptyEl;
+      closeBook(); go(view);
+      if (el) setTimeout(() => { const t = $(el); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90);
+      return;
+    }
     const gl = e.target.closest('[data-lsnap]');
     if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
@@ -4747,6 +4876,74 @@
     if (accountsConfigured !== false && !fbUser) return 'gate';    // then create an account to unlock it
     return 'ready';
   }
+  // Astrology + tarot on HOME. Off since Aug 2026 (see renderHome). One flag
+  // restores both; the lessons that teach them are untouched either way.
+  const HOME_DIVINATION = false;
+
+  // ── Witch School on Home ──────────────────────────────────────────────
+  // The school's front door, in the slot the daily reading used to hold. It
+  // shows the course she is furthest into — the one with lessons done but not
+  // all of them — so the card follows her through the curriculum instead of
+  // always pointing at the same place. Nothing started yet → the first course.
+  // Reads the same schoolProgress()/courseProgress() the School tab does, so
+  // the two can never disagree.
+  function schoolHomePick() {
+    if (typeof SCHOOL_COURSES === 'undefined') return null;
+    let started = null, fresh = null;
+    for (const c of SCHOOL_COURSES) {
+      const p = courseProgress(c);
+      if (p.done > 0 && p.done < p.total) { started = started || { c, p }; }
+      if (p.done === 0 && !fresh) fresh = { c, p };
+    }
+    if (started) return started;
+    if (fresh) return fresh;
+    const c = SCHOOL_COURSES[0];
+    return c ? { c, p: courseProgress(c) } : null;
+  }
+  function renderSchoolHome() {
+    const card = $('school-home-card'); if (!card) return;
+    const pick = schoolHomePick(); if (!pick) return;
+    const { c, p } = pick;
+    const prog = schoolProgress();
+    // Same "where am I" rule the course path uses: a lesson opened but not
+    // finished wins, else the first unfinished one.
+    const nextKey = c.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0)
+      || c.lessons.find(k => !(prog[k] && prog[k].done));
+    const titles = (typeof LESSON_TITLES !== 'undefined') ? LESSON_TITLES : {};
+    const done = p.done >= p.total;
+    $('sch-home-next').textContent = done
+      ? 'Course complete'
+      : (titles[nextKey] || c.sub);
+    // Art first: this course's cover, then the next two courses' — so the top
+    // of the card is always three pictures, whichever course she is on.
+    const covers = $('sch-home-covers');
+    if (covers) {
+      const start = SCHOOL_COURSES.findIndex(x => x.id === c.id);
+      const pick = [0, 1].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
+      covers.innerHTML = pick.map(x =>
+        `<img src="${SW_IMG}${x.cover}${SW_EXT}" alt="" loading="lazy">`).join('');
+    }
+    const moons = $('sch-home-moons');
+    if (moons) moons.innerHTML = (typeof courseMoon === 'function') ? courseMoon(p.done, p.total, 15) : '';
+    $('sch-home-prog').textContent = p.done
+      ? `${p.done} of ${p.total} lessons done`
+      : `${p.total} ${p.total === 1 ? 'lesson' : 'lessons'} · start any time`;
+    $('sch-home-btn').textContent = p.done && !done ? 'Keep going' : (done ? 'Open the school' : 'Start the course');
+  }
+  // The whole card is the tap target, and the button inside it must not fire
+  // the handler twice.
+  (function () {
+    const card = $('school-home-card'); if (!card) return;
+    const open = (e) => {
+      if (e) e.stopPropagation();
+      const pick = schoolHomePick();
+      go('school');
+      if (pick) { schoolCourse = pick.c.id; try { renderSchoolPath(); } catch (e) {} }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
+  })();
   function renderHome() {
     // Preview mode: /witch?wheel just parks on the spinning astrology wheel so
     // it can be watched as long as you like (the real reading is cached and
@@ -4757,6 +4954,18 @@
       $('daily-reading').style.display = '';
       $('tarot-card').style.display = 'none';
       setAstroLoading();
+      return;
+    }
+    // Divination is OFF the home screen (Aug 2026, Sophie — App Review 4.3(b)
+    // called the app a horoscope app, and the daily sky reading plus the birth
+    // form were the front door). Flip HOME_DIVINATION back to true to restore
+    // both cards exactly as they were; nothing else was deleted. The tarot card
+    // has to be force-hidden here too, not just in the markup, because the line
+    // below would otherwise un-hide it the moment homeState() reached 'ready'.
+    if (!HOME_DIVINATION) {
+      const astro = $('home-astro'); if (astro) astro.style.display = 'none';
+      const tc = $('tarot-card'); if (tc) tc.style.display = 'none';
+      try { renderSchoolHome(); } catch (e) {}
       return;
     }
     const s = homeState();
@@ -5319,7 +5528,23 @@
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
   function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading-clear.gif" alt="drawing…">'; }
+  // The three boxes must NOT draw in lockstep (Aug 2026, Sophie: "they should
+  // be asynchronous so you see different hoonies"). Each box gets its own FILE,
+  // built by scripts/hoonie-split-gif.py: the 70-drawing loop is split into
+  // three disjoint sets, so box 0 cycles hoonies 0,3,6…, box 1 gets 1,4,7…,
+  // box 2 gets 2,5,8… — never the same drawing at the same moment.
+  //
+  // Do NOT "simplify" this back to one file with a query string per box. That
+  // was tried and MEASURED: Chromium keeps GIF animation in step regardless of
+  // the URL — all three boxes still showed the same frame in 0/12 samples,
+  // identical to sharing one URL. Different bytes are the only thing that
+  // works. Splitting rather than copying also means the three files together
+  // (329KB) weigh LESS than the single file did (390KB).
+  function coinSpinner(box, i) {
+    box.setAttribute('contenteditable', 'false');
+    const n = (typeof i === 'number' ? i : 0) % 3;
+    box.innerHTML = `<img class="coin-load" src="/hoonie-loading-clear-${n}.gif" alt="drawing…">`;
+  }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
   // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
@@ -5404,7 +5629,7 @@
     box.dataset.desc = desc;
     if (redraw) { const rd = box.closest('.coin-cell')?.querySelector('.coin-redraw'); if (rd) { rd.disabled = true; rd.textContent = '…'; } }
     else { const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; } }
-    coinSpinner(box);
+    coinSpinner(box, i);
     try {
       // Raw note → server distills it into ONE simple pastel spot illustration.
       const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
@@ -5454,7 +5679,7 @@
     const done = coinDoneAll();
     Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
-    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
+    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box, +i); } coinWatch(+i, id, desc, redraw); } });
     updateCoinBookmark(false);
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
@@ -6099,7 +6324,7 @@
     { img: 'tr-07', bg: '#fdf9f4', kicker: 'The reading', h: 'The mirror', body: 'Modern readers rarely use the cards to predict events. Treat a card as a mirror: the picture asks, <i>“where is this in your life right now?”</i> A reading maps the present — what\'s helping, what\'s blocking — more than it fixes the future.' },
     { img: 'tr-08', bg: '#fdfaf7', kicker: 'The practice', h: 'One card a day', body: 'Learn the deck with one habit: draw a single card each morning, look at it properly, and jot one line about where it showed up by nightfall. In three months of mornings you\'ll know the deck like a neighborhood.' },
     { img: 'tr-09', bg: '#fcf3e8', kicker: 'The spreads', h: 'Start with three', body: '<b>Past · Present · Future</b> — or “what\'s helping · what\'s blocking · what to do” — is the spread to learn first. Put your care into an honest, specific question; once three cards feel fluent, the great spreads — the Celtic Cross and its kin — will open from there.' },
-    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: 'You\'re holding a deck right now — this app deals your daily three from the real 1909 deck.<br><br><b>Tonight:</b> pull your cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them. ✦', cta: { label: 'Draw today\'s cards', go: 'home', el: 'tarot-card', fallback: 'natal-form' } },
+    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: '<b>Tonight:</b> pull three cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them — the picture will tell you most of it before the book does. ✦' },
   ];
   const SIGNS_CARDS = [
     { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'The world puts things in your path — a feather where you sat down, the same number three times before noon, a bird that will not leave the window. This lesson is the craft of reading them: how witches have always taken feathers, birds and uncanny repeats seriously, and how to do it without fooling yourself.' },
@@ -6278,9 +6503,13 @@
   // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
-    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'sync', 'dream'] },
+    // 'mysky' ("Your Sky, Read") is OUT of the path for now (Aug 2026): it
+    // casts the reader's real birth chart, and the birth form it needs came
+    // off Home with the rest of the astrology. Its code is untouched — putting
+    // the form inside this lesson is the planned way to give the chart back.
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'signs', 'sync', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'cr-06', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
     { id: 'living', title: 'The Living World', sub: 'The body, and what the old craft did with it', cover: 'bh-05', lessons: ['blood'] },
   ];
@@ -6344,7 +6573,7 @@
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
       </div>`;
-    }).join('') + '</div><p class="hint" style="text-align:center; margin-top:18px;">More courses are being written.</p>';
+    }).join('') + '</div>';   // no "more courses are being written" line (Aug 2026, Sophie)
   }
   function renderCoursePath(courseId) {
     const wrap = $('school-path'); if (!wrap) return;
@@ -6655,9 +6884,6 @@
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
     $('deck-stage').innerHTML = `<div class="tcard deck-note">
-      <div class="deck-head">
-        <div class="tcard-kicker">Before you go</div>
-      </div>
       <div class="deck-text">
         <div class="note-lead">Have a question, or want to understand something better?</div>
         <div class="note-choices">
@@ -6711,7 +6937,10 @@
       $('nchat-send').addEventListener('click', send);
       ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; });
       ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-      ta.focus();
+      // Deliberately NOT focused (Aug 2026, Sophie: "don't have the keyboard
+      // come up automatically only when they click into the envelope") — an
+      // auto-keyboard covers the bottom half the moment a choice is tapped,
+      // taking the Send button with it.
     }
 
     // ── Tell Sophie: a letter, snail-mailed to the real witch ──
@@ -6745,7 +6974,7 @@
           else { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
         } catch { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
       });
-      $('nletter-text').focus();
+      // No auto-focus — the keyboard waits until she taps the paper (above).
     }
 
     $('note-ai-btn').addEventListener('click', openAskChat);
@@ -6847,6 +7076,7 @@
   }
 
   const GOOGLE_G = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16z"/><path fill="#FBBC05" d="M10.3 28.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.5l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.5 2.1-7.9 2.1-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>`;
+  const APPLE_LOGO = `<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M13.4 10.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2C.5 10.3 1.6 14 3 16c.7 1 1.5 2.1 2.6 2.1 1 0 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.3s-2.1-.8-2.2-3.1zM11.3 4c.6-.7 1-1.7.9-2.7-.8 0-1.9.6-2.5 1.3-.6.6-1 1.6-.9 2.6.9.1 1.9-.5 2.5-1.2z"/></svg>`;
   function openModal(html) { $('modal').innerHTML = html; $('modal-bg').classList.add('show'); }
   function closeModal() { $('modal-bg').classList.remove('show'); }
   $('modal-bg').addEventListener('click', e => { if (e.target === $('modal-bg')) closeModal(); });
@@ -6860,6 +7090,7 @@
       <h2>Make a free account</h2>
       <p class="sub">It saves your chart, readings &amp; miracles across devices — and keeps your daily reading in sync.</p>
       <button class="gbtn" id="btn-google">${GOOGLE_G} Continue with Google</button>
+      <button class="gbtn abtn" id="btn-apple">${APPLE_LOGO} Sign in with Apple</button>
       <div class="divider">or</div>
       <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
       <button class="btn" id="btn-email">Email me a magic link</button>
@@ -6872,6 +7103,7 @@
       <button class="close-x" id="acct-close">maybe later</button>`);
     $('acct-close').addEventListener('click', closeModal);
     $('btn-google').addEventListener('click', signInGoogle);
+    $('btn-apple').addEventListener('click', signInApple);
     $('btn-email').addEventListener('click', signInEmail);
     $('btn-pw-toggle').addEventListener('click', () => {
       $('pw-block').style.display = 'block';
@@ -6892,6 +7124,7 @@
       <div class="acct-note" style="margin-bottom:10px;">Pick a default and the Tropical / Astronomical toggle disappears. Leave it on “Ask” to keep the toggle on your reading.</div>
       <div style="display:flex; gap:8px;">${opt('ask','Ask')}${opt('tropical','Tropical')}${opt('astronomical','Astronomical')}</div>
       <button class="btn-ghost" id="btn-signout" style="margin-top:18px;">Sign out</button>
+      <button class="del-link" id="btn-delete">Delete my account</button>
       <button class="close-x" id="acct-close">close</button>`);
     document.querySelectorAll('.zdef-opt').forEach(b => b.addEventListener('click', () => {
       const v = b.dataset.def;
@@ -6903,7 +7136,55 @@
       showAccount();  // re-render to reflect the new selection
     }));
     $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });
+    $('btn-delete').addEventListener('click', showDeleteAccount);
     $('acct-close').addEventListener('click', closeModal);
+  }
+
+  // Account deletion, required by App Store guideline 5.1.1(v) for any app that
+  // supports account creation — 1.0 (8) was rejected for not having it. It must
+  // be reachable and finishable IN the app: offering only to deactivate, or
+  // sending the user to email support, does not satisfy it.
+  function showDeleteAccount() {
+    openModal(`
+      <h2>Delete your account</h2>
+      <div class="del-warn">
+        This permanently deletes your account and everything synced to it —
+        your chart, saved readings, grimoire and miracles. It cannot be undone.
+      </div>
+      <button class="btn-danger" id="btn-delete-confirm">Delete my account</button>
+      <div class="note" id="del-msg" style="text-align:center;"></div>
+      <button class="close-x" id="del-cancel">cancel</button>`);
+    $('del-cancel').addEventListener('click', showAccount);
+    $('btn-delete-confirm').addEventListener('click', deleteAccount);
+  }
+
+  async function deleteAccount() {
+    const m = $('del-msg'), btn = $('btn-delete-confirm');
+    const user = fbAuth && fbAuth.currentUser;
+    if (!user) { closeModal(); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    if (m) m.textContent = '';
+    try {
+      // The synced doc first: if the auth user goes first we lose the uid and
+      // the document is orphaned where nothing can ever reach it again.
+      if (fbDb) { try { await fbDb.collection('users').doc(user.uid).delete(); } catch {} }
+      await user.delete();
+      closeModal();
+      toast('Your account has been deleted.');
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Delete my account'; }
+      // Firebase refuses to delete on a stale session. That is a re-auth, not a
+      // dead end — signing back in makes the session fresh and the delete works.
+      if (e && e.code === 'auth/requires-recent-login') {
+        if (m) m.textContent = 'For your security, please sign in again, then delete.';
+        if (btn) {
+          btn.textContent = 'Sign in again';
+          btn.onclick = async () => { try { await fbAuth.signOut(); } catch {} closeModal(); showSignIn(); };
+        }
+        return;
+      }
+      if (m) m.textContent = (e && e.message) || 'Could not delete the account.';
+    }
   }
   async function signInGoogle() {
     // Inside the iOS app, Google's web popup can't complete (WKWebView blocks
@@ -6930,6 +7211,46 @@
     }
   };
   window.__witchGoogleFailed = (msg) => {
+    const m = $('acct-msg'); if (m) m.textContent = msg || '';
+  };
+  // Sign in with Apple. Guideline 4.8 requires it wherever Google is offered,
+  // and 1.0 (8) was rejected for not having it.
+  async function signInApple() {
+    // In the iOS app the native sheet is the only one that works AND the only
+    // one Apple accepts as a real Sign in with Apple — same bridge as Google.
+    const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.witchAuth;
+    if (bridge) {
+      const m = $('acct-msg'); if (m) m.textContent = '';
+      try { bridge.postMessage('apple'); } catch (e) { if (m) m.textContent = e.message; }
+      return;
+    }
+    // Plain browser (secretlyawitch.com) — Apple's web OAuth via Firebase.
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      p.addScope('email'); p.addScope('name');
+      await fbAuth.signInWithPopup(p);
+      closeModal();
+    } catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
+  }
+  // The rawNonce is what Firebase verifies against the hash Apple was sent —
+  // pass it through untouched or the credential is rejected.
+  window.__witchAppleCredential = async (idToken, rawNonce, fullName) => {
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      const cred = p.credential({ idToken: idToken, rawNonce: rawNonce });
+      const res = await fbAuth.signInWithCredential(cred);
+      // Apple only ever sends the name on the FIRST authorization, so if it
+      // came through, save it now — there is no second chance.
+      if (fullName && res && res.user && !res.user.displayName) {
+        try { await res.user.updateProfile({ displayName: fullName }); } catch {}
+      }
+      closeModal();
+    } catch (e) {
+      const m = $('acct-msg');
+      if (m) m.textContent = e.message; else toast('Sign-in error: ' + e.message);
+    }
+  };
+  window.__witchAppleFailed = (msg) => {
     const m = $('acct-msg'); if (m) m.textContent = msg || '';
   };
   // Email + password sign-in (secondary option; primarily for a demo/reviewer
@@ -7010,9 +7331,10 @@
      reveals them rather than doing nothing. Tab items just switch tabs. */
   const JUMPS = [
     { label: 'Synchronicities', view: 'home', el: 'coincidence-card' },
-    { label: 'Your daily reading', view: 'home', el: 'daily-card' },
+    // 'Your daily reading' and 'Tarot' are gone with the cards they scrolled
+    // to (Aug 2026) — a jump row pointing at a hidden element does nothing.
+    // Witch School already has its own row further down, to the School TAB.
     { label: 'The quiz', view: 'home', el: 'quiz-card' },
-    { label: 'Tarot', view: 'home', el: 'tarot-card', fallback: 'daily-card' },
     { label: 'Dreams', view: 'home', el: 'dream-card' },
     { label: 'The moon', view: 'home', el: 'moon-card', fallback: 'dream-card' },
     { label: 'Witch School', view: 'school' },
