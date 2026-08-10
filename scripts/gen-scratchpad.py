@@ -1210,6 +1210,8 @@ window.__navBack=function(){
     if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
     return true;
   }
+  el=document.getElementById('descsheet');
+  if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('stories');
   if(!el.hidden){ closeShelf(); return true; }
   return false;
