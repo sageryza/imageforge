@@ -1229,7 +1229,7 @@
        they should see is pictures"). Three course covers in a row, same
        outlined-square treatment as the catalog tiles so the two read as one
        set. Square via aspect-ratio, so a slow image never collapses the row. */
-    .sch-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .sch-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }  /* TWO to a row, matching #school-path .cat (Aug 2026, Sophie) */
     .sch-covers img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
                       border: 2px solid var(--gold); border-radius: 12px; background: var(--surface); }
     .wcourse .meta { padding: 8px 2px 0; }
@@ -1330,6 +1330,16 @@
        flat spine crease — on the app's own dark background (flat tones only,
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    /* ON THE WEBSITE the reader stops ABOVE the bottom nav (Aug 2026, Sophie:
+       opening the Book of Shadows "gets rid of the bottom navigation bar").
+       It never removed it — `inset: 0` at z-index 90 simply painted the
+       reader's own Previous / Add / Next row on top of a nav still sitting
+       there at z-index 50, so the tabs were unreachable behind the book.
+       It shows up on the WEB only: in the app the page's nav is hidden
+       (html.in-app) and the native tab bar lives outside the web view, where
+       nothing in here can cover it. Nothing to do with the long pages — the
+       reader is fixed to the viewport, so page length never moved it. */
+    html:not(.in-app) #bos-reader { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 20px 12px; }
     .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
@@ -1660,13 +1670,17 @@
              sits in the slot the daily astrology reading used to hold: the
              first thing under Synchronicities is now the school, not a
              horoscope. Filled by renderSchoolHome(). -->
-        <div class="section-title">Witch School</div>
-        <div class="section-sub">Everything you ever wanted to know about witchcraft.</div>
+        <!-- The SAME header the School tab wears (Aug 2026, Sophie: "make it
+             say learn the craft in the same gold style just like it does in
+             the actual app tab") — gold kicker over the title, so arriving at
+             the tab feels like the same place. -->
+        <div class="kicker">Learn the craft</div>
+        <div class="section-title">Everything you ever wanted to know about witchcraft</div>
         <!-- ART FIRST (Aug 2026, Sophie: "the first thing they should see is
-             pictures"). The course covers lead; the words sit under them. -->
+             pictures"). The course covers lead; the words sit under them. The
+             card never names which course — that is the tab's job. -->
         <div class="card" id="school-home-card" role="button" tabindex="0">
           <div class="sch-covers" id="sch-home-covers"></div>
-          <div class="cards-title" id="sch-home-path">The Craft</div>
           <div id="sch-home-next" style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;"></div>
           <div id="sch-home-moons" style="margin-bottom:10px;"></div>
           <p class="hint" id="sch-home-prog"></p>
@@ -4829,7 +4843,6 @@
       || c.lessons.find(k => !(prog[k] && prog[k].done));
     const titles = (typeof LESSON_TITLES !== 'undefined') ? LESSON_TITLES : {};
     const done = p.done >= p.total;
-    $('sch-home-path').textContent = c.title;
     $('sch-home-next').textContent = done
       ? 'Course complete'
       : (titles[nextKey] || c.sub);
@@ -4838,7 +4851,7 @@
     const covers = $('sch-home-covers');
     if (covers) {
       const start = SCHOOL_COURSES.findIndex(x => x.id === c.id);
-      const pick = [0, 1, 2].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
+      const pick = [0, 1].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
       covers.innerHTML = pick.map(x =>
         `<img src="${SW_IMG}${x.cover}${SW_EXT}" alt="" loading="lazy">`).join('');
     }
@@ -6492,7 +6505,7 @@
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
       </div>`;
-    }).join('') + '</div><p class="hint" style="text-align:center; margin-top:18px;">More courses are being written.</p>';
+    }).join('') + '</div>';   // no "more courses are being written" line (Aug 2026, Sophie)
   }
   function renderCoursePath(courseId) {
     const wrap = $('school-path'); if (!wrap) return;
