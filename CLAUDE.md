@@ -87,6 +87,23 @@ around them change, so verify the labels and use these for the URL.
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
 - **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
+  and only one is used (measured 2026-08-10 via `list_environments` +
+  `list_sessions`/`get_session`).** Telling them apart matters, because the
+  Setup script is a per-environment field and pasting it into the wrong one
+  looks identical to pasting it into the right one:
+  - `env_01NCcMuoimJBkNbag4JrEGZx` — name "Default", description **empty**.
+    **This is the one every session actually runs in**: all 19 sessions back
+    to Aug 3 were on it, including this file's own chats.
+  - `env_01PpZpGDKFXqhCj3ZieoBUkH` — name "Default", description "Default -
+    trusted network access". Nothing observed running on it.
+  Both were created 2026-07-26 within 0.23s of each other, i.e. auto-
+  provisioned at account setup — Sophie did not make two. **A chat can settle
+  which environment anything is on by calling `get_session` on its own
+  session id and reading `environment_id`; never infer it from behaviour.**
+  (This corrected a live wrong diagnosis: differing hook versions across
+  chats were blamed on "two environments" when in fact every chat shared one
+  and the healed ones had each been healed BY HAND.)
 - **Missing an id you need?** Ask Sophie to paste the URL from her address bar
   while she's on that page, build the exact link from it, and ADD THE ID HERE
   so no future chat has to ask twice.
