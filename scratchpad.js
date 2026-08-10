@@ -158,6 +158,13 @@ async function readPad(padId) {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
     inbox: Array.isArray(v.inbox) ? v.inbox : null,
+    // "About this story" — what Sophie said about it, in her own words
+    // (verbatim, written by a chat; never paraphrased). When what she said
+    // is a recording, descriptionAudio carries it instead of text; voiceover
+    // is her narration/read-aloud where a story has one.
+    description: v.description || '',
+    descriptionAudio: v.descriptionAudio || null,
+    voiceover: v.voiceover || null,
     updatedAt: v.updatedAt || 0,
   };
 }

@@ -162,6 +162,11 @@ body.native header #storiesbtn{position:static;}
   height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+/* About this story — her words pre-wrapped verbatim, her recordings above */
+#descbody{white-space:pre-wrap; line-height:1.55; font-size:.95em; padding:4px 0 60px;}
+#descaudios .arow{margin:12px 0 16px;}
+#descaudios .arow .no{margin-bottom:6px;}
+#descaudios audio{width:100%; display:block;}
 /* The sheet is its own scroller, so the page's pill cannot drive it — it gets
    one of its own, same look, in the same corner. */
 .sfloat{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:41;
@@ -294,6 +299,7 @@ body.native header #storiesbtn{position:static;}
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
+    <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
@@ -325,6 +331,18 @@ body.native header #storiesbtn{position:static;}
     </div>
     <div id="inboxgrid"></div>
     <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+  </div>
+</div>
+
+<!-- About this story: her own words + her recordings, read-only -->
+<div class="sheet" id="descsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="descclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <div class="no">About this story</div>
+    </div>
+    <div id="descaudios"></div>
+    <div id="descbody"></div>
   </div>
 </div>
 
@@ -670,6 +688,9 @@ function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
+    padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
+    padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
+    document.getElementById('descbtn').hidden=!(padDesc||padDescAudio||padVoice);
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
@@ -753,6 +774,37 @@ function closeShelf(){
 }
 document.getElementById('storiesclose').onclick=function(ev){
   ev.stopPropagation(); closeShelf();
+};
+
+/* ── About this story: what she said about it, verbatim + recordings ──
+   Data-only fields on the pad doc (a chat writes them); the sheet is
+   read-only. When descriptionAudio and the voiceover are the SAME file
+   (a lesson whose source IS her read-aloud) only one player shows. */
+var padDesc='', padDescAudio=null, padVoice=null;
+document.getElementById('descbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var au=document.getElementById('descaudios'); au.innerHTML='';
+  function row(label,url){
+    if(!url) return;
+    var d=document.createElement('div'); d.className='arow';
+    var n=document.createElement('div'); n.className='no'; n.textContent=label; d.appendChild(n);
+    var a=document.createElement('audio'); a.controls=true; a.preload='none'; a.src=url;
+    d.appendChild(a); au.appendChild(d);
+  }
+  if(padDescAudio && padVoice===padDescAudio){ row('Your recording', padDescAudio); }
+  else { row('As you told it', padDescAudio); row('Your narration', padVoice); }
+  var b=document.getElementById('descbody');
+  b.textContent=padDesc; b.hidden=!padDesc;
+  var sh=document.getElementById('descsheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
+};
+document.getElementById('descclose').onclick=function(ev){
+  ev.stopPropagation();
+  var sh=document.getElementById('descsheet');
+  var as=sh.querySelectorAll('audio');
+  for(var i=0;i<as.length;i++) as[i].pause();
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
 };
 function openPad(id){
   padId=id; localStorage.setItem('scratchpad_pad',id);
