@@ -67,6 +67,7 @@ window.addEventListener('error', function(e){
     { id:'a', label:'first', img:IMG },
     { id:'b', label:'which quality?', pair:[{img:IMG,label:'medium'},{img:IMG,label:'high'}] },
     { id:'c', label:'third', img:IMG },
+    { id:'d', label:'a text card', card:'<b>survey text</b> with <a href="#">a link</a>' },
   ]});
   setTimeout(function(){
     var m=document.getElementById('judge');
@@ -74,7 +75,7 @@ window.addEventListener('error', function(e){
     function tap(sel){ var b=m.querySelector(sel); if(b) b.click(); return !!b; }
 
     // 1 — one card, a progress count, a note box
-    ok(count()==='1 of 3' && m.querySelectorAll('.jg-card').length===1, 'one card at a time with a count');
+    ok(count()==='1 of 4' && m.querySelectorAll('.jg-card').length===1, 'one card at a time with a count');
     ok(!!m.querySelector('.cmp-note-box'), 'every card carries a note box');
 
     // 2 — heart posts true and advances to the PAIR card
@@ -89,16 +90,25 @@ window.addEventListener('error', function(e){
     tap('[data-act="maybe"]');
     ok(lastPost().ok==='maybe' && lastPost().item==='b', "maybe saves the string 'maybe'");
 
-    // 3 — last verdict lands on the piles view, grouped with counts
+    // a TEXT card renders its page-authored HTML in the picture's place
     tap('[data-act="no"]');
+    var ct=m.querySelector('.jg-cardtext');
+    ok(count()==='4 of 4' && ct && ct.querySelector('b') && ct.querySelector('a'),
+       'a text card renders its HTML in place of a picture');
+
+    // 3 — last verdict lands on the piles view, grouped with counts
+    tap('[data-act="yes"]');
     var heads=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
-    ok(count()==='3 of 3 sorted'
-       && heads.join('|')==='Loved · 1|Maybe · 1|Passed · 1',
+    ok(count()==='4 of 4 sorted'
+       && heads.join('|')==='Loved · 2|Maybe · 1|Passed · 1',
        'all judged opens the piles view, grouped with counts');
+    var ttile=m.querySelector('.jg-grid button.txt');
+    ok(ttile && ttile.textContent==='a text card' && ttile.getAttribute('data-open')==='d',
+       'a card item shows as a text tile named by its label');
 
     // 4 — a pile tile re-opens that item; re-judging moves it
     tap('[data-open="b"]');
-    ok(count()==='2 of 3' && m.querySelector('.jg-media figure .tag'), 'a pile tile re-opens its card');
+    ok(count()==='2 of 4' && m.querySelector('.jg-media figure .tag'), 'a pile tile re-opens its card');
     tap('[data-act="later"]');
     ok(lastPost().ok==='later' && lastPost().item==='b', "re-judging posts the new pile ('later')");
     var heads2=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
