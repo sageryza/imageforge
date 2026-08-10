@@ -110,7 +110,22 @@ const shown = (page) => page.evaluate(() => ({
   s = await shown(page);
   if (s.up) fail('the up arrow still shows at the top');
 
-  // 5b. nothing is still scrolling the page after the jump
+  // 5b. nothing is still scrolling the page after the jump.
+  //     The jump is a SMOOTH scroll, so its own deceleration is not "the
+  //     autoscroll is still running" — waiting for scrollY<4 can land mid-
+  //     glide (it really does: y=3 then 0, a false failure that moved with
+  //     the page's height). So settle first: if the autoscroll were alive the
+  //     page would never stop changing and this times out, which is the real
+  //     assertion. Then sample twice, as before.
+  const settled = await page.evaluate(async () => {
+    let last = -1, same = 0;
+    for (let i = 0; i < 40 && same < 3; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (window.scrollY === last) same++; else { same = 0; last = window.scrollY; }
+    }
+    return same >= 3;
+  });
+  if (!settled) fail('the page never stopped moving after the jump — the autoscroll was not stopped');
   const y1 = await page.evaluate(() => window.scrollY);
   await page.waitForTimeout(700);
   const y2 = await page.evaluate(() => window.scrollY);

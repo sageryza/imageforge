@@ -6,7 +6,8 @@
 // account at a time").
 // Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. the tabs exist as the witch sheet's shape — two half-width labels over
-//      ONE hairline (the masthead rule is swapped out, never doubled),
+//      a hairline — sitting directly ABOVE the hidden bar (Sophie moved them
+//      down there), with a gray line closing the hidden block off below,
 //   2. the home shows ONE account: tapping a tab swaps which chats are listed,
 //      and the lit tab + sliding line say which one she is in,
 //   3. an UNTAGGED chat shows on BOTH tabs (it can never fall off the screen),
@@ -117,17 +118,50 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="one-a"]');
 
-  // 1. the witch sheet's shape: two labels, ONE hairline (the rule is swapped
-  //    out, or the title would sit over two lines 10px apart)
+  // 1. the witch sheet's shape, in its place: two labels over a hairline,
+  //    sitting directly above the hidden bar (Sophie, Aug 2026 — it shipped
+  //    under the masthead and she moved it down to the list it governs)
   const tabs = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.textContent.trim()));
   if (tabs.length !== 2) fail('expected two account tabs, got ' + tabs.length);
   if (!/^Account 1/.test(tabs[0]) || !/^Account 2/.test(tabs[1])) fail('tab labels wrong: ' + tabs.join(' | '));
-  if (await page.$eval('.rule', (n) => getComputedStyle(n).display !== 'none')) {
-    fail('the masthead rule is still drawn under the account tabs (two hairlines)');
-  }
   if (await page.$eval('#accrow', (n) => getComputedStyle(n).borderBottomStyle === 'none')) {
     fail('the tab row has no hairline of its own');
   }
+  const order = await page.evaluate(() => {
+    const y = (s) => { const n = document.querySelector(s); return n ? n.getBoundingClientRect().top : null; };
+    return { search: y('.searchrow'), tabs: y('#accrow'), bar: y('#grid .hidebar'), row: y('#grid > .clist .crow') };
+  });
+  if (!(order.search < order.tabs && order.tabs < order.bar)) {
+    fail('the tabs are not between the search row and the hidden bar: ' + JSON.stringify(order));
+  }
+
+  // 1b. a gray line closes the hidden block off from the first chat, and it
+  //     is BETWEEN them — the pile shut, so it follows the bar
+  const sep = await page.evaluate(() => {
+    const n = document.querySelector('#grid .hbsep');
+    if (!n) return null;
+    const prev = n.previousElementSibling, next = n.nextElementSibling;
+    return { top: n.getBoundingClientRect().top, prev: prev && prev.className, next: next && next.className };
+  });
+  if (!sep) fail('no gray line under the hidden bar');
+  else {
+    if (!/hidebar/.test(sep.prev || '')) fail('the gray line does not follow the hidden bar: ' + sep.prev);
+    if (!(sep.top > order.bar && sep.top < order.row)) fail('the gray line is not between the bar and the first chat');
+  }
+  // …and when the pile is OPEN it closes the WHOLE block, with no doubled
+  // line against the last hidden row's own border
+  await page.click('#grid .hidebar');
+  const openSep = await page.evaluate(() => {
+    const n = document.querySelector('#grid .hbsep');
+    const last = document.querySelector('#grid .hidelist .clist .crow:last-child');
+    return {
+      prev: n && n.previousElementSibling && n.previousElementSibling.className,
+      lastBorder: last && getComputedStyle(last).borderBottomWidth,
+    };
+  });
+  if (!/hidelist/.test(openSep.prev || '')) fail('with the pile open the line does not follow it: ' + openSep.prev);
+  if (openSep.lastBorder !== '0px') fail('the last hidden row still draws a border under the line: ' + openSep.lastBorder);
+  await page.click('#grid .hidebar');
 
   // 2. ONE account on screen, and the tabs say which — plus 3. the untagged
   //    chat rides on BOTH tabs so it can never fall off the screen
