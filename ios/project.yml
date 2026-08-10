@@ -90,6 +90,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.secretlyawitch
         GENERATE_INFOPLIST_FILE: YES
+        # Sign in with Apple (guideline 4.8 — required alongside Google).
+        # The capability must also be enabled on the App ID in the developer
+        # portal or this entitlement fails to sign.
+        CODE_SIGN_ENTITLEMENTS: SecretlyAWitch/SecretlyAWitch.entitlements
         # Base plist merged on top of the generated keys — carries the
         # UILaunchScreen dict (cream LaunchBackground color).
         INFOPLIST_FILE: SecretlyAWitch/Info.plist
