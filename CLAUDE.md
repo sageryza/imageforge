@@ -3706,6 +3706,19 @@ lifted into a standalone tool later.
   the difference between a tap that plays and one that doesn't) and **format**
   (iOS Safari has no WebM audio support; Opus plays there only inside CAF).
   Voice memos skip all of it — m4a, minutes long, streamed through `/audio/:id`.
+- **A page that FETCHES audio needs CORS on the bucket, and testing it
+  same-origin hides that completely (Aug 2026, the pausing tool).** An
+  `<audio src>` needs no CORS, so every media element in the app worked and
+  nothing looked wrong — but `fetch()` + `decodeAudioData` (what any WebAudio
+  page does) is a cross-origin read and the browser blocks it. Both buckets
+  had **zero** CORS entries, so every such page would have failed live while
+  passing its tests, because a local test server serves the mp3 from the
+  page's own origin. Both now allow GET/HEAD from
+  `imageforge-q125.onrender.com` + `secretlyawitch.com` (added, never
+  replaced — `bucket.setCorsConfiguration` overwrites the whole list).
+  Check it with `curl -D - -H "Origin: https://imageforge-q125.onrender.com"
+  <url> | grep access-control` — a missing header is the bug, and it is
+  invisible from a same-origin test.
 - **Two things about audio CANNOT be tested from a chat's sandbox** (both cost
   real debugging time — don't re-derive them): ffmpeg's **direct HTTP seek**
   fails because the sandbox's outbound HTTPS proxy is one ffmpeg can't use (it
