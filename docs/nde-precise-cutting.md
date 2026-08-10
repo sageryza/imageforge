@@ -1,5 +1,9 @@
 # Precise voice cutting — how a transcript snippet becomes a clean audio cut
 
+> Working on Sophie's audio? Load the **`sophie-audio` skill** first — it is
+> the short version of this file plus the verification gate
+> (`node scripts/vo-verify.js`).
+
 The documentation of record for the NDE pipeline's millisecond-accurate
 cutting. Read this BEFORE cutting interview audio anywhere in this repo.
 (CLAUDE.md's Episode Editor section summarizes it; this file is the full story.)

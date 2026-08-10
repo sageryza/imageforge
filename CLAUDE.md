@@ -3106,6 +3106,11 @@ lifted into a standalone tool later.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
+- **ANY work on Sophie's audio starts with the `sophie-audio` skill**
+  (`.claude/skills/sophie-audio/`) — cutting, pause removal, take selection,
+  assembling narration, TTS. It is the tripwire for the two docs below, and
+  it ends with the rule chats keep skipping: run
+  `node scripts/vo-verify.js` before handing a cut back.
 - **Full cutting-pipeline documentation: `docs/nde-precise-cutting.md`** — read
   it before cutting interview audio; it is the doc of record for the precise
   cutter (alignment caches, snapping rules, both implementations, data layout).
