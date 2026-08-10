@@ -1570,14 +1570,26 @@ lifted into a standalone tool later.
   `homeView` off `archive`, so the back chevron lands on the live list.
   **Archiving is unchanged** — that gesture means "away for good", so it
   still ends by leaving.
-- **A chat's NAME is SANS, not the page's serif (Aug 2026, Sophie: "change
-  the font in the title of every chat to be the same font that the account
-  one account two is in — no serif").** `-apple-system`, the same family as
-  the account tabs and the timestamps; the serif stays for the masthead and
-  the message prose. Set in BOTH places a name appears — `.cr-name` on the
-  row and `.thread-head h1` — or tapping a chat would change its own name's
-  typeface. Both drop a size step with it: this face runs visually larger
-  than EB Garamond at the same em.
+- **A chat's NAME is SANS and CAPS (Aug 2026, Sophie: "change the font in the
+  title of every chat to be the same font that the account one account two is
+  in — no serif", then "did you change the font size? put it back — and make
+  it caps by default").** `-apple-system`, the same family as the account
+  tabs and the timestamps; the serif stays for the masthead and the message
+  prose. Set in BOTH places a name appears — `.cr-name` on the row and
+  `.thread-head h1` — or tapping a chat would change its own name's typeface.
+  - **`text-transform`, never an uppercased STRING**, so her real
+    capitalisation survives in the rename box (a separate `.nameed` input,
+    unaffected), in search, and anywhere else the name is read.
+  - **The sizes are the ORIGINAL 1.45em / 1.5em.** They shipped a step
+    smaller on the reasoning that this face renders visually larger than EB
+    Garamond at the same em; she read that as the names having shrunk, so it
+    was put back.
+  - **Known cost, measured 2026-08-10** against her 144 live chat names at
+    390px (195px of room on a row): **98 now truncate, where the original
+    serif truncated 58**. Sans at 1.45em mixed-case was already 84 — caps
+    adds 14 on top. One step down (1.25em) would bring it to 87. She was
+    told the numbers and kept caps at full size; **don't quietly shrink it
+    back** — if truncation comes up again, that is the trade to re-offer.
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +

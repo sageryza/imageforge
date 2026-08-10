@@ -124,8 +124,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
-/* the same sans as the row's name — see .cr-name */
-.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.24em; font-weight:600;
+/* the same sans, caps and size as the row's name — see .cr-name */
+.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.5em; font-weight:600;
+  text-transform:uppercase; letter-spacing:.01em;
   margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
@@ -396,11 +397,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    account two is in — no serif"). Same family as the account tabs and the
    timestamps; the serif stays for the masthead and the message prose. It is
    set in BOTH places a chat's name appears — the row here and the thread
-   header — or tapping a chat would change its own name's typeface. The size
-   drops a step with it: this face runs visually larger than EB Garamond at
-   the same em. */
+   header — or tapping a chat would change its own name's typeface.
+   IN CAPS, and at the ORIGINAL sizes (Sophie, Aug 2026: "did you change the
+   font size? put it back — and make it caps by default"). The sans shipped a
+   step smaller than the serif it replaced, on the reasoning that it renders
+   visually larger at the same em; she read that as the names having shrunk,
+   so 1.45em/1.5em are back exactly as they were. `text-transform` only —
+   never an uppercased STRING — so her real capitalisation survives in the
+   rename box, in search, and anywhere else the name is read. */
 .cr-name{display:block; font-family:-apple-system,sans-serif;
-  font-size:1.2em; font-weight:600; line-height:1.25;
+  font-size:1.45em; font-weight:600; line-height:1.2; text-transform:uppercase;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
