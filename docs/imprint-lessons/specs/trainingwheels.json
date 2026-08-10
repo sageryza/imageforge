@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, playful modern editorial illustration, one clear simple iconic subject, on a plain white background. ",
+  "end": " Centered as a small clean icon with empty white space around it. Absolutely no text, no words, no letters, no numbers.",
+  "cards": [
+    { "id":"meta-trainingwheels", "prompt":"A cheerful little kid's bicycle with training wheels — an orange frame with yellow trim and yellow wheels — with pink, orange and yellow streamers hanging off the handlebars. A simple iconic beginner 'stepping-stool' symbol. Bold black outlines, flat colors, no gradients, plain white background." }
+  ] }

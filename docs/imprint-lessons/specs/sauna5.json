@@ -1,0 +1,4 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"md-sauna-v5", "char": true, "prompt":"The recurring woman and her friend Mason sitting together on a bench in a warm wooden sauna. She is wrapped in a white towel (sauna clothes) instead of her usual jacket and striped pants; Mason beside her also in a towel. Mason is a gentle poet-philosopher with longish red hair, a red beard, and round glasses; he gestures calmly as if gently saying just meditate. She sits beside him looking stuck and unable to, an empty thought bubble rising from her head." }
+  ] }

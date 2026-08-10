@@ -1,0 +1,8 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette, on a plain white background, playful modern editorial illustration. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-pipeline", "charDesc":"Mason is a poet-philosopher with reddish Viking hair, a beard, and shoulder-length hair; gentle and thoughtful. ", "char": true,
+      "prompt":"Mason holding the start of a long winding Rube-Goldberg pipeline that processes sound into art. He holds a long fuchsia-pink pipe topped with an ambiguous mop-and-net head full of small colored dots (sound bites) feeding in; the dots get suctioned along into a wider pale-yellow accordion/squeegee pipe, then into a teal seafoam-green moppy section where the same dots reappear in slightly different colors; the pipe winds up and around to fit the square with one more iteration, and finally empties onto a small framed picture hanging on a gallery wall. Whimsical, clear left-to-right processing flow. Bold black outlines, flat pastel colors, no gradients, on plain white." }
+  ] }

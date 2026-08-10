@@ -33,11 +33,11 @@ page = r"""<!doctype html>
 <title>Story Room</title>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
-:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7;
+:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
   --mustard:#c99b3f; --green:#7d9b76; --blue:#7189a5; --pink:#c88fa2; }
-@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19;}}
-:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19;}
-:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7;}
+@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19; --gold:#c9a06b;}}
+:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19; --gold:#c9a06b;}
+:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;}
 html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 [hidden]{display:none !important;}
@@ -70,8 +70,33 @@ body.native header #storiesbtn{position:static;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
 .sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
 .sheethead .no{flex:1;}
-/* The shelf: every story as a row — its first picture, its name, how many
-   beats. The one you're in is marked with a rule, not a label. */
+/* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
+   Sophie): category chips + portrait tiles four across. A tile is a REAL
+   picture from that story — portrait 2:3 so nothing crops the art — with the
+   name only underneath; tapping it opens that story's beat canvas directly.
+   The chips are the witch shop's category style: rounded rectangles, gold
+   border + gold text when lit. */
+#shelfcats{display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  margin:14px 0 12px; padding-bottom:2px;}
+#shelfcats::-webkit-scrollbar{display:none;}
+.scat{flex:0 0 auto; background:var(--barbg); border:1px solid var(--line); color:var(--ink2);
+  border-radius:6px; padding:7px 13px; font:600 13px -apple-system,'Helvetica Neue',sans-serif;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.scat.on{border-color:var(--gold); color:var(--gold);}
+#shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
+.stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
+  cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
+.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
+.stile .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
+.stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
+  background:var(--barbg);}
+.stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
+.stile.cur .snm{color:var(--gold);}
+/* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
+   links here (Sophie's call); ?plain=1 is the one way in. */
 #storylist{margin-top:1.2em;}
 .srow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none;
   border:none; border-bottom:1px solid var(--line); padding:10px 0; cursor:pointer;
@@ -285,7 +310,9 @@ body.native header #storiesbtn{position:static;}
       <div class="no">Your stories</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
-    <div id="storylist"></div>
+    <div id="shelfcats"></div>
+    <div id="shelftiles"></div>
+    <div id="storylist" hidden></div>
   </div>
 </div>
 
@@ -647,37 +674,90 @@ function load(){
   });
 }
 
-/* ── the shelf: every story, newest-touched first ─────────────────── */
+/* ── the shelf: every story, newest-touched first ──────────────────
+   The NEW look (Aug 2026, the survey prototype): Personal · Lessons · NDE
+   chips over portrait tiles, a real picture from each story and its name.
+   Tap a tile → straight to that story's beat canvas (Sophie's call). A story
+   with no category files under Personal so a brand-new one is never
+   invisible; the chip choice is session-only, every open starts on Personal.
+   The old row list is the fallback ONLY — nothing links to it; ?plain=1 is
+   the one way in. */
+var SHELF_CATS=[['Personal','personal'],['Lessons','lessons'],['NDE','nde']];
+var shelfCat='personal';
+var PLAIN_SHELF=/(\?|&)plain=1/.test(location.search);
+var shelfPads=[];
+function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
 document.getElementById('storiesbtn').onclick=function(ev){
   ev.stopPropagation();
-  document.getElementById('stories').hidden=false; lock(true);
+  var sh=document.getElementById('stories');
+  sh.hidden=false; lock(true); sheetPill(sh);
   api('/pads').then(function(r){return r.json()}).then(function(d){
-    var list=document.getElementById('storylist'); list.innerHTML='';
-    (d.pads||[]).forEach(function(p){
-      var row=document.createElement('button'); row.className='srow'+(p.id===padId?' cur':'');
-      var cov;
-      if(p.cover){ cov=document.createElement('img'); cov.src=p.cover; cov.alt=''; cov.loading='lazy'; }
-      else { cov=document.createElement('div'); }
-      cov.className='sc'; row.appendChild(cov);
-      var nm=document.createElement('div'); nm.className='sn'+(p.title?'':' blank');
-      nm.textContent=p.title||'Untitled'; row.appendChild(nm);
-      var ct=document.createElement('div'); ct.className='sb';
-      ct.textContent=p.beats+(p.beats===1?' beat':' beats'); row.appendChild(ct);
-      row.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
-      list.appendChild(row);
-    });
+    shelfPads=d.pads||[];
+    if(PLAIN_SHELF) renderPlainShelf(); else renderShelf();
   });
 };
+function renderShelf(){
+  var cats=document.getElementById('shelfcats');
+  var tiles=document.getElementById('shelftiles');
+  document.getElementById('storylist').hidden=true;
+  cats.hidden=false; tiles.hidden=false;
+  cats.innerHTML='';
+  SHELF_CATS.forEach(function(c){
+    var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
+    b.textContent=c[0];
+    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
+    cats.appendChild(b);
+  });
+  tiles.innerHTML='';
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
+      var cov=document.createElement('span'); cov.className='cov';
+      if(p.cover){
+        var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+        im.src=thumbOf(p.cover); cov.appendChild(im);
+      } else {
+        var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+      }
+      t.appendChild(cov);
+      var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
+      nm.textContent=p.title||'Untitled'; t.appendChild(nm);
+      t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+      tiles.appendChild(t);
+    });
+}
+function renderPlainShelf(){
+  document.getElementById('shelfcats').hidden=true;
+  document.getElementById('shelftiles').hidden=true;
+  var list=document.getElementById('storylist'); list.hidden=false; list.innerHTML='';
+  shelfPads.forEach(function(p){
+    var row=document.createElement('button'); row.className='srow'+(p.id===padId?' cur':'');
+    var cov;
+    if(p.cover){ cov=document.createElement('img'); cov.src=p.cover; cov.alt=''; cov.loading='lazy'; }
+    else { cov=document.createElement('div'); }
+    cov.className='sc'; row.appendChild(cov);
+    var nm=document.createElement('div'); nm.className='sn'+(p.title?'':' blank');
+    nm.textContent=p.title||'Untitled'; row.appendChild(nm);
+    var ct=document.createElement('div'); ct.className='sb';
+    ct.textContent=p.beats+(p.beats===1?' beat':' beats'); row.appendChild(ct);
+    row.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+    list.appendChild(row);
+  });
+}
+function closeShelf(){
+  var sh=document.getElementById('stories');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
+}
 document.getElementById('storiesclose').onclick=function(ev){
-  ev.stopPropagation();
-  document.getElementById('stories').hidden=true; lock(false);
+  ev.stopPropagation(); closeShelf();
 };
 function openPad(id){
   padId=id; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
-  document.getElementById('stories').hidden=true; lock(false);
+  closeShelf();
   beats=[]; padTitle=''; render();
   load();
 }
@@ -1064,7 +1144,7 @@ window.__navBack=function(){
     return true;
   }
   el=document.getElementById('stories');
-  if(!el.hidden){ el.hidden=true; lock(false); return true; }
+  if(!el.hidden){ closeShelf(); return true; }
   return false;
 };
 

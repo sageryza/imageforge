@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework and character: bold confident black ink outlines, flat colors with NO gradients, a soft pastel palette (lilac, pastel pink, mint, pale yellow), on a plain WHITE background. ",
+  "end": " Plenty of empty white space. Absolutely no text, no words, no letters, no numbers.",
+  "cards": [
+    { "id":"md-sauna-v3", "char": true, "prompt":"The recurring woman wrapped in a white towel (sauna clothes) sitting in a steamy sauna beside her friend MASON — a man with reddish/ginger hair and a longish red beard, shoulder-length hair, a gentle poet-philosopher — who turns toward her in the steam as if speaking. Two friends relaxing on the wooden sauna bench. Keep her as the recurring woman (reddish-brown topknot). Pastel palette, bold outlines, white background." }
+  ] }
