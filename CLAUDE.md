@@ -959,6 +959,13 @@ lifted into a standalone tool later.
     into her field the day it shipped, which is what prompted this rule. The
     server truncates at 110 chars, but hitting the cap means you wrote the
     wrong thing.
+  - **ONLY ONE LINE SHOWS, and it looks exactly like her own notes** (Aug
+    2026, Sophie: "I want them the same as mine — italicized, not bold, not
+    pink… they only need one line"). The row renders `note || need ||
+    doing`: **a note SHE wrote supersedes your card entirely**, otherwise
+    your `need` takes the line and `doing` is the fallback. So write the
+    ONE thing worth her seeing — both fields are stored, but do not count
+    on `doing` being read while a `need` is set.
   - `need` = what you need from her, with the size of the ask — "pick a
     palette, 10 seconds", "listen to two cuts". Send `""` when nothing is
     needed; an empty `need` is the honest default, and a stale ask is worse
