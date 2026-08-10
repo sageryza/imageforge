@@ -1571,16 +1571,21 @@ lifted into a standalone tool later.
   - **`text-transform`, never an uppercased STRING**, so her real
     capitalisation survives in the rename box (a separate `.nameed` input,
     unaffected), in search, and anywhere else the name is read.
-  - **The sizes are the ORIGINAL 1.45em / 1.5em.** They shipped a step
-    smaller on the reasoning that this face renders visually larger than EB
-    Garamond at the same em; she read that as the names having shrunk, so it
-    was put back.
+  - **Sizes: `.cr-name` 1.3em, `.thread-head h1` 1.375em — TWO POINTS off the
+    originals, in real pixels, not a guessed step** ("you're right it's too
+    big, make it two points smaller"). The row's base is 13.333px so 1.45em
+    was 19.33px and 1.3em is 17.33px; the header's base is 16px so 1.5em was
+    24px and 1.375em is 22px. Measure the base before changing either — an
+    em figure alone says nothing about points here.
+  - **`letter-spacing:.04em`** on both ("a little bit more space between the
+    letters"). Caps set solid read as a block; this is enough air to tell
+    the letters apart without turning a name into a label.
   - **Known cost, measured 2026-08-10** against her 144 live chat names at
-    390px (195px of room on a row): **98 now truncate, where the original
-    serif truncated 58**. Sans at 1.45em mixed-case was already 84 — caps
-    adds 14 on top. One step down (1.25em) would bring it to 87. She was
-    told the numbers and kept caps at full size; **don't quietly shrink it
-    back** — if truncation comes up again, that is the trade to re-offer.
+    390px (195px of room on a row): **96 truncate**, against 58 for the
+    original serif. The two points back barely moved it — 98 → 96 — because
+    the tracking spends what the size saved. Levers if it comes up again,
+    all measured: tracking at .02em → 94, size 16px → 89, 15.33px → 85. She
+    has the numbers; **don't quietly shrink it back**.
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +
