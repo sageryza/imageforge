@@ -1032,6 +1032,19 @@ lifted into a standalone tool later.
     old code, and she found "probe" sitting in her app as a note to
     herself. Watch a deploy with a READ (`GET /status`, the build stamp),
     never a write to real data.
+    **A MADE-UP CHAT NAME IS NOT A SAFE PROBE EITHER (2026-08-10, done
+    again — same rule, different field).** Poking a new registry route with
+    `{chat:"__nonexistent-probe"}` to confirm it was live CREATED that
+    chat: Firestore's `set({field: <delete>}, {merge:true})` on a missing
+    doc still writes the doc (empty), and `sortedChatNames` lists every
+    registry key, so the fake name becomes a phantom row in her list. Two
+    things to know if it happens: only the Admin SDK can remove it
+    (`forge-chat-registry`, there is no delete route), and the registry's
+    5-minute cache keeps serving the phantom afterwards until ANY write
+    through the API invalidates it — a no-op write to a chat that really
+    exists is the clean way to force that. Confirm a new route with a READ
+    of the page (`curl /chats | grep <the new markup>`), never by calling
+    the write.
   - **Never gate a field the app already writes behind a flag only a NEW
     build sends.** The `app:true` requirement did exactly that: the phone
     keeps a cached page for days, so her own edit was refused with
