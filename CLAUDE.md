@@ -709,6 +709,12 @@ lifted into a standalone tool later.
   **Do not "fix" this by hunting the client repaint again.** #931/#933 did
   that, #901/#908/#910/#911 corrected this file's own wrong claims about it,
   and the layer was never the problem.
+  **The honest comeback, if she ever asks (she asked what was possible,
+  2026-08-10, and said not to build it yet):** tint from the PING ALONE —
+  drop the her-message-is-newest fallback (that is what lit "skill"
+  wrongly). Right for every session started after the setup-script
+  re-paste, silently blank for older ones, coverage grows as old chats
+  retire. Wait for her to ask.
 - **AUTO-PARKING A CHAT SHE ANSWERED IS BACK — it replaced the tint (Aug 2026,
   Sophie: "we need to go back to the hiding method we tried before").** `POST
   /reply` and `POST /working` stamp `hiddenAt` alongside `workingAt` again, so
@@ -1222,15 +1228,22 @@ lifted into a standalone tool later.
     - **…BUT IT COMES BACK WHEN IT ANSWERS (Aug 2026, Sophie: "it's been a
       problem when chats are in stories and they don't pop out back into the
       main list when they're done, so let's have them pop back out").** Same
-      idea as the hidden pile: filing means "not in my way", not "gone". It
-      takes BOTH halves of `chatBack`, and the second is the load-bearing one:
-      the reply must be **unread** (so reading it settles the chat back into
-      its folder, and the next reply brings it out again) **and must have
-      landed after `filedAt`** — the moment she filed it, stamped by
-      `POST /category`. Without that second half, filing a chat whose last
-      reply she had never opened would put it straight back on the list and
-      read as filing doing nothing; the whole folder would land on the main
-      list at once. The chat NEVER leaves its folder — it is in two places.
+      idea as the hidden pile: filing means "not in my way", not "gone".
+      **READING IT DOES NOT SETTLE IT (v2, same day — v1 keyed the pop-out on
+      the reply being unread and Sophie overruled that within the hour:
+      "reading it shouldn't send it back to stories — it should stay in both
+      places until I file it away again or respond").** A popped-out chat
+      stays on the main list, read or not, until she RE-FILES it (renewing
+      `filedAt` past the reply — the select-mode chips stamp it
+      optimistically, so the row leaves on the tap) or RESPONDS (her message
+      becomes the newest thing there, which ends the pop-out AND parks the
+      chat via auto-parking; the next reply pops it back out — the round
+      trip she described). The `filedAt` half of `chatBack` — the reply must
+      have landed after the filing moment, stamped by `POST /category` — is
+      still load-bearing: without it, filing a chat whose last reply she had
+      never opened would bounce straight back, and the backfill day would
+      have dumped a whole folder onto the list.
+      The chat NEVER leaves its folder — it is in two places.
       Chats filed before the field existed carry no stamp and can't pop; all
       23 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
       idempotent, stamps NOW rather than back-dating for exactly that
