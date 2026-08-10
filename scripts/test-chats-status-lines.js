@@ -47,11 +47,14 @@ const server = http.createServer((req, res) => {
         sophieNote: 'keep it loose',
       },
       'chat-bare': { lastSeen: MSGS[1].created },
-      // a chat card with NO note of hers — its own line should show
+      // a chat card with NO note of hers — its own line should show; it ALSO
+      // carries the v11 stale-hook mark, which rides as its own second line
+      // (detection telemetry — Sophie sees which chats need the heal paste)
       'chat-card2': {
         lastSeen: MSGS[2].created,
         statusNeed: 'Pick a palette, 10 seconds',
         statusDoing: 'six lesson cards, drawing now',
+        hookStale: true,
       },
     };
     const since = url.searchParams.get('since');
@@ -114,15 +117,20 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (card.italic !== 'italic') fail('the line is not italic: ' + card.italic);
   if (!(card.weight === '400' || card.weight === 'normal')) fail('the line is bold: ' + card.weight);
   if (card.rose && card.color.replace(/\s/g, '') === card.rose.replace(/\s/g, '')) fail('the line is rose');
-  // a chat's own card takes the line when she has written no note — and only one
+  // a chat's own card takes the line when she has written no note — plus the
+  // v11 stale-hook mark as its own quiet line (never replacing the status)
   const chatLine = await page.$eval('#grid .crow[data-chat="chat-card2"]', (n) => {
     const ls = n.querySelectorAll('.cr-note');
-    return { count: ls.length, text: ls[0] ? ls[0].textContent : '' };
+    return { count: ls.length, text: ls[0] ? ls[0].textContent : '',
+             hook: n.querySelector('.cr-hook') ? n.querySelector('.cr-hook').textContent : '' };
   });
-  if (chatLine.count !== 1) fail('a chat card should render ONE line, got ' + chatLine.count);
+  if (chatLine.count !== 2) fail('expected the status line + the stale-hook mark, got ' + chatLine.count);
   if (chatLine.text.indexOf('Pick a palette') < 0) fail('the ask should take the line, got: ' + chatLine.text);
-  const bare = await page.$eval('#grid .crow[data-chat="chat-bare"]', (n) => n.querySelectorAll('.cr-note').length);
-  if (bare) fail('card-less chat grew a status line on the list');
+  if (chatLine.hook.indexOf('hook out of date') < 0) fail('the stale-hook mark is missing: ' + chatLine.hook);
+  const bare = await page.$eval('#grid .crow[data-chat="chat-bare"]', (n) => ({
+    notes: n.querySelectorAll('.cr-note').length, hook: !!n.querySelector('.cr-hook') }));
+  if (bare.notes) fail('card-less chat grew a status line on the list');
+  if (bare.hook) fail('a chat with no telemetry got a stale mark');
 
   // 2. thread: her pinned note shows and edits in place
   await page.click('#grid .crow[data-chat="chat-card"]');

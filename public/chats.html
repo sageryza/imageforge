@@ -446,6 +446,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    earlier version put the chat's ask in rose bold above a second working
    line, which she rejected. */
 .cr-note{display:block; font-size:13.5px; line-height:1.35; font-style:italic; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+/* the stale-hook mark — the hide bar's red, dimmed: it is a maintenance flag,
+   not an alarm, and it must not shout over her own notes */
+.cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
 .t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
 .noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
@@ -1088,7 +1091,13 @@ function statusLines(name){
 function statusLinesHtml(name, fallback){
   var st=statusLines(name);
   var line=st.note || st.need || st.doing || fallback || '';
-  return line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
+  var out=line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
+  // v11 hook telemetry (Aug 2026): the turn-start ping carries the installed
+  // hook's md5 and the server marks the chat stale when it isn't the current
+  // one — so Sophie sees WHICH chats need the self-heal paste instead of
+  // hunting them (her ask). Detection only; the heal stays her paste.
+  if(chats[name]&&chats[name].hookStale) out+='<span class="cr-note cr-hook">hook out of date — paste the heal</span>';
+  return out;
 }
 // A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
 // box with a giant italic initial in it, and Sophie asked for that gone ("a

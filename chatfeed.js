@@ -907,7 +907,7 @@ router.get('/status', async (req, res) => {
 // and the final reply's registry write clears it.
 router.post('/working', async (req, res) => {
   try {
-    const { chat, session } = req.body || {};
+    const { chat, session, v } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     // Parks the chat as well as marking it (see POST /reply). This is the
@@ -917,10 +917,37 @@ router.post('/working', async (req, res) => {
     // exactly why the tint could never be trusted. Where it DOES fire it parks
     // the chat earlier than /reply can, which is the better moment.
     const stamp = new Date().toISOString();
-    await regRef(resolved).set({ workingAt: stamp, hiddenAt: stamp }, { merge: true });
+    const reg = { workingAt: stamp, hiddenAt: stamp };
+    // v11 telemetry (Sophie, 2026-08-10: "rather than me having to give it to
+    // each one individually… a place where each chat checks"): the ping carries
+    // the md5 of the chat's INSTALLED hook file; compare it to the repo copy
+    // this server deployed with (setup.sh installs byte-identical, verified)
+    // and mark the chat, so the app can show "hook out of date" instead of
+    // Sophie hunting stale chats by hand. Detection only — the server never
+    // pushes code anywhere; the heal stays a paste into the chat. (Auto-update
+    // designs were refused by the chat harness twice, with her permission on
+    // record — see the hook's v11 header. Don't rebuild them.)
+    const hv = String(v || '').slice(0, 40);
+    if (hv) { reg.hookV = hv; reg.hookStale = hv !== repoHookMd5(); }
+    await regRef(resolved).set(reg, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
+
+// The repo's own hook file deploys with this server, and setup.sh installs it
+// byte-identical — so its md5 IS the current hook version, measured off the
+// real artifact rather than a constant someone forgets to bump. Cached per
+// process; a deploy restarts the server, which is exactly when it can change.
+let hookMd5Cache = null;
+function repoHookMd5() {
+  if (!hookMd5Cache) {
+    try {
+      const p = path.join(__dirname, '.claude', 'hooks', 'post-to-feed.sh');
+      hookMd5Cache = crypto.createHash('md5').update(fs.readFileSync(p)).digest('hex');
+    } catch (e) { hookMd5Cache = 'unknown'; }
+  }
+  return hookMd5Cache;
+}
 
 // Bookmark a message Sophie wants to find later — a flag on the message doc
 // itself, so it rides along on GET / (every message already spreads its data)

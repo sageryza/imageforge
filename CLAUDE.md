@@ -888,6 +888,24 @@ lifted into a standalone tool later.
     re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
     the transcript uuid of the user message that started the turn; the server
     upserts onto the same message doc).
+- **STALE HOOKS SHOW THEMSELVES NOW — and AUTO-UPDATE IS A HARD NO (v11, Aug
+  2026).** The turn-start ping carries the md5 of the session's INSTALLED
+  hook file; the server compares it to the repo copy it deployed with
+  (setup.sh installs byte-identical — verified 2026-08-10) and stamps
+  `hookV`/`hookStale` on the registry doc, and the Chats app shows "hook out
+  of date — paste the heal" under the chat's name. So nobody hunts stale
+  chats anymore: Sophie pastes the self-heal into the marked ones and the
+  mark clears on that chat's next turn. Detection ONLY, and that boundary is
+  not ours to move: two stronger designs — the hook fetching and running the
+  setup script by itself, and the hook telling the chat's model to run it —
+  were built on 2026-08-10 WITH Sophie's explicit permission and the chat
+  harness refused both (an unattended path that makes every chat execute
+  server-supplied code is over its line regardless of consent). Don't
+  rebuild them; extend the telemetry instead if more is needed. A chat can
+  check ITSELF without the server: `md5sum
+  /home/user/.claude/hooks/post-to-feed.sh` vs the repo's
+  `.claude/hooks/post-to-feed.sh` — different means stale, and the self-heal
+  below fixes it in-session.
 - **Self-heal if you're NOT posting, or posting with an OLD hook (any chat).**
   Run `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
   (Curl works HERE and not in the Setup script for one reason: a running
