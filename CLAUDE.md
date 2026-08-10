@@ -1465,7 +1465,14 @@ lifted into a standalone tool later.
   account at a time").** `.acctabs` in chats.html, a verbatim port of the
   witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
   hairline with a line under the one she is reading that SLIDES when she taps
-  the other, `--chg` where the witch app uses gold.
+  the other.
+  - **In INK, not `--chg`** (Sophie, Aug 2026: "make it not red, just
+    black"). The screen spends its red on the hidden bar and the answered
+    badges, which are alarms; which account she is reading is not one. The
+    **red badge on each tab stays red** — that is the app's "something
+    answered you" colour everywhere else, and it is the one thing on the row
+    meant to catch her eye. Small type (10px) and a 5px negative top margin
+    keep it tight under the search box, also her ask.
   - **It sits directly ABOVE THE HIDDEN BAR** (Sophie moved it there the same
     day — it shipped under the masthead), so it is the last thing before the
     list it governs. That position is also what lets it run FULL WIDTH: down
