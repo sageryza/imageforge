@@ -172,11 +172,14 @@ const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip)',
   await page.click('#selbtn');
   await page.waitForSelector('#selbar');
   await page.fill('#selbar input', 'errands');
-  await page.click('#qsearch');                      // tap away, never Enter
-                                                     // (not #htitle — the
-                                                     // masthead is now
-                                                     // pointer-events:none so
-                                                     // long titles can overlap)
+  // tap away, never Enter — she dictates these and dictation ends with a tap
+  // elsewhere. It has to be somewhere inert: NOT #htitle (the masthead is
+  // pointer-events:none so long titles can overlap the buttons) and no longer
+  // #qsearch (the search bar is collapsed to its glass until tapped, and
+  // tapping THAT would be a control, not a tap-away). The header's own top-
+  // left padding is dead space, and a title tap on the chat list is a no-op
+  // anyway.
+  await page.click('header', { position: { x: 5, y: 5 } });
   await page.waitForFunction(
     () => [...document.querySelectorAll('#catrow .catchip')].some((n) => n.firstChild && n.firstChild.textContent.trim() === 'Errands'),
     null, { timeout: 4000 }).catch(() => fail('a category made with nothing picked did not appear'));

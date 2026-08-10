@@ -1506,6 +1506,47 @@ lifted into a standalone tool later.
   - Each tab carries the same red ANSWERED badge the category chips do, so
     the tab she is NOT on can still say there are three waiting over there.
   - Tests: `node scripts/test-chats-accounts.js`.
+- **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
+  the search bar collapse into just a magnifying glass button unless I click
+  it, and then it expands into the search bar as it is right now").**
+  `.searchrow` is the glass until tapped, then the bar it always was
+  (focused, so the keyboard comes with it).
+  - **The glass keeps the BAR'S OWN place — it does NOT join the tool row's
+    icons.** That was the first build and it is measurably wrong: at 375 and
+    390 a third icon up there squeezes the category chips onto a second
+    line, spending the row this was meant to save. The test asserts the
+    chips stay on one line at 375/390/430.
+  - **The ✕ is the only way out, and it does two jobs**: with words in the
+    field it clears them (bar stays open); on an empty field it folds the
+    bar away. One control, no second button to discover.
+  - **The row reserves the pill's corner AND lays the ✕ out as a real flex
+    child** rather than the absolutely-positioned overlay `.qclear` is
+    elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
+    against the PADDING box, so the reserve alone leaves the ✕ exactly where
+    it was — measured at 390, under the pill's own down-arrow, which ate the
+    tap. (That was already true of the old always-open bar; it only became
+    load-bearing when the ✕ became the way to close.)
+  - Session-only, always starting SHUT, and `goHome()` folds it — leaving a
+    chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
+    tests. Tests: `node scripts/test-chats-search-archive.js`.
+- **TAKING A CHAT OUT OF THE ARCHIVE KEEPS HER IN IT (Aug 2026, Sophie:
+  "when I take something out of the archive it should go straight to that
+  chat, and when I get out of that chat I shouldn't be in the archive").**
+  Unarchive used to `goHome()` like Archive does, which was wrong twice: she
+  pulls a chat out BECAUSE she wants it, and the home she landed on was the
+  ARCHIVE view — the one place the chat no longer is. So Unarchive now
+  repaints the thread in place (the word flips back to "Archive") and flips
+  `homeView` off `archive`, so the back chevron lands on the live list.
+  **Archiving is unchanged** — that gesture means "away for good", so it
+  still ends by leaving.
+- **A chat's NAME is SANS, not the page's serif (Aug 2026, Sophie: "change
+  the font in the title of every chat to be the same font that the account
+  one account two is in — no serif").** `-apple-system`, the same family as
+  the account tabs and the timestamps; the serif stays for the masthead and
+  the message prose. Set in BOTH places a name appears — `.cr-name` on the
+  row and `.thread-head h1` — or tapping a chat would change its own name's
+  typeface. Both drop a size step with it: this face runs visually larger
+  than EB Garamond at the same em.
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +
