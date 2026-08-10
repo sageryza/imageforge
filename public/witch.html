@@ -1225,6 +1225,13 @@
        box gives each one an edge to end at. */
     .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
                    border: 2px solid var(--gold); border-radius: 14px; background: var(--surface); }
+    /* Home's school card leads with ART (Aug 2026, Sophie: "the first thing
+       they should see is pictures"). Three course covers in a row, same
+       outlined-square treatment as the catalog tiles so the two read as one
+       set. Square via aspect-ratio, so a slow image never collapses the row. */
+    .sch-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .sch-covers img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                      border: 2px solid var(--gold); border-radius: 12px; background: var(--surface); }
     .wcourse .meta { padding: 8px 2px 0; }
     .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
     .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
@@ -1654,8 +1661,11 @@
              first thing under Synchronicities is now the school, not a
              horoscope. Filled by renderSchoolHome(). -->
         <div class="section-title">Witch School</div>
-        <div class="section-sub">Eighteen illustrated lessons, at your own pace.</div>
+        <div class="section-sub">Everything you ever wanted to know about witchcraft.</div>
+        <!-- ART FIRST (Aug 2026, Sophie: "the first thing they should see is
+             pictures"). The course covers lead; the words sit under them. -->
         <div class="card" id="school-home-card" role="button" tabindex="0">
+          <div class="sch-covers" id="sch-home-covers"></div>
           <div class="cards-title" id="sch-home-path">The Craft</div>
           <div id="sch-home-next" style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;"></div>
           <div id="sch-home-moons" style="margin-bottom:10px;"></div>
@@ -4823,6 +4833,15 @@
     $('sch-home-next').textContent = done
       ? 'Course complete'
       : (titles[nextKey] || c.sub);
+    // Art first: this course's cover, then the next two courses' — so the top
+    // of the card is always three pictures, whichever course she is on.
+    const covers = $('sch-home-covers');
+    if (covers) {
+      const start = SCHOOL_COURSES.findIndex(x => x.id === c.id);
+      const pick = [0, 1, 2].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
+      covers.innerHTML = pick.map(x =>
+        `<img src="${SW_IMG}${x.cover}${SW_EXT}" alt="" loading="lazy">`).join('');
+    }
     const moons = $('sch-home-moons');
     if (moons) moons.innerHTML = (typeof courseMoon === 'function') ? courseMoon(p.done, p.total, 15) : '';
     $('sch-home-prog').textContent = p.done
@@ -5428,7 +5447,23 @@
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
   function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading-clear.gif" alt="drawing…">'; }
+  // The three boxes must NOT draw in lockstep (Aug 2026, Sophie: "they should
+  // be asynchronous so you see different hoonies"). Each box gets its own FILE,
+  // built by scripts/hoonie-split-gif.py: the 70-drawing loop is split into
+  // three disjoint sets, so box 0 cycles hoonies 0,3,6…, box 1 gets 1,4,7…,
+  // box 2 gets 2,5,8… — never the same drawing at the same moment.
+  //
+  // Do NOT "simplify" this back to one file with a query string per box. That
+  // was tried and MEASURED: Chromium keeps GIF animation in step regardless of
+  // the URL — all three boxes still showed the same frame in 0/12 samples,
+  // identical to sharing one URL. Different bytes are the only thing that
+  // works. Splitting rather than copying also means the three files together
+  // (329KB) weigh LESS than the single file did (390KB).
+  function coinSpinner(box, i) {
+    box.setAttribute('contenteditable', 'false');
+    const n = (typeof i === 'number' ? i : 0) % 3;
+    box.innerHTML = `<img class="coin-load" src="/hoonie-loading-clear-${n}.gif" alt="drawing…">`;
+  }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
   // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
@@ -5513,7 +5548,7 @@
     box.dataset.desc = desc;
     if (redraw) { const rd = box.closest('.coin-cell')?.querySelector('.coin-redraw'); if (rd) { rd.disabled = true; rd.textContent = '…'; } }
     else { const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; } }
-    coinSpinner(box);
+    coinSpinner(box, i);
     try {
       // Raw note → server distills it into ONE simple pastel spot illustration.
       const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
@@ -5563,7 +5598,7 @@
     const done = coinDoneAll();
     Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
-    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
+    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box, +i); } coinWatch(+i, id, desc, redraw); } });
     updateCoinBookmark(false);
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
