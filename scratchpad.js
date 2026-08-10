@@ -203,7 +203,9 @@ router.get('/pads', async (req, res) => {
       const inboxArt = inbox.find((it) => it && it.url);
       return {
         id: d.id, title: v.title || '', beats: beats.length,
-        cover: withArt ? withArt.url : (inboxArt ? inboxArt.url : null),
+        // Sophie can pin a cover from a beat's popup (POST /cover); the
+        // pinned one wins over the first-art derivation.
+        cover: v.cover || (withArt ? withArt.url : (inboxArt ? inboxArt.url : null)),
         category: v.category || null, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -231,6 +233,27 @@ router.post('/pads/category', async (req, res) => {
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
     await padRef(pid).set({ category: category || null }, { merge: true });
     res.json({ ok: true, pad: pid, category: category || null });
+  } catch (e) { fail(res, e); }
+});
+
+// Pin a story's shelf cover to one beat's art (Sophie's pick — the shelf
+// otherwise shows the FIRST art, which isn't always the story's face; the
+// meditation lesson led with Mason when it should lead with her waking up).
+// `id` = a beat id; empty/absent clears the pin back to the derivation.
+// Like /category, deliberately does NOT bump updatedAt.
+router.post('/cover', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const beatId = String(req.body.id || '').trim();
+    if (!beatId) {
+      await padRef(pid).set({ cover: null }, { merge: true });
+      return res.json({ ok: true, pad: pid, cover: null });
+    }
+    const pad = await readPad(pid);
+    const beat = (pad.beats || []).find((b) => b.id === beatId);
+    if (!beat || !beat.url) return res.status(400).json({ error: 'that beat has no art' });
+    await padRef(pid).set({ cover: beat.url }, { merge: true });
+    res.json({ ok: true, pad: pid, cover: beat.url });
   } catch (e) { fail(res, e); }
 });
 
