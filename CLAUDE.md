@@ -1584,24 +1584,27 @@ lifted into a standalone tool later.
   - **`text-transform`, never an uppercased STRING**, so her real
     capitalisation survives in the rename box (a separate `.nameed` input,
     unaffected), in search, and anywhere else the name is read.
-  - **Sizes: `.cr-name` 1.3em, `.thread-head h1` 1.375em — TWO POINTS off the
-    originals, in real pixels, not a guessed step** ("you're right it's too
-    big, make it two points smaller"). The row's base is 13.333px so 1.45em
-    was 19.33px and 1.3em is 17.33px; the header's base is 16px so 1.5em was
-    24px and 1.375em is 22px. Measure the base before changing either — an
-    em figure alone says nothing about points here.
+  - **Sizes: `.cr-name` 1.15em, `.thread-head h1` 1.25em — TWO POINTS at a
+    time off the originals, in real pixels, never a guessed em step** ("make
+    it two points smaller", then "make the title font a little smaller, two
+    points or so"). The row's base is 13.333px: 1.45em was 19.33px, 1.3em
+    17.33px, 1.15em is 15.33px. The header's base is 16px: 1.5em was 24px,
+    1.375em 22px, 1.25em is 20px. **Measure the base before changing
+    either** — the two bases differ, so an em figure alone says nothing
+    about points here.
   - **`letter-spacing:.04em`** on both ("a little bit more space between the
     letters"). Caps set solid read as a block; this is enough air to tell
     the letters apart without turning a name into a label.
   - **NOT BOLD — `font-weight:400` in both places** ("the titles shouldn't
     be bold"). An `h1` is bold by default, so the thread header needs it
     said out loud; caps at this size hold the row on their own.
-  - **Known cost, measured 2026-08-10** against her 144 live chat names at
-    390px (195px of room on a row): **96 truncate**, against 58 for the
-    original serif. The two points back barely moved it — 98 → 96 — because
-    the tracking spends what the size saved. Levers if it comes up again,
-    all measured: tracking at .02em → 94, size 16px → 89, 15.33px → 85. She
-    has the numbers; **don't quietly shrink it back**.
+  - **Truncation, measured 2026-08-10** against her 144 live chat names at
+    390px (195px of room on a row): at 15.33px **83 truncate**, against 96
+    at 17.33px, 98 at 19.33px, and 58 for the original serif. The FIRST two
+    points barely moved it (98 → 96) because the new tracking spent what the
+    size saved; the second two actually landed. If it comes up again the
+    measured levers are tracking at .02em (-2) and another point or two of
+    size; **don't quietly change it without telling her the number**.
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +
