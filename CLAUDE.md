@@ -43,6 +43,26 @@ it out anyway is how this repo lost weeks:
   stubs the environment is evidence about the machinery, not the
   deployment; say which one you have. An undated confident claim about the
   environment in this file should be treated as a hypothesis, not a fact.
+- **THE GAP TEST — how to tell which chats carry a current hook, from the
+  feed alone (2026-08-10).** You cannot look inside another session's
+  container, but the feed tells you anyway: an OLD hook can only lift her
+  message from the transcript at the END of a turn, so her `postedAt` lands
+  ~1s before the reply's. A CURRENT hook posts it at UserPromptSubmit, so
+  the gap between her message and the reply IS the turn's duration. Measure
+  `sophie.postedAt → next non-sophie postedAt` per chat: **~1s = stale
+  hook, seconds-to-minutes = healed.** Verified 2026-08-10 against a chat
+  that healed mid-conversation — its gap jumped 0.6s → 9.8s on the very
+  next turn, and the healed chats were exactly the ones stamping
+  `workingAt`. Use this before telling her a chat "isn't working"; it costs
+  one feed read and needs nothing from the session in question.
+- **A transient mark leaves NO trace, so don't read its absence as failure.**
+  `workingAt` is deleted by the chat's own reply, and `hiddenAt` is
+  overwritten by the next hide — so a chat that parked and un-parked inside a
+  10-second turn looks identical to one that never parked. That is exactly
+  what "the Jesus rules chat didn't hide itself" turned out to be
+  (2026-08-10): it had healed and it did park; the turn was 9.8s long, so
+  the window was gone before she could look. Judge parking/tint on a LONG
+  turn, or from the gap test above — never on a fast one.
 
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
