@@ -86,14 +86,25 @@ struct WitchWebView: UIViewRepresentable {
             }
         }
 
-        // "Continue with Google" tapped in the page → run the native OAuth
-        // sheet, then hand the tokens back so Firebase JS finishes sign-in.
+        // "Continue with Google" / "Sign in with Apple" tapped in the page →
+        // run the native sheet, then hand the tokens back so Firebase JS
+        // finishes sign-in. Apple is not optional: guideline 4.8 requires an
+        // equivalent private login beside Google, and its absence is what got
+        // 1.0 (8) rejected (submission 52f6aa43, 2026-08-05).
         func userContentController(_ userContentController: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
             guard message.name == "witchAuth",
-                  let body = message.body as? String, body == "google",
+                  let body = message.body as? String,
                   let web = message.webView else { return }
-            GoogleNativeAuth.shared.signIn { result in
+            switch body {
+            case "google": startGoogle(web)
+            case "apple": startApple(web)
+            default: break
+            }
+        }
+
+        private func startGoogle(_ web: WKWebView) {
+            GoogleNativeAuth.shared.signIn { [weak self] result in
                 switch result {
                 case .success(let t):
                     let access = t.accessToken.map { "'\($0)'" } ?? "null"
@@ -101,19 +112,51 @@ struct WitchWebView: UIViewRepresentable {
                         "window.__witchGoogleCredential && window.__witchGoogleCredential('\(t.idToken)', \(access))",
                         completionHandler: nil)
                 case .failure(let err):
-                    let ns = err as NSError
-                    // User closed the sheet — not an error worth showing.
-                    let cancelled = ns.domain == ASWebAuthenticationSessionError.errorDomain
-                        && ns.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
-                    let msg = cancelled ? "" : err.localizedDescription
-                        .replacingOccurrences(of: "\\", with: "")
-                        .replacingOccurrences(of: "'", with: "\u{2019}")
-                        .replacingOccurrences(of: "\n", with: " ")
+                    let msg = self?.userFacingMessage(err) ?? ""
                     web.evaluateJavaScript(
                         "window.__witchGoogleFailed && window.__witchGoogleFailed('\(msg)')",
                         completionHandler: nil)
                 }
             }
+        }
+
+        private func startApple(_ web: WKWebView) {
+            AppleNativeAuth.shared.signIn { [weak self] result in
+                switch result {
+                case .success(let t):
+                    // Apple sends the name ONCE, on the very first authorization,
+                    // so it rides along now or never.
+                    let name = t.fullName.map { "'\(Coordinator.jsQuoted($0))'" } ?? "null"
+                    web.evaluateJavaScript(
+                        "window.__witchAppleCredential && window.__witchAppleCredential('\(t.idToken)', '\(t.rawNonce)', \(name))",
+                        completionHandler: nil)
+                case .failure(let err):
+                    let msg = self?.userFacingMessage(err) ?? ""
+                    web.evaluateJavaScript(
+                        "window.__witchAppleFailed && window.__witchAppleFailed('\(msg)')",
+                        completionHandler: nil)
+                }
+            }
+        }
+
+        /// Closing the sheet is a choice, not a failure — report it as empty so
+        /// the page shows nothing rather than an alarming system string.
+        private func userFacingMessage(_ err: Error) -> String {
+            let ns = err as NSError
+            let cancelled =
+                (ns.domain == ASWebAuthenticationSessionError.errorDomain
+                    && ns.code == ASWebAuthenticationSessionError.canceledLogin.rawValue)
+                || (ns.domain == ASAuthorizationError.errorDomain
+                    && ns.code == ASAuthorizationError.canceled.rawValue)
+            return cancelled ? "" : Coordinator.jsQuoted(err.localizedDescription)
+        }
+
+        /// Safe inside the single-quoted JS string literals above.
+        static func jsQuoted(_ s: String) -> String {
+            s.replacingOccurrences(of: "\\", with: "")
+                .replacingOccurrences(of: "'", with: "\u{2019}")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
         }
 
         private func isAppHost(_ url: URL?) -> Bool {

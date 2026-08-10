@@ -1,0 +1,5 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"af-esoteric", "char": true,
+      "prompt":"The recurring woman happily tending to small unusual esoteric pursuits — a little herb bundle, a tarot card, an odd handmade craft — off in her own quiet corner where no one else is competing. Content and unbothered. Flat house colors, bold outlines, cream space. No text, no numbers." }
+  ] }

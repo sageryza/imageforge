@@ -1586,6 +1586,17 @@
     .modal .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; font-weight: 500; color: #3a3a3a; cursor: pointer; margin-bottom: 14px; }
     .modal .gbtn:hover { border-color: var(--text-dim); }
     .modal .gbtn svg { width: 17px; height: 17px; }
+    /* Sign in with Apple — guideline 4.8 requires it beside Google. Black is
+       one of Apple's sanctioned button styles and keeps it distinct from the
+       white Google button stacked above it. */
+    .modal .abtn { background: #000; border-color: #000; color: #fff; }
+    .modal .abtn:hover { border-color: #000; }
+    .modal .abtn svg { width: 16px; height: 16px; fill: #fff; margin-top: -2px; }
+    /* Account deletion (guideline 5.1.1(v)) — quiet until tapped; it must be
+       findable, not prominent. */
+    .modal .del-link { background: none; border: none; color: var(--text-faint); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: inherit; margin: 16px auto 0; display: block; }
+    .modal .del-warn { font-size: 11.5px; color: var(--text-dim); margin: 14px 0 10px; line-height: 1.5; }
+    .modal .btn-danger { width: 100%; padding: 12px; background: #8c2f2f; border: 1px solid #8c2f2f; border-radius: var(--radius); color: #fff; font-family: inherit; font-size: 14px; cursor: pointer; }
     .modal .divider { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin: 4px 0 14px; }
     .modal .close-x { background: none; border: none; color: var(--text-faint); font-size: 13px; cursor: pointer; margin-top: 14px; font-family: inherit; }
     .modal .acct-email { font-size: 13px; color: var(--text); margin-bottom: 2px; word-break: break-all; }
@@ -6847,6 +6858,7 @@
   }
 
   const GOOGLE_G = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16z"/><path fill="#FBBC05" d="M10.3 28.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.5l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.5 2.1-7.9 2.1-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>`;
+  const APPLE_LOGO = `<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M13.4 10.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2C.5 10.3 1.6 14 3 16c.7 1 1.5 2.1 2.6 2.1 1 0 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.3s-2.1-.8-2.2-3.1zM11.3 4c.6-.7 1-1.7.9-2.7-.8 0-1.9.6-2.5 1.3-.6.6-1 1.6-.9 2.6.9.1 1.9-.5 2.5-1.2z"/></svg>`;
   function openModal(html) { $('modal').innerHTML = html; $('modal-bg').classList.add('show'); }
   function closeModal() { $('modal-bg').classList.remove('show'); }
   $('modal-bg').addEventListener('click', e => { if (e.target === $('modal-bg')) closeModal(); });
@@ -6860,6 +6872,7 @@
       <h2>Make a free account</h2>
       <p class="sub">It saves your chart, readings &amp; miracles across devices — and keeps your daily reading in sync.</p>
       <button class="gbtn" id="btn-google">${GOOGLE_G} Continue with Google</button>
+      <button class="gbtn abtn" id="btn-apple">${APPLE_LOGO} Sign in with Apple</button>
       <div class="divider">or</div>
       <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
       <button class="btn" id="btn-email">Email me a magic link</button>
@@ -6872,6 +6885,7 @@
       <button class="close-x" id="acct-close">maybe later</button>`);
     $('acct-close').addEventListener('click', closeModal);
     $('btn-google').addEventListener('click', signInGoogle);
+    $('btn-apple').addEventListener('click', signInApple);
     $('btn-email').addEventListener('click', signInEmail);
     $('btn-pw-toggle').addEventListener('click', () => {
       $('pw-block').style.display = 'block';
@@ -6892,6 +6906,7 @@
       <div class="acct-note" style="margin-bottom:10px;">Pick a default and the Tropical / Astronomical toggle disappears. Leave it on “Ask” to keep the toggle on your reading.</div>
       <div style="display:flex; gap:8px;">${opt('ask','Ask')}${opt('tropical','Tropical')}${opt('astronomical','Astronomical')}</div>
       <button class="btn-ghost" id="btn-signout" style="margin-top:18px;">Sign out</button>
+      <button class="del-link" id="btn-delete">Delete my account</button>
       <button class="close-x" id="acct-close">close</button>`);
     document.querySelectorAll('.zdef-opt').forEach(b => b.addEventListener('click', () => {
       const v = b.dataset.def;
@@ -6903,7 +6918,55 @@
       showAccount();  // re-render to reflect the new selection
     }));
     $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });
+    $('btn-delete').addEventListener('click', showDeleteAccount);
     $('acct-close').addEventListener('click', closeModal);
+  }
+
+  // Account deletion, required by App Store guideline 5.1.1(v) for any app that
+  // supports account creation — 1.0 (8) was rejected for not having it. It must
+  // be reachable and finishable IN the app: offering only to deactivate, or
+  // sending the user to email support, does not satisfy it.
+  function showDeleteAccount() {
+    openModal(`
+      <h2>Delete your account</h2>
+      <div class="del-warn">
+        This permanently deletes your account and everything synced to it —
+        your chart, saved readings, grimoire and miracles. It cannot be undone.
+      </div>
+      <button class="btn-danger" id="btn-delete-confirm">Delete my account</button>
+      <div class="note" id="del-msg" style="text-align:center;"></div>
+      <button class="close-x" id="del-cancel">cancel</button>`);
+    $('del-cancel').addEventListener('click', showAccount);
+    $('btn-delete-confirm').addEventListener('click', deleteAccount);
+  }
+
+  async function deleteAccount() {
+    const m = $('del-msg'), btn = $('btn-delete-confirm');
+    const user = fbAuth && fbAuth.currentUser;
+    if (!user) { closeModal(); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    if (m) m.textContent = '';
+    try {
+      // The synced doc first: if the auth user goes first we lose the uid and
+      // the document is orphaned where nothing can ever reach it again.
+      if (fbDb) { try { await fbDb.collection('users').doc(user.uid).delete(); } catch {} }
+      await user.delete();
+      closeModal();
+      toast('Your account has been deleted.');
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Delete my account'; }
+      // Firebase refuses to delete on a stale session. That is a re-auth, not a
+      // dead end — signing back in makes the session fresh and the delete works.
+      if (e && e.code === 'auth/requires-recent-login') {
+        if (m) m.textContent = 'For your security, please sign in again, then delete.';
+        if (btn) {
+          btn.textContent = 'Sign in again';
+          btn.onclick = async () => { try { await fbAuth.signOut(); } catch {} closeModal(); showSignIn(); };
+        }
+        return;
+      }
+      if (m) m.textContent = (e && e.message) || 'Could not delete the account.';
+    }
   }
   async function signInGoogle() {
     // Inside the iOS app, Google's web popup can't complete (WKWebView blocks
@@ -6930,6 +6993,46 @@
     }
   };
   window.__witchGoogleFailed = (msg) => {
+    const m = $('acct-msg'); if (m) m.textContent = msg || '';
+  };
+  // Sign in with Apple. Guideline 4.8 requires it wherever Google is offered,
+  // and 1.0 (8) was rejected for not having it.
+  async function signInApple() {
+    // In the iOS app the native sheet is the only one that works AND the only
+    // one Apple accepts as a real Sign in with Apple — same bridge as Google.
+    const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.witchAuth;
+    if (bridge) {
+      const m = $('acct-msg'); if (m) m.textContent = '';
+      try { bridge.postMessage('apple'); } catch (e) { if (m) m.textContent = e.message; }
+      return;
+    }
+    // Plain browser (secretlyawitch.com) — Apple's web OAuth via Firebase.
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      p.addScope('email'); p.addScope('name');
+      await fbAuth.signInWithPopup(p);
+      closeModal();
+    } catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
+  }
+  // The rawNonce is what Firebase verifies against the hash Apple was sent —
+  // pass it through untouched or the credential is rejected.
+  window.__witchAppleCredential = async (idToken, rawNonce, fullName) => {
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      const cred = p.credential({ idToken: idToken, rawNonce: rawNonce });
+      const res = await fbAuth.signInWithCredential(cred);
+      // Apple only ever sends the name on the FIRST authorization, so if it
+      // came through, save it now — there is no second chance.
+      if (fullName && res && res.user && !res.user.displayName) {
+        try { await res.user.updateProfile({ displayName: fullName }); } catch {}
+      }
+      closeModal();
+    } catch (e) {
+      const m = $('acct-msg');
+      if (m) m.textContent = e.message; else toast('Sign-in error: ' + e.message);
+    }
+  };
+  window.__witchAppleFailed = (msg) => {
     const m = $('acct-msg'); if (m) m.textContent = msg || '';
   };
   // Email + password sign-in (secondary option; primarily for a demo/reviewer

@@ -1,0 +1,5 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"na-onetwo", "prompt":"A very simple minimal diagram in the house line style: one white rounded rectangle on the left, a dashed arrow leading to the right where it has split into TWO white rounded rectangles — the upper one holding a simple circle, the lower one holding a simple square. One thing becoming two. Clean, minimal, lots of cream space. Flat colors, bold black outlines. No text, no numbers." },
+    { "id":"na-youarehere", "prompt":"A very simple minimal diagram in the house line style: a horizontal strip of five small white rounded rectangles in a row, connected by a thin line; the SECOND rectangle is filled warm gold and has a tiny standing figure inside it marking your position, with a small arrow pointing down at it from above. A little 'you are here' position map. Clean, minimal, cream space. Flat colors, bold black outlines. No text, no numbers." }
+  ] }

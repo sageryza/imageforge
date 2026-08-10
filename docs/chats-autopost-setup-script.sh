@@ -15,7 +15,11 @@
 # re-bound/merged later. v7: LIVE DRAFTS — also registered on PostToolUse, so
 # the prose a chat writes before/between tool calls reaches the Chats app
 # while the turn is still running ("still writing…"), and the finished reply
-# finalizes the same message.
+# finalizes the same message. v9: symlinks the imageforge repo's
+# .claude/skills into /home/user/.claude/skills, so the repo's skills load in
+# EVERY session from the first turn — a subrepo's skills are otherwise only
+# discovered once a chat is already working in that repo (the same
+# starting-folder gotcha as the hook itself).
 # Source of truth for the hook body: imageforge/.claude/hooks/post-to-feed.sh
 # (this file is REBUILT from it by scripts in that repo — don't hand-edit the
 # hook body here).
@@ -626,5 +630,16 @@ for event in ('Stop', 'UserPromptSubmit', 'PostToolUse'):
 json.dump(s, open(p, 'w'), indent=2)
 print('chats auto-filer registered (Stop + UserPromptSubmit + PostToolUse)')
 PY_SETTINGS
+
+# The repo's skills, loading in EVERY session (v9). ONE directory SYMLINK —
+# never a copy, which would freeze the skills at whenever this script last
+# ran; the link always reads whatever is on the imageforge clone today, and
+# it is safe to make even before the clone exists (it resolves at read time,
+# and dangles harmlessly in a session with no imageforge checkout). If
+# something real already sits at that path, leave it alone.
+if [ ! -e /home/user/.claude/skills ] && [ ! -L /home/user/.claude/skills ]; then
+  ln -s /home/user/imageforge/.claude/skills /home/user/.claude/skills
+  echo 'skills symlinked: /home/user/.claude/skills -> imageforge/.claude/skills'
+fi
 
 true

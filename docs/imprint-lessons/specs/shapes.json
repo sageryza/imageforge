@@ -1,0 +1,5 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"charlie-shape", "prompt":"A simple minimal iconic diagram in the house line style: a small tight cluster of five dark charcoal-grey dots (hard events), with a bright golden rounded-rectangle box being drawn around them, and the dots inside the box turned warm gold — the SAME dots, reframed by the box into meaning. A hand drawing the box. Clean and iconic, lots of cream space. Flat colors, bold black outlines. No text, no numbers." },
+    { "id":"evan-shape", "prompt":"A simple minimal iconic diagram in the house line style: two dots — one small, one larger — joined by a single curved arrow that loops backward on itself into a closed ring so it points back to where it began; a small calm open eye rests inside the ring — a connection that runs backward through time. Clean and iconic, lots of cream space. Flat colors, bold black outlines. No text, no numbers." }
+  ] }
