@@ -6502,16 +6502,20 @@
   // course's craft with its tools around her, which is why the Divination
   // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
-    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
+    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection, the witch on the move & what the old craft did with the body', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel', 'blood'] },
     // 'mysky' ("Your Sky, Read") is OUT of the path for now (Aug 2026): it
     // casts the reader's real birth chart, and the birth form it needs came
     // off Home with the rest of the astrology. Its code is untouched — putting
     // the form inside this lesson is the planned way to give the chart back.
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'signs', 'sync', 'dream'] },
-    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'pa-09', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'cr-06', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
-    { id: 'living', title: 'The Living World', sub: 'The body, and what the old craft did with it', cover: 'bh-05', lessons: ['blood'] },
+    // 'The Living World' was its own one-lesson course; its lesson ('blood',
+    // Blood, Spit and Hair) now closes The Craft instead (Aug 2026, Sophie:
+    // "make it a course within the craft module so it's not its own module").
+    // A device whose saved schoolCourse was 'living' falls back to the
+    // catalog on its own — renderCoursePath() already handles a missing id.
   ];
   let schoolCourse = null; // null = catalog; a course id = that course's path
   function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
