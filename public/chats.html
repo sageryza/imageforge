@@ -3328,11 +3328,40 @@ document.getElementById('back').onclick=goHome;
   var toTop=document.getElementById('totop'), toBot=document.getElementById('tobot');
   function go(y){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:y, behavior:'smooth'}); }
   toTop.onclick=function(){ go(0); };
-  toBot.onclick=function(){ go(document.documentElement.scrollHeight); };
+  // THE DOWN ARROW ANSWERS TO THE MESSAGE SHE IS READING FIRST (Aug 2026,
+  // Sophie: "a floating down button that gets me just to the bottom of the
+  // current message that's open and visible on the screen — there's already a
+  // down button, so you could co-opt it"). A finished reply can run for
+  // screens, and "take me to the end of THIS one" is a different question
+  // from "take me to the end of everything".
+  // It only takes over when an open message is genuinely on screen AND its
+  // end is still below the fold; otherwise the button is the page-bottom jump
+  // it has always been. That gives a natural progression on a long thread:
+  // one tap lands on the end of the message, the next carries on down the
+  // page — and on the chat list, where nothing is open, nothing changes.
+  function openMsgEnd(){
+    var rows=document.querySelectorAll('#thread .msg.open');
+    var vh=window.innerHeight;
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i].getBoundingClientRect();
+      if(r.bottom<=0 || r.top>=vh) continue;   // not on screen at all
+      if(r.bottom<=vh-8) continue;             // she can already see where it ends
+      // land its last line just inside the bottom edge, never flush against it
+      return Math.max(0, Math.round(window.scrollY + r.bottom - vh + 14));
+    }
+    return null;
+  }
+  toBot.onclick=function(){
+    var end=openMsgEnd();
+    go(end==null ? document.documentElement.scrollHeight : end);
+  };
   function upd(){
     var left=document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
     toTop.classList.toggle('show', window.scrollY>400);
-    toBot.classList.toggle('show', left>400);
+    // with a message open, the arrow shows whenever ITS end is worth a jump —
+    // the page bottom may be close while the message still has a screen to go
+    var end=openMsgEnd();
+    toBot.classList.toggle('show', end==null ? left>400 : (end-window.scrollY)>40);
   }
   window.addEventListener('scroll', upd, {passive:true});
   window.addEventListener('resize', upd, {passive:true});
