@@ -12,14 +12,14 @@ extension Notification.Name {
 /// in RootView covers every tool: on play it finds the visible UIScrollView
 /// under the key window (largest scrollable one on screen) and drives its
 /// contentOffset with a CADisplayLink. Idle: ▲ up / ▶ play / ▼ down; playing:
-/// − slower / ‖ pause / + faster. Default 1.0×, range 0.1–2×.
+/// − slower / ‖ pause / + faster over the five discrete speeds (default Fast).
 final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDelegate {
     /// Shared instance so screens can stop autoscroll on interaction (e.g. the
     /// gallery halts it when you tap an image to open the preview).
     static let shared = AutoScrollDriver()
 
     @Published var playing = false
-    @Published var speedIndex = 2               // 0 slow · 1 medium · 2 fast (default) · 3 faster
+    @Published var speedIndex = 2               // 0 slow · 1 medium · 2 fast (default) · 3 faster · 4 fastest
     var direction: Double = 1
     /// The pill's on-screen frame (global/window coords), kept current by
     /// AutoScrollPill — taps inside it are the pill's own controls.
@@ -29,8 +29,9 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
     /// there's never two pills stacked on top of each other.
     @Published var webPillActive = false
 
-    /// Four discrete speeds instead of a continuous dial.
-    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9), ("Faster", 3.2)]
+    /// Five discrete speeds instead of a continuous dial — same ladder as the
+    /// web pill (scripts/pill.py): Slow / Medium / Fast / Faster / Fastest.
+    static let speeds: [(label: String, value: Double)] = [("Slow", 0.5), ("Medium", 1.0), ("Fast", 1.9), ("Faster", 3.2), ("Fastest", 5.2)]
     var speed: Double { Self.speeds[speedIndex].value }
     var speedLabel: String { Self.speeds[speedIndex].label }
     func slower() { speedIndex = max(0, speedIndex - 1) }
@@ -43,10 +44,23 @@ final class AutoScrollDriver: NSObject, ObservableObject, UIGestureRecognizerDel
 
     func toggle() { playing ? stop() : start(direction == 0 ? 1 : direction) }
 
+    /// Room left to travel in a direction — the same bounds `tick` stops at.
+    private static func hasRoom(_ sv: UIScrollView, _ dir: Double) -> Bool {
+        let minY = -sv.adjustedContentInset.top
+        let maxY = max(minY, sv.contentSize.height + sv.adjustedContentInset.bottom - sv.bounds.height)
+        return dir > 0 ? sv.contentOffset.y < maxY - 1 : sv.contentOffset.y > minY + 1
+    }
+
     func start(_ dir: Double) {
-        direction = dir
-        target = Self.findScrollView()
-        guard target != nil else { return }
+        guard let sv = Self.findScrollView() else { return }
+        // Play at an end of the page used to do nothing at all: autoscroll
+        // remembers the direction it stopped in, so after riding UP to the top
+        // the next play still meant "up" and there was nowhere to go. A
+        // direction with no room flips to the one that has room.
+        var d = dir
+        if !Self.hasRoom(sv, d), Self.hasRoom(sv, -d) { d = -d }
+        direction = d
+        target = sv
         playing = true
         lastTime = nil
         link?.invalidate()

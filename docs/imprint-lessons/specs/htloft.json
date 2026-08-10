@@ -1,0 +1,4 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"ht-loft-v2", "prompt":"A group of five or six housemates lounging and passing a joint around a sparse, furniture-less Brooklyn loft; give EACH person clothing with a different pattern or print (stripes, checks, florals, dots) — varied patterns across everyone, not just two of them. Flat house colors, bold outlines, cream space. No text, no numbers." }
+  ] }

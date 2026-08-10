@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- ===========================================================================
+     THE CUT PICKER SHELL — for any "pick spans of a recording" job.
+
+     Copy this file, fill it in, POST it as a Compare page:
+
+       POST /api/chatfeed/page  { chat: "<your-chat-name>", title: "…", html }
+
+     WHEN TO USE THIS (Aug 2026, Sophie — after four chats each hand-rolled
+     their own span-picking page): any time Sophie needs to pick which parts
+     of a long recording to keep — an audiobook passage, an interview, one of
+     her own recordings — the picker is the REQUIRED surface. Do not hand-roll
+     word-tap handlers, per-pick audio, reorder tiles, or pick-saving again.
+
+     window.__cutPicker (from /picker.js) gives you, in one call:
+       · tap-a-first-word / tap-a-last-word span picking (tap a pick = remove)
+       · a ▶ on every pick that plays THAT EXACT SPAN — the server cuts it
+         once via GET /api/search/clip-span and banks it, so she hears a pick
+         seconds after making it, without you rendering anything
+       · pick tiles with ▲▼ reorder, remove + undo, a note box per pick,
+         play-them-in-order, and a scissors that splits a pick in two (so
+         each part can take a different picture or speaker downstream)
+       · for an INDEXED source, a "to the Episode Editor" button — every
+         pick, in her order, lands as snippet cards in ONE new episode
+         (narration, gaps and the real render live there)
+       · live saving to the chat's verdict doc — ONE field per pick, so a big
+         pick list can never silently truncate (a single JSON field caps at
+         2000 chars, which is ~15 picks)
+       · the autoscroll-pill contract handled by /compare.js underneath
+
+     READING HER PICKS BACK (when she next messages you):
+       GET /api/chatfeed/verdict?chat=&sheet= → { texts }
+       every key `<id>:p<key>` with non-empty text is one live pick:
+         { a, z, o, note? } — a/z index YOUR words array, o = her play order.
+       A removed pick's field is '' — skip empties. Cut the real audio with
+       the precise cutter (editor.js), never from the preview clips.
+
+     WORD TIMES: `t` = the word's absolute seconds in the source. Segment-
+     interpolated times are fine — the ▶ pads each side, and the real render
+     is precise anyway. No usable times? Omit `src` — picking still works,
+     the play buttons just don't render.
+
+     The pill is INJECTED BY THE SERVER — never add your own, and keep your
+     script in an IIFE (the pill declares `var raf`, `var I`, … in global
+     scope; a page-level `let raf` kills it at parse time).
+     A NEW VERSION IS A NEW PAGE — version in the title, old pages stay.
+=========================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Passage name — pick the cuts (v1)</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <div class="eyebrow">CHAT NAME · DATE</div>
+  <h1>Pick the cuts — passage name (v1)</h1>
+  <div class="sub">Tap a first word, then a last word. Tap a pick to remove
+    it. Every pick gets a play button, and the tiles under the text reorder
+    with the arrows. It all saves as you go.</div>
+
+  <!-- One mount per source. Several sources on one page = several mounts,
+       each its own __cutPicker call with its own id. -->
+  <div id="pick-1"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script src="/picker.js"></script>
+<script>
+(function () {
+  window.__cutPicker({
+    mount: '#pick-1',
+    id: 'source-1',                    // stable per source — keys the saves
+    chat: 'CHAT NAME',                 // your EFFECTIVE slug (GET /api/chatfeed/name)
+    sheet: 'SHEET NAME',               // e.g. 'exile-picks-v1'
+    src: 'https://storage.googleapis.com/…/recording.webm',
+                                       // or an indexed recording id from /api/search
+    words: [                           // {w, t} — t = absolute seconds in src
+      { w: 'Chapter', t: 0.0 }, { w: '8.', t: 0.62 },
+      /* … the whole passage … */
+    ],
+    shade: [/* {a, z} spans already in the film — shaded grey */],
+    seed: [/* {a, z} spans you suggest — land as editable picks */],
+  });
+
+  // The picker owns notes per PICK. If the page has OTHER reviewable items
+  // (a rendered cut to vote on, a set of stills), give them data-item ids and
+  // wire __compareNotes as usual:
+  // window.__compareNotes({ chat: 'CHAT NAME', sheet: 'SHEET NAME' });
+})();
+</script>

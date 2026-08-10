@@ -1,0 +1,132 @@
+// Builds the "How to Read People" tap-through series (house style, bg-fade) and posts to Compare.
+const fs=require('fs');
+const A='https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/';
+const CHAT='deck-factory-story-room';
+const BASE='https://imageforge-q125.onrender.com';
+const BG=JSON.parse(fs.readFileSync(__dirname+'/bg-map.json','utf8'));
+const NEUTRAL='#fbf7ef';
+
+function attachBg(slides){ return slides.map(s=>Object.assign({bg: s.img?(BG[s.img]||NEUTRAL):NEUTRAL}, s)); }
+
+function page(title, slidesRaw){
+  const slides=attachBg(slidesRaw);
+  const data=JSON.stringify(slides);
+  return `<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>${title}</title>
+<style>
+  :root{ --ink:#2a2620; --ink2:#8a8377; --line:#d9d2c2; --accent:#a5586a; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:#fdf9f3; color:var(--ink);
+    font-family:Georgia,'Times New Roman',serif; overscroll-behavior:none; }
+  #stage{ position:fixed; inset:0; display:flex; flex-direction:column; transition:background .38s ease; }
+  .dashes{ display:flex; gap:4px; padding:calc(12px + env(safe-area-inset-top)) 16px 6px; flex:none; }
+  .dash{ flex:1; height:3px; border-radius:2px; background:var(--line); transition:background .2s; }
+  .dash.on{ background:var(--ink); }
+  .cards{ flex:1; position:relative; min-height:0; }
+  .card{ position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:1vh 7vw 12vh; overflow-y:auto; }
+  .card.show{ display:flex; }
+  .head{ flex:none; }
+  .kicker{ font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10.5px;
+    letter-spacing:.24em; text-transform:uppercase; color:var(--accent); margin-bottom:7px; }
+  h2{ font-size:1.42em; line-height:1.18; font-weight:500; margin:0; max-width:15em; }
+  img.art{ width:auto; max-width:min(80vw,360px); max-height:40vh; object-fit:contain;
+    display:block; margin:15px 0 13px; }
+  p{ font-size:1.08em; line-height:1.56; margin:0; max-width:20em; }
+  .textonly h2{ font-size:1.95em; font-weight:500; }
+  .textonly p{ margin-top:.7em; }
+  .hint{ position:absolute; bottom:calc(20px + env(safe-area-inset-bottom)); left:0; right:0;
+    text-align:center; font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink2); pointer-events:none; transition:opacity .4s; }
+  .zones{ position:absolute; inset:0; display:flex; }
+  .zback{ width:30%; } .zfwd{ width:70%; }
+</style>
+<div id="stage">
+  <div class="dashes" id="dashes"></div>
+  <div class="cards" id="cards"></div>
+  <div class="hint" id="hint">tap to begin &rsaquo;</div>
+  <div class="zones"><div class="zback" id="zback"></div><div class="zfwd" id="zfwd"></div></div>
+</div>
+<script>
+(function(){
+  var A='${A}';
+  var slides=${data};
+  var stage=document.getElementById('stage'), cards=document.getElementById('cards'),
+      dashes=document.getElementById('dashes'), hint=document.getElementById('hint');
+  slides.forEach(function(s){
+    var c=document.createElement('div'); c.className='card'+(s.img?'':' textonly');
+    c.innerHTML='<div class="head"><div class="kicker">'+s.kicker+'</div><h2>'+s.h+'</h2></div>'
+      +(s.img?'<img class="art" alt="" src="'+A+s.img+'.png">':'')
+      +'<p>'+s.body+'</p>';
+    cards.appendChild(c);
+    var d=document.createElement('div'); d.className='dash'; dashes.appendChild(d);
+  });
+  var cardEls=cards.querySelectorAll('.card'), dashEls=dashes.querySelectorAll('.dash'), i=0;
+  function render(){
+    cardEls.forEach(function(c,n){ c.classList.toggle('show', n===i); });
+    dashEls.forEach(function(d,n){ d.classList.toggle('on', n<=i); });
+    stage.style.background = slides[i].bg || '#fdf9f3';
+    hint.style.opacity=i===0?'1':'0';
+    cardEls[i].scrollTop=0;
+  }
+  function next(){ if(i<slides.length-1){ i++; render(); } }
+  function prev(){ if(i>0){ i--; render(); } }
+  document.getElementById('zfwd').addEventListener('click', next);
+  document.getElementById('zback').addEventListener('click', prev);
+  document.addEventListener('keydown', function(e){ if(e.key==='ArrowRight')next(); if(e.key==='ArrowLeft')prev(); });
+  render();
+})();
+</script>`;
+}
+
+const LESSONS = {
+  read1: { title:'How to Read People — I. The Basics', slides:[
+    { kicker:'A high IQ into a high EQ', h:'Reading people is a skill', body:'If it doesn’t come naturally, people can feel like a strange, uncomfortable place. But you have other faculties you can use — and reading people can be learned like anything else.' },
+    { img:'hr-toddler', kicker:'Age 3 to 4', h:'Theory of mind', body:'Around age four you realize other people think different thoughts than you do. Most of us stop there — as if noticing that other minds exist were the whole skill.' },
+    { img:'hr-trains', kicker:'The easy case', h:'The train guy', body:'A man rhapsodizes about semi-automatic locomotives. Across from him, a glazed-over stare: why is he still talking about trains? You don’t need advanced theory of mind to read that one.' },
+    { img:'hr-ask', kicker:'When you’re unsure', h:'Just ask', body:'“Are you into trains?” “Not really.” “What are you into?” “Ladybugs.” Half of reading people is simply asking — and actually listening to the answer.' },
+    { img:'hr-context', kicker:'When you can’t ask', h:'Context clues', body:'They’ve gone quiet. They keep fidgeting, glancing toward the door. You gather the small signs and make your best guess.' },
+    { img:'hr-why', kicker:'The core question', h:'Why did they do that?', body:'Every action has a reason behind it — a motivation, conscious or not. Start simple: was it on purpose, or an accident?' },
+    { img:'hr-web', kicker:'The rule', h:'Every action traces back', body:'Picture each thing someone does as a little box. Arrows run from all of them inward, to the single intention they came from.' }
+  ]},
+  read2: { title:'How to Read People — II. The Pattern Collector', slides:[
+    { img:'hr-matchbox', kicker:'The game', h:'A pattern collector', body:'Take out a matchbox — your pattern collector. Pick something about a person you’re unsure of, and start gathering evidence about it.' },
+    { img:'hr-tictac', kicker:'How to play', h:'One tic-tac per clue', body:'Every time you notice an example, drop a tic-tac in the box. When you’ve collected enough, look at what they all have in common.' },
+    { img:'hr-disagree', kicker:'What to collect', h:'Anything that surprises you', body:'Note it whenever someone does something that disagrees with who you thought they were. File it away, and watch for other moments that seem to come from the same place.' },
+    { img:'hr-constellation', kicker:'A first date', h:'The memory constellation', body:'Bring a collector for one pattern: things I don’t understand. Fill it with the actions you can’t yet connect to a reason.' },
+    { img:'hr-safespace', kicker:'The ritual', h:'A safe space', body:'Light a candle, dim the lights. “I want to know you better. Whoever you are, it’s okay. No judgment comes in, and none leaves.” Then lay your boxes on the table and connect the dots together.' },
+    { img:'hr-daisy', kicker:'Competing patterns', h:'He loves me, he loves me not', body:'Imagine the daisy game made evidence-based. Collect the times they showed they might love you in one box, the times they showed they might not in another.' },
+    { img:'hr-matchboxes', kicker:'Two piles', h:'Weigh them against each other', body:'Two match boxes, side by side, each holding its own little stack of moments that actually happened. Now you can finally compare them.' },
+    { img:'hr-traits', kicker:'Going deeper', h:'Actions add up to character', body:'An action points back to an intention. But intentions in the moment add up to something lasting — your character is just the sum of your actions, connected.' },
+    { img:'hr-venn', kicker:'Find the overlap', h:'Draw the venn', body:'Lay the collected actions together and look for what they share. Draw a venn, fill in the middle, and compare them in pairs or threes.' },
+    { img:'hr-paradox', kicker:'A warning', h:'People as paradoxes', body:'Pull too hard on one thread and a person seems to point ten directions at once. Contradiction isn’t a failure to read them — it’s part of what they are.' },
+    { img:'hr-star', kicker:'The star of paradox', h:'Even the contradictions point inward', body:'Follow each contradictory thread back and they converge on the same center — the whole, un-summarizable person.' }
+  ]},
+  read3: { title:'How to Read People — III. Expert Mode', slides:[
+    { img:'hr-map', kicker:'Advanced', h:'Mapping the mind', body:'Intentions are the surface. Under them sit core values and beliefs — the real map. Stop reading single actions and start charting the terrain they come from.' },
+    { img:'hr-forever', kicker:'Momentary vs lasting', h:'Traits are forever', body:'Intentions live in the moment; character is permanent. Once you know someone’s core beliefs, a hundred small actions suddenly make sense at once.' },
+    { img:'hr-retro', kicker:'Retroactive pattern recognition', h:'The big reveal', body:'Sometimes one late fact rearranges everything before it — like the detective’s missing clue, or realizing Snape was never the villain. Every earlier moment now reads differently.' },
+    { img:'hr-ambiguous', kicker:'The ambiguous event', h:'One event, two readings', body:'Every event is a membrane holding more than one interpretation. The plain reading is always there; a hidden one waits inside for the right context.' },
+    { img:'hr-context2', kicker:'Context decides', h:'You pick the interpretation', body:'By itself, you can’t tell which reading is true. Only in context do you get to choose one.' },
+    { img:'hr-seeds', kicker:'The proactive version', h:'Planting seeds', body:'You can plant an ambiguous event on purpose — act in a way that looks one way now and reveals another later. “Now that I know you, I finally understand that thing you did.”' },
+    { img:'hr-caution', kicker:'One caution', h:'Keep it a theory', body:'When you catch yourself explaining someone, check that you’re not just projecting your own reasons onto them. Hold every conclusion loosely — a theory, not a verdict.' }
+  ]}
+};
+
+const ORDER=['read1','read2','read3'];
+(async()=>{
+  const out=[];
+  for(const k of ORDER){
+    const L=LESSONS[k];
+    const html=page(L.title, L.slides);
+    const r=await fetch(BASE+'/api/chatfeed/page',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat:CHAT, title:L.title, html})});
+    const d=await r.json();
+    out.push([L.title, d.ok?BASE+d.url:JSON.stringify(d)]);
+    console.log(k,'->',out[out.length-1][1]);
+  }
+  console.log('\n=== LINKS ===');
+  out.forEach(([t,u])=>console.log(t,'::',u));
+})();

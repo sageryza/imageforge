@@ -3,7 +3,7 @@
 Sophie's contemplative diary-comic short: the idea that we are a thought
 experiment God is running, and the wonder of the mental becoming physical.
 Built through the Movies pipeline (`movies.js`), diary-comic watercolor style
-(`refs/movie-style.jpg`).
+(`refs/dream-mystery.jpg`).
 
 ## Source recordings (masters live here so they can't be lost)
 - **`assets/voiceover-master.m4a`** — Sophie's real voice reading the narration.

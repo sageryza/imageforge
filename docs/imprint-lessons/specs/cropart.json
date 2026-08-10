@@ -1,0 +1,8 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, mostly a soft pastel palette, on a plain white background, playful modern editorial illustration. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-goldframe", "prompt":"A single ornate rectangular gold picture frame with decorative baroque scrollwork corners, empty plain-white center, drawn flat with bold black outlines — a reusable decorative 'this is art' frame meant to be stamped onto other images. Gold frame, empty white center, centered on a plain white background. Flat colors, no gradients." },
+    { "id":"na-checkout", "prompt":"A grocery-store checkout conveyor belt seen from the side with a small tidy arrangement of grocery items on it — a piece of fruit, a can, a box, a bottle, an egg carton — placed so it is genuinely ambiguous whether they were arranged to make a pleasing little sculpture of colors and shapes or simply lined up to be bought and eaten. Simple and clear. Bold black outlines, flat pastel colors, no gradients, plain white." }
+  ] }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Photos
 
 /// One Photos album, ready to dump. Its title becomes the bundle name, so
@@ -66,13 +67,82 @@ struct DumpView: View {
 
     private let grid = [GridItem(.adaptive(minimum: 104), spacing: 10)]
 
+    /// The two halves of the Dump, as tabs: sending albums in, and sorting out
+    /// what's already there. Sophie's ask — they were one screen and a pushed
+    /// page, which read as two separate tools.
+    private enum Tab: String { case send, sort }
+    // Opens on SORT (Aug 2026, Sophie): sorting what's already in is the half
+    // she comes here for — sending is the share sheet's job most of the time.
+    @State private var tab: Tab = .sort
+    // Bumped on every switch to Sort, so the page re-reads the inbox — an
+    // album dumped from the Send tab must appear without a manual reload.
+    @State private var sortTick = 0
+
     var body: some View {
         VStack(spacing: 0) {
+            // Progress sits ABOVE the tabs: an upload keeps running while she's
+            // sorting, so its state belongs to the screen, not to one tab.
             if uploader.isRunning || uploader.done > 0 { progressBar }
-            content
+            tabBar
+            // Both stay alive — switching tabs must not reload the sort page
+            // (it would lose her scroll position and the album she had open).
+            ZStack {
+                VStack(spacing: 0) { content }
+                    .opacity(tab == .send ? 1 : 0)
+                    .allowsHitTesting(tab == .send)
+                GatedWebTool(path: "/dump?embed=1", name: "the sort & label page",
+                             icon: "tray.full", refreshOnAppear: "window.__dumpRefresh",
+                             refreshTick: sortTick)
+                    .opacity(tab == .sort ? 1 : 0)
+                    .allowsHitTesting(tab == .sort)
+            }
         }
         .background(Theme.bg.ignoresSafeArea())
         .task { await library.load() }
+        // Re-read the Photos albums whenever she comes back to this screen.
+        // `task` fires ONCE — this view is held alive in RootView's ZStack —
+        // so an album created in Photos after launch never appeared here, and
+        // it looked like the dump had lost it. (Sophie hit exactly this: she
+        // made "character references" and "style references", didn't see them,
+        // and made them again.)
+        .onReceive(NotificationCenter.default.publisher(for: .forgeScreenChanged)) { _ in
+            Task { await library.load() }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await library.load() }
+        }
+        .onChange(of: tab) { t in
+            if t == .send { Task { await library.load() } }
+        }
+    }
+
+    /// Labelled pair, never a bare icon — the Chats list/tiles lesson: an
+    /// unlabelled switch strands you with no way to read where you are.
+    private var tabBar: some View {
+        HStack(spacing: 8) {
+            ForEach([Tab.send, Tab.sort], id: \.self) { t in
+                Button { tab = t; if t == .sort { sortTick += 1 } } label: {
+                    Text(t == .send ? "SEND" : "SORT")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundColor(tab == t ? .white : Theme.textDim)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(tab == t ? Theme.accent : Theme.surface)
+                        .cornerRadius(Theme.radius)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                            .stroke(tab == t ? Theme.accent : Theme.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.leading, 12)
+        // Reserve the autoscroll pill's corner: it floats over the top-right of
+        // the content area, and with the tab bar there it sat on top of SORT.
+        // Both tabs shrink equally, so the pair stays balanced.
+        .padding(.trailing, 58)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Progress

@@ -5,6 +5,72 @@ shell). Newest ideas at the top; check things off as they ship.
 
 ## Open
 
+### Witch School — the ⓘ FAQ on every card, and a chart for the big ones (TODO)
+Sophie (2026-08-08): *"a lot of those cards are sort of invitations that cause a
+lot of curiosity — they're somewhat vague and point at a whole bank of
+knowledge… I almost want an info icon that answers any obvious questions."* Her
+worked example was the forensic-laboratory card: it says vaguely what the lab
+did, and she wanted more.
+
+**The mechanism is built and two samples are live** — a card carries
+`faq: [{ q, a }, …]`, an ⓘ appears by its heading, tapping opens a panel over
+the card (`bh-03` and `sy-03`; see the ⓘ FAQ section in
+`docs/witch-school-lessons.md`). What is NOT done:
+- **FAQs on the rest of the cards.** Her spec for writing them: bullet Q&A,
+  ordered by which question a reader hits FIRST, **three each** as the default,
+  four or five where the subject earns it, more only if it genuinely needs it.
+- **An organizational chart for the cards that point at whole CATEGORIES** of
+  knowledge rather than one fact — she flagged that a flat FAQ won't hold those
+  and something structured is needed. Undesigned; ask her before building.
+- She called this "a lot of extra work to satisfy my curiosity", so it is
+  explicitly parked until she has looked at the two samples.
+
+### Witch School — more quizzes, and quizzes with pictures or mechanisms (TODO)
+Sophie (2026-08-08), on the Blood/Spit/Hair quiz card: *"the test was unexpected
+but very helpful for remembering stuff… maybe there should be more tests
+frequently and the tests might be more interesting with pictures or even little
+mechanisms."* Two separate asks:
+- **More often** — currently one quiz card per lesson at most, and several
+  lessons have none. Consider one every few cards rather than one at the end.
+- **Richer question types** — the `know` card is text-only multiple choice. The
+  `brew` card (Plant Magic / Apothecary) is the existing proof that a *mechanism*
+  works as a question: pick the right ingredients, the cauldron fills. Picture
+  answers (tap the right image) and other small mechanisms are unbuilt.
+Not started; no design agreed.
+
+### Double-link EVERY lesson to the place in the app that uses it (TODO)
+Sophie (2026-08-08), when the Synchronicity lesson landed: *"I want to link the
+other lessons and other places too — the dreams one should be linked in the
+dream area, for example."* A lesson and the feature it explains should reach
+each other **both ways**, so someone standing in front of a feature can ask
+what it is, and someone finishing a lesson can go and use it.
+
+The Synchronicity lesson is the worked example, and the pattern is two small
+pieces:
+- **Feature → lesson:** a `.coin-info` circle (the ⓘ, Lucide `info`, 16px,
+  `--gold-dim`) sits beside the section's kicker and does
+  `go('school'); openLesson('<key>')`. Put it in the header row, never on the
+  content itself, and give it `flex: none` so it can't squeeze the kicker into
+  a line break.
+- **Lesson → feature:** the last card's existing `cta` — `{ label, go, el }`
+  to scroll to a section, `{ go: 'book', book: '<sect>' }` for a Book of
+  Shadows section, `{ sky: true }` / `{ chart: true }` for the chart.
+
+Most lessons already have the CTA half; almost none have the ⓘ half. Still to
+place (feature → lesson):
+- **Dream Work** (`dream`) → the dream reader card on Home (`dream-card`).
+  Sophie named this one specifically.
+- **Tarot 101** (`tarot`) → the Tarot tab's draw controls. (Note `daily-learn`
+  on the daily reading already goes the other way to `tarot` — that's the CTA
+  half, not the ⓘ.)
+- **Astrology Basics** (`astro`) / **Your Sky, Read** (`mysky`) → the daily
+  reading + birth-chart cards.
+- **Reading Signs** (`signs`) → the Book of Shadows **Signs** section header.
+- **Spell Work** (`spell`) → Conjure's spell maker; **Crystals** (`crystal`) →
+  wherever crystals surface; **Shadow Work** (`shadow`) → its Book section.
+Do them in a batch once Sophie has seen the ⓘ on the coincidence boxes and
+confirmed the size/placement reads right on her phone.
+
 ### Weave products into every Witch School lesson (proposed placements — Sophie to approve)
 Sophie (2026-07-25): at least one shop product per lesson, placed where it
 naturally belongs. The mechanism already exists — any lesson card can carry

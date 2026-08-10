@@ -1,380 +1,269 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Studio · ImageForge</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/forge.css" />
-<style>
-  .studio { max-width: 1080px; margin: 0 auto; padding: 24px; }
-  /* Brief bar */
-  .brief { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 18px; }
-  .brief textarea { width: 100%; min-height: 52px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-family: inherit; font-size: 14px; background: var(--bg); resize: vertical; }
-  .lab { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin: 14px 0 7px; display:block; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-  input[type=text], input[type=number] { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; background: var(--bg); }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip { font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 11px; color: var(--text-dim); background: var(--bg); cursor: pointer; user-select: none; }
-  .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn { padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
-  .muted { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
-  .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--accent-dim); border-top-color: transparent; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  /* Work area */
-  .work { display: grid; grid-template-columns: 1fr; gap: 18px; }
-  .work.has-sel { grid-template-columns: 1.3fr 1fr; }
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
-  .sec { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; font-weight: 600; }
-  .dgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
-  .tile { position: relative; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface-2); cursor: pointer; }
-  .tile img { width: 100%; height: 100%; object-fit: cover; }
-  .tile.sel { outline: 2px solid var(--accent); }
-  .tile .badge { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,.85); font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--text-dim); padding: 3px 6px; }
-  .tile.loading { display:flex; align-items:center; justify-content:center; }
-  /* empty-state carousel */
-  .empty { text-align:center; padding: 18px 0; }
-  .mstage { position: relative; width: 180px; height: 180px; margin: 0 auto; }
-  .mstage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transform:scale(.96); transition:opacity .9s, transform .9s; }
-  .mstage img.active { opacity:1; transform:scale(1); }
-  .mcap { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); margin-top:6px; min-height:14px; }
-  /* product previews */
-  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 12px; }
-  .pcard { text-align:center; }
-  .pstage { position: relative; aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
-  .pstage .blank { width:100%; height:100%; object-fit:contain; }
-  .pstage .art { position:absolute; width:40%; height:40%; left:50%; top:42%; transform:translate(-50%,-50%); object-fit:cover; border-radius:3px; mix-blend-mode:multiply; opacity:.93; }
-  .pstage.print .art { width:78%; height:78%; top:50%; mix-blend-mode:normal; box-shadow:0 1px 6px rgba(0,0,0,.12); }
-  .pcap { font-size:11px; color:var(--text-dim); margin-top:5px; }
-  .route { font-size:11px; color:var(--accent); }
-  .swatches { display:flex; gap:5px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
-  .swatch { width:16px; height:16px; border-radius:50%; border:1px solid var(--border); cursor:pointer; padding:0; }
-  .swatch.on { outline:2px solid var(--accent); outline-offset:1px; }
-  label.fld { font-size: 13px; color: var(--text-dim); display:block; margin: 12px 0 5px; }
-  textarea.copy { width:100%; min-height:80px; border:1px solid var(--border); border-radius:var(--radius); padding:9px; font-family:inherit; font-size:13px; background:var(--bg); resize:vertical; }
-  .tag { display:inline-block; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:2px 8px; font-size:11px; margin:3px 4px 0 0; }
-  .status { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:var(--radius); }
-  .status.ok { background:#eef6f0; color:#3f7d56; border:1px solid #cce6d6; }
-  .status.err { background:#fbeeed; color:#b15049; border:1px solid #f0d2cf; }
-  .status.work { background:var(--surface-2); color:var(--text-dim); }
-  a.link { color: var(--accent); }
-  @media (max-width:760px){ .work.has-sel{ grid-template-columns:1fr; } }
-</style>
-</head>
-<body>
-<header class="app-header">
-  <div class="brand" onclick="location.href='/'"><span class="brand-mark">◆</span><h1>ImageForge</h1></div>
-  <nav class="app-nav"><span class="tool-name">Studio</span><button class="btn-ghost" onclick="location.href='/'">← Hub</button></nav>
-</header>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Product Creator</title>
+<link rel="stylesheet" href="/tool.css">
+<body class="tool">
 
-<main class="studio">
-  <!-- Brief bar -->
-  <section class="brief">
-    <label class="lab" style="margin-top:0">Not sure yet? Describe the vibe and I'll plan it</label>
-    <div class="row">
-      <textarea id="vibe" style="flex:1; min-width:240px" placeholder="e.g. celestial + botanical, kind of witchy — maybe a sweatshirt and some cards"></textarea>
-      <button class="btn ghost" id="planBtn" onclick="planIt()">Plan it →</button>
-    </div>
-    <div class="muted" id="planNote" style="margin-top:8px"></div>
+<div class="head">
+  <div class="eyebrow tool-eyebrow">PRODUCT CREATOR</div>
+  <button id="help" aria-label="What is this?">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  An idea becomes <b>Etsy drafts</b>. Describe a vibe, pick a design, see it on real
+  products, and tap Create — apparel and mugs go through Printify, prints and cards
+  are plain drafts you ship. <b>Nothing ever goes live</b>; you publish from Etsy.
+  Selling something you already made? Use the <a class="link" href="/photo">Photo studio</a>.
+</div>
 
-    <label class="lab">Theme</label>
-    <input id="theme" type="text" style="width:100%" placeholder="celestial botanical moon phases" />
+<div class="rail" id="rail"><i class="on"></i><i></i><i></i><i></i></div>
 
-    <label class="lab">House style <span style="text-transform:none;letter-spacing:0">(pick one or more)</span></label>
-    <div class="chips" id="styles"><span class="muted">loading styles…</span></div>
-
-    <label class="lab">Products to preview</label>
-    <div class="chips" id="products"></div>
-
-    <div class="row" style="margin-top:16px; align-items:center">
-      <div><label class="lab" style="margin:0 0 5px">How many</label>
-        <select id="count" style="padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--bg)">
-          <option>2</option><option selected>4</option><option>6</option>
-        </select></div>
-      <button class="btn" id="genBtn" onclick="generate()">Generate designs</button>
-      <span class="muted" id="genHint"></span>
+<main>
+  <!-- 1 -->
+  <section class="step open" id="s1">
+    <div class="cap" onclick="openStep(1)"><span class="n">1</span>
+      <span class="t">The idea</span><span class="sum" id="sum1"></span></div>
+    <div class="body">
+      <textarea id="vibe" placeholder="celestial + botanical, kind of witchy — maybe a sweatshirt and some cards"></textarea>
+      <div class="row">
+        <button class="btn star" id="planBtn" onclick="planIt()"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> Plan it</button>
+        <span class="note" id="planNote"></span>
+      </div>
     </div>
   </section>
 
-  <!-- Work area -->
-  <div class="work" id="work">
-    <section class="panel">
-      <div class="sec">Designs</div>
-      <div id="empty" class="empty">
-        <div class="mstage" id="mstage">
-          <img src="/mockups/tee.webp" data-label="Tee" /><img src="/mockups/sweatshirt.webp" data-label="Sweatshirt" />
-          <img src="/mockups/hat.webp" data-label="Hat" /><img src="/mockups/tote.webp" data-label="Tote" />
-          <img src="/mockups/card.webp" data-label="Card" /><img src="/mockups/mug.webp" data-label="Mug" />
-        </div>
-        <div class="mcap" id="mcap">&nbsp;</div>
-        <p class="muted" style="margin-top:8px">Describe a vibe or set a theme + style, then generate.</p>
+  <!-- 2 -->
+  <section class="step shut" id="s2">
+    <div class="cap" onclick="openStep(2)"><span class="n">2</span>
+      <span class="t">Style &amp; products</span><span class="sum" id="sum2"></span></div>
+    <div class="body">
+      <label>Theme</label>
+      <input id="theme" type="text" placeholder="celestial botanical moon phases">
+      <label>Style</label>
+      <div class="chips" id="styles"><span class="note">loading…</span></div>
+      <label>Products</label>
+      <div class="chips" id="products"></div>
+      <div class="row">
+        <button class="btn star" id="genBtn" onclick="generate()"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> Draw</button>
+        <div class="chips" id="howmany"></div>
+        <span class="note" id="genNote"></span>
       </div>
-      <div class="dgrid" id="dgrid" hidden></div>
-    </section>
+    </div>
+  </section>
 
-    <section class="panel" id="side" hidden>
-      <div class="sec">On your products</div>
-      <div class="pgrid" id="pgrid"></div>
-      <label class="lab" style="margin-top:18px">Listing copy</label>
-      <button class="btn ghost" id="copyBtn" onclick="writeCopy()" style="font-size:13px;padding:7px 12px">Write with AI</button>
-      <span class="muted" id="copyHint"></span>
-      <label class="fld" for="ctitle">Title</label>
-      <input id="ctitle" type="text" style="width:100%" maxlength="140" />
-      <label class="fld">Tags</label>
-      <div id="ctags" class="muted">—</div>
-      <label class="fld" for="cdesc">Description</label>
-      <textarea id="cdesc" class="copy"></textarea>
-      <div class="row" style="margin-top:10px">
-        <div><label class="fld" style="margin-top:0" for="price">Price (USD)</label><input id="price" type="number" value="18" min="1" /></div>
-        <div><label class="fld" style="margin-top:0" for="shop">Etsy shop id</label><input id="shop" type="text" placeholder="auto" /></div>
+  <!-- 3 -->
+  <section class="step shut" id="s3">
+    <div class="cap" onclick="openStep(3)"><span class="n">3</span>
+      <span class="t">Pick a design</span><span class="sum" id="sum3"></span></div>
+    <div class="body"><div class="grid" id="designs"></div></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step shut" id="s4">
+    <div class="cap" onclick="openStep(4)"><span class="n">4</span>
+      <span class="t">Make it</span><span class="sum" id="sum4"></span></div>
+    <div class="body">
+      <div class="grid" id="mockups" style="grid-template-columns:repeat(2,1fr)"></div>
+      <div class="row">
+        <div style="flex:1;min-width:110px"><label style="margin-top:0">Price $</label>
+          <input id="price" type="number" value="18" min="1"></div>
+        <div style="flex:1;min-width:110px"><label style="margin-top:0">Etsy shop</label>
+          <input id="shop" type="text" placeholder="auto"></div>
       </div>
-      <div class="row" style="margin-top:14px; align-items:center">
-        <button class="btn" id="draftBtn" onclick="createDraft()">Create draft listings</button>
+      <div class="row">
+        <button class="btn star ghost" id="copyBtn" onclick="writeCopy()"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg> Write the listing</button>
+        <span class="note" id="copyNote"></span>
       </div>
-      <div id="draftStatus"></div>
-      <p class="muted" style="margin-top:10px">Each selected product becomes a reviewable Etsy <b>draft</b> — apparel &amp; mugs via Printify (auto-fulfils once you publish), art print &amp; card as plain Etsy drafts you ship yourself. Nothing goes live until you publish it on Etsy.</p>
-    </section>
-  </div>
+      <div id="copyBox" hidden>
+        <label>Title</label><input id="ctitle" type="text" maxlength="140">
+        <label>Tags</label><div class="chips" id="ctags"></div>
+        <label>Description</label><textarea id="cdesc"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="makeBtn" onclick="makeIt()">Create drafts</button></div>
+      <div id="makeStatus"></div>
+    </div>
+  </section>
 </main>
 
 <script>
-  const PRODUCTS = [
-    { key:'art print', label:'Art print', real:false, route:'Etsy draft' },
-    { key:'greeting card', label:'Card', real:false, route:'Etsy draft' },
-    { key:'t-shirt', label:'Tee', real:true, route:'Printify' },
-    { key:'sweatshirt', label:'Sweatshirt', real:true, route:'Printify' },
-    { key:'tote', label:'Tote', real:true, route:'Printify' },
-    { key:'mug', label:'Mug', real:true, route:'Printify' },
-  ];
-  const mockCache = {}; // "designUrl|product|variant" -> real mockup url
-  let POD_OPTIONS = {};    // product -> { default_variant, colors:[{n,v,hex}] }
-  let selectedVariant = {}; // product -> variant id (garment color)
-  let STYLES = [];          // {id,name}
-  let selectedStyles = new Set();
-  let selectedProducts = new Set(['art print','greeting card']);
-  let designs = [];          // urls
-  let activeDesign = null;
+const TOKEN='__STUDIO_TOKEN__', tok=TOKEN.indexOf('__')===0?'':TOKEN;
+const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok};
+  return fetch(p,o).then(async r=>({ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))})); };
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const $=id=>document.getElementById(id);
 
-  // Access token injected by the server (empty when the gate is disabled).
-  const STUDIO_TOKEN = '__STUDIO_TOKEN__';
-  const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
-  async function api(path, opts = {}) {
-    if (_tok) opts = { ...opts, headers: { ...(opts.headers || {}), 'x-studio-token': _tok } };
-    const res = await fetch(path, opts);
-    const t = await res.text(); let b; try { b = JSON.parse(t); } catch { b = t; }
-    return { ok: res.ok, status: res.status, body: b };
+if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
+$('help').onclick=()=>{ const c=$('helpcard'); c.hidden=!c.hidden; };
+document.addEventListener('pointerdown',e=>{ if(!$('helpcard').hidden && !e.target.closest('#helpcard,#help')) $('helpcard').hidden=true; },true);
+
+const PRODUCTS=[
+  {key:'art print',label:'Art print',pod:false},{key:'greeting card',label:'Card',pod:false},
+  {key:'t-shirt',label:'Tee',pod:true},{key:'sweatshirt',label:'Sweatshirt',pod:true},
+  {key:'tote',label:'Tote',pod:true},{key:'mug',label:'Mug',pod:true}];
+let STYLES=[], pickedStyles=new Set(), pickedProducts=new Set(['art print','greeting card']);
+let howMany=4, designs=[], chosen=null, POD={}, variant={}, mockCache={};
+
+// ── steps: only one open; a finished one collapses to its summary ──
+let step=1;
+function openStep(n){
+  step=n;
+  for(let i=1;i<=4;i++){
+    const el=$('s'+i);
+    el.classList.toggle('open', i===n);
+    el.classList.toggle('shut', i!==n);
   }
+  [...$('rail').children].forEach((r,i)=>r.classList.toggle('on', i<n));
+}
+function markDone(n, summary){ $('s'+n).classList.add('done'); $('sum'+n).textContent=summary; }
 
-  // ── empty-state carousel ──
-  (function rotate(){
-    const imgs=[...document.querySelectorAll('#mstage img')], cap=document.getElementById('mcap');
-    let i=0; const show=n=>{imgs.forEach((im,k)=>im.classList.toggle('active',k===n));cap.textContent=imgs[n].dataset.label;};
-    show(0); setInterval(()=>{i=(i+1)%imgs.length;show(i);},2600);
-  })();
+async function init(){
+  const r=await api('/api/models');
+  STYLES=(r.ok&&r.body.replicate)?r.body.replicate.map(m=>({id:m.id,name:m.name})):[];
+  $('styles').innerHTML=STYLES.map(s=>`<span class="chip" data-s="${esc(s.name)}">${esc(s.name)}</span>`).join('');
+  $('styles').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    c.classList.toggle('on'); const n=c.dataset.s;
+    pickedStyles.has(n)?pickedStyles.delete(n):pickedStyles.add(n); });
+  if(STYLES[0]){ $('styles').firstElementChild.classList.add('on'); pickedStyles.add(STYLES[0].name); }
+  $('products').innerHTML=PRODUCTS.map(p=>
+    `<span class="chip ${pickedProducts.has(p.key)?'on':''}" data-p="${esc(p.key)}">${esc(p.label)}</span>`).join('');
+  $('products').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    c.classList.toggle('on'); const k=c.dataset.p;
+    pickedProducts.has(k)?pickedProducts.delete(k):pickedProducts.add(k);
+    if(chosen) renderMockups(); });
+  $('howmany').innerHTML=[2,4,6].map(n=>
+    `<span class="chip ${n===howMany?'on':''}" data-n="${n}">${n}</span>`).join('');
+  $('howmany').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    howMany=Number(c.dataset.n);
+    $('howmany').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c)); });
+  api('/api/etsy/defaults').then(d=>{ if(d.ok&&d.body.shop_id) $('shop').value=d.body.shop_id; });
+  const po=await api('/api/pipeline/pod-options');
+  if(po.ok){ POD=po.body||{}; Object.keys(POD).forEach(k=>variant[k]=POD[k].default_variant); }
+}
+init();
 
-  // ── load styles + products ──
-  async function init(){
-    const r = await api('/api/models');
-    STYLES = (r.ok && r.body.replicate) ? r.body.replicate.map(m=>({id:m.id,name:m.name})) : [];
-    const el = document.getElementById('styles');
-    el.innerHTML = STYLES.map(s=>`<span class="chip" data-style="${s.name}">${s.name}</span>`).join('');
-    el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ c.classList.toggle('on'); const n=c.dataset.style; selectedStyles.has(n)?selectedStyles.delete(n):selectedStyles.add(n); });
-    if (el.querySelector('.chip')) { el.querySelector('.chip').classList.add('on'); selectedStyles.add(STYLES[0].name); }
-    const pe = document.getElementById('products');
-    pe.innerHTML = PRODUCTS.map(p=>`<span class="chip ${selectedProducts.has(p.key)?'on':''}" data-prod="${p.key}">${p.label}</span>`).join('');
-    pe.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ c.classList.toggle('on'); const k=c.dataset.prod; selectedProducts.has(k)?selectedProducts.delete(k):selectedProducts.add(k); if(activeDesign)renderProducts(); });
-    api('/api/etsy/defaults').then(d=>{ if(d.ok&&d.body.shop_id) document.getElementById('shop').value=d.body.shop_id; });
-    const po = await api('/api/pipeline/pod-options');
-    if(po.ok){ POD_OPTIONS = po.body || {}; Object.keys(POD_OPTIONS).forEach(k=>selectedVariant[k]=POD_OPTIONS[k].default_variant); }
+async function planIt(){
+  const text=$('vibe').value.trim();
+  if(!text){ $('planNote').textContent='Say what you want first.'; return; }
+  $('planBtn').disabled=true; $('planNote').innerHTML='<span class="spin"></span>';
+  const r=await api('/api/pipeline/brief',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text,styles:STYLES.map(s=>s.name)})});
+  $('planBtn').disabled=false; $('planNote').textContent='';
+  if(!r.ok){ $('planNote').textContent='Failed — try again.'; return; }
+  $('theme').value=r.body.theme||'';
+  pickedStyles=new Set(r.body.styles||[]);
+  $('styles').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',pickedStyles.has(c.dataset.s)));
+  if((r.body.products||[]).length){
+    pickedProducts=new Set();
+    (r.body.products||[]).forEach(p=>{ const m=PRODUCTS.find(x=>x.key===p||x.label.toLowerCase()===String(p).toLowerCase()); if(m)pickedProducts.add(m.key); });
+    if(!pickedProducts.size) pickedProducts.add('art print');
+    $('products').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',pickedProducts.has(c.dataset.p)));
   }
-  init();
+  markDone(1, text.slice(0,40));
+  openStep(2);
+}
 
-  function setColor(product, variant){ selectedVariant[product]=variant; renderProducts(); }
+async function generate(){
+  const theme=$('theme').value.trim();
+  if(!theme){ $('genNote').textContent='Set a theme.'; return; }
+  if(!pickedStyles.size){ $('genNote').textContent='Pick a style.'; return; }
+  const names=[...pickedStyles];
+  const jobs=Array.from({length:howMany},(_,i)=>STYLES.find(s=>s.name===names[i%names.length]));
+  markDone(2, theme.slice(0,32)); openStep(3);
+  $('designs').innerHTML=jobs.map((j,i)=>`<div class="cell" id="d${i}"><span class="spin"></span></div>`).join('');
+  designs=[];
+  await Promise.all(jobs.map(async (j,i)=>{
+    const r=await api('/api/generate/replicate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:theme,model:j.id})});
+    const cell=$('d'+i);
+    if(r.ok&&r.body.url){ designs[i]=r.body.url;
+      cell.innerHTML=`<img src="${esc(r.body.url)}"><span class="tag">${esc(j.name)}</span>`;
+      cell.onclick=()=>pick(r.body.url,cell);
+    } else cell.innerHTML='<span class="note">failed</span>';
+  }));
+}
 
-  // ── talk-it-out ──
-  async function planIt(){
-    const text = document.getElementById('vibe').value.trim();
-    const note = document.getElementById('planNote'); const btn=document.getElementById('planBtn');
-    if(!text){ note.textContent='Type a description first.'; return; }
-    btn.disabled=true; note.innerHTML='<span class="spin"></span>thinking…';
-    const r = await api('/api/pipeline/brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,styles:STYLES.map(s=>s.name)})});
-    btn.disabled=false;
-    if(!r.ok){ note.textContent='Failed: '+((r.body&&r.body.error)||r.status); return; }
-    document.getElementById('theme').value = r.body.theme || '';
-    // select styles
-    selectedStyles = new Set(r.body.styles||[]);
-    document.querySelectorAll('#styles .chip').forEach(c=>c.classList.toggle('on', selectedStyles.has(c.dataset.style)));
-    // select products that we support
-    if((r.body.products||[]).length){
-      selectedProducts = new Set();
-      (r.body.products||[]).forEach(p=>{ const m=PRODUCTS.find(x=>x.key===p||x.label.toLowerCase()===String(p).toLowerCase()); if(m)selectedProducts.add(m.key); });
-      if(!selectedProducts.size) selectedProducts.add('art print');
-      document.querySelectorAll('#products .chip').forEach(c=>c.classList.toggle('on', selectedProducts.has(c.dataset.prod)));
-    }
-    note.textContent = r.body.note || 'Filled in a plan — tweak and generate.';
-  }
+function pick(url,cell){
+  chosen=url;
+  $('designs').querySelectorAll('.cell').forEach(c=>c.classList.remove('on'));
+  if(cell) cell.classList.add('on');
+  markDone(3,'picked'); openStep(4); renderMockups();
+}
 
-  // ── generate batch ──
-  async function generate(){
-    const theme = document.getElementById('theme').value.trim();
-    const hint = document.getElementById('genHint');
-    if(!theme){ hint.textContent='Set a theme (or describe a vibe and Plan it).'; return; }
-    if(!selectedStyles.size){ hint.textContent='Pick at least one style.'; return; }
-    const n = Number(document.getElementById('count').value);
-    const styleNames = [...selectedStyles];
-    // spread N across selected styles (round-robin)
-    const jobs = [];
-    for(let i=0;i<n;i++){ const name = styleNames[i % styleNames.length]; jobs.push(STYLES.find(s=>s.name===name)); }
-    document.getElementById('empty').hidden = true;
-    const grid = document.getElementById('dgrid'); grid.hidden=false;
-    grid.innerHTML = jobs.map((j,i)=>`<div class="tile loading" id="t${i}"><span class="spin"></span></div>`).join('');
-    document.getElementById('genBtn').disabled = true; hint.innerHTML='<span class="spin"></span>generating '+n+'…';
-    designs = [];
-    await Promise.all(jobs.map(async (j,i)=>{
-      const r = await api('/api/generate/replicate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:theme, model:j.id})});
-      const cell = document.getElementById('t'+i);
-      if(r.ok && r.body.url){
-        designs[i]=r.body.url;
-        cell.classList.remove('loading');
-        cell.innerHTML = `<img src="${r.body.url}"/><span class="badge">${j.name}</span>`;
-        cell.onclick = ()=>selectDesign(r.body.url, cell);
-      } else {
-        cell.classList.remove('loading'); cell.innerHTML='<span class="muted" style="font-size:11px;padding:6px;text-align:center">failed</span>';
-      }
-    }));
-    document.getElementById('genBtn').disabled=false; hint.textContent='Tap a design to place it.';
-  }
+function setColor(k,v){ variant[k]=v; renderMockups(); }
+function renderMockups(){
+  const chosenP=PRODUCTS.filter(p=>pickedProducts.has(p.key));
+  $('mockups').innerHTML=chosenP.map(p=>{
+    if(!p.pod) return `<div class="pcard"><div class="cell"><img src="${esc(chosen)}"></div><div class="cap">${esc(p.label)}</div></div>`;
+    const v=variant[p.key], url=mockCache[chosen+'|'+p.key+'|'+v];
+    const cols=(POD[p.key]&&POD[p.key].colors)||[];
+    const sw=cols.length?`<div class="sw">`+cols.map(c=>
+      `<button class="${c.v===v?'on':''}" style="background:${esc(c.hex)}" title="${esc(c.n)}" onclick="setColor('${esc(p.key)}',${c.v})"></button>`).join('')+`</div>`:'';
+    return `<div class="pcard"><div class="cell">${url?`<img src="${esc(url)}">`:'<span class="spin"></span>'}</div>${sw}<div class="cap">${esc(p.label)}</div></div>`;
+  }).join('')||'<span class="note">Pick products in step 2.</span>';
+  const need=chosenP.filter(p=>p.pod&&!mockCache[chosen+'|'+p.key+'|'+variant[p.key]]).map(p=>p.key);
+  if(need.length) fetchMockups(need,chosen);
+}
+let inflight=false;
+async function fetchMockups(keys,design){
+  if(inflight) return; inflight=true;
+  const vs={}; keys.forEach(k=>{ if(variant[k]) vs[k]=variant[k]; });
+  const r=await api('/api/pipeline/mockups',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({image_url:design,products:keys,variants:vs})});
+  inflight=false;
+  if(r.ok)(r.body.mockups||[]).forEach(m=>{ if(m.ok&&m.mockup_url)
+    mockCache[design+'|'+m.product+'|'+(m.variant_id||variant[m.product])]=m.mockup_url; });
+  if(design===chosen) renderMockups();
+}
 
-  function selectDesign(url, cell){
-    activeDesign = url;
-    document.querySelectorAll('#dgrid .tile').forEach(t=>t.classList.remove('sel'));
-    if(cell) cell.classList.add('sel');
-    document.getElementById('work').classList.add('has-sel');
-    document.getElementById('side').hidden = false;
-    renderProducts();
-  }
+async function writeCopy(){
+  const theme=$('theme').value.trim();
+  $('copyBtn').disabled=true; $('copyNote').innerHTML='<span class="spin"></span>';
+  const r=await api('/api/pipeline/listing-content',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({theme,productType:[...pickedProducts][0]||'art print'})});
+  $('copyBtn').disabled=false; $('copyNote').textContent='';
+  if(!r.ok){ $('copyNote').textContent='Failed — try again.'; return; }
+  $('ctitle').value=r.body.title||''; $('cdesc').value=r.body.description||'';
+  $('ctags').innerHTML=(r.body.tags||[]).map(t=>`<span class="chip on">${esc(t)}</span>`).join('');
+  $('copyBox').hidden=false;
+}
 
-  function renderProducts(){
-    const grid = document.getElementById('pgrid');
-    const chosen = PRODUCTS.filter(p=>selectedProducts.has(p.key));
-    grid.innerHTML = chosen.map(p=>{
-      if(!p.real){
-        // art print / card — the design itself, framed (it IS the artwork)
-        return `<div class="pcard"><div class="pstage print"><img class="art" src="${activeDesign}"/></div>
-          <div class="pcap">${p.label}</div><div class="route">${p.route}</div></div>`;
-      }
-      const variant = selectedVariant[p.key];
-      const url = mockCache[activeDesign+'|'+p.key+'|'+variant];
-      const inner = url ? `<img class="blank" src="${url}"/>` : `<span class="spin"></span>`;
-      const rlabel = url ? 'real mockup' : 'rendering…';
-      const colors = (POD_OPTIONS[p.key]&&POD_OPTIONS[p.key].colors)||[];
-      const sw = colors.length
-        ? `<div class="swatches">`+colors.map(c=>`<button class="swatch ${c.v===variant?'on':''}" style="background:${c.hex}" title="${c.n}" onclick="setColor('${p.key}',${c.v})"></button>`).join('')+`</div>`
-        : '';
-      return `<div class="pcard"><div class="pstage" style="display:flex;align-items:center;justify-content:center">${inner}</div>${sw}
-        <div class="pcap">${p.label}</div><div class="route">${rlabel} · ${p.route}</div></div>`;
-    }).join('') || '<p class="muted">Pick products above to preview.</p>';
-    // kick off real-mockup generation for any uncached apparel product/color
-    const need = chosen.filter(p=>p.real && !mockCache[activeDesign+'|'+p.key+'|'+selectedVariant[p.key]]).map(p=>p.key);
-    if(need.length) fetchMockups(need, activeDesign);
-  }
-
-  let mockInFlight = false;
-  async function fetchMockups(productKeys, design){
-    if(mockInFlight) return; mockInFlight = true;
-    const variants = {}; productKeys.forEach(k=>{ if(selectedVariant[k]) variants[k]=selectedVariant[k]; });
-    const r = await api('/api/pipeline/mockups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:design, products:productKeys, variants})});
-    mockInFlight = false;
-    if(r.ok){ (r.body.mockups||[]).forEach(m=>{ if(m.ok&&m.mockup_url) mockCache[design+'|'+m.product+'|'+(m.variant_id||selectedVariant[m.product])]=m.mockup_url; }); }
-    if(design===activeDesign) renderProducts();
-  }
-
-  async function writeCopy(){
-    const theme = document.getElementById('theme').value.trim();
-    const hint = document.getElementById('copyHint'); const btn=document.getElementById('copyBtn');
-    const primary = [...selectedProducts][0] || 'art print';
-    btn.disabled=true; hint.innerHTML='<span class="spin"></span>writing…';
-    const r = await api('/api/pipeline/listing-content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,productType:primary})});
-    btn.disabled=false; hint.textContent='';
-    if(!r.ok){ hint.textContent='Failed: '+((r.body&&r.body.error)||r.status); return; }
-    document.getElementById('ctitle').value = r.body.title||'';
-    document.getElementById('cdesc').value = r.body.description||'';
-    document.getElementById('ctags').innerHTML = (r.body.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')||'—';
-  }
-
-  // Commit the active design to each selected product, ROUTED correctly:
-  //  • apparel/mugs (real:true) → a Printify product, published to Etsy as a
-  //    DRAFT (auto-fulfils on sale once Sophie publishes it).
-  //  • art print / card (real:false) → a plain Etsy draft with the design image
-  //    (manual fulfilment). Category is set from the product type server-side.
-  // Every product lands as a reviewable DRAFT — nothing goes live here.
-  async function createDraft(){
-    const st=document.getElementById('draftStatus'); const btn=document.getElementById('draftBtn');
-    if(!activeDesign){ setStatus(st,'err','Pick a design first.'); return; }
-    const chosen = PRODUCTS.filter(p=>selectedProducts.has(p.key));
-    if(!chosen.length){ setStatus(st,'err','Pick at least one product above.'); return; }
-    const pod = chosen.filter(p=>p.real);
-    const etsyItems = chosen.filter(p=>!p.real);
-    const shop=document.getElementById('shop').value.trim();
-    const theme=document.getElementById('theme').value.trim();
-    const title=document.getElementById('ctitle').value.trim();
-    const description=document.getElementById('cdesc').value.trim();
-    const tags=[...document.querySelectorAll('#ctags .tag')].map(t=>t.textContent).filter(t=>t&&t!=='—');
-    const priceDollars=Number(document.getElementById('price').value)||18;
-    const hasCopy=Boolean(title);
-    if(etsyItems.length && !shop){ setStatus(st,'err','Art print / card need an Etsy shop id (set ETSY_SHOP_ID or type one).'); return; }
-
-    btn.disabled=true;
-    const results=[];
-
-    // ── Printify (apparel/mugs) → Etsy draft ──
-    for(const p of pod){
-      setStatus(st,'work',`Creating ${p.label} on Printify → Etsy draft…`);
-      const r=await api('/api/pipeline/pod-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        product_type:p.key,
-        variant_ids: selectedVariant[p.key]?[selectedVariant[p.key]]:undefined,
-        image:{url:activeDesign, fileName:'design.png'},
-        title:hasCopy?title:undefined, description:hasCopy?description:undefined, tags:hasCopy?tags:undefined,
-        generateContent:!hasCopy, theme, productType:p.key,
-        price:Math.round(priceDollars*100),
-        removeBackground:true,
-        publish:true, goLive:false,   // → Etsy DRAFT, not live
-      })});
-      results.push({label:p.label, ok:r.ok&&r.body&&r.body.ok, detail:(r.body&&(r.body.error||(r.body.body&&r.body.body.error)))||''});
-    }
-
-    // ── Etsy draft (art print / card) ──
-    if(etsyItems.length){
-      setStatus(st,'work','Fetching Etsy shop defaults…');
-      const def=await api('/api/etsy/defaults?shop_id='+encodeURIComponent(shop));
-      if(!def.ok){ btn.disabled=false; setStatus(st,'err','Etsy defaults failed: '+((def.body&&def.body.error)||def.status)); return; }
-      for(const p of etsyItems){
-        setStatus(st,'work',`Creating ${p.label} Etsy draft…`);
-        const r=await api('/api/pipeline/publish-draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-          shop_id:Number(shop), images:[activeDesign],
-          title:hasCopy?title:undefined, description:hasCopy?description:undefined, tags:hasCopy?tags:undefined,
-          generateContent:!hasCopy, theme, productType:p.key,
-          price:priceDollars,
-          shipping_profile_id:def.body.shipping_profile_id,
-          return_policy_id:def.body.return_policy_id, readiness_state_id:def.body.readiness_state_id,
-          // taxonomy_id intentionally omitted — the server maps it from productType
-        })});
-        results.push({label:p.label, ok:r.ok&&r.body&&r.body.ok, detail:(r.body&&(r.body.error||(r.body.body&&r.body.body.error)))||''});
-      }
-    }
-
-    btn.disabled=false;
-    const okCount=results.filter(r=>r.ok).length;
-    const link='<a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">review in Etsy drafts</a>';
-    if(okCount===results.length) setStatus(st,'ok',`${okCount} draft${okCount>1?'s':''} created ✓ — ${link}.`);
-    else if(okCount) setStatus(st,'ok',`${okCount}/${results.length} created — ${link}. Failed: ${results.filter(r=>!r.ok).map(r=>r.label+(r.detail?' ('+r.detail+')':'')).join(', ')}`);
-    else setStatus(st,'err','Failed: '+(results.map(r=>r.label+(r.detail?' ('+r.detail+')':'')).join(', ')||'unknown error'));
-  }
-  function setStatus(el,k,html){ el.className='status '+k; el.innerHTML=(k==='work'?'<span class="spin"></span>':'')+html; el.hidden=false; }
+async function makeIt(){
+  const st=$('makeStatus');
+  if(!chosen){ status(st,'err','Pick a design first.'); return; }
+  const chosenP=PRODUCTS.filter(p=>pickedProducts.has(p.key));
+  if(!chosenP.length){ status(st,'err','Pick at least one product.'); return; }
+  const title=$('ctitle').value.trim();
+  const tags=[...$('ctags').querySelectorAll('.chip')].map(c=>c.textContent);
+  $('makeBtn').disabled=true; status(st,'work','Starting…');
+  const r=await api('/api/pipeline/make',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ design:chosen,
+      products:chosenP.map(p=>({key:p.key,variant_id:variant[p.key]||undefined})),
+      price:Number($('price').value)||18, shop_id:$('shop').value.trim()||undefined,
+      theme:$('theme').value.trim(),
+      title:title||undefined, description:$('cdesc').value.trim()||undefined,
+      tags:title&&tags.length?tags:undefined })});
+  if(!r.ok){ $('makeBtn').disabled=false; status(st,'err','Failed to start: '+((r.body&&r.body.error)||r.status)); return; }
+  localStorage.setItem('product_make_job',r.body.id);
+  poll(r.body.id);
+}
+const LABEL=Object.fromEntries(PRODUCTS.map(p=>[p.key,p.label]));
+async function poll(id){
+  const st=$('makeStatus'); $('makeBtn').disabled=true;
+  const r=await api('/api/pipeline/make/'+id);
+  if(!r.ok){ $('makeBtn').disabled=false; localStorage.removeItem('product_make_job');
+    if(r.status!==404) status(st,'err','Lost the job.'); return; }
+  const j=r.body;
+  const done=(j.results||[]).map(x=>(LABEL[x.key]||x.key)+(x.ok?' ✓':' ✕')).join(' · ');
+  if(j.status==='making'){ status(st,'work',(j.stage||'working')+(done?' — '+done:'')); setTimeout(()=>poll(id),2500); return; }
+  $('makeBtn').disabled=false; localStorage.removeItem('product_make_job');
+  const ok=(j.results||[]).filter(x=>x.ok).length, all=(j.results||[]).length;
+  const link='<a class="link" target="_blank" href="https://www.etsy.com/your/shops/me/tools/listings/draft">Review in Etsy</a>';
+  if(ok===all&&ok) status(st,'ok',`${ok} draft${ok>1?'s':''} ✓ — ${link}`);
+  else if(ok) status(st,'ok',`${ok}/${all} — ${link}. ${done}`);
+  else status(st,'err','Failed: '+(j.error||done||'unknown'));
+}
+function status(el,k,html){ el.className='status '+k;
+  el.innerHTML=(k==='work'?'<span class="spin"></span>':'')+html; }
+(function(){ const id=localStorage.getItem('product_make_job');
+  if(id){ openStep(4); poll(id); } })();
 </script>
-</body>
-</html>

@@ -18,9 +18,9 @@ const COLLECTION = process.env.CHARACTER_COLLECTION || 'forge-characters';
 // The diary-comic style reference (same one movies/zines use).
 let styleRef = null;
 try {
-  styleRef = fs.readFileSync(path.join(__dirname, 'refs', 'movie-style.jpg'));
+  styleRef = fs.readFileSync(path.join(__dirname, 'refs', 'dream-mystery.jpg'));
 } catch {
-  console.warn('character: no refs/movie-style.jpg — Character Creator disabled');
+  console.warn('character: no refs/dream-mystery.jpg — Character Creator disabled');
 }
 
 function bucket() {

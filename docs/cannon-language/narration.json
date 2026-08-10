@@ -1,0 +1,202 @@
+{
+  "1": {
+    "n": 1,
+    "book": "Horns of the Goddess 1",
+    "videoId": "IJZVNv5O6rA",
+    "absStart": 13969.52,
+    "absEnd": 13974.46,
+    "seconds": 4.94,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n01.wav"
+  },
+  "2": {
+    "n": 2,
+    "book": "Keepers of the Garden 1",
+    "videoId": "VXO-C9w3TDw",
+    "absStart": 1585.36,
+    "absEnd": 1587.86,
+    "seconds": 2.5,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n02.wav"
+  },
+  "3": {
+    "n": 3,
+    "book": "Custodians 1",
+    "videoId": "mMLQaQ7jsts",
+    "absStart": 15307.78,
+    "absEnd": 15311.92,
+    "seconds": 4.14,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n03.wav"
+  },
+  "4": {
+    "n": 4,
+    "book": "Keepers of the Garden 1",
+    "videoId": "VXO-C9w3TDw",
+    "absStart": 6891.96,
+    "absEnd": 6898.2,
+    "seconds": 6.24,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n04.wav"
+  },
+  "5": {
+    "n": 5,
+    "book": "Keepers of the Garden 2",
+    "videoId": "rvfOUg4zVc0",
+    "absStart": 24391.74,
+    "absEnd": 24397.12,
+    "seconds": 5.38,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n05.wav"
+  },
+  "6": {
+    "n": 6,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 33060.22,
+    "absEnd": 33063.08,
+    "seconds": 2.86,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n06.wav"
+  },
+  "7": {
+    "n": 7,
+    "book": "Keepers of the Garden 1",
+    "videoId": "VXO-C9w3TDw",
+    "absStart": 9166.96,
+    "absEnd": 9172.86,
+    "seconds": 5.9,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n07.wav"
+  },
+  "8": {
+    "n": 8,
+    "book": "Keepers of the Garden 1",
+    "videoId": "VXO-C9w3TDw",
+    "absStart": 5504.88,
+    "absEnd": 5510.18,
+    "seconds": 5.3,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n08.wav"
+  },
+  "9": {
+    "n": 9,
+    "book": "Custodians 1",
+    "videoId": "mMLQaQ7jsts",
+    "absStart": 1771.5,
+    "absEnd": 1777.94,
+    "seconds": 6.44,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n09.wav"
+  },
+  "10": {
+    "n": 10,
+    "book": "Keepers of the Garden 2",
+    "videoId": "rvfOUg4zVc0",
+    "absStart": 4841.3,
+    "absEnd": 4846.28,
+    "seconds": 4.98,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n10.wav"
+  },
+  "11": {
+    "n": 11,
+    "book": "Keepers of the Garden 1",
+    "videoId": "VXO-C9w3TDw",
+    "absStart": 12255.56,
+    "absEnd": 12261.14,
+    "seconds": 5.58,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n11.wav"
+  },
+  "12": {
+    "n": 12,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19503.7,
+    "absEnd": 19506.46,
+    "seconds": 2.76,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n12.wav"
+  },
+  "13": {
+    "n": 13,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19520.22,
+    "absEnd": 19522.6,
+    "seconds": 2.38,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n13.wav"
+  },
+  "14": {
+    "n": 14,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19529.62,
+    "absEnd": 19536.92,
+    "seconds": 7.3,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n14.wav"
+  },
+  "15": {
+    "n": 15,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19538.86,
+    "absEnd": 19544.92,
+    "seconds": 6.06,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n15.wav"
+  },
+  "16": {
+    "n": 16,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19567.72,
+    "absEnd": 19570.4,
+    "seconds": 2.68,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n16.wav"
+  },
+  "17": {
+    "n": 17,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19605.22,
+    "absEnd": 19608.58,
+    "seconds": 3.36,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n17.wav"
+  },
+  "18": {
+    "n": 18,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19625.68,
+    "absEnd": 19630.38,
+    "seconds": 4.7,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n18.wav"
+  },
+  "19": {
+    "n": 19,
+    "book": "Custodians 2",
+    "videoId": "L0TSZDqQlnU",
+    "absStart": 19640.08,
+    "absEnd": 19645.96,
+    "seconds": 5.88,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n19.wav"
+  },
+  "20": {
+    "n": 20,
+    "book": "Custodians 1",
+    "videoId": "mMLQaQ7jsts",
+    "absStart": 1778.04,
+    "absEnd": 1782.52,
+    "seconds": 4.48,
+    "matchScore": 1,
+    "wav": "/tmp/claude-0/-home-user/f2896c89-febe-5a45-b7dd-d2f403c0f14e/scratchpad/narration/n20.wav"
+  }
+}

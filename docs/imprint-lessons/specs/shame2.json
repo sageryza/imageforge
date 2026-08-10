@@ -1,0 +1,10 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "cv-affirm", "char": true, "prompt": "The recurring woman standing in front of a tall oval mirror, pointing at her own reflection and smiling warmly, giving herself a private positive affirmation — an inside encouragement just for her. Flat house colors, bold outlines, cream space. No text, no numbers." },
+    { "id": "cv-gentle", "char": true, "prompt": "The recurring woman with two contrasting speech shapes around her: a spiky harsh speech bubble pointing outward toward others, and a soft rounded gentle thought bubble curling back toward herself — the blunt thing said out loud versus the kind way she speaks to herself inside. Flat house colors, bold outlines, cream space. No text, no numbers." },
+    { "id": "cv-leeway", "char": true, "prompt": "The recurring woman looking calm and free, a soft glowing private thought inside her chest that is clearly different from a plain flat label a couple of small onlookers see on her outside — and she is at ease with the gap between them. Flat house colors, bold outlines, cream space. No text, no numbers." },
+    { "id": "cv-project", "prompt": "A man venting with a big angry spiky speech bubble aimed at a small distant figure, while a smaller soft hurt feeling sits quietly inside his own chest — a protective feeling projected outward as if it were a fact about the world. Flat house colors, bold outlines, cream space. No text, no numbers." },
+    { "id": "cv-parvati", "prompt": "A woman joyfully awakened to her spiritual side, sitting cross-legged amid gentle incense smoke and a lotus flower, proudly gesturing as if announcing a brand-new spiritual name for herself, while two family members nearby look on bemused. Warm and comic. Flat house colors, bold outlines, cream space. No text, no numbers." }
+  ]
+}

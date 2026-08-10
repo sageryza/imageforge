@@ -1,0 +1,7 @@
+{
+  "refs": ["storage:witch-school/refs/sophie-snake.png",
+           "storage:witch-school/refs/sophie-animals.png"],
+  "cards": [
+    { "id": "sy-04-v2", "prompt": "A single rose chafer beetle seen from directly above, resting on the sill of a plain square window frame: a smooth domed oval body with plain unmarked wing cases in one flat solid colour, a small head and short antennae, NO spots, NO markings, NOT a ladybug. One small four-point star beside it. One clear subject, generous cream space, flat and simple." }
+  ]
+}

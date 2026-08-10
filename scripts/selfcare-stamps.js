@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BUCKET = 'deckfactory-43176.firebasestorage.app';
-const REFS = ['witch-school/refs/style-1.png', 'witch-school/refs/style-2.png'];
+const REFS = ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'];
 const OUT = path.join(__dirname, '..', 'public', 'selfcare-stamps.json');
 
 // The palette is stated twice and the refs' own colours explicitly disowned —

@@ -2348,7 +2348,13 @@ function stepPill(ts){
     if(atEnd) scrollStop(); }
   last=ts; raf=requestAnimationFrame(stepPill);
 }
-function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
+function canScroll(d){ return d>0 ? (window.innerHeight+window.scrollY < document.body.scrollHeight-4) : (window.scrollY>2); }
+// Pressing play at an end of the page used to do nothing at all: autoscroll
+// remembers the direction it stopped in, so after riding UP to the top the next
+// play still meant "up" and there was nowhere to go. A direction with no room
+// flips to the one that has room, so a press always moves the page.
+function scrollStart(d){ if(!canScroll(d) && canScroll(-d)) d=-d;
+  dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
 function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
@@ -2364,8 +2370,8 @@ window.addEventListener('pagehide',scrollStop);
 paintPill();
 
 document.querySelector('.wrap').addEventListener('click',function(e){
-  if(e.target.closest('button')||e.target.closest('.notebox')||e.target.closest('audio')||e.target.closest('a')) return;
-  window.__scrollTap();
+  if(e.target.closest('.notebox')) return;
+  window.__scrollTap(e);   // pass the event — PILL_SKIP exempts button/a/audio/input/…
 });
 
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }

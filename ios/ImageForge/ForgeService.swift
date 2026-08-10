@@ -19,14 +19,24 @@ final class ForgeService {
         }
     }
 
+    /// The callable client's own deadline. The SDK default is 70s, but these
+    /// functions are declared with `timeoutSeconds: 180` — so a slow render
+    /// (a high-quality sticker sheet takes ~70-120s) used to trip the CLIENT
+    /// deadline while the server kept working, and the retry below fired a
+    /// second and third paid render whose sheets all landed in the gallery.
+    /// Matching the server's own limit is what stops that at the source.
+    private static let callTimeout: TimeInterval = 180
+
     /// Call a callable with a couple of automatic retries on transient network
-    /// failures (e.g. "network connection lost"), so a brief blip doesn't kill a
-    /// generation. Permanent errors (bad input, rate limit) are thrown right away.
+    /// failures, so a brief blip doesn't kill a generation. Permanent errors
+    /// (bad input, rate limit) are thrown right away.
     private func call(_ name: String, _ payload: [String: Any], retries: Int = 2) async throws -> HTTPSCallableResult {
         var attempt = 0
         while true {
             do {
-                return try await functions.httpsCallable(name).call(payload)
+                let callable = functions.httpsCallable(name)
+                callable.timeoutInterval = Self.callTimeout
+                return try await callable.call(payload)
             } catch {
                 attempt += 1
                 if attempt > retries || !Self.isRetryable(error) { throw error }
@@ -35,20 +45,25 @@ final class ForgeService {
         }
     }
 
+    /// ONLY errors that mean the request never reached the server are retried.
+    /// These calls are paid and NOT idempotent — one call renders one image and
+    /// saves it to the gallery — so anything ambiguous (a timeout, a connection
+    /// dropped mid-flight, an unknown server-side error) must surface instead of
+    /// silently re-rendering: the work may have completed and been billed. That
+    /// ambiguity is exactly what produced duplicate sticker sheets.
     private static func isRetryable(_ error: Error) -> Bool {
-        func urlRetryable(_ e: NSError) -> Bool {
+        func neverArrived(_ e: NSError) -> Bool {
             e.domain == NSURLErrorDomain && [
-                NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
-                NSURLErrorTimedOut, NSURLErrorCannotConnectToHost,
+                NSURLErrorNotConnectedToInternet, NSURLErrorCannotConnectToHost,
                 NSURLErrorCannotFindHost, NSURLErrorDNSLookupFailed,
             ].contains(e.code)
         }
         let ns = error as NSError
-        if urlRetryable(ns) { return true }
-        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError, urlRetryable(underlying) { return true }
-        // Firebase Functions transient codes (domain "com.firebase.functions"):
-        // 4 deadlineExceeded, 13 internal, 14 unavailable.
-        if ns.domain == "com.firebase.functions" { return [4, 13, 14].contains(ns.code) }
+        if neverArrived(ns) { return true }
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError, neverArrived(underlying) { return true }
+        // Firebase Functions: 14 unavailable = couldn't be reached. NOT 4
+        // (deadlineExceeded) or 13 (internal) — those can mean the render ran.
+        if ns.domain == "com.firebase.functions" { return ns.code == 14 }
         return false
     }
 
@@ -377,27 +392,57 @@ final class ForgeService {
         _ = try await call("forgeTestImage", payload)
     }
 
+    /// One page of creations, plus the cursor for the page behind it.
+    struct CreationPage {
+        let items: [Creation]
+        /// The last document of this page — `nil` once the end is reached.
+        let cursor: DocumentSnapshot?
+        var hasMore: Bool { cursor != nil }
+    }
+
     /// Read the signed-in user's saved creations (newest first). These are
     /// written server-side on every generation, so they survive a dropped
     /// connection / backgrounded app and back the in-app grid.
-    func fetchCreations(limit: Int = 60) async throws -> [Creation] {
+    ///
+    /// PAGED since Aug 2026. It used to be one capped query and nothing else,
+    /// so creation 61 and everything behind it could not be reached at all —
+    /// with 1,396 saved and 400+ made in a week, the visible window had shrunk
+    /// to about a day and it read as her older pictures having disappeared.
+    /// `after` walks backwards from a previous page's `cursor`.
+    func fetchCreationPage(limit: Int = 60, after: DocumentSnapshot? = nil) async throws -> CreationPage {
         try await ensureSignedIn()
-        guard let uid = Auth.auth().currentUser?.uid else { return [] }
-        let snap = try await Firestore.firestore()
+        guard let uid = Auth.auth().currentUser?.uid else { return CreationPage(items: [], cursor: nil) }
+        var q: Query = Firestore.firestore()
             .collection("users").document(uid).collection("creations")
             .order(by: "createdAt", descending: true)
             .limit(to: limit)
-            .getDocuments()
-        return snap.documents.compactMap { doc in
+        if let after { q = q.start(afterDocument: after) }
+        let snap = try await q.getDocuments()
+        let items: [Creation] = snap.documents.compactMap { doc in
             let data = doc.data()
             guard let urlStr = data["url"] as? String, let url = URL(string: urlStr) else { return nil }
             return Creation(
                 id: doc.documentID,
                 type: (data["type"] as? String) ?? "image",
                 url: url,
-                prompt: data["prompt"] as? String
+                prompt: data["prompt"] as? String,
+                model: data["model"] as? String,
+                quality: data["quality"] as? String,
+                style: data["style"] as? String
             )
         }
+        // Both of these read the SNAPSHOT, never `items`: a doc with no usable
+        // url is dropped from the page but still occupies a slot, so counting
+        // items would end paging early and cursoring on the last *item* would
+        // re-serve the dropped ones forever.
+        let more = snap.documents.count == limit
+        return CreationPage(items: items, cursor: more ? snap.documents.last : nil)
+    }
+
+    /// The first page only — for the screens that want a fixed recent slice
+    /// (Storybook, Instagram) rather than something to scroll back through.
+    func fetchCreations(limit: Int = 60) async throws -> [Creation] {
+        try await fetchCreationPage(limit: limit).items
     }
 
     /// Recovery: if a sticker generation's on-screen call dropped (e.g. the app

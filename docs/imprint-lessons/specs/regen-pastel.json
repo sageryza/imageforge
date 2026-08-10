@@ -1,0 +1,8 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients, playful modern editorial illustration, on a plain white background, soft pastel palette. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"meta-trainingwheels-v2", "prompt":"A normal two-wheeled child's bicycle seen from the side with a pair of small training wheels attached low beside the rear wheel — clearly a bike WITH training wheels, not a tricycle. Orange frame, yellow trim and wheels, pink/orange/yellow streamers on the handlebars. A simple iconic beginner symbol. Bold black outlines, flat pastel colors, no gradients, plain white." },
+    { "id":"meta-map-v2", "prompt":"A first-person point-of-view shot: looking down at your own two hands holding open a large fold-out paper road map (folded in thirds), with a winding path visible ahead just beyond the map — as if seen through your own eyes as you walk. Bold black outlines, flat pastel colors, no gradients, plain white." }
+  ] }

@@ -19,7 +19,6 @@ struct GreetingCardsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                StarTitle(text: "Greeting Cards").frame(maxWidth: .infinity).padding(.top, 4)
                 ToolStage(busy: busy, hasResult: cardURL != nil, aspect: 2.0 / 3.0,
                           maxHeight: 430,
                           loaderText: "making your card — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
@@ -48,8 +47,9 @@ struct GreetingCardsView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("Greeting Cards")
         .alert("Couldn't generate",
                isPresented: Binding(get: { errorText != nil },
                                     set: { if !$0 { errorText = nil } })) {

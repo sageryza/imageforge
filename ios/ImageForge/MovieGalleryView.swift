@@ -23,7 +23,7 @@ struct MovieGalleryView: View {
                 .padding()
             }
             .background(Reel.base.ignoresSafeArea())
-            .forgeTitle("Gallery")
+            .forgeTitle("Gallery", paper: Reel.base)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }.foregroundColor(Reel.amber)

@@ -43,7 +43,7 @@ visually consistent across all four panels. NO text, lettering, captions, or
 speech bubbles anywhere.
 
 ## Reference images
-- `refs/movie-style.jpg` (committed) — the original anchor page.
+- `refs/dream-mystery.jpg` (committed) — the original anchor page.
 - `nde-refs/artist-1-groove.png`, `artist-2-figures.png`,
   `artist-3-fourpanel.png` — additional pages by the same artist, stored
   PRIVATE in the Deck Factory bucket (not committed, not public; fetch with the

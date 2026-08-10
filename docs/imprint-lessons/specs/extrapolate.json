@@ -1,0 +1,8 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink and mint, on a plain white background, playful modern editorial illustration. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-disentangle", "prompt":"Two hands pulling apart a single piece of beef jerky, stretching it until the stringy strands separate into two — the idea of disentangling two things that were stuck together. Simple and clear, centered. Bold black outlines, flat pastel colors, no gradients, on plain white." },
+    { "id":"na-split", "prompt":"A clean minimal diagram: on the left one white rectangle with a bold outline; a short dashed line leads rightward to two separate white rectangles; the upper-right rectangle contains a small circle, the lower-right rectangle contains a small square — one thing dividing into two distinct things. Bold black outlines, flat, no gradients, plain white background." }
+  ] }

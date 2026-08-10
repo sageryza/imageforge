@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # The Chat app — public/chats.html, served gated at /chats.
-# build marker: 2026-07-31 — RESYNCED from public/chats.html. It had drifted
-# again: #636 (Archive in the header) and #642 (the ask-first sheet) were
-# edited straight into the page, so running this would have reverted both and
-# taken the archive confirmation with it — the very accident it exists to stop.
-# Same rule as before: edit HERE and rebuild, or if you edit the page directly,
-# resync this template in the same commit. Check `grep -c askFirst` on BOTH
-# files before committing; if they disagree, the template is stale.
+# build marker: 2026-08-07 — RESYNCED from public/chats.html (third time). It
+# keeps drifting because several chats edit the page directly: #636 (Archive in
+# the header), #642 (the ask-first sheet), then the working-chat tint, the
+# ARCHIVE word and another chat's body.ontop overlay fix. Running a stale
+# generator REVERTS all of it — the very accident this file exists to stop.
+#
+# SO: DO NOT resync by hand, and do not run this script before syncing.
+#   1. edit public/chats.html
+#   2. python3 scripts/resync-gen-chats.py     <-- rebuilds this template from
+#      the page and verifies the round trip; --check tells you if it's stale
+#   3. commit BOTH files
+# Running gen-chats.py first overwrites the page from the stale template and
+# your edit is gone (this happened while writing the resync script).
 import base64, os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
@@ -44,7 +50,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .t-cover img{width:100%; height:100%; object-fit:cover; display:block;}
 .t-blank{display:flex; align-items:center; justify-content:center;}
 .t-blank span{font-size:2.2em; font-style:italic; color:var(--ink2);}
-.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose);}
+.t-new{position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--rose); z-index:2;}
 .t-name{font-size:1.12em; font-weight:600; line-height:1.15; margin-top:7px; overflow-wrap:break-word;}
 .t-about{font-family:'EBGaramond',Georgia,serif; font-style:italic; font-size:.92em; color:var(--ink2); line-height:1.2; margin-top:2px;}
 .t-tldr{font-family:'EBGaramond',Georgia,serif; font-size:.92em; color:var(--ink); line-height:1.28; margin-top:4px;
@@ -109,6 +115,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
    thread and the box you type in fall off the bottom. */
 #clightbox.hastalk img{max-height:46vh;}
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+/* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
+   what she reviews by, the tag is how it was made. Showing only one of the
+   two meant a labelled image never said its quality (Sophie asked why). */
+#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
+#clightbox .cltag + .clcap{margin-top:4px;}
 /* the prompt behind the image: covers it completely (that's the point — you
    read the words instead of the picture), Style on the left of the toggle,
    Content on the right. .clwrap only wraps the img so the overlay lands on
@@ -142,6 +153,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); font-weight:600;}
 .m-chat.sophie{color:var(--rose);}
 .m-time{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
+/* A live draft — the turn is still running; the hook posted the prose written
+   so far and the message grows in place until the reply finishes. Gentle
+   breathing so it reads as "in motion", same idiom as the tiles placeholder. */
+.m-working{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--rose); animation:mworking 1.6s ease-in-out infinite;}
+@keyframes mworking{0%,100%{opacity:1;} 50%{opacity:.45;}}
 .m-preview{font-size:16.5px; line-height:1.5; cursor:pointer;}
 .m-full{display:none; font-size:16.5px; line-height:1.6; white-space:pre-wrap;}
 .m-full pre{white-space:pre-wrap; overflow-wrap:anywhere; background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; line-height:1.45;}
@@ -164,7 +180,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .acctrow{margin-top:2.4em; display:flex; align-items:center; justify-content:center; gap:8px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);}
 .acctrow .tbtn{min-width:34px; text-align:center;}
-.archtoggle{display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--line); margin-top:1.6em; padding:14px 2px; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;}
+/* Just the word (Sophie's ask) — no box, no border. In a sub-view it becomes
+   the way OUT and says so ("← Chats"): the bold word alone read as decoration
+   and left her stuck ("it should make it clear that I'm in the archive and
+   then I wanna get out"). The big serif title is the other half of that —
+   it says Archive / Bookmarks while she's there. */
+.archlink{background:none; border:none; padding:7px 2px; cursor:pointer; color:var(--ink2); flex:none; white-space:nowrap;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+/* NOT bold in a sub-view (Aug 2026, Sophie): the big title already says
+   Archive / Bookmarks, so bolding the exit as well said the same thing twice.
+   It still darkens to full ink — it is the live control on that row. */
+.archlink.on{color:var(--ink);}
+/* Bookmark LEFT of the word (Sophie), and ALWAYS filled red — it reads as the
+   bookmark thing at a glance. Which view is open is the title's job, so this
+   one doesn't change with state. Selector is `.bmk.hdrbmk`, not `.hdrbmk`: the
+   generic .bmk color rule sits LATER in this file, so at equal specificity it
+   would win and the icon came out grey. */
+.bmk.hdrbmk{flex:none; padding:6px 4px; color:var(--chg);}
+.bmk.hdrbmk svg{fill:currentColor;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -178,8 +211,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
   border:1px solid var(--line); background:var(--barbg); color:var(--ink2); border-radius:6px; padding:5px 10px; cursor:pointer;}
 .tbtn.on{border-color:var(--rose); color:var(--rose);}
 /* Labeled Refresh button, left-grouped next to the view toggle so it never
-   sits under the floating autoscroll pill in the top-right corner. */
-.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:7px 12px;}
+   sits under the floating autoscroll pill in the top-right corner.
+   PILL-SHAPED BY REQUEST (Aug 2026, Sophie) — a deliberate exception to the
+   no-pills rule, which still holds for every other text button. Don't "fix"
+   this back to 6px. */
+.refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:3px 14px; border-radius:999px; line-height:1.5;}
 /* Search across every chat (in-memory index on the server). */
 .searchrow{position:relative; margin:0 0 1.4em;}
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
@@ -192,6 +228,14 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .sr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); margin-left:auto; flex:none;}
 .sr-snip{font-size:15.5px; line-height:1.4; color:var(--ink);}
 .sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
+/* Bookmarks: the two kinds she keeps (code to copy vs. something to read),
+   derived server-side. The chips filter; the tag marks a code one in "All". */
+.bmkfilter{display:flex; gap:8px; margin:0 0 1.1em;}
+.sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
+/* Chat-name results sit above message hits — the name reads at full size. */
+.sres.schat .sr-chat{font-family:'EBGaramond',Georgia,serif; font-size:17px; letter-spacing:0; text-transform:none;}
+.sres.schat .sr-chat b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Compare tab: a chat's published pages (comparison sheets / option boards) */
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
@@ -234,6 +278,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em;}
 .tile.done .t-cover img, .tile.done .t-name, .tile.done .t-about, .tile.done .t-tldr, .tile.done .t-meta{opacity:.38;}
 .tile.done .t-cover.t-blank span{opacity:.38;}
 .crow.done .cr-ic, .crow.done .cr-body, .crow.done .cr-time{opacity:.38;}
+/* WORKING — the chat is mid-turn (its newest message is a live draft still
+   being written). Tinted rose on the home screen so an in-flight chat reads at
+   a glance and doesn't get opened and re-asked. Same signal as the thread's
+   "still writing…" marker, just visible from outside. */
+.tile.live .t-cover{border-color:var(--rose); background:color-mix(in srgb, var(--rose) 15%, var(--paper));}
+/* Most tiles carry a cover image, which would hide a background tint — so the
+   wash goes OVER the picture. The ♥/✕ marks (z-index 2) and the unread dot sit
+   above it; nothing tappable ends up under the wash. */
+.tile.live .t-cover::after{content:''; position:absolute; inset:0; background:var(--rose); opacity:.26; pointer-events:none;}
+.tile.live .t-new{box-shadow:0 0 0 2px var(--paper);}   /* rose dot on a rose wash needs an edge */
+.tile.live .t-name{color:var(--rose);}
+.crow.live{background:color-mix(in srgb, var(--rose) 13%, var(--paper));}
+.crow.live .cr-ic{border-color:var(--rose);}
+.crow.live .cr-name{color:var(--rose);}
+/* The unread dot still means "you need to check this" (Sophie) and must stay
+   readable on a tinted row — rose on rose disappears without an edge. */
+.crow.live .cr-dot{box-shadow:0 0 0 2px var(--paper);}
 /* Open-in-Claude button — Claude orange, white starburst + text */
 .openclaude{display:inline-flex; align-items:center; gap:6px; background:#d97757; color:#fff; border:none; border-radius:6px;
   font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em; padding:8px 14px; cursor:pointer; text-decoration:none;}
@@ -324,25 +385,19 @@ body.reading .backwrap{display:block;}
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none;}
 @media (prefers-reduced-motion: reduce){ #toast{transition:none;} }
 
-.float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
-.vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
-.vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
-.vseg button + button{border-top:1.5px solid var(--ink);}
-.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
-.vseg button.dim{opacity:.3;}
-.vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
-#spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+__PILL_CSS__
+/* While a full-screen overlay is open (Compare page viewer, image lightbox)
+   this page's OWN pill must be hidden: the viewer supplies its own pill for
+   the iframe, and `.float` is promoted to its own layer (translateZ), which
+   iOS paints ABOVE the overlay despite the lower z-index — so Sophie saw TWO
+   pills stacked. Child selector: the viewer's pill lives inside .pageview.
+   NOTE: this is a CHATS-page rule, not a pill.py rule — it lives OUTSIDE the
+   shared-pill placeholder so a pill resync can never swallow it again. */
+body.ontop > .float{display:none !important;}
 
 </style>
 
-<div class="float">
-  <div class="vseg">
-    <button id="vtop" aria-label="Scroll up, or slower while playing"></button>
-    <button id="vmid" aria-label="Play or pause autoscroll"></button>
-    <button id="vbot" aria-label="Scroll down, or faster while playing"></button>
-  </div>
-  <span id="spd">Fast</span>
-</div>
+__PILL_HTML__
 
 <div class="backwrap"><button id="back" aria-label="Back to all chats">&#8249;</button></div>
 <div id="nowplaying" class="nowplaying" role="button" aria-label="Play or pause audio"><span id="npic"></span><span id="nptxt">Playing</span></div>
@@ -353,7 +408,9 @@ body.reading .backwrap{display:block;}
     <header>
       <div class="no">deck factory &middot; every chat, one place</div>
       <div style="display:flex; align-items:center; gap:10px; padding-right:56px;">
-        <h1 style="flex:1; min-width:0; margin:0">Chats</h1>
+        <h1 id="htitle" style="flex:1; min-width:0; margin:0">Chats</h1>
+        <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        <button id="archlink" class="archlink">Archive</button>
         <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
       </div>
       <div class="rule"></div>
@@ -507,68 +564,7 @@ function ago(iso){
   return Math.round(s/86400)+'d ago';
 }
 
-var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
-var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
-var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
-var I={
- up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
- down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
- play:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
- pause:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>',
- plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
- minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
-};
-function spd(){ return SPEEDS[si][1]; }
-function showSpd(){ document.getElementById('spd').textContent=SPEEDS[si][0]; }
-function paintPill(){
-  if(playing){
-    vtop.innerHTML=I.minus; vbot.innerHTML=I.plus; vmid.innerHTML=I.pause; vmid.classList.add('on');
-    vtop.classList.toggle('dim', si===0); vbot.classList.toggle('dim', si===SPEEDS.length-1);
-  } else {
-    vtop.innerHTML=I.up; vbot.innerHTML=I.down; vmid.innerHTML=I.play; vmid.classList.remove('on');
-    vtop.classList.remove('dim'); vbot.classList.remove('dim');
-  }
-  showSpd();
-}
-function stepPill(ts){
-  if(!playing) return;
-  if(last!=null){
-    acc += dir*(ts-last)/1000*42*spd();
-    var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
-    if(move!==0){ window.scrollBy(0,move); acc-=move; }
-    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
-    if(atEnd) scrollStop(); }
-  last=ts; raf=requestAnimationFrame(stepPill);
-}
-function scrollStart(d){ dir=d; playing=true; last=null; acc=0; paintPill(); raf=requestAnimationFrame(stepPill); }
-function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPill(); }
-window.__scrollStop=scrollStop;
-window.__scrollStart=scrollStart;
-window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-// A tap that lands on something INTERACTIVE belongs to the page, not to the
-// pill: a <summary>/<details> toggle, link, button, form field or media
-// control must do its own thing, so the tap gesture ignores the event
-// entirely (no toggle, no preventDefault, no stopPropagation).
-var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
-function pillInteractive(t){
-  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
-}
-window.__pillInteractive=pillInteractive;
-// Content-tap gesture (a page calls __scrollTap from its own tap handler,
-// passing the event when it has one): a plain toggle — tap stops, tap starts
-// again (at the current speed; default Fast). Speed changes stay on the −/+.
-window.__scrollTap=function(e){
-  if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(1);
-};
-vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
-vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
-vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
-// Leaving the page (tab switch, app background, webview hidden) stops
-// autoscroll — it must never keep scrolling while nobody's looking.
-document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
-window.addEventListener('pagehide',scrollStop);
-paintPill();
+__PILL_JS__
 
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 // Feed-wide settings from the server (registry __settings doc). appAccount =
@@ -723,7 +719,77 @@ function statusFor(list){
   var sm=tldrs.length? tldrs[tldrs.length-1] : last;
   return sm? plain(sm.tldr||(sm.text||'').split('\n')[0]) : '';
 }
-var showArchived=false;
+// The home screen has THREE views: the live chats, the archived ones, and every
+// bookmarked message across all chats. `homeView` survives opening a chat and
+// coming back, so she returns to the list she was reading.
+var homeView='live';   // 'live' | 'archive' | 'bookmarks'
+// Where am I / how do I leave. The title carries the state (the word alone was
+// "really confusing" — Sophie), the archlink carries the exit.
+function paintHomeChrome(){
+  document.getElementById('htitle').textContent =
+    homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks' : 'Chats';
+  var a=document.getElementById('archlink');
+  a.textContent = homeView==='live' ? 'Archive' : '← Chats';
+  a.setAttribute('aria-label', homeView==='live' ? 'Show archived chats' : 'Back to all chats');
+  a.classList.toggle('on', homeView!=='live');
+  document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
+  // LIST/TILES describes chat tiles; bookmarks are messages, so the pair would
+  // be a control that does nothing. (Search stays — it still searches everything.)
+  document.getElementById('v-list').parentNode.style.display = homeView==='bookmarks' ? 'none' : '';
+}
+function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
+// Every bookmarked message, newest first, whichever chat it is in. Tapping one
+// opens its chat and jumps to it — the same focus+flash the search results use.
+// The two things she actually bookmarks (her words): something with code /
+// copy-paste instructions to keep, and a long explanation to read later. The
+// server derives which from the message itself (a fenced code block = the
+// first kind), so she never has to categorise anything — these chips only
+// filter what's already sorted. Kept for the session, not persisted: the
+// default should always be everything.
+var bmkFilter='all';   // 'all' | 'code' | 'read'
+var bmkCache=null;
+function paintBookmarks(el){
+  var items=(bmkCache||[]).filter(function(m){ return bmkFilter==='all' || (m.kind||'read')===bmkFilter; });
+  var counts={all:(bmkCache||[]).length, code:0, read:0};
+  (bmkCache||[]).forEach(function(m){ counts[(m.kind||'read')]++; });
+  el.innerHTML='';
+  var row=document.createElement('div'); row.className='bmkfilter';
+  [['all','All'],['code','Code'],['read','To read']].forEach(function(p){
+    var b=document.createElement('button');
+    b.className='tbtn'+(bmkFilter===p[0]?' on':'');
+    b.textContent=p[1]+' '+counts[p[0]];
+    b.onclick=function(){ bmkFilter=p[0]; paintBookmarks(el); };
+    row.appendChild(b);
+  });
+  el.appendChild(row);
+  if(!items.length){
+    var s=document.createElement('div'); s.className='state';
+    s.textContent = counts.all ? 'Nothing in this one.'
+      : 'No bookmarks yet — tap the bookmark under a message to keep it here.';
+    el.appendChild(s); return;
+  }
+  items.forEach(function(m){
+    var b=document.createElement('button'); b.className='sres';
+    b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
+      +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
+      +'<span class="sr-time">'+ago(m.created)+'</span></div>'
+      +'<div class="sr-snip">'+esc(m.snippet||'')+'</div>';
+    b.onclick=function(){ openChat(m.chat, false, m.id); };
+    el.appendChild(b);
+  });
+}
+function renderBookmarks(el){
+  el.innerHTML='<div class="state">Loading…</div>';
+  api('/api/chatfeed/bookmarks?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(homeView!=='bookmarks') return;            // she left while it loaded
+      if(d&&d.chats) chats=d.chats;                 // fresh display names
+      bmkCache=(d&&d.items)||[];
+      paintBookmarks(el);
+    })
+    .catch(function(){ if(homeView==='bookmarks') el.innerHTML='<div class="state">Couldn’t load bookmarks.</div>'; });
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   document.getElementById('v-list').classList.toggle('on', view==='list');
@@ -733,15 +799,17 @@ function renderHome(){
   var all=sortedChatNames(g);
   var names=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  paintHomeChrome();
+  if(homeView==='bookmarks'){ renderBookmarks(el); return; }
+  // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
+  // the top of the screen swaps the grid over to the archived chats and back.
+  if(homeView==='archive'){
+    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived yet.</div>'; return; }
+    if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
+    return;
+  }
   if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
   if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
-  if(arch.length){
-    var tog=document.createElement('button'); tog.className='archtoggle';
-    tog.textContent=(showArchived?'\u25be':'\u25b8')+' Archived ('+arch.length+')';
-    tog.onclick=function(){ showArchived=!showArchived; renderHome(); };
-    el.appendChild(tog);
-    if(showArchived){ if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch); }
-  }
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
 // message — any newer message (from Sophie or the chat) un-grays it. "Flagged"
@@ -751,6 +819,45 @@ function stampActive(a,last){ if(!a) return false; return !last || a>=(last.crea
 function chatDone(name,last){ return stampActive((chats[name]&&chats[name].answeredAt)||'', last); }
 function chatFlagged(name,last){ return stampActive((chats[name]&&chats[name].flaggedAt)||'', last); }
 function chatMuted(name,last){ return chatDone(name,last)||chatFlagged(name,last); }
+// A chat counts as WORKING on either of two signals, and it needs both:
+//
+//   1. its newest message is a live draft (working:true — the hook's
+//      PostToolUse pass posts the turn's prose as it is written, and the Stop
+//      post clears the flag), or
+//   2. its newest message is HERS — she asked and nothing has come back yet.
+//
+// (2) is not a nicety. Shipped with (1) alone, the tint never appeared once:
+// the hook installed in these sessions is the pre-v7 build, which registers
+// only Stop and UserPromptSubmit, so `working:true` is never written and the
+// live feed contains zero drafts (checked live, 2026-08-07). It also covers
+// the gap between her message and the turn's first prose, which even a v7
+// hook can't fill. Measured against the real feed, (2) tints 1 chat of 71 —
+// precise, not a wall of pink.
+//
+// The cap: `postedAt` bumps on every draft growth, so a draft that hasn't
+// moved in hours belongs to a session that died mid-turn, and a message of
+// hers that has gone hours unanswered belongs to a chat that is not coming
+// back. Without it either would stay tinted forever.
+var LIVE_STALE=3*60*60*1000;
+// The PRIMARY signal is the registry's turn-start mark (`workingAt`, stamped
+// by the hook's UserPromptSubmit ping the moment she messages a session,
+// cleared by the reply's own registry write). The message-shaped signals are
+// fallbacks: they only become true at the END of a turn (the hook can't lift
+// her message from the transcript until then — measured live, her messages'
+// postedAt lands ~1s before the reply's), which is why the tint originally
+// never showed. The backstop comparison against the newest reply covers a
+// missed clear: a reply posted AFTER the mark means the turn finished.
+function chatWorking(name,last){
+  var now=Date.now();
+  var wa=Date.parse((chats[name]&&chats[name].workingAt)||'');
+  if(wa && (now-wa)<LIVE_STALE){
+    if(!last || last.from==='sophie' || wa>Date.parse(last.postedAt||last.created||'')) return true;
+  }
+  if(!last) return false;
+  if(!last.working && last.from!=='sophie') return false;
+  var at=Date.parse(last.postedAt||last.created||'');
+  return !at || (now-at) < LIVE_STALE;
+}
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 var FL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M12 19h.01"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
@@ -758,6 +865,18 @@ function paintMarks(name,last,container){
   container.classList.toggle('done', chatMuted(name,last));
   var ck=container.querySelector('.ckbtn'); if(ck) ck.classList.toggle('on', chatDone(name,last));
   var fl=container.querySelector('.flagbtn'); if(fl) fl.classList.toggle('on', chatFlagged(name,last));
+}
+// Repaint just the working tint on the tiles/rows already on screen. A draft
+// starting or finishing must show up even when she's scrolled down the home
+// screen, where a full renderHome() would rebuild the grid under her.
+function paintLive(){
+  var nodes=document.querySelectorAll('#grid [data-chat]');
+  if(!nodes.length) return;
+  var g=groups();
+  nodes.forEach(function(node){
+    var list=g[node.dataset.chat]||[];
+    node.classList.toggle('live', chatWorking(node.dataset.chat, list.length? list[list.length-1] : null));
+  });
 }
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
@@ -803,7 +922,8 @@ function renderTiles(el,g,names){
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
-    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'');
+    var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
+    b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
@@ -820,7 +940,8 @@ function renderList(el,g,names){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'');
+    var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
+    row.dataset.chat=name;
     // Just the chat's name (Sophie's rule). The message snippet that used to sit
     // beside it was an inline span, so it never truncated — it ran over the
     // timestamp and the ✓ and off the side of the screen.
@@ -840,6 +961,7 @@ function renderMsg(m){
   var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
+    +(m.working?'<span class="m-working">still writing…</span>':'')
     +'<span class="m-close">close &#9650;</span></div>'
     +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
     +'<div class="m-full">'+foldBody(m.text)+'</div>';
@@ -854,7 +976,9 @@ function renderMsg(m){
   });
   var tools=document.createElement('div'); tools.className='m-tools';
   if(m.audioUrl){ var au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.audioUrl; tools.appendChild(au); }
-  else if(m.from!=='sophie'){
+  else if(m.from!=='sophie' && !m.working){
+    // no Play on a live draft — the voice render would freeze a half-written
+    // reply; the button appears when the message finishes
     // Play = generate the neural voice on demand (~1¢), cached forever after.
     // Sophie taps it when she wants to listen — she stays in control.
     var PLAY='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
@@ -879,9 +1003,16 @@ function renderMsg(m){
   row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
   // tapping the open message toggles autoscroll (stop/start). Closing is the
   // header row ("close ▲") so a tap never collapses it.
+  // PASS THE EVENT. __scrollTap's own PILL_SKIP list is what exempts every
+  // interactive control (button, link, input, media) from the tap gesture —
+  // called bare it exempts nothing, so tapping a code block's COPY button
+  // copied AND started the autoscroll (the copy handler's stopPropagation is
+  // a document-level listener, so it runs after this one, too late to help).
+  // pre/code stay on top of that list: selecting text in a code block is not
+  // a tap on the page.
   row.querySelector('.m-full').onclick=function(e){
-    if(e.target.closest('a')||e.target.closest('pre')||e.target.closest('code')) return;
-    window.__scrollTap();
+    if(e.target.closest('pre')||e.target.closest('code')) return;
+    window.__scrollTap(e);
   };
   row.querySelector('.m-head').onclick=function(){
     if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
@@ -938,7 +1069,14 @@ function openChat(name, keepScroll, focusId, noFetch){
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
   if(!noFetch) ensureFullThread(name);
-  var sec=document.getElementById('thread'); sec.innerHTML='';
+  var sec=document.getElementById('thread');
+  // A rebuild (the full history landing ~1s after entering, the New-message
+  // bar, an account change) must NOT collapse what she's reading: it made a
+  // just-tapped message look like it closed itself, forcing a second tap.
+  // Carry the open rows across, matched by message id.
+  var wasOpen={};
+  sec.querySelectorAll('.msg.open').forEach(function(r){ if(r.dataset.mid) wasOpen[r.dataset.mid]=1; });
+  sec.innerHTML='';
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"><span class="crumb">chats</span></div>'
@@ -996,6 +1134,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var mrows=[];
   list.slice().reverse().forEach(function(m){
     var row=renderMsg(m);
+    if(m.id&&wasOpen[m.id]) row.classList.add('open');
     mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     chatPanel.appendChild(row);
   });
@@ -1401,7 +1540,12 @@ function mkPagePill(getWin){
     }
     last=ts; raf=requestAnimationFrame(step);
   }
-  function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
+  // Same end-of-page rule as the shared pill: a direction with no room flips
+  // to the one that has room, so a press is never a dead press.
+  function canGo(d){ var w=getWin(); if(!w) return true;
+    try{ return d>0 ? (w.innerHeight+w.scrollY < w.document.documentElement.scrollHeight-4) : (w.scrollY>2); }catch(_){ return true; } }
+  function start(d){ if(!canGo(d) && canGo(-d)) d=-d;
+    dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
   vt.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
   vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
@@ -1438,9 +1582,10 @@ function openPage(p){
       });
     }catch(_){}
   });
-  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove(); document.body.style.overflow=''; };
+  bar.querySelector('.pv-back').onclick=function(){ if(pill._stop) pill._stop(); v.remove();
+    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
   document.body.appendChild(v);
-  document.body.style.overflow='hidden';
+  document.body.style.overflow='hidden'; document.body.classList.add('ontop');
 }
 // How a chat files the prompt behind an image, shown folded-away at the top of
 // every Assets tab — so the instructions live where the images do and can be
@@ -1592,11 +1737,18 @@ function lightbox(url, asset){
     prow.onclick=function(e){ e.stopPropagation(); };
     prow.appendChild(promptBtn); lb.appendChild(prow);
   }
-  var cap=asset?(asset.description||asset.prompt||''):'';
+  // Two lines, not one: the curated model/quality tag (never the hook's
+  // generic "from <chat>") above the label. `description||prompt` hid the tag
+  // on every labelled image.
+  var tag=asset?String(asset.prompt||''):'';
+  if(/^from /.test(tag)) tag='';
+  var cap=asset?(asset.description||''):'';
+  if(!cap && tag){ cap=tag; tag=''; }
+  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
-  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
-    lb.classList.remove('hastalk'); document.body.style.overflow=''; };
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop'); };
 }
 function goHome(){
   scrollStop(); cur=null; curTab='chat';
@@ -1630,11 +1782,21 @@ document.getElementById('back').onclick=goHome;
       .then(function(d){
         if(qi.value.trim()!==q) return;   // a newer keystroke already fired
         var rs=(d&&d.results)||[];
+        var cm=(d&&d.chatMatches)||[];
         grid.style.display='none'; sr.style.display=''; sr.innerHTML='';
-        if(!rs.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
+        if(!rs.length&&!cm.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
+        // Chats whose NAME matches come first (Sophie's rule, Aug 2026):
+        // searching a chat's name should find the chat itself at the top,
+        // above any message-content hits. Tapping one opens the chat.
+        cm.forEach(function(c){
+          var b=document.createElement('button'); b.className='sres schat';
+          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+hl(c.name,q)+'</span><span class="sr-time">chat</span></div>';
+          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(c.chat); };
+          sr.appendChild(b);
+        });
         rs.forEach(function(m){
           var b=document.createElement('button'); b.className='sres';
-          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(m.chat)+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
+          b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
           b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
           sr.appendChild(b);
@@ -1689,6 +1851,8 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('v-list').onclick=function(){ view='list'; try{localStorage.setItem('chats-view','list');}catch(e){} renderHome(); };
 document.getElementById('v-tiles').onclick=function(){ view='tiles'; try{localStorage.setItem('chats-view','tiles');}catch(e){} renderHome(); };
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
+document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
@@ -1748,10 +1912,28 @@ function loadCache(){
   }catch(e){ return false; }
 }
 
+// The app keeps a page loaded for days, so polling refreshes the DATA while the
+// CODE stays whatever it was at load — a shipped change then silently never
+// reaches her phone (a whole afternoon of UI changes sat unreachable this way,
+// and the feature she was testing "didn't work" because its code wasn't there).
+// Every feed response carries a stamp of the page file: keep the first one seen
+// — that IS the build running — and reload when it changes. Only from the home
+// screen, never mid-thread or while she's typing, so a reload can't eat words
+// or lose her place.
+var BUILD=null;
+function checkBuild(data){
+  if(!data||!data.build) return;
+  if(!BUILD){ BUILD=data.build; return; }
+  if(BUILD===data.build) return;
+  var a=document.activeElement, typing=a&&/^(INPUT|TEXTAREA)$/.test(a.tagName||'');
+  if(cur||typing) return;             // it can wait until she's back on the list
+  location.reload();
+}
 function load(){
   // cache-bust: the webview heuristically cached the bare URL, which made the
   // Refresh button look dead (new messages only appeared minutes later)
   api('/api/chatfeed?_='+Date.now()).then(function(r){return r.json()}).then(function(data){
+    checkBuild(data);
     chats=data.chats||{}; msgs=data.messages||[];
     settings=data.settings||{}; paintAcct();
     // A reload replaces msgs with the trimmed tail, so anything we'd expanded
@@ -1796,12 +1978,25 @@ document.getElementById('newbar').onclick=function(){
   if(cur){ curTab='chat'; openChat(cur,false,null,true); }
   else { renderHome(); window.scrollTo(0,0); }
 };
+// Re-render one message row in the open thread after its doc changed (a live
+// draft grew, or finished and gained its Play button). A full node swap keeps
+// renderMsg the single source of message markup; the open/closed state is the
+// only thing carried over. Rows outside the open thread just wait for the next
+// natural render.
+function refreshDraft(m){
+  var row=document.querySelector('#thread .msg[data-mid="'+String(m.id).replace(/"/g,'')+'"]');
+  if(!row) return;
+  var nr=renderMsg(m);
+  if(row.classList.contains('open')) nr.classList.add('open');
+  row.parentNode.replaceChild(nr,row);
+}
 function poll(){
   var since=newestCreated();
   if(!since) return load();   // nothing yet (empty/failed first paint)
   api('/api/chatfeed?since='+encodeURIComponent(since)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(data){
+      checkBuild(data);
       if(data.chats) chats=data.chats;
       if(data.settings){ settings=data.settings; paintAcct(); }
       var incoming=data.messages||[];
@@ -1810,14 +2005,36 @@ function poll(){
       // cache is so far behind (a long-untouched install) that messages fell
       // off the far end — a merge would leave holes, so start over clean.
       if(incoming.length>=200) return load();
-      var have={}; msgs.forEach(function(m){ have[m.id]=1; });
-      var added=0, mine=0;
+      var have={}; msgs.forEach(function(m,i){ have[m.id]=i+1; });
+      var added=0, mine=0, grew=0;
       incoming.forEach(function(m){
-        if(have[m.id]) return;
-        msgs.push(m); have[m.id]=1; added++;    // groups() re-sorts by created
+        var at=have[m.id];
+        if(at){
+          // A message we already hold, re-delivered: normally identical (the
+          // postedAt delta query re-serves recent docs — skip), but a LIVE
+          // DRAFT grows in place server-side, so changed text/tldr/working
+          // means the draft got longer or finished. Swap the copy and refresh
+          // its row quietly — it already pinged once when it first appeared,
+          // so growth never counts as a new message.
+          var old=msgs[at-1];
+          if((old.text||'')!==(m.text||'')||(old.tldr||'')!==(m.tldr||'')||!!old.working!==!!m.working){
+            msgs[at-1]=m; grew++;
+            if(cur && m.chat===cur) refreshDraft(m);
+          }
+          return;
+        }
+        msgs.push(m); have[m.id]=msgs.length; added++;    // groups() re-sorts by created
         if(cur && m.chat===cur) mine++;
       });
-      if(!added) return;                        // never re-render for nothing
+      if(!added){
+        if(!grew) return;                       // never re-render for nothing
+        saveCache();
+        // a draft changed but nothing new arrived: thread rows swapped above;
+        // the home grid repaints only when she's at the top with no place to
+        // lose — scrolled down, the working tint still updates in place
+        if(!cur){ if(window.scrollY<8) renderHome(); else paintLive(); }
+        return;
+      }
       saveCache();
       // Sitting at the very top of the feed there's no place to lose and nothing
       // expanded, so just show them — that's also the app-just-opened case.
@@ -1825,6 +2042,7 @@ function poll(){
       // Otherwise buffer and raise the bar. In a thread only THIS chat's
       // messages count: a reply landing in some other chat must not move the
       // page under her, and the home screen picks those up when she goes back.
+      if(!cur) paintLive();   // buffered below, but the working tint is not news to hold back
       var n = cur ? mine : added;
       if(!n) return;
       pendingNew+=n; paintNew();

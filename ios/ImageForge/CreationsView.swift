@@ -1,20 +1,77 @@
 import SwiftUI
 import UIKit
 import Photos
+import ImageIO             // CGImageSource — downsampling tiles as they decode
+import FirebaseFirestore   // DocumentSnapshot — the paging cursor
+
+/// What a save attempt actually did. `failed` carries Photos' own words — a
+/// silent "Couldn't save" is undiagnosable, so the real message is surfaced.
+enum PhotoSaveOutcome {
+    case saved
+    case denied                 // permission is off; only Settings can turn it on
+    case failed(String)
+}
 
 /// Saves an image to the user's photo library, requesting add-only permission
 /// first (needs NSPhotoLibraryAddUsageDescription in Info.plist). Reports back
-/// on the main thread: (saved, deniedPermission).
+/// on the main thread.
 final class PhotoSaver {
     static let shared = PhotoSaver()
-    func save(_ image: UIImage, _ done: @escaping (_ ok: Bool, _ denied: Bool) -> Void) {
-        let finish: (Bool, Bool) -> Void = { ok, denied in DispatchQueue.main.async { done(ok, denied) } }
+
+    /// `data` is the ORIGINAL downloaded bytes when we have them (that's what
+    /// Photos is happiest with); `image` is the decoded fallback for formats it
+    /// won't take — the gallery serves webp, which Photos rejects outright.
+    func save(data: Data?, image: UIImage?, _ done: @escaping (PhotoSaveOutcome) -> Void) {
+        let finish: (PhotoSaveOutcome) -> Void = { r in DispatchQueue.main.async { done(r) } }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-            guard status == .authorized || status == .limited else { finish(false, true); return }
+            guard status == .authorized || status == .limited else { finish(.denied); return }
+            guard let (bytes, ext) = Self.acceptableBytes(data: data, image: image) else {
+                finish(.failed("that image couldn't be converted")); return
+            }
+            // Photos takes a FILE far more reliably than a raw data resource
+            // (a data resource fails without a useful reason on some formats),
+            // so stage the bytes in tmp and hand over the URL. shouldMoveFile
+            // lets Photos consume the file, so there's nothing to clean up.
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("save-\(UUID().uuidString).\(ext)")
+            do { try bytes.write(to: tmp, options: .atomic) }
+            catch { finish(.failed(error.localizedDescription)); return }
+            let opts = PHAssetResourceCreationOptions()
+            opts.shouldMoveFile = true
             PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
-            } completionHandler: { ok, _ in finish(ok, false) }
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, fileURL: tmp, options: opts)
+            } completionHandler: { ok, error in
+                try? FileManager.default.removeItem(at: tmp)   // no-op once moved
+                finish(ok ? .saved : .failed(error?.localizedDescription ?? "Photos refused the image"))
+            }
         }
+    }
+
+    /// The first form of the picture Photos will actually accept: the original
+    /// bytes when they're already PNG/JPEG/HEIC, otherwise a PNG (then JPEG)
+    /// re-encode of the decoded image.
+    private static func acceptableBytes(data: Data?, image: UIImage?) -> (Data, String)? {
+        if let data, let ext = nativeExtension(of: data) { return (data, ext) }
+        guard let image else { return nil }
+        if let png = image.pngData() { return (png, "png") }
+        if let jpg = image.jpegData(compressionQuality: 0.95) { return (jpg, "jpg") }
+        return nil
+    }
+
+    /// Sniff the container from its magic bytes — the URL's extension lies often
+    /// enough (Storage serves plenty of `.png` names that aren't).
+    private static func nativeExtension(of data: Data) -> String? {
+        let b = [UInt8](data.prefix(12))
+        guard b.count >= 12 else { return nil }
+        if b[0] == 0x89, b[1] == 0x50, b[2] == 0x4E, b[3] == 0x47 { return "png" }
+        if b[0] == 0xFF, b[1] == 0xD8, b[2] == 0xFF { return "jpg" }
+        // ftyp box: HEIC/HEIF. RIFF….WEBP is deliberately NOT here — Photos
+        // rejects webp, so it falls through to the re-encode.
+        if b[4] == 0x66, b[5] == 0x74, b[6] == 0x79, b[7] == 0x70 {
+            let brand = String(bytes: b[8..<12], encoding: .ascii) ?? ""
+            if brand.hasPrefix("hei") || brand.hasPrefix("mif") || brand.hasPrefix("msf") { return "heic" }
+        }
+        return nil
     }
 }
 
@@ -24,12 +81,20 @@ final class PhotoSaver {
 struct CreationsView: View {
     @State private var creations: [Creation] = []
     @State private var loading = true
+    /// Where the next page starts, and whether there is one. The grid used to
+    /// be a single 60-item query with no way to ask for more, so everything
+    /// older than the newest 60 was unreachable.
+    @State private var cursor: DocumentSnapshot?
+    @State private var hasMore = false
+    @State private var loadingMore = false
     @State private var errorText: String?
     @State private var preview: Creation?
     @State private var filter: String? = nil   // nil = show everything
     @State private var editable: EditableSheet?
     @State private var openingEditor = false
     @State private var toast: String?
+    @State private var photosDenied = false
+    @Environment(\.openTool) private var openTool
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 10)]
 
@@ -68,21 +133,28 @@ struct CreationsView: View {
                     emptyState(title: "None of those yet",
                                subtitle: "Nothing in this category — try another filter.")
                 } else {
-                    LazyVGrid(columns: grid, spacing: 10) {
-                        ForEach(filtered) { c in
-                            Button {
-                                AutoScrollDriver.shared.stop()   // stop autoscroll on tap
-                                preview = c
-                            } label: { tile(c) }
-                                .buttonStyle(.plain)
+                    // Explicit VStack: the grid and the Older button below it are
+                    // two views, and the grid stays lazy inside it.
+                    VStack(spacing: 0) {
+                        LazyVGrid(columns: grid, spacing: 10) {
+                            ForEach(filtered) { c in
+                                Button {
+                                    AutoScrollDriver.shared.stop()   // stop autoscroll on tap
+                                    preview = c
+                                } label: { tile(c) }
+                                    .buttonStyle(.plain)
+                            }
                         }
+                        .padding()
+                        olderButton
                     }
-                    .padding()
                 }
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .forgeTitle("My Creations")
+        // The standard tool header: eyebrow title in the bar, back chevron
+        // top-left (previous screen).
+        .forgeToolBar("My Creations")
         // While the image popup is open, hide the nav bar so its dim backdrop
         // covers the WHOLE screen — otherwise the nav-bar strip at the top
         // swallows taps and you can only dismiss by tapping the lower half.
@@ -98,6 +170,17 @@ struct CreationsView: View {
                isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { errorText = nil }
         } message: { Text(errorText ?? "") }
+        // Permission was refused at some point: the request returns instantly
+        // from then on and never shows the system prompt again, so the only way
+        // back is Settings.
+        .alert("Photos access is off", isPresented: $photosDenied) {
+            Button("Open Settings") {
+                if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }
+            }
+            Button("Not now", role: .cancel) { }
+        } message: {
+            Text("Turn on “Add Photos Only” for ImageForge to save pictures to your library.")
+        }
         .overlay { previewPopup }
         .overlay(alignment: .bottom) { toastView }
         .fullScreenCover(item: $editable) { e in
@@ -169,13 +252,40 @@ struct CreationsView: View {
         }
     }
 
+    /// The way further back. Deliberately a TAP, not load-on-scroll: this
+    /// screen carries the autoscroll pill, which would run to the bottom by
+    /// itself and pull page after page of full-size pictures over her data
+    /// without her having asked for any of them.
+    @ViewBuilder private var olderButton: some View {
+        // Shown under a filter too: hiding it there would put older stickers
+        // (or dreams, or cards) permanently out of reach, which is the very
+        // thing this fixes. A page with none of the filtered type just leaves
+        // the button sitting there to tap again — never a dead end.
+        if hasMore {
+            Button { Task { await loadMore() } } label: {
+                Text(loadingMore ? "Loading…" : "Older")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textDim)
+                    .padding(.vertical, 9).padding(.horizontal, 18)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Theme.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
+            }
+            .disabled(loadingMore)
+            .padding(.bottom, 24)
+        }
+    }
+
     private func tile(_ c: Creation) -> some View {
         // Uniform square tile: the cell is a square sized to the grid column, and
         // the image fills it (center-cropped). Any aspect ratio — square, wide
         // banner, or tall — tiles cleanly instead of breaking the grid.
+        //
+        // `maxPixel` is what makes paging safe: a tile decoded at full size is a
+        // ~1024x1536 bitmap (~6MB in memory), so a few hundred of them is a
+        // gigabyte of decoded pictures. At tile size it is ~0.4MB.
         Color.white
             .aspectRatio(1, contentMode: .fit)
-            .overlay(CachedImageView(url: c.url, contentMode: .fill))
+            .overlay(CachedImageView(url: c.url, contentMode: .fill, maxPixel: 400))
             .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
             .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
@@ -207,9 +317,34 @@ struct CreationsView: View {
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
 
+                    // What made it — model · quality. First line of the caption,
+                    // because it's the thing she's checking when she opens one.
+                    if let made = c.madeWith {
+                        Text(made)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Theme.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     if let p = c.prompt, !p.isEmpty {
                         Text(p).font(.caption).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    // Re-run or remix: jump to the Playground with this
+                    // generation's prompt, style and quality already set.
+                    if let q = playgroundQuery(c) {
+                        Button {
+                            PlaygroundPrefill.pending = q
+                            preview = nil
+                            openTool(.playground)
+                        } label: {
+                            Label("Open in Playground", systemImage: "paintpalette")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 46)
+                                .background(Theme.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                        }
+                        .buttonStyle(.plain)
                     }
                     if c.type == "sticker" {
                         Button { openForEdit(c) } label: {
@@ -250,24 +385,64 @@ struct CreationsView: View {
     /// Download the image (from cache when we have it) and save it to Photos.
     /// Requests add-only permission if needed; reports the real outcome.
     private func savePreview(_ c: Creation) {
+        // Say something the instant it's tapped: the download + the permission
+        // round trip take a moment, and a silent button reads as a dead one.
+        showToast("Saving…", seconds: 20)
         Task {
+            // Prefer the bytes exactly as they were downloaded — Photos takes a
+            // real PNG/JPEG straight, and re-encoding is only a fallback.
+            var bytes = ImageCache.data(for: c.url)
             var image = ImageCache.image(for: c.url)
-            if image == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
+            if bytes == nil, let (data, _) = try? await URLSession.shared.data(from: c.url) {
+                bytes = data
                 image = UIImage(data: data)
                 if let image { ImageCache.store(data, image, for: c.url) }
             }
-            guard let image else { showToast("Couldn’t load that image"); return }
-            PhotoSaver.shared.save(image) { ok, denied in
-                showToast(ok ? "Saved to Photos" : (denied ? "Allow Photos access in Settings" : "Couldn’t save"))
+            if image == nil, let bytes { image = UIImage(data: bytes) }
+            guard bytes != nil || image != nil else {
+                await MainActor.run { showToast("Couldn’t load that image") }
+                return
+            }
+            PhotoSaver.shared.save(data: bytes, image: image) { outcome in
+                switch outcome {
+                case .saved:            showToast("Saved to Photos")
+                // A toast for this was too easy to miss — once permission is
+                // off, nothing inside the app can turn it back on, so say so
+                // and offer the one door that works.
+                case .denied:           withAnimation { toast = nil }; photosDenied = true
+                case .failed(let why):  showToast("Couldn’t save — \(why)", seconds: 4)
+                }
             }
         }
     }
 
-    private func showToast(_ message: String) {
+    /// The generation's settings as a Playground query, so "Open in
+    /// Playground" lands with prompt, style and quality prefilled. Only for
+    /// plain images with a prompt on file — sticker sheets, dreams and the
+    /// rest have their own tools.
+    private func playgroundQuery(_ c: Creation) -> String? {
+        guard c.type == "image", let prompt = c.prompt, !prompt.isEmpty else { return nil }
+        let made = [c.model, c.style].compactMap { $0 }.joined(separator: " ").lowercased()
+        let style = made.contains("hoonie") ? "hoonie"
+            : (made.contains("watercolor") || made.contains("wtr")) ? "watercolor"
+            : "chatgpt"
+        var items = [URLQueryItem(name: "prompt", value: prompt),
+                     URLQueryItem(name: "style", value: style)]
+        var quality = c.quality
+        if quality == nil, let s = c.style?.lowercased() {
+            quality = ["low", "medium", "high"].first { s.contains($0) }
+        }
+        if let q = quality { items.append(URLQueryItem(name: "quality", value: q)) }
+        var comp = URLComponents()
+        comp.queryItems = items
+        return comp.percentEncodedQuery
+    }
+
+    private func showToast(_ message: String, seconds: Double = 1.8) {
         withAnimation { toast = message }
-        Task {
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
-            withAnimation { toast = nil }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            withAnimation { if toast == message { toast = nil } }
         }
     }
 
@@ -298,14 +473,36 @@ struct CreationsView: View {
         }
     }
 
+    /// Refresh from the top. Resets paging — pull-to-refresh means "start
+    /// again", and keeping a stale cursor would page from the wrong place.
     private func load() async {
         loading = true
         do {
-            creations = try await ForgeService.shared.fetchCreations()
+            let page = try await ForgeService.shared.fetchCreationPage()
+            creations = page.items
+            cursor = page.cursor
+            hasMore = page.hasMore
             if let f = filter, !creations.contains(where: { $0.type == f }) { filter = nil }
         }
         catch { errorText = error.localizedDescription }
         loading = false
+    }
+
+    /// One more page, behind the oldest creation held.
+    private func loadMore() async {
+        guard !loadingMore, let after = cursor else { return }
+        loadingMore = true
+        do {
+            let page = try await ForgeService.shared.fetchCreationPage(after: after)
+            // Guard against a doc arriving twice — a creation written while she
+            // was reading shifts the window, and ForEach traps on duplicate ids.
+            let known = Set(creations.map(\.id))
+            creations += page.items.filter { !known.contains($0.id) }
+            cursor = page.cursor
+            hasMore = page.hasMore
+        }
+        catch { errorText = error.localizedDescription }
+        loadingMore = false
     }
 }
 
@@ -314,7 +511,23 @@ struct CreationsView: View {
 /// app being closed and reopened (the memory cache alone is wiped on every
 /// launch, which made every picture re-download each time the app opened).
 enum ImageCache {
-    static let shared = NSCache<NSURL, UIImage>()
+    static let shared: NSCache<NSURL, UIImage> = {
+        let c = NSCache<NSURL, UIImage>()
+        // BOUNDED, because the grid is paged now. Unbounded, a few hundred
+        // full-size decodes (~6MB each at 1024x1536 RGBA) is more memory than
+        // the app is allowed to have. Cost is the decoded byte count, set by
+        // `store`; NSCache evicts the least useful when the limit is passed.
+        c.totalCostLimit = 96 * 1024 * 1024
+        return c
+    }()
+
+    /// Downsampled copies for the grid, kept apart from the full-size ones so a
+    /// tile can never evict the picture the popup is showing (or vice versa).
+    static let thumbs: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.totalCostLimit = 48 * 1024 * 1024
+        return c
+    }()
 
     private static let dir: URL = {
         let d = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -332,6 +545,56 @@ enum ImageCache {
         return dir.appendingPathComponent(String(h, radix: 16))
     }
 
+    /// Roughly what holding this decoded image costs, for the cache's budget.
+    private static func cost(_ img: UIImage) -> Int {
+        guard let cg = img.cgImage else { return 1 }
+        return cg.bytesPerRow * cg.height
+    }
+
+    /// Decode `data` straight to `maxPixel` on its longest side.
+    /// `CGImageSourceCreateThumbnailAtIndex` never materialises the full-size
+    /// bitmap on the way — decoding first and resizing after would spend exactly
+    /// the memory this exists to avoid.
+    ///
+    /// Falls back to a plain full-size decode if ImageIO won't thumbnail this
+    /// data. These urls are a mix of png, webp and jpeg, and a picture that
+    /// costs extra memory is still far better than a broken tile.
+    static func downsample(_ data: Data, maxPixel: Int) -> UIImage? {
+        guard let src = CGImageSourceCreateWithData(data as CFData,
+                                                    [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return UIImage(data: data) }
+        let opts: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary)
+        else { return UIImage(data: data) }
+        return UIImage(cgImage: cg)
+    }
+
+    /// A tile-sized copy: memory, then the original bytes on disk, then nil
+    /// (the caller downloads). Keyed by url AND size, so two sizes can coexist.
+    static func thumb(for url: URL, maxPixel: Int) -> UIImage? {
+        let key = "\(maxPixel)|\(url.absoluteString)" as NSString
+        if let m = thumbs.object(forKey: key) { return m }
+        guard let data = try? Data(contentsOf: fileURL(for: url)),
+              let img = downsample(data, maxPixel: maxPixel) else { return nil }
+        thumbs.setObject(img, forKey: key, cost: cost(img))
+        return img
+    }
+
+    static func storeThumb(_ img: UIImage, for url: URL, maxPixel: Int) {
+        thumbs.setObject(img, forKey: "\(maxPixel)|\(url.absoluteString)" as NSString, cost: cost(img))
+    }
+
+    /// The bytes exactly as they were downloaded, if this URL is on disk. Saving
+    /// to Photos wants the original container, not a re-encode of the decode.
+    static func data(for url: URL) -> Data? {
+        try? Data(contentsOf: fileURL(for: url))
+    }
+
     /// Look up an image: memory first, then disk (promoting it back to memory).
     static func image(for url: URL) -> UIImage? {
         if let m = shared.object(forKey: url as NSURL) { return m }
@@ -344,16 +607,28 @@ enum ImageCache {
 
     /// Store an image in both layers (raw bytes to disk so decoding is lossless).
     static func store(_ data: Data, _ img: UIImage, for url: URL) {
-        shared.setObject(img, forKey: url as NSURL)
+        shared.setObject(img, forKey: url as NSURL, cost: cost(img))
+        try? data.write(to: fileURL(for: url), options: .atomic)
+    }
+
+    /// Keep the downloaded bytes without holding the full-size decode — what a
+    /// tile wants: the popup and Save-to-Photos still find the original later.
+    static func storeData(_ data: Data, for url: URL) {
         try? data.write(to: fileURL(for: url), options: .atomic)
     }
 }
 
 /// Loads a remote image once, caches the decoded `UIImage`, and reuses it on
 /// every later request for the same URL.
+///
+/// Pass `maxPixel` where the image is shown small (a grid tile): it decodes to
+/// that size instead of full resolution, which is roughly 15x less memory per
+/// picture and is what lets the grid page back through hundreds of them. Leave
+/// it nil for anything shown large — the popup, a dream page.
 struct CachedImageView: View {
     let url: URL
     var contentMode: ContentMode = .fill
+    var maxPixel: Int? = nil
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -371,6 +646,19 @@ struct CachedImageView: View {
     }
 
     private func load() async {
+        if let maxPixel {
+            if let t = ImageCache.thumb(for: url, maxPixel: maxPixel) { image = t; return }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                // Bytes to disk, but only the SMALL decode is kept in memory —
+                // the whole point of the tile path.
+                ImageCache.storeData(data, for: url)
+                guard let img = ImageCache.downsample(data, maxPixel: maxPixel) else { failed = true; return }
+                ImageCache.storeThumb(img, for: url, maxPixel: maxPixel)
+                image = img
+            } catch { failed = true }
+            return
+        }
         if let cached = ImageCache.image(for: url) {
             image = cached; return
         }

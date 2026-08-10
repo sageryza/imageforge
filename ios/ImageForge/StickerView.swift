@@ -24,8 +24,6 @@ struct StickerView: View {
     var body: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    StarTitle(text: "Sticker Sheet", stars: true)
-                        .padding(.top, 4)
                     ToolStage(busy: busy, hasResult: sheet != nil, aspect: 2.0 / 3.0,
                               maxHeight: 430,
                               loaderText: "conjuring your sheet — this takes a minute.\nyou can leave; it'll be waiting in your gallery.") {
@@ -56,8 +54,9 @@ struct StickerView: View {
                 }
             }
             .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            // The standard tool header: eyebrow title in the bar, back
+            // chevron top-left (previous screen).
+            .forgeToolBar("Sticker Page")
             .alert("Couldn't generate",
                    isPresented: Binding(get: { errorText != nil },
                                         set: { if !$0 { errorText = nil } })) {

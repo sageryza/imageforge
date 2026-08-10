@@ -110,7 +110,7 @@ struct MovieMakerHome: View {
     @State private var quickClips: [QuickClip] = []
     @State private var playingQuick: QuickClip?
     @FocusState private var inputFocused: Bool
-    @Environment(\.goHome) private var goHome
+    @Environment(\.goBack) private var goBack
 
     // NOTE: no NavigationStack of its own — RootView wraps every tool in one.
     var body: some View {
@@ -129,7 +129,7 @@ struct MovieMakerHome: View {
             // Tapping anywhere also puts the keyboard away (runs alongside
             // whatever was tapped, so buttons still work).
             .simultaneousGesture(TapGesture().onEnded { inputFocused = false })
-            .forgeTitle("Movies")
+            .forgeTitle("Movies", paper: Reel.base)
             .toolbar {
                 // The multiline fields' return key types a newline, so the
                 // keyboard needs its own way out.
@@ -138,12 +138,7 @@ struct MovieMakerHome: View {
                     Button("Done") { inputFocused = false }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { goHome() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
-                            .foregroundColor(Reel.ink)
-                    }
-                    .accessibilityLabel("Back to all the modules")
+                    ForgeBackButton(tint: Reel.ink)
                 }
                 // Save · dice · Story Room all live in the header now (top-right)
                 // — as high as they go on screen.
@@ -170,8 +165,6 @@ struct MovieMakerHome: View {
                     .accessibilityLabel("Open the Story Room")
                 }
             }
-            .toolbarBackground(Reel.base, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(isPresented: $showDetail) {
                 if let movie = openedMovie {
                     MovieDetailView(movieId: movie.id, initial: movie, autopilot: openAutopilot)
@@ -180,14 +173,12 @@ struct MovieMakerHome: View {
             // Full-screen push (not a popup sheet) — the boards read as a
             // proper native screen; the webview inside is still the live page.
             .navigationDestination(isPresented: $showStoryRoom) {
-                StoryRoomView()
+                StoryRoomView(pushed: true)
                     // The single "Story Room" heading lives in the native nav
                     // bar, in the branded eyebrow style (see forgeTitle).
-                    .forgeTitle("Story Room")
-                    // match the web page's own paper so there's no white
-                    // strip between the nav bar and the cream page
-                    .toolbarBackground(StoryRoomView.paper, for: .navigationBar)
-                    .toolbarBackground(.visible, for: .navigationBar)
+                    // paper = the web page's own, so there's no white strip
+                    // between the nav bar and the cream page
+                    .forgeTitle("Story Room", paper: StoryRoomView.paper)
             }
             // Expanded (full-screen) story editor — same $story binding.
             .fullScreenCover(isPresented: $storyExpanded) {
@@ -198,9 +189,7 @@ struct MovieMakerHome: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Reel.base)
                         .foregroundColor(Reel.ink)
-                        .forgeTitle("Story")
-                        .toolbarBackground(Reel.base, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
+                        .forgeTitle("Story", paper: Reel.base)
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("Done") { storyExpanded = false }.foregroundColor(Reel.amber)

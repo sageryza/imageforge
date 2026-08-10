@@ -7,9 +7,18 @@
 //   GET  /api/chatfeed           → { chats:{name:{icon}}, messages:[...] } (newest first)
 //   GET  /api/chatfeed?since=ISO → delta: only messages newer than ISO, for
 //                                  polling (0-2 reads instead of 1500)
-//   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr? }
+//   POST /api/chatfeed           → { chat, title?, text, audio? (url or data URL), tldr?,
+//                                  turn?, working? } — turn = stable per-turn key:
+//                                  the post UPSERTS that turn's one message (live
+//                                  drafts; working:true = still being written)
 //   POST /api/chatfeed/icon      → { chat, image (data URL) } — set a chat's picture
 //   POST /api/chatfeed/reply     → { chat, text } — Sophie's reply (chats check hourly)
+//   POST /api/chatfeed/status    → { chat, session, need?, doing? } — the chat's
+//                                  living status card, shown under its name on
+//                                  the home list ("" clears a field)
+//   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
+//   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
+//                                  chats read it, only the app writes it)
 //   GET  /api/chatfeed/search?q= → substring search across every message
 //                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
 //   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
@@ -24,10 +33,17 @@
 //   POST /api/chatfeed/page      → { chat, title, html } — publish a Compare page
 //                                  (self-contained HTML shown in the chat's Compare tab)
 //   GET  /api/chatfeed/pages?chat=name → list a chat's Compare pages
+//   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
+//                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
+//   GET  /api/chatfeed/todos     → her running to-do list (open items first).
+//                                  ANY chat may read it and act on an item.
+//   POST /api/chatfeed/todo      → { text } — add one
+//   PATCH/DELETE /api/chatfeed/todo/:id → { done?, text? } / remove
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -74,6 +90,27 @@ const REG_TTL_MS = 5 * 60 * 1000;   // backstop only; writes invalidate directly
 // home-screen App/Web toggle writes it; the Open buttons route off it.
 const SETTINGS_DOC = '__settings';
 
+// ---- Which build of the page is live -------------------------------------
+// A WKWebView keeps the page it loaded — for DAYS, since the app is rarely
+// killed. Polling refreshes the DATA but never the CODE, so a shipped page
+// change silently doesn't reach her phone until something reloads the screen.
+// That is not theoretical: a whole afternoon of UI changes landed on Render
+// while her app kept running the morning's JavaScript, and the feature she was
+// testing "didn't work" because the code implementing it wasn't there.
+// So every feed response carries a stamp of the page file. The client keeps
+// the first one it sees (that IS the build it is running) and reloads when the
+// stamp changes. Computed once — the file cannot change without a restart.
+let pageBuildStamp = null;
+function pageBuild() {
+  if (pageBuildStamp === null) {
+    try {
+      const buf = fs.readFileSync(path.join(__dirname, 'public', 'chats.html'));
+      pageBuildStamp = crypto.createHash('md5').update(buf).digest('hex').slice(0, 12);
+    } catch (e) { pageBuildStamp = ''; }
+  }
+  return pageBuildStamp;
+}
+
 async function registry() {
   if (regCache && Date.now() - regCacheAt < REG_TTL_MS) return regCache;
   const snap = await db().collection(REG).get();
@@ -92,6 +129,145 @@ function regRef(chat) {
   regCache = null;
   return db().collection(REG).doc(String(chat).slice(0, 60));
 }
+
+// ---- One chat per SESSION (Aug 2026) ---------------------------------------
+// A chat's real identity is the Claude SESSION behind it, not the branch-derived
+// slug: branch names get reused, naming conventions change, and slugs collide —
+// each of those merged or split threads for real (the chat Sophie renamed
+// "Imprint" lost its session to a fork when its slug was claimed by a
+// placeholder). So resolution is SESSION-FIRST: a session that already owns a
+// chat posts there forever, whatever its branch says today. The slug only
+// matters the first time a session posts — it keeps the pretty name if it's
+// free, otherwise forks to `<slug>-<sid6>`. Renaming (displayName) stays
+// cosmetic and never re-keys anything.
+function sidTail(session) {
+  return String(session).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+}
+// A merged/repaired chat leaves a tombstone doc behind ({ movedTo }) so posts
+// still addressed to the old slug — stale hook caches, the app's reply box on
+// an old thread — land in the surviving chat instead of resurrecting the tile.
+async function followMoves(chat) {
+  let cur = String(chat || '').slice(0, 60);
+  if (!cur) return cur;
+  const reg = await registry();
+  const seen = new Set();
+  while (reg.chats[cur] && reg.chats[cur].movedTo && !seen.has(cur)) {
+    seen.add(cur);
+    cur = String(reg.chats[cur].movedTo).slice(0, 60);
+  }
+  return cur;
+}
+async function resolveChat(base, session) {
+  const chat = await followMoves(base);
+  const sid = String(session || '').slice(0, 120);
+  if (!chat || !sid) return chat;
+  // 1) Session-first: this session already has a home → everything it posts
+  //    goes there, no matter what slug it arrived under. This is what makes a
+  //    chat's identity survive branch renames and naming-convention changes.
+  const reg = await registry();
+  const mine = Object.keys(reg.chats)
+    .filter((s) => (reg.chats[s].sessionId || '') === sid && !reg.chats[s].movedTo);
+  if (mine.length) {
+    if (mine.includes(chat)) return chat;
+    // duplicates only happen after registry surgery — pick deterministically
+    mine.sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+    return mine[0];
+  }
+  // 2) First post from a new session: take the pretty name if it's unclaimed…
+  const owner = (reg.chats[chat] || {}).sessionId || '';
+  if (!owner) {
+    await regRef(chat).set({ sessionId: sid }, { merge: true });
+    return chat;
+  }
+  if (owner === sid) return chat;
+  // 3) …else fork to a chat of its own. If even the fork slug is taken by yet
+  //    another session (two ids sharing 6 leading chars), widen the tail.
+  let tail = sidTail(sid) || 'x';
+  let fork = (chat + '-' + tail).slice(0, 60);
+  const fowner = (reg.chats[fork] || {}).sessionId || '';
+  if (fowner && fowner !== sid) {
+    tail = String(sid).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || tail;
+    fork = (chat + '-' + tail).slice(0, 60);
+  }
+  await regRef(fork).set({ sessionId: sid }, { merge: true });
+  return fork;
+}
+// The hook calls this ONCE per session (cached in a state file) and then
+// posts feed + gallery + user messages under the returned slug, so everything
+// a session makes stays together on one chat.
+router.get('/resolve', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const out = await resolveChat(chat, String(req.query.session || ''));
+    res.json({ chat: out });
+  } catch (err) { fail(res, err); }
+});
+// Admin: bind a chat to its owning session (or clear the binding) — the
+// untangle tool for an already-collided chat. Pass the REAL session id of the
+// conversation the thread belongs to; resolution is session-first, so a
+// placeholder id ORPHANS the thread (that is exactly what froze "Imprint" —
+// its slug was claimed by "imprint-legacy", which no live session could ever
+// match, so even its own session forked away). Binding also clears the same
+// session id off every OTHER registry doc, so a session has exactly one home.
+// Optional { movedTo } sets/clears the tombstone redirect for a merged chat.
+router.post('/session', async (req, res) => {
+  try {
+    const { chat, sessionId, movedTo } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const val = String(sessionId || '').slice(0, 120);
+    const chatId = String(chat).slice(0, 60);
+    if (val) {
+      const dupes = await db().collection(REG).where('sessionId', '==', val).get();
+      for (const d of dupes.docs) {
+        if (d.id !== chatId) {
+          await regRef(d.id).set({ sessionId: admin.firestore.FieldValue.delete() }, { merge: true });
+        }
+      }
+    }
+    const patch = { sessionId: val || admin.firestore.FieldValue.delete() };
+    if (movedTo !== undefined) {
+      patch.movedTo = movedTo ? String(movedTo).slice(0, 60) : admin.firestore.FieldValue.delete();
+    }
+    await regRef(chatId).set(patch, { merge: true });
+    res.json({ ok: true, chat: chatId, sessionId: val || null });
+  } catch (err) { fail(res, err); }
+});
+
+// Untangle a collided/forked thread: re-key every message from one slug to
+// another so two halves of the same conversation become one. Needed because a
+// session-first fork (a session whose messages landed under a suffixed slug
+// while the pretty slug it belongs to held the other half) can only be joined
+// by moving the messages — /thread filters on the exact `chat` field, so a
+// registry tombstone alone won't merge them. `postedAt` is refreshed so open
+// clients pick the moved messages up on their next delta poll. `?dry` counts
+// without writing. Tombstones the source registry doc (movedTo → to) so its
+// tile redirects. Gated like the rest of the module.
+router.post('/reassign', async (req, res) => {
+  try {
+    const from = String((req.body || {}).from || '').slice(0, 60);
+    const to = String((req.body || {}).to || '').slice(0, 60);
+    const dry = Boolean((req.body || {}).dry);
+    if (!from || !to) return res.status(400).json({ error: 'from and to required' });
+    if (from === to) return res.status(400).json({ error: 'from and to are the same' });
+    const snap = await db().collection(MSGS).where('chat', '==', from).get();
+    if (dry) return res.json({ ok: true, dry: true, wouldMove: snap.size, from, to });
+    const now = new Date().toISOString();
+    let moved = 0;
+    // Firestore batches cap at 500 writes; chunk to stay under it.
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db().batch();
+      for (const d of snap.docs.slice(i, i + 400)) {
+        batch.set(d.ref, { chat: to, postedAt: now }, { merge: true });
+        moved++;
+      }
+      await batch.commit();
+    }
+    await regRef(from).set({ movedTo: to }, { merge: true });
+    res.json({ ok: true, moved, from, to });
+  } catch (err) { fail(res, err); }
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -154,7 +330,7 @@ router.get('/', async (req, res) => {
       const messages = Array.from(byId.values());
       // `delta:true` tells the client to MERGE rather than replace — it still
       // holds the trimmed tail and any full threads it has already pulled.
-      return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true });
+      return res.json({ chats: reg.chats, settings: reg.settings, messages, truncated: [], delta: true, build: pageBuild() });
     }
 
     const [msnap, reg] = await Promise.all([
@@ -179,7 +355,7 @@ router.get('/', async (req, res) => {
     // pull the full thread when one is opened instead of guessing.
     const truncated = Object.keys(perChat)
       .filter((c) => perChat[c] > (rank[c] < DEEPCHATS ? DEEP : TAIL));
-    res.json({ chats: reg.chats, settings: reg.settings, messages, truncated });
+    res.json({ chats: reg.chats, settings: reg.settings, messages, truncated, build: pageBuild() });
   } catch (err) { fail(res, err); }
 });
 
@@ -222,8 +398,23 @@ router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.json({ results: [], indexed: searchIndex.length });
+    if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
+    // Chats whose NAME matches the query — Sophie's display name first, the
+    // slug as fallback — returned separately so the client can pin them at
+    // the top of the results (her rule: searching a chat's name should find
+    // the chat itself before any message-content hits).
+    let chatMatches = [];
+    try {
+      const reg = await registry();
+      const ql = q.toLowerCase();
+      chatMatches = Object.keys(reg.chats || {})
+        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
+        .filter((c) => c.name.toLowerCase().includes(ql) || c.chat.toLowerCase().includes(ql))
+        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+        .slice(0, 10)
+        .map((c) => ({ chat: c.chat, name: c.name }));
+    } catch (e) { /* name matches are a bonus; message search still answers */ }
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Word-aware match: anchor the query at a word start (\b) so "aries" no
     // longer matches inside "boundaries", while a prefix like "bound" still
@@ -249,7 +440,7 @@ router.get('/search', async (req, res) => {
       }
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
-    res.json({ results, indexed: searchIndex.length });
+    res.json({ results, chatMatches, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -271,7 +462,7 @@ router.get('/thread', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr, url, account } = req.body || {};
+    const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -286,6 +477,17 @@ router.post('/', async (req, res) => {
     };
     // "Open in Claude" deep link for this chat (claude.ai/code/session_…)
     if (url && /^https?:\/\//.test(url)) doc.url = String(url).slice(0, 400);
+    // The server is the authority on where a post files. The hook sends its
+    // session id explicitly; older hooks carry it inside the deep link. Either
+    // way the post goes through session-first resolution, so a stale hook-side
+    // slug cache (or a reused branch name) can never file into the wrong
+    // thread. `explicit` marks a deliberate FORGE_CHAT name shared across
+    // sessions on purpose — those are never re-keyed (tombstones still apply).
+    const sm = doc.url && doc.url.match(/session_([A-Za-z0-9_-]{6,})/);
+    const skey = String(session || (sm ? sm[1] : '')).slice(0, 120);
+    doc.chat = explicit
+      ? await followMoves(doc.chat)
+      : await resolveChat(doc.chat, skey);
     if (audio && /^https?:\/\//.test(audio)) doc.audioUrl = String(audio);
     else if (audio && /^data:audio\//.test(audio)) {
       const m = audio.match(/^data:(audio\/[\w.+-]+);base64,(.+)$/);
@@ -298,14 +500,55 @@ router.post('/', async (req, res) => {
         doc.audioUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
       }
     }
-    const ref = await db().collection(MSGS).add(doc);
+    // Live drafts (Aug 2026): a post carrying `turn` — a stable per-turn key
+    // from the hook (the transcript uuid of the user message that started the
+    // turn) — UPSERTS one message per turn instead of appending a new doc.
+    // That's what lets the hook post the prose a chat writes BEFORE it starts
+    // coding (working:true, the app shows "still writing…"), grow it as more
+    // text lands between tool calls, and have the normal end-of-turn post
+    // finalize the SAME message (working cleared, TLDR set) — one message in
+    // the thread, never a duplicate. The doc id is deterministic from
+    // session|turn (falling back to chat|turn), NOT from the chat slug alone,
+    // so a mid-turn slug re-resolution or a renamed chat can never fork a
+    // draft; the final post simply re-patches `chat` to the current
+    // resolution. postedAt bumps on every write, which is what re-delivers
+    // the updated doc through the app's delta poll.
+    let msgId;
+    const turnKey = String(turn || '').slice(0, 120);
+    if (turnKey) {
+      msgId = 't' + crypto.createHash('sha1')
+        .update((skey || doc.chat) + '|' + turnKey).digest('hex').slice(0, 28);
+      const ref = db().collection(MSGS).doc(msgId);
+      if (working) doc.working = true;
+      const prev = await ref.get();
+      if (prev.exists) {
+        // keep the first write's `created` (it's what the unread dot keys on —
+        // a draft pings once when it appears, never again as it grows/finishes)
+        const patch = {
+          chat: doc.chat, text: doc.text, tldr: doc.tldr, postedAt: doc.postedAt,
+          working: working ? true : admin.firestore.FieldValue.delete(),
+        };
+        if (doc.url) patch.url = doc.url;
+        if (doc.audioUrl) patch.audioUrl = doc.audioUrl;
+        await ref.update(patch);
+      } else {
+        await ref.set(doc);
+      }
+    } else {
+      const ref = await db().collection(MSGS).add(doc);
+      msgId = ref.id;
+    }
     const reg = { lastSeen: doc.created };
     if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
+    // A FINAL reply ends the turn: clear the turn-start mark the hook stamped
+    // at UserPromptSubmit (see POST /working), so the app's pink tint drops
+    // the moment the reply lands. A growing draft is still mid-turn.
+    if (!working) reg.workingAt = admin.firestore.FieldValue.delete();
     await regRef(doc.chat).set(reg, { merge: true });
-    res.json({ ok: true, id: ref.id });
+    res.json({ ok: true, id: msgId });
   } catch (err) { fail(res, err); }
 });
 
@@ -453,15 +696,320 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
+// the chat list. A hidden chat leaves the list so she can see the rest, and
+// waits behind the bar.
+//
+// It is a STAMP (`hiddenAt`), the same shape as answeredAt: a chat stays
+// hidden only while nothing newer has arrived, so **the moment it answers her
+// it pops back out into the list** (Sophie's call, Aug 2026 — v1 shipped this
+// as a permanent boolean and she asked for the opposite). Hiding is "not now",
+// not "away for good"; that's what Archive is for.
+//
+// `hidden:true` is the retired v1 boolean. Reads still honour it (a chat she
+// hid that day must not silently reappear), writes always clear it.
+router.post('/hide', async (req, res) => {
+  try {
+    const { chat, hidden } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = hidden !== false;
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = new Date().toISOString();
+    await regRef(chat)
+      .set({ hiddenAt: on ? stamp : del, hidden: del }, { merge: true });
+    res.json({ ok: true, hiddenAt: on ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
+// I want to refer back to, but I'm not actively using them". Imprint and the
+// original Anthony Chene chat were the two she named. A starred chat wears a
+// red star at the front of its row and can be pulled up from anywhere with the
+// ★ chip, INCLUDING out of the archive — which is where these end up, and the
+// whole reason the chip ignores `archived`.
+//
+// A plain boolean, like `archived`: it is a permanent judgement about the chat,
+// not a state that anything newer should clear.
+router.post('/star', async (req, res) => {
+  try {
+    const { chat, starred } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = starred !== false;
+    await regRef(chat)
+      .set({ starred: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, starred: on });
+  } catch (err) { fail(res, err); }
+});
+
+// File chats under a category — the chips where the LIST/TILES toggle used to
+// be (Aug 2026, Sophie: "category tags, the first two I can think of are
+// stories and tech"). One field on the registry doc, so it rides the cached
+// read the icons already use, exactly like the Dump's `track`.
+//
+// Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
+// gesture there: she picks several rows in select mode and taps a category
+// once. An empty category clears the field back to unfiled.
+// A CATEGORY IS A THING, not just a side effect of filing (Aug 2026 — Sophie
+// made one and it wasn't there: she typed a name in select mode with no chats
+// picked, so nothing was written and the chip never existed). The name is now
+// remembered on the `__settings` doc, so an EMPTY folder survives, and a
+// request with no chats at all is valid — that is how a category gets created
+// on its own.
+router.post('/category', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    const category = String(body.category || '').trim().slice(0, 40);
+    if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
+    if (names.length) {
+      const val = category || admin.firestore.FieldValue.delete();
+      const batch = db().batch();
+      names.forEach((n) => batch.set(regRef(n), { category: val }, { merge: true }));
+      await batch.commit();
+    }
+    if (category) {
+      await regRef(SETTINGS_DOC).set(
+        { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
+    }
+    res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- Status cards (Aug 2026, Sophie) --------------------------------------
+// Every chat keeps ONE living status card it rewrites on purpose at the end
+// of a turn: `need` = what it needs from Sophie, in her words ("pick a
+// palette — 10 seconds"; EMPTY when nothing is needed), and `doing` = one
+// line on what it's working on. Both live on the registry doc, so they ride
+// the same cached read the home list already makes — the app shows them
+// under the chat's name. Session-first resolution like every other post.
+// A status line is ONE LINE under a chat's name on a phone. 110 chars is
+// about what fits before the row ellipsis eats it, and the cap is the only
+// thing that actually stops a chat pasting a changelog into the home screen
+// (one did, into her note field, within a day of that field existing).
+// Truncation is at a word boundary — a status line cut mid-word reads broken.
+function statusLine(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (s.length <= 110) return s;
+  const cut = s.slice(0, 110);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > 60 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
+router.post('/status', async (req, res) => {
+  try {
+    const { chat, session, need, doing } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const del = admin.firestore.FieldValue.delete();
+    const patch = { statusAt: new Date().toISOString() };
+    // Only the fields sent change; sending "" clears one.
+    if (need !== undefined) patch.statusNeed = statusLine(need) || del;
+    if (doing !== undefined) patch.statusDoing = statusLine(doing) || del;
+    await regRef(resolved).set(patch, { merge: true });
+    res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+// The note on a chat — the where-things-stand line, mostly hers ("research
+// it, karaoke, tabs") but NOT locked to her (Aug 2026: "it's not that I
+// wanted the field to myself, I just wanted them to know how to write
+// notes"). A chat may write one; the rule is STYLE, not permission —
+// telegraphic fragments, her length, never a changelog.
+//
+// This route briefly required `app:true` and 403'd everything else. That was
+// the wrong fix twice over: it wasn't what she asked for, and it broke HER
+// OWN editing — the app keeps a cached page for days, so the copy on her
+// phone didn't send the new flag and her save came back refused. Never gate
+// a field the app already writes on a flag only a NEW build sends.
+//
+// 200 chars is the cap because her own notes run 26-66. A field that can
+// hold a paragraph invites one.
+router.post('/chatnote', async (req, res) => {
+  try {
+    const { chat, note } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const target = await followMoves(chat);
+    const del = admin.firestore.FieldValue.delete();
+    // collapse newlines too — the row is one line, and a pasted multi-line
+    // note rendered as a wall of text at the top of the thread
+    const val = String(note || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    await regRef(target).set({
+      sophieNote: val || del,
+      sophieNoteAt: val ? new Date().toISOString() : del,
+    }, { merge: true });
+    res.json({ ok: true, chat: target, note: val || null });
+  } catch (err) { fail(res, err); }
+});
+// A chat reads its own card + her note (pass session for session-first
+// resolution, same contract as GET /name).
+router.get('/status', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    let chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const session = String(req.query.session || '').slice(0, 120);
+    chat = session ? await resolveChat(chat, session) : await followMoves(chat);
+    // plain read — regRef() is the WRITE path and drops the registry cache
+    const snap = await db().collection(REG).doc(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({
+      chat,
+      need: d.statusNeed || null,
+      doing: d.statusDoing || null,
+      statusAt: d.statusAt || null,
+      note: d.sophieNote || null,
+      noteAt: d.sophieNoteAt || null,
+    });
+  } catch (err) { fail(res, err); }
+});
+
+// Turn started (v8, Aug 2026) — the hook pings this from UserPromptSubmit the
+// moment Sophie messages a session, and the app tints that chat pink until the
+// reply lands. This tiny route exists because the obvious signal doesn't work:
+// the hook can only lift HER MESSAGE out of the transcript at the END of the
+// turn (at UserPromptSubmit the transcript doesn't hold it yet — measured
+// live: her messages' postedAt lands ~1s before the reply's, every time), so
+// "newest message is hers" is true for about one second, ever. The ping needs
+// no transcript at all — just the chat — so it can fire at submit time. The
+// mark lives on the registry doc (rides the same cached read as the icons)
+// and the final reply's registry write clears it.
+router.post('/working', async (req, res) => {
+  try {
+    const { chat, session } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    // Marks the chat working; it does NOT park it (see POST /reply for why the
+    // two defeat each other). This is the path for a message sent in the CLAUDE
+    // app rather than the Chats app's reply box, and it only fires from a hook
+    // new enough to send the ping — an environment on an older setup script
+    // never calls /working at all, which is why the tint sat dead for weeks.
+    await regRef(resolved).set({ workingAt: new Date().toISOString() }, { merge: true });
+    res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+
 // Bookmark a message Sophie wants to find later — a flag on the message doc
 // itself, so it rides along on GET / (every message already spreads its data)
 // and any chat can read which of its messages she flagged.
+// `note` = why she kept it (Aug 2026, Sophie: "when I bookmark messages I want
+// to leave a note or title the message so I remember what it was and why I
+// bookmarked it"). A bookmark's snippet is the message's first line, which is
+// rarely the reason she saved it. Sent on its own it only edits the note, so
+// typing one never toggles the bookmark off.
 router.post('/bookmark', async (req, res) => {
   try {
-    const { id, bookmarked } = req.body || {};
+    const { id, bookmarked, note } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
-    await db().collection(MSGS).doc(String(id)).set({ bookmarked: !!bookmarked }, { merge: true });
-    res.json({ ok: true, bookmarked: !!bookmarked });
+    const patch = {};
+    if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
+    if (note !== undefined) {
+      const t = String(note).trim().slice(0, 300);
+      patch.bookmarkNote = t || admin.firestore.FieldValue.delete();
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
+    res.json({ ok: true, bookmarked: patch.bookmarked, note: note });
+  } catch (err) { fail(res, err); }
+});
+
+// Every bookmarked message, across every chat — the BOOKMARKS view on the home
+// screen. Until this existed a bookmark could only be seen by scrolling to that
+// exact message inside its own thread, which made the button close to useless.
+// ONE equality filter and the sort done in memory, so Firestore needs no
+// composite index (the same discipline as the crystals/audio queries).
+// The full `text` is deliberately NOT returned: it is only a list, and a chat
+// with long replies would otherwise send megabytes to a phone.
+// Sophie bookmarks two different things (Aug 2026, her own description): "code
+// I want to keep that has copy and paste instructions", and "a long explanation
+// I'll need to read later". That split is DERIVED, never asked for — she should
+// not have to categorise at bookmark time. A fenced code block is the signal,
+// and a precise one: it is exactly what the page renders as a copy-button code
+// box, i.e. the thing she copies. Inline `code` does not count — a sentence
+// mentioning a filename is still prose.
+function bookmarkKind(text) {
+  return /```/.test(String(text || '')) ? 'code' : 'read';
+}
+
+router.get('/bookmarks', async (req, res) => {
+  try {
+    const snap = await db().collection(MSGS).where('bookmarked', '==', true).limit(500).get();
+    const reg = await registry();
+    const items = snap.docs.map((d) => {
+      const m = d.data() || {};
+      const line = String(m.tldr || m.text || '').replace(/\s+/g, ' ').trim();
+      return {
+        id: d.id,
+        chat: m.chat || '',
+        from: m.from || '',
+        created: m.created || m.postedAt || '',
+        snippet: line.slice(0, 220),
+        note: m.bookmarkNote || '',
+        kind: bookmarkKind(m.text),
+      };
+    }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
+    res.json({ items, chats: reg.chats });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- The running to-do list ----------------------------------------------
+// Sophie, Aug 2026: "I kind of wanna do like a running to-do list." Things she
+// thinks of on her phone and would otherwise lose — a bug she noticed, an art
+// direction to try — kept in one place instead of scattered across whichever
+// chat happened to be open.
+//
+// Deliberately NOT per-chat: the whole point is that an idea arrives while she
+// is somewhere else. A chat READS the list (GET /todos) and can act on an item
+// the next time she messages it, the same snail-mail rhythm as asset notes.
+//
+// One tiny collection, no index: the list is short, so it is fetched whole and
+// sorted in memory (open items first, newest at the top of each group).
+const TODOS = 'forge-chat-todos';
+
+router.get('/todos', async (req, res) => {
+  try {
+    const snap = await db().collection(TODOS).limit(500).get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (!!a.done !== !!b.done)
+        ? (a.done ? 1 : -1)
+        : ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1));
+    res.json({ items });
+  } catch (err) { fail(res, err); }
+});
+
+router.post('/todo', async (req, res) => {
+  try {
+    const text = String((req.body || {}).text || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const doc = {
+      text,
+      done: false,
+      createdAt: new Date().toISOString(),
+      // who wrote it — she types most of them, a chat can file one too
+      from: String((req.body || {}).from || 'sophie').slice(0, 20),
+    };
+    const ref = await db().collection(TODOS).add(doc);
+    res.json({ ok: true, id: ref.id, item: { id: ref.id, ...doc } });
+  } catch (err) { fail(res, err); }
+});
+
+router.patch('/todo/:id', async (req, res) => {
+  try {
+    const { done, text } = req.body || {};
+    const patch = {};
+    if (done !== undefined) {
+      patch.done = !!done;
+      patch.doneAt = done ? new Date().toISOString() : admin.firestore.FieldValue.delete();
+    }
+    if (text !== undefined) patch.text = String(text).trim().slice(0, 2000);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    await db().collection(TODOS).doc(String(req.params.id)).set(patch, { merge: true });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
+router.delete('/todo/:id', async (req, res) => {
+  try {
+    await db().collection(TODOS).doc(String(req.params.id)).delete();
+    res.json({ ok: true });
   } catch (err) { fail(res, err); }
 });
 
@@ -503,6 +1051,20 @@ router.get('/pages', async (req, res) => {
     const pages = snap.docs
       .map((d) => ({ id: d.id, title: d.data().title, created: d.data().created }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
+    res.json({ pages });
+  } catch (err) { fail(res, err); }
+});
+
+// The Status view's "new pages" strip — the newest Compare pages across every
+// chat, one query. Single-field orderBy on `created`, so no composite index.
+router.get('/pages-recent', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 8));
+    const snap = await db().collection(PAGES).orderBy('created', 'desc').limit(limit).get();
+    const pages = snap.docs.map((d) => ({
+      id: d.id, title: d.data().title, chat: d.data().chat || '', created: d.data().created,
+    }));
     res.json({ pages });
   } catch (err) { fail(res, err); }
 });
@@ -574,9 +1136,14 @@ router.post('/about', async (req, res) => {
 // displayName when she has set one, else null (the slug is then the name).
 router.get('/name', async (req, res) => {
   try {
-    const chat = String(req.query.chat || '').slice(0, 60);
+    let chat = String(req.query.chat || '').slice(0, 60);
     if (!chat) return res.status(400).json({ error: 'chat required' });
     res.set('Cache-Control', 'no-store');
+    // Pass &session=<id> to resolve session-first — a chat asking "what am I
+    // called?" then gets its EFFECTIVE slug (fork, re-bound thread, or merge
+    // target) along with Sophie's display name, not the raw branch slug.
+    const session = String(req.query.session || '').slice(0, 120);
+    chat = session ? await resolveChat(chat, session) : await followMoves(chat);
     const snap = await regRef(chat).get();
     const d = snap.exists ? snap.data() : {};
     res.json({ chat, displayName: d.displayName || null, name: d.displayName || chat });
@@ -671,8 +1238,29 @@ router.post('/polish', async (req, res) => {
 
 router.post('/reply', async (req, res) => {
   try {
-    const { chat, text, created } = req.body || {};
+    // Sophie's SIDE of a thread is her real conversation: the app's reply box
+    // and the hook lifting her messages out of the transcript. Notes typed
+    // inside a Compare page are NOT messages (Aug 2026: two pages' note boxes
+    // posted her notes into the thread as if she'd said them there) — so a
+    // /reply fired from inside a served page is REROUTED, not refused: the
+    // note lands on the page's verdict doc (sheet `page-<id>`, readable via
+    // GET /verdict) where the page's chat picks it up, the thread stays
+    // clean, and nothing she typed is ever dropped. New pages should post to
+    // /api/chatfeed/verdict directly.
+    const { chat, text, created, session, explicit } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    const pageRef = String(req.get('referer') || '').match(/\/api\/chatfeed\/page\/([A-Za-z0-9_-]+)/);
+    if (pageRef) {
+      const sheet = 'page-' + pageRef[1];
+      const id = `${String(chat).slice(0, 80)}__${sheet}`;
+      await db().collection('forge-chat-verdicts').doc(id).set({
+        chat: String(chat).slice(0, 60),
+        sheet,
+        texts: { ['note-' + Date.now()]: String(text).slice(0, 2000) },
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      return res.json({ ok: true, keptOnPage: true });
+    }
     // `created` = when she actually sent it (the hook passes the transcript's
     // timestamp for her own messages, so hers sorts ABOVE the reply it
     // prompted). Ignored unless it parses and isn't in the future.
@@ -681,8 +1269,16 @@ router.post('/reply', async (req, res) => {
       const t = new Date(created).getTime();
       if (!isNaN(t) && t <= Date.now() + 60000) at = new Date(t).toISOString();
     }
+    // Same session-first routing as the feed: the hook sends `session` with
+    // her lifted messages so they land in the SAME chat as the reply they
+    // prompted, even if the hook's cached slug is stale. The app's reply box
+    // sends no session — that targets the slug she's looking at (tombstones
+    // still redirect a merged chat's slug to the surviving thread).
+    const her = explicit
+      ? await followMoves(chat)
+      : await resolveChat(chat, String(session || '').slice(0, 120));
     const doc = {
-      chat: String(chat).slice(0, 60),
+      chat: String(her).slice(0, 60),
       text: String(text).slice(0, 8000),
       from: 'sophie',
       created: at,
@@ -691,6 +1287,17 @@ router.post('/reply', async (req, res) => {
       postedAt: new Date().toISOString(),
     };
     const ref = await db().collection(MSGS).add(doc);
+    // She just gave that chat something to do, so mark it working — the app
+    // tints it rose until the reply lands and clears the mark.
+    //
+    // It does NOT also park the chat in the hidden pile. That shipped for a few
+    // hours and Sophie retired it the moment the tint started working, because
+    // the two DEFEAT EACH OTHER: a chat that hides itself the instant she
+    // answers is off the list, so there is nothing left to tint — and knowing
+    // who is working was the whole point of parking it. Manual hiding (the ⊖)
+    // is untouched. To bring auto-parking back, add `hiddenAt: doc.postedAt`
+    // here and in POST /working — but only instead of the tint, not alongside.
+    await regRef(doc.chat).set({ workingAt: doc.postedAt }, { merge: true });
     res.json({ ok: true, id: ref.id });
   } catch (err) { fail(res, err); }
 });
@@ -707,8 +1314,16 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     const db = admin.firestore();
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const patch = { chat, sheet, updatedAt: new Date().toISOString() };
-    // a vote and a dictation are separate fields so writing one never clears the other
-    if (ok !== undefined) patch.items = { [String(item)]: ok === null ? null : !!ok };
+    // a vote and a dictation are separate fields so writing one never clears the other.
+    // Booleans stay booleans (♥/✕ and every older vote page). A SHORT STRING
+    // rides through unchanged for the judge template's piles ('maybe' /
+    // 'later' — judge.js, Aug 2026); anything else coerces to boolean as before.
+    if (ok !== undefined) {
+      patch.items = {
+        [String(item)]: ok === null ? null
+          : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
+      };
+    }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
     res.json({ ok: true });
@@ -729,4 +1344,4 @@ router.get('/verdict', async (req, res) => {
   }
 });
 
-module.exports = { router, pillInject };
+module.exports = { router, pillInject, resolveChat, followMoves };

@@ -14,9 +14,15 @@ import UniformTypeIdentifiers
 /// Memo gets in without saving it to Files first: in Voice Memos,
 /// Share → Copy, then tap "Paste a recording".
 struct StoryRoomView: View {
+    /// true when pushed inside another tool's stack (Movies) — the chevron's
+    /// fallback then pops back there instead of jumping to the home grid.
+    var pushed = false
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
     @State private var reloadKey = 0
+    @StateObject private var webRef = StoryRoomWebRef()
+    @Environment(\.goBack) private var goBack
+    @Environment(\.dismiss) private var dismiss
 
     /// The page's own paper color (light/dark), so the nav-bar area blends
     /// into the web page instead of showing a white strip above the cream.
@@ -24,6 +30,13 @@ struct StoryRoomView: View {
         trait.userInterfaceStyle == .dark
             ? UIColor(red: 0.098, green: 0.090, blue: 0.075, alpha: 1)   // page --paper dark #191713
             : UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1)   // page --paper light #f6f2e9
+    })
+
+    /// The page's ink, so the chevron reads as part of the page's header.
+    static let ink = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0.910, green: 0.886, blue: 0.839, alpha: 1)   // page --ink dark #e8e2d6
+            : UIColor(red: 0.149, green: 0.133, blue: 0.110, alpha: 1)   // page --ink light #26221c
     })
 
     var body: some View {
@@ -50,12 +63,22 @@ struct StoryRoomView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                StoryRoomWebView(token: studioToken, failed: $loadFailed)
+                StoryRoomWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
         }
         .background(Self.paper.ignoresSafeArea())
+        // The back arrow lives in the nav bar's top-left corner, like every
+        // other tool (this screen had none, and the page's own back chip sat
+        // stranded below the header). One chevron, two jobs: inside a story or
+        // film the page consumes it and steps back a level (__navBack); on the
+        // shelf it pops to the home grid.
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                ForgeBackButton(tint: Self.ink, action: navBack)
+            }
+        }
         // The page carries its own in-page autoscroll pill — hide the native
         // one while this screen is up (and stop any run already in flight).
         .onAppear {
@@ -64,23 +87,53 @@ struct StoryRoomView: View {
         }
         .onDisappear { AutoScrollDriver.shared.webPillActive = false }
     }
+
+    /// Ask the page to step back one level; when it reports it's already on
+    /// the shelf — or the page isn't up at all — leave the Story Room.
+    private func navBack() {
+        guard !loadFailed, let web = webRef.web else { leave(); return }
+        web.evaluateJavaScript("window.__navBack ? window.__navBack() : false") { handled, _ in
+            if (handled as? Bool) == true { return }
+            // The page said no — but the web view itself may have navigated to
+            // ANOTHER page (the Characters button does location.href='/character',
+            // which has no __navBack). Step the web view's own history back to
+            // the Story Room before giving up and leaving the tool entirely.
+            if web.canGoBack { web.goBack() } else { leave() }
+        }
+    }
+
+    private func leave() {
+        if pushed { dismiss() } else { goBack() }
+    }
 }
+
+/// Hands the loaded WKWebView up to the SwiftUI layer so the nav-bar chevron
+/// can talk to the page.
+final class StoryRoomWebRef: ObservableObject { weak var web: WKWebView? }
 
 private struct StoryRoomWebView: UIViewRepresentable {
     let token: String
     @Binding var failed: Bool
+    let webRef: StoryRoomWebRef
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(context.coordinator, name: "pasteVoiceover")
+        // Tells the page this build's nav bar carries the back chevron, so it
+        // hides its own in-page back row (body.native). Older builds don't
+        // inject this and keep the page's row — never both, never neither.
+        config.userContentController.addUserScript(WKUserScript(
+            source: "window.__nativeNavBar = true",
+            injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
         web.backgroundColor = UIColor(StoryRoomView.paper)
         web.allowsBackForwardNavigationGestures = true
         context.coordinator.webView = web
+        webRef.web = web
         if let url = URL(string: MovieService.serverURL + "/storyroom") {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }

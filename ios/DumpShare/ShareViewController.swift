@@ -1,5 +1,6 @@
 import UIKit
 import UniformTypeIdentifiers
+import AVFoundation
 
 /// "Send to Deck Factory" — the share-sheet way into the Dump.
 ///
@@ -8,11 +9,21 @@ import UniformTypeIdentifiers
 /// clips from Photos, Files, Safari, anywhere, and they land in the inbox as
 /// one unnamed bundle to be labelled later.
 ///
-/// Uploads run in the FOREGROUND, while this sheet is open. A background
-/// URLSession inside an extension requires an App Group entitlement, and
-/// adding one to the host app risks its automatic signing in CI — not worth
-/// breaking the app's builds over. The cost is that a big share keeps the
-/// sheet up until it finishes, which is at least honest about what's happening.
+/// Audio too (Aug 2026, revised same week — Sophie's call): a recording shared
+/// from the Files app files into the VOICE MEMOS archive (`/api/memos/ingest`
+/// → membry `memo-audio/`, the private shelf JournalReader reads) — not the
+/// public Deck Factory audio drop. The toggle picks whether the memo pipeline
+/// transcribes + categorizes it on arrival (Whisper, ~1¢/min) or files it
+/// quietly as a note for later.
+///
+/// Uploads run through a BACKGROUND URLSession (Aug 2026, Sophie's call —
+/// house rule: nothing waits in the foreground). The sheet stages each file
+/// into the App Group container, hands one upload task per file to the
+/// system's transfer daemon, and dismisses — the uploads finish on their own,
+/// even with the phone locked. Fire-and-forget on purpose: the server de-dupes
+/// by content hash, so if something ever doesn't arrive, re-sharing the batch
+/// heals it instead of doubling it. Staged files are swept two days later on
+/// the next share.
 final class ShareViewController: UIViewController {
     private let card = UIView()
     private let titleLabel = UILabel()
@@ -20,9 +31,10 @@ final class ShareViewController: UIViewController {
     private let progress = UIProgressView(progressViewStyle: .default)
     private let sendButton = UIButton(type: .system)
     private let cancelButton = UIButton(type: .system)
+    // Whisper opt-in for recordings — shown only when the share contains audio.
+    private let transcribeSwitch = UISwitch()
 
     private var attachments: [NSItemProvider] = []
-    private var sent = 0
     private var failed = 0
     private var session = ""
 
@@ -38,7 +50,8 @@ final class ShareViewController: UIViewController {
         attachments = (extensionContext?.inputItems as? [NSExtensionItem] ?? [])
             .flatMap { $0.attachments ?? [] }
             .filter { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
-                   || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }
+                   || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+                   || $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
         buildUI()
     }
 
@@ -59,7 +72,7 @@ final class ShareViewController: UIViewController {
         titleLabel.textColor = ink
 
         statusLabel.text = attachments.isEmpty
-            ? "No photos or videos in what you shared."
+            ? "No photos, videos or recordings in what you shared."
             : "Lands in the inbox — you can label it later."
         statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.textColor = dim
@@ -81,9 +94,29 @@ final class ShareViewController: UIViewController {
         cancelButton.setTitleColor(dim, for: .normal)
         cancelButton.addTarget(self, action: #selector(cancel), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [
-            titleLabel, statusLabel, progress, sendButton, cancelButton,
-        ])
+        // Recordings file into the voice-memo archive; the toggle picks
+        // whether the pipeline transcribes + categorizes on arrival (Whisper,
+        // ~1¢ a minute — ON by default, that's what makes a memo findable) or
+        // files them quietly as notes for later.
+        var rows: [UIView] = [titleLabel, statusLabel]
+        let hasAudio = attachments.contains {
+            $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+        }
+        if hasAudio {
+            statusLabel.text = "Recordings file with your voice memos; photos and clips land in the inbox."
+            let lbl = UILabel()
+            lbl.text = "Transcribe the recordings"
+            lbl.font = .systemFont(ofSize: 14)
+            lbl.textColor = ink
+            transcribeSwitch.onTintColor = accent
+            transcribeSwitch.isOn = true
+            let row = UIStackView(arrangedSubviews: [lbl, transcribeSwitch])
+            row.axis = .horizontal
+            row.alignment = .center
+            rows.append(row)
+        }
+        rows.append(contentsOf: [progress, sendButton, cancelButton])
+        let stack = UIStackView(arrangedSubviews: rows)
         stack.axis = .vertical
         stack.spacing = 12
         stack.setCustomSpacing(6, after: titleLabel)
@@ -115,35 +148,58 @@ final class ShareViewController: UIViewController {
         cancelButton.isHidden = true
         progress.isHidden = false
         progress.progress = 0
-        statusLabel.text = "Sending… keep this open."
+        statusLabel.text = "Handing off…"
 
         Task {
+            // Stage every file into the App Group container — the transfer
+            // daemon must still be able to read them after this sheet is gone
+            // — queue one background upload task each, then dismiss. The only
+            // wait here is reading the files off disk, seconds not uploads.
+            let fm = FileManager.default
+            guard let container = fm.containerURL(
+                forSecurityApplicationGroupIdentifier: Self.appGroup) else {
+                await MainActor.run { self.stageFailed("No shared container — reinstall the app.") }
+                return
+            }
+            let outbox = container.appendingPathComponent("dumpshare-outbox", isDirectory: true)
+            try? fm.createDirectory(at: outbox, withIntermediateDirectories: true)
+            Self.sweepOutbox(outbox)
+
+            let bg = Self.makeBackgroundSession()
+            var queued = 0
+            var usedStamps = Set<String>()
             for (i, provider) in attachments.enumerated() {
                 do {
-                    let file = try await Self.loadFile(from: provider)
-                    defer { try? FileManager.default.removeItem(at: file) }
-                    try await upload(file)
-                    sent += 1
+                    let tmp = try await Self.loadFile(from: provider)
+                    let staged = outbox.appendingPathComponent(
+                        UUID().uuidString + "-" + tmp.lastPathComponent)
+                    try fm.moveItem(at: tmp, to: staged)
+                    let req = Self.isAudio(staged)
+                        ? await memoRequest(for: staged, usedStamps: &usedStamps)
+                        : dumpRequest(for: staged)
+                    bg.uploadTask(with: req, fromFile: staged).resume()
+                    queued += 1
                 } catch {
                     failed += 1
                 }
                 let done = Float(i + 1) / Float(attachments.count)
-                await MainActor.run {
-                    progress.setProgress(done, animated: true)
-                    statusLabel.text = "Sent \(sent) of \(attachments.count)…"
-                }
+                await MainActor.run { progress.setProgress(done, animated: true) }
             }
-            await MainActor.run { finish() }
+            await MainActor.run { self.finishQueued(queued) }
         }
     }
 
-    private func finish() {
+    private func finishQueued(_ queued: Int) {
         if failed == 0 {
+            // Everything is queued with the system — done here, uploads
+            // continue on their own even if the app closes or the phone locks.
             extensionContext?.completeRequest(returningItems: nil)
         } else {
             // Say what happened rather than dismissing on a silent partial fail.
-            titleLabel.text = "Sent \(sent), \(failed) failed"
-            statusLabel.text = "The ones that failed are still on your phone — try again."
+            titleLabel.text = queued > 0 ? "Sending \(queued), \(failed) unreadable" : "Couldn't read those"
+            statusLabel.text = queued > 0
+                ? "The unreadable ones are still on your phone — share them again."
+                : "Nothing could be read from that share."
             progress.isHidden = true
             sendButton.setTitle("Done", for: .normal)
             sendButton.isEnabled = true
@@ -151,6 +207,44 @@ final class ShareViewController: UIViewController {
             sendButton.removeTarget(self, action: #selector(send), for: .touchUpInside)
             sendButton.addTarget(self, action: #selector(dismissDone), for: .touchUpInside)
         }
+    }
+
+    private func stageFailed(_ message: String) {
+        titleLabel.text = "Couldn't hand off"
+        statusLabel.text = message
+        progress.isHidden = true
+        sendButton.setTitle("Done", for: .normal)
+        sendButton.isEnabled = true
+        sendButton.alpha = 1
+        sendButton.removeTarget(self, action: #selector(send), for: .touchUpInside)
+        sendButton.addTarget(self, action: #selector(dismissDone), for: .touchUpInside)
+    }
+
+    // Staged files can't be deleted on upload completion (nobody is around to
+    // hear it) — sweep anything older than two days on the next share instead.
+    private static func sweepOutbox(_ dir: URL) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(
+            at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let cutoff = Date().addingTimeInterval(-48 * 3600)
+        for f in files {
+            let mod = (try? f.resourceValues(forKeys: [.contentModificationDateKey])
+                .contentModificationDate) ?? .distantPast
+            if mod < cutoff { try? fm.removeItem(at: f) }
+        }
+    }
+
+    private static let appGroup = "group.com.sageryza.imageforge"
+
+    private static func makeBackgroundSession() -> URLSession {
+        // A fresh identifier per share: sessions are one-shot handoffs, and
+        // reusing an identifier while its tasks still run is an error.
+        let config = URLSessionConfiguration.background(
+            withIdentifier: "com.sageryza.imageforge.dumpshare." + UUID().uuidString)
+        config.sharedContainerIdentifier = appGroup
+        config.isDiscretionary = false
+        config.sessionSendsLaunchEvents = false
+        return URLSession(configuration: config)
     }
 
     @objc private func dismissDone() {
@@ -162,7 +256,9 @@ final class ShareViewController: UIViewController {
     /// before the closure returns.
     private static func loadFile(from provider: NSItemProvider) async throws -> URL {
         let type = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-            ? UTType.movie.identifier : UTType.image.identifier
+            ? UTType.movie.identifier
+            : provider.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+            ? UTType.audio.identifier : UTType.image.identifier
         return try await withCheckedThrowingContinuation { cont in
             provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
                 if let error { return cont.resume(throwing: error) }
@@ -183,31 +279,91 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func upload(_ file: URL) async throws {
+    private static func serverBase() -> String {
         let server = UserDefaults.standard.string(forKey: "forge.serverURL")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        var comps = URLComponents(string: (server?.isEmpty == false ? server! : Self.defaultServer)
-                                  + "/api/drop/upload-file")!
+        return server?.isEmpty == false ? server! : defaultServer
+    }
+
+    private static func signedRequest(_ url: URL, contentType: String) -> URLRequest {
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let token = UserDefaults.standard.string(forKey: "forge.studioToken") ?? ""
+        if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
+        return req
+    }
+
+    /// Images and clips go to the Dump, one date-stamped bundle per share.
+    private func dumpRequest(for file: URL) -> URLRequest {
+        var comps = URLComponents(string: Self.serverBase() + "/api/drop/upload-file")!
         comps.queryItems = [
             .init(name: "session", value: session),
             .init(name: "filename", value: file.lastPathComponent),
         ]
-        var req = URLRequest(url: comps.url!)
-        req.httpMethod = "POST"
-        req.setValue(Self.contentType(for: file), forHTTPHeaderField: "Content-Type")
-        let token = UserDefaults.standard.string(forKey: "forge.studioToken") ?? ""
-        if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
+        return Self.signedRequest(comps.url!, contentType: Self.contentType(for: file))
+    }
 
-        let (_, response) = try await URLSession.shared.upload(for: req, fromFile: file)
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard code < 400 else {
-            throw NSError(domain: "Dump", code: code, userInfo: [
-                NSLocalizedDescriptionKey: "Server returned \(code)",
-            ])
+    /// A recording files into the VOICE MEMOS archive (membry `memo-audio/`,
+    /// the private shelf JournalReader reads) via /api/memos/ingest. The
+    /// archive keys memos by their recording stamp, so the stamp prefers the
+    /// audio's EMBEDDED creation date (the true recording time on a real
+    /// voice memo — file dates only say when a copy was made; verified Aug
+    /// 2026 when saved-from-video audio stamped "tonight" instead of
+    /// January), falling back to the file's modification date, bumped a
+    /// minute at a time when two files in one share would collide.
+    private func memoRequest(for file: URL, usedStamps: inout Set<String>) async -> URLRequest {
+        let fm = FileManager.default
+        let asset = AVURLAsset(url: file)
+        var when = Date()
+        if let item = try? await asset.load(.creationDate),
+           let embedded = try? await item.load(.dateValue) {
+            when = embedded
+        } else if let mtime = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date)
+            .flatMap({ $0 }) {
+            when = mtime
         }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd_HHmm"
+        var stamp = f.string(from: when)
+        while usedStamps.contains(stamp) {
+            when = when.addingTimeInterval(60)
+            stamp = f.string(from: when)
+        }
+        usedStamps.insert(stamp)
+
+        var dur = 0
+        if let seconds = try? await AVURLAsset(url: file).load(.duration).seconds,
+           seconds.isFinite { dur = Int(seconds.rounded()) }
+
+        // The staged name carries a UUID prefix (outbox collision guard) and
+        // the iOS export prefix — peel both back to a human title.
+        var title = file.deletingPathExtension().lastPathComponent
+        if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
+        if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
+
+        let iso = ISO8601DateFormatter().string(from: when)
+        var comps = URLComponents(string: Self.serverBase() + "/api/memos/ingest")!
+        var items: [URLQueryItem] = [
+            .init(name: "stamp", value: stamp),
+            .init(name: "iso", value: iso),
+            .init(name: "dur", value: String(dur)),
+            .init(name: "ext", value: file.pathExtension.lowercased()),
+            .init(name: "title", value: title),
+        ]
+        if !transcribeSwitch.isOn { items.append(.init(name: "transcribe", value: "0")) }
+        comps.queryItems = items
+        return Self.signedRequest(comps.url!, contentType: Self.contentType(for: file))
     }
 
     private static let defaultServer = "https://imageforge-q125.onrender.com"
+
+    private static let audioExts: Set<String> = [
+        "m4a", "mp3", "wav", "aac", "aif", "aiff", "caf", "ogg", "oga", "opus", "flac", "amr",
+    ]
+    private static func isAudio(_ file: URL) -> Bool {
+        audioExts.contains(file.pathExtension.lowercased())
+    }
 
     private static func contentType(for file: URL) -> String {
         switch file.pathExtension.lowercased() {
@@ -219,6 +375,16 @@ final class ShareViewController: UIViewController {
         case "webp":        return "image/webp"
         case "mov":         return "video/quicktime"
         case "mp4", "m4v":  return "video/mp4"
+        case "m4a":         return "audio/mp4"
+        case "mp3":         return "audio/mpeg"
+        case "wav":         return "audio/wav"
+        case "aac":         return "audio/aac"
+        case "aif", "aiff": return "audio/aiff"
+        case "caf":         return "audio/x-caf"
+        case "ogg", "oga":  return "audio/ogg"
+        case "opus":        return "audio/opus"
+        case "flac":        return "audio/flac"
+        case "amr":         return "audio/amr"
         default:            return "application/octet-stream"
         }
     }

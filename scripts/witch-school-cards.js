@@ -4,7 +4,7 @@
 //
 //   node scripts/witch-school-cards.js lesson-spec.json
 //
-// Spec: { "refs": ["storage:witch-school/refs/style-1.png", ...], "cards":
+// Spec: { "refs": ["storage:witch-school/refs/sophie-snake.png", ...], "cards":
 //         [{ "id": "pm-01", "prompt": "..." }, ...] }  — refs are Sophie's
 // style-anchor images ("storage:<path>" fetches them from the private bucket,
 // so any session can run this; local paths also work). Full workflow:
@@ -48,7 +48,7 @@ const saJson = process.env.FIREBASE_SERVICE_ACCOUNT || fs.readFileSync(process.e
 initializeApp({ credential: cert(JSON.parse(saJson)), storageBucket: 'deckfactory-43176.firebasestorage.app' });
 
 // Refs may be local paths OR "storage:<path>" — Sophie's style anchors live
-// privately at storage:witch-school/refs/style-1.png / style-2.png so ANY
+// privately at storage:witch-school/refs/sophie-snake.png / sophie-animals.png so ANY
 // session can run this without her re-uploading them.
 async function materializeRefs(refs) {
   const out = [];

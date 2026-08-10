@@ -1,0 +1,985 @@
+<!doctype html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body { font-family: -apple-system, "Helvetica Neue", sans-serif; background: #faf7f2; color: #2b2622; padding: 14px 12px 60px; }
+  h1 { font-size: 20px; margin-bottom: 10px; }
+  /* In the app the native nav bar already says Playground — never two titles. */
+  body.native h1 { display: none; }
+  .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
+  .styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
+  .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
+  /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
+  textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 16px; background: #fdfcf9; resize: vertical; }
+  .controls { display: flex; align-items: center; gap: 10px; }
+  .controls label { font-size: 12.5px; color: #6f675e; }
+  .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
+  /* The low·low·medium button: a pyramid of three, two at the base and the
+     better one on top — the shape of what the tap draws. */
+  .stepbtn { display: flex; align-items: center; justify-content: center; padding: 7px 9px; }
+  .stepbtn svg { width: 18px; height: 18px; display: block; }
+  .stepbtn:disabled { opacity: .5; }
+  .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
+  .seedbtn svg { width: 19px; height: 19px; }
+  .seedtag { font-size: 11.5px; color: #6f675e; }
+  /* Quality — 16px so iOS doesn't zoom the page when it opens the picker. */
+  #qpick { border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 6px; font: inherit; font-size: 16px; background: #fdfcf9; color: #2b2622; }
+  input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
+  /* Generate is the stars icon, not the word — one image, one tap. */
+  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 9px 15px; font: inherit; display: flex; align-items: center; justify-content: center; }
+  button.go svg { width: 21px; height: 21px; display: block; }
+  button.go:disabled { opacity: .5; }
+  .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
+  /* One box per run, so a prompt is unmistakably attached to its own pictures. */
+  .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
+  .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .runhead .p { font-size: 14px; font-weight: 600; flex: 1; min-width: 70%; }
+  /* A long prompt is capped at two lines. The "…" that opens it is added AFTER
+     layout, and OUTSIDE the capped box — anything inside a line-clamp box after
+     the clamped text gets clipped away with it. */
+  .runhead .p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
+  .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
+     and TILES (every picture as a thumbnail, four to a row, prompt in the
+     lightbox). The switch is STICKY so it is reachable from anywhere in a long
+     feed — the first version scrolled away and left no way back — and it sits
+     on the LEFT because the autoscroll pill owns the top-right corner. Its
+     z-index stays BELOW the pill's 9 (the house pattern — /writing and
+     /editor do the same at 5): at 20 the bar's paper background painted over
+     the pill's top button. Full-screen overlays (lightbox, ask, toast) stay
+     ABOVE 9 — they are meant to cover the pill. */
+  .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
+  .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
+  .viewtog button + button { border-left: 1px solid #d8d0c4; }
+  .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
+  /* Tiles: uniform squares four to a row, the My Creations look — small on
+     purpose, so the wall stays scannable. Tapping one opens the lightbox,
+     which is where the prompt, model and quality live. */
+  #tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  #tiles .cell img { aspect-ratio: 1 / 1; }
+  /* A picture still being drawn holds its square at the front of the wall, so
+     the tiles view shows the whole feed and not just what has landed. It
+     breathes, because a flat empty box in a wall of pictures reads as a
+     broken image rather than as one on its way. */
+  #tiles .cell.ph { aspect-ratio: 1 / 1; animation: plwait 1.5s ease-in-out infinite; }
+  @keyframes plwait { 0%, 100% { background: #f0ebe3; } 50% { background: #e4dbcd; } }
+  .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
+  .copybtn svg { width: 14px; height: 14px; }
+  .cell { position: relative; }
+  .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .badge.like { background: #c25a72; color: #fff; }
+  .badge.dislike { background: #9a938a; color: #fff; }
+  .badge svg { width: 12px; height: 12px; }
+  /* A run being drawn looks like the run it will become — same head, same
+     grid — with an empty slot per picture that fills in as they land. Pressing
+     Generate therefore always adds something visible at the TOP, which is what
+     keeps "newest first" true while a slow run is still going. */
+  .runhead .waiting { margin-left: auto; }
+  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: 2 / 3; }
+  /* "Older" — the way further back through the feed. Hugs its text, rounded
+     rectangle (no pills), centered under whichever view is showing. */
+  #more { display: flex; justify-content: center; padding: 4px 0 22px; }
+  .morebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px 18px; font: inherit; font-size: 14px; background: #fdfcf9; color: #6f675e; }
+  .morebtn[disabled] { opacity: .55; }
+  .killbtn { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e; display: flex; align-items: center; justify-content: center; }
+  .killbtn svg { width: 14px; height: 14px; }
+  /* Cancel confirmation. Flat, no gradients; buttons are rounded rectangles. */
+  #ask { display: none; position: fixed; inset: 0; background: rgba(20,18,16,.55); z-index: 60; align-items: center; justify-content: center; padding: 24px; }
+  #ask.on { display: flex; }
+  .askbox { background: #faf7f2; border: 1px solid #e3dcd1; border-radius: 6px; padding: 16px; max-width: 320px; width: 100%; }
+  .askbox p { font-size: 14.5px; color: #2b2622; margin-bottom: 4px; font-weight: 600; }
+  .askbox .fine { font-size: 12px; color: #6f675e; margin-bottom: 14px; }
+  .askrow { display: flex; gap: 8px; }
+  .askrow button { flex: 1; border-radius: 6px; padding: 10px; font: inherit; font-size: 14px; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; }
+  .askrow button.yes { background: #2b2622; color: #faf7f2; border-color: #2b2622; font-weight: 600; }
+  .failed { color: #a33; }
+  .note { font-size: 12px; color: #8a8177; }
+  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
+  #lb.on { display: flex; }
+  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
+  /* What made this picture: her words, then the model and its settings. */
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; max-height: 14vh; overflow-y: auto; }
+  #lb .cap .capp { color: #eee; font-size: 13.5px; }
+  #lb .cap .capm { color: #9a938a; font-size: 12px; margin-top: 5px; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
+  .lbbtn svg { width: 21px; height: 21px; }
+  .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
+  /* Above the lightbox — the Save button lives in there. */
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
+  #toast.on { opacity: 1; }
+  /* The Sophie character toggle (ChatGPT style only): her picture as the
+     button — dim = off, lit = the second reference rides along. */
+  #charpick { flex: none; width: 30px; height: 30px; padding: 0; border: 1.5px solid #d8d0c4; border-radius: 6px;
+    overflow: hidden; background: #fdfcf9; opacity: .4; cursor: pointer; }
+  #charpick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #charpick.on { opacity: 1; border-color: #2b2622; }
+  /* Arrived from the Scratch Pad (?from=scratchpad): a way back, top-left. */
+  #backchip { display: none; position: fixed; top: 12px; left: 12px; z-index: 80; align-items: center;
+    font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 7px 11px; }
+  #backchip.on { display: flex; }
+</style></head><body>
+<a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
+<h1>Playground</h1>
+
+<div class="panel">
+  <div class="styles" id="styles"></div>
+  <textarea id="prompt"></textarea>
+  <div class="controls">
+    <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
+    <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
+    <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
+    <span class="seedtag" id="seedtag"></span>
+    <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
+    <select id="qpick" aria-label="Quality"></select>
+    <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
+    <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
+  </div>
+  <div class="err" id="err" hidden></div>
+</div>
+
+<div class="feedbar">
+  <div class="viewtog">
+    <button id="v-list">List</button><button id="v-tiles">Tiles</button>
+  </div>
+</div>
+<div id="pendings"></div>
+<div id="runs"></div>
+<div id="tiles"></div>
+<div id="more"></div>
+
+<div id="toast"></div>
+
+<div id="ask">
+  <div class="askbox">
+    <p>Are you sure you want to cancel?</p>
+    <div class="fine" id="askfine"></div>
+    <div class="askrow">
+      <button id="askno">Keep going</button>
+      <button class="yes" id="askyes">Cancel it</button>
+    </div>
+  </div>
+</div>
+
+<div id="lb">
+  <img id="lbimg" src="">
+  <div class="cap"><div class="capp" id="lbcapp"></div><div class="capm" id="lbcapm"></div></div>
+  <div class="lbbtns">
+    <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
+    <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
+    <button class="lbbtn" id="lbcopy" aria-label="Put this prompt back in the box"></button>
+    <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
+  </div>
+</div>
+<script>
+  var LSKEY = 'promptlab_pending';
+  var timer = null;
+  var swapTimer = null;
+  var swapping = {};      // id -> true while a 'ready' run waits for permanent urls
+  var runsById = {};      // id -> run doc, for the lightbox / copy button
+  // The feed pages BACKWARDS THROUGH TIME, and holds everything loaded so far.
+  // It used to be the newest 40 and nothing else — so a run older than that was
+  // unreachable, which read as her older pictures having vanished. `feed` is the
+  // whole loaded list, newest first; "Older" asks the server for the page behind
+  // the oldest one it holds.
+  var PAGE = 40;
+  var feed = [];          // every run loaded so far, newest first
+  var feedMore = true;    // the server had more behind the last page it gave
+  var paging = false;     // an Older fetch is in flight
+  var lbCur = null;       // { id, i } while the lightbox is open
+  var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
+
+  // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
+  var ICONS = {
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    // THE generate glyph, app-wide: the hand-fitted star the witch app draws
+    // from its own STAR const, an exact bezier match of SF Symbols `sparkles`.
+    // Anything that makes a picture with AI wears this (the Story Room's beat
+    // popup too), so "this button spends a model call" reads the same everywhere.
+    sparkles: '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>',
+    // Not Lucide's `pyramid` — that one is a solid 3D shape and says nothing
+    // about how many. An actual pyramid drawn in the Lucide idiom instead,
+    // tiered: two cells along the base for the two low draws, the filled top
+    // tier for the better one, so the button is a picture of what the tap does.
+    // EQUILATERAL (Aug 2026, Sophie asked) — base 18 wide on y 19.8, apex at
+    // 9√3 = 15.59 above it, so all three angles are 60.00°. The first version
+    // was isosceles at 53°/63°: base 17 with a height of 17, which reads
+    // noticeably narrow beside a real triangle. The horizontal cut sits at
+    // half the HEIGHT (y 12.01), which puts its ends exactly halfway along
+    // each side — so the filled cap is the same triangle at half scale.
+    // REUSABLE as **SetPyramid** — the same glyph is bundled at
+    // ios/…/Assets.xcassets/SetPyramid.imageset/setpyramid.svg (64 box, the
+    // house stroke, normalized by scripts/normalize-glyphs.py). Move BOTH if
+    // this ever changes; this 24-box copy is the web one.
+    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
+  };
+  document.getElementById('go').innerHTML = ICONS.sparkles;
+  document.getElementById('lowmed').innerHTML = ICONS.pyramid;
+
+  // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
+  // Both buttons are always on screen and always labelled — the switch can
+  // never strand her in a view she can't leave.
+  function curView() { return localStorage.getItem('promptlab_view') === 'tiles' ? 'tiles' : 'list'; }
+  function applyView() {
+    var tiles = curView() === 'tiles';
+    document.getElementById('v-list').classList.toggle('on', !tiles);
+    document.getElementById('v-tiles').classList.toggle('on', tiles);
+    document.getElementById('runs').hidden = tiles;
+    document.getElementById('tiles').hidden = !tiles;
+    // The drawing-runs box is a LIST-view thing: in tiles those runs hold
+    // their own squares at the front of the wall instead, so nothing is
+    // shown twice. (Cancelling a run therefore lives in list view.)
+    document.getElementById('pendings').hidden = tiles;
+    if (tiles) renderTiles();
+  }
+  function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
+  document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
+  document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
+
+  // The copy button beside a run's words: puts that prompt back into the box.
+  function copyPromptIn(text) {
+    var box = document.getElementById('prompt');
+    box.value = text || '';
+    updateShape();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Prompt is back in the box');
+  }
+  document.getElementById('seedbtn').innerHTML = ICONS.sprout;
+
+  // The seed: starts at 85 (the test convention), the sprout button steps it
+  // up one — it only SETS the seed, Generate still fires the run. Persisted so
+  // a reload keeps the seed you were on; the little number keeps it visible.
+  function curSeed() {
+    var s = parseInt(localStorage.getItem('promptlab_seed') || '85', 10);
+    return Number.isFinite(s) ? s : 85;
+  }
+  function showSeed() { document.getElementById('seedtag').textContent = 'seed ' + curSeed(); }
+  document.getElementById('seedbtn').addEventListener('click', function () {
+    localStorage.setItem('promptlab_seed', String(curSeed() + 1));
+    showSeed();
+  });
+  showSeed();
+  document.getElementById('lblike').innerHTML = ICONS.heart;
+  document.getElementById('lbx').innerHTML = ICONS.x;
+  document.getElementById('lbsave').innerHTML = ICONS.download;
+  document.getElementById('lbcopy').innerHTML = ICONS.copy;
+  // The same put-it-back-in-the-box button the list boxes have, but reachable
+  // from TILES view (Aug 2026, Sophie): a tile opens the lightbox, and this
+  // closes it and lands the picture's prompt in the prompt box.
+  document.getElementById('lbcopy').addEventListener('click', function () {
+    var r = lbCur && runsById[lbCur.id];
+    closeLB();
+    if (r) copyPromptIn(r.prompt);
+  });
+
+  // The styles on offer. The server owns the real presets (trigger word,
+  // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
+  // "White background" convention.
+  // WTR is the one Replicate LoRA left on the picker (the Hoonie linocut tile
+  // came off Aug 2026 at Sophie's ask — the model itself is untouched and
+  // still serves the Test Station and the house styles, so old Hoonie runs
+  // stay in the feed and keep their label via RETIRED below). The three
+  // gptimage styles are a different engine: gpt-image-2's edits endpoint with
+  // reference images attached (`gptStyle` picks the set server-side — see
+  // PL_GPT_STYLES in server.js, which owns the whole sent prompt; the page no
+  // longer previews it, the "Sent as" line was removed Aug 2026 at Sophie's
+  // ask). LoRA scale and seed don't apply to gpt styles, so those controls are
+  // hidden; a `noCharacter` gpt style also hides the Sophie toggle (her card is
+  // the watercolor look — the wrong reference for a different style).
+  // The KEY `watercolor` is deliberately unchanged though its label is now WTR:
+  // it's what's saved in localStorage and what ?style= deep links send.
+  var STYLES = {
+    watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
+                  trigger: 'wtr', suffix: 'White background', baked: '' },
+    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
+    scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
+                  noCharacter: true },
+    pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
+                  noCharacter: true },
+    hoonies:    { model: 'gpt-image-2', label: 'Hoonies', engine: 'gptimage', gptStyle: 'hoonies',
+                  noCharacter: true },
+  };
+  // Styles retired from the picker still have runs in the feed — keep their
+  // labels readable instead of falling back to the bare model id.
+  var RETIRED = { 'sageryza/hoonie': 'Hoonie linocut' };
+  var styleKey = localStorage.getItem('promptlab_style');
+  if (!STYLES[styleKey]) styleKey = 'watercolor';
+  function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
+
+  // ONE image a run, every style, no picker (Aug 2026, Sophie): tapping the
+  // stars draws one picture. The old 1/2/3/4 toggle is gone and the LoRAs no
+  // longer come back with four options either — the server sends the same
+  // count. Change it in both places if that ever moves.
+  var OUTPUTS = 1;
+
+  // Quality — deliberately NOT persisted: it lives in a plain variable, so it
+  // holds for as long as the page is open and every fresh load is back to
+  // medium. (localStorage would carry an expensive 'high' over to next time
+  // without her meaning it.)
+  var QUALITIES = ['low', 'medium', 'high'];
+  var quality = 'medium';
+  document.getElementById('qpick').innerHTML = QUALITIES.map(function (q) {
+    return '<option value="' + q + '"' + (q === quality ? ' selected' : '') + '>' + q + '</option>';
+  }).join('');
+  document.getElementById('qpick').addEventListener('change', function (e) {
+    quality = QUALITIES.indexOf(e.target.value) >= 0 ? e.target.value : 'medium';
+  });
+
+  // The Sophie character toggle — plain variable like quality, so every fresh
+  // load starts OFF and a run only carries her when the picture is lit.
+  var charOn = false;
+  document.getElementById('charpick').addEventListener('click', function () {
+    charOn = !charOn;
+    this.classList.toggle('on', charOn);
+    updateShape();
+  });
+
+  // Arrived from the Scratch Pad? Show the way back.
+  if (/[?&]from=scratchpad\b/.test(location.search)) {
+    document.getElementById('backchip').classList.add('on');
+  }
+
+  // Arrived with a generation's settings (the gallery's "open in Playground"):
+  // ?prompt=…&style=watercolor|chatgpt|scarry|pastel&quality=…&character=1&scale=…
+  // An unknown style (an old link saying `hoonie`) is simply ignored — the
+  // prompt still lands, on whatever style is current.
+  // Everything lands prefilled so she can re-run it as-is or nudge one thing.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (!q.get('prompt') && !q.get('style')) return;
+    var st = q.get('style');
+    if (st && STYLES[st]) setStyle(st);
+    if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
+    var qq = q.get('quality');
+    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; document.getElementById('qpick').value = qq; }
+    if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
+    var sc = parseFloat(q.get('scale'));
+    if (!isNaN(sc)) document.getElementById('scale').value = sc;
+    updateShape();
+  })();
+
+  function renderStyles() {
+    document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
+      return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
+        STYLES[k].label + '</button>';
+    }).join('');
+  }
+  function setStyle(k) {
+    styleKey = k;
+    localStorage.setItem('promptlab_style', k);
+    renderStyles(); updateShape(); syncControls();
+  }
+  // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
+  // equivalent, so they come off the panel for that style rather than sitting
+  // there doing nothing.
+  function syncControls() {
+    var gpt = isGpt(styleKey);
+    ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
+      document.getElementById(id).hidden = gpt;
+    });
+    document.getElementById('charpick').hidden = !gpt || !!STYLES[styleKey].noCharacter;
+    document.getElementById('qpick').hidden = !gpt;
+    document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
+  }
+  function styleLabelFor(model) {
+    for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
+    if (RETIRED[model]) return RETIRED[model];
+    return model ? model.split('/').pop() : '';
+  }
+  // The ChatGPT-engine styles share one model id, so a gpt run's label comes
+  // from the doc's `gptStyle` (older docs have none → the original ChatGPT).
+  function runStyleLabel(r) {
+    if (r.engine === 'gptimage') {
+      for (var k in STYLES) {
+        if (STYLES[k].engine === 'gptimage' && STYLES[k].gptStyle === (r.gptStyle || 'evan')) return STYLES[k].label;
+      }
+    }
+    return styleLabelFor(r.model);
+  }
+
+  // The "Sent as" preview is gone (Aug 2026, Sophie — just the text box).
+  // The stub stays so its old call sites are harmless.
+  function updateShape() {}
+
+  // Pending entries carry what's being drawn so the card can say so.
+  // Older saved entries may be plain id strings — normalize on read.
+  function pendingList() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(LSKEY) || '[]');
+      return arr.map(function (e) { return typeof e === 'string' ? { id: e } : e; });
+    } catch (e) { return []; }
+  }
+  function setPending(list) { localStorage.setItem(LSKEY, JSON.stringify(list)); }
+
+  // ─── "I already have that one" ───────────────────────────────────────────
+  // A Replicate run is DETERMINISTIC: same prompt, same scale, same seed gives
+  // back the same picture, so re-running it spends money to draw a duplicate.
+  // Those runs are skipped before anything is sent.
+  //
+  // ChatGPT is deliberately NOT deduped: an identical run there draws a
+  // DIFFERENT picture every time, which is the whole point of tapping the
+  // stars twice — so `recipeKey` answers null for it and nothing is blocked.
+  //
+  // The prompt is normalized the way the server does it (trim, then drop
+  // trailing periods) or a typed "." would look like a different run.
+  function recipeKey(model, prompt, scale, seed) {
+    return sameRunKey(['replicate', model, String(prompt || '').trim().replace(/\.+$/, ''), scale, seed]);
+  }
+  function plannedKey(S, prompt, scale, seed) {
+    return S.engine === 'gptimage' ? null : recipeKey(S.model, prompt, scale, seed);
+  }
+  function runKey(r) {
+    return r.engine === 'gptimage' ? null : recipeKey(r.model, r.prompt, r.loraScale, r.seed);
+  }
+  // Only a run that actually produced a picture blocks a repeat — a failed or
+  // cancelled one has to stay retryable. A run still drawing blocks too: it is
+  // about to become that picture.
+  function alreadyRun(key) {
+    if (!key) return false;
+    var hit = pendingList().some(function (p) { return p.key === key; });
+    if (hit) return true;
+    return feed.some(function (r) {
+      return runImages(r).length > 0 && runKey(r) === key;
+    });
+  }
+
+  // `q` overrides the quality dropdown for one run — the low·low·medium button
+  // draws its own ladder without touching what the dropdown says.
+  function startRun(scale, q) {
+    var prompt = document.getElementById('prompt').value.trim();
+    var S = STYLES[styleKey];
+    var gpt = S.engine === 'gptimage';
+    var seed = curSeed();
+    var qual = q || quality;
+    var key = plannedKey(S, prompt, scale, seed);
+    var body = gpt
+      ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual,
+          character: charOn && !S.noCharacter }
+      : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
+    return fetch('/api/promptlab', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.id) throw new Error(d.error || 'Could not start.');
+      var list = pendingList();
+      list.push(gpt
+        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual }
+        // `key` rides along so a second tap can see this one is already on its
+        // way, before it has any images to be recognised by.
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key });
+      setPending(list);
+      renderPendings(); startPolling();
+    });
+  }
+
+  function checkPrompt() {
+    var err = document.getElementById('err');
+    err.hidden = true;
+    if (!document.getElementById('prompt').value.trim()) {
+      err.textContent = 'Type a prompt first.'; err.hidden = false; return false;
+    }
+    return true;
+  }
+  function showErr(e) {
+    var err = document.getElementById('err');
+    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+  }
+
+  function go() {
+    if (!checkPrompt()) return;
+    var scale = parseFloat(document.getElementById('scale').value) || 1;
+    var prompt = document.getElementById('prompt').value.trim();
+    if (alreadyRun(plannedKey(STYLES[styleKey], prompt, scale, curSeed()))) {
+      toast('You already have that one — tap the sprout for a new seed');
+      return;
+    }
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+  }
+
+  // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
+  // Whichever rungs she already has are skipped, so running ×3 after a single
+  // scale-1 run only draws the two that are missing.
+  document.getElementById('xthree').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    var prompt = document.getElementById('prompt').value.trim();
+    var S = STYLES[styleKey], seed = curSeed();
+    var todo = [], have = [];
+    [1, 1.2, 1.4].forEach(function (s) {
+      (alreadyRun(plannedKey(S, prompt, s, seed)) ? have : todo).push(s);
+    });
+    if (!todo.length) { toast('You already have all three — tap the sprout for a new seed'); return; }
+    if (have.length) toast('Drawing scale ' + todo.join(' and ') + ' — you already have ' + have.join(' and '));
+    var btn = document.getElementById('xthree');
+    btn.disabled = true;
+    Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  });
+
+  // Low · low · medium in one tap (ChatGPT only): two cheap looks at the
+  // prompt and one better one. ChatGPT is never deduped, so the two lows are
+  // two DIFFERENT pictures — they land side by side in one box, and the
+  // medium is its own box because its tags differ. ~10¢ a tap.
+  document.getElementById('lowmed').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    var btn = this;
+    btn.disabled = true;
+    Promise.all(['low', 'low', 'medium'].map(function (q) { return startRun(1, q).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  });
+
+  // Tapping Generate twice on the same prompt is ONE job as far as she's
+  // concerned, so identical runs share a box: same prompt, same style, same
+  // settings, same status → one head, and the pictures sit side by side in the
+  // order they were made. Anything that differs — a different quality, a
+  // nudged seed, another LoRA scale — stays its own run, because the head's
+  // tags could no longer describe every picture under it.
+  function sameRunKey(parts) {
+    return parts.map(function (v) { return v == null ? '' : String(v); }).join('|');
+  }
+  // Groups a newest-first list, keeping first-appearance order — so a group
+  // sits where its NEWEST member would have, and a fresh Generate is still the
+  // first thing on the page.
+  function groupBy(list, keyOf) {
+    var byKey = {}, out = [];
+    list.forEach(function (item) {
+      var k = keyOf(item);
+      if (!byKey[k]) { byKey[k] = { key: k, items: [] }; out.push(byKey[k]); }
+      byKey[k].items.push(item);
+    });
+    return out;
+  }
+
+  // A pending run renders as the run it is becoming: the same head and the same
+  // grid, with one empty slot per picture. Newest is at the top of #pendings,
+  // which sits above #runs, so a fresh Generate is always the first thing on the
+  // page — never a finished older run sitting where the new one should be.
+  function renderPendings() {
+    var list = pendingList().slice().reverse();
+    var groups = groupBy(list, function (p) {
+      return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
+    });
+    document.getElementById('pendings').innerHTML = groups.map(function (g) {
+      var p = g.items[0];
+      var slots = g.items.reduce(function (n, x) { return n + (x.count || OUTPUTS); }, 0);
+      var tags = [p.style || ''];
+      if (p.quality) tags.push(p.quality);
+      if (p.scale != null) tags.push('scale ' + p.scale);
+      if (p.seed) tags.push('seed ' + p.seed);
+      // No X on a ChatGPT run: OpenAI bills an image the moment it's requested,
+      // so there is nothing a cancel could save. Replicate runs can really stop.
+      // One X per box — it stops every run in the box, since the box is the job.
+      var ids = g.items.map(function (x) { return x.id; }).join(',');
+      var kill = p.engine === 'gptimage' ? ''
+        : '<button class="killbtn" data-kill="' + ids + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
+      var cells = '';
+      for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
+      return '<div class="run"><div class="runhead">' +
+        '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
+        '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
+        tags.filter(Boolean).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+        '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
+        '<div class="grid">' + cells + '</div></div>';
+    }).join('');
+    applyClamps(document.getElementById('pendings'));
+    // The same runs are squares at the front of the tile wall — keep it current.
+    if (curView() === 'tiles') renderTiles();
+  }
+
+  // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
+  // stops the prediction and only bills the compute already run.
+  var askId = null;
+  document.getElementById('pendings').addEventListener('click', function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (cp) {
+      var pid = cp.getAttribute('data-copy');
+      var pend = pendingList().filter(function (x) { return x.id === pid; })[0];
+      if (pend) copyPromptIn(pend.prompt);
+      return;
+    }
+    var btn = e.target.closest('[data-kill]');
+    if (!btn) return;
+    askId = btn.getAttribute('data-kill');
+    document.getElementById('askfine').textContent =
+      'It stops the run — you’re only charged for what has already run.';
+    document.getElementById('ask').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  });
+  function closeAsk() {
+    askId = null;
+    document.getElementById('ask').classList.remove('on');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('askno').addEventListener('click', closeAsk);
+  document.getElementById('askyes').addEventListener('click', function () {
+    var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
+    closeAsk();
+    if (!ids.length) return;
+    Promise.all(ids.map(function (id) {
+      return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
+    })).then(function () { poll(); }).catch(showErr);
+  });
+
+  function startPolling() {
+    if (timer) return;
+    timer = setInterval(poll, 2000);
+    poll();
+  }
+
+  // A run shows the moment the model finishes ('ready', Replicate's own
+  // links); the permanent Storage copies swap in quietly when 'done'.
+  function poll() {
+    var list = pendingList();
+    if (!list.length) { clearInterval(timer); timer = null; renderPendings(); return; }
+    list.forEach(function (p) {
+      fetch('/api/promptlab/' + p.id).then(function (r) { return r.json(); }).then(function (d) {
+        // A run whose doc is GONE (deleted server-side) must not haunt the
+        // top of the page forever — drop it from the pending list too.
+        if (d.error || !d.status) {
+          setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
+          renderPendings();
+          return;
+        }
+        if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
+          setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
+          // 'ready' = the first images are in, the rest still landing: the swap
+          // poller keeps refreshing until 'done'.
+          if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
+          renderPendings(); loadRuns();
+        }
+      }).catch(function () {});
+    });
+  }
+
+  function startSwapPolling() {
+    if (swapTimer) return;
+    swapTimer = setInterval(function () {
+      var ids = Object.keys(swapping);
+      if (!ids.length) { clearInterval(swapTimer); swapTimer = null; return; }
+      ids.forEach(function (id) {
+        fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; loadRuns(); }
+        }).catch(function () {});
+      });
+    }, 5000);
+  }
+
+  function runImages(r) {
+    return (r.images && r.images.length) ? r.images : (r.tempImages || []);
+  }
+
+  // What a run is labelled with. LoRA runs carry scale + seed; a gpt-image-2
+  // run carries its quality and shape instead (it has neither of the others).
+  function runParts(r) {
+    var parts = [runStyleLabel(r)];
+    if (r.engine === 'gptimage') {
+      if (r.quality) parts.push(r.quality);
+      if (r.aspectRatio) parts.push(r.aspectRatio);
+    } else {
+      parts.push('scale ' + r.loraScale);
+      if (r.seed != null) parts.push('seed ' + r.seed);
+    }
+    if (r.status === 'cancelled') parts.push('cancelled');
+    return parts;
+  }
+
+  // Fold a page of runs into the feed. Fresh copies WIN (a vote or a status
+  // moved), and the whole list is re-sorted by time — so a head refresh and an
+  // Older page can arrive in any order without scrambling it.
+  function mergeRuns(fresh) {
+    var byId = {};
+    feed.forEach(function (r) { byId[r.id] = r; });
+    fresh.forEach(function (r) { byId[r.id] = r; });
+    feed = Object.keys(byId).map(function (k) { return byId[k]; })
+      .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    runsById = byId;
+  }
+
+  // Refresh the newest page. Anything already paged in behind it is kept — a
+  // finished run must never throw away the older runs she scrolled back to.
+  function loadRuns() {
+    fetch('/api/promptlab?limit=' + PAGE).then(function (r) { return r.json(); }).then(function (d) {
+      var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
+      // Only page one can answer "is there more" — once she has paged deeper,
+      // the tail fetch owns that flag.
+      if (feed.length <= PAGE) feedMore = !!d.more;
+      mergeRuns(runs);
+      renderFeed();
+    }).catch(function () {});
+  }
+
+  // One more page, behind the oldest run the feed holds. The cursor is that
+  // run's createdAt, NOT an offset — runs land at the top while she reads, and
+  // an offset would shift under her and repeat or skip one.
+  function loadMore() {
+    if (paging || !feedMore) return;
+    var oldest = null;
+    for (var i = feed.length - 1; i >= 0; i--) { if (feed[i].createdAt) { oldest = feed[i].createdAt; break; } }
+    if (!oldest) return;
+    paging = true; renderMoreBtn();
+    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        feedMore = !!d.more;
+        paging = false;
+        mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
+        renderFeed();
+      })
+      .catch(function () { paging = false; renderMoreBtn(); });
+  }
+
+  function renderFeed() {
+      var runs = feed;
+      // Identical runs share a box. A failed run never joins one — its error is
+      // its own — so it keys on its id and stays alone.
+      var groups = groupBy(runs, function (r) {
+        if (r.status === 'failed') return 'failed|' + r.id;
+        return sameRunKey([r.engine, r.model, r.gptStyle, (r.prompt || '').trim(), r.status,
+          r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
+      });
+      document.getElementById('runs').innerHTML = groups.map(function (g) {
+        var head = g.items[0];
+        var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
+        if (head.status === 'failed') {
+          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
+            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div></div>';
+        }
+        // Oldest first, so a second tap's picture lands to the RIGHT of the
+        // first. Every cell still points at its OWN run, so the lightbox shows
+        // that picture's real settings and a ♥ goes on the right doc.
+        var cells = '';
+        g.items.slice().reverse().forEach(function (r) {
+          var votes = r.votes || {};
+          runImages(r).forEach(function (u, i) {
+            var v = votes[i];
+            var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
+            cells += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+          });
+        });
+        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
+          runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
+          '<div class="grid">' + cells + '</div></div>';
+      }).join('');
+      applyClamps(document.getElementById('runs'));
+      if (curView() === 'tiles') renderTiles();
+      renderMoreBtn();
+  }
+
+  // "Older" sits under BOTH views (it is the way further back in either one).
+  // Deliberately a TAP, never load-on-scroll: the autoscroll pill would run the
+  // page to the bottom on its own and pull page after page of pictures over her
+  // data without her asking for any of them.
+  function renderMoreBtn() {
+    var el = document.getElementById('more');
+    if (!feed.length || !feedMore) { el.innerHTML = ''; return; }
+    el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
+      (paging ? 'Loading…' : 'Older') + '</button>';
+  }
+  document.getElementById('more').addEventListener('click', function (e) {
+    if (e.target.closest('.morebtn')) loadMore();
+  });
+
+  // The tiles view: every picture from every run, newest first, as one wall of
+  // uniform thumbnails. No prompt on the page — that's what the lightbox is
+  // for, so tapping a tile is how you find out what made it. Runs still being
+  // drawn hold an empty square each at the FRONT, so the wall is the whole
+  // feed — a picture on its way has its place in it before it lands.
+  function renderTiles() {
+    var html = '';
+    pendingList().slice().reverse().forEach(function (p) {
+      var slots = p.count || OUTPUTS;
+      for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
+    });
+    // Straight off `feed` — it is already sorted newest-first. (Walking
+    // Object.keys of the id map relied on insertion order holding, which is a
+    // property of the map, not of the wall's intended order.)
+    feed.forEach(function (r) {
+      if (r.status === 'failed') return;
+      var votes = r.votes || {};
+      runImages(r).forEach(function (u, i) {
+        var v = votes[i];
+        var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
+        html += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+      });
+    });
+    document.getElementById('tiles').innerHTML = html;
+  }
+
+  // One delegated handler for every tile.
+  document.getElementById('runs').addEventListener('click', function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (cp) {
+      var r = runsById[cp.getAttribute('data-copy')];
+      if (r) copyPromptIn(r.prompt);
+      return;
+    }
+    var img = e.target.closest('img[data-run]');
+    if (!img) return;
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+  });
+  document.getElementById('tiles').addEventListener('click', function (e) {
+    var img = e.target.closest('img[data-run]');
+    if (!img) return;
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+  });
+
+  // The "…" opener for a prompt the two-line cap really cut. Added after layout
+  // (scrollHeight vs clientHeight is the only honest test) and as a SIBLING of
+  // the capped box, never inside it.
+  function applyClamps(root) {
+    var ps = root.querySelectorAll('.p.clamp');
+    for (var i = 0; i < ps.length; i++) {
+      (function (el) {
+        if (el.scrollHeight - el.clientHeight <= 1) return;
+        var btn = document.createElement('button');
+        btn.className = 'morebtn';
+        btn.textContent = '…';
+        btn.addEventListener('click', function () {
+          var open = el.classList.toggle('clamp') === false;
+          btn.textContent = open ? 'less' : '…';
+        });
+        el.parentNode.insertBefore(btn, el.nextSibling);
+      })(ps[i]);
+    }
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function openLB(id, i) {
+    var r = runsById[id];
+    if (!r) return;
+    // Opening an image freezes the page behind it (design rule): the shared
+    // autoscroll pill stops, not just the background scroll lock — otherwise
+    // it keeps running under the lightbox and the page has moved on by the
+    // time the image is closed.
+    if (window.__scrollStop) window.__scrollStop();
+    lbCur = { id: id, i: i };
+    var src = runImages(r)[i];
+    document.getElementById('lbimg').src = src;
+    // Fetched now so the Save tap can hand the file straight to the share
+    // sheet without an await in between (iOS revokes the gesture across one).
+    lbBlob = null;
+    fetch(src).then(function (res) { return res.blob(); })
+      .then(function (b) { lbBlob = { url: src, blob: b }; })
+      .catch(function () {});
+    // Her words above, then what drew them — model, quality/scale, seed. In
+    // the tiles view this is the ONLY place the prompt appears, so it says
+    // everything about the picture.
+    document.getElementById('lbcapp').textContent = r.prompt || '';
+    var meta = runParts(r);
+    if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    document.getElementById('lbcapm').textContent = meta.join(' · ');
+    syncLbVotes();
+    document.getElementById('lb').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLB() {
+    lbCur = null;
+    document.getElementById('lb').classList.remove('on');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('lb').addEventListener('click', function (e) {
+    if (e.target.closest('.lbbtn')) return;   // buttons handle themselves
+    closeLB();
+  });
+
+  function syncLbVotes() {
+    if (!lbCur) return;
+    var votes = (runsById[lbCur.id] || {}).votes || {};
+    document.getElementById('lblike').classList.toggle('on', votes[lbCur.i] === 'like');
+    document.getElementById('lbx').classList.toggle('on', votes[lbCur.i] === 'dislike');
+  }
+
+  function vote(kind) {
+    if (!lbCur) return;
+    var r = runsById[lbCur.id];
+    var votes = r.votes = r.votes || {};
+    var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
+    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    syncLbVotes();
+    fetch('/api/promptlab/' + lbCur.id + '/vote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: lbCur.i, vote: next || '' }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
+  document.getElementById('lblike').addEventListener('click', function () { vote('like'); });
+  document.getElementById('lbx').addEventListener('click', function () { vote('dislike'); });
+
+  // Save to Photos. Three paths, in order:
+  //   1. The app's native bridge (writes straight to the photo library and
+  //      answers on window.__saveResult) — the only reliable one in a WKWebView.
+  //   2. The share sheet, which offers "Save Image". It MUST be called inside
+  //      the tap: iOS drops the user activation across an await, so awaiting the
+  //      image download first made navigator.share reject silently — which is
+  //      exactly the "nothing happens" she hit. The blob is fetched when the
+  //      lightbox opens instead, so the tap has it ready.
+  //   3. A plain download, for a desktop browser.
+  // Every path says what happened — a failure is never silence.
+  function nativeSaver() {
+    try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; }
+  }
+  window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
+
+  document.getElementById('lbsave').addEventListener('click', function () {
+    if (!lbCur) return;
+    var url = document.getElementById('lbimg').src;
+    var native = nativeSaver();
+    if (native) { native.postMessage(url); toast('Saving…'); return; }
+    var file = null;
+    if (lbBlob && lbBlob.url === url) {
+      try { file = new File([lbBlob.blob], 'playground.webp', { type: lbBlob.blob.type || 'image/webp' }); } catch (e) {}
+    }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] })
+        .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn’t open the share sheet'); });
+      return;
+    }
+    if (lbBlob && lbBlob.url === url) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(lbBlob.blob);
+      a.download = 'playground.webp';
+      document.body.appendChild(a); a.click(); a.remove();
+      return;
+    }
+    toast('Still loading that image — try again');
+  });
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
+  }
+
+  // The app's nav-bar chevron asks the page first: close the lightbox if it's
+  // open, else let the app leave the tool.
+  window.__navBack = function () {
+    if (document.getElementById('ask').classList.contains('on')) { closeAsk(); return true; }
+    if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
+    return false;
+  };
+
+  if (window.__nativeNavBar) document.body.classList.add('native');
+  renderStyles(); updateShape(); syncControls(); applyView(); loadRuns();
+  if (pendingList().length) { renderPendings(); startPolling(); }
+</script>
+</body></html>

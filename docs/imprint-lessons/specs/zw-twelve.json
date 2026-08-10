@@ -1,0 +1,6 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "zw-twelve", "prompt": "A neat grid of exactly twelve simple, distinct little human portrait busts, arranged in three tidy rows of four, evenly spaced. Each is a different simple person — varied hairstyles, expressions and skin tones — like a chart of twelve personality types. Flat, clean bold line-art, each figure small and uncluttered. Absolutely no text, no numbers, no zodiac symbols, no labels. Generous cream space around the whole grid. One clear centered subject: the grid of twelve faces." }
+  ]
+}

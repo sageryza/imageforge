@@ -40,6 +40,9 @@ const MANAGED_KEYS = [
   // a clear job error rather than silently dropping out of the episode.
   'ELEVENLABS_API_KEY',
   'BREVO_API_KEY', 'BREVO_FROM_EMAIL', 'BREVO_FROM_NAME',
+  // APIFRAME (Midjourney deck art + Seedance video) — was env-only, which left
+  // the live server unconfigured; manage it so the Firestore doc can carry it.
+  'APIFRAME_KEY',
   'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REDIRECT_URI',
   'YOUTUBE_API_KEY',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_TRIAL_DAYS',

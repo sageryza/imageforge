@@ -7,8 +7,22 @@
 # /home/user/.claude/ before Claude Code launches; the environment snapshot
 # carries it into every future session. v3: also files image deliverables
 # into the iOS gallery via POST /api/gallery. v4: tags each post with the
-# environment's FORGE_ACCOUNT so Open buttons route app-vs-browser.
-# Source of truth for the hook body: imageforge/.claude/hooks/post-to-feed.sh.
+# environment's FORGE_ACCOUNT so Open buttons route app-vs-browser. v5: resolves
+# the slug per SESSION via /api/chatfeed/resolve so a reused branch name can
+# never file two sessions into one chat. v6: every post carries the session
+# id, so the SERVER routes it session-first — a chat keeps one identity for
+# the whole session even if the slug cache here goes stale or a thread is
+# re-bound/merged later. v7: LIVE DRAFTS — also registered on PostToolUse, so
+# the prose a chat writes before/between tool calls reaches the Chats app
+# while the turn is still running ("still writing…"), and the finished reply
+# finalizes the same message. v9: symlinks the imageforge repo's
+# .claude/skills into /home/user/.claude/skills, so the repo's skills load in
+# EVERY session from the first turn — a subrepo's skills are otherwise only
+# discovered once a chat is already working in that repo (the same
+# starting-folder gotcha as the hook itself).
+# Source of truth for the hook body: imageforge/.claude/hooks/post-to-feed.sh
+# (this file is REBUILT from it by scripts in that repo — don't hand-edit the
+# hook body here).
 
 mkdir -p /home/user/.claude/hooks
 
@@ -17,6 +31,20 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # Auto-post this chat's finished reply to the DeckFactory Chats feed, and file
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
+#
+# v8 (Aug 2026) — TURN-START PING: UserPromptSubmit tells the feed the chat is
+# working (POST /working), so the Chats app can tint it until the reply lands.
+#
+# v7 (Aug 2026) — LIVE DRAFTS: also registered on PostToolUse, so the prose a
+# chat writes BEFORE and BETWEEN tool calls reaches the Chats app while the
+# turn is still running, instead of only when it stops (a long coding turn
+# used to mean silence until the very end). The draft pass posts the turn's
+# text-so-far with { turn, working:true }; the server upserts ONE message per
+# turn (keyed session|turn), the app shows it as "still writing…", and the
+# normal Stop post finalizes the SAME message — never a duplicate. The whole
+# draft pass runs in a BACKGROUND subshell (exit 0 immediately), so it adds
+# zero latency to the tool call it rides on; a duplicate racing post converges
+# onto the same doc server-side, so the race is harmless.
 #
 # NOTE: no stop_hook_active bail — another Stop hook (the git checker)
 # interrupts finishes constantly during active work (exit 2 on uncommitted
@@ -41,6 +69,7 @@ transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
 sid=$(printf '%s' "$input" | jq -r '.session_id // empty')
 [ -n "$sid" ] || sid="${CLAUDE_CODE_SESSION_ID:-x}"
+event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty')
 
 # Chat name: FORGE_CHAT env wins; else a slug of a repo's claude/<name> branch
 # (random 6-char suffix dropped); else a short session id.
@@ -62,9 +91,149 @@ case "$name" in
 esac
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
 
+rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
+
 claude_url=""
 if [ -n "${CLAUDE_CODE_REMOTE_SESSION_ID:-}" ]; then
   claude_url="https://claude.ai/code/session_${CLAUDE_CODE_REMOTE_SESSION_ID#cse_}"
+fi
+
+post () {  # $1 = url, $2 = json body (retries once; long timeout for cold starts)
+  curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 \
+  || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
+}
+
+# One chat per SESSION (Aug 2026): a chat's identity is the SESSION, not the
+# branch-derived slug — branch names get reused and naming conventions change,
+# and both merged or split threads for real (the "Imprint" collision, then its
+# orphaning). The server resolves session-first: a session that already owns a
+# chat posts there forever; a brand-new session keeps the pretty slug if it's
+# free, else forks to <name>-<sid6>. Resolved once per session per name and
+# cached — the cache is only a HINT, because every post below also carries the
+# session id and the server re-resolves authoritatively (so a re-bound or
+# merged chat heals even while this cache is stale). An explicit FORGE_CHAT is
+# deliberate (possibly shared across sessions on purpose): it is never forked,
+# and posts are tagged explicit so the server never re-keys them either.
+# Sets: name, session_key, explicit. The network hit happens only on a cache
+# miss, which is why the draft pass calls this INSIDE its background subshell.
+resolve_name () {
+  session_key=""; explicit=""
+  if [ -z "${FORGE_CHAT:-}" ]; then
+    session_key="$rsid"
+    rstate="$HOME/.claude/forge-slug-${sid}-$(printf '%s' "$name" | cksum | cut -d' ' -f1)"
+    rname=""
+    if [ -f "$rstate" ]; then
+      rname=$(cat "$rstate" 2>/dev/null)
+    else
+      rname=$(curl -s -m 20 ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+        "$FEED/resolve?chat=$(printf '%s' "$name" | jq -sRr @uri)&session=$(printf '%s' "$rsid" | jq -sRr @uri)" \
+        | jq -r '.chat // empty' 2>/dev/null)
+      [ -n "$rname" ] && printf '%s' "$rname" > "$rstate"
+    fi
+    # accept any sane slug — session-first resolution may legitimately return a
+    # chat that shares nothing with the branch name (a re-bound thread)
+    case "$rname" in
+      ""|*[!a-z0-9._-]*) :;;
+      *) name="$rname";;
+    esac
+  else
+    explicit="1"
+  fi
+}
+
+# ── LIVE DRAFT pass (PostToolUse) ──────────────────────────────────────────
+# Post the current turn's text-so-far as a growing draft. Everything —
+# resolution, transcript parse, the POST — runs detached so the tool call this
+# event rides on is never delayed. State: forge-draft-<sid> holds
+# "turnkey<TAB>chars-posted"; the parse exits silently unless the turn's text
+# GREW past what's already out (so a burst of tool calls with no new prose
+# costs no network at all).
+if [ "$event" = "PostToolUse" ]; then
+  (
+    resolve_name
+    dp=$(NAME="$name" CLAUDE_URL="$claude_url" SESSION_KEY="$session_key" EXPLICIT="$explicit" \
+      DSTATE="$HOME/.claude/forge-draft-${sid}" \
+      python3 - "$transcript" 2>/dev/null << 'PYDRAFT'
+import json, sys, os
+path = sys.argv[1]
+turnkey = None; parts = []
+with open(path, encoding='utf-8') as f:
+    for ln in f:
+        try:
+            r = json.loads(ln)
+        except Exception:
+            continue
+        m = r.get('message') or {}
+        role = m.get('role')
+        c = m.get('content')
+        if role == 'user':
+            isres = isinstance(c, list) and any(
+                isinstance(b, dict) and b.get('type') == 'tool_result' for b in c)
+            if not isres:
+                # same turn boundary the final parser uses: ANY non-tool-result
+                # user record starts a new segment, and its uuid is the key the
+                # Stop post will carry — that's what lands both on ONE doc
+                turnkey = r.get('uuid'); parts = []
+            continue
+        if role != 'assistant':
+            continue
+        if isinstance(c, str):
+            t = c
+        else:
+            t = "".join(b.get('text', '') for b in (c or [])
+                        if isinstance(b, dict) and b.get('type') == 'text')
+        if t.strip():
+            parts.append(t)
+text = "\n\n".join(parts).strip()
+# below 60 chars there's nothing worth reading early — those turns just post
+# normally when they finish
+if not turnkey or len(text) < 60:
+    sys.exit(0)
+st = os.environ.get('DSTATE', '')
+prev_key = ''; prev_len = 0
+try:
+    a = open(st).read().split('\t')
+    prev_key = a[0]; prev_len = int(a[1])
+except Exception:
+    pass
+if prev_key == turnkey and len(text) <= prev_len:
+    sys.exit(0)
+out = {"chat": os.environ['NAME'], "text": text[:20000],
+       "turn": turnkey, "working": True}
+if os.environ.get('CLAUDE_URL'):
+    out["url"] = os.environ['CLAUDE_URL']
+if os.environ.get('SESSION_KEY'):
+    out["session"] = os.environ['SESSION_KEY']
+if os.environ.get('EXPLICIT'):
+    out["explicit"] = True
+if os.environ.get('FORGE_ACCOUNT', '').strip():
+    out["account"] = os.environ['FORGE_ACCOUNT'].strip()[:20]
+os.makedirs(os.path.dirname(st), exist_ok=True)
+open(st, 'w').write(turnkey + '\t' + str(len(text)))
+print(json.dumps(out))
+PYDRAFT
+)
+    [ -n "$dp" ] && post "$FEED" "$dp"
+  ) >/dev/null 2>&1 &
+  exit 0
+fi
+
+# ── FINAL pass (Stop / UserPromptSubmit) ───────────────────────────────────
+resolve_name
+
+# TURN STARTED (v8, Aug 2026) — tell the feed this chat is now working, so the
+# Chats app can tint it pink until the reply lands. This is a separate one-line
+# ping rather than a side effect of posting her message, because HER MESSAGE IS
+# NOT IN THE TRANSCRIPT YET at UserPromptSubmit: the parse below can only lift
+# it at the END of the turn, and measured live her messages' postedAt lands ~1s
+# before the reply's, every time. So "newest message is hers" was true for about
+# one second and the tint never showed. This needs no transcript at all — just
+# the chat — so it can fire the moment she sends. Backgrounded: a hook must
+# never make her wait, and a lost ping only costs one tint.
+if [ "$event" = "UserPromptSubmit" ]; then
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" '{chat:$c, session:$s}')" ) >/dev/null 2>&1 &
 fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
@@ -77,6 +246,7 @@ ustate="$HOME/.claude/forge-user-${sid}.posted"
 # Firebase image URLs in the final reply, plus image files the chat sent via
 # SendUserFile (files sent before this hook existed are baselined on first run).
 out=$(NAME="$name" CLAUDE_URL="$claude_url" STATEFILE="$state" GSTATE="$gstate" USTATE="$ustate" \
+  SESSION_KEY="$session_key" EXPLICIT="$explicit" \
   python3 - "$transcript" 2>/dev/null << 'PY'
 import json, sys, os, re
 path = sys.argv[1]
@@ -113,11 +283,14 @@ def gooddesc(t):
 # Split the transcript into TURNS (one assistant reply per real user turn), in
 # order. Each turn = the joined text of every assistant text block in it, keyed
 # by the last text message's id (stable per turn, used for the posted-set).
+# Each also carries the uuid of the user record that STARTED it — the same key
+# the live-draft pass posts with, so the final post lands on the draft's doc.
 turns = []
-cur_parts = []; cur_mid = None
+cur_parts = []; cur_mid = None; cur_turnkey = None
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
 users = []      # Sophie's OWN messages, so the feed reads as a conversation
+queued = []     # …and the ones she sent MID-TURN, which arrive a different way
 
 # What Sophie actually typed/said, as opposed to the machinery that arrives as a
 # "user" record too: task notifications, webhook activity, slash-command echoes,
@@ -142,7 +315,7 @@ def flush():
     global cur_parts, cur_mid
     txt = "\n\n".join(cur_parts).strip()
     if txt and cur_mid:
-        turns.append({'text': txt, 'mid': cur_mid})
+        turns.append({'text': txt, 'mid': cur_mid, 'turn': cur_turnkey})
     cur_parts = []; cur_mid = None
 
 with open(path, encoding='utf-8') as f:
@@ -152,10 +325,23 @@ with open(path, encoding='utf-8') as f:
         except Exception:
             continue
         idx += 1
+        # A message sent while Claude is still working is QUEUED, and a queued
+        # message is only ever written as a queue-operation record — it never
+        # becomes a "user" record, so everything below would miss it and it
+        # would never reach the app (verified live 2026-08-07). Collect it here
+        # and reconcile against the real user records after the loop.
+        if r.get('type') == 'queue-operation':
+            if r.get('operation') == 'enqueue' and r.get('timestamp'):
+                qt = her_words(r, r.get('content') or '')
+                if qt:
+                    queued.append({'uuid': 'q:' + r['timestamp'], 'text': qt,
+                                   'at': r['timestamp']})
+            continue
         role = (r.get('message') or {}).get('role')
         if role == 'user':
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
                 flush()           # end of the previous assistant turn
+                cur_turnkey = r.get('uuid')
                 last_user = idx
                 raw_since = []
                 mine = her_words(r, gettext(r))
@@ -179,6 +365,36 @@ with open(path, encoding='utf-8') as f:
                         sends.append((idx, p))
 flush()  # the final (current) turn
 
+# EVERY message is enqueued, but only the mid-turn ones fail to also land as a
+# user record — so a queued entry counts only when no user record carries the
+# same words. Matched as a multiset, so sending the same short phrase twice
+# can't let the first one swallow the second.
+if queued:
+    def _norm(s):
+        return ' '.join((s or '').split()).lower()[:160]
+    # A mid-turn message exists TWICE in the transcript over its lifetime: as a
+    # queue record while Claude is still working, and as an ordinary user record
+    # once the turn ends. They carry DIFFERENT ids, so posting it early under
+    # `q:<timestamp>` and then meeting it again as a uuid posted it a SECOND
+    # time — every mid-turn message she sent landed in the thread twice (found
+    # live 2026-08-08 in her own feed; the state file held the q: key while the
+    # duplicate went out under the uuid). So a swallowed queue entry HANDS ITS
+    # KEY to the record that replaced it, and the poster below treats either id
+    # as proof it already went out. Still a multiset — one queue entry is
+    # consumed per matching record — so repeating a short phrase can't let the
+    # first swallow the second.
+    by_text = {}
+    for u in users:
+        by_text.setdefault(_norm(u['text']), []).append(u)
+    for q in queued:
+        bucket = by_text.get(_norm(q['text'])) or []
+        target = next((u for u in bucket if not u.get('alias')), None)
+        if target is not None:
+            target['alias'] = q['uuid']
+            continue
+        users.append(q)
+    users.sort(key=lambda u: u.get('at') or '')
+
 # ── Sophie's own messages ──────────────────────────────────────────────────
 # Posted to /reply as from:"sophie" so a thread in the Chats app reads as the
 # conversation it was, not a monologue. Keyed by the transcript's per-record
@@ -199,13 +415,26 @@ if uf and users:
         for u in users[:-1]:
             new_useen.add(u['uuid'])
     for u in users:
-        if u['uuid'] in new_useen:
+        # either id counts as already-posted: the queue record's key and the
+        # user record's uuid are the SAME message (see the alias pass above)
+        if u['uuid'] in new_useen or (u.get('alias') and u['alias'] in new_useen):
+            new_useen.add(u['uuid'])          # remember both, so next run is a fast skip
+            if u.get('alias'):
+                new_useen.add(u['alias'])
             continue
         mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
         if u['at']:
             mine["created"] = u['at']
+        # the server routes session-first off this, so her message lands in the
+        # same chat as the reply it prompted even if NAME above is stale
+        if os.environ.get('SESSION_KEY'):
+            mine["session"] = os.environ['SESSION_KEY']
+        if os.environ.get('EXPLICIT'):
+            mine["explicit"] = True
         print('U\t' + json.dumps(mine))
         new_useen.add(u['uuid'])
+        if u.get('alias'):
+            new_useen.add(u['alias'])
     os.makedirs(os.path.dirname(uf), exist_ok=True)
     open(uf, 'w').write('\n'.join(sorted(new_useen)))
 
@@ -295,8 +524,16 @@ for tn in turns:
     if tn['mid'] in new_posted:
         continue
     out = {"chat": os.environ['NAME'], "text": tn['text'][:20000], "tldr": tldr_of(tn['text'])}
+    # the turn key (no `working`) finalizes any live draft this turn posted:
+    # the server lands this on the SAME message doc and clears the marker
+    if tn.get('turn'):
+        out["turn"] = tn['turn']
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
+    if os.environ.get('SESSION_KEY'):
+        out["session"] = os.environ['SESSION_KEY']
+    if os.environ.get('EXPLICIT'):
+        out["explicit"] = True
     # Which Claude account this session runs under (FORGE_ACCOUNT env var set
     # on the cloud environment: "1" or "2"). The Chats app routes each chat's
     # Open button — Claude app vs browser — off this tag.
@@ -314,13 +551,6 @@ for g in gallery:
 PY
 )
 
-post () {  # $1 = url, $2 = json body (retries once; long timeout for cold starts)
-  curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
-    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 \
-  || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
-    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
-}
-
 # Sophie's own messages FIRST, so hers is in the feed before the reply it
 # prompted (they carry her real send time, so the order holds either way).
 printf '%s\n' "$out" | sed -n 's/^U\t//p' | while IFS= read -r up; do
@@ -336,6 +566,10 @@ done
 # file each new image deliverable into the gallery
 nowms=$(date +%s%3N 2>/dev/null || echo $(($(date +%s)*1000)))
 pj=$(printf 'from %s' "$name" | jq -Rs .)
+# session tag → the server files the image session-first, same as feed posts
+sj=""
+[ -n "$session_key" ] && sj=",\"session\":$(printf '%s' "$session_key" | jq -Rs .)"
+[ -n "$explicit" ] && sj=",\"explicit\":true"
 printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   [ -n "$g" ] || continue
   u=$(printf '%s' "$g" | jq -r '.url // empty')
@@ -345,9 +579,9 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
   # what the reply called this image, when it named it — shown as the caption
   dj=$(printf '%s' "$g" | jq -r 'if .desc then ",\"description\":" + (.desc|tostring|@json) else "" end')
   if [ -n "$u" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj$dj}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$u" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj$dj$sj}"
   elif [ -n "$w" ]; then
-    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true$dj}"
+    post "$GALLERY" "{\"url\":$(printf '%s' "$w" | jq -Rs .),\"prompt\":$pj,\"created\":$nowms,\"chat\":$cj,\"assetsOnly\":true$dj$sj}"
   elif [ -n "$f" ] && [ -f "$f" ] && [ "$(stat -c%s "$f" 2>/dev/null || echo 99999999)" -lt 9000000 ]; then
     case "${f##*.}" in
       png) mime=image/png;; webp) mime=image/webp;; gif) mime=image/gif;; *) mime=image/jpeg;;
@@ -355,7 +589,7 @@ printf '%s\n' "$out" | sed -n 's/^G\t//p' | while IFS= read -r g; do
     tmp=$(mktemp)
     printf '{"image":"data:%s;base64,' "$mime" > "$tmp"
     base64 -w0 "$f" >> "$tmp" 2>/dev/null || base64 "$f" | tr -d '\n' >> "$tmp"
-    printf '","prompt":%s,"created":%s,"chat":%s%s}' "$pj" "$nowms" "$cj" "$dj" >> "$tmp"
+    printf '","prompt":%s,"created":%s,"chat":%s%s%s}' "$pj" "$nowms" "$cj" "$dj" "$sj" >> "$tmp"
     curl -s -m 120 -X POST "$GALLERY" -H "Content-Type: application/json" \
       ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d @"$tmp" >/dev/null 2>&1 || true
     rm -f "$tmp"
@@ -366,7 +600,7 @@ exit 0
 HOOK
 chmod +x /home/user/.claude/hooks/post-to-feed.sh
 
-# Register the Stop hook as PROJECT settings for /home/user (the session's
+# Register the hook as PROJECT settings for /home/user (the session's
 # starting folder). Merge-safe: keeps anything already in the file.
 python3 - << 'PY_SETTINGS' || true
 import json, os
@@ -377,18 +611,35 @@ except Exception:
     s = {}
 entry = {"hooks": [{"type": "command",
          "command": "bash /home/user/.claude/hooks/post-to-feed.sh"}]}
-# Register on BOTH Stop (fires when a reply finishes cleanly) and
-# UserPromptSubmit (fires when Sophie sends her next message). The second one
-# sweeps up INTERRUPTED replies: an interrupted turn skips the Stop hook, but
-# the partial reply is already in the transcript by the time the next prompt
-# lands, so UserPromptSubmit posts it. The per-message state file makes running
-# on both idempotent — whichever fires first posts, the other is a no-op.
-for event in ('Stop', 'UserPromptSubmit'):
+# Register on THREE events. Stop fires when a reply finishes cleanly.
+# UserPromptSubmit fires when Sophie sends her next message — it sweeps up
+# INTERRUPTED replies: an interrupted turn skips the Stop hook, but the partial
+# reply is already in the transcript by the time the next prompt lands, so
+# UserPromptSubmit posts it (and finalizes any live draft the turn left
+# behind). PostToolUse fires after every tool call — that's the LIVE DRAFT
+# pass: the prose written so far posts as a growing "still writing…" message
+# the moment the chat starts coding, instead of only when the whole turn ends.
+# The per-message/per-draft state files make all three idempotent — whichever
+# fires first posts, the others are no-ops. Existing environments pick the new
+# event up automatically: this setup script re-runs at every session start and
+# the registration below appends any event still missing.
+for event in ('Stop', 'UserPromptSubmit', 'PostToolUse'):
     arr = s.setdefault('hooks', {}).setdefault(event, [])
     if not any('post-to-feed' in json.dumps(x) for x in arr):
         arr.append(entry)
 json.dump(s, open(p, 'w'), indent=2)
-print('chats auto-filer registered (Stop + UserPromptSubmit)')
+print('chats auto-filer registered (Stop + UserPromptSubmit + PostToolUse)')
 PY_SETTINGS
+
+# The repo's skills, loading in EVERY session (v9). ONE directory SYMLINK —
+# never a copy, which would freeze the skills at whenever this script last
+# ran; the link always reads whatever is on the imageforge clone today, and
+# it is safe to make even before the clone exists (it resolves at read time,
+# and dangles harmlessly in a session with no imageforge checkout). If
+# something real already sits at that path, leave it alone.
+if [ ! -e /home/user/.claude/skills ] && [ ! -L /home/user/.claude/skills ]; then
+  ln -s /home/user/imageforge/.claude/skills /home/user/.claude/skills
+  echo 'skills symlinked: /home/user/.claude/skills -> imageforge/.claude/skills'
+fi
 
 true

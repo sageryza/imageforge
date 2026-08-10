@@ -15,3 +15,14 @@ sa.json
 __pycache__/
 *.pyc
 .grab-venv/
+
+# Video clips pulled down by scripts/clip — big files, and this repo is public
+clips/
+
+# one-off mockup manifest (scripts/day-stickers-mockup.js)
+.day-stickers.json
+
+# Quoted audiobook text for the Cannon language film — public repo, so the
+# lines themselves stay local; shots.json keeps citations and timings.
+docs/cannon-language/lines.local.json
+docs/cannon-language/*.log

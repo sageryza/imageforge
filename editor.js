@@ -40,12 +40,23 @@ const admin = require('firebase-admin');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
-// Narration voice: Sophie's chosen narrator, spoken quietly and nudged ~12%
-// faster so the fills sit under the interview clips instead of on top of them.
+// Narration voice: Sophie's professional voice clone, PLAIN by request
+// (Aug 2026, Sophie): no "[quietly]" whisper direction, no tempo nudge, no
+// style tuning — stock ElevenLabs defaults, the same settings her approved
+// clone comparison samples used. NO loudnorm either — she A/B'd raw vs
+// levelled narration, rejected the dynamic squeezing, and asked to "just
+// change the volume" instead: the take's loudness is measured once and ONE
+// constant gain is applied (capped below clipping) so it sits at the clips'
+// level with its dynamics untouched. Interview clips keep their own loudnorm.
 const NARRATION_VOICE = process.env.EDITOR_NARRATION_VOICE || 'UTkHGl2ImiT6gwtAFCql';
-const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_v3';
-const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1.12);
-const NARRATION_PREFIX = '[quietly] ';
+const NARRATION_MODEL = process.env.EDITOR_NARRATION_MODEL || 'eleven_multilingual_v2';
+const NARRATION_TEMPO = Number(process.env.EDITOR_NARRATION_TEMPO || 1);
+const NARRATION_PREFIX = '';
+// Retraining a professional voice clone keeps its voice_id, so the narration
+// cache key (voice + model + settings + text) can't tell the new model from
+// the old one and would serve pre-retrain takes forever. Bump this — or set
+// EDITOR_NARRATION_REV — after any retrain to re-voice everything.
+const NARRATION_REV = process.env.EDITOR_NARRATION_REV || '2026-08-04-gain';
 
 const COLLECTION = process.env.EDITOR_COLLECTION || 'forge-editor';
 const NDE_COLLECTION = process.env.NDE_COLLECTION || 'forge-nde-videos';
@@ -53,6 +64,16 @@ const ALIGN_PREFIX = process.env.EDITOR_ALIGN_PREFIX || 'nde-align-cache/';
 const AUDIO_PREFIX = process.env.EDITOR_AUDIO_PREFIX || 'nde-audio/';
 const RENDER_FOLDER = 'nde-episodes/editor';
 const PREVIEW_FOLDER = `${RENDER_FOLDER}/previews`;
+const CLIP_CACHE_FOLDER = `${RENDER_FOLDER}/clip-cache`;
+const NARR_CACHE_FOLDER = `${RENDER_FOLDER}/narr-cache`;
+// Every finished cut is banked in Storage keyed by WHAT it is (video + words +
+// anchor + this version), so the same clip is cut once ever — every later
+// preview or render just downloads it. Bump the version when the cutting logic
+// changes and every stale cut re-cuts itself on next use.
+// v2 (Aug 2026): phraseSpan snaps span edges to the matched words — v1 cuts
+// could open on a stray word from the previous sentence (the doubled
+// "coincidence" in the Sheldrake episode), so every v1 cut re-cuts on use.
+const CUT_VERSION = 'v2';
 const MAX_RENDERS = 10;
 const WINDOW_RADIUS = 150; // ±seconds of transcript handed to the picker
 
@@ -147,18 +168,35 @@ function phraseSpan(words, phrase) {
   const pw = normWords(phrase);
   if (!pw.length) return null;
   const n = pw.length;
-  let best = null; // [ratio, start, end]
+  let best = null; // [ratio, start, windowLength]
   for (let L = n; L < n + 4; L++) {
     const last = Math.max(1, ww.length - L + 1);
     for (let i = 0; i < last; i++) {
       const win = ww.slice(i, i + L);
       if (!win.length) continue;
       const r = ratio(pw, win);
-      if (!best || r > best[0]) best = [r, i, Math.min(i + L - 1, words.length - 1)];
+      if (!best || r > best[0]) best = [r, i, L];
     }
   }
   if (!best || best[0] < 0.5) return null;
-  return { start: best[1], end: best[2], score: best[0] };
+  // Snap the span's edges to the words that actually MATCHED the phrase. A
+  // phrase word the audio never says ("uh", caption garble) makes a window
+  // shifted one word early score the SAME ratio as the true one, and the tie
+  // broke toward the earlier start — the cut then opened on a stray word from
+  // the previous sentence (Sophie heard clip 1's last word played twice: the
+  // Sheldrake episode's "…chance coincidence. | coincidence. The basic
+  // experiment…"). The matched blocks know exactly which window words are the
+  // phrase, so unmatched strays on either edge are trimmed off.
+  const [score, i0, L] = best;
+  let start = i0;
+  let end = Math.min(i0 + L - 1, words.length - 1);
+  const blocks = matchingBlocks(pw, ww.slice(i0, i0 + L));
+  if (blocks.length) {
+    const last = blocks[blocks.length - 1];
+    start = i0 + blocks[0][1];
+    end = Math.min(i0 + last[1] + last[2] - 1, words.length - 1);
+  }
+  return { start, end, score };
 }
 
 // Gap-aware clip bounds: pad outward for a natural feel, but NEVER past the
@@ -246,6 +284,21 @@ async function saveEpisode(ep) {
   return ep;
 }
 
+// Write ONLY the named fields. Everything except episode creation goes through
+// this: a render job that saved its whole in-memory copy used to stamp a stale
+// snippets/sequence over anything Sophie edited while it ran (every 1.5s
+// progress tick!) — which read as "I can't edit during a render". Field-level
+// patches make edits and jobs coexist.
+async function patchEpisode(id, fields) {
+  const out = { ...plain(fields), updatedAt: new Date().toISOString() };
+  const db = firestore();
+  if (db) await db.collection(COLLECTION).doc(id).update(out);
+  else {
+    const ep = memStore.get(id);
+    if (ep) Object.assign(ep, out);
+  }
+}
+
 function normalizeEpisode(ep) {
   if (!ep) return ep;
   ep.title = ep.title || ep.id || 'untitled';
@@ -293,6 +346,34 @@ async function deleteEpisode(id) {
   else memStore.delete(id);
 }
 
+// Drop a snippet cut elsewhere (the Cutting Room) into an episode: register the
+// recording as a source, add the snippet card, and append it to the sequence.
+// The editor's own render path then cuts it natively — same whisper fallback,
+// same clip cache — so a hand-off is words + an anchor, never a pre-cut file.
+async function addExternalSnippet({ episodeId, episodeTitle, name, videoId, audioUrl, text, timeSec, experiencer }) {
+  let ep = episodeId ? await loadEpisode(episodeId) : null;
+  if (!ep) {
+    ep = normalizeEpisode({
+      id: `cr-${crypto.randomBytes(6).toString('hex')}`,
+      title: episodeTitle || 'From the Cutting Room',
+      sources: [], snippets: [], sequence: [], renders: [],
+      createdAt: new Date().toISOString(),
+    });
+  }
+  if (!ep.sources.find(s => s.videoId === videoId)) {
+    ep.sources.push({ videoId, experiencer: experiencer || 'Sophie', timeSec: Math.round(timeSec) || 0, audioUrl });
+  }
+  const snip = {
+    id: `sn-${crypto.randomBytes(5).toString('hex')}`,
+    name: name || String(text || '').split(/\s+/).slice(0, 6).join(' '),
+    videoId, text: String(text || ''), timeSec: Math.round(timeSec) || 0,
+  };
+  ep.snippets.push(snip);
+  ep.sequence.push({ type: 'clip', snippetId: snip.id });
+  await saveEpisode(ep);
+  return { id: ep.id, title: ep.title, snippetId: snip.id };
+}
+
 async function uploadPublic(localFile, storagePath, contentType, cacheControl) {
   const b = bucket();
   if (!b) throw new Error('Firebase Storage unavailable — cannot publish the render');
@@ -311,12 +392,112 @@ function defaultAudioUrl(videoId) {
   return `https://storage.googleapis.com/${name}/${AUDIO_PREFIX}${videoId}.webm`;
 }
 
+// ─── The permanent clip cache ───────────────────────────────────────
+// A cut is fully determined by the source video, the snippet's WORDS, the
+// anchor that picks the alignment window, and the cutter version — so that's
+// the key. Content-addressed and immutable: an edited span is a new key, and
+// the old object just stops being asked for.
+function storagePublicUrl(storagePath) {
+  const b = bucket();
+  return b ? `https://storage.googleapis.com/${b.name}/${storagePath}` : null;
+}
+
+function clipCachePath(snippet, source) {
+  const anchor = Number.isFinite(Number(snippet.timeSec)) ? Number(snippet.timeSec) : Number(source.timeSec) || 0;
+  const key = crypto.createHash('sha1')
+    .update([CUT_VERSION, snippet.videoId || source.videoId, normWords(snippet.text).join(' '), Math.round(anchor)].join('|'))
+    .digest('hex');
+  return `${CLIP_CACHE_FOLDER}/${key}.mp3`;
+}
+
+async function fromCache(storagePath, localFile) {
+  const b = bucket();
+  if (!b) return null;
+  try {
+    await b.file(storagePath).download({ destination: localFile });
+    return localFile;
+  } catch { return null; }
+}
+
+// A cache write must never fail the render that produced the clip.
+async function toCache(localFile, storagePath) {
+  try {
+    await uploadPublic(localFile, storagePath, 'audio/mpeg', 'public, max-age=31536000, immutable');
+  } catch (err) {
+    console.warn('editor: cache write failed —', err.message);
+  }
+}
+
 // ─── Transcript windows (for the picker) ────────────────────────────
 async function loadVideo(videoId) {
   const db = firestore();
   if (!db) return null;
   const snap = await db.collection(NDE_COLLECTION).doc(videoId).get();
-  return snap.exists ? snap.data() : null;
+  if (!snap.exists) return null;
+  const video = snap.data();
+  // A multi-hour audiobook's transcript is too big for a Firestore doc, so
+  // the grabber banks it as JSON in Storage and leaves a pointer — inflate it
+  // here so every reader sees the same shape. Rarely hit twice: windowFor
+  // caches the small finished windows.
+  const t = video.transcript;
+  if (t && t.storage && !(t.segments || []).length) {
+    const b = bucket();
+    if (b) {
+      try {
+        const [buf] = await b.file(t.storage).download();
+        video.transcript = { ...t, ...JSON.parse(buf.toString('utf8')) };
+      } catch (err) {
+        console.warn('editor: transcript pointer read failed —', err.message);
+      }
+    }
+  }
+  return video;
+}
+
+// Building a picker window used to mean re-reading the interview's WHOLE
+// multi-megabyte transcript doc from Firestore — for every source, on every
+// episode open (~3s server-side for a big episode, every single time). The
+// finished windows are small and transcripts are effectively immutable, so
+// they're cached: in memory for this process, and in `forge-editor-windows`
+// so the cache survives deploys. `?freshWindows=1` on GET /:id recomputes
+// (use after re-fetching a transcript).
+const WINDOW_COLLECTION = process.env.EDITOR_WINDOW_COLLECTION || 'forge-editor-windows';
+const windowMemo = new Map(); // `${videoId}_${timeSec}` → {title, window}
+
+async function windowFor(videoId, timeSec, fresh) {
+  const key = `${videoId}_${Math.round(Number(timeSec) || 0)}`;
+  if (!fresh && windowMemo.has(key)) return windowMemo.get(key);
+  const db = firestore();
+
+  if (!fresh && db) {
+    try {
+      const snap = await db.collection(WINDOW_COLLECTION).doc(key).get();
+      if (snap.exists) {
+        const hit = { title: snap.data().title || '', window: snap.data().window };
+        windowMemo.set(key, hit);
+        return hit;
+      }
+    } catch (err) { /* cache optional — fall through to the transcript */ }
+  }
+
+  let video = null;
+  try { video = await loadVideo(videoId); } catch (err) { /* transcript optional */ }
+  const out = {
+    title: (video && video.title) || '',
+    window: video ? windowTokens(video.transcript, timeSec) : { start: 0, end: 0, words: [], times: [] },
+  };
+  // Only persist real windows — a video with no banked transcript may get one
+  // later, and an empty cache entry would hide it forever.
+  if (out.window.words.length) {
+    windowMemo.set(key, out);
+    if (db) {
+      db.collection(WINDOW_COLLECTION).doc(key)
+        .set({ videoId, timeSec: Math.round(Number(timeSec) || 0), ...out, updatedAt: new Date().toISOString() })
+        .catch(err => console.warn('editor: window cache write failed —', err.message));
+    }
+  }
+  if (windowMemo.size > 300) windowMemo.clear();
+  return out;
 }
 
 // Word-tokenize ±radius seconds of a transcript around a centre time. Each word
@@ -421,6 +602,11 @@ async function whisperWords(file) {
 
 // ─── ffmpeg helpers ─────────────────────────────────────────────────
 function run(bin, args, timeoutMs = 300000) {
+  // -hide_banner keeps stderr to the actual messages — without it a failure's
+  // tail was ffmpeg's build-flags banner, and the real error line fell off
+  // every truncated log (the Render seek failures were undiagnosable from
+  // render notes because of exactly this).
+  if (bin === FFMPEG || bin === FFPROBE) args = ['-hide_banner', ...args];
   return new Promise((resolve, reject) => {
     execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
@@ -440,44 +626,69 @@ async function audioDuration(file) {
   } catch { return 0; }
 }
 
-// Download a whole source file once per job — only used when ffmpeg can't seek
-// the URL directly (some static builds ship without https).
+// ─── Source downloads: one copy on disk, shared by every job ────────
+// ffmpeg on Render can't seek the https source (see extractWindow), so a
+// fresh cut needs the whole interview on disk. That used to be one download
+// per JOB — every preview pulled its own ~50MB copy of the same file, and a
+// render re-downloaded what a preview had just fetched. Downloads now land in
+// one process-wide LRU shared by everything that cuts (renders, previews, the
+// Cutting Room and Search via extractWindow). Eviction is by last use, only
+// of finished downloads; an evicted source simply re-downloads on next need.
+const SOURCE_DIR = path.join(os.tmpdir(), 'editor-sources');
+const SOURCE_CACHE_MAX = 3; // ~50MB each — bounded for the free instance's disk
+const sourceCache = new Map(); // url → { file, promise, at, done }
+
 async function downloadOnce(url, ctx) {
-  if (ctx.downloads.has(url)) return ctx.downloads.get(url);
-  const file = path.join(ctx.dir, `src-${crypto.randomBytes(4).toString('hex')}`);
-  const res = await fetch(url, { redirect: 'follow', timeout: 600000 });
-  if (!res.ok) throw new Error(`source audio fetch ${res.status}`);
-  await new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(file);
-    res.body.pipe(out);
-    res.body.on('error', reject);
-    out.on('finish', resolve);
-    out.on('error', reject);
-  });
-  ctx.downloads.set(url, file);
-  return file;
+  let entry = sourceCache.get(url);
+  if (!entry) {
+    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+    const file = path.join(SOURCE_DIR, crypto.createHash('sha1').update(url).digest('hex').slice(0, 16));
+    entry = { file, at: Date.now(), done: false, promise: null };
+    entry.promise = (async () => {
+      const res = await fetch(url, { redirect: 'follow', timeout: 600000 });
+      if (!res.ok) throw new Error(`source audio fetch ${res.status}`);
+      await new Promise((resolve, reject) => {
+        const out = fs.createWriteStream(file);
+        res.body.pipe(out);
+        res.body.on('error', reject);
+        out.on('finish', resolve);
+        out.on('error', reject);
+      });
+      entry.done = true;
+      ctx.log.push(`downloaded the source (${(fs.statSync(file).size / 1048576).toFixed(0)}MB)`);
+      return file;
+    })();
+    // A failed download must not poison the cache for the next attempt.
+    entry.promise.catch(() => sourceCache.delete(url));
+    sourceCache.set(url, entry);
+    const settled = [...sourceCache.entries()].filter(([, e]) => e.done).sort((a, b) => b[1].at - a[1].at);
+    for (const [u, e] of settled.slice(SOURCE_CACHE_MAX)) {
+      sourceCache.delete(u);
+      try { fs.unlinkSync(e.file); } catch { /* already gone */ }
+    }
+  }
+  entry.at = Date.now();
+  return entry.promise;
 }
 
-// Drop a downloaded source once every clip that needed it has been cut, so a
-// 12-source episode never holds twelve whole interviews on disk at once
-// (Render's free instance has little of it).
-function releaseDownload(url, ctx) {
-  const file = ctx.downloads.get(url);
-  if (!file) return;
-  ctx.downloads.delete(url);
-  try { fs.unlinkSync(file); } catch { /* already gone */ }
-}
+// Cut `winDur` seconds starting at `winStart` out of the source audio. A source
+// already downloaded (by any job since the process started) is cut locally;
+// otherwise the URL is tried directly first — ffmpeg range-seeks over http, so
+// where that works it pulls only what it needs. One failed direct seek marks
+// the url so later clips skip the doomed attempt instead of re-burning it.
+const directSeekFailed = new Set();
 
-// Cut `winDur` seconds starting at `winStart` out of the source audio. Tries the
-// URL directly first (ffmpeg range-seeks, so it pulls only what it needs).
 async function extractWindow(url, winStart, winDur, outFile, ctx) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable — cannot cut audio');
-  const args = ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', url, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile];
-  try {
-    await run(FFMPEG, args, 420000);
-    if (fs.existsSync(outFile) && fs.statSync(outFile).size > 2000) return outFile;
-  } catch (err) {
-    ctx.log.push(`direct seek failed (${err.message.slice(0, 90)}) — downloading the source`);
+  if (!sourceCache.has(url) && !directSeekFailed.has(url)) {
+    try {
+      await run(FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', url, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile], 420000);
+      if (fs.existsSync(outFile) && fs.statSync(outFile).size > 2000) return outFile;
+      throw new Error('ffmpeg wrote no audio');
+    } catch (err) {
+      directSeekFailed.add(url);
+      ctx.log.push(`direct seek failed (${String(err.message || '').trim().slice(-160)}) — downloading the source`);
+    }
   }
   const local = await downloadOnce(url, ctx);
   await run(FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', local, '-vn', '-c:a', 'libmp3lame', '-q:a', '4', outFile], 420000);
@@ -487,12 +698,22 @@ async function extractWindow(url, winStart, winDur, outFile, ctx) {
 // ─── Building the three card types ──────────────────────────────────
 
 // A clip card: locate the snippet's words in the real audio and cut them.
+// The finished cut is banked in the clip cache, so any snippet ever cut before
+// — by a render OR a preview, in any episode — comes back in one download
+// instead of being re-listened-to and re-cut.
 async function buildClip(snippet, source, ctx) {
   const est = Math.max(2, normWords(snippet.text).length / 2.6);
   const anchor = Number.isFinite(Number(snippet.timeSec)) ? Number(snippet.timeSec) : Number(source.timeSec) || 0;
   const url = source.audioUrl || defaultAudioUrl(source.videoId);
   const tag = crypto.randomBytes(3).toString('hex');
   const winFile = path.join(ctx.dir, `win-${tag}.mp3`);
+
+  const cachePath = clipCachePath(snippet, source);
+  const cachedClip = await fromCache(cachePath, path.join(ctx.dir, `clip-${tag}.mp3`));
+  if (cachedClip) {
+    ctx.log.push(`clip "${snippet.name}" from clip-cache`);
+    return cachedClip;
+  }
 
   let words = null;
   let winStart = 0;
@@ -531,20 +752,40 @@ async function buildClip(snippet, source, ctx) {
     '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
 
   ctx.log.push(`clip "${snippet.name}" ${(t1 - t0).toFixed(1)}s via ${usedCache ? 'align-cache' : 'whisper'} (match ${(span.score * 100).toFixed(0)}%)`);
+  await toCache(out, cachePath);
   return out;
 }
 
-// A narration card: ElevenLabs, spoken quietly, then nudged faster + levelled.
+// A narration card: ElevenLabs at stock settings, then a single measured
+// volume change to sit at the clips' level — never compression/limiting.
+// Cached like clips — the same words in the same voice are voiced (and paid
+// for) exactly once, however many renders reuse them.
+function narrCachePath(text) {
+  const cacheKey = crypto.createHash('sha1')
+    .update([NARRATION_REV, NARRATION_VOICE, NARRATION_MODEL, NARRATION_TEMPO, NARRATION_PREFIX, String(text || '').trim()].join('|'))
+    .digest('hex');
+  return `${NARR_CACHE_FOLDER}/${cacheKey}.mp3`;
+}
+
 async function buildNarration(text, ctx) {
+  const narTag = crypto.randomBytes(3).toString('hex');
+  const cachePath = narrCachePath(text);
+  const cachedNar = await fromCache(cachePath, path.join(ctx.dir, `nar-${narTag}.mp3`));
+  if (cachedNar) {
+    ctx.log.push('narration from narr-cache');
+    return cachedNar;
+  }
+
   const key = process.env.ELEVENLABS_API_KEY || '';
   if (!key) throw new Error('ELEVENLABS_API_KEY is not set on the server — narration cards cannot be rendered');
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_128`, {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${NARRATION_VOICE}?output_format=mp3_44100_192`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
     body: JSON.stringify({
       text: NARRATION_PREFIX + String(text || '').trim(),
       model_id: NARRATION_MODEL,
-      voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true },
+      // Stock defaults — Sophie's "no settings" rule for her clone's narration.
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
     }),
     timeout: 180000,
   });
@@ -555,9 +796,34 @@ async function buildNarration(text, ctx) {
   const raw = path.join(ctx.dir, `nar-raw-${tag}.mp3`);
   fs.writeFileSync(raw, buf);
   const out = path.join(ctx.dir, `nar-${tag}.mp3`);
-  await run(FFMPEG, ['-y', '-i', raw, '-af',
-    `atempo=${NARRATION_TEMPO},loudnorm=I=-16:TP=-1.5:LRA=11`,
-    '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
+  // Measure the take once, then apply a single constant gain toward the clips'
+  // -16 LUFS — Sophie's "just change the volume": the whole take moves up or
+  // down together, dynamics untouched. The gain is capped so the loudest peak
+  // stays under -1 dBTP (a boost can never clip), and a failed measurement
+  // falls back to no gain rather than failing the render.
+  let gainDb = 0;
+  try {
+    const { stderr } = await run(FFMPEG, ['-i', raw, '-af',
+      'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], 120000);
+    const m = stderr.match(/\{[\s\S]*\}/);
+    const stats = m ? JSON.parse(m[0]) : null;
+    const inI = parseFloat(stats && stats.input_i);
+    const inTp = parseFloat(stats && stats.input_tp);
+    if (Number.isFinite(inI)) {
+      gainDb = -16 - inI;
+      if (Number.isFinite(inTp)) gainDb = Math.min(gainDb, -1 - inTp);
+      gainDb = Math.round(gainDb * 10) / 10;
+    }
+  } catch (e) { /* no measurement → ship the take as-is */ }
+  const filters = [];
+  if (NARRATION_TEMPO !== 1) filters.push(`atempo=${NARRATION_TEMPO}`);
+  if (gainDb) filters.push(`volume=${gainDb}dB`);
+  const args = ['-y', '-i', raw];
+  if (filters.length) args.push('-af', filters.join(','));
+  args.push('-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out);
+  await run(FFMPEG, args, 180000);
+  ctx.log.push(`narration volume ${gainDb >= 0 ? '+' : ''}${gainDb}dB (plain gain, no loudnorm)`);
+  await toCache(out, cachePath);
   return out;
 }
 
@@ -596,7 +862,7 @@ async function renderEpisode(ep, progress) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-'));
-  const ctx = { dir, downloads: new Map(), log: [] };
+  const ctx = { dir, log: [] };
   const snippetById = new Map((ep.snippets || []).map(s => [s.id, s]));
 
   try {
@@ -608,8 +874,10 @@ async function renderEpisode(ep, progress) {
     const clipFiles = new Map();
 
     // Cut video by video, not sequence order: ffmpeg on Render can't seek the
-    // https source, so each interview gets downloaded whole — grouping means
-    // one download per source, released the moment its last clip is cut.
+    // https source, so a fresh cut needs the interview downloaded — grouping
+    // keeps each source's clips together while its download is newest in the
+    // process-wide source cache (shared across jobs, evicted LRU, so previews
+    // and the next render reuse it instead of re-pulling ~50MB).
     const byVideo = new Map();
     for (const snippetId of uniqueClips) {
       const snippet = snippetById.get(snippetId);
@@ -626,7 +894,6 @@ async function renderEpisode(ep, progress) {
         clipFiles.set(snippet.id, await buildClip(snippet, source, ctx));
         done++;
       }
-      releaseDownload(source.audioUrl || defaultAudioUrl(videoId), ctx);
     }
 
     const parts = [];
@@ -670,19 +937,24 @@ async function renderEpisode(ep, progress) {
 
 // Fire-and-forget background job recorded on the doc (movies.js pattern) —
 // the request returns immediately and the page polls GET /:id/job.
+//
+// The job renders the arrangement AS IT WAS when Render was pressed (its own
+// in-memory snapshot), and persists ONLY job/renders — never the whole doc —
+// so Sophie can keep editing snippets and the sequence while it runs and
+// nothing she does is overwritten by the job's progress saves.
 async function startJob(ep, kind, fn) {
   if (ep.job && ep.job.status === 'running') {
     const age = Date.now() - new Date(ep.job.startedAt || 0).getTime();
     if (age < 20 * 60 * 1000) throw new Error(`a "${ep.job.kind}" job is already running`);
   }
   ep.job = { kind, status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: new Date().toISOString() };
-  await saveEpisode(ep);
+  await patchEpisode(ep.id, { job: ep.job });
 
   (async () => {
     let lastSave = 0;
     const progress = async (done, total, label) => {
       ep.job = { ...ep.job, done, total, label };
-      if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await saveEpisode(ep).catch(() => {}); }
+      if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await patchEpisode(ep.id, { job: ep.job }).catch(() => {}); }
     };
     try {
       await fn(progress);
@@ -691,7 +963,8 @@ async function startJob(ep, kind, fn) {
       console.warn(`editor: job ${kind} failed —`, err.message);
       ep.job = { ...ep.job, status: 'error', error: err.message };
     }
-    await saveEpisode(ep).catch(e => console.warn('editor: save failed —', e.message));
+    await patchEpisode(ep.id, { job: ep.job, renders: ep.renders || [] })
+      .catch(e => console.warn('editor: save failed —', e.message));
   })();
 }
 
@@ -728,22 +1001,38 @@ function previewState(snippet) {
   return { status: 'none' };
 }
 
-// Re-read the doc before writing so a preview finishing mid-edit patches only
-// its own snippet instead of stamping a whole stale episode over Sophie's work.
+// A preview finishing mid-edit patches only its own snippet, inside a
+// transaction, so it can neither stamp a stale episode over Sophie's work nor
+// lose a save that landed between its read and its write.
 async function patchSnippet(episodeId, snippetId, fields) {
-  const ep = await loadEpisode(episodeId);
-  if (!ep) return null;
-  const s = (ep.snippets || []).find(x => x.id === snippetId);
-  if (!s) return null;
-  Object.assign(s, fields);
-  await saveEpisode(ep);
-  return s;
+  const db = firestore();
+  if (!db) {
+    const ep = memStore.get(episodeId);
+    if (!ep) return null;
+    const s = (ep.snippets || []).find(x => x.id === snippetId);
+    if (!s) return null;
+    Object.assign(s, fields);
+    return s;
+  }
+  const ref = db.collection(COLLECTION).doc(episodeId);
+  let out = null;
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const snippets = snap.data().snippets || [];
+    const s = snippets.find(x => x.id === snippetId);
+    if (!s) return;
+    Object.assign(s, fields);
+    out = s;
+    tx.update(ref, { snippets: plain(snippets), updatedAt: new Date().toISOString() });
+  });
+  return out;
 }
 
 async function makePreview(episodeId, snippetId) {
   if (!FFMPEG) throw new Error('ffmpeg unavailable on this host');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-prev-'));
-  const ctx = { dir, downloads: new Map(), log: [] };
+  const ctx = { dir, log: [] };
   try {
     const ep = await loadEpisode(episodeId);
     if (!ep) throw new Error('episode not found');
@@ -810,6 +1099,7 @@ router.get('/status', (req, res) => {
     storage: Boolean(bucket()),
     ffmpeg: Boolean(FFMPEG),
     ffprobe: Boolean(FFPROBE),
+    cutVersion: CUT_VERSION,
     openai: Boolean(OPENAI_API_KEY),
     elevenlabs: Boolean(process.env.ELEVENLABS_API_KEY),
     narrationVoice: NARRATION_VOICE,
@@ -895,36 +1185,41 @@ router.get('/:id', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
     if (!ep) return res.status(404).json({ error: 'not found' });
-    const transcripts = [];
-    for (const src of ep.sources) {
-      let video = null;
-      try { video = await loadVideo(src.videoId); } catch (err) { /* transcript optional */ }
-      const win = video ? windowTokens(video.transcript, src.timeSec) : { start: 0, end: 0, words: [], times: [] };
-      transcripts.push({
+    // All sources fetched at once, each window from the cache (see windowFor)
+    // — recomputing them from whole transcript docs was ~3s per episode open.
+    const fresh = req.query.freshWindows === '1';
+    const transcripts = await Promise.all(ep.sources.map(async src => {
+      const { title, window: win } = await windowFor(src.videoId, src.timeSec, fresh);
+      return {
         videoId: src.videoId,
         experiencer: src.experiencer,
-        title: (video && video.title) || '',
+        title,
         timeSec: src.timeSec,
         ...win,
-      });
-    }
+      };
+    }));
     res.json({ episode: ep, transcripts });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Saves patch ONLY the fields the client sent — a PUT landing while a render
+// runs can't wipe the job or a render that finished in between, and the job's
+// own saves can't wipe this edit (see startJob).
 router.put('/:id', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
     if (!ep) return res.status(404).json({ error: 'not found' });
-    if (req.body.title != null) ep.title = String(req.body.title).trim() || ep.title;
-    if (req.body.sources) ep.sources = req.body.sources.map(cleanSource).filter(Boolean);
+    const fields = {};
+    if (req.body.title != null) fields.title = String(req.body.title).trim() || ep.title;
+    if (req.body.sources) fields.sources = req.body.sources.map(cleanSource).filter(Boolean);
     if (req.body.snippets) {
       const before = new Map((ep.snippets || []).map(s => [s.id, s]));
-      ep.snippets = req.body.snippets.map(cleanSnippet).filter(Boolean)
+      fields.snippets = req.body.snippets.map(cleanSnippet).filter(Boolean)
         .map(s => carryPreview(s, before.get(s.id)));
     }
-    if (req.body.sequence) ep.sequence = cleanSequence(req.body.sequence);
-    await saveEpisode(ep);
+    if (req.body.sequence) fields.sequence = cleanSequence(req.body.sequence);
+    if (Object.keys(fields).length) await patchEpisode(ep.id, fields);
+    Object.assign(ep, fields);
     res.json({ episode: ep });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -938,7 +1233,10 @@ router.post('/:id/render', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
     if (!ep) return res.status(404).json({ error: 'not found' });
-    if (req.body && Array.isArray(req.body.sequence)) ep.sequence = cleanSequence(req.body.sequence);
+    if (req.body && Array.isArray(req.body.sequence)) {
+      ep.sequence = cleanSequence(req.body.sequence);
+      await patchEpisode(ep.id, { sequence: ep.sequence });
+    }
     await startJob(ep, 'render', progress => renderEpisode(ep, progress));
     res.json({ ok: true, job: ep.job });
   } catch (err) { res.status(400).json({ error: err.message }); }
@@ -956,9 +1254,47 @@ router.post('/:id/preview', async (req, res) => {
     const state = previewState(snippet);
     if (state.status === 'ready') return res.json({ ...state, cached: true });
     if (state.status === 'running') return res.json(state);
+
+    // The clip cache already holds this exact cut (a render made it, here or in
+    // another episode) → first Play is instant, no job at all.
+    const source = sourceFor(ep, snippet.videoId, snippet);
+    const b = bucket();
+    if (source && b) {
+      const cachePath = clipCachePath(snippet, source);
+      const [exists] = await b.file(cachePath).exists().catch(() => [false]);
+      if (exists) {
+        const url = storagePublicUrl(cachePath);
+        await patchSnippet(ep.id, snippet.id, {
+          previewUrl: url, previewHash: textHash(snippet.text || ''), previewAt: new Date().toISOString(),
+          previewNotes: 'from clip-cache', previewStatus: null, previewError: null,
+        });
+        return res.json({ status: 'ready', url, cached: true });
+      }
+    }
+
     await startPreview(ep.id, snippet);
     res.json({ status: 'running' });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// A narration line for the page's whole-episode play: answers the cached mp3
+// when the same words have ever been voiced (render or earlier play), else
+// voices them once — the identical cost a render would pay, cached forever.
+router.post('/:id/narration-preview', async (req, res) => {
+  try {
+    const text = String((req.body && req.body.text) || '').trim();
+    if (!text) return res.status(400).json({ error: 'no text' });
+    const b = bucket();
+    if (!b) return res.status(500).json({ error: 'Firebase Storage unavailable' });
+    const cachePath = narrCachePath(text);
+    const [exists] = await b.file(cachePath).exists();
+    if (!exists) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-nar-'));
+      try { await buildNarration(text, { dir, log: [] }); }
+      finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ } }
+    }
+    res.json({ url: storagePublicUrl(cachePath) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:id/preview/:snippetId', async (req, res) => {
@@ -984,4 +1320,11 @@ module.exports = {
   // exported for tests / other tools
   phraseSpan, clampBounds, snapToSilence, ratio, normWords, windowTokens,
   textHash, previewState,
+  // exported so scripts/warm-clip-cache.js can pre-cut clips into the clip
+  // cache from anywhere (the identical code path a server render runs)
+  buildClip, sourceFor, clipCachePath, defaultAudioUrl,
+  // exported for the Cutting Room (cuttingroom.js) — the same cutting
+  // primitives, so its cuts sound identical to an episode's
+  detectSilences, whisperWords, extractWindow, audioDuration, uploadPublic,
+  listEpisodes, addExternalSnippet,
 };
