@@ -53,6 +53,17 @@ halves and carries the rules as comments. Post with
   field); never to `/api/chatfeed/reply`.
 - Images in **rows of two** (`.imgrow`), never one full-width per row.
   Mobile first; image URLs from Firebase Storage.
+- **A VIDEO IS A LINE OF TEXT WITH A PLAY BUTTON, at the TOP — never an
+  embedded `<video>`** (Aug 2026, Sophie: "never put a whole video when it's
+  gonna be opened as a lightbox anyway, it should just be a line of text with
+  a play button… so I don't just scroll through the whole thing"). A player
+  parked at the top is a black slab she scrolls past on every visit, and
+  tapping it goes fullscreen regardless — so the box bought nothing. One
+  line: `window.__filmRow({ url, label, meta: '4:56', mount: '#film' })`,
+  which opens the film over the page with the lightbox contract (autoscroll
+  stopped, page locked, scroll position restored, video torn down on close).
+  **The deliverable goes at the TOP of the page**, above whatever there is to
+  decide — that is where she looks for it.
 - **A new version is a NEW page** with the version in its title ("Short 1 v4 —
   tightest cut") pointing at NEW version-numbered media. DELETE + re-post is
   only for a typo on the same version. Never re-point an old page at new

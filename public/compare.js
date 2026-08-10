@@ -144,7 +144,106 @@
   });
   window.__compareShell.openExternal = openOut;
 
-  /* 4 — NOTES ON ANYTHING (Aug 2026, Sophie's standing rule: "whenever
+  /* 5 — THE FILM ROW: a finished video is A LINE OF TEXT WITH A PLAY BUTTON
+     at the TOP of the page, never an embedded <video> (Aug 2026, Sophie:
+     "never put a whole video when it's gonna be opened as a lightbox anyway,
+     it should just be a line of text with a play button… so I don't just
+     scroll through the whole thing").
+
+     Why: a <video> at the top is a huge black box she has to scroll past
+     every time she opens the page — and tapping it goes fullscreen anyway,
+     so the box bought nothing. The row is one line; the film opens over the
+     page when she asks for it.
+
+         <div id="film"></div>
+         window.__filmRow({ url: '…/cut-v2.mp4', label: 'Mason — the shape',
+                            meta: '4:56', mount: '#film' });
+
+     Same overlay contract as the image lightbox: autoscroll stopped, page
+     locked, scroll position restored on close, and the video is torn down on
+     close so it can never keep playing behind the page. */
+  var vlb = null, vSavedY = 0;
+  function ensureVideoLB() {
+    if (vlb) return vlb;
+    vlb = document.createElement('div');
+    vlb.className = 'cmp-vlb';
+    vlb.setAttribute('hidden', '');
+    vlb.innerHTML = '<button class="cmp-vlb-x" aria-label="Close">✕</button>'
+      + '<video controls playsinline preload="metadata"></video>';
+    vlb.addEventListener('click', function (e) {
+      // only the backdrop and the ✕ close it — a tap on the controls must not
+      if (e.target === vlb || (e.target.className || '') === 'cmp-vlb-x') closeVideo();
+    });
+    document.body.appendChild(vlb);
+    var css = document.createElement('style');
+    css.textContent =
+      '.cmp-vlb{position:fixed; inset:0; z-index:61; background:rgba(20,18,15,.94);'
+      + ' display:flex; align-items:center; justify-content:center; padding:14px;}'
+      + '.cmp-vlb[hidden]{display:none !important;}'
+      + '.cmp-vlb video{max-width:100%; max-height:100%; border-radius:4px; background:#000;}'
+      + '.cmp-vlb-x{position:absolute; top:max(10px,env(safe-area-inset-top)); right:12px;'
+      + ' width:38px; height:38px; border-radius:50%; border:1.5px solid #fff; background:rgba(0,0,0,.35);'
+      + ' color:#fff; font-size:17px; line-height:1; cursor:pointer;}'
+      + '.cmp-film{display:flex; align-items:center; gap:10px; width:100%; text-align:left;'
+      + ' padding:10px 12px; margin:10px 0 4px; border:1.5px solid var(--ink,#2b2724);'
+      + ' border-radius:6px; background:var(--paper,#fff); color:var(--ink,#2b2724);'
+      + ' font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;}'
+      + '.cmp-film .g{flex:0 0 auto; width:30px; height:30px; border-radius:50%;'
+      + ' border:1.5px solid var(--ink,#2b2724); display:flex; align-items:center; justify-content:center;}'
+      + '.cmp-film .t{flex:1 1 auto; font-size:15px;}'
+      + '.cmp-film .m{flex:0 0 auto; font-size:12.5px; color:var(--ink2,#7a736c);}';
+    document.head.appendChild(css);
+    return vlb;
+  }
+  function openVideo(src, poster) {
+    var el = ensureVideoLB();
+    vSavedY = window.scrollY;
+    if (window.__scrollStop) window.__scrollStop();
+    var v = el.querySelector('video');
+    v.src = src;
+    if (poster) v.poster = poster;
+    el.removeAttribute('hidden');
+    document.body.style.overflow = 'hidden';
+    var p = v.play();                       // inside the tap, so iOS allows it
+    if (p && p.catch) p.catch(function () { /* she can press play herself */ });
+  }
+  function closeVideo() {
+    if (!vlb || vlb.hasAttribute('hidden')) return;
+    var v = vlb.querySelector('video');
+    try { v.pause(); } catch (_) { /* already gone */ }
+    v.removeAttribute('src'); v.load();     // or it keeps playing behind the page
+    vlb.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+    window.scrollTo(0, vSavedY);
+  }
+  window.__filmRow = function (opts) {
+    opts = opts || {};
+    if (!opts.url) return null;
+    var mount = typeof opts.mount === 'string' ? document.querySelector(opts.mount) : opts.mount;
+    if (!mount) {                            // no mount given: under the header
+      var wrap = document.querySelector('.wrap') || document.body;
+      mount = document.createElement('div');
+      var after = wrap.querySelector('.sub') || wrap.querySelector('h1') || wrap.querySelector('.eyebrow');
+      if (after && after.parentNode === wrap) wrap.insertBefore(mount, after.nextSibling);
+      else wrap.insertBefore(mount, wrap.firstChild);
+    }
+    var b = document.createElement('button');
+    b.className = 'cmp-film';
+    b.type = 'button';
+    b.innerHTML = '<span class="g"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"'
+      + ' stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>'
+      + '<span class="t"></span><span class="m"></span>';
+    b.querySelector('.t').textContent = opts.label || 'Play the film';
+    b.querySelector('.m').textContent = opts.meta || '';
+    b.addEventListener('click', function () { openVideo(opts.url, opts.poster); });
+    mount.appendChild(b);
+    return b;
+  };
+  window.__compareShell.openVideo = openVideo;
+  window.__compareShell.closeVideo = closeVideo;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeVideo(); });
+
+  /* 6 — NOTES ON ANYTHING (Aug 2026, Sophie's standing rule: "whenever
      applicable notes should be able to be added"). Reviewing is not only
      yes/no — she needs to say WHY, or what to change, next to the thing
      itself. So every Compare page that shows reviewable items gets a note

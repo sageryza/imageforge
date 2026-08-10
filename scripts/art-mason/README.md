@@ -55,6 +55,27 @@ exact-prompt patterns from the witch-school `na-*` noise-art set:
 `render-panels-v2.js` + `panels-v2.json`; images at
 `story-shorts/art-mason/v2/`. v1 tiles stay in Assets labeled superseded.
 
+## The shape (2026-08-10) — glance summary sheets + the pad story
+
+The Evan-style "shape of the story" pass, rebuilt from the SOURCE recordings
+(the eight 2026-07-29 memos + the 2026-07-28 metaphor machine memo), not from
+the earlier panel sets. Four 2x2 comic sheets at gpt-image-2 **low**
+(1024x1536; each quarter is 2:3), locally bisected into 16 panels (free), all
+filed to the `mason-noise-art-summary` chat's Assets tab with exact prompts.
+Style = the established Mason watercolor recipe: datescan0013 style ref (+
+mason-char-ref on the Mason sheets, both at membry
+`claude-deliveries/refs/`), plain wrapper, no style description, the
+colors-don't-have-to-match line, plus the Evan sheets' 2x2 layout line and
+no-lettering line. Images at deckfactory Storage `story-shorts/art-mason/shape/`
+(sheet-N.png full-res originals, panel-Nx.webp display crops).
+
+The 16 panels are also laid out as the pad story **"Mason — the shape"**
+(`forge-scratchpad`) in story order with one-line descriptions and Sophie's
+frame colors (mustard/green/blue/pink per her color system; chains on the
+dots+teacup pair and the two frame-stamp beats). Panel content prompts stay
+out of the repo with the transcripts; the exact prompts are on the Assets
+tiles (PROMPT button) and on each pad beat's `src.prompt`.
+
 ## Watercolor style test (2026-08-03)
 
 New style direction Sophie is testing: the loose ink-and-watercolor
