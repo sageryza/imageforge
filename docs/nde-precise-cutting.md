@@ -142,6 +142,18 @@ found 21 pauses (27.8s) vs room tone's 13 runs (7.1s), with only 3 overlapping
 — the breath pass is the workhorse, room tone is the sweeper. Both stay.
 
 ### Assembling a narration FILM from a voice memo (Aug 2026, the Evan film)
+
+**Use `node scripts/vo-film.js spec.json --dir work/ --final` — do not
+hand-roll this pipeline again.** It encodes everything below plus the Mason
+film's later findings (word-timing pause removal for noisy rooms, film-level
+quiet thresholds, blip tolerance, long-edge-only trims, exact per-shot video
+segments), renders TTS bridges on her clone, and caches per-shot verdicts by
+content hash — so a one-beat change re-cuts and re-verifies one beat instead
+of re-transcribing the whole film, which is where both film chats' time went.
+The spec format is documented in the script's header. What follows is the
+WHY, kept because the next new failure will need the reasoning, not just the
+tool.
+
 Cutting selected takes out of a long read-through and hanging pictures on them
 hits five failures that pause removal alone does not. All five shipped wrong at
 least once; the verifier below is what caught them.

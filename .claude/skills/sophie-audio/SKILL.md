@@ -45,6 +45,27 @@ What works, already debugged — use it, don't re-derive it:
   transcript alone is partial — the energy passes catch many of them as
   breath pauses.
 
+## Assembling a narration FILM: ONE command, don't hand-roll the pipeline
+
+**`node scripts/vo-film.js spec.json --dir work/ [--final]`** — spec in, a
+verified mp4 out. It runs the whole settled pipeline (two-pass clean of each
+ORIGINAL recording → editor.js's cutter locates every span → word-timing
+noise removal → per-shot video segments, PCM audio, one mux) with a
+**per-shot verdict cache**, so changing one beat re-cuts and re-verifies one
+beat instead of re-transcribing the film — the rebuild-verify toll both the
+Evan and Mason chats paid five-plus times each. `--final` runs the
+vo-verify full-transcription gate; run it before ANY delivery. TTS bridge
+shots (`{ "tts": "line" }`) render on her clone with the settings of record,
+and the tool prints the TTS lines so the delivery message can name them word
+for word. The spec format and every earned rule are in the file's header —
+read it before overriding anything.
+
+**One judgement call the tool can't make for you:** whether loud non-word
+sound at a cut's edge is a LAUGH (keep — the Evan film lost one) or the
+PHONE being moved (drop — the Mason memos' handling noise measured 10.9dB
+above her speech). vo-film drops it by default; if a take ends in a laugh,
+widen that phrase to the word after the laugh, or cut that one shot by hand.
+
 ## Cutting spans: ONE cutter, and splices are approved by ear
 
 - The precise cutter lives in **`editor.js`** (`phraseSpan` + `clampBounds` +
