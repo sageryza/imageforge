@@ -36,6 +36,10 @@
 //   GET  /api/chatfeed/pages-recent?limit= → newest pages across EVERY chat
 //                                  (the Status view's "new pages" strip)
 //   GET  /api/chatfeed/page/:id  → serve one (DELETE removes it)
+//   POST /api/chatfeed/notif-seen → { chat, seen } — "I've checked this one",
+//                                  the ✓ on a card in the NEW tab. A self-
+//                                  clearing stamp: anything newer brings the
+//                                  card back on its own.
 //   GET  /api/chatfeed/todos     → her running to-do list (open items first).
 //                                  ANY chat may read it and act on an item.
 //   POST /api/chatfeed/todo      → { text } — add one
@@ -718,6 +722,35 @@ router.post('/hide', async (req, res) => {
     await regRef(chat)
       .set({ hiddenAt: on ? stamp : del, hidden: del }, { merge: true });
     res.json({ ok: true, hiddenAt: on ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
+// "I've CHECKED this one" — the ✓ on a card in the NEW tab (Aug 2026, Sophie:
+// "a daily notifications thing … and I can get rid of them if I've already
+// checked them").
+//
+// A STAMP (`notifSeenAt`), the same shape as hiddenAt / answeredAt, and the
+// example she gave is exactly why it can't be a boolean: the chat that "keeps
+// delivering different versions of this artifact". Checking off v3 must not
+// silence v4 — so the card is gone only while nothing newer has landed, and
+// anything newer (a reply, a Compare page, an image) brings it back by itself.
+// Nothing has to un-check anything.
+//
+// It is deliberately SEPARATE from `seen` (which the app writes to
+// localStorage when she opens a chat) and from `answeredAt`: checking a
+// notification off says "I know about this", not "I have read the thread" and
+// not "this chat is done".
+router.post('/notif-seen', async (req, res) => {
+  try {
+    const { chat, seen } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = seen !== false;
+    const stamp = new Date().toISOString();
+    await regRef(chat).set(
+      { notifSeenAt: on ? stamp : admin.firestore.FieldValue.delete() },
+      { merge: true },
+    );
+    res.json({ ok: true, notifSeenAt: on ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 

@@ -82,18 +82,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    sliding line of `calc((100% - 56px)/2)`, since an absolutely-positioned
    child measures against the PADDING box and a plain 50% would then
    overhang the tab it underlines. translateX(100%) moves the line by its
-   own width, i.e. exactly one tab. */
+   own width, i.e. exactly one tab.
+
+   THREE tabs since Aug 2026 — ACCOUNT 1 · ACCOUNT 2 · NEW (Sophie: "right now
+   there's account one and account two, two tabs on my chat app screen — I
+   wanna make one more tab, and this is like a daily notifications thing").
+   The third one is not an account, it is a VIEW (see renderNews), which is
+   why it lights up on its own and the two account words go quiet under it.
+   The sliding line is one tab wide, so its width and the translate steps are
+   the tab count — change one and change all three. */
 .acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
   margin:-5px 0 10px;}
-.acctab{flex:1 1 50%; display:flex; align-items:center; justify-content:center; gap:5px;
-  padding:7px 6px 9px; border:none; background:none; cursor:pointer;
+.acctab{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:7px 4px 9px; border:none; background:none; cursor:pointer;
   font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .acctab.on{color:var(--ink); font-weight:600;}
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
-  width:50%; background:var(--ink);
+  width:33.3333%; background:var(--ink);
   transform:translateX(0); transition:transform .2s ease;}
 .acctabs[data-on="2"]::after{transform:translateX(100%);}
+.acctabs[data-on="new"]::after{transform:translateX(200%);}
 /* The red badge = chats in THAT account that answered her and she hasn't
    opened. Same shape and reason as the category chips' one: without it, the
    account she is not looking at would be completely silent. */
@@ -506,6 +515,38 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
+/* ---- The NEW tab's cards (Aug 2026, Sophie) -------------------------------
+   "A daily notifications thing, basically — so it includes a little more
+   information, and I can get rid of them if I've already checked them. For
+   the [oven] chat, they keep delivering different versions of this artifact,
+   so it would show the actual artifact — I guess maybe a link to it, and it
+   would just take me to their Compare tab. Or if there's a chat that's making
+   pictures, it would show the last three pictures in a little row, so I can
+   see it and be easily reminded what they're doing."
+   So a card is a ROW plus the thing itself: the chat's line on top (the same
+   name/note/time a home row shows, so it reads as the same app), then its
+   newest Compare pages as tappable titles, then up to three thumbnails. The
+   ✓ on the right is the "I've checked this" — see POST /notif-seen. */
+.nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
+  padding:4px 10px 10px; margin:0 0 10px;}
+.nwtop{display:flex; align-items:center; gap:6px;}
+/* the home row's own layout, minus its rule — the card is the boundary now */
+.nwcard .crow{border-bottom:none; flex:1; min-width:0; padding:7px 0;}
+/* A picture and a page belong to the CARD, so they run its full width and the
+   page rows lose the heavy padding they carry in the Status list. */
+.nwcard .pagerow{padding:9px 2px; font-size:.95em;}
+.nwcard .pagerow:last-child{border-bottom:none;}
+.nwimgs{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;}
+.nwimg{background:none; border:none; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.nwimg img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px;
+  border:1px solid var(--line); background:var(--barbg);}
+/* Same circle as the row's ⊖/✓ so it reads as one family of marks, in the
+   ARCHIVE green — checking a notification off is a settling gesture, not an
+   alarm, and the red on this screen belongs to the hidden bar and the badges. */
+.nwck{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent; border-radius:50%; width:31px; height:31px; flex:none;
+  background:rgba(250,247,240,.92); color:#5d7a5a; box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.nwck svg{width:15px; height:15px; display:block;}
 .stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
 .stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
 .stcell img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
@@ -775,6 +816,7 @@ body.ontop > .float{display:none !important;}
     <div id="accrow" class="acctabs" data-on="1">
       <button class="acctab" data-acct="1"></button>
       <button class="acctab" data-acct="2"></button>
+      <button class="acctab" data-acct="new"></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
@@ -1201,7 +1243,7 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news'
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
@@ -1209,7 +1251,8 @@ function paintHomeChrome(){
   var inHidden = (homeView==='live' && hideOpen);
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
-    : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do' : 'Chats';
+    : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
+    : homeView==='news' ? 'New' : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
   // The words never change and never disappear (Aug 2026, Sophie: "when I
@@ -1226,15 +1269,21 @@ function paintHomeChrome(){
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
   // useful everywhere, so it stays and the row keeps its place.
-  var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo');
+  // NEW is in this set too: its cards are one per chat but they are
+  // notifications, not the filing surface — a category chip or a select
+  // checkbox there would be a control that does nothing to what is on screen.
+  var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo'||homeView==='news');
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   // The account tabs split a list of CHATS, so they belong on the chat list
   // and the archive and nowhere else — bookmarks and to-dos are not chats,
   // and Status is deliberately unfiltered (it is the everything-at-once
   // view, like it is for categories).
+  // The ROW itself always stays on the NEW view, though — it is what the
+  // third tab lives in, and hiding it would leave that view with no way out
+  // except the title.
   var acc=document.getElementById('accrow');
-  if(acc) acc.style.display = other ? 'none' : '';
+  if(acc) acc.style.display = (other && homeView!=='news') ? 'none' : '';
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -1486,17 +1535,21 @@ function paintTodo(el){
 // The chat sections are derived from data the page already holds (registry +
 // feed tail) so they paint instantly; only the delivered strip fetches, into
 // placeholders, cached for a minute.
+// SHARED with the NEW tab, which is why the limits are the routes' maximums
+// rather than what Status shows: NEW needs up to three pictures for EACH chat
+// that has been drawing, so a 24-image window would be one busy chat and
+// nothing else. The Status painters slice back down to what they show.
 var stCache={assets:null, pages:null, at:0};
 function stFetch(cb){
   if(stCache.at && Date.now()-stCache.at<60000) return cb();
   var pend=2;
   function one(){ if(--pend===0){ stCache.at=Date.now(); cb(); } }
-  api('/api/gallery/assets/recent?limit=24&_='+Date.now())
+  api('/api/gallery/assets/recent?limit=60&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){ stCache.assets=(d&&d.assets)||[]; })
     .catch(function(){ stCache.assets=stCache.assets||[]; })
     .then(one);
-  api('/api/chatfeed/pages-recent?limit=6&_='+Date.now())
+  api('/api/chatfeed/pages-recent?limit=20&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){ stCache.pages=(d&&d.pages)||[]; })
     .catch(function(){ stCache.pages=stCache.pages||[]; })
@@ -1530,7 +1583,9 @@ function stRow(name, list, last, snip, live){
   return row;
 }
 function paintStAssets(box){
-  var a=stCache.assets||[];
+  // the cache is filled for the NEW tab's per-chat rows; this strip shows the
+  // 24 it always did
+  var a=(stCache.assets||[]).slice(0,24);
   box.innerHTML='';
   if(!a.length){ box.innerHTML='<div class="stquiet">No images delivered yet.</div>'; return; }
   var grid=document.createElement('div'); grid.className='stgrid';
@@ -1553,7 +1608,7 @@ function paintStAssets(box){
   box.appendChild(grid);
 }
 function paintStPages(box){
-  var ps=stCache.pages||[];
+  var ps=(stCache.pages||[]).slice(0,6);
   box.innerHTML='';
   if(!ps.length) return;
   box.appendChild(stHead('New pages'));
@@ -1622,6 +1677,170 @@ function renderStatus(el){
     el.appendChild(dl);
   }
 }
+// ---- NEW — the third tab (Aug 2026, Sophie) --------------------------------
+// "Right now there's account one and account two, two tabs on my chat app
+// screen. I wanna make one more tab, and this is like a daily notifications
+// thing — so it includes a little more information, and I can get rid of them
+// if I've already checked them. For the [oven] chat, they keep delivering
+// different versions of this artifact, so it would show the actual artifact —
+// I guess maybe a link to it, and it would just take me to their Compare tab.
+// Or if there's a chat that's making pictures, it would show the last three
+// pictures in a little row, so I can see it and be easily reminded what
+// they're doing."
+//
+// So this is NOT another filter over the chat list — it is one card per chat
+// that has something she hasn't seen, carrying the THING itself rather than a
+// line about it. Three rules hold it together:
+//
+//   • WHAT COUNTS AS NEW is the newest of three arrivals — a reply that isn't
+//     hers, a Compare page, an image — because a chat can deliver without
+//     saying anything, and the artifact is the point.
+//   • A CARD LEAVES ON ITS OWN when she opens the chat (`seen`, the same
+//     local mark the unread dot reads) or when she taps the ✓
+//     (`notifSeenAt` on the registry). Both are STAMPS compared against that
+//     arrival time, never booleans — which is the whole answer to her oven
+//     example: checking off v3 cannot silence v4, and nothing has to
+//     un-check anything when v4 lands.
+//   • IT IGNORES THE ACCOUNT TABS, like Status does. This is the
+//     what-happened-while-I-was-away screen; splitting it in half would mean
+//     checking two screens to know she is caught up. The card still carries
+//     the account digit, so she can see which is which.
+//
+// Everything here reads the caches the page already has: the registry + feed
+// tail for the chats, and stCache (assets/recent + pages-recent, the same
+// one-minute cache the Status view uses) for the deliveries.
+function newsIndex(){
+  var imgs={}, pgs={};
+  (stCache.assets||[]).forEach(function(a){ if(a.chat) (imgs[a.chat]=imgs[a.chat]||[]).push(a); });
+  (stCache.pages||[]).forEach(function(p){ if(p.chat) (pgs[p.chat]=pgs[p.chat]||[]).push(p); });
+  return { imgs:imgs, pgs:pgs };
+}
+// The floor a card has to clear: whichever of the two "I know about this"
+// marks is later. `seen` is per-DEVICE (localStorage) and notifSeenAt is on
+// the registry, so the ✓ she taps on the phone also settles the card on the
+// laptop, while simply reading a chat settles it where she read it.
+function newsFloor(name){
+  var s=seen[name]||'', n=(chats[name]&&chats[name].notifSeenAt)||'';
+  return s>n ? s : n;
+}
+function newsItems(g){
+  var ix=newsIndex(), out=[], done={};
+  // sortedChatNames covers the registry AND anything in the feed, and this
+  // view is deliberately NOT account-filtered, so it is used raw here.
+  sortedChatNames(g).forEach(function(name){
+    if(done[name]) return; done[name]=1;
+    if(chats[name]&&chats[name].archived) return;
+    var list=g[name]||[];
+    var last=list.length? list[list.length-1] : null;
+    // up to three pictures and two pages — "the last three pictures in a
+    // little row" is her spec, and both server lists arrive newest-first.
+    var pics=(ix.imgs[name]||[]).slice(0,3);
+    var pages=(ix.pgs[name]||[]).slice(0,2);
+    var at='';
+    function bump(t){ if(t && t>at) at=t; }
+    if(last && last.from!=='sophie') bump(last.created||'');
+    pics.forEach(function(p){ bump(p.created||''); });
+    pages.forEach(function(p){ bump(p.created||''); });
+    if(!at || at<=newsFloor(name)) return;
+    out.push({ chat:name, list:list, last:last, pics:pics, pages:pages, at:at });
+  });
+  out.sort(function(a,b){ return a.at<b.at?1:-1; });
+  return out;
+}
+var NWCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+function newsCard(it){
+  var card=document.createElement('div'); card.className='nwcard'; card.dataset.chat=it.chat;
+  var top=document.createElement('div'); top.className='nwtop';
+  // The same row the home list draws — name, her note or the chat's status
+  // line, and how long ago — so the two screens read as one app.
+  var row=document.createElement('button'); row.className='crow'; row.dataset.chat=it.chat;
+  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic')
+    +'<span class="cr-body"><span class="cr-name">'+esc(dispName(it.chat))+'</span>'
+    +statusLinesHtml(it.chat, statusFor(it.list))+'</span>'
+    +'<span class="cr-time">'+ago(it.at)+'</span>';
+  row.onclick=function(){ openChat(it.chat); };
+  top.appendChild(row);
+  top.appendChild(newsCheck(it,card));
+  card.appendChild(top);
+  // The artifact itself: its title opens the page full-screen, which is what
+  // she actually wants from "a link to it" — the Compare tab is one more tap
+  // to the same place.
+  it.pages.forEach(function(p){
+    var pr=document.createElement('button'); pr.className='pagerow';
+    pr.innerHTML='<span class="pr-title">'+esc(p.title||'Untitled page')+'</span>'
+      +'<span class="pr-time">'+ago(p.created)+'</span>';
+    pr.onclick=function(){ openPage(p); };
+    card.appendChild(pr);
+  });
+  if(it.pics.length){
+    var grid=document.createElement('div'); grid.className='nwimgs';
+    it.pics.forEach(function(a){
+      var c=document.createElement('button'); c.className='nwimg';
+      c.setAttribute('aria-label', a.description||'Open this chat’s pictures');
+      var img=document.createElement('img'); img.alt=''; img.decoding='async'; img.loading='lazy';
+      var triedFb=false;
+      img.src=a.thumb||assetThumb(a.url);
+      // direct storage thumb → on-demand /api/story/thumb → hide (image gone)
+      img.onerror=function(){
+        if(!triedFb && a.thumb){ triedFb=true; img.src=assetThumb(a.url); return; }
+        c.style.display='none';
+      };
+      c.appendChild(img);
+      c.onclick=function(){ curTab='assets'; openChat(it.chat); };
+      grid.appendChild(c);
+    });
+    card.appendChild(grid);
+  }
+  return card;
+}
+// "I've already checked this." Optimistic — the card goes on the tap and the
+// stamp is rolled back if the write fails, because the whole gesture is
+// clearing a screen and a card that lingers for a round-trip reads as a
+// missed tap. The tab's badge is repainted with it, or the number would still
+// be counting the card she just cleared.
+function newsCheck(it, card){
+  var b=document.createElement('button'); b.className='nwck'; b.innerHTML=NWCK;
+  b.setAttribute('aria-label','I have checked this — take it off the list');
+  b.onclick=function(e){
+    e.stopPropagation();
+    var prev=(chats[it.chat]&&chats[it.chat].notifSeenAt)||null;
+    chats[it.chat]=chats[it.chat]||{};
+    chats[it.chat].notifSeenAt=new Date().toISOString();
+    card.remove();
+    paintAcctTabs(groups());
+    newsEmptyCheck();
+    api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:it.chat,seen:true})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0; if(d.notifSeenAt) chats[it.chat].notifSeenAt=d.notifSeenAt; })
+      .catch(function(){
+        if(prev) chats[it.chat].notifSeenAt=prev; else delete chats[it.chat].notifSeenAt;
+        toast('Couldn’t save'); if(homeView==='news') renderHome();
+      });
+  };
+  return b;
+}
+function newsEmptyCheck(){
+  var el=document.getElementById('grid');
+  if(homeView!=='news' || el.querySelector('.nwcard')) return;
+  el.innerHTML='<div class="state">Nothing new — you’re all caught up.</div>';
+}
+function renderNews(el){
+  var g=groups();
+  function paint(){
+    if(homeView!=='news') return;            // she left while it loaded
+    el.innerHTML='';
+    var items=newsItems(g);
+    if(!items.length){ newsEmptyCheck(); return; }
+    items.forEach(function(it){ el.appendChild(newsCard(it)); });
+    paintAcctTabs(g);                        // the badge, once the pictures land
+    if(window.__jumpsRecheck) window.__jumpsRecheck();
+  }
+  // Paint immediately from what we already hold (the chats' own replies), then
+  // again when the delivered caches land — a screen that says "loading" while
+  // it already knows about six chats is a screen she can't read.
+  paint();
+  stFetch(paint);
+}
 // ---- The HIDDEN bar --------------------------------------------------------
 // A red bar at the top of where the chats live (Aug 2026, Sophie): the chats
 // she has taken out of the list wait behind it, so the rest of the list is
@@ -1685,22 +1904,44 @@ function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return (a==
 function acctMatch(name){ var a=acctOf(name); return !a || a===acctFilter(); }
 function paintAcctTabs(g){
   var row=document.getElementById('accrow'); if(!row) return;
-  var on=acctFilter();
+  // The NEW tab is a VIEW, not an account, so while she is in it neither
+  // account word is lit and the line sits under the third slot.
+  var on=(homeView==='news') ? 'new' : acctFilter();
   row.setAttribute('data-on', on);
   Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
     var v=b.dataset.acct;
-    // How many chats in THAT account have answered her and are unopened —
-    // counted per CHAT, exactly like the category chips' badge, so the tab
-    // she is not on can still say "there are three waiting over here".
-    var fresh=Object.keys(chats).filter(function(n){
-      if(chats[n]&&chats[n].archived) return false;
-      var a=acctOf(n); if(a && a!==v) return false;
-      return chatAnswered(n, lastOf(g,n));
-    }).length;
+    var fresh, label, hint;
+    if(v==='new'){
+      // the badge counts CARDS — the chats with something she hasn't seen —
+      // so the tab says whether it is worth opening.
+      // A chat can deliver pictures without saying anything, so the number is
+      // only honest once the delivered caches are in: fetch them ONCE per
+      // load from here (Refresh drops the cache, and entering the view
+      // re-asks on its own TTL). Deliberately not on every paint — that route
+      // reads 240 Firestore documents a call, and the home screen polls.
+      // (no recursion: stFetch stamps stCache.at before it calls back, so the
+      // repaint below can never start a second fetch)
+      if(!stCache.at) stFetch(function(){ paintAcctTabs(groups()); });
+      fresh=newsItems(g).length; label='New';
+      hint = fresh ? fresh+' new' : 'nothing new';
+    } else {
+      // How many chats in THAT account have answered her and are unopened —
+      // counted per CHAT, exactly like the category chips' badge, so the tab
+      // she is not on can still say "there are three waiting over here".
+      fresh=Object.keys(chats).filter(function(n){
+        if(chats[n]&&chats[n].archived) return false;
+        var a=acctOf(n); if(a && a!==v) return false;
+        return chatAnswered(n, lastOf(g,n));
+      }).length;
+      label='Account '+v;
+      hint = fresh ? fresh+' answered you' : '';
+    }
     b.classList.toggle('on', v===on);
-    b.innerHTML='Account '+v+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
-    b.setAttribute('aria-label','Account '+v+(fresh?' — '+fresh+' answered you':''));
-    b.onclick=function(){ acctTab=v; renderHome(); window.scrollTo(0,0); };
+    b.innerHTML=esc(label)+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label', label+(hint?' — '+hint:''));
+    b.onclick = v==='new'
+      ? function(){ setHomeView('news'); }        // tap it again to come back
+      : function(){ acctTab=v; if(homeView==='news') homeView='live'; renderHome(); window.scrollTo(0,0); };
   });
 }
 // The tests' way in (no other code should set the tab directly).
@@ -1931,7 +2172,9 @@ function renderHome(){
   // ★ is its own pile and it reaches INTO the archive: these are chats she has
   // finished with and put away, so stopping at `archived` would hide most of
   // them. It replaces the whole list rather than narrowing it.
-  if(starOnly){
+  // …unless she is in NEW, which is not a list of chats at all — a ★ filter
+  // left on from earlier would otherwise swallow the whole view.
+  if(starOnly && homeView!=='news'){
     var st=all.filter(chatStar);
     paintHomeChrome(); paintAcctTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
@@ -1963,6 +2206,7 @@ function renderHome(){
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
+  if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
   if(homeView==='status'){ renderStatus(el); return; }
@@ -3419,7 +3663,10 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('searchbtn').onclick=function(){ setSearchOpen(true); };
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+// Refresh drops the delivered cache too (Aug 2026) \u2014 with the NEW tab reading
+// it, "refresh" has to mean the pictures and pages as well as the messages, or
+// the one-minute TTL quietly outlives the tap.
+document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
 document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
