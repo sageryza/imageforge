@@ -3192,10 +3192,10 @@ lifted into a standalone tool later.
   asked for). The pages still serve at their URLs for a chat or a browser.
 - **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
-  above the module cards sits a row of six rounded squares, **icons only**
+  above the module cards sits a row of five rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  TWO open a tool (**Dump**, which itself now opens on SORT, and **Chats**);
-  the other four FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  ONE opens a tool (**Chats**); the other four FILTER the cards below
+  (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
   card at all), **briefcase** = business, **quilt** = old fashioned, **film**
   = everything that makes or cuts moving pictures AND sound (Movies, Films,
@@ -3233,8 +3233,12 @@ lifted into a standalone tool later.
   RIGHT with Chats on the very end (its original spot). The briefcase and
   quilt corners fire the same filters as their row squares — several
   controls live in two places on purpose ("it can be in two places, silly"),
-  which is also why the row is six rather than the five it started as. Don't
-  "fix" the duplicates.
+  so don't "fix" those duplicates. **The DUMP square came OFF the row (Aug
+  2026, Sophie: "get rid of the dump button in the row at the top since it's
+  now in the main home screen as the default")** — a shortcut to a tool whose
+  card sits two inches below it stopped earning its slot once the film tools
+  left and the grid got short. That is the one duplicate she did want gone;
+  Chats stays in both places.
   **They are SQUARES, and the lit state is a thicker gold outline over a
   light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
   gold) — v1 stretched them into rectangles by sharing the row width out,
