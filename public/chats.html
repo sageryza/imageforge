@@ -3345,15 +3345,28 @@ document.getElementById('back').onclick=goHome;
   // it has always been. That gives a natural progression on a long thread:
   // one tap lands on the end of the message, the next carries on down the
   // page — and on the chat list, where nothing is open, nothing changes.
+  // How much of the bottom edge these arrows are sitting on. A message's LAST
+  // ROW is its bookmark + Open-in-Claude pair, so landing the end flush
+  // against the bottom parks the arrows exactly on top of the Open button
+  // (Sophie caught it the first time she used the jump). Measured live rather
+  // than hard-coded, so it stays right if the pair ever changes size — and it
+  // falls back to a hairline of air when neither arrow is showing, since then
+  // there is nothing to clear. (The page-BOTTOM jump needs none of this:
+  // `.wrap` already ends in 16vh of padding, which is more than the pair.)
+  function bottomReserve(){
+    var j=document.querySelector('.jumps');
+    if(!j || !j.querySelector('.totop.show')) return 14;
+    return Math.max(14, Math.round(window.innerHeight - j.getBoundingClientRect().top + 10));
+  }
   function openMsgEnd(){
     var rows=document.querySelectorAll('#thread .msg.open');
-    var vh=window.innerHeight;
+    var vh=window.innerHeight, pad=bottomReserve();
     for(var i=0;i<rows.length;i++){
       var r=rows[i].getBoundingClientRect();
       if(r.bottom<=0 || r.top>=vh) continue;   // not on screen at all
-      if(r.bottom<=vh-8) continue;             // she can already see where it ends
-      // land its last line just inside the bottom edge, never flush against it
-      return Math.max(0, Math.round(window.scrollY + r.bottom - vh + 14));
+      if(r.bottom<=vh-pad) continue;           // its end is already clear of them
+      // land its last line above the arrows, never underneath them
+      return Math.max(0, Math.round(window.scrollY + r.bottom - vh + pad));
     }
     return null;
   }

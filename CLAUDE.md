@@ -1421,9 +1421,18 @@ lifted into a standalone tool later.
   different question from "the end of everything". `openMsgEnd()` takes over
   only when an open message is genuinely on screen AND its end is still below
   the fold; otherwise the button is the page-bottom jump it always was. So a
-  long thread reads as a progression — one tap lands on the message's end
-  (its last line 14px inside the edge, never flush), the next carries on down
-  the page — and on the chat list, where nothing is open, nothing changes.
+  long thread reads as a progression — one tap lands on the message's end,
+  the next carries on down the page — and on the chat list, where nothing is
+  open, nothing changes.
+  **IT LANDS ABOVE THE ARROWS, NOT UNDER THEM** (Sophie, the first time she
+  used it: "the arrow buttons when I go to the bottom of a message now sit
+  right where the Open in Claude button is"). A message's LAST ROW is its
+  bookmark + Open-in-Claude pair, so a flush landing parks the floating pair
+  exactly on top of the Open button. `bottomReserve()` measures what `.jumps`
+  is actually occupying — live, not hard-coded, so it stays right if the pair
+  changes size — and falls back to a hairline when neither arrow is showing.
+  The page-BOTTOM jump needs none of this: `.wrap` ends in 16vh of padding,
+  which already clears the pair.
   The show/hide rule follows the same target, since the page bottom can be
   close while the message still has a screen to go. Tests:
   `node scripts/test-chats-jump-message.js` (verified failing without it). The
