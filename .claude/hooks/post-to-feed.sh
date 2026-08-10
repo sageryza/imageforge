@@ -3,6 +3,19 @@
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v11 (Aug 2026) — HOOK VERSION TELEMETRY (Sophie's ask, 2026-08-10: stop
+# making her hunt for stale chats). The turn-start ping now carries the md5 of
+# THIS INSTALLED FILE; the server compares it to the repo copy it ships
+# (setup.sh installs byte-identical — verified 2026-08-10) and marks the
+# chat's registry doc stale/current, and the Chats app shows "hook out of
+# date" on the row. Detection ONLY: this hook never fetches or executes
+# anything, and never instructs the chat to — the heal stays a deliberate
+# paste of the self-heal command into the chat. Two stronger designs (the
+# hook auto-running the setup script; the hook telling the chat's model to
+# run it) were built 2026-08-10 WITH Sophie's permission and refused by the
+# harness classifier both times — that is a hard boundary, so don't re-walk
+# it; see CLAUDE.md (the Chat app section) before touching this.
+#
 # v8 (Aug 2026) — TURN-START PING: UserPromptSubmit tells the feed the chat is
 # working (POST /working), so the Chats app can tint it until the reply lands.
 #
@@ -215,7 +228,11 @@ resolve_name
 # the chat — so it can fire the moment she sends. Backgrounded: a hook must
 # never make her wait, and a lost ping only costs one tint.
 if [ "$event" = "UserPromptSubmit" ]; then
-  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" '{chat:$c, session:$s}')" ) >/dev/null 2>&1 &
+  # v11: the ping also carries this installed file's md5, so the server can
+  # mark the chat stale/current and the app can show it. Telemetry only —
+  # nothing here fetches, executes, or instructs (see the v11 header note).
+  hook_v=$(md5sum "$HOME/.claude/hooks/post-to-feed.sh" 2>/dev/null | cut -d' ' -f1)
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" '{chat:$c, session:$s, v:$v}')" ) >/dev/null 2>&1 &
 fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
