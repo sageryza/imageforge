@@ -1646,6 +1646,29 @@
         </div>
 
         <div class="kicker" id="today-date">Today</div>
+
+        <!-- Witch School — the home entrance to the curriculum (Aug 2026). It
+             sits in the slot the daily astrology reading used to hold: the
+             first thing under Synchronicities is now the school, not a
+             horoscope. Filled by renderSchoolHome(). -->
+        <div class="section-title">Witch School</div>
+        <div class="section-sub">Eighteen illustrated lessons, at your own pace.</div>
+        <div class="card" id="school-home-card" role="button" tabindex="0">
+          <div class="cards-title" id="sch-home-path">The Craft</div>
+          <div id="sch-home-next" style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;"></div>
+          <div id="sch-home-moons" style="margin-bottom:10px;"></div>
+          <p class="hint" id="sch-home-prog"></p>
+          <button class="btn" id="sch-home-btn" type="button">Open the school</button>
+        </div>
+
+        <!-- ASTROLOGY — taken off Home (Aug 2026, Sophie). The daily sky
+             reading and the birth-chart form were the app's front door and
+             read as a horoscope app; App Review cited exactly that under
+             4.3(b). The markup and every function are kept intact and simply
+             not shown, so the birth chart can come back inside the "Your Sky,
+             Read" lesson when Sophie decides how she wants it. renderHome()
+             force-hides everything in here — see HOME_DIVINATION. -->
+        <div id="home-astro" style="display:none;">
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
@@ -1707,8 +1730,9 @@
             <div class="note" id="astro-note"></div>
           </div>
         </div>
+        </div><!-- /#home-astro -->
 
-        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0]; sits under the daily reading -->
+        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0] -->
         <div class="prow" id="prow-1"></div>
 
         <!-- "Are you secretly a witch?" — Home entry; opens the full-screen quiz app -->
@@ -4758,6 +4782,66 @@
     if (accountsConfigured !== false && !fbUser) return 'gate';    // then create an account to unlock it
     return 'ready';
   }
+  // Astrology + tarot on HOME. Off since Aug 2026 (see renderHome). One flag
+  // restores both; the lessons that teach them are untouched either way.
+  const HOME_DIVINATION = false;
+
+  // ── Witch School on Home ──────────────────────────────────────────────
+  // The school's front door, in the slot the daily reading used to hold. It
+  // shows the course she is furthest into — the one with lessons done but not
+  // all of them — so the card follows her through the curriculum instead of
+  // always pointing at the same place. Nothing started yet → the first course.
+  // Reads the same schoolProgress()/courseProgress() the School tab does, so
+  // the two can never disagree.
+  function schoolHomePick() {
+    if (typeof SCHOOL_COURSES === 'undefined') return null;
+    let started = null, fresh = null;
+    for (const c of SCHOOL_COURSES) {
+      const p = courseProgress(c);
+      if (p.done > 0 && p.done < p.total) { started = started || { c, p }; }
+      if (p.done === 0 && !fresh) fresh = { c, p };
+    }
+    if (started) return started;
+    if (fresh) return fresh;
+    const c = SCHOOL_COURSES[0];
+    return c ? { c, p: courseProgress(c) } : null;
+  }
+  function renderSchoolHome() {
+    const card = $('school-home-card'); if (!card) return;
+    const pick = schoolHomePick(); if (!pick) return;
+    const { c, p } = pick;
+    const prog = schoolProgress();
+    // Same "where am I" rule the course path uses: a lesson opened but not
+    // finished wins, else the first unfinished one.
+    const nextKey = c.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0)
+      || c.lessons.find(k => !(prog[k] && prog[k].done));
+    const titles = (typeof LESSON_TITLES !== 'undefined') ? LESSON_TITLES : {};
+    const done = p.done >= p.total;
+    $('sch-home-path').textContent = c.title;
+    $('sch-home-next').textContent = done
+      ? 'Course complete'
+      : (titles[nextKey] || c.sub);
+    const moons = $('sch-home-moons');
+    if (moons) moons.innerHTML = (typeof courseMoon === 'function') ? courseMoon(p.done, p.total, 15) : '';
+    $('sch-home-prog').textContent = p.done
+      ? `${p.done} of ${p.total} lessons done`
+      : `${p.total} ${p.total === 1 ? 'lesson' : 'lessons'} · start any time`;
+    $('sch-home-btn').textContent = p.done && !done ? 'Keep going' : (done ? 'Open the school' : 'Start the course');
+  }
+  // The whole card is the tap target, and the button inside it must not fire
+  // the handler twice.
+  (function () {
+    const card = $('school-home-card'); if (!card) return;
+    const open = (e) => {
+      if (e) e.stopPropagation();
+      const pick = schoolHomePick();
+      go('school');
+      if (pick) { schoolCourse = pick.c.id; try { renderSchoolPath(); } catch (e) {} }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
+  })();
   function renderHome() {
     // Preview mode: /witch?wheel just parks on the spinning astrology wheel so
     // it can be watched as long as you like (the real reading is cached and
@@ -4768,6 +4852,18 @@
       $('daily-reading').style.display = '';
       $('tarot-card').style.display = 'none';
       setAstroLoading();
+      return;
+    }
+    // Divination is OFF the home screen (Aug 2026, Sophie — App Review 4.3(b)
+    // called the app a horoscope app, and the daily sky reading plus the birth
+    // form were the front door). Flip HOME_DIVINATION back to true to restore
+    // both cards exactly as they were; nothing else was deleted. The tarot card
+    // has to be force-hidden here too, not just in the markup, because the line
+    // below would otherwise un-hide it the moment homeState() reached 'ready'.
+    if (!HOME_DIVINATION) {
+      const astro = $('home-astro'); if (astro) astro.style.display = 'none';
+      const tc = $('tarot-card'); if (tc) tc.style.display = 'none';
+      try { renderSchoolHome(); } catch (e) {}
       return;
     }
     const s = homeState();
@@ -6110,7 +6206,7 @@
     { img: 'tr-07', bg: '#fdf9f4', kicker: 'The reading', h: 'The mirror', body: 'Modern readers rarely use the cards to predict events. Treat a card as a mirror: the picture asks, <i>“where is this in your life right now?”</i> A reading maps the present — what\'s helping, what\'s blocking — more than it fixes the future.' },
     { img: 'tr-08', bg: '#fdfaf7', kicker: 'The practice', h: 'One card a day', body: 'Learn the deck with one habit: draw a single card each morning, look at it properly, and jot one line about where it showed up by nightfall. In three months of mornings you\'ll know the deck like a neighborhood.' },
     { img: 'tr-09', bg: '#fcf3e8', kicker: 'The spreads', h: 'Start with three', body: '<b>Past · Present · Future</b> — or “what\'s helping · what\'s blocking · what to do” — is the spread to learn first. Put your care into an honest, specific question; once three cards feel fluent, the great spreads — the Celtic Cross and its kin — will open from there.' },
-    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: 'You\'re holding a deck right now — this app deals your daily three from the real 1909 deck.<br><br><b>Tonight:</b> pull your cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them. ✦', cta: { label: 'Draw today\'s cards', go: 'home', el: 'tarot-card', fallback: 'natal-form' } },
+    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: '<b>Tonight:</b> pull three cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them — the picture will tell you most of it before the book does. ✦' },
   ];
   const SIGNS_CARDS = [
     { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'The world puts things in your path — a feather where you sat down, the same number three times before noon, a bird that will not leave the window. This lesson is the craft of reading them: how witches have always taken feathers, birds and uncanny repeats seriously, and how to do it without fooling yourself.' },
@@ -6289,7 +6385,11 @@
   // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
     { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
-    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'sync', 'dream'] },
+    // 'mysky' ("Your Sky, Read") is OUT of the path for now (Aug 2026): it
+    // casts the reader's real birth chart, and the birth form it needs came
+    // off Home with the rest of the astrology. Its code is untouched — putting
+    // the form inside this lesson is the planned way to give the chart back.
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'signs', 'sync', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
     { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
@@ -7113,9 +7213,10 @@
      reveals them rather than doing nothing. Tab items just switch tabs. */
   const JUMPS = [
     { label: 'Synchronicities', view: 'home', el: 'coincidence-card' },
-    { label: 'Your daily reading', view: 'home', el: 'daily-card' },
+    // 'Your daily reading' and 'Tarot' are gone with the cards they scrolled
+    // to (Aug 2026) — a jump row pointing at a hidden element does nothing.
+    // Witch School already has its own row further down, to the School TAB.
     { label: 'The quiz', view: 'home', el: 'quiz-card' },
-    { label: 'Tarot', view: 'home', el: 'tarot-card', fallback: 'daily-card' },
     { label: 'Dreams', view: 'home', el: 'dream-card' },
     { label: 'The moon', view: 'home', el: 'moon-card', fallback: 'dream-card' },
     { label: 'Witch School', view: 'school' },
