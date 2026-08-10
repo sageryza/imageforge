@@ -76,6 +76,17 @@ post () {  # $1 = url, $2 = json body (retries once; long timeout for cold start
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
 }
 
+post_ok () {  # like post, but ECHOES the server's response so the caller can
+              # tell a real {"ok":true} from a failure. curl exits 0 on an
+              # HTTP error, so the exit code alone says nothing — the sandbox
+              # egress filter answers 403 with an HTML block page and exit 0
+              # (2026-08-10, live: a reply carrying the setup.sh one-liner).
+  curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" 2>/dev/null \
+  || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" 2>/dev/null || true
+}
+
 # One chat per SESSION (Aug 2026): a chat's identity is the SESSION, not the
 # branch-derived slug — branch names get reused and naming conventions change,
 # and both merged or split threads for real (the "Imprint" collision, then its
@@ -510,13 +521,20 @@ for tn in turns:
     # Open button — Claude app vs browser — off this tag.
     if os.environ.get('FORGE_ACCOUNT', '').strip():
         out["account"] = os.environ['FORGE_ACCOUNT'].strip()[:20]
-    feeds.append(out)
-    new_posted.add(tn['mid'])
+    feeds.append((tn['mid'], out))
+# The ledger records a turn ONLY AFTER its post is confirmed — the bash side
+# appends each mid when the server really answers {"ok":true}. It used to
+# record BEFORE posting, so one failed POST (the egress filter's block page
+# arrives as a 403 with curl exit 0) marked a reply posted forever while the
+# feed never received it — found live 2026-08-10, a full reply stranded as
+# its 570-char draft.
 os.makedirs(os.path.dirname(sf), exist_ok=True)
-open(sf, 'w').write('\n'.join(sorted(new_posted)))
+# trailing newline matters: the bash side APPENDS confirmed ids, and without
+# it the first append fuses with the last id into one corrupted line
+open(sf, 'w').write('\n'.join(sorted(new_posted)) + ('\n' if new_posted else ''))
 
-for fp in feeds:
-    print('F\t' + json.dumps(fp))
+for mid, fp in feeds:
+    print('F\t' + mid + '\t' + json.dumps(fp))
 for g in gallery:
     print('G\t' + json.dumps(g))
 PY
@@ -529,9 +547,17 @@ printf '%s\n' "$out" | sed -n 's/^U\t//p' | while IFS= read -r up; do
 done
 
 # post each un-posted turn (oldest first — usually just the latest, more when
-# backfilling ones the hook missed)
-printf '%s\n' "$out" | sed -n 's/^F\t//p' | while IFS= read -r fp; do
-  [ -n "$fp" ] && post "$FEED" "$fp"
+# backfilling ones the hook missed). Its id goes into the posted-ledger ONLY
+# when the server really answered ok — a blocked or failed post stays
+# un-recorded, so the next event RETRIES it instead of losing it silently.
+printf '%s\n' "$out" | sed -n 's/^F\t//p' | while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  mid=${line%%$'\t'*}
+  fp=${line#*$'\t'}
+  resp=$(post_ok "$FEED" "$fp")
+  case "$resp" in
+    *'"ok":true'*) printf '%s\n' "$mid" >> "$state" ;;
+  esac
 done
 
 # file each new image deliverable into the gallery

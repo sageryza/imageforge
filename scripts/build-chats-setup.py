@@ -29,7 +29,10 @@ HEADER = '''#!/bin/bash
 # .claude/skills into /home/user/.claude/skills, so the repo's skills load in
 # EVERY session from the first turn — a subrepo's skills are otherwise only
 # discovered once a chat is already working in that repo (the same
-# starting-folder gotcha as the hook itself).
+# starting-folder gotcha as the hook itself). v10: a turn goes into the
+# posted-ledger only AFTER the server confirms the post — the sandbox egress
+# filter answers some payloads with a 403 block page and curl exit 0, and the
+# old record-first order stranded a full reply as its partial draft.
 # Source of truth for the hook body: imageforge/.claude/hooks/post-to-feed.sh
 # (this file is REBUILT from it by scripts in that repo — don't hand-edit the
 # hook body here).
