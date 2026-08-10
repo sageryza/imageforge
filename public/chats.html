@@ -1518,19 +1518,27 @@ function chatAnswered(name,last){
 // been a problem when chats are in stories and they don't pop out back into
 // the main list when they're done — let's have them pop back out"). Same idea
 // as the hidden pile: filing means "not in my way", not "gone".
-// It takes BOTH halves, and the second one is the load-bearing half:
-//   • the reply is unread — so reading it settles the chat back into its
-//     folder, and the next reply brings it out again,
-//   • and it landed AFTER she filed the chat (`filedAt`). Without that, filing
-//     a chat whose last reply she had never opened would put it right back on
-//     the list, and filing would look broken. A chat filed before this shipped
-//     has no stamp; all 23 were backfilled on 2026-08-10
-//     (`node scripts/backfill-filedat.js`), so a missing stamp now means the
-//     chat is not filed at all.
+// READING IT DOES NOT SETTLE IT (Sophie, same day, v2 — v1 keyed this on the
+// reply being unread and she overruled it the hour it shipped: "reading it
+// shouldn't send it back to stories — it should stay in both places until I
+// file it away again or respond"). So a popped-out chat stays on the main
+// list, read or not, until one of exactly two things happens:
+//   • she FILES IT AGAIN — re-filing renews `filedAt` past the reply (the
+//     select-mode chips write it optimistically, so the row leaves on the
+//     same tap), or
+//   • she RESPONDS — her message is then the newest thing in the chat, which
+//     ends the pop-out here AND parks the chat (auto-parking, POST /reply);
+//     the next reply pops it back out. That is the round-trip she described.
+// The `filedAt` half is still load-bearing: a reply older than the filing
+// moment never pops, or filing a chat she hadn't opened would bounce straight
+// back and the backfill day would have dumped 19 Stories chats onto the list.
+// A chat filed before the stamp existed has none; all 23 were backfilled on
+// 2026-08-10 (`node scripts/backfill-filedat.js`), so a missing stamp now
+// means the chat is not filed at all.
 // The chat NEVER leaves its folder — this only adds it to the main list too.
 function chatBack(name,last){
   var f=(chats[name]&&chats[name].filedAt)||'';
-  return !!f && chatAnswered(name,last) && (last.created||'')>f;
+  return !!f && !!last && last.from!=='sophie' && (last.created||'')>f;
 }
 // The chips carry a COUNT, and a dot when something in there is unread.
 // Filing takes a chat OUT of the main list, so without those two the chats she

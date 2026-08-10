@@ -10,7 +10,9 @@
 //      straight back and read as the feature doing nothing,
 //   2. a reply that lands AFTER she filed it puts the chat back on the main
 //      list, while it stays in its folder — it is in two places, not moved,
-//   3. reading it settles the chat back into its folder alone,
+//   3. reading it does NOT settle it — only re-filing or responding does
+//      (Sophie, v2: "it should stay in both places until I file it away
+//      again or respond"),
 //   4. a chat filed before `filedAt` existed never pops out on its own (those
 //      were backfilled once by scripts/backfill-filedat.js — this is the guard
 //      that a missing stamp can't dump a whole folder onto the list),
@@ -44,10 +46,15 @@ const MSGS = [
   { id: 'm3', chat: 'chat-open', from: 'claude', text: 'unfiled reply', tldr: 'unfiled', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
   { id: 'm4', chat: 'chat-gone', from: 'claude', text: 'archived reply', tldr: 'archived', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
 ];
-// flipped by the test: the filed chat finishes and answers her
+// flipped by the test: the filed chat finishes and answers her; then she
+// responds; then she re-files it (filedAt jumps past the reply)
 let answered = false;
+let responded = false;
+let refiledAt = '';
 const ANSWER = { id: 'm5', chat: 'chat-filed', from: 'claude', text: 'it came back', tldr: 'came back',
                  created: iso(T0 + 3600000), postedAt: iso(T0 + 3600000) };
+const HER = { id: 'm6', chat: 'chat-filed', from: 'sophie', text: 'thanks — one more thing', tldr: '',
+              created: iso(T0 + 7200000), postedAt: iso(T0 + 7200000) };
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -57,13 +64,16 @@ const server = http.createServer((req, res) => {
     return json({
       build: 'test-build-1',
       chats: {
-        'chat-filed': { lastSeen: MSGS[0].created, category: 'stories', filedAt: iso(T0 - 3600000) },
+        'chat-filed': { lastSeen: MSGS[0].created, category: 'stories', filedAt: refiledAt || iso(T0 - 3600000) },
         'chat-legacy': { lastSeen: MSGS[1].created, category: 'stories' },
         'chat-open': { lastSeen: MSGS[2].created },
         'chat-gone': { lastSeen: MSGS[3].created, category: 'stories', filedAt: iso(T0 - 3600000), archived: true },
       },
       settings: {}, truncated: [],
-      messages: since ? (answered ? [ANSWER] : []) : MSGS.concat(answered ? [ANSWER] : []),
+      messages: (() => {
+        const extra = (answered ? [ANSWER] : []).concat(responded ? [HER] : []);
+        return since ? extra : MSGS.concat(extra);
+      })(),
       delta: !!since,
     });
   }
@@ -120,7 +130,10 @@ const openFolder = async (page, on) => {
   if (!rows.includes('chat-filed')) fail('coming back took the chat OUT of its folder: ' + rows.join(','));
   await openFolder(page);   // back to the unfiled list
 
-  // 3. she reads it → it settles back into the folder alone
+  // 3. READING IT DOES NOT SETTLE IT (Sophie, v2: "reading it shouldn't send
+  //    it back to stories — it should stay in both places until I file it
+  //    away again or respond"). Mark it seen the way opening it does; it must
+  //    still be in both places after a full reload.
   await page.evaluate(() => {
     const seen = JSON.parse(localStorage.getItem('chats-seen-v1') || '{}');
     seen['chat-filed'] = new Date(Date.now() + 7200000).toISOString();
@@ -129,13 +142,33 @@ const openFolder = async (page, on) => {
   await page.reload();
   await page.waitForSelector('#grid [data-chat="chat-open"]');
   rows = await listed(page);
-  if (rows.includes('chat-filed')) fail('the chat stayed on the list after she read it: ' + rows.join(','));
+  if (!rows.includes('chat-filed')) fail('reading it sent the chat back to its folder: ' + rows.join(','));
+
+  // 6. she RESPONDS → her message is newest, so the pop-out ends (the server
+  //    also parks the chat on this path; the stub only models the message)
+  responded = true;
+  await forcePoll();
+  await page.waitForFunction(() => !document.querySelector('#grid > .clist .crow[data-chat="chat-filed"]'),
+    null, { timeout: 5000 }).catch(() => fail('her response did not end the pop-out'));
   await openFolder(page);
   rows = await listed(page);
-  if (!rows.includes('chat-filed')) fail('reading it lost the chat from its folder: ' + rows.join(','));
+  if (!rows.includes('chat-filed')) fail('responding lost the chat from its folder: ' + rows.join(','));
+  await openFolder(page);
+
+  // 7. …and the next reply after a RE-FILING stays put: filedAt renewed past
+  //    the reply means the reply is old news, not a comeback
+  responded = false;               // her message gone from the tail…
+  refiledAt = iso(T0 + 10800000);  // …and she re-filed AFTER the reply
+  await page.reload();
+  await page.waitForSelector('#grid [data-chat="chat-open"]');
+  rows = await listed(page);
+  if (rows.includes('chat-filed')) fail('re-filing did not settle the chat: ' + rows.join(','));
+  await openFolder(page);
+  rows = await listed(page);
+  if (!rows.includes('chat-filed')) fail('re-filing lost the chat from its folder: ' + rows.join(','));
 
   await browser.close();
   server.close();
   console.log(process.exitCode ? 'DONE with failures'
-    : 'OK: filing sticks, an answer brings the chat back beside its folder, reading settles it');
+    : 'OK: filing sticks, an answer pops the chat out, and only re-filing or responding settles it');
 })().catch((e) => { console.error(e); process.exit(1); });
