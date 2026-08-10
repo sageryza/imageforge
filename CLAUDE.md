@@ -1018,6 +1018,19 @@ lifted into a standalone tool later.
     build sends.** The `app:true` requirement did exactly that: the phone
     keeps a cached page for days, so her own edit was refused with
     "couldn't be saved" while the note she was trying to fix stayed put.
+- **HER OWN MESSAGE NEVER RAISES THE "NEW MESSAGE" BAR (Aug 2026, Sophie: "it
+  notifies me when my own message comes in — that's a bug").** The hook lifts
+  what she types in the Claude app into the feed, so it arrives on a delta
+  poll like anything else — and `poll()` counted every arrival toward
+  `pendingNew`, so the app told her about the message she had just sent. The
+  row dot and the answered badges have always excluded her
+  (`from!=='sophie'`); the bar was the one path that didn't, which made the
+  single signal meaning "something came back" cry wolf. `poll()` now counts
+  `news`/`mineNews` (non-sophie) for the bar while `added`/`mine` still drive
+  caching and repainting — her message is merged as before and simply appears
+  at the next natural render. Tests:
+  `node scripts/test-chats-own-message.js` (drives the real delta poll via
+  `window.__poll`; verified failing against the old counting).
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
@@ -1580,6 +1593,9 @@ lifted into a standalone tool later.
   - **`letter-spacing:.04em`** on both ("a little bit more space between the
     letters"). Caps set solid read as a block; this is enough air to tell
     the letters apart without turning a name into a label.
+  - **NOT BOLD — `font-weight:400` in both places** ("the titles shouldn't
+    be bold"). An `h1` is bold by default, so the thread header needs it
+    said out loud; caps at this size hold the row on their own.
   - **Known cost, measured 2026-08-10** against her 144 live chat names at
     390px (195px of room on a row): **96 truncate**, against 58 for the
     original serif. The two points back barely moved it — 98 → 96 — because
