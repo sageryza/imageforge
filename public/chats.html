@@ -58,6 +58,44 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
 .hctl{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
+/* ---- ACCOUNT 1 / ACCOUNT 2 — one account on screen at a time ---------------
+   Sophie's ask (Aug 2026): "look at the pattern for where it says reviews
+   versus description in the Secretly a Witch app, and follow that same
+   pattern for account 1 and account 2, so on the main page of the chats app
+   I can only see one account at a time."
+   That pattern is the witch shop sheet's `.ps-tabs`: NO boxes — two
+   half-width labels over a hairline, and a line under whichever one you are
+   reading that SLIDES across when you tap the other. Ported here verbatim in
+   shape, with this page's `--chg` where the witch app uses gold.
+   It REPLACES the masthead rule when it is showing (paintHomeChrome swaps
+   them), so there is exactly one hairline under the title, not two.
+   Two layout details are load-bearing:
+   • `padding-right:56px` reserves the autoscroll pill's corner (it covers
+     x 324–374, y 14–192, and this row lands inside that band) — without it
+     the right half of "Account 2" is under the pill and untappable, the same
+     bug that buried the to-do list's Add button.
+   • the sliding line is therefore `calc((100% - 56px)/2)` wide, not 50%: an
+     absolutely-positioned child measures against the PADDING box, so a plain
+     50% would overhang the tab it is meant to underline. translateX(100%)
+     moves it by its own width, i.e. exactly one tab. */
+.acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
+  margin:.7em 0 1em; padding-right:56px;}
+.acctab{flex:1 1 50%; display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:8px 6px 10px; border:none; background:none; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.acctab.on{color:var(--chg); font-weight:600;}
+.acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
+  width:calc((100% - 56px)/2); background:var(--chg);
+  transform:translateX(0); transition:transform .2s ease;}
+.acctabs[data-on="2"]::after{transform:translateX(100%);}
+/* The red badge = chats in THAT account that answered her and she hasn't
+   opened. Same shape and reason as the category chips' one: without it, the
+   account she is not looking at would be completely silent. */
+.acctab .cc-new{display:inline-flex; align-items:center; justify-content:center;
+  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px;
+  background:var(--chg); color:var(--paper); font-size:10px; font-weight:700;
+  letter-spacing:0;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
 .tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
@@ -652,6 +690,13 @@ body.ontop > .float{display:none !important;}
         </div>
       </div>
       <div class="rule"></div>
+      <!-- The witch shop sheet's Description/Reviews toggle, doing the same
+           job here: one account on screen at a time. Labels + badges are
+           painted by paintAcctTabs(). -->
+      <div id="accrow" class="acctabs" data-on="1">
+        <button class="acctab" data-acct="1"></button>
+        <button class="acctab" data-acct="2"></button>
+      </div>
     </header>
     <div id="toolrow" class="toolrow">
       <div id="catrow" class="catrow"></div>
@@ -1110,6 +1155,17 @@ function paintHomeChrome(){
   var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo');
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
+  // The account tabs split a list of CHATS, so they belong on the chat list
+  // and the archive and nowhere else — bookmarks and to-dos are not chats,
+  // and Status is deliberately unfiltered (it is the everything-at-once
+  // view, like it is for categories). Where they show they REPLACE the
+  // masthead rule: their own hairline is that line, and two lines 10px
+  // apart under the title reads as a mistake.
+  var acc=document.getElementById('accrow');
+  if(acc){
+    acc.style.display = other ? 'none' : '';
+    document.querySelector('.rule').style.display = other ? '' : 'none';
+  }
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -1503,6 +1559,56 @@ var cat='';
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// ---- ACCOUNT 1 / ACCOUNT 2 (Aug 2026, Sophie) ------------------------------
+// The home shows ONE account at a time, switched by the witch app's
+// Description/Reviews tab pair above the list. Unlike a category chip (which
+// narrows a pile), this SPLITS the screen in half — which is why it is a
+// labelled tab and not a third chip: the screen has to say which half she is
+// looking at, or the other 98 chats read as having vanished.
+//
+// It narrows EVERYTHING that is a list of chats — the live list, the hidden
+// pile, the ★ pile and the archive — for the same reason a chip does: a bar
+// or a badge counting chats from the account she isn't in is noise.
+// Bookmarks / To do / Status are lists of MESSAGES and items, so the tabs
+// hide there (paintHomeChrome), and the search results are deliberately
+// untouched — searching is how she looks for one specific thing, across
+// everything.
+//
+// SESSION-ONLY, like every other filter here, and it DEFAULTS to whichever
+// account the app is signed into (`appAccount`, the switch on the title
+// line) until she taps a tab — so flipping that switch also moves the list,
+// which is the whole point of the switch. Persisting a tap would show her
+// one account's chats one morning with no memory of having chosen.
+var acctTab='';
+function acctFilter(){ return acctTab || appAccount(); }
+function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return (a==='1'||a==='2')?a:''; }
+// An UNTAGGED chat shows on BOTH tabs. Measured live 2026-08-10: of 200 chats
+// only 2 carry no account, so this costs nothing — and the alternative (pick
+// a side for them) makes a chat disappear from a screen she can't tell is
+// filtered. A chat gets tagged by posting, or by the picker in its thread.
+function acctMatch(name){ var a=acctOf(name); return !a || a===acctFilter(); }
+function paintAcctTabs(g){
+  var row=document.getElementById('accrow'); if(!row) return;
+  var on=acctFilter();
+  row.setAttribute('data-on', on);
+  Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
+    var v=b.dataset.acct;
+    // How many chats in THAT account have answered her and are unopened —
+    // counted per CHAT, exactly like the category chips' badge, so the tab
+    // she is not on can still say "there are three waiting over here".
+    var fresh=Object.keys(chats).filter(function(n){
+      if(chats[n]&&chats[n].archived) return false;
+      var a=acctOf(n); if(a && a!==v) return false;
+      return chatAnswered(n, lastOf(g,n));
+    }).length;
+    b.classList.toggle('on', v===on);
+    b.innerHTML='Account '+v+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
+    b.setAttribute('aria-label','Account '+v+(fresh?' — '+fresh+' answered you':''));
+    b.onclick=function(){ acctTab=v; renderHome(); window.scrollTo(0,0); };
+  });
+}
+// The tests' way in (no other code should set the tab directly).
+window.__setAcct=function(v){ acctTab=v||''; renderHome(); };
 // STARRED — "important, work I want to refer back to, but I'm not actively
 // using them" (Sophie, Aug 2026). A permanent judgement about the chat, so a
 // plain boolean like `archived`, never a self-clearing stamp.
@@ -1569,7 +1675,9 @@ function paintCatRow(g){
   row.appendChild(sb);
   catList().forEach(function(c){
     var mine=Object.keys(chats).filter(function(n){
-      return chatCat(n)===c && !(chats[n]&&chats[n].archived);
+      // acctMatch: the badge has to count the same chats the chip will SHOW,
+      // or a folder promises replies that are on the other account's tab.
+      return chatCat(n)===c && !(chats[n]&&chats[n].archived) && acctMatch(n);
     });
     // how many chats in here have ANSWERED her — a finished reply she has not
     // opened. Counted per CHAT, not per message: "3" means three of them came
@@ -1719,16 +1827,18 @@ function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
-  var all=sortedChatNames(g);
+  // ONE ACCOUNT AT A TIME (Sophie, Aug 2026). Applied to `all` up front, so
+  // every pile below it — live, hidden, ★, archive — is that account's.
+  var all=sortedChatNames(g).filter(acctMatch);
   // ★ is its own pile and it reaches INTO the archive: these are chats she has
   // finished with and put away, so stopping at `archived` would hide most of
   // them. It replaces the whole list rather than narrowing it.
   if(starOnly){
     var st=all.filter(chatStar);
-    paintHomeChrome(); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
-    if(!st.length){ el.innerHTML='<div class="state">No starred chats yet — open one and tap the star in its header.</div>'; return; }
+    if(!st.length){ el.innerHTML='<div class="state">No starred chats on account '+acctFilter()+' — open one and tap the star in its header.</div>'; return; }
     renderList(el,g,st);
     return;
   }
@@ -1751,6 +1861,7 @@ function renderHome(){
   var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
   if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
   paintHomeChrome();
+  paintAcctTabs(g);
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
@@ -1760,11 +1871,14 @@ function renderHome(){
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
   // the top of the screen swaps the grid over to the archived chats and back.
   if(homeView==='archive'){
-    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived yet.</div>'; return; }
+    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived on account '+acctFilter()+'.</div>'; return; }
     if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
     return;
   }
-  if(!all.length){ el.innerHTML='<div class="state">Nothing yet — chats appear here as they finish replies.</div>'; return; }
+  // An empty screen must never look like the chats are gone — with the
+  // account tabs up, "nothing here" is nearly always "they're on the other
+  // tab", so the message says which account it is talking about.
+  if(!all.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+' — tap the other tab.</div>'; return; }
   renderHiddenBar(el,g,hid);
   if(!names.length){
     // nothing left to show — say WHICH of the two reasons, or the screen just
@@ -3136,10 +3250,14 @@ function paintAcct(){
 acctog.onclick=function(){
   var prev=appAccount(), next=prev==='1'?'2':'1';
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
+  // The account tabs default to whichever account the app is on, so flipping
+  // this switch moves the list too \u2014 unless she has already picked a tab by
+  // hand this session, which wins.
+  if(!acctTab) renderHome();
   api('/api/chatfeed/app-account',{method:'POST',body:JSON.stringify({account:next})})
     .then(function(r){return r.json()})
     .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
-    .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); toast('Couldn\u2019t save that'); });
+    .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); if(!acctTab) renderHome(); toast('Couldn\u2019t save that'); });
 };
 paintAcct();
 
