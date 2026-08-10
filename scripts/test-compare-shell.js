@@ -52,6 +52,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>pending</title>
   <div class="imgrow">
     <img id="pic" alt="a" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23c99'/%3E%3C/svg%3E">
   </div>
+  <div id="film"></div>
   ${'<div class="card"><p>more filler</p></div>'.repeat(60)}
 </div>
 <script src="/compare.js"></script>
@@ -110,6 +111,29 @@ __PILL__
       var body = p ? JSON.parse(p.b) : null;
       ok(!!body && body.text === 'this one drifts' && body.item === 'thing-1' && body.ok === undefined,
          'a note saves to the verdict doc as text, leaving the vote alone');
+
+      // 5. the FILM ROW — a line of text with a play button, never a <video>
+      // parked in the page (Sophie, Aug 2026). Same overlay contract as an
+      // image, plus the video must be torn down so it can't play on behind.
+      window.__filmRow({ url: '/nope.mp4', label: 'the cut', meta: '4:56', mount: '#film' });
+      var row = document.querySelector('#film .cmp-film');
+      ok(!!row && row.tagName === 'BUTTON' && !document.querySelector('.wrap video'),
+         'the film row is a play button, not an embedded video');
+      window.scrollTo(0, 700);
+      var fy = window.scrollY;
+      window.__scrollStart(1);
+      row.click();
+      var v = document.querySelector('.cmp-vlb video');
+      ok(!!v && !document.querySelector('.cmp-vlb').hasAttribute('hidden')
+         && document.body.style.overflow === 'hidden'
+         && !document.querySelector('.vseg button.on'),
+         'the film opens over the page, scroll stopped and locked');
+      window.scrollBy(0, 300);
+      document.querySelector('.cmp-vlb').click();      // backdrop closes it
+      ok(Math.abs(window.scrollY - fy) < 2 && document.body.style.overflow === ''
+         && !v.getAttribute('src'),
+         'closing restores the position and tears the video down');
+
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
     }, 120);
   }, 400);

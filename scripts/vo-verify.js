@@ -101,10 +101,22 @@ function missingRuns(want, got) { // LCS backtrack -> contiguous runs of script 
   if (runs.length) fail = true;
   if (SCRIPT) {
     if (!process.env.OPENAI_API_KEY) { console.error('  OPENAI_API_KEY required for --script'); process.exit(1); }
-    const d = Number(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', FILE]).toString().trim());
+    // Chunk against the AUDIO stream's duration, not the container's. A film
+    // built by holding stills over a narration track runs its VIDEO a few
+    // seconds past its audio (the concat demuxer's repeated last frame), so
+    // the container duration asks for a final chunk with no audio in it —
+    // ffmpeg writes a 327-byte empty mp3 and the API answers "The audio file
+    // could not be decoded", which reads like a corrupt film and fails the
+    // gate. Measured on the Mason film: video 302.8s, audio 296.6s.
+    const durOf = (args) => Number(execFileSync(FFPROBE, ['-v', 'error', ...args, '-of', 'csv=p=0', FILE]).toString().trim().split(/\s+/)[0]);
+    let d = 0;
+    try { d = durOf(['-select_streams', 'a:0', '-show_entries', 'stream=duration']); } catch (e) { /* fall through */ }
+    if (!d || !isFinite(d)) d = durOf(['-show_entries', 'format=duration']);
     const parts = [];
-    for (let t = 0; t < d; t += 75) {
+    for (let t = 0; t < d - 0.35; t += 75) {
       execFileSync(FFMPEG, ['-y', '-ss', String(t), '-t', '75', '-i', FILE, '-vn', '-ar', '16000', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '4', '/tmp/_vv.mp3'], { stdio: 'ignore' });
+      // an empty tail chunk is nothing to transcribe, never an error
+      if (fs.statSync('/tmp/_vv.mp3').size < 2000) continue;
       parts.push(await transcribeChunk('/tmp/_vv.mp3', t));
     }
     const got = norm(parts.join(' ')), want = norm(fs.readFileSync(SCRIPT, 'utf8'));

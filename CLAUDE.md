@@ -1632,6 +1632,20 @@ lifted into a standalone tool later.
   `.duo` block in compare.css — labels ON TOP, "medium" / "high"), never
   stacked so she scrolls between them. Full rules live in the `new-page`
   skill and the shells' own comments.
+  **A FILM IS A LINE OF TEXT WITH A PLAY BUTTON, AT THE TOP — never an
+  embedded `<video>` (Aug 2026, Sophie: "never put a whole video when it's
+  gonna be opened as a lightbox anyway, it should just be a line of text with
+  a play button… so I don't just scroll through the whole thing").** Both
+  the Evan film pages and the Mason one shipped a full-width player parked at
+  the top; it is a black slab she scrolls past on every visit, and tapping it
+  goes fullscreen regardless — so the box bought nothing. One line does it,
+  and the overlay contract (autoscroll stopped, page locked, scroll position
+  restored, video torn down on close so it can't play on behind the page)
+  comes with it:
+  `window.__filmRow({ url, label, meta:'4:56', mount:'#film' })` in
+  `/compare.js`. **The deliverable sits at the TOP of the page**, above
+  whatever there is to decide — that is where she looks for it, and it is why
+  a delivery gets a Compare page at all.
   **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
   is PICKING/CHOOSING across a set rather than reading a comparison, start
   from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,

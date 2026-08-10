@@ -32,6 +32,17 @@
      full-width image per row. Skeleton blocks live at the top of compare.css.
      Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
 
+     DELIVERING A FILM? It is a LINE OF TEXT WITH A PLAY BUTTON at the TOP of
+     the page — never an embedded <video> (Aug 2026, Sophie: "never put a
+     whole video when it's gonna be opened as a lightbox anyway… so I don't
+     just scroll through the whole thing"). A player parked at the top is a
+     black slab she scrolls past every time, and tapping it goes fullscreen
+     regardless. One line, and the overlay contract comes with it:
+
+         <div id="film"></div>
+         window.__filmRow({ url: '…/cut-v2.mp4', label: 'Mason — the shape',
+                            meta: '4:56', mount: '#film' });
+
      MINIMAL TEXT (Aug 2026, Sophie — asked for on page after page): this is
      a VISUAL reference, not an extension of the chat. Title, ONE line under
      it, labels on the pictures — no paragraphs, no explanations, no recap of
