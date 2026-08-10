@@ -147,7 +147,11 @@ async function applyCuts(inFile, cuts, outFile, dur) {
   segs.push([cur, dur]);
   const parts = segs.map((sg, i) => `[0:a]atrim=start=${sg[0].toFixed(3)}:end=${sg[1].toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`).join(';');
   const graph = `${parts};${segs.map((_, i) => `[a${i}]`).join('')}concat=n=${segs.length}:v=0:a=1[out]`;
-  await run(['-y', '-i', inFile, '-filter_complex', graph, '-map', '[out]', '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', outFile]);
+  // Codec must match the output container. This always wrote libmp3lame, so a
+  // .wav out-name produced mp3-in-wav — which decoded 15s SHORT on a real memo
+  // (tail truncated: the Mason metaphor-machine ending was silently lost).
+  const codec = /\.wav$/i.test(outFile) ? ['-c:a', 'pcm_s16le'] : ['-c:a', 'libmp3lame', '-q:a', '2'];
+  await run(['-y', '-i', inFile, '-filter_complex', graph, '-map', '[out]', '-ar', '44100', '-ac', '1', ...codec, outFile]);
 }
 // difflib-style ratio over token arrays (same idea editor.js uses)
 function ratio(a, b) {
