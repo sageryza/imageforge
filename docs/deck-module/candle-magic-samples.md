@@ -62,3 +62,17 @@ Timings: low ~22s, medium ~40s, high ~106s. Costs ~2¢/6¢/25¢.
 Grid-first flow like Midjourney's 2x2: type/pick a card subject → 4 draws at
 a chosen quality → heart the keeper → next card. Per-deck locked style
 formula; the `deliver-images` filing ritual built in server-side.
+
+## Iteration 0.1 — course correction (2026-08-10, same day)
+
+Sophie: candle magic is out (only ~10 colors, a deck needs 50 cards), the
+"unrelated" half read witch-adjacent, and Amazon is available — decks don't
+need to fit the Etsy shop. New pick: **Clouds & weather lore** (30+ cloud
+types + optical phenomena + lore sayings = 50 cards easily; indie space is
+mostly printables). Runner-up worth remembering: **Cryptids of America**.
+Rule for future idea lists: every candidate must have 50+ enumerable card
+subjects.
+
+Cloud samples: same STYLE formula, Storage `deck-samples/clouds/` (+`webp/`),
+Compare page "Clouds deck — first samples v1", filed in Assets with prompt
+splits. All medium, ~40s each.
