@@ -26,6 +26,16 @@
       restored on close (locking alone does not stop `window.scrollBy`, so
       anything that restarts the scroll under the overlay still moves the
       page — this bit her repeatedly).
+   4. AN EXTERNAL LINK LEAVES THE IFRAME instead of navigating it. In the app
+      a Compare page runs EMBEDDED (chats.html opens it in an iframe with
+      `?embed=1`), so a plain `<a href="https://claude.ai/…">` tries to load
+      that site INSIDE the frame — and claude.ai sends
+      `x-frame-options: SAMEORIGIN` (verified 2026-08-10), so the load is
+      refused and the tap reads as bouncing back to the page. Sophie hit this
+      on the chat-survey page's "Open the chat" link. An off-origin link is
+      therefore opened from the TOP document with `target="_blank"` — exactly
+      what the Chats app's own Open button does — and never navigates the
+      web view away from the app.
 
    The pill itself is INJECTED BY THE SERVER on every served page — never add
    your own, and never re-implement its script. This file only talks to it
@@ -101,6 +111,38 @@
 
   window.__compareShell.openImage = open;
   window.__compareShell.closeImage = close;
+
+  /* 4 — an EXTERNAL link must leave the iframe, never navigate it (see the
+     header). Only off-origin http(s) links are touched: a relative or
+     same-origin link is the page's own business, and an in-page `#anchor`
+     must keep working. Standalone (not embedded) pages are left alone too —
+     an ordinary link is already right there. */
+  function openOut(href) {
+    var doc = null;
+    // same-origin parent, so this reaches the app's own document; a
+    // cross-origin host would throw, and window.open is the fallback.
+    try { doc = window.top.document; } catch (_) { doc = null; }
+    if (doc && doc.body) {
+      var a = doc.createElement('a');
+      a.href = href; a.target = '_blank'; a.rel = 'noopener';
+      doc.body.appendChild(a);
+      a.click();
+      doc.body.removeChild(a);
+      return true;
+    }
+    return !!window.open(href, '_blank', 'noopener');
+  }
+  document.addEventListener('click', function (e) {
+    if (window.top === window.self) return;              // not embedded
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var href = a.href;                                   // resolved, absolute
+    if (!/^https?:/i.test(href)) return;                 // mailto:, #anchor, …
+    if (a.origin === window.location.origin) return;     // our own pages
+    e.preventDefault();
+    openOut(href);
+  });
+  window.__compareShell.openExternal = openOut;
 
   /* 4 — NOTES ON ANYTHING (Aug 2026, Sophie's standing rule: "whenever
      applicable notes should be able to be added"). Reviewing is not only

@@ -43,6 +43,26 @@ it out anyway is how this repo lost weeks:
   stubs the environment is evidence about the machinery, not the
   deployment; say which one you have. An undated confident claim about the
   environment in this file should be treated as a hypothesis, not a fact.
+- **THE GAP TEST — how to tell which chats carry a current hook, from the
+  feed alone (2026-08-10).** You cannot look inside another session's
+  container, but the feed tells you anyway: an OLD hook can only lift her
+  message from the transcript at the END of a turn, so her `postedAt` lands
+  ~1s before the reply's. A CURRENT hook posts it at UserPromptSubmit, so
+  the gap between her message and the reply IS the turn's duration. Measure
+  `sophie.postedAt → next non-sophie postedAt` per chat: **~1s = stale
+  hook, seconds-to-minutes = healed.** Verified 2026-08-10 against a chat
+  that healed mid-conversation — its gap jumped 0.6s → 9.8s on the very
+  next turn, and the healed chats were exactly the ones stamping
+  `workingAt`. Use this before telling her a chat "isn't working"; it costs
+  one feed read and needs nothing from the session in question.
+- **A transient mark leaves NO trace, so don't read its absence as failure.**
+  `workingAt` is deleted by the chat's own reply, and `hiddenAt` is
+  overwritten by the next hide — so a chat that parked and un-parked inside a
+  10-second turn looks identical to one that never parked. That is exactly
+  what "the Jesus rules chat didn't hide itself" turned out to be
+  (2026-08-10): it had healed and it did park; the turn was 9.8s long, so
+  the window was gone before she could look. Judge parking/tint on a LONG
+  turn, or from the gap test above — never on a fast one.
 
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
@@ -67,6 +87,23 @@ around them change, so verify the labels and use these for the URL.
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
 - **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
+  and only one is used (measured 2026-08-10 via `list_environments` +
+  `list_sessions`/`get_session`).** Telling them apart matters, because the
+  Setup script is a per-environment field and pasting it into the wrong one
+  looks identical to pasting it into the right one:
+  - `env_01NCcMuoimJBkNbag4JrEGZx` — name "Default", description **empty**.
+    **This is the one every session actually runs in**: all 19 sessions back
+    to Aug 3 were on it, including this file's own chats.
+  - `env_01PpZpGDKFXqhCj3ZieoBUkH` — name "Default", description "Default -
+    trusted network access". Nothing observed running on it.
+  Both were created 2026-07-26 within 0.23s of each other, i.e. auto-
+  provisioned at account setup — Sophie did not make two. **A chat can settle
+  which environment anything is on by calling `get_session` on its own
+  session id and reading `environment_id`; never infer it from behaviour.**
+  (This corrected a live wrong diagnosis: differing hook versions across
+  chats were blamed on "two environments" when in fact every chat shared one
+  and the healed ones had each been healed BY HAND.)
 - **Missing an id you need?** Ask Sophie to paste the URL from her address bar
   while she's on that page, build the exact link from it, and ADD THE ID HERE
   so no future chat has to ask twice.
@@ -833,6 +870,24 @@ lifted into a standalone tool later.
   moves a mis-filed message/asset span between chats, re-keys votes, and
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
+- **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
+  reply stuck as its partial draft (found live 2026-08-10).** The cloud
+  environment's proxy scores outbound POST bodies and answered one with a 403
+  HTML block page — with curl exit 0, so the old hook recorded it as posted
+  and the full reply never reached the app. The trigger that time: the reply
+  contained the literal setup.sh pipe-to-shell one-liner inside a long
+  message (the same string alone in a small body passes — it's a scored
+  filter, not a string match). Two consequences:
+  - **Don't put the literal `curl … | bash` one-liner in a reply.** When a
+    reply needs to tell Sophie or another chat about the self-heal, DESCRIBE
+    it ("fetch /setup.sh with curl and run it with bash", or point at this
+    file) — the hook POSTs your reply through the same filter.
+  - **Hook v10 records a turn as posted only AFTER the server answers
+    `ok:true`** — a blocked or failed post stays un-recorded and the next
+    event retries it. A stuck partial draft from an OLDER hook is repaired by
+    re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
+    the transcript uuid of the user message that started the turn; the server
+    upserts onto the same message doc).
 - **Self-heal if you're NOT posting, or posting with an OLD hook (any chat).**
   Run `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
   (Curl works HERE and not in the Setup script for one reason: a running
@@ -921,6 +976,13 @@ lifted into a standalone tool later.
     into her field the day it shipped, which is what prompted this rule. The
     server truncates at 110 chars, but hitting the cap means you wrote the
     wrong thing.
+  - **ONLY ONE LINE SHOWS, and it looks exactly like her own notes** (Aug
+    2026, Sophie: "I want them the same as mine — italicized, not bold, not
+    pink… they only need one line"). The row renders `note || need ||
+    doing`: **a note SHE wrote supersedes your card entirely**, otherwise
+    your `need` takes the line and `doing` is the fallback. So write the
+    ONE thing worth her seeing — both fields are stored, but do not count
+    on `doing` being read while a `need` is set.
   - `need` = what you need from her, with the size of the ask — "pick a
     palette, 10 seconds", "listen to two cuts". Send `""` when nothing is
     needed; an empty `need` is the honest default, and a stale ask is worse
@@ -1517,6 +1579,18 @@ lifted into a standalone tool later.
   region `data-nostop`. Tests: `node scripts/test-page-embed.js` (drives the
   REAL chats.html viewer end to end) — testing only the standalone page
   misses this entire path.
+  **AN EXTERNAL LINK ON AN EMBEDDED PAGE MUST LEAVE THE IFRAME (Aug 2026,
+  Sophie: an "Open the chat" link "just took me back to the compare page").**
+  A plain `<a href="https://claude.ai/…">` navigates the IFRAME, and
+  claude.ai sends `x-frame-options: SAMEORIGIN` (measured 2026-08-10), so the
+  load is refused and the tap reads as bouncing back. `/compare.js` now opens
+  any OFF-ORIGIN http(s) link from the TOP document with `target="_blank"` —
+  the same thing the Chats app's own Open button does — so it never navigates
+  the web view away from the app; same-origin and `#anchor` links are left
+  alone, and a standalone page is untouched. **A page gets this for free by
+  linking `/compare.js`, including pages posted BEFORE the fix** (they load
+  it at runtime, so no repost — which matters, since a repost would throw
+  away verdicts she had already saved).
   **A page served with the injected pill must SCOPE its own script (IIFE).**
   The pill snippet runs in global scope and declares `var raf`, `var I`,
   `var playing`, … — a page-level `let raf`/`const I` collides and kills the

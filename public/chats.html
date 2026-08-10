@@ -390,13 +390,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
-/* ---- Status cards (Aug 2026, Sophie): a chat's own one-line report, shown
-   under its name. `need` (what it wants from her) reads in rose so the asks
-   stand out on a skim; `doing` is the quiet what-I'm-on line; her own pinned
-   note shows italic with a "you:" prefix. */
-.cr-need{display:block; font-size:14.5px; line-height:1.35; color:var(--rose); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+/* ---- The note line under a chat's name (Aug 2026, Sophie) ----------------
+   ONE line, ONE look — italic, quiet, never bold, never rose. Hers and a
+   chat's read identically on purpose: "I want them the same as mine". An
+   earlier version put the chat's ask in rose bold above a second working
+   line, which she rejected. */
 .cr-note{display:block; font-size:13.5px; line-height:1.35; font-style:italic; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
-.t-tldr.t-need{color:var(--rose); font-weight:600;}
+.t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
 .noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
@@ -1018,18 +1018,18 @@ function statusLines(name){
     note:String(r.sophieNote||'').trim(),
   };
 }
-// The under-the-name lines as HTML: the ask in rose, the working line quiet,
-// her note italic — falling back to the latest auto TLDR when a chat hasn't
-// filed a card yet (so old chats don't go blank).
+// ONE line under the name, in ONE look (Aug 2026, Sophie: "I want them the
+// same as mine — italicized, not bold, not pink"). The rose bold ask and the
+// separate working line were an invented hierarchy she didn't ask for, and
+// with her note that made three lines on a row.
+//
+// HERS WINS: a note she wrote supersedes the chat's line entirely (her ask).
+// Otherwise the chat's `need` — the actionable half — else what it's doing,
+// else the auto TLDR so a card-less chat in the Status view isn't blank.
 function statusLinesHtml(name, fallback){
-  var st=statusLines(name), h='';
-  if(st.need) h+='<span class="cr-need">'+esc(st.need)+'</span>';
-  if(st.doing) h+='<span class="cr-snip">'+esc(st.doing)+'</span>';
-  if(!st.need && !st.doing && fallback) h+='<span class="cr-snip">'+esc(fallback)+'</span>';
-  // Her note is HER OWN reminder of where things stand (Aug 2026, Sophie) —
-  // no "you:" prefix, the italic is enough to read as hers.
-  if(st.note) h+='<span class="cr-note">'+esc(st.note)+'</span>';
-  return h;
+  var st=statusLines(name);
+  var line=st.note || st.need || st.doing || fallback || '';
+  return line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
 }
 // A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
 // box with a giant italic initial in it, and Sophie asked for that gone ("a
@@ -1956,12 +1956,11 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
-    // The chat's own status card wins the tile's line: the ask (rose) and/or
-    // the working line; only a chat with no card falls back to the auto TLDR.
+    // Same one-line rule as the list: her note wins, else the chat's ask,
+    // else what it's doing, else the auto TLDR. One quiet italic look.
     var st=statusLines(name);
-    var lineHtml=(st.need?'<span class="t-tldr t-need">'+esc(st.need)+'</span>':'')
-      +(st.doing?'<span class="t-tldr">'+esc(st.doing)+'</span>':'')
-      +((!st.need&&!st.doing&&status)?'<span class="t-tldr">'+esc(status)+'</span>':'');
+    var tline=st.note || st.need || st.doing || status || '';
+    var lineHtml=tline?'<span class="t-tldr t-note">'+esc(tline)+'</span>':'';
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
@@ -2156,6 +2155,23 @@ function ensureFullThread(name){
     })
     .catch(function(){ fullLoaded[name]=0; });   // let a later open retry
 }
+// A served Compare page runs in an IFRAME of this page (openPage) and is
+// same-origin, so it hands a chat name straight back instead of using a link:
+// a same-origin link would navigate the IFRAME, putting the whole Chats app
+// inside the page viewer, and an off-origin one leaves the app entirely
+// (compare.js). Closes the viewer first, so she lands on the thread itself.
+// Returns false for a chat this registry doesn't know, so the page can say so
+// instead of appearing to do nothing.
+window.__openThread=function(name){
+  name=String(name||'');
+  if(!name || !chats[name]) return false;
+  var v=document.querySelector('.pageview');
+  if(v && v.__close) v.__close();
+  openChat(name);
+  window.scrollTo(0,0);
+  return true;
+};
+
 // Full-screen player for the pinned deliverable. Follows the house overlay
 // rule: stop the autoscroll, lock the background, and restore the EXACT scroll
 // position on close (overflow:hidden alone does not stop window.scrollBy).
@@ -2813,13 +2829,18 @@ function openPage(p){
   // prototype's shelf → story → version) answers __navBack and steps itself
   // back; only when it says it's at its own top does this close the viewer.
   // Without this, one tap threw away however deep she'd navigated.
+  // ONE teardown, so anything that closes the viewer (the back chevron, a page
+  // asking to open a thread — see __openThread) stops the pill and unlocks the
+  // body the same way. A half-teardown leaves the page scroll-locked.
+  v.__close=function(){
+    if(pill._stop) pill._stop(); v.remove();
+    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
   bar.querySelector('.pv-back').onclick=function(){
     try{
       var w=frame.contentWindow;
       if(w && typeof w.__navBack==='function' && w.__navBack()===true) return;
     }catch(_){}
-    if(pill._stop) pill._stop(); v.remove();
-    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
+    v.__close(); };
   document.body.appendChild(v);
   document.body.style.overflow='hidden'; document.body.classList.add('ontop');
 }
@@ -3189,7 +3210,8 @@ function load(){
     truncated={}; fullLoaded={};
     (data.truncated||[]).forEach(function(c){ truncated[c]=1; });
     saveCache();
-    if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
+    if(openWanted()){ /* deep link claimed it */ }
+    else if(cur){ var y=window.scrollY; openChat(cur,true); window.scrollTo(0,y); } else renderHome();
   }).catch(function(){
     if(!cur && !msgs.length) document.getElementById('grid').innerHTML='<div class="state">Couldn\u2019t reach the feed.</div>';
   });
@@ -3304,9 +3326,23 @@ function poll(){
     })
     .catch(function(){});   // a failed poll is not worth surfacing; next one retries
 }
+// `?chat=<slug>` opens straight into that thread — the standalone half of
+// __openThread above, for the same link followed in a browser rather than
+// inside the app. Honoured by whichever paint lands first (cache or fetch).
+var wantChat='';
+try{ wantChat=new URLSearchParams(location.search).get('chat')||''; }catch(_){}
+function openWanted(){
+  if(!wantChat) return false;
+  if(!chats[wantChat]) return false;   // not loaded yet — the next paint tries
+  var n=wantChat; wantChat='';
+  openChat(n); window.scrollTo(0,0);
+  return true;
+}
+
 // Launch: paint from the saved copy and fetch only the delta — the full
 // 1500-doc load now happens only on a first-ever visit or a Refresh tap.
 if(loadCache()) poll(); else load();
+openWanted();
 setInterval(function(){
   // Don't poll a page nobody is looking at — a backgrounded webview would
   // otherwise keep paying for reads all day.
