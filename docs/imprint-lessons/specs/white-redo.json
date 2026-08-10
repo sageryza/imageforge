@@ -1,0 +1,9 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients, playful modern editorial illustration, on a plain white background, warm house palette (golden yellow, salmon pink, orange, black) plus small accents. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-checkout-v2", "prompt":"Grocery items from a checkout counter stacked into a precarious teetering sculpture — cans, produce and packages balanced improbably on top of one another, leaning and about to topple, presented like an art piece. The precarious balancing is the point. Bold black outlines, flat colors, plain white background." },
+    { "id":"na-disentangle-v2", "prompt":"Two hands pulling apart a single tangled mass into two, like pulling apart pulled pork — the tangles are big, thick and deeply intertwined, separating into two distinct clumps. Emphasize the large intertwined strands coming apart. Bold black outlines, flat colors, plain white background." },
+    { "id":"na-pipeline-v2", "prompt":"A red-bearded Viking-ish man (MASON, a poet-philosopher — NOT the recurring woman) operating his noise-art pipeline: he holds a long ORANGE pipe (not pink) with a moppy net handle of colored dots feeding in at the start; the pipe runs through a wider yellow accordion/squeegee section and a teal moppy section, snaking up and around to fit the square, and finally lands on a framed picture HUNG HIGH ON A GALLERY WALL (not near the floor). Keep the tubing simpler and less crazy; small colored polka-dots appear ONLY in the intermediate output, not all along the process. Bold black outlines, flat colors, plain white background." }
+  ] }

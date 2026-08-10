@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients, playful modern editorial illustration, on a plain white background, soft pastel palette. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"meta-tricycle-v4", "prompt":"A classic child's TRICYCLE with three wheels, viewed from a three-quarter BACK angle so all three wheels are clearly visible — the two smaller rear wheels spread apart at the back and the single larger front wheel with pedals. A low simple kids' trike. Orange frame, yellow wheels and trim, pink seat, pink/orange/yellow streamers off the handlebars. Bold black outlines, flat pastel colors, no gradients, plain white." }
+  ] }

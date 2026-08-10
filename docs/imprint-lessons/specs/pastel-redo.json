@@ -1,0 +1,9 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework and character: bold confident black ink outlines, flat colors with NO gradients, a soft pastel palette (lilac, pastel pink, mint, pale yellow), on a plain WHITE background. ",
+  "end": " Plenty of empty white space. Absolutely no text, no words, no letters, no numbers.",
+  "cards": [
+    { "id":"md-sauna-v2", "char": true, "prompt":"The recurring woman sitting in a steamy sauna wearing a wrapped white towel (sauna clothes) — NOT her usual jacket and striped pants — relaxed on the wooden bench in the steam. Pastel palette, bold outlines, white background." },
+    { "id":"md-tunnel-v2", "char": true, "prompt":"The recurring woman down inside a cozy ball-pit 'place' structure with only her HEAD poking out at the surface and her arms resting down at the top — a simpler, clearer figure, not a confusing tangle of limbs. Pastel palette, bold outlines, white background." },
+    { "id":"md-since-v2", "char": true, "prompt":"The recurring woman with a busy mind full of many small buzzing thoughts she is constantly sorting — show the thoughts as small abstract shapes and little sparks around her head, definitely NOT animals or creatures. Pastel palette, bold outlines, white background." }
+  ] }

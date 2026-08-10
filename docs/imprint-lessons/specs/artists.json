@@ -1,0 +1,10 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients, playful modern editorial illustration, on a plain white background, soft pastel palette. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"art-trio", "prompt":"A horizontal row of three simple side-by-side vignettes divided by thin black lines, each showing a pair of human hands doing an artist's process. LEFT: hands power-sanding and tearing back layers of glued-on paper posters on a canvas to reveal colors beneath. MIDDLE: hands layering a precise map/architectural drawing and then sweeping loose gestural ink marks over it. RIGHT: hands feeding a length of linen fabric into a large inkjet printer that lays down streaky black ink. Hands visible in each panel to show a person behind it. Bold black outlines, flat pastel colors, no gradients, plain white." },
+    { "id":"art-bradford", "prompt":"A pair of hands power-sanding and tearing back the top layers of many glued-on street posters and paper on a large canvas, exposing bright torn edges and colors underneath — building up and then destroying to see what is revealed. Bold black outlines, flat pastel colors, no gradients, plain white." },
+    { "id":"art-mehretu", "prompt":"A pair of hands working on a large canvas that has a precise underlayer of fine architectural lines and maps, sweeping loose energetic gestural ink marks over the top — layering structure and chaos together. Bold black outlines, flat pastel colors, no gradients, plain white." },
+    { "id":"art-guyton", "prompt":"A pair of hands feeding a length of linen fabric into a large flatbed inkjet printer; the printer lays down a band of streaky black ink with a visible jam or misprint glitch — letting the machine's accidents make the image. Bold black outlines, flat pastel colors, no gradients, plain white." }
+  ] }

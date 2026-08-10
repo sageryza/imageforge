@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, playful modern editorial illustration, soft pastel accents. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"grid-neurons-stars-v2", "prompt":"A 2x2 grid of four panels divided by thin black lines. Top-left: a small cluster of branching neurons inside a soft pastel brain shape on a white background. Top-right: a soft midnight-blue night sky scattered with real five-pointed stars in pale gold and pastel. Bottom-left: several neurons on white connected to one another by thin dashed lines. Bottom-right: five-pointed stars on a midnight-blue sky joined by thin WHITE dashed lines into a clear constellation. Bold black outlines, flat colors, no gradients." },
+    { "id":"mem-constellation", "prompt":"A soft midnight-blue night sky filled with many small five-pointed stars; a handful of them are joined by thin white dashed lines into a constellation, and two or three of the stars hold a tiny memory-scene glowing inside them — the night sky as a memory palace. Bold black outlines, flat colors, no gradients." }
+  ] }
