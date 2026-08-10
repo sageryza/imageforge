@@ -101,6 +101,8 @@
       font-family: var(--serif); font-style: italic; font-weight: 500;
       font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
     }
+    header h1#app-title { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    header h1#app-title:active { opacity: 0.7; }
 
     /* ── Sections ── */
     main { padding: 18px 16px 8px; }
@@ -402,6 +404,16 @@
 
     /* End-of-lesson note screen — pick a path, nothing to type until you do. */
     .deck-note .tcard-img { cursor: default; }
+    /* The note screen sits at the TOP of its slot, not centred (Aug 2026,
+       Sophie: "move everything up so that whichever one you click, the
+       envelope appears under it"). A lesson CARD is centred because its text
+       is short; this screen is a question, two choices and then a whole
+       envelope, and the auto-margins were pushing the first line 306px down —
+       so on a real phone the letter's Send button fell off the bottom, and
+       further still once the keyboard opened. Cancels the .deck-text auto
+       margins for this screen only. */
+    .deck-note .deck-text > :first-child { margin-top: 0; }
+    .deck-note .deck-text > :last-child { margin-bottom: 0; }
     .note-lead { font-family: var(--serif); font-size: 18px; line-height: 1.35; text-align: center; color: var(--text); margin: 2px auto 6px; max-width: 300px; }
     /* Two choices side by side: Tell Sophie (real, slow) + Ask (AI, instant). */
     .note-choices { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
@@ -1629,7 +1641,9 @@
   <div class="app">
     <header>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
-      <h1>Secretly a Witch</h1>
+      <!-- The title is also the way HOME (Aug 2026, Sophie). go() closes any
+           open overlay first, so it works from inside a lesson or the book. -->
+      <h1 id="app-title" role="button" tabindex="0" aria-label="Secretly a Witch — back to home">Secretly a Witch</h1>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
       <button class="menu-btn" id="menu-btn" aria-label="Jump to a section" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
     </header>
@@ -2412,6 +2426,19 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+  // Tapping the masthead goes Home (Aug 2026, Sophie). It reaches the header
+  // itself only when no full-page surface is up — a lesson deck and the Book
+  // of Shadows are fixed at z-index 90 and cover it (measured: the click is
+  // intercepted by .deck-top). Those have their own back control, so that is
+  // the right behaviour; go() still calls closeFullPages() first in case
+  // anything ever sits under the header rather than over it.
+  (function () {
+    const t = $('app-title'); if (!t) return;
+    t.addEventListener('click', () => go('home'));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('home'); }
+    });
+  })();
 
   // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
@@ -6441,7 +6468,7 @@
     // the form inside this lesson is the planned way to give the chart back.
     { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'signs', 'sync', 'dream'] },
     { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'cr-06', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
     { id: 'living', title: 'The Living World', sub: 'The body, and what the old craft did with it', cover: 'bh-05', lessons: ['blood'] },
   ];
@@ -6816,9 +6843,6 @@
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
     $('deck-stage').innerHTML = `<div class="tcard deck-note">
-      <div class="deck-head">
-        <div class="tcard-kicker">Before you go</div>
-      </div>
       <div class="deck-text">
         <div class="note-lead">Have a question, or want to understand something better?</div>
         <div class="note-choices">
@@ -6872,7 +6896,10 @@
       $('nchat-send').addEventListener('click', send);
       ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; });
       ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-      ta.focus();
+      // Deliberately NOT focused (Aug 2026, Sophie: "don't have the keyboard
+      // come up automatically only when they click into the envelope") — an
+      // auto-keyboard covers the bottom half the moment a choice is tapped,
+      // taking the Send button with it.
     }
 
     // ── Tell Sophie: a letter, snail-mailed to the real witch ──
@@ -6906,7 +6933,7 @@
           else { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
         } catch { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
       });
-      $('nletter-text').focus();
+      // No auto-focus — the keyboard waits until she taps the paper (above).
     }
 
     $('note-ai-btn').addEventListener('click', openAskChat);
