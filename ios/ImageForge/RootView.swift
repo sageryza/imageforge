@@ -645,22 +645,26 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Side of a shortcut button. Six of these plus even gaps fit the narrowest
-    /// phone we care about (375pt wide: 6 x 48 = 288 inside 343 of usable row).
+    /// Side of a shortcut button. Sized when the row held SIX and they fit the
+    /// narrowest phone we care about (375pt wide: 6 x 48 = 288 inside 343 of
+    /// usable row), so the five it holds now have room to spare. The square is
+    /// a FIXED size centred in an equal-width flexible cell — never a share of
+    /// the row width, which is what stretched them into rectangles in v1.
     private static let squareSide: CGFloat = 48
 
-    /// Six rounded SQUARES across, icons only (Sophie: "just the icon"). Two
-    /// open a tool; the other four are filters on the cards below — the lit one
-    /// clears back to everything when tapped again. Chats is here AND in its
-    /// top-right corner on purpose ("it can be in two places, silly"), which is
-    /// why the row is six rather than the five it started as.
+    /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
+    /// opens a tool (Chats); the other four are filters on the cards below —
+    /// the lit one clears back to everything when tapped again. Chats is here
+    /// AND in its top-right corner on purpose ("it can be in two places,
+    /// silly"), so don't "fix" that duplicate.
+    ///
+    /// **The DUMP square came off (Aug 2026, Sophie: "we can get rid of the
+    /// dump button in the row at the top since it's now in the main home
+    /// screen as the default").** It was a shortcut to a tool that is a card
+    /// two inches below it — worth the slot back when the film tools left and
+    /// the default grid got short. The Dump still opens on SORT from its card.
     private var shortcutRow: some View {
         HStack(spacing: 0) {
-            // The Dump's inbox — opens on SORT, since sorting what's already
-            // in is the half she comes here for.
-            square(lit: false, label: "Dump") { open(.dump) } icon: {
-                ToolGlyph(tool: .dump, size: 21)
-            }
             square(lit: false, label: "Chats") { open(.chats) } icon: {
                 Image(systemName: Tool.chats.icon).font(.system(size: 21))
             }
