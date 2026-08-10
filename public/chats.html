@@ -124,7 +124,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
-.thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* the same sans as the row's name — see .cr-name */
+.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.24em; font-weight:600;
+  margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
@@ -300,7 +302,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    this back to 6px. */
 .refreshbtn{display:inline-flex; align-items:center; gap:6px; padding:3px 14px; border-radius:999px; line-height:1.5;}
 /* Search across every chat (in-memory index on the server). */
-.searchrow{position:relative; margin:0 0 .9em;}
+/* Shut, the row is just the glass; open, it is the bar it always was. The
+   ✕ is the way back out either way — it clears the words, and on an empty
+   field it folds the bar away, so there is one control to reach for.
+   THE ROW RESERVES THE PILL'S CORNER (`padding-right:56px`) and lays the ✕
+   out as a real flex child rather than the absolutely-positioned overlay
+   `.qclear` is elsewhere. Both halves are needed: an abspos `right:5px`
+   resolves against the PADDING box, so the reserve alone would leave the ✕
+   exactly where it was — measured live at 390px, under the pill's own
+   down-arrow, which swallowed the tap. That was already true of the old
+   always-open bar; it only became load-bearing when the ✕ became the way to
+   fold the bar away. */
+.searchrow{position:relative; margin:0 0 .7em; display:flex; align-items:center; gap:4px;
+  padding-right:56px;}
+.searchrow #qsearch,.searchrow .qclear{display:none;}
+.searchrow.on #qsearch{display:block; flex:1; min-width:0; padding-right:14px;}
+.searchrow.on .qclear{display:flex; align-items:center; justify-content:center;
+  position:static; transform:none; flex:none;}
+.searchrow.on #searchbtn{display:none;}
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
@@ -372,7 +391,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* The name is the whole row now, so it can be bigger. display:block is what
    makes the ellipsis work at all — as an inline span it could never truncate,
    which is how the old snippet ended up running off the screen. */
-.cr-name{display:block; font-size:1.45em; font-weight:600; line-height:1.2;
+/* A chat's NAME is sans, not the page's serif (Aug 2026, Sophie: "change the
+   font in the title of every chat to be the same font that the account one
+   account two is in — no serif"). Same family as the account tabs and the
+   timestamps; the serif stays for the masthead and the message prose. It is
+   set in BOTH places a chat's name appears — the row here and the thread
+   header — or tapping a chat would change its own name's typeface. The size
+   drops a step with it: this face runs visually larger than EB Garamond at
+   the same em. */
+.cr-name{display:block; font-family:-apple-system,sans-serif;
+  font-size:1.2em; font-weight:600; line-height:1.25;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
@@ -711,9 +739,14 @@ body.ontop > .float{display:none !important;}
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
       <button id="refresh" class="iconbtn" aria-label="Refresh"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
     </div>
-    <div class="searchrow">
+    <!-- COLLAPSED to the glass until she taps it (Sophie, Aug 2026). The glass
+         keeps the bar's own place rather than joining the tool row's icons:
+         measured at 375/390, a third icon up there squeezes the category chips
+         onto a second line, which spends the row this was meant to save. -->
+    <div class="searchrow" id="searchrow">
+      <button id="searchbtn" class="iconbtn" aria-label="Search all chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
       <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
-      <button id="qclear" class="qclear" aria-label="Clear search" style="display:none">&times;</button>
+      <button id="qclear" class="qclear" aria-label="Clear the search, or close it">&times;</button>
     </div>
     <div id="searchresults" style="display:none"></div>
     <!-- The witch shop sheet's Description/Reviews toggle, doing the same job
@@ -1189,7 +1222,34 @@ function paintHomeChrome(){
   // searches MESSAGES) would both be controls that do nothing to it.
   var todoing=(homeView==='todo');
   document.getElementById('toolrow').style.display = todoing ? 'none' : '';
-  document.querySelector('.searchrow').style.display = todoing ? 'none' : '';
+  paintSearch();
+}
+// ---- The search bar is COLLAPSED to a magnifying glass (Aug 2026, Sophie:
+// "make the search bar collapse into just a magnifying glass button unless I
+// click it, and then it expands into the search bar as it is right now").
+// The glass lives in the tool row with the other icon-only tools, and the
+// bar's whole ROW only exists while she is actually searching — which is the
+// point: it was a permanent row of screen spent on something she uses in
+// bursts.
+// SESSION-ONLY and always starting SHUT. Remembering it was open would give
+// the row back on the next launch for no reason, and an empty search bar
+// sitting open reads as a filter she can't see the effect of.
+var searchOpen=false;
+function paintSearch(){
+  var row=document.getElementById('searchrow');
+  if(!row) return;
+  var todoing=(homeView==='todo');
+  row.style.display = todoing ? 'none' : '';
+  row.classList.toggle('on', searchOpen && !todoing);
+}
+function setSearchOpen(on){
+  searchOpen=!!on;
+  // Closing throws the query away — a folded-away bar still holding words
+  // would leave the results list up with nothing on screen explaining why.
+  if(!searchOpen && window._resetSearch) window._resetSearch();
+  paintSearch();
+  if(searchOpen){ var i=document.getElementById('qsearch'); if(i) i.focus(); }
+  if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
 // The STATUS view has no button anymore (Sophie had the icon removed), so this
@@ -2379,7 +2439,21 @@ function openChat(name, keepScroll, focusId, noFetch){
         .then(function(r){return r.json()})
         .then(function(d){ if(!d.ok) throw 0;
           chats[name]=chats[name]||{}; chats[name].archived=!isArch;
-          toast(!isArch? 'Archived' : 'Restored'); goHome();
+          toast(!isArch? 'Archived' : 'Restored');
+          // ARCHIVING is "away for good", so it ends with leaving \u2014 back to
+          // the list, chat gone.
+          if(!isArch) return goHome();
+          // TAKING ONE OUT is the opposite gesture and used to behave the
+          // same way, which was wrong twice over (Sophie, Aug 2026: "when I
+          // take something out of the archive it should go straight to that
+          // chat, and when I get out of that chat I shouldn't be in the
+          // archive"). She pulls a chat out BECAUSE she wants it \u2014 so stay
+          // in it (repaint so the word reads "Archive" again), and leave the
+          // ARCHIVE VIEW behind, since what she came for is no longer in
+          // there. Without the homeView flip the back chevron drops her into
+          // the archive she just took it out of.
+          if(homeView==='archive') homeView='live';
+          openChat(name, true, null, true);
         })
         .catch(function(){ toast('Couldn\u2019t save that'); });
     }
@@ -3142,6 +3216,9 @@ function lightbox(url, asset){
     lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop'); };
 }
 function goHome(){
+  // Leaving a chat lands on a clean list — including the search bar folded
+  // back to its glass, whether she got here from a result or not.
+  searchOpen=false;
   scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
@@ -3163,14 +3240,17 @@ document.getElementById('back').onclick=goHome;
   var accrow=document.getElementById('accrow');
   function showAcc(on){ if(accrow) accrow.style.display = on ? '' : 'none'; }
   function showGrid(){ sr.style.display='none'; sr.innerHTML=''; grid.style.display=''; paintHomeChrome(); }
-  window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
+  // The ✕'s visibility is the ROW's business now (it is shown whenever the
+  // bar is open, because it doubles as the way to fold the bar away), so
+  // nothing here touches its display.
+  window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
   function hl(snip,q){
     var e=esc(snip||'');
     try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
     catch(_){ return e; }
   }
   function run(q){
-    q=(q||'').trim(); qc.style.display=q?'':'none';
+    q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
     api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
       .then(function(r){return r.json()})
@@ -3200,7 +3280,13 @@ document.getElementById('back').onclick=goHome;
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
   qi.addEventListener('input', function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
-  qc.onclick=function(){ window._resetSearch(); qi.focus(); };
+  // One control, two jobs: with words in the field it clears them; on an
+  // empty field there is nothing left to clear, so it folds the bar back to
+  // its glass. That is the way out of a search without a second button.
+  qc.onclick=function(){
+    if(qi.value){ window._resetSearch(); qi.focus(); return; }
+    setSearchOpen(false);
+  };
 })();
 
 // Floating audio bar: while a message's audio is in play, a tappable bar pins
@@ -3255,6 +3341,9 @@ document.getElementById('back').onclick=goHome;
   window.__jumpsRecheck=function(){ requestAnimationFrame(upd); };
   upd();
 })();
+document.getElementById('searchbtn').onclick=function(){ setSearchOpen(true); };
+// the tests' way in and out, so the collapsed bar stays drivable headlessly
+window.__setSearchOpen=setSearchOpen;
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
