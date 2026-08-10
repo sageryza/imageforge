@@ -1395,7 +1395,20 @@ lifted into a standalone tool later.
   each shows only when it has somewhere to go (>400px that way), so nothing
   floats over a list that already fits; both call `__scrollStop` FIRST, or the
   autoscroll keeps creeping after the jump arrives; and they hide under
-  `body.selecting`, where the filing bar owns the bottom of the screen. The
+  `body.selecting`, where the filing bar owns the bottom of the screen.
+  **THE DOWN ARROW ANSWERS TO THE OPEN MESSAGE FIRST (Aug 2026, Sophie: "a
+  floating down button that gets me just to the bottom of the current message
+  that's open and visible on the screen — you could co-opt" the existing
+  one).** A finished reply runs for screens, and "the end of THIS one" is a
+  different question from "the end of everything". `openMsgEnd()` takes over
+  only when an open message is genuinely on screen AND its end is still below
+  the fold; otherwise the button is the page-bottom jump it always was. So a
+  long thread reads as a progression — one tap lands on the message's end
+  (its last line 14px inside the edge, never flush), the next carries on down
+  the page — and on the chat list, where nothing is open, nothing changes.
+  The show/hide rule follows the same target, since the page bottom can be
+  close while the message still has a screen to go. Tests:
+  `node scripts/test-chats-jump-message.js` (verified failing without it). The
   page height changes on every rebuild, so `window.__jumpsRecheck()` is called
   after renderHome and openChat. Tests: `node scripts/test-chats-jumps.js`
   (which starts the real autoscroll and proves it moved before asserting that
