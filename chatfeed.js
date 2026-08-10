@@ -846,6 +846,32 @@ router.post('/chatnote', async (req, res) => {
     res.json({ ok: true, chat: target, note: val || null });
   } catch (err) { fail(res, err); }
 });
+// THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just
+// the title, and when I press play it opens full screen"). A chat that has
+// just made a film/audio pins it here and it sits at the top of the thread —
+// she should not have to open a Compare page to get at the thing she asked
+// for. One field on the registry doc, same shape as the status card, so it
+// rides the feed's already-cached read. Empty url clears it.
+router.post('/pin', async (req, res) => {
+  try {
+    const { chat, session, title, url, kind } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const target = await resolveChat(chat, session);
+    const del = admin.firestore.FieldValue.delete();
+    const u = String(url || '').trim();
+    if (u && !/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
+    await regRef(target).set({
+      pinned: u ? {
+        url: u,
+        title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        kind: kind === 'audio' ? 'audio' : 'video',
+        at: new Date().toISOString(),
+      } : del,
+    }, { merge: true });
+    res.json({ ok: true, chat: target, pinned: u || null });
+  } catch (err) { fail(res, err); }
+});
+
 // A chat reads its own card + her note (pass session for session-first
 // resolution, same contract as GET /name).
 router.get('/status', async (req, res) => {

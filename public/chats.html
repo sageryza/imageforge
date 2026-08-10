@@ -82,6 +82,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
+   title, and when I press play it opens full screen"). She should not have to
+   open a Compare page to reach the thing she asked a chat to make. */
+.pinned{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
+  padding:9px 11px; margin:0 0 .7em; background:var(--surface); width:100%; text-align:left; cursor:pointer;}
+.pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
+  justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
+.pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
+#pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
+#pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
+  width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
 .renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
 .renamebtn:active{color:var(--ink);}
 .nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
@@ -2143,6 +2156,27 @@ function ensureFullThread(name){
     })
     .catch(function(){ fullLoaded[name]=0; });   // let a later open retry
 }
+// Full-screen player for the pinned deliverable. Follows the house overlay
+// rule: stop the autoscroll, lock the background, and restore the EXACT scroll
+// position on close (overflow:hidden alone does not stop window.scrollBy).
+function openPinned(pin){
+  window.__scrollStop&&window.__scrollStop();
+  var y=window.scrollY;
+  var w=document.createElement('div'); w.id='pinfull';
+  var v=document.createElement(pin.kind==='audio'?'audio':'video');
+  v.src=pin.url; v.controls=true; v.autoplay=true; v.setAttribute('playsinline','');
+  var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
+  x.setAttribute('aria-label','Close');
+  function close(){ try{ v.pause(); }catch(_){ } w.remove();
+    document.body.style.overflow=''; window.scrollTo(0,y);
+    document.removeEventListener('keydown',esckey); }
+  function esckey(e){ if(e.key==='Escape') close(); }
+  x.onclick=close;
+  w.onclick=function(e){ if(e.target===w) close(); };
+  document.addEventListener('keydown',esckey);
+  w.appendChild(v); w.appendChild(x);
+  document.body.appendChild(w); document.body.style.overflow='hidden';
+}
 function openChat(name, keepScroll, focusId, noFetch){
   if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
@@ -2164,6 +2198,21 @@ function openChat(name, keepScroll, focusId, noFetch){
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+  // The pinned deliverable sits directly under the header: title + a play
+  // button, nothing else. Tapping it goes full screen. Set by a chat via
+  // POST /api/chatfeed/pin; the field rides the registry doc the feed already
+  // reads, so this costs no extra request.
+  (function(){
+    var pin=chats[name]&&chats[name].pinned;
+    if(!pin||!pin.url) return;
+    var b=document.createElement('button');
+    b.className='pinned';
+    b.innerHTML='<span class="pl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg></span>'
+      +'<span class="ti">'+esc(pin.title||'The latest cut')+'</span>';
+    b.setAttribute('aria-label','Play '+(pin.title||'the latest cut'));
+    b.onclick=function(){ openPinned(pin); };
+    head.appendChild(b);
+  })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
   // text rather than a button \u2014 it isn't a place to go, it's a thing you do
   // once. Same word and same spot either way: "Archive" / "Unarchive".
