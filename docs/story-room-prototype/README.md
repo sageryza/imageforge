@@ -93,13 +93,21 @@ returns a pad's own inbox when it has one (`source:'story'`) and falls back to
 the Playground hearts otherwise; `POST /api/scratchpad/inbox` fills it. So the
 work is the front door, not the data.
 
-## Open questions Sophie has not answered yet
+## The open questions — ANSWERED (Sophie, 2026-08-10) and built
 
-1. Does the plain shelf disappear entirely, or stay as a fallback?
-2. Tapping a tile — straight to the beat canvas, or to a story page first (art,
-   voice, films) with a way in to the canvas?
-3. Do the categories live in the pad data (each story tagged Personal / Lessons
-   / NDE), or stay a fixed list in the page?
+1. **The plain shelf stays as a fallback only, linked from NOWHERE.** Her
+   words: "you can keep the plain old story room, but it shouldn't link
+   anywhere. We use it as a fallback only if this doesn't work." It lives
+   behind `?plain=1` on the pad page — no button reaches it.
+2. **Tapping a tile goes STRAIGHT TO THE BEAT CANVAS.** She does want a place
+   for the finished films "and stuff" eventually — "that might be a button on
+   the beat page that we haven't added yet or something" — deliberately not
+   built until she asks.
+3. **Categories are `category` on the pad doc**, rendered as the fixed
+   Personal · Lessons · NDE chips; a story with no tag files under Personal so
+   a brand-new one is never invisible. `POST /api/scratchpad/pads/category`
+   sets it; `scripts/seed-pad-categories.js` tagged the seeded stories.
 
-Ask her rather than guessing — every round of this prototype improved by her
-catching a guess.
+The shelf shipped into the live pad page (`scripts/gen-scratchpad.py`, the
+`#stories` sheet) — tests in `scripts/test-storyroom-shelf.js`. This folder
+stays as the design record.
