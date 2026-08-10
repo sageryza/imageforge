@@ -3154,15 +3154,28 @@ lifted into a standalone tool later.
   (Playground, Test Station, Freeform — the only place the Test Station has a
   card at all), **briefcase** = business, **quilt** = old fashioned, **film**
   = everything that makes or cuts moving pictures AND sound (Movies, Films,
-  Cutting Room, Cut Marks, Episode Editor, Story Room, Song Station, Voice
-  Studio, Search, Characters). The lit chip clears back to everything when
+  Cutting Room, Cut Marks, Episode Editor, Voice Studio, Search,
+  Characters). The lit chip clears back to everything when
   tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
   and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
   `://crafts` (alias `://quilt`) land on the home with that filter already
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
   answers to, and keep it off the unfiltered list so the default home stays
   scannable — the picture and film sets are explicit lists, and their tools
-  DO still appear on the unfiltered home. **Four corner icons** beside the
+  DO still appear on the unfiltered home.
+  **THAT ASYMMETRY IS REAL AND SOPHIE NOTICED IT (Aug 2026: "the quilt hides
+  the modules, but the movies tab doesn't — they're all still on the default
+  home screen").** She did NOT ask for the film/picture sets to start hiding
+  their tools; she resolved it tool by tool instead, and those three calls
+  are the rule now: **Story Room is default-home only** (pinned first, taken
+  OUT of the film set), **Freeform stays on the default home** (the pictures
+  filter gathers it up, it doesn't own it), and **Song Station has NO card
+  anywhere** — off the default grid, out of the film set, and its tile
+  removed from the web hub too ("get rid of song station altogether"). The
+  `.song` case, `SongStation` view and `deckfactory://song` are all kept, and
+  `/song` still serves; it just joins the deliberately-unlinked pages. Ask
+  her before hiding any OTHER film/picture tool from the default home.
+  **Four corner icons** beside the
   masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
   RIGHT with Chats on the very end (its original spot). The briefcase and
   quilt corners fire the same filters as their row squares — several

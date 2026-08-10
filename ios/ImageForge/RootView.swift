@@ -519,12 +519,24 @@ private struct HomeGrid: View {
 
     /// The film filter's set — everything that makes or cuts moving pictures
     /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
+    ///
+    /// TWO tools were deliberately taken OUT (Aug 2026, Sophie — she noticed
+    /// the quilt/briefcase filters HIDE their tools from the default home
+    /// while this one doesn't, so a film tool was showing in both places):
+    /// - **Story Room** lives on the DEFAULT home (pinned first, below) and
+    ///   nowhere else — "keep story room on the default screen and take it
+    ///   out of the movies tab".
+    /// - **Song Station** is gone from every grid — "get rid of song station
+    ///   altogether". The tool, its page and `deckfactory://song` all still
+    ///   work; it simply has no card anywhere now.
     private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
-                                             .story, .song, .voice, .search, .character]
+                                             .voice, .search, .character]
 
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the
-    /// test tube beside the masthead.
+    /// test tube beside the masthead. Playground and **Freeform** also sit on
+    /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
+    /// this filter narrows to them, it doesn't own them.
     private static let imageTools: [Tool] = [.playground, .test, .freeform]
 
     /// What the cards show: the normal list, or one filter's slice.
@@ -546,10 +558,11 @@ private struct HomeGrid: View {
         // call: present, but at the bottom. (The four staples that used to be
         // pinned here sit behind the quilt filter now.)
         //
-        // Song Station is NOT here: she asked for it off the home screen
-        // (Aug 2026). It is not deleted — the tool, its page and its deep link
-        // all still work, and it still appears under the FILM filter (which
-        // covers sound too), so it's one tap away rather than on the grid.
+        // Song Station is NOT here, and it is no longer under the FILM filter
+        // either (Aug 2026, Sophie: "get rid of song station altogether") —
+        // it has NO card anywhere in the app now. Deliberately not deleted:
+        // the case, the view and `deckfactory://song` still work, so bringing
+        // it back is one line here, the way .scratchpad is kept below.
         let pinnedBottom: [Tool] = [.voice, .character, .films]
         // Chats and Test Station aren't grid cards — they're the two corner
         // icons beside the masthead. (The Test Station does get a card under
@@ -558,6 +571,9 @@ private struct HomeGrid: View {
         // tile's /storyroom page serves it), so two tiles would be the same
         // tool twice. The case and view stay for deep links and history.
         // Business and old-fashioned tools show under their own filters.
+        // Freeform is deliberately NOT excluded — it is a default-home card
+        // (Sophie, Aug 2026) that the pictures filter also gathers up, unlike
+        // the Test Station, which is filter-only.
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && $0 != .song
                                             && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
