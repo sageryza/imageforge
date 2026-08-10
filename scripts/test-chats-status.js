@@ -6,7 +6,7 @@
 //   1. the header's status icon opens the view (title says Status),
 //   2. chats bucket correctly — the chats she HID lead WAITING, then unread;
 //      a working chat rows under WORKING carrying the .live class (its rose
-//      tint is switched off in CSS, the class and signal stay); an answered
+//      tint is honest-only since v3; forced on here); an answered
 //      chat rows under MARKED DONE, grayed,
 //   3. the delivered strip renders the cross-chat assets + the new page row,
 //   4. the ⊖ on a waiting row hides it without opening anything (the ✓ that
@@ -125,11 +125,8 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   // 1. the view opens (its header icon was removed at Sophie's ask, so the
   //    page's own __setHomeView hook is the way in now)
-  // The rose working tint is switched off on the live page (it needs the
-  // hook's turn-start ping, which older sessions never send, so it lit the
-  // wrong chats). Status's WORKING RIGHT NOW section is retained code behind
-  // the same `TINT` flag as the tint itself, so flip it on to keep testing it
-  // — the same trick as __setHomeView for this entrance-less view.
+  // TINT defaults true since v3 (honest signals, glow inside the pile);
+  // forcing it keeps this view's WORKING section tested if that ever flips.
   await page.evaluate(() => window.__setTint(true));
   await page.evaluate(() => window.__setHomeView('status'));
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Status');

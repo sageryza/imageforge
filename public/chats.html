@@ -345,6 +345,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar svg{width:15px; height:15px; flex:none; display:block;}
 .hidebar .hb-n{flex:1; min-width:0;}
 .hidebar .hb-new{letter-spacing:.04em; opacity:.8; text-transform:none;}
+/* who's busy behind a CLOSED bar — rose like the row tint, so the word and
+   the glow it promises read as one thing */
+.hidebar .hb-work{color:var(--rose); letter-spacing:.04em; text-transform:none;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
@@ -1665,6 +1668,15 @@ function paintSelBar(){
   row.appendChild(out);
   bar.appendChild(row);
 }
+// The rose "· N working" on the hidden bar. Its own function because TWO
+// paths need it: the bar's build, and paintLive on a message-less poll.
+function paintHideWork(bar,g,hid){
+  var busy=hid.filter(function(n){ return chatWorking(n, lastOf(g,n)); }).length;
+  var sp=bar.querySelector('.hb-work');
+  if(!busy){ if(sp) sp.remove(); return; }
+  if(!sp){ sp=document.createElement('span'); sp.className='hb-work'; bar.querySelector('.hb-n').appendChild(sp); }
+  sp.textContent=' · '+busy+' working';
+}
 function renderHiddenBar(el,g,hid){
   if(!hid.length) return;
   // Anything new behind the bar is named on it — otherwise a hidden chat that
@@ -1677,6 +1689,13 @@ function renderHiddenBar(el,g,hid){
   bar.setAttribute('aria-expanded', hideOpen?'true':'false');
   bar.innerHTML=HD+'<span class="hb-n">Hidden '+hid.length
     +(fresh? ' <span class="hb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV;
+  // Parked chats glow while they work (Sophie, v3: "I could look in the hidden
+  // area and see which ones are working") — but a closed bar hides the glow,
+  // so the bar itself carries the count. dataset.hid is for paintLive: the
+  // working mark arrives on polls with ZERO new messages (the repaint lesson),
+  // so the count must be refreshable without a renderHome.
+  bar.dataset.hid=hid.join(',');
+  paintHideWork(bar,g,hid);
   bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
   el.appendChild(bar);
   if(!hideOpen) return;
@@ -1786,27 +1805,27 @@ function chatHidden(name,last){
 // hers that has gone hours unanswered belongs to a chat that is not coming
 // back. Without it either would stay tinted forever.
 var LIVE_STALE=3*60*60*1000;
-// THE TINT IS OFF (Aug 2026, Sophie, after living with it: "skill is tinted
-// pink and it's not working whereas Imprint is working and it wasn't tinted
-// pink"). Both halves of that report are real and neither is a bug in this
-// file — it is what the signals can actually see:
-//   • Imprint's session was started before she re-pasted the setup script, so
-//     its hook never sends the turn-start ping. Measured 2026-08-10: of 77
-//     chats that posted replies in the last six days, exactly 3 had ever
-//     carried `workingAt`, and her own messages only began arriving on Aug 9
-//     — the day of the re-paste. Old sessions keep their container's hook
-//     forever, so most of ~190 chats can never tint, however long we wait.
-//   • "skill" was pink because fallback (2) below reads "her message is the
-//     newest thing here" — which is really WAITING ON THE CHAT, not working.
-// So the tint was wrong in both directions at once, and a signal she can't
-// trust is worse than no signal. Auto-parking is back in its place (server
-// side, POST /reply): it fails by simply not hiding, which is the plain old
-// list, not a lie. The two can never both be on — a chat that parks itself is
-// off the list, so there is nothing left to tint.
-// Flip this back to true to restore it — `chatWorking`, `paintLive` and the
-// Status view's WORKING RIGHT NOW section are all left in place and simply go
-// quiet, so bringing it back is one word (and taking auto-parking off again).
-var TINT=false;
+// THE TINT IS BACK, HONEST-ONLY, AND IT LIVES WITH PARKING (Aug 2026 v3,
+// Sophie: "it could still be tinted even if it's in the hidden area — I could
+// look in the hidden area and see which ones are working"). History matters
+// here, so in order:
+//   • v1 tinted on two signals and was wrong in both directions at once
+//     ("skill is tinted pink and it's not working whereas Imprint is working
+//     and it wasn't tinted pink"): the ping only comes from sessions with a
+//     current hook (measured 2026-08-10: 3 of 77 chats posting replies in six
+//     days had ever sent it), and the fallback "her message is the newest
+//     thing here" is really WAITING ON THE CHAT, not working.
+//   • So the tint came off entirely and auto-parking replaced it.
+//   • v3 (same day) is her synthesis: parking and tint only collide on the
+//     MAIN list — a parked chat is still a row inside the hidden pile, and
+//     THAT row can glow. So both are on: answering parks the chat, and while
+//     it works its pile row is pink. Coverage grows as she pastes the
+//     self-heal into old chats / containers recycle onto the new snapshot.
+// The false-positive fallback is GONE: chatWorking answers on the ping
+// (workingAt) and on a live draft (working:true — also only sent by current
+// hooks), never on "her message is newest". A chat with an old hook parks
+// and just doesn't glow, which is silence, not a lie.
+var TINT=true;
 // The PRIMARY signal is the registry's turn-start mark (`workingAt`, stamped
 // by the hook's UserPromptSubmit ping the moment she messages a session,
 // cleared by the reply's own registry write). The message-shaped signals are
@@ -1822,8 +1841,11 @@ function chatWorking(name,last){
   if(wa && (now-wa)<LIVE_STALE){
     if(!last || last.from==='sophie' || wa>Date.parse(last.postedAt||last.created||'')) return true;
   }
-  if(!last) return false;
-  if(!last.working && last.from!=='sophie') return false;
+  // The only other honest signal: the newest message is a LIVE DRAFT the hook
+  // is still growing (working:true — only current hooks send those). The old
+  // "her message is the newest thing" fallback is deliberately gone; it read
+  // as working when it meant waiting, and it is what lit "skill" wrongly.
+  if(!last || !last.working) return false;
   var at=Date.parse(last.postedAt||last.created||'');
   return !at || (now-at) < LIVE_STALE;
 }
@@ -1855,6 +1877,11 @@ function paintLive(){
     var list=g[node.dataset.chat]||[];
     node.classList.toggle('live', chatWorking(node.dataset.chat, list.length? list[list.length-1] : null));
   });
+  // …and the hidden bar's working count, which is where parked chats glow now.
+  var bar=document.querySelector('#grid .hidebar');
+  if(bar && bar.dataset.hid!==undefined){
+    paintHideWork(bar,g,bar.dataset.hid.split(',').filter(Boolean));
+  }
 }
 // Exposed so the retained tint stays testable with TINT off — same reason
 // __setHomeView is exposed for the entrance-less Status view. The whole page
