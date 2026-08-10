@@ -13,7 +13,11 @@
 //   4. while scrolling, a tap on an image PAUSES (the house any-tap rule),
 //   5. a tap inside [data-nostop] never starts the scroll,
 //   6. __scrollStop is forwarded into the iframe, so compare.js's own
-//      tap-pauses handler stops the PARENT pill (a button tap pauses).
+//      tap-pauses handler stops the PARENT pill (a button tap pauses),
+//   7. an EXTERNAL link opens OUT of the frame instead of navigating it
+//      (claude.ai sends x-frame-options: SAMEORIGIN, so an in-frame load is
+//      refused and reads as bouncing back to the page — Sophie hit this on
+//      the chat-survey page's "Open the chat" link).
 //
 //   npm install playwright-core --no-save && node scripts/test-page-embed.js
 //
@@ -43,6 +47,8 @@ const EMBED_PAGE = `<!doctype html><meta charset="utf-8"><title>embed test page<
   </div>
   <div data-nostop id="nostop"><p>a tappable word-picker-ish region</p></div>
   <button id="btn">a page button</button>
+  <a id="ext" href="https://claude.ai/code/session_abc">Open the chat</a>
+  <a id="own" href="/api/chatfeed/page/other">a same-origin link</a>
   ${'<p>filler so the iframe can scroll</p>'.repeat(80)}
 </div>
 <script src="/compare.js"></script>`;
@@ -148,6 +154,35 @@ const server = http.createServer((req, res) => {
   ok(await playing(), '(setup) scroll running again');
   await tap('#btn');                        // button: parent toggle skips it,
   ok(!(await playing()), "a button tap pauses via the forwarded __scrollStop");
+
+  // 7 — an external link leaves the frame; a same-origin one is untouched
+  const frameUrl = frame.url();
+  await frame.evaluate(() => {
+    // record what the top document is asked to open, without really opening it
+    window.top.__opened = [];
+    const realClick = HTMLAnchorElement.prototype.click;
+    window.top.HTMLAnchorElement.prototype.click = function () {
+      if (this.target === '_blank') { window.top.__opened.push(this.href); return; }
+      return realClick.call(this);
+    };
+  });
+  await tap('#ext');
+  await page.waitForTimeout(150);
+  const opened = await page.evaluate(() => (window.__opened || []).slice());
+  ok(opened.length === 1 && /^https:\/\/claude\.ai\/code\/session_abc/.test(opened[0]),
+     'an external link opens from the TOP document, not in the frame');
+  ok(frame.url() === frameUrl, 'the iframe never navigated away from the page');
+
+  const before = await page.evaluate(() => (window.__opened || []).length);
+  await frame.evaluate(() => {
+    // a same-origin link must stay the page's own business — assert compare.js
+    // does not hijack it (cancel the real navigation, we only want the verdict)
+    document.getElementById('own').addEventListener('click', (e) => e.preventDefault());
+  });
+  await tap('#own');
+  await page.waitForTimeout(100);
+  const after = await page.evaluate(() => (window.__opened || []).length);
+  ok(after === before, 'a same-origin link is left alone');
 
   await browser.close();
   server.close();
