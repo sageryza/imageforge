@@ -41,7 +41,9 @@ const iso = (ms) => new Date(ms).toISOString();
 // at the top — dating it oldest put it at the bottom, where its end and the
 // page's end are the same place and the test proved nothing.
 const LONG = Array.from({ length: 60 }, (_, i) => 'Paragraph ' + (i + 1) + ' of a long reply that runs for several screens.').join('\n\n');
-const MSGS = [{ id: 'long', chat: 'reader', from: 'claude', text: LONG, tldr: 'a long one', created: iso(T0), postedAt: iso(T0) }];
+// the url is what gives a message its Open-in-Claude button — the very thing
+// the floating arrows must not land on
+const MSGS = [{ id: 'long', chat: 'reader', from: 'claude', text: LONG, tldr: 'a long one', url: 'https://claude.ai/code/session_test', created: iso(T0), postedAt: iso(T0) }];
 for (let i = 0; i < 30; i++) {
   MSGS.push({ id: 'tail' + i, chat: 'reader', from: 'claude', text: 'Short follow-up ' + i, tldr: 'short ' + i, created: iso(T0 - 60000 - i * 1000), postedAt: iso(T0 - 60000 - i * 1000) });
 }
@@ -107,6 +109,13 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
       msgEnd: Math.round(window.scrollY + r.bottom),
       pageEnd: Math.round(document.documentElement.scrollHeight - window.innerHeight),
       vh: window.innerHeight,
+      // the page reserves whatever the floating pair is occupying, so the
+      // expected landing is measured, not a magic number
+      reserve: (function(){
+        const j = document.querySelector('.jumps');
+        if (!j || !j.querySelector('.totop.show')) return 14;
+        return Math.max(14, Math.round(window.innerHeight - j.getBoundingClientRect().top + 10));
+      })(),
     };
   });
   if (geom.pageEnd - geom.msgEnd < 600) {
@@ -132,12 +141,27 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
     const r = document.querySelector('#thread .msg[data-mid="long"]').getBoundingClientRect();
     return { bottom: Math.round(r.bottom), vh: window.innerHeight };
   });
-  if (Math.abs(y1 - (geom.msgEnd - geom.vh + 14)) > 6) {
-    fail('the jump did not land on the message end: y=' + y1 + ', wanted ~' + (geom.msgEnd - geom.vh + 14));
+  if (Math.abs(y1 - (geom.msgEnd - geom.vh + geom.reserve)) > 6) {
+    fail('the jump did not land on the message end: y=' + y1 + ', wanted ~' + (geom.msgEnd - geom.vh + geom.reserve));
   }
   if (at.bottom > at.vh) fail('the message end is still below the fold after the jump');
-  if (at.bottom < at.vh - 60) fail('the jump overshot past the end of the message');
   if (y1 > geom.pageEnd - 400) fail('the jump went to the page bottom, not the message end: ' + y1);
+
+  // 2b. THE ARROWS MUST NOT LAND ON THE OPEN-IN-CLAUDE BUTTON. A message's
+  //     last row is bookmark + Open, so a flush landing parks the floating
+  //     pair exactly on top of it (Sophie caught this the first time she
+  //     used the jump). Hit-test the button's own centre.
+  const covered = await page.evaluate(() => {
+    const btn = document.querySelector('#thread .msg[data-mid="long"] .openrow .openclaude');
+    if (!btn) return 'no Open button on the message';
+    const r = btn.getBoundingClientRect();
+    if (r.bottom > window.innerHeight) return 'the Open button is below the fold after the jump';
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if (!hit) return 'nothing at the Open button';
+    if (hit.closest('.jumps')) return 'the jump arrows are sitting on the Open button';
+    return hit.closest('.openclaude') ? '' : 'something else covers the Open button';
+  });
+  if (covered) fail(covered);
 
   // 3. a SECOND tap carries on to the page bottom
   await page.click('#tobot');
