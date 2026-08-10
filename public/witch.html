@@ -1405,6 +1405,11 @@
     .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
     /* Section title page: the art on its own tinted leaf, section name under it. */
     /* Centred in the leaf — a part-title sits in the middle of its page. */
+    /* The empty leaf — a page that says the section is empty and points at
+       where to make one. Same centred part-title feel, no art. */
+    .bos-empty { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12%; gap: 16px; }
+    .bos-empty-line { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.35; color: #6d5c3f; }
+    .bos-empty-cta { width: auto; padding: 10px 18px; }
     .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
     /* The art's box is SIZED BEFORE THE PICTURE ARRIVES (`aspect-ratio`, and a
        width that folds the old max-width/max-height into one min()), so the
@@ -3807,6 +3812,19 @@
     dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
     lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
+  /* What an empty section offers. `el` is a Home element to scroll to after
+     the book closes. Readings and Spell work have NO button on purpose:
+     tarot came off the Home screen (App Review 4.3(b)) and there is no spell
+     maker in the current four tabs, so there is nowhere honest to send her —
+     a button that goes nowhere is worse than a line that admits it. Give one
+     a `go`/`el` the day its maker exists. */
+  const BOS_EMPTY = {
+    reading: { line: 'No readings saved yet.' },
+    sync:    { line: 'No coincidences yet.', cta: 'Write one down', go: 'home', el: 'coincidence-card' },
+    spell:   { line: 'No spells written down yet.' },
+    dream:   { line: 'No dreams yet.', cta: 'Write down a dream', go: 'home', el: 'dream-home-slot' },
+    lesson:  { line: 'No lesson pages saved yet.', cta: 'Go to Witch School', go: 'school' },
+  };
   const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   // The leaf being written on, if any (see "Writing a page" below) — declared
@@ -3903,10 +3921,18 @@
         pages.forEach(p => { p.sect = s.key; });
         if (s.reverse) pages = pages.slice().reverse();   // bosAllPages() is oldest-first
       }
-      // The title page leads its section — but only once the section has
-      // something in it, so an unused section doesn't pad the book with a
-      // part-title in front of nothing.
-      if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      // The title page leads its section, and an EMPTY section now gets one
+      // too, followed by an empty leaf (Aug 2026, Sophie: tapping Dreams with
+      // no dreams saved "doesn't go to the Dreams" — bosSectStart() answered
+      // with where the section WOULD start, which is another section's page,
+      // so the contents quietly sent you to the wrong place). Her ask: land on
+      // the section, then a leaf that says there's nothing here yet and points
+      // at where to make one.
+      // 'lesson' is the exception and stays invisible until the first bookmark
+      // — that was deliberate, and its contents row is filtered out to match.
+      if (s.key === 'lesson' && !pages.length) continue;
+      if (BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      if (!pages.length) out.push({ sect: s.key, page: 'empty', name: s.name });
       pages.forEach(p => out.push(p));
     }
     // The writing leaf — a real page of the book, only while one is being
@@ -4171,6 +4197,14 @@
       }
       return;   // a part-title carries no page number, like a real book
     }
+    if (p.page === 'empty') {
+      const cfg = BOS_EMPTY[p.sect] || { line: 'Nothing here yet.' };
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">
+        <div class="bos-empty-line">${esc(cfg.line)}</div>
+        ${cfg.cta ? `<button class="btn bos-empty-cta" type="button" data-empty-go="${esc(cfg.go)}" data-empty-el="${esc(cfg.el || '')}">${esc(cfg.cta)}</button>` : ''}
+      </div>`;
+      return;
+    }
     if (p.page === 'write') { renderWriteLeaf(); return; }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
@@ -4330,6 +4364,13 @@
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const eg = e.target.closest('[data-empty-go]');
+    if (eg) {
+      const view = eg.dataset.emptyGo, el = eg.dataset.emptyEl;
+      closeBook(); go(view);
+      if (el) setTimeout(() => { const t = $(el); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90);
+      return;
+    }
     const gl = e.target.closest('[data-lsnap]');
     if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
