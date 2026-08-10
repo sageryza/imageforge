@@ -124,9 +124,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
-/* the same sans, caps and size as the row's name — see .cr-name */
-.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.5em; font-weight:600;
-  text-transform:uppercase; letter-spacing:.01em;
+/* the same sans, caps and tracking as the row's name — see .cr-name. Its own
+   base is 16px, so 1.5em was 24px and 1.375em is 22px: the same two points. */
+.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.375em; font-weight:600;
+  text-transform:uppercase; letter-spacing:.04em;
   margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
@@ -405,8 +406,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    so 1.45em/1.5em are back exactly as they were. `text-transform` only —
    never an uppercased STRING — so her real capitalisation survives in the
    rename box, in search, and anywhere else the name is read. */
+/* TWO POINTS SMALLER THAN THE RESTORED SIZE, WITH THE LETTERS OPENED UP
+   (Sophie, Aug 2026: "you're right it's too big — make it two points smaller,
+   and I wonder if you could change the [kerning] so there's a little bit more
+   space between the letters"). The row's base is 13.333px, so 1.45em was
+   19.33px and 1.3em is 17.33px — exactly two off, not a guess. The tracking
+   is what caps want anyway: set solid they read as a block, and 0.04em is
+   enough air to tell the letters apart without turning a name into a label. */
 .cr-name{display:block; font-family:-apple-system,sans-serif;
-  font-size:1.45em; font-weight:600; line-height:1.2; text-transform:uppercase;
+  font-size:1.3em; font-weight:600; line-height:1.25; text-transform:uppercase;
+  letter-spacing:.04em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 .cr-dot{width:9px; height:9px; border-radius:50%; background:var(--rose); flex:none;}
