@@ -520,12 +520,16 @@ private struct HomeGrid: View {
     /// The film filter's set — everything that makes or cuts moving pictures
     /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
     ///
-    /// TWO tools were deliberately taken OUT (Aug 2026, Sophie — she noticed
-    /// the quilt/briefcase filters HIDE their tools from the default home
-    /// while this one doesn't, so a film tool was showing in both places):
+    /// **These tools are HIDDEN from the default home** — `tools` below
+    /// subtracts this list, so the film chip works exactly like the quilt and
+    /// the briefcase. That was Sophie's fix for the asymmetry she spotted
+    /// ("the quilt hides the modules but the movies tab doesn't"): she wanted
+    /// them off the home screen and in the movie tab, not in both places.
+    ///
+    /// TWO tools were deliberately taken OUT of this set:
     /// - **Story Room** lives on the DEFAULT home (pinned first, below) and
-    ///   nowhere else — "keep story room on the default screen and take it
-    ///   out of the movies tab".
+    ///   nowhere else — "story room is no longer movies, so just keep it on
+    ///   default and take it out of the movies tab".
     /// - **Song Station** is gone from every grid — "get rid of song station
     ///   altogether". The tool, its page and `deckfactory://song` all still
     ///   work; it simply has no card anywhere now.
@@ -550,36 +554,43 @@ private struct HomeGrid: View {
         }
     }
 
-    // Sophie's home order: Story Room pinned first; greeting cards, stickers,
-    // storybooks, and coloring pages pinned last; everything in between rotates
-    // by most-recent use.
+    // Sophie's home order: Story Room pinned first, everything after it rotates
+    // by most-recent use. Nothing is pinned to the BOTTOM anymore — the three
+    // that were (Voice Studio, Characters, Films) are film tools and now live
+    // under that filter.
     private var tools: [Tool] {
-        // Voice Studio, Characters and Films at the end of the list — Sophie's
-        // call: present, but at the bottom. (The four staples that used to be
-        // pinned here sit behind the quilt filter now.)
+        // THE FILM FILTER NOW HIDES ITS TOOLS FROM THE DEFAULT HOME, the same
+        // way the quilt and briefcase always have (Aug 2026, Sophie, resolving
+        // the asymmetry she spotted: "leave the stuff off the home screen,
+        // just put it in the movie tab"). So Movies, Films, Cutting Room, Cut
+        // Marks, Episode Editor, Voice Studio, Search and Characters live in
+        // the film tab ONLY — and the old `pinnedBottom` trio (Voice Studio,
+        // Characters, Films) is gone with them, since every one of those three
+        // was a film tool sitting at the bottom of this list.
         //
-        // Song Station is NOT here, and it is no longer under the FILM filter
-        // either (Aug 2026, Sophie: "get rid of song station altogether") —
-        // it has NO card anywhere in the app now. Deliberately not deleted:
-        // the case, the view and `deckfactory://song` still work, so bringing
-        // it back is one line here, the way .scratchpad is kept below.
-        let pinnedBottom: [Tool] = [.voice, .character, .films]
+        // The PICTURES filter is deliberately still a pure narrowing: Sophie
+        // asked for Freeform on the default home, so Playground and Freeform
+        // are cards here AND under the photo chip. Only the Test Station is
+        // filter-only there.
+        //
+        // Song Station has NO card anywhere (Aug 2026, "get rid of song
+        // station altogether") — not here, not under the film filter.
+        // Deliberately not deleted: the case, the view and
+        // `deckfactory://song` still work, so bringing it back is one line.
+        //
         // Chats and Test Station aren't grid cards — they're the two corner
-        // icons beside the masthead. (The Test Station does get a card under
-        // the pictures filter, which is the only place it has one.)
-        // .scratchpad is hidden: the pad IS the Story Room now (the .story
-        // tile's /storyroom page serves it), so two tiles would be the same
-        // tool twice. The case and view stay for deep links and history.
-        // Business and old-fashioned tools show under their own filters.
-        // Freeform is deliberately NOT excluded — it is a default-home card
-        // (Sophie, Aug 2026) that the pictures filter also gathers up, unlike
-        // the Test Station, which is filter-only.
+        // icons beside the masthead. .scratchpad is hidden because the pad IS
+        // the Story Room now (the .story tile's /storyroom page serves it), so
+        // two tiles would be the same tool twice; its case and view stay for
+        // deep links and history. Story Room itself is pinned FIRST and is
+        // NOT a film tool (her call — it came out of the movie tab).
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && $0 != .song
-                                            && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
+                                            && !$0.isBusiness && !$0.isCraft
+                                            && !Self.movieTools.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
-        return [.story] + ranked + rest + pinnedBottom
+        return [.story] + ranked + rest
     }
 
     var body: some View {

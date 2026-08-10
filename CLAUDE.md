@@ -3206,20 +3206,28 @@ lifted into a standalone tool later.
   `://crafts` (alias `://quilt`) land on the home with that filter already
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
   answers to, and keep it off the unfiltered list so the default home stays
-  scannable — the picture and film sets are explicit lists, and their tools
-  DO still appear on the unfiltered home.
-  **THAT ASYMMETRY IS REAL AND SOPHIE NOTICED IT (Aug 2026: "the quilt hides
-  the modules, but the movies tab doesn't — they're all still on the default
-  home screen").** She did NOT ask for the film/picture sets to start hiding
-  their tools; she resolved it tool by tool instead, and those three calls
-  are the rule now: **Story Room is default-home only** (pinned first, taken
-  OUT of the film set), **Freeform stays on the default home** (the pictures
-  filter gathers it up, it doesn't own it), and **Song Station has NO card
-  anywhere** — off the default grid, out of the film set, and its tile
-  removed from the web hub too ("get rid of song station altogether"). The
-  `.song` case, `SongStation` view and `deckfactory://song` are all kept, and
-  `/song` still serves; it just joins the deliberately-unlinked pages. Ask
-  her before hiding any OTHER film/picture tool from the default home.
+  scannable.
+  **THE FILM FILTER HIDES ITS TOOLS TOO (Aug 2026, Sophie — she spotted the
+  asymmetry: "the quilt hides the modules, but the movies tab doesn't —
+  they're all still on the default home screen", then "leave the stuff off
+  the home screen, just put it in the movie tab").** So `movieTools` is
+  SUBTRACTED from the default grid exactly like `isBusiness`/`isCraft`, and
+  the old `pinnedBottom` trio is gone with it — Voice Studio, Characters and
+  Films were all film tools sitting at the bottom of the home list. Three
+  deliberate exceptions to know before "fixing" any of them:
+  - **Story Room is default-home only** — pinned FIRST, and taken out of the
+    film set ("story room is no longer movies").
+  - **The PICTURES filter is still a pure NARROWING**, not a hiding one:
+    Playground and **Freeform** are cards on the default home AND under the
+    photo chip (her ask, "put Freeform in the default"). Only the Test
+    Station is filter-only there.
+  - **Song Station has NO card anywhere** — off the default grid, out of the
+    film set, and its tile removed from the web hub too ("get rid of song
+    station altogether"). The `.song` case, its view and `deckfactory://song`
+    are kept and `/song` still serves; it just joins the
+    deliberately-unlinked pages.
+  The default home is therefore SHORT on purpose — Story Room, Dreams,
+  Lessons, Dump, Playground, Freeform — and everything else is one chip away.
   **Four corner icons** beside the
   masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
   RIGHT with Chats on the very end (its original spot). The briefcase and
