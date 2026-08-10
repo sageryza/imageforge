@@ -1232,7 +1232,7 @@ lifted into a standalone tool later.
       read as filing doing nothing; the whole folder would land on the main
       list at once. The chat NEVER leaves its folder — it is in two places.
       Chats filed before the field existed carry no stamp and can't pop; all
-      20 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
+      23 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
       idempotent, stamps NOW rather than back-dating for exactly that
       reason), so a missing `filedAt` now means the chat isn't filed. Tests:
       `node scripts/test-chats-filed-popout.js`.
