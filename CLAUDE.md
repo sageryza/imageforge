@@ -1514,6 +1514,18 @@ lifted into a standalone tool later.
   region `data-nostop`. Tests: `node scripts/test-page-embed.js` (drives the
   REAL chats.html viewer end to end) — testing only the standalone page
   misses this entire path.
+  **AN EXTERNAL LINK ON AN EMBEDDED PAGE MUST LEAVE THE IFRAME (Aug 2026,
+  Sophie: an "Open the chat" link "just took me back to the compare page").**
+  A plain `<a href="https://claude.ai/…">` navigates the IFRAME, and
+  claude.ai sends `x-frame-options: SAMEORIGIN` (measured 2026-08-10), so the
+  load is refused and the tap reads as bouncing back. `/compare.js` now opens
+  any OFF-ORIGIN http(s) link from the TOP document with `target="_blank"` —
+  the same thing the Chats app's own Open button does — so it never navigates
+  the web view away from the app; same-origin and `#anchor` links are left
+  alone, and a standalone page is untouched. **A page gets this for free by
+  linking `/compare.js`, including pages posted BEFORE the fix** (they load
+  it at runtime, so no repost — which matters, since a repost would throw
+  away verdicts she had already saved).
   **A page served with the injected pill must SCOPE its own script (IIFE).**
   The pill snippet runs in global scope and declares `var raf`, `var I`,
   `var playing`, … — a page-level `let raf`/`const I` collides and kills the
