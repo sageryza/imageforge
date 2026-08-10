@@ -8,10 +8,14 @@
 // and no tile ever turned pink.
 //
 // Drives the REAL public/chats.html in a headless browser against a stub API
-// and asserts the three legs of the loop:
-//   1. home renders with no tint when nothing is working,
+// and asserts the legs of the loop as of v3 (Aug 2026 — honest signals only,
+// and the tint lives WITH auto-parking, inside the hidden pile):
+//   1. no tint when nothing is working — INCLUDING a chat whose newest
+//      message is hers with no ping (the "skill" false positive, removed),
+//   1b. a parked chat with a live ping glows inside the pile, and the closed
+//      bar carries "· 1 working" so the glow isn't a secret,
 //   2. a poll that brings ONLY a fresh workingAt (no messages) tints that
-//      chat's tile — the fixed bug,
+//      chat's tile — the fixed repaint bug,
 //   3. a poll that brings the cleared mark (again no messages) drops the tint.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-working-tint.js
@@ -37,6 +41,13 @@ const iso = (ms) => new Date(ms).toISOString();
 const MSGS = [
   { id: 'm1', chat: 'chat-a', text: 'reply in chat a', tldr: 'a done', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
   { id: 'm2', chat: 'chat-b', text: 'reply in chat b', tldr: 'b done', created: iso(T0 - 3500000), postedAt: iso(T0 - 3500000) },
+  // the "skill" regression: her message is the NEWEST thing here and there is
+  // NO ping — that chat is waiting, not working, and must never tint
+  { id: 'm3', chat: 'chat-s', text: 'reply', tldr: 's', created: iso(T0 - 3400000), postedAt: iso(T0 - 3400000) },
+  { id: 'm4', chat: 'chat-s', from: 'sophie', text: 'do the thing', tldr: '', created: iso(T0 - 60000), postedAt: iso(T0 - 60000) },
+  // parked AND working: answering parks a chat, and while it works its row
+  // inside the hidden pile glows (Sophie, v3) — the bar counts it too
+  { id: 'm5', chat: 'chat-p', text: 'parked reply', tldr: 'p', created: iso(T0 - 3300000), postedAt: iso(T0 - 3300000) },
 ];
 // Mutable server state: the test flips this between polls, the way the hook's
 // ping and the reply's clear flip the real registry doc.
@@ -48,6 +59,8 @@ const server = http.createServer((req, res) => {
     const reg = {
       'chat-a': { lastSeen: MSGS[0].created },
       'chat-b': { lastSeen: MSGS[1].created },
+      'chat-s': { lastSeen: MSGS[2].created },
+      'chat-p': { lastSeen: MSGS[4].created, hiddenAt: iso(T0), workingAt: iso(T0) },
     };
     if (state.workingA) reg['chat-a'].workingAt = iso(Date.now());
     const since = url.searchParams.get('since');
@@ -89,18 +102,26 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-a"]');
-  // THE TINT IS SWITCHED OFF on the live page (Aug 2026 — it could not be made
-  // honest: it needs the hook's turn-start ping, and sessions older than the
-  // setup-script re-paste never send one, so it missed working chats and lit
-  // idle ones). The machinery is all still there behind `TINT`, so this test
-  // flips it on the way `__setHomeView` keeps the retained Status view
-  // testable — the repaint path stays proven for whenever it comes back.
+  // TINT defaults true on the live page since v3; forcing it keeps this test
+  // meaningful even if the default ever flips again.
   await page.evaluate(() => window.__setTint(true));
   await page.evaluate(() => window.__repaintLive && window.__repaintLive());
 
-  // 1. nothing working → no tint anywhere
+  // 1. nothing working → no tint on the main list, and in particular NOT on
+  //    chat-s, whose newest message is hers with no ping (the "skill" bug)
   let live = await liveChats();
   if (live.length) fail('expected no live tint at rest, got: ' + live.join(','));
+
+  // 1b. the parked working chat: the bar counts it while closed, and its row
+  //     inside the pile glows once opened (Sophie, v3 — tint lives WITH
+  //     parking, inside the hidden area)
+  const barTxt = await page.$eval('.hidebar', (n) => n.textContent.replace(/\s+/g, ' ').trim());
+  if (!/1 working/.test(barTxt)) fail('the closed bar does not count the working parked chat: ' + barTxt);
+  await page.click('.hidebar');
+  await page.waitForSelector('.hidelist [data-chat="chat-p"]');
+  const pRow = await page.$eval('.hidelist [data-chat="chat-p"]', (n) => n.classList.contains('live'));
+  if (!pRow) fail('the parked working chat does not glow inside the pile');
+  await page.click('.hidebar');   // close it again for the steps below
 
   // 2. the hook pings /working → the next poll carries ONLY the registry mark
   state.workingA = true;
@@ -120,5 +141,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  console.log(process.exitCode ? 'DONE with failures' : 'OK: working tint paints on a message-less poll and clears the same way');
+  console.log(process.exitCode ? "DONE with failures" : "OK: honest tint only — parked chats glow in the pile, her-message-newest never tints");
 })().catch((e) => { console.error(e); process.exit(1); });

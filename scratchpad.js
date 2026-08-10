@@ -196,9 +196,15 @@ router.get('/pads', async (req, res) => {
       const v = d.data() || {};
       const beats = Array.isArray(v.beats) ? v.beats : [];
       const withArt = beats.find((b) => b.url);
+      // A seeded story keeps its art in its own inbox until it is placed on
+      // the timeline, so the shelf cover falls back there — a tile is a real
+      // picture from the story, never a blank (the survey prototype's rule).
+      const inbox = Array.isArray(v.inbox) ? v.inbox : [];
+      const inboxArt = inbox.find((it) => it && it.url);
       return {
         id: d.id, title: v.title || '', beats: beats.length,
-        cover: withArt ? withArt.url : null, updatedAt: v.updatedAt || 0,
+        cover: withArt ? withArt.url : (inboxArt ? inboxArt.url : null),
+        category: v.category || null, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
@@ -211,6 +217,20 @@ router.post('/pads', async (req, res) => {
     const ref = db().collection(COL).doc();
     await ref.set({ title, beats: [], updatedAt: Date.now() });
     res.json({ ok: true, pad: ref.id, title });
+  } catch (e) { fail(res, e); }
+});
+
+// Which shelf chip a story answers to (personal / lessons / nde). Set by the
+// seed script or a chat — the page files a story with none under Personal, so
+// a brand-new story is never invisible. Deliberately does NOT bump updatedAt:
+// filing a story must not reshuffle the shelf's newest-first order.
+router.post('/pads/category', async (req, res) => {
+  try {
+    const pid = String(req.body.pad || '').trim();
+    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
+    await padRef(pid).set({ category: category || null }, { merge: true });
+    res.json({ ok: true, pad: pid, category: category || null });
   } catch (e) { fail(res, e); }
 });
 

@@ -82,6 +82,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 .thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
+   title, and when I press play it opens full screen"). She should not have to
+   open a Compare page to reach the thing she asked a chat to make. */
+.pinned{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
+  padding:9px 11px; margin:0 0 .7em; background:var(--surface); width:100%; text-align:left; cursor:pointer;}
+.pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
+  justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
+.pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
+#pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
+#pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
+  width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
 .renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
 .renamebtn:active{color:var(--ink);}
 .nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
@@ -345,6 +358,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar svg{width:15px; height:15px; flex:none; display:block;}
 .hidebar .hb-n{flex:1; min-width:0;}
 .hidebar .hb-new{letter-spacing:.04em; opacity:.8; text-transform:none;}
+/* who's busy behind a CLOSED bar — rose like the row tint, so the word and
+   the glow it promises read as one thing */
+.hidebar .hb-work{color:var(--rose); letter-spacing:.04em; text-transform:none;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
@@ -374,13 +390,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
-/* ---- Status cards (Aug 2026, Sophie): a chat's own one-line report, shown
-   under its name. `need` (what it wants from her) reads in rose so the asks
-   stand out on a skim; `doing` is the quiet what-I'm-on line; her own pinned
-   note shows italic with a "you:" prefix. */
-.cr-need{display:block; font-size:14.5px; line-height:1.35; color:var(--rose); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+/* ---- The note line under a chat's name (Aug 2026, Sophie) ----------------
+   ONE line, ONE look — italic, quiet, never bold, never rose. Hers and a
+   chat's read identically on purpose: "I want them the same as mine". An
+   earlier version put the chat's ask in rose bold above a second working
+   line, which she rejected. */
 .cr-note{display:block; font-size:13.5px; line-height:1.35; font-style:italic; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
-.t-tldr.t-need{color:var(--rose); font-weight:600;}
+.t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
 .noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
@@ -1002,18 +1018,18 @@ function statusLines(name){
     note:String(r.sophieNote||'').trim(),
   };
 }
-// The under-the-name lines as HTML: the ask in rose, the working line quiet,
-// her note italic — falling back to the latest auto TLDR when a chat hasn't
-// filed a card yet (so old chats don't go blank).
+// ONE line under the name, in ONE look (Aug 2026, Sophie: "I want them the
+// same as mine — italicized, not bold, not pink"). The rose bold ask and the
+// separate working line were an invented hierarchy she didn't ask for, and
+// with her note that made three lines on a row.
+//
+// HERS WINS: a note she wrote supersedes the chat's line entirely (her ask).
+// Otherwise the chat's `need` — the actionable half — else what it's doing,
+// else the auto TLDR so a card-less chat in the Status view isn't blank.
 function statusLinesHtml(name, fallback){
-  var st=statusLines(name), h='';
-  if(st.need) h+='<span class="cr-need">'+esc(st.need)+'</span>';
-  if(st.doing) h+='<span class="cr-snip">'+esc(st.doing)+'</span>';
-  if(!st.need && !st.doing && fallback) h+='<span class="cr-snip">'+esc(fallback)+'</span>';
-  // Her note is HER OWN reminder of where things stand (Aug 2026, Sophie) —
-  // no "you:" prefix, the italic is enough to read as hers.
-  if(st.note) h+='<span class="cr-note">'+esc(st.note)+'</span>';
-  return h;
+  var st=statusLines(name);
+  var line=st.note || st.need || st.doing || fallback || '';
+  return line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
 }
 // A chat's picture. 18 of ~190 chats actually have one; the rest used to get a
 // box with a giant italic initial in it, and Sophie asked for that gone ("a
@@ -1665,6 +1681,15 @@ function paintSelBar(){
   row.appendChild(out);
   bar.appendChild(row);
 }
+// The rose "· N working" on the hidden bar. Its own function because TWO
+// paths need it: the bar's build, and paintLive on a message-less poll.
+function paintHideWork(bar,g,hid){
+  var busy=hid.filter(function(n){ return chatWorking(n, lastOf(g,n)); }).length;
+  var sp=bar.querySelector('.hb-work');
+  if(!busy){ if(sp) sp.remove(); return; }
+  if(!sp){ sp=document.createElement('span'); sp.className='hb-work'; bar.querySelector('.hb-n').appendChild(sp); }
+  sp.textContent=' · '+busy+' working';
+}
 function renderHiddenBar(el,g,hid){
   if(!hid.length) return;
   // Anything new behind the bar is named on it — otherwise a hidden chat that
@@ -1677,6 +1702,13 @@ function renderHiddenBar(el,g,hid){
   bar.setAttribute('aria-expanded', hideOpen?'true':'false');
   bar.innerHTML=HD+'<span class="hb-n">Hidden '+hid.length
     +(fresh? ' <span class="hb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV;
+  // Parked chats glow while they work (Sophie, v3: "I could look in the hidden
+  // area and see which ones are working") — but a closed bar hides the glow,
+  // so the bar itself carries the count. dataset.hid is for paintLive: the
+  // working mark arrives on polls with ZERO new messages (the repaint lesson),
+  // so the count must be refreshable without a renderHome.
+  bar.dataset.hid=hid.join(',');
+  paintHideWork(bar,g,hid);
   bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
   el.appendChild(bar);
   if(!hideOpen) return;
@@ -1786,27 +1818,27 @@ function chatHidden(name,last){
 // hers that has gone hours unanswered belongs to a chat that is not coming
 // back. Without it either would stay tinted forever.
 var LIVE_STALE=3*60*60*1000;
-// THE TINT IS OFF (Aug 2026, Sophie, after living with it: "skill is tinted
-// pink and it's not working whereas Imprint is working and it wasn't tinted
-// pink"). Both halves of that report are real and neither is a bug in this
-// file — it is what the signals can actually see:
-//   • Imprint's session was started before she re-pasted the setup script, so
-//     its hook never sends the turn-start ping. Measured 2026-08-10: of 77
-//     chats that posted replies in the last six days, exactly 3 had ever
-//     carried `workingAt`, and her own messages only began arriving on Aug 9
-//     — the day of the re-paste. Old sessions keep their container's hook
-//     forever, so most of ~190 chats can never tint, however long we wait.
-//   • "skill" was pink because fallback (2) below reads "her message is the
-//     newest thing here" — which is really WAITING ON THE CHAT, not working.
-// So the tint was wrong in both directions at once, and a signal she can't
-// trust is worse than no signal. Auto-parking is back in its place (server
-// side, POST /reply): it fails by simply not hiding, which is the plain old
-// list, not a lie. The two can never both be on — a chat that parks itself is
-// off the list, so there is nothing left to tint.
-// Flip this back to true to restore it — `chatWorking`, `paintLive` and the
-// Status view's WORKING RIGHT NOW section are all left in place and simply go
-// quiet, so bringing it back is one word (and taking auto-parking off again).
-var TINT=false;
+// THE TINT IS BACK, HONEST-ONLY, AND IT LIVES WITH PARKING (Aug 2026 v3,
+// Sophie: "it could still be tinted even if it's in the hidden area — I could
+// look in the hidden area and see which ones are working"). History matters
+// here, so in order:
+//   • v1 tinted on two signals and was wrong in both directions at once
+//     ("skill is tinted pink and it's not working whereas Imprint is working
+//     and it wasn't tinted pink"): the ping only comes from sessions with a
+//     current hook (measured 2026-08-10: 3 of 77 chats posting replies in six
+//     days had ever sent it), and the fallback "her message is the newest
+//     thing here" is really WAITING ON THE CHAT, not working.
+//   • So the tint came off entirely and auto-parking replaced it.
+//   • v3 (same day) is her synthesis: parking and tint only collide on the
+//     MAIN list — a parked chat is still a row inside the hidden pile, and
+//     THAT row can glow. So both are on: answering parks the chat, and while
+//     it works its pile row is pink. Coverage grows as she pastes the
+//     self-heal into old chats / containers recycle onto the new snapshot.
+// The false-positive fallback is GONE: chatWorking answers on the ping
+// (workingAt) and on a live draft (working:true — also only sent by current
+// hooks), never on "her message is newest". A chat with an old hook parks
+// and just doesn't glow, which is silence, not a lie.
+var TINT=true;
 // The PRIMARY signal is the registry's turn-start mark (`workingAt`, stamped
 // by the hook's UserPromptSubmit ping the moment she messages a session,
 // cleared by the reply's own registry write). The message-shaped signals are
@@ -1822,8 +1854,11 @@ function chatWorking(name,last){
   if(wa && (now-wa)<LIVE_STALE){
     if(!last || last.from==='sophie' || wa>Date.parse(last.postedAt||last.created||'')) return true;
   }
-  if(!last) return false;
-  if(!last.working && last.from!=='sophie') return false;
+  // The only other honest signal: the newest message is a LIVE DRAFT the hook
+  // is still growing (working:true — only current hooks send those). The old
+  // "her message is the newest thing" fallback is deliberately gone; it read
+  // as working when it meant waiting, and it is what lit "skill" wrongly.
+  if(!last || !last.working) return false;
   var at=Date.parse(last.postedAt||last.created||'');
   return !at || (now-at) < LIVE_STALE;
 }
@@ -1855,6 +1890,11 @@ function paintLive(){
     var list=g[node.dataset.chat]||[];
     node.classList.toggle('live', chatWorking(node.dataset.chat, list.length? list[list.length-1] : null));
   });
+  // …and the hidden bar's working count, which is where parked chats glow now.
+  var bar=document.querySelector('#grid .hidebar');
+  if(bar && bar.dataset.hid!==undefined){
+    paintHideWork(bar,g,bar.dataset.hid.split(',').filter(Boolean));
+  }
 }
 // Exposed so the retained tint stays testable with TINT off — same reason
 // __setHomeView is exposed for the entrance-less Status view. The whole page
@@ -1916,12 +1956,11 @@ function renderTiles(el,g,names){
     var about=(chats[name]&&chats[name].about)||'';
     var b=document.createElement('button'); b.className='tile'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     b.dataset.chat=name;
-    // The chat's own status card wins the tile's line: the ask (rose) and/or
-    // the working line; only a chat with no card falls back to the auto TLDR.
+    // Same one-line rule as the list: her note wins, else the chat's ask,
+    // else what it's doing, else the auto TLDR. One quiet italic look.
     var st=statusLines(name);
-    var lineHtml=(st.need?'<span class="t-tldr t-need">'+esc(st.need)+'</span>':'')
-      +(st.doing?'<span class="t-tldr">'+esc(st.doing)+'</span>':'')
-      +((!st.need&&!st.doing&&status)?'<span class="t-tldr">'+esc(status)+'</span>':'');
+    var tline=st.note || st.need || st.doing || status || '';
+    var lineHtml=tline?'<span class="t-tldr t-note">'+esc(tline)+'</span>':'';
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
@@ -2133,6 +2172,27 @@ window.__openThread=function(name){
   return true;
 };
 
+// Full-screen player for the pinned deliverable. Follows the house overlay
+// rule: stop the autoscroll, lock the background, and restore the EXACT scroll
+// position on close (overflow:hidden alone does not stop window.scrollBy).
+function openPinned(pin){
+  window.__scrollStop&&window.__scrollStop();
+  var y=window.scrollY;
+  var w=document.createElement('div'); w.id='pinfull';
+  var v=document.createElement(pin.kind==='audio'?'audio':'video');
+  v.src=pin.url; v.controls=true; v.autoplay=true; v.setAttribute('playsinline','');
+  var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
+  x.setAttribute('aria-label','Close');
+  function close(){ try{ v.pause(); }catch(_){ } w.remove();
+    document.body.style.overflow=''; window.scrollTo(0,y);
+    document.removeEventListener('keydown',esckey); }
+  function esckey(e){ if(e.key==='Escape') close(); }
+  x.onclick=close;
+  w.onclick=function(e){ if(e.target===w) close(); };
+  document.addEventListener('keydown',esckey);
+  w.appendChild(v); w.appendChild(x);
+  document.body.appendChild(w); document.body.style.overflow='hidden';
+}
 function openChat(name, keepScroll, focusId, noFetch){
   if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
@@ -2154,6 +2214,21 @@ function openChat(name, keepScroll, focusId, noFetch){
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+  // The pinned deliverable sits directly under the header: title + a play
+  // button, nothing else. Tapping it goes full screen. Set by a chat via
+  // POST /api/chatfeed/pin; the field rides the registry doc the feed already
+  // reads, so this costs no extra request.
+  (function(){
+    var pin=chats[name]&&chats[name].pinned;
+    if(!pin||!pin.url) return;
+    var b=document.createElement('button');
+    b.className='pinned';
+    b.innerHTML='<span class="pl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg></span>'
+      +'<span class="ti">'+esc(pin.title||'The latest cut')+'</span>';
+    b.setAttribute('aria-label','Play '+(pin.title||'the latest cut'));
+    b.onclick=function(){ openPinned(pin); };
+    head.appendChild(b);
+  })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
   // text rather than a button \u2014 it isn't a place to go, it's a thing you do
   // once. Same word and same spot either way: "Archive" / "Unarchive".
