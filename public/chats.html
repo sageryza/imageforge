@@ -126,7 +126,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
 /* the same sans, caps and tracking as the row's name — see .cr-name. Its own
    base is 16px, so 1.5em was 24px and 1.375em is 22px: the same two points. */
-.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.375em; font-weight:600;
+.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.375em; font-weight:400;
   text-transform:uppercase; letter-spacing:.04em;
   margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
@@ -414,7 +414,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    is what caps want anyway: set solid they read as a block, and 0.04em is
    enough air to tell the letters apart without turning a name into a label. */
 .cr-name{display:block; font-family:-apple-system,sans-serif;
-  font-size:1.3em; font-weight:600; line-height:1.25; text-transform:uppercase;
+  font-size:1.3em; font-weight:400; line-height:1.25; text-transform:uppercase;
   letter-spacing:.04em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .cr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
@@ -3571,7 +3571,10 @@ function poll(){
       // off the far end — a merge would leave holes, so start over clean.
       if(incoming.length>=200) return load();
       var have={}; msgs.forEach(function(m,i){ have[m.id]=i+1; });
-      var added=0, mine=0, grew=0;
+      // `added`/`mine` count everything that landed (they drive caching and
+      // repainting); `news`/`mineNews` count only what is worth TELLING her
+      // about — see the from!=='sophie' note where the bar is raised.
+      var added=0, mine=0, grew=0, news=0, mineNews=0;
       incoming.forEach(function(m){
         var at=have[m.id];
         if(at){
@@ -3590,6 +3593,7 @@ function poll(){
         }
         msgs.push(m); have[m.id]=msgs.length; added++;    // groups() re-sorts by created
         if(cur && m.chat===cur) mine++;
+        if(m.from!=='sophie'){ news++; if(cur && m.chat===cur) mineNews++; }
       });
       if(!added){
         if(!grew) return;                       // never re-render for nothing
@@ -3608,7 +3612,16 @@ function poll(){
       // messages count: a reply landing in some other chat must not move the
       // page under her, and the home screen picks those up when she goes back.
       if(!cur) paintLive();   // buffered below, but the working tint is not news to hold back
-      var n = cur ? mine : added;
+      // HER OWN MESSAGES NEVER RAISE THE BAR (Sophie, Aug 2026: "it notifies
+      // me when my own message comes in — that's a bug"). The hook lifts what
+      // she types in the Claude app into the feed, so it arrives on a poll
+      // like anything else — but being told about the message she just sent
+      // is noise, and it made the bar cry wolf for the one signal that is
+      // supposed to mean "something came back". The row dot and the answered
+      // badges have always excluded her (`from!=='sophie'`); this was the one
+      // path that didn't. Her message is still merged and cached above, so it
+      // is simply there at the next natural render.
+      var n = cur ? mineNews : news;
       if(!n) return;
       pendingNew+=n; paintNew();
     })
@@ -3626,6 +3639,12 @@ function openWanted(){
   openChat(n); window.scrollTo(0,0);
   return true;
 }
+
+// Test hooks: the delta poll is where "is this worth telling her about?" is
+// decided, so it has to be drivable on demand rather than on its timer.
+window.__poll=poll;
+window.__openChat=function(n){ openChat(n); };
+window.__msgIds=function(){ return msgs.map(function(m){ return m.id; }); };
 
 // Launch: paint from the saved copy and fetch only the delta — the full
 // 1500-doc load now happens only on a first-ever visit or a Refresh tap.
