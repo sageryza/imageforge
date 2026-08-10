@@ -66,7 +66,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    That pattern is the witch shop sheet's `.ps-tabs`: NO boxes — two
    half-width labels over a hairline, and a line under whichever one you are
    reading that SLIDES across when you tap the other. Ported here verbatim in
-   shape, with this page's `--chg` where the witch app uses gold.
+   shape — but in INK, not `--chg` (Sophie, Aug 2026: "make it not red, just
+   black"). The screen already spends its red on the hidden bar and the
+   answered badges, which are alarms; which account you are reading is not
+   one, so the lit word and its line are simply the page's own ink and the
+   unlit one is `--ink2`. The red badge on each tab STAYS red — that is the
+   app's "something answered you" colour everywhere else, and it is the one
+   thing on this row that is meant to catch her eye.
    It sits directly ABOVE the hidden bar (Sophie, Aug 2026), which is what
    lets it run FULL WIDTH: down here the row clears the autoscroll pill's
    band (the pill covers x 324–374, y 14–192, and this lands well below it),
@@ -78,22 +84,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    overhang the tab it underlines. translateX(100%) moves the line by its
    own width, i.e. exactly one tab. */
 .acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
-  margin:0 0 10px;}
+  margin:-5px 0 10px;}
 .acctab{flex:1 1 50%; display:flex; align-items:center; justify-content:center; gap:5px;
-  padding:8px 6px 10px; border:none; background:none; cursor:pointer;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  padding:7px 6px 9px; border:none; background:none; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
-.acctab.on{color:var(--chg); font-weight:600;}
+.acctab.on{color:var(--ink); font-weight:600;}
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
-  width:50%; background:var(--chg);
+  width:50%; background:var(--ink);
   transform:translateX(0); transition:transform .2s ease;}
 .acctabs[data-on="2"]::after{transform:translateX(100%);}
 /* The red badge = chats in THAT account that answered her and she hasn't
    opened. Same shape and reason as the category chips' one: without it, the
    account she is not looking at would be completely silent. */
 .acctab .cc-new{display:inline-flex; align-items:center; justify-content:center;
-  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px;
-  background:var(--chg); color:var(--paper); font-size:10px; font-weight:700;
+  min-width:15px; height:15px; padding:0 4px; box-sizing:border-box; border-radius:8px;
+  background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
