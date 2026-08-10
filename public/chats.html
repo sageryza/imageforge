@@ -67,26 +67,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    half-width labels over a hairline, and a line under whichever one you are
    reading that SLIDES across when you tap the other. Ported here verbatim in
    shape, with this page's `--chg` where the witch app uses gold.
-   It REPLACES the masthead rule when it is showing (paintHomeChrome swaps
-   them), so there is exactly one hairline under the title, not two.
-   Two layout details are load-bearing:
-   • `padding-right:56px` reserves the autoscroll pill's corner (it covers
-     x 324–374, y 14–192, and this row lands inside that band) — without it
-     the right half of "Account 2" is under the pill and untappable, the same
-     bug that buried the to-do list's Add button.
-   • the sliding line is therefore `calc((100% - 56px)/2)` wide, not 50%: an
-     absolutely-positioned child measures against the PADDING box, so a plain
-     50% would overhang the tab it is meant to underline. translateX(100%)
-     moves it by its own width, i.e. exactly one tab. */
+   It sits directly ABOVE the hidden bar (Sophie, Aug 2026), which is what
+   lets it run FULL WIDTH: down here the row clears the autoscroll pill's
+   band (the pill covers x 324–374, y 14–192, and this lands well below it),
+   so neither the 56px corner reserve nor a short hairline is needed. The
+   test hit-tests both tabs at 375/390/430 rather than trusting that — if
+   the row is ever moved back up, it needs `padding-right:56px` again AND a
+   sliding line of `calc((100% - 56px)/2)`, since an absolutely-positioned
+   child measures against the PADDING box and a plain 50% would then
+   overhang the tab it underlines. translateX(100%) moves the line by its
+   own width, i.e. exactly one tab. */
 .acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
-  margin:.7em 0 1em; padding-right:56px;}
+  margin:0 0 10px;}
 .acctab{flex:1 1 50%; display:flex; align-items:center; justify-content:center; gap:5px;
   padding:8px 6px 10px; border:none; background:none; cursor:pointer;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .acctab.on{color:var(--chg); font-weight:600;}
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
-  width:calc((100% - 56px)/2); background:var(--chg);
+  width:50%; background:var(--chg);
   transform:translateX(0); transition:transform .2s ease;}
 .acctabs[data-on="2"]::after{transform:translateX(100%);}
 /* The red badge = chats in THAT account that answered her and she hasn't
@@ -402,6 +401,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hidebar .hb-chev{transition:transform .16s ease;}
 .hidebar.open .hb-chev{transform:rotate(180deg);}
 .hidelist{margin:0 0 10px;}
+/* A gray line closing the hidden block off from the chats under it (Sophie,
+   Aug 2026: "under hidden can you put a gray line so the first chat is
+   separated from hidden"). It follows the whole block — the bar when the
+   pile is shut, the pile's last row when it is open — and the last hidden
+   row drops its own border so the two never stack into a double line. */
+.hbsep{height:1px; background:var(--line); margin:0 0 10px;}
+.hidelist .clist .crow:last-child{border-bottom:none;}
 /* ---- The running to-do list ---------------------------------------------- */
 /* The add row RESERVES THE PILL'S CORNER. On this view the tool row and the
    search bar are hidden, so the add row rides up into the pill's band (y
@@ -690,13 +696,6 @@ body.ontop > .float{display:none !important;}
         </div>
       </div>
       <div class="rule"></div>
-      <!-- The witch shop sheet's Description/Reviews toggle, doing the same
-           job here: one account on screen at a time. Labels + badges are
-           painted by paintAcctTabs(). -->
-      <div id="accrow" class="acctabs" data-on="1">
-        <button class="acctab" data-acct="1"></button>
-        <button class="acctab" data-acct="2"></button>
-      </div>
     </header>
     <div id="toolrow" class="toolrow">
       <div id="catrow" class="catrow"></div>
@@ -708,6 +707,15 @@ body.ontop > .float{display:none !important;}
       <button id="qclear" class="qclear" aria-label="Clear search" style="display:none">&times;</button>
     </div>
     <div id="searchresults" style="display:none"></div>
+    <!-- The witch shop sheet's Description/Reviews toggle, doing the same job
+         here: one account on screen at a time. It sits directly ABOVE the
+         hidden bar (Sophie, Aug 2026 — it shipped up under the masthead and
+         she moved it down here), so it is the last thing before the list it
+         governs. Labels + badges are painted by paintAcctTabs(). -->
+    <div id="accrow" class="acctabs" data-on="1">
+      <button class="acctab" data-acct="1"></button>
+      <button class="acctab" data-acct="2"></button>
+    </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
   <section id="thread" style="display:none"></section>
@@ -1158,14 +1166,9 @@ function paintHomeChrome(){
   // The account tabs split a list of CHATS, so they belong on the chat list
   // and the archive and nowhere else — bookmarks and to-dos are not chats,
   // and Status is deliberately unfiltered (it is the everything-at-once
-  // view, like it is for categories). Where they show they REPLACE the
-  // masthead rule: their own hairline is that line, and two lines 10px
-  // apart under the title reads as a mistake.
+  // view, like it is for categories).
   var acc=document.getElementById('accrow');
-  if(acc){
-    acc.style.display = other ? 'none' : '';
-    document.querySelector('.rule').style.display = other ? '' : 'none';
-  }
+  if(acc) acc.style.display = other ? 'none' : '';
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -1819,9 +1822,11 @@ function renderHiddenBar(el,g,hid){
   paintHideWork(bar,g,hid);
   bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
   el.appendChild(bar);
-  if(!hideOpen) return;
+  function sep(){ el.appendChild(Object.assign(document.createElement('div'),{className:'hbsep'})); }
+  if(!hideOpen){ sep(); return; }
   var box=document.createElement('div'); box.className='hidelist'; el.appendChild(box);
   if(view==='list') renderList(box,g,hid); else renderTiles(box,g,hid);
+  sep();   // the line closes the whole block, so it goes AFTER the open pile
 }
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
@@ -3138,7 +3143,11 @@ document.getElementById('back').onclick=goHome;
 (function(){
   var qi=document.getElementById('qsearch'), qc=document.getElementById('qclear'),
       sr=document.getElementById('searchresults'), grid=document.getElementById('grid'), t=null;
-  function showGrid(){ sr.style.display='none'; sr.innerHTML=''; grid.style.display=''; }
+  // The account tabs govern the GRID, and a search deliberately looks across
+  // both accounts — so they come off with it and back with it.
+  var accrow=document.getElementById('accrow');
+  function showAcc(on){ if(accrow) accrow.style.display = on ? '' : 'none'; }
+  function showGrid(){ sr.style.display='none'; sr.innerHTML=''; grid.style.display=''; paintHomeChrome(); }
   window._resetSearch=function(){ if(qi){ qi.value=''; } qc.style.display='none'; showGrid(); };
   function hl(snip,q){
     var e=esc(snip||'');
@@ -3154,7 +3163,7 @@ document.getElementById('back').onclick=goHome;
         if(qi.value.trim()!==q) return;   // a newer keystroke already fired
         var rs=(d&&d.results)||[];
         var cm=(d&&d.chatMatches)||[];
-        grid.style.display='none'; sr.style.display=''; sr.innerHTML='';
+        grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='';
         if(!rs.length&&!cm.length){ sr.innerHTML='<div class="state">No matches.</div>'; return; }
         // Chats whose NAME matches come first (Sophie's rule, Aug 2026):
         // searching a chat's name should find the chat itself at the top,
@@ -3173,7 +3182,7 @@ document.getElementById('back').onclick=goHome;
           sr.appendChild(b);
         });
       })
-      .catch(function(){ grid.style.display='none'; sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
+      .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
   qi.addEventListener('input', function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
   qc.onclick=function(){ window._resetSearch(); qi.focus(); };

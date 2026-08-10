@@ -1466,9 +1466,18 @@ lifted into a standalone tool later.
   witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
   hairline with a line under the one she is reading that SLIDES when she taps
   the other, `--chg` where the witch app uses gold.
-  - **It REPLACES the masthead rule** where it shows (`paintHomeChrome`
-    swaps them), so there is one hairline under the title, not two 10px
-    apart.
+  - **It sits directly ABOVE THE HIDDEN BAR** (Sophie moved it there the same
+    day — it shipped under the masthead), so it is the last thing before the
+    list it governs. That position is also what lets it run FULL WIDTH: down
+    there it clears the autoscroll pill's band, so it needs neither the 56px
+    corner reserve nor a shortened hairline. **Move it back up and it needs
+    both again** — plus a sliding line of `calc((100% - 56px)/2)`, since an
+    abspos child measures the PADDING box. The test hit-tests both tabs at
+    375/390/430 rather than trusting any of that.
+  - **A gray line closes the hidden block off** from the chats under it
+    (`.hbsep`, her ask). It follows the whole block — the bar when the pile
+    is shut, the pile's last row when it is open — and that last row drops
+    its own border so the two never stack into a double line.
   - **A tab is not a chip.** A category chip narrows a pile; this SPLITS the
     screen in half, so it has to be a labelled tab that says which half she
     is in — 144 of 200 chats are on account 1 (measured 2026-08-10), and a
@@ -1489,12 +1498,7 @@ lifted into a standalone tool later.
     with no memory of having chosen.
   - Each tab carries the same red ANSWERED badge the category chips do, so
     the tab she is NOT on can still say there are three waiting over there.
-  - **The row reserves the pill's corner** (`padding-right:56px`, the same
-    band that buried the to-do Add button) and the sliding line is therefore
-    `calc((100% - 56px)/2)` wide, not 50% — an abspos child measures against
-    the PADDING box, so a plain 50% overhangs the tab it underlines. Tests:
-    `node scripts/test-chats-accounts.js` (hit-tests both tabs with
-    `elementFromPoint` at 375/390/430).
+  - Tests: `node scripts/test-chats-accounts.js`.
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +
