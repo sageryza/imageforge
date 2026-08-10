@@ -87,6 +87,19 @@ widen that phrase to the word after the laugh, or cut that one shot by hand.
     dead air was one keystroke from being delivered as clean.
   - **Check speech loss with an LCS diff** reporting CONTIGUOUS missing runs.
     A bag-of-words ratio passes a cut that ate a whole sentence.
+  - **A pause SHE ASKED FOR is declared with `--keep a-b,c-d` (seconds), not
+    deleted to make the check green (Aug 2026).** The Evan film opens on a
+    1.10s gap between the phone ringing and "it was Evan" — that gap IS the
+    phone ringing, and she asked for it by name: "I want that exact pause."
+    The verifier calls it dead air, and the obvious way to pass is to remove
+    it, which is the one thing that must never happen. A listed run prints
+    `KEPT — asked for` and does not fail; anything unlisted still fails. If
+    `--keep` is passed and NOTHING matches, it says so — that is the signal a
+    tightening pass ate her pause.
+  - **The other half of that: source the unit from the UNTIGHTENED audio.** A
+    floor low enough to catch real dead air (0.36s) also catches a deliberate
+    1.10s ring pause, because a pause detector cannot tell intent. Protect
+    such units at the BUILD, by name, rather than tuning the floor around them.
   - **Retry every transcription chunk and reject error bodies** — one DNS
     blip put the words "dns resolution failed" into a transcript and faked a
     31.5% loss.

@@ -3017,6 +3017,21 @@ function openPage(p){
   frame.addEventListener('load', function(){
     try{
       var w=frame.contentWindow, doc=frame.contentDocument;
+      // A page that drives its OWN scrolling declares
+      // <meta name="forge-pill" content="off"> (or <body data-nopill>) and
+      // this pill goes away entirely (Aug 2026, Sophie — on the pausing tool
+      // the pill sat over the CUT button, and its scrolling fought the page's
+      // own read-along centring; two scrollers is always one too many). The
+      // tap-to-toggle is skipped with it, so a tap can never start a scroll
+      // there, and __scrollStop stays defined as a no-op so the page's shared
+      // handlers keep working.
+      var noPill = doc && (doc.querySelector('meta[name="forge-pill"][content="off"]') ||
+                           (doc.body && doc.body.hasAttribute('data-nopill')));
+      if (noPill) {
+        if (pill && pill.remove) pill.remove();
+        if (w) w.__scrollStop = function(){};
+        return;
+      }
       // The page's own shared handlers — compare.js's tap-pauses-scroll and
       // its lightbox open() — talk to `window.__scrollStop`, which an EMBEDDED
       // page doesn't have (embed=1 means no injected pill). Hand them THIS

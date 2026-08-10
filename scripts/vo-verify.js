@@ -2,6 +2,7 @@
 // vo-verify.js — VERIFY a finished cut of Sophie's voice before delivering it.
 //
 //   node scripts/vo-verify.js cut.mp4|cut.mp3 [--script script.txt] [--min 1.0]
+//                              [--keep 2.6-3.9,74.1-75.0]
 //
 // Why this exists (Aug 2026, learned on the Evan film): a chat delivered two
 // films it described as "dead air gone" that were full of gaps, then delivered
@@ -19,6 +20,14 @@
 //      separated from scattered ASR noise. A bag-of-words ratio cannot tell
 //      those apart and will pass a cut that ate a whole line.
 //
+// --keep is for a pause SOPHIE ASKED FOR (Aug 2026, the Evan film's opening:
+// "I want that exact pause" — the 1.10s gap between the phone ringing and "it
+// was Evan" IS the phone ringing). Without it this check fails every build of
+// that film, and the obvious way to make it pass is to delete her pause — which
+// is the one thing that must never happen. Pass the ranges in SECONDS of the
+// finished cut; a listed run is reported as "kept" and does not fail. Anything
+// NOT listed still fails, so the check keeps its teeth.
+//
 // The transcription chunker RETRIES: a single DNS blip once put the literal
 // words "dns resolution failed" into a transcript and faked a 31.5% loss.
 //
@@ -31,6 +40,14 @@ const args = process.argv.slice(2);
 const flag = (n, d = null) => { const i = args.indexOf('--' + n); return i === -1 ? d : args[i + 1]; };
 const FILE = args.find(a => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--script' && args[args.indexOf(a) - 1] !== '--min');
 const SCRIPT = flag('script'); const MINRUN = Number(flag('min', '1.0'));
+const KEEP = (flag('keep', '') || '').split(',').filter(Boolean).map((r) => {
+  const [a, b] = r.split('-').map(Number);
+  if (!isFinite(a) || !isFinite(b) || b <= a) { console.error('bad --keep range: ' + r); process.exit(1); }
+  return [a, b];
+});
+// a run counts as intended when it sits inside a --keep range (0.25s slack each
+// side, because a compressed edge moves by a frame or two between builds)
+const intended = (a, b) => KEEP.some(([x, y]) => a >= x - 0.25 && b <= y + 0.25);
 if (!FILE) { console.error('usage: vo-verify.js cut.mp4 [--script script.txt] [--min 1.0]'); process.exit(1); }
 const BIN = 320, BLIP = 3; // 20ms bins @16k; <=60ms above threshold doesn't break a run
 
@@ -96,9 +113,13 @@ function missingRuns(want, got) { // LCS backtrack -> contiguous runs of script 
   const fmt = t => Math.floor(t / 60) + ':' + (t % 60).toFixed(1).padStart(4, '0');
   console.log(`${FILE}`);
   console.log(`  ${(prof.length * 0.02 / 60).toFixed(2)} min | speech ${speech.toFixed(1)}dB | floor ${floor.toFixed(1)}dB | silence < ${thr.toFixed(1)}dB`);
-  console.log(`  dead-air runs >= ${MINRUN}s: ${runs.length}${runs.length ? ` (${runs.reduce((a, [x, y]) => a + (y - x), 0).toFixed(1)}s)` : ''}`);
-  runs.slice(0, 25).forEach(([a, b]) => console.log(`    ${fmt(a)} -> ${fmt(b)}  (${(b - a).toFixed(2)}s)`));
-  if (runs.length) fail = true;
+  const kept = runs.filter(([a, b]) => intended(a, b));
+  const bad = runs.filter(([a, b]) => !intended(a, b));
+  console.log(`  dead-air runs >= ${MINRUN}s: ${bad.length}${bad.length ? ` (${bad.reduce((a, [x, y]) => a + (y - x), 0).toFixed(1)}s)` : ''}`);
+  bad.slice(0, 25).forEach(([a, b]) => console.log(`    ${fmt(a)} -> ${fmt(b)}  (${(b - a).toFixed(2)}s)`));
+  kept.forEach(([a, b]) => console.log(`    ${fmt(a)} -> ${fmt(b)}  (${(b - a).toFixed(2)}s)  KEPT — asked for`));
+  if (KEEP.length && !kept.length) console.log('  NOTE: --keep was passed but no run matched it — the intended pause may have been compressed away');
+  if (bad.length) fail = true;
   if (SCRIPT) {
     if (!process.env.OPENAI_API_KEY) { console.error('  OPENAI_API_KEY required for --script'); process.exit(1); }
     // Chunk against the AUDIO stream's duration, not the container's. A film
