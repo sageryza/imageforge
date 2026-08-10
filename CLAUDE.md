@@ -1559,6 +1559,51 @@ lifted into a standalone tool later.
   - Each tab carries the same red ANSWERED badge the category chips do, so
     the tab she is NOT on can still say there are three waiting over there.
   - Tests: `node scripts/test-chats-accounts.js`.
+- **THE THIRD TAB — "NEW", the daily notifications view (Aug 2026, Sophie:
+  "right now there's account one and account two, two tabs on my chat app
+  screen — I wanna make one more tab, and this is like a daily notifications
+  thing, so it includes a little more information and I can get rid of them if
+  I've already checked them").** `homeView='news'`, painted by `renderNews` in
+  chats.html; the tab lives in `.acctabs` beside the two account words and
+  lights up on its own (`data-on="new"`, the sliding line's third slot).
+  - **A card carries the THING, not a line about it** — that is the whole
+    point of the tab. Her two examples ARE the two blocks: "for the [oven]
+    chat, they keep delivering different versions of this artifact, so it
+    would show the actual artifact — I guess maybe a link to it" → the
+    chat's newest **Compare pages** (up to 2) as titles that open the page
+    full-screen; "if there's a chat that's making pictures, it would show the
+    last three pictures in a little row, so I can see it and be easily
+    reminded what they're doing" → the newest **three thumbnails**, a tap
+    opening that chat's Assets tab. On top sits the home list's own row
+    (name, her note or the chat's status line, how long ago), so the two
+    screens read as one app.
+  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
+    isn't hers, a Compare page, an image — because **a chat can deliver
+    without saying anything**, and a feed keyed on messages alone would miss
+    exactly the picture batches she asked to see. Cards sort by that arrival,
+    not by the chat's last message.
+  - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
+    /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
+    `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
+    not silence v4, so the card is gone only while nothing newer has landed
+    and the next version brings it back by itself. Nothing has to un-check
+    anything. A card also leaves when she OPENS the chat (`seen`, the
+    localStorage mark the unread dot reads), so the floor is whichever of the
+    two is later. Both are deliberately separate from `answeredAt` — "I know
+    about this" is not "this chat is done".
+  - **It ignores the account tabs**, like Status does: this is the
+    what-happened-while-I-was-away screen, and splitting it in half would mean
+    checking two screens to know she is caught up. The card carries the
+    account digit instead.
+  - **The badge counts CARDS and is honest on the CHAT LIST**, before she
+    opens the tab — which is why the tab row kicks `stFetch` once per load.
+    Deliberately once, not per paint: `/api/gallery/assets/recent` reads 240
+    Firestore documents a call and the home screen polls. Refresh drops the
+    cache (`stCache.at=0`) so the tap means the pictures too. The shared
+    `stCache` now fetches the routes' maximums (60 images / 20 pages) because
+    NEW needs three pictures for EACH drawing chat; the Status painters slice
+    back to the 24/6 they always showed.
+  - Tests: `node scripts/test-chats-news.js`.
 - **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
   the search bar collapse into just a magnifying glass button unless I click
   it, and then it expands into the search bar as it is right now").**

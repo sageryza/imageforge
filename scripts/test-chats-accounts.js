@@ -121,9 +121,12 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   // 1. the witch sheet's shape, in its place: two labels over a hairline,
   //    sitting directly above the hidden bar (Sophie, Aug 2026 — it shipped
   //    under the masthead and she moved it down to the list it governs)
+  // (the row grew a third tab in Aug 2026 — NEW, the notifications view; it
+  // is not an account, so everything below still asks about the first two)
   const tabs = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.textContent.trim()));
-  if (tabs.length !== 2) fail('expected two account tabs, got ' + tabs.length);
+  if (tabs.length !== 3) fail('expected two account tabs + New, got ' + tabs.length);
   if (!/^Account 1/.test(tabs[0]) || !/^Account 2/.test(tabs[1])) fail('tab labels wrong: ' + tabs.join(' | '));
+  if (!/^New/.test(tabs[2] || '')) fail('third tab is not New: ' + tabs[2]);
   if (await page.$eval('#accrow', (n) => getComputedStyle(n).borderBottomStyle === 'none')) {
     fail('the tab row has no hairline of its own');
   }
