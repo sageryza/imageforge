@@ -619,6 +619,17 @@ lifted into a standalone tool later.
   `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
   **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
   chat's tile appeared on its own (verified live).
+- **SKILLS load in every session via the SAME setup script (v9, Aug 2026).**
+  The repo's `.claude/skills/` (witch-copy, deliver-images, new-page,
+  new-module, sophie-audio, …) are only discovered by Claude Code once a chat
+  is already working inside this repo — the same starting-folder gotcha as
+  the hook — so the setup script SYMLINKS them to `/home/user/.claude/skills`
+  and they load from the first turn. A symlink, never a copy: sessions always
+  read whatever is on the clone today, so merged skill improvements arrive
+  with no re-paste. Like every hook change, an EXISTING environment needs
+  Sophie to re-paste the current `docs/chats-autopost-setup-script.sh` once;
+  a running session self-heals with the same
+  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
 - **LIVE DRAFTS (Aug 2026, hook v7):** the same hook is also registered on
   **PostToolUse**, so the prose a chat writes BEFORE/BETWEEN tool calls
   reaches the Chats app while the turn is still running — a long coding turn
