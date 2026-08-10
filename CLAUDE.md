@@ -1458,6 +1458,43 @@ lifted into a standalone tool later.
   account picker lives in the thread, and a tappable-looking number there
   would just be a mis-tap on the way into a chat. An untagged chat renders a
   blank of the same width so the names still line up.
+- **ONE ACCOUNT AT A TIME — the ACCOUNT 1 / ACCOUNT 2 tabs (Aug 2026, Sophie:
+  "look at the Secretly a Witch app and see the pattern for where it says
+  reviews versus description, then follow that same pattern for account 1 and
+  account 2 so that on the main page of the chats app I can only see one
+  account at a time").** `.acctabs` in chats.html, a verbatim port of the
+  witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
+  hairline with a line under the one she is reading that SLIDES when she taps
+  the other, `--chg` where the witch app uses gold.
+  - **It REPLACES the masthead rule** where it shows (`paintHomeChrome`
+    swaps them), so there is one hairline under the title, not two 10px
+    apart.
+  - **A tab is not a chip.** A category chip narrows a pile; this SPLITS the
+    screen in half, so it has to be a labelled tab that says which half she
+    is in — 144 of 200 chats are on account 1 (measured 2026-08-10), and a
+    silent filter would read as the rest having vanished.
+  - **An UNTAGGED chat shows on BOTH tabs.** Only 2 of 200 carry no account,
+    so it costs nothing, and picking a side for them would drop a chat off a
+    screen she can't tell is filtered.
+  - **It narrows every list of CHATS** — live, hidden pile, ★ pile, archive —
+    and the category chips' red badges count within the account, or a folder
+    promises replies that are on the other tab. Bookmarks / To do / Status
+    are lists of messages and items, so the tabs hide there; SEARCH is
+    deliberately untouched (searching is how she looks for one thing across
+    everything).
+  - **Session-only, defaulting to `appAccount`** — the App/Web switch on the
+    title line. Flipping that switch moves the list too (that is what the
+    switch means), unless she has already tapped a tab this session. Never
+    persisted: a sticky account would show her half her chats one morning
+    with no memory of having chosen.
+  - Each tab carries the same red ANSWERED badge the category chips do, so
+    the tab she is NOT on can still say there are three waiting over there.
+  - **The row reserves the pill's corner** (`padding-right:56px`, the same
+    band that buried the to-do Add button) and the sliding line is therefore
+    `calc((100% - 56px)/2)` wide, not 50% — an abspos child measures against
+    the PADDING box, so a plain 50% overhangs the tab it underlines. Tests:
+    `node scripts/test-chats-accounts.js` (hit-tests both tabs with
+    `elementFromPoint` at 375/390/430).
 - **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
   archive create extra rows because they are longer than the word chats —
   can you just make it overlap with the other things").** Title + bookmark +

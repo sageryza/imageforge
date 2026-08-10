@@ -103,14 +103,20 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-one"]');
 
-  // 1. the account digit, and the names still lining up without one
-  const accts = await page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => ({
+  // 1. the account digit, and the names still lining up without one.
+  //    The home shows ONE account at a time now (the Account 1 / Account 2
+  //    tabs), so chat-two lives behind the other tab — read each side.
+  const readRows = () => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => ({
     chat: n.dataset.chat,
     digit: (n.querySelector('.cr-acct') || {}).textContent,
     x: n.querySelector('.cr-name').getBoundingClientRect().x,
   })));
+  const accts = await readRows();
+  await page.evaluate(() => window.__setAcct('2'));
+  const accts2 = await readRows();
+  await page.evaluate(() => window.__setAcct('1'));
   const one = accts.find((a) => a.chat === 'chat-one');
-  const two = accts.find((a) => a.chat === 'chat-two');
+  const two = accts2.find((a) => a.chat === 'chat-two');
   const none = accts.find((a) => a.chat === 'chat-none');
   if (!one || one.digit !== '1') fail('account 1 not shown: ' + JSON.stringify(one));
   if (!two || two.digit !== '2') fail('account 2 not shown: ' + JSON.stringify(two));
