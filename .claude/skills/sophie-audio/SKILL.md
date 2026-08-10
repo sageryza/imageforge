@@ -55,10 +55,40 @@ What works, already debugged — use it, don't re-derive it:
 - Removing something from the MIDDLE of speech is a splice, and a splice is
   approved by ear, not shipped invisibly (the reason pause removal lives in
   the Cutting Room, not inside the Episode Editor's render).
-- **Before delivering a cut, verify it the way she'll hear it**: measure the
-  result (remaining >1s low-energy runs via the same RMS profile — not
-  silencedetect) and spot-listen the joins. "The code removed them" is not
-  verification — the Evan cut proved that.
+- **Before delivering a cut, RUN `node scripts/vo-verify.js cut.mp4
+  [--script script.txt]`.** It checks both things and exits non-zero on
+  either. "The code removed them" is not verification — the Evan cut proved
+  that twice.
+  - **Measure silence RELATIVE TO SPEECH (`speech85 - 20dB`), never against
+    the floor.** `floor + 4` is correct *inside* the detector and WRONG as a
+    verifier: her floor wobbles several dB, so a genuinely dead **6.8s**
+    stretch split on noise blips and reported "0 runs". A second cut full of
+    dead air was one keystroke from being delivered as clean.
+  - **Check speech loss with an LCS diff** reporting CONTIGUOUS missing runs.
+    A bag-of-words ratio passes a cut that ate a whole sentence.
+  - **Retry every transcription chunk and reject error bodies** — one DNS
+    blip put the words "dns resolution failed" into a transcript and faked a
+    31.5% loss.
+
+## Assembling a narration film (the five traps, all shipped wrong once)
+
+Full findings in `docs/nde-precise-cutting.md`. In short:
+- Run the pause detector on the **original continuous recording**, never on
+  audio you already spliced — a pre-spliced track has no room tone left, so
+  pass 2's floor lands in quiet speech and deletes sentences.
+- **Never remap take times arithmetically through `--edits`** to pick takes;
+  it lost speech on 9 of 35 takes. Re-locate each take in the CLEANED master
+  with `editor.js`'s `phraseSpan`.
+- **Word gaps don't find holes, energy does** — whisper folds trailing noise
+  into a word; one "continuous" span hid a 16-second hole.
+- **Spans disjoint in word index can still overlap in TIME** and replay a
+  word ("…the proof behind | behind the end…"). Clamp in play order.
+- **Word-anchored cutting drops laughs and breaths at the edges** — whisper
+  transcribes no word for a laugh, so "He said, HAHA, what…" cut as "what…".
+  Extend edges across audio above `floor + 8dB`, and treat a run as DEAD only
+  if it lacks **sustained** voicing (measured: her laugh holds 0.40s above
+  `floor + 10dB`; a real dead stretch holds 0.00s). A PEAK test fails — a fan
+  surge inside a pause protected two ~7s holes.
 
 ## Her voice, rendered or processed
 

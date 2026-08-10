@@ -3,11 +3,11 @@
 // need and maybe a summary of what that chat is currently working on… I also
 // might want to add my own note"). Drives the REAL public/chats.html against
 // a stub API and asserts:
-//   1. a chat's card renders under its name on the home LIST — the ask in
-//      rose (.cr-need), the working line quiet (.cr-snip), her note italic
-//      (.cr-note) — and a card-less chat shows none of them (tiles carry the
-//      same card via statusLines, but the tile view is dormant — Aug 2026,
-//      list-only — so only the list is driven here),
+//   1. ONE line renders under a chat name on the home LIST, styled like her
+//      own notes (italic, not bold, not rose); HER note supersedes the
+//      chat card, a chat with no note of hers shows its own line, and a
+//      card-less chat shows nothing (the tile view shares statusLines but is
+//      dormant — Aug 2026, list-only — so only the list is driven here),
 //   2. the thread's "+ note" row shows her pinned note, editing it POSTs
 //      /api/chatfeed/chatnote and repaints in place.
 //
@@ -32,6 +32,7 @@ const iso = (ms) => new Date(ms).toISOString();
 const MSGS = [
   { id: 'm1', chat: 'chat-card', from: 'claude', text: 'palette options are up', tldr: 'palettes up', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
   { id: 'm2', chat: 'chat-bare', from: 'claude', text: 'plain old reply', tldr: 'auto tldr line', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
+  { id: 'm3', chat: 'chat-card2', from: 'claude', text: 'options up too', tldr: 'options up', created: iso(T0 - 9000000), postedAt: iso(T0 - 9000000) },
 ];
 const notePosts = [];
 
@@ -46,6 +47,12 @@ const server = http.createServer((req, res) => {
         sophieNote: 'keep it loose',
       },
       'chat-bare': { lastSeen: MSGS[1].created },
+      // a chat card with NO note of hers — its own line should show
+      'chat-card2': {
+        lastSeen: MSGS[2].created,
+        statusNeed: 'Pick a palette, 10 seconds',
+        statusDoing: 'six lesson cards, drawing now',
+      },
     };
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -87,20 +94,35 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-card"]');
 
-  // 1. LIST view: the card under the name
-  const card = await page.$eval('#grid .crow[data-chat="chat-card"]', (n) => ({
-    need: (n.querySelector('.cr-need') || {}).textContent || '',
-    doing: (n.querySelector('.cr-snip') || {}).textContent || '',
-    note: (n.querySelector('.cr-note') || {}).textContent || '',
-  }));
-  if (card.need.indexOf('Pick a palette') < 0) fail('list row missing the need line: ' + JSON.stringify(card));
-  if (card.doing.indexOf('Drawing the six') < 0) fail('list row missing the doing line');
-  // Her note is her own reminder — shown bare, no "you:" prefix (Aug 2026)
-  if (card.note.indexOf('keep it loose') < 0) fail('list row missing her note: ' + card.note);
-  if (card.note.indexOf('you:') === 0) fail('note grew a "you:" prefix again: ' + card.note);
-  const bare = await page.$eval('#grid .crow[data-chat="chat-bare"]', (n) =>
-    !!(n.querySelector('.cr-need') || n.querySelector('.cr-snip') || n.querySelector('.cr-note')));
-  if (bare) fail('card-less chat grew status lines on the list');
+  // 1. ONE line under the name, and HERS wins over the chat's card
+  const card = await page.$eval('#grid .crow[data-chat="chat-card"]', (n) => {
+    const ls = n.querySelectorAll('.cr-note');
+    const s = ls[0] ? getComputedStyle(ls[0]) : null;
+    return {
+      count: ls.length,
+      text: ls[0] ? ls[0].textContent : '',
+      italic: s ? s.fontStyle : '', weight: s ? s.fontWeight : '', color: s ? s.color : '',
+      rose: s ? getComputedStyle(document.documentElement).getPropertyValue('--rose').trim() : '',
+      quiet: s ? getComputedStyle(document.documentElement).getPropertyValue('--ink2').trim() : '',
+    };
+  });
+  if (card.count !== 1) fail('expected exactly ONE line under the name, got ' + card.count);
+  // her note supersedes the chat's need/doing entirely
+  if (card.text.indexOf('keep it loose') < 0) fail('her note should win the line, got: ' + card.text);
+  if (card.text.indexOf('you:') === 0) fail('note grew a "you:" prefix again: ' + card.text);
+  // styled like hers: italic, not bold, not rose
+  if (card.italic !== 'italic') fail('the line is not italic: ' + card.italic);
+  if (!(card.weight === '400' || card.weight === 'normal')) fail('the line is bold: ' + card.weight);
+  if (card.rose && card.color.replace(/\s/g, '') === card.rose.replace(/\s/g, '')) fail('the line is rose');
+  // a chat's own card takes the line when she has written no note — and only one
+  const chatLine = await page.$eval('#grid .crow[data-chat="chat-card2"]', (n) => {
+    const ls = n.querySelectorAll('.cr-note');
+    return { count: ls.length, text: ls[0] ? ls[0].textContent : '' };
+  });
+  if (chatLine.count !== 1) fail('a chat card should render ONE line, got ' + chatLine.count);
+  if (chatLine.text.indexOf('Pick a palette') < 0) fail('the ask should take the line, got: ' + chatLine.text);
+  const bare = await page.$eval('#grid .crow[data-chat="chat-bare"]', (n) => n.querySelectorAll('.cr-note').length);
+  if (bare) fail('card-less chat grew a status line on the list');
 
   // 2. thread: her pinned note shows and edits in place
   await page.click('#grid .crow[data-chat="chat-card"]');

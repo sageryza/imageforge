@@ -13,7 +13,15 @@
 //   4. while scrolling, a tap on an image PAUSES (the house any-tap rule),
 //   5. a tap inside [data-nostop] never starts the scroll,
 //   6. __scrollStop is forwarded into the iframe, so compare.js's own
-//      tap-pauses handler stops the PARENT pill (a button tap pauses).
+//      tap-pauses handler stops the PARENT pill (a button tap pauses),
+//   7. a page can open a DECK FACTORY thread via window.top.__openThread
+//      (a link can't: same-origin would load the Chats app inside its own
+//      page viewer, off-origin leaves the app — Sophie asked for the Deck
+//      Factory chat, not the claude.ai one),
+//   8. an EXTERNAL link opens OUT of the frame instead of navigating it
+//      (claude.ai sends x-frame-options: SAMEORIGIN, so an in-frame load is
+//      refused and reads as bouncing back to the page — Sophie hit this on
+//      the chat-survey page's "Open the chat" link).
 //
 //   npm install playwright-core --no-save && node scripts/test-page-embed.js
 //
@@ -43,6 +51,8 @@ const EMBED_PAGE = `<!doctype html><meta charset="utf-8"><title>embed test page<
   </div>
   <div data-nostop id="nostop"><p>a tappable word-picker-ish region</p></div>
   <button id="btn">a page button</button>
+  <a id="ext" href="https://claude.ai/code/session_abc">Open the chat</a>
+  <a id="own" href="/api/chatfeed/page/other">a same-origin link</a>
   ${'<p>filler so the iframe can scroll</p>'.repeat(80)}
 </div>
 <script src="/compare.js"></script>`;
@@ -59,8 +69,11 @@ const server = http.createServer((req, res) => {
     const t = new Date(Date.now() - 3600000).toISOString();
     return send('application/json', JSON.stringify({
       build: 'test', settings: {}, truncated: [], delta: false,
-      chats: { 'chat-a': { lastSeen: t } },
-      messages: [{ id: 'm1', chat: 'chat-a', from: 'claude', text: 'hi', tldr: 'hi', created: t, postedAt: t }],
+      chats: { 'chat-a': { lastSeen: t }, 'chat-b': { lastSeen: t } },
+      messages: [
+        { id: 'm1', chat: 'chat-a', from: 'claude', text: 'hi', tldr: 'hi', created: t, postedAt: t },
+        { id: 'm2', chat: 'chat-b', from: 'claude', text: 'yo', tldr: 'yo', created: t, postedAt: t },
+      ],
     }));
   }
   if (p === '/api/chatfeed/pages') {
@@ -107,9 +120,11 @@ const server = http.createServer((req, res) => {
   // mouse clicks never see a "stable" target — dispatch the same events the
   // handlers listen for (pointerdown for compare.js, click for the parent
   // toggle), the test-compare-shell.js approach.
+  // cancelable: true matters — a real click is, and without it preventDefault
+  // is a no-op, so a link under test really navigates and detaches the frame.
   const tap = (sel) => frame.$eval(sel, (el) => {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   });
 
   // 1 — bare tap toggles on, then off
@@ -148,6 +163,63 @@ const server = http.createServer((req, res) => {
   ok(await playing(), '(setup) scroll running again');
   await tap('#btn');                        // button: parent toggle skips it,
   ok(!(await playing()), "a button tap pauses via the forwarded __scrollStop");
+
+  // 7 — the __openThread bridge: refuses an unknown chat, opens a real one,
+  // and closes the viewer cleanly on the way (body unlocked, not scroll-stuck)
+  const refused = await frame.evaluate(() => window.top.__openThread('no-such-chat'));
+  ok(refused === false, '__openThread refuses a chat the registry does not know');
+  ok(!!(await page.$('.pageview')), 'a refused open leaves the viewer alone');
+
+  // 8 — an external link leaves the frame; a same-origin one is untouched
+  const frameUrl = frame.url();
+  await frame.evaluate(() => {
+    // record what the top document is asked to open, without really opening it
+    window.top.__opened = [];
+    const realClick = HTMLAnchorElement.prototype.click;
+    window.top.HTMLAnchorElement.prototype.click = function () {
+      if (this.target === '_blank') { window.top.__opened.push(this.href); return; }
+      return realClick.call(this);
+    };
+  });
+  await tap('#ext');
+  await page.waitForTimeout(150);
+  const opened = await page.evaluate(() => (window.__opened || []).slice());
+  ok(opened.length === 1 && /^https:\/\/claude\.ai\/code\/session_abc/.test(opened[0]),
+     'an external link opens from the TOP document, not in the frame');
+  ok(frame.url() === frameUrl, 'the iframe never navigated away from the page');
+
+  const before = await page.evaluate(() => (window.__opened || []).length);
+  await frame.evaluate(() => {
+    // a same-origin link must stay the page's own business — assert compare.js
+    // does not hijack it (cancel the real navigation, we only want the verdict)
+    document.getElementById('own').addEventListener('click', (e) => e.preventDefault());
+  });
+  await tap('#own');
+  await page.waitForTimeout(100);
+  const after = await page.evaluate(() => (window.__opened || []).length);
+  ok(after === before, 'a same-origin link is left alone');
+
+  // now the real one. Called on the TOP document, not through frame.evaluate:
+  // it removes the iframe synchronously, so an evaluate running INSIDE that
+  // frame can never resolve its result (the frame detaches mid-call). The
+  // refusal check above already proved a page can reach it via window.top.
+  const took = await page.evaluate(() => window.__openThread('chat-b'));
+  ok(took === true, '__openThread opens a Deck Factory thread');
+  await page.waitForTimeout(250);
+  ok((await page.$('.pageview')) === null, 'opening a thread closes the page viewer');
+  ok(await page.evaluate(() => document.body.style.overflow === ''),
+     'the viewer teardown unlocks the page');
+  const title = await page.$eval('#thread .thread-head h1', (el) => el.textContent);
+  ok(title === 'chat-b', 'it landed on the right thread (' + title + ')');
+
+  // 9 — the standalone half: /chats?chat=<slug> opens that thread on a plain
+  // load, for the same link followed in a browser with no parent app to ask
+  const p2 = await browser.newPage({ viewport: { width: 390, height: 700 } });
+  await p2.goto(base + '/?chat=chat-b', { waitUntil: 'domcontentloaded' });
+  await p2.waitForSelector('#thread .thread-head h1', { timeout: 8000 });
+  const t2 = await p2.$eval('#thread .thread-head h1', (el) => el.textContent);
+  ok(t2 === 'chat-b', '?chat= opens that thread on a plain load (' + t2 + ')');
+  await p2.close();
 
   await browser.close();
   server.close();
