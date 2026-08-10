@@ -13,6 +13,37 @@
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
 
+## Claims about OTHER sessions or the environment: MEASURE, never reason
+**(Sophie asked for this as a case study, 2026-08-10, so it can't happen
+again.)** A chat can test its own page, its own hook, its own container — but
+any claim about what the OTHER ~190 sessions or the environment do (which hook
+they carry, whether a setup script re-ran, what actually reaches the server)
+is a POPULATION fact. It cannot be derived from inside one chat, and reasoning
+it out anyway is how this repo lost weeks:
+- **The case: the Chats app's pink "working" tint.** It depended on a ping
+  only sessions with a current hook ever send. Chat after chat believed it
+  worked or was one bug away, because: (1) this file carried confident wrong
+  claims about the environment ("the setup script re-runs per session" — it
+  doesn't; "a reinstalled hook waits for the next session" — backwards),
+  each written by a chat that reasoned instead of measured, and every later
+  chat inherited the sentence as fact; (2) a REAL client repaint bug
+  (#931/#933) gave false confirmation — fixing it made local tests green, so
+  the next chat hunted the same layer; (3) every headless test stubs the
+  hook, so green tests proved the machinery while saying nothing about
+  deployment. **The settling measurement took thirty seconds and nobody ran
+  it for weeks:** count the signal in the live registry — 3 of 77 chats
+  that had posted replies in six days had ever sent the ping. The tint
+  missed working chats and lit idle ones, and was retired (see the /chats
+  section for the full story and what replaced it).
+- **The rule.** Before shipping anything that depends on the hook, the setup
+  script, or other sessions' behaviour: query the LIVE data first (the
+  registry, the feed, file mtimes in a fresh container) and write the dated
+  measurement next to the claim — the way the best notes in this file
+  already read ("measured 2026-08-08, mtime Aug 1"). A green test that
+  stubs the environment is evidence about the machinery, not the
+  deployment; say which one you have. An undated confident claim about the
+  environment in this file should be treated as a hypothesis, not a fact.
+
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
 time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
@@ -712,9 +743,17 @@ lifted into a standalone tool later.
   **The honest comeback, if she ever asks (she asked what was possible,
   2026-08-10, and said not to build it yet):** tint from the PING ALONE —
   drop the her-message-is-newest fallback (that is what lit "skill"
-  wrongly). Right for every session started after the setup-script
-  re-paste, silently blank for older ones, coverage grows as old chats
-  retire. Wait for her to ask.
+  wrongly). Right for every chat with a current hook, silently blank for the
+  rest — and coverage grows THREE ways, not just by old chats retiring:
+  (1) every new session carries the re-pasted setup script's hook; (2) an
+  old chat's container that goes idle gets recycled and comes back with the
+  current snapshot on its own; (3) Sophie can port a live old chat NOW by
+  pasting the self-heal into it —
+  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash` — which
+  takes effect the same session (proven live 2026-08-07; she plans to port
+  chats gradually this way, 2026-08-10). Remember the trade she chose:
+  the tint and auto-parking DEFEAT EACH OTHER, so turning the tint back on
+  means taking auto-parking off in the same change.
 - **AUTO-PARKING A CHAT SHE ANSWERED IS BACK — it replaced the tint (Aug 2026,
   Sophie: "we need to go back to the hiding method we tried before").** `POST
   /reply` and `POST /working` stamp `hiddenAt` alongside `workingAt` again, so
