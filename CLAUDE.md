@@ -2119,6 +2119,29 @@ lifted into a standalone tool later.
     hand-roll a bigger one on a new page — it lives in `/compare.js` +
     `/compare.css`, so every page (including ones posted before this) gets it
     at runtime.
+<<<<<<< HEAD
+  - **ANSWER HER ON THE NOTE ITSELF, AND IT RENDERS AS A THREAD (Aug 2026,
+    Sophie: "respond to my notes on the note itself so I can respond there
+    also — otherwise I forget what we're talking about", then, having used
+    it: "I don't know why I'm responding inside of your message. That's
+    strange").** A note is a conversation, not a comment box she files into
+    the void — but v1 handed her the whole field in one textarea, so
+    answering meant typing inside the chat's paragraph.
+    - **The field is a list of MESSAGES, one per line-start marker: `— me:`
+      and `— Claude:`.** Read the sheet (`GET /verdict` → `texts`), append
+      `\n\n— Claude: <short answer>` and POST the whole field back. Text
+      before the first marker is hers, so every note written before this
+      still reads correctly.
+    - **Her box is always EMPTY and only ever APPENDS.** `/compare.js` keeps
+      the stored field separate from the draft; never repopulate the
+      textarea with the thread (a second blur then appends it to itself).
+    - **More than one message FOLDS to the newest**, behind a small
+      "N earlier" (her ask: "also collapse the messages anyway"), so a long
+      back-and-forth can't bury the list. Hers and the chat's carry
+      different coloured rules and a tiny ME / CLAUDE label.
+    - Keep answers short (the field caps at 2000 chars) and don't re-answer
+      a note that already carries your line.
+=======
   - **ANSWER HER ON THE NOTE ITSELF (Aug 2026, Sophie: "respond to my notes
     on the note itself so I can respond there also — otherwise I forget what
     we're talking about, I can't keep it on my mind at once").** A note is a
@@ -2128,6 +2151,7 @@ lifted into a standalone tool later.
     back; the shown note keeps its line breaks, so both voices sit on the
     item and she writes back under yours. Keep answers short (the field caps
     at 2000 chars) and don't re-answer a note that already carries your line.
+>>>>>>> origin/main
   - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
     for the vote, `text` for the note — so writing one never clears the other
     (that is why the route has both). Read them back together with

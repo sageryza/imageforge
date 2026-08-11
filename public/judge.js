@@ -227,9 +227,8 @@
           + '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
           + '<button type="button" class="cmp-note-open" aria-label="a note about this one">'
           + PLUS_SVG + '</button>'
-          + '<div class="cmp-note-text">' + esc(notes[it.id] || '') + '</div>'
-          + '<textarea class="cmp-note-box" rows="2" placeholder="a note about this one…">'
-          + esc(notes[it.id] || '') + '</textarea></div>'
+          + '<div class="cmp-note-text"></div>'
+          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>'
           + '</div>'
           + '<div class="jg-row">'
           + '<button class="jg-btn no" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -239,21 +238,28 @@
           + '</div></div>';
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
+        // the thread is painted by the shared kit, so hers and the chat's
+        // messages read the same here as on a Compare page; the box always
+        // writes the NEXT message and never edits an earlier one
+        var wrap = mount.querySelector('.cmp-note');
         var shownNote = mount.querySelector('.cmp-note-text');
+        var S = window.__compareShell || {};
+        var msgs = S.paintNote ? S.paintNote(wrap, notes[it.id] || '') : [];
+        function openBox() { box.value = ''; wrap.classList.add('open'); box.focus(); }
         if (open) open.addEventListener('click', function () {
-          var wrap = box.closest('.cmp-note');
-          if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
-          wrap.classList.add('open'); box.focus();
+          if (wrap.classList.contains('open')) { box.blur(); return; }
+          openBox();
         });
-        if (shownNote) shownNote.addEventListener('click', function () {
-          box.closest('.cmp-note').classList.add('open'); box.focus();
+        if (shownNote) shownNote.addEventListener('click', openBox);
+        if (box) box.addEventListener('input', function () {
+          saveNote(it.id, S.threadField ? S.threadField(msgs, box.value) : box.value);
         });
-        if (box) box.addEventListener('input', function () { saveNote(it.id, box.value); });
         if (box) box.addEventListener('blur', function () {
-          // fold back to her words — the textarea is only for writing
-          var wrap = box.closest('.cmp-note');
-          if (shownNote) shownNote.textContent = box.value;
-          wrap.classList.toggle('has', !!box.value.trim());
+          var draft = box.value.trim();
+          if (draft) {
+            saveNote(it.id, S.threadField ? S.threadField(msgs, draft) : draft);
+            msgs = S.paintNote ? S.paintNote(wrap, notes[it.id]) : msgs;
+          }
           wrap.classList.remove('open');
         });
       }
