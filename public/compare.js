@@ -254,12 +254,21 @@
        window.__compareNotes({ chat: 'my-chat', sheet: 'page-thing-v1' });
 
      Every element carrying `data-item="<id>"` gets a note affordance: a
-     SMALL + PINNED IN THAT ITEM'S TOP-RIGHT CORNER, costing no height (Aug
-     2026, Sophie — v1 put a "+ note" button on its own line under every item
-     and left a written note open, which "takes up too much space and makes
-     it hard to see everything at once"). The box opens only while she writes
-     in it and folds away on blur; an item that has a note wears a filled
-     gold +. Do not put it back in flow and do not auto-open a written note.
+     SMALL + IN THAT ITEM'S BOTTOM-RIGHT CORNER (Aug 2026, Sophie — v1 put a
+     "+ note" button on its own line under every item and left a written note
+     open in a textarea, which "takes up too much space and makes it hard to
+     see everything at once"). Three states: nothing written is just the +
+     and costs no height; a written note SHOWS as her words under the item
+     ("if I left a note, make it show"); tapping either opens the textarea,
+     which folds back on blur. Never open a written note into a textarea just
+     to display it, and never put an empty one back in flow.
+
+     ANSWER HER ON THE NOTE ITSELF. A note is a conversation, not a comment
+     box — she asked for replies to land there ("otherwise I forget what
+     we're talking about"), so a chat appends its answer to the same field
+     and she writes back under it. Read them with
+     GET /api/chatfeed/verdict?chat=&sheet= → texts, and POST the whole
+     field back with your line added. Keep it short; the field caps at 2000.
      Notes
      save to the SAME verdict doc as votes but a DIFFERENT field (`text` vs
      `ok`), so writing one never clears the other — read both back with
@@ -296,6 +305,8 @@
     btn.className = 'cmp-note-open';
     btn.setAttribute('aria-label', 'a note about this one');
     btn.innerHTML = PLUS_SVG;
+    var shown = document.createElement('div');
+    shown.className = 'cmp-note-text';
     var box = document.createElement('textarea');
     box.className = 'cmp-note-box';
     box.rows = 2;
@@ -303,19 +314,26 @@
     var flag = document.createElement('span');
     flag.className = 'cmp-note-saved';
     flag.textContent = 'saved';
-    wrap.appendChild(btn); wrap.appendChild(box); wrap.appendChild(flag);
+    wrap.appendChild(btn); wrap.appendChild(shown); wrap.appendChild(box); wrap.appendChild(flag);
     host.appendChild(wrap);
 
-    // A written note does NOT open on load (Aug 2026, Sophie: the note
-    // section "takes up too much space and makes it hard to see everything
-    // at once") — the + goes solid instead, so the page still says where
-    // her notes are without spending a row on each of them.
-    if (existing) { box.value = existing; box.dataset.touched = '1'; btn.classList.add('has'); }
+    // A written note SHOWS as her words (Aug 2026, Sophie: "if I left a note,
+    // make it show") — not as an open textarea, which is what made every item
+    // cost a box whether or not she had written in it. An empty one is just
+    // the + and costs nothing.
+    function display() {
+      shown.textContent = box.value;
+      wrap.classList.toggle('has', !!box.value.trim());
+    }
+    if (existing) { box.value = existing; box.dataset.touched = '1'; }
+    display();
 
+    function open() { wrap.classList.add('open'); box.focus(); }
     btn.addEventListener('click', function () {
       if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
-      wrap.classList.add('open'); box.focus();
+      open();
     });
+    shown.addEventListener('click', open);   // tap her words to write more
     function save() {
       flag.classList.remove('on');
       postNote(item, box.value).then(function () {
@@ -332,9 +350,9 @@
       // an empty box that was never written is not a note — don't POST ''
       if (box.value.trim() || box.dataset.touched) save();
       if (box.value.trim()) box.dataset.touched = '1';
-      // always fold back to the corner + — the box is for writing in, not
-      // for parking open under every item
-      btn.classList.toggle('has', !!box.value.trim());
+      // always fold back — the textarea is for writing in, her words are
+      // what stays on the page
+      display();
       wrap.classList.remove('open');
     });
   }

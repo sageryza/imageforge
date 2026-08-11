@@ -152,19 +152,29 @@ button, .btn {
    thing takes a note). The markup is built by /compare.js's
    window.__compareNotes(); a page only marks its items `data-item="<id>"`.
 
-   IT IS A SMALL + IN THE ITEM'S TOP-RIGHT CORNER, and it COSTS NO HEIGHT
-   (Aug 2026, Sophie: the note section "takes up too much space and makes it
-   hard to see everything at once"). v1 was a "+ note" text button on its own
-   line under every item, and a written note then stayed OPEN — so a page of
-   twenty items paid twenty extra rows for notes she wasn't reading. Now:
-   the affordance is a 22px square pinned in the corner (absolute, so it adds
-   no row), the box opens under the item only while she is writing in it, and
-   an item that HAS a note wears a filled gold + so the page still says at a
-   glance where her notes are. The + rotates 45° into an × while open.
-   Do not put it back in flow, and do not auto-open a written note. */
+   IT IS A SMALL + IN THE ITEM'S BOTTOM-RIGHT CORNER, and an EMPTY one costs
+   NO HEIGHT (Aug 2026, Sophie: the note section "takes up too much space and
+   makes it hard to see everything at once"; then "put the plus for a note at
+   the bottom not the top, and if I left a note, make it show"). v1 was a
+   "+ note" text button on its own line under every item and a written note
+   stayed open in a textarea — so a page of twenty items paid twenty rows
+   whether or not she had written anything.
+
+   The three states, and each is load-bearing:
+     nothing written  → just the + in the corner (absolute: zero height)
+     she wrote one    → HER WORDS SHOW, quietly, under the item
+     writing          → the textarea, folding back to her words on blur
+   So the page's height is spent only on notes that exist. Do not put an
+   empty note back in flow, and do not open a written one into a textarea
+   just to display it. The + rotates 45° into an × while the box is open.
+
+   A note is also a CONVERSATION: a chat answers on the note itself (Sophie:
+   "respond to my notes on the note itself so I can respond there also —
+   otherwise I forget what we're talking about"), so the shown text keeps its
+   line breaks and both voices live in the one field. */
 .cmp-note { margin: 0; }
 .cmp-note-open {
-  position: absolute; top: 7px; right: 7px; z-index: 2;
+  position: absolute; bottom: 7px; right: 7px; z-index: 2;
   width: 22px; height: 22px; padding: 0;
   display: flex; align-items: center; justify-content: center;
   font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
@@ -174,11 +184,15 @@ button, .btn {
 }
 .cmp-note-open svg { width: 13px; height: 13px; display: block; }
 .cmp-note-open:hover { color: var(--gold); border-color: var(--gold); }
-/* she has written one — say so without spending a row on it */
-.cmp-note-open.has {
-  background: var(--gold); border-color: var(--gold); color: var(--surface);
-}
 .cmp-note.open .cmp-note-open { transform: rotate(45deg); }
+/* her words, shown — tap them to write more */
+.cmp-note-text {
+  display: none; white-space: pre-wrap; cursor: text;
+  font: 14px/1.5 Georgia, 'Times New Roman', serif; color: var(--ink2);
+  border-left: 2px solid var(--line); padding: 1px 30px 1px 9px; margin-top: 9px;
+}
+.cmp-note.has .cmp-note-text { display: block; }
+.cmp-note.open .cmp-note-text { display: none; }
 .cmp-note-box {
   display: none; width: 100%; margin-top: 8px;
   font: 14px/1.45 Georgia, 'Times New Roman', serif;
