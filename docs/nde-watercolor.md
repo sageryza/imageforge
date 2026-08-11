@@ -74,15 +74,26 @@ these instructions. Adding preserve-list wording back will undo it.
 ## The nine cards
 
 Built from the reference photos at Storage `nde-refs/people/`, the set Sophie
-approved on the Face check page. Cards live at
-`nde-watercolor/cards/card-<surname>.webp`.
+approved on the **Face check — the real people** Compare page (in the
+`anthony-chene-nde-pipeline` chat — nine faces embedded as data URIs, which is
+why searching Storage by filename never turns it up). Cards live at
+`nde-watercolor/cards/card-<surname>-v3.webp`.
 
 Hugenot, Wittbrodt, Wright, Barker, Hensley, Rynes, Dennis, Nair, Anthony.
 
+**ONE style reference — `refs/sage-sandy-mirror.png`, nothing else.** A date-book
+watercolour (`pavel.jpg`) was tried as a second style ref and rejected (Sophie,
+Aug 2026). It did loosen the drawing, but so did trimming the likeness line, and
+the trimmed line got there without a second reference.
+
 One caveat carried over from the Face check page: **Hugenot's photo is him now
-(~80) and his story is from age 17**, so his card is drawn young from his own
-facial structure. The render reads closer to mid-twenties than seventeen — good
-enough to anchor a likeness, worth a re-roll if his panels want a boy.
+(~80) and his story is from age 17**. The age note goes in the SCENE half —
+"drawn as he was at seventeen, a teenage boy" — never in the likeness line,
+which stays one sentence. v1 put it in the likeness line and read closer to
+mid-twenties; v3 reads properly young.
+
+Older versions are kept in the Assets tab labelled "vN — superseded"; nothing
+is deleted.
 
 ## The gap that is not solved
 
