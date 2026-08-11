@@ -35,6 +35,9 @@ const MANAGED_KEYS = [
   'SHOPIFY_STORE', 'SHOPIFY_ADMIN_TOKEN', 'SHOPIFY_API_VERSION',
   'SHOPIFY_CLIENT_ID', 'SHOPIFY_CLIENT_SECRET',
   'OPENAI_API_KEY', 'REPLICATE_API_TOKEN', 'ANTHROPIC_API_KEY',
+  // APNs — the Chats app's push notifications (push.js). The .p8 auth key +
+  // its ids; like everything here, Render env wins and Firestore fills gaps.
+  'APNS_KEY', 'APNS_KEY_ID', 'APNS_TEAM_ID', 'APNS_TOPIC',
   // ElevenLabs — Sophie's cloned/narration voices (Episode Editor narration
   // cards, video voiceovers). Without it narration cards fail the render with
   // a clear job error rather than silently dropping out of the episode.

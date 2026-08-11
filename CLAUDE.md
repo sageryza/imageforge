@@ -2128,6 +2128,37 @@ lifted into a standalone tool later.
   NEW episode (never appends — the new-version rule); a chat asked to "put
   these in an episode" should call the same route rather than hand-building
   episode docs. Tests: `node scripts/test-cut-picker.js`.
+## Push notifications (the Update tab's doorbell — Aug 2026)
+- **`push.js` (`/api/push`) sends real APNs lock-screen notifications**, raw
+  HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app
+  registers its device token per launch (`POST /device`, upsert), and
+  `chatfeed.js` calls `notifyChat()` on a **finished reply** (never a draft)
+  and on a **new Compare page**. Debounce: one push per chat per 10 min +
+  60s global gap — the pushes are the Update tab's doorbell, not its
+  replacement, so dropped ones are never lost news.
+- **Dormant until the APNs key exists**: `APNS_KEY` (the .p8 — raw PEM,
+  base64, or literal-\n all accepted), `APNS_KEY_ID`, `APNS_TEAM_ID`,
+  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`). Set in
+  Render env (or `config/pipeline` — they're MANAGED_KEYS). Read lazily at
+  send time, so a key landing needs no deploy. **Only Sophie can mint the
+  key** (Apple developer portal → Keys); never paste it into a chat — it
+  goes straight into Render env.
+- **`POST /api/push/test {title?, body?}`** (gated) sends a real push to
+  every registered device with per-device results — the end-to-end check.
+  `GET /status` → `{configured, devices}`.
+- **iOS side** (`PushDelegate.swift` + `aps-environment` in the
+  entitlements): permission asked once at launch, token POSTed with the
+  studio token, notifications SUPPRESSED while the app is foregrounded (the
+  Update tab is the notification there), and a **tap opens the Chats screen
+  on the Update tab** (`/chats?view=news` — the page consumes and strips the
+  param, so checkBuild reloads can't drag her back). TestFlight rides the
+  PRODUCTION APNs host. Apple-managed CI signing registers the push
+  capability on the App ID automatically (same as the App Group did).
+- **A dead token self-heals**: 410/`Unregistered` deletes the device doc.
+  Tests: `node scripts/test-push.js` (key-paste shapes, verifiable ES256
+  JWT, wire format against a local h2c server; Apple itself is only
+  testable via `/test` + a real phone).
+
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
