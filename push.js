@@ -226,11 +226,33 @@ function notifyChat(chat, title, body) {
 }
 
 // ---- Routes ----------------------------------------------------------------
+// WHICH PIECE IS MISSING, not just "not configured" (Aug 2026 — the setup is
+// four separate things pasted into two different places on a phone, and a bare
+// `configured:false` sends everyone guessing). Booleans and FILENAMES only:
+// no key material, no ids, so this stays safe on an open route.
 router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   let devices = 0;
   try { devices = (await loadDevices()).length; } catch (e) { /* firestore down */ }
-  res.json({ ok: true, configured: configured(), devices });
+  const fs = require('fs');
+  const seen = {};
+  for (const dir of KEY_DIRS) {
+    try { seen[dir] = fs.readdirSync(dir).filter((f) => /\.p8$/i.test(f)); }
+    catch (e) { seen[dir] = null; }   // null = no such directory here
+  }
+  res.json({
+    ok: true,
+    configured: configured(),
+    devices,
+    has: {
+      key: !!apnsKey(),                             // env var OR secret file
+      keyFromEnv: !!normalizeKey(process.env.APNS_KEY),
+      keyId: !!process.env.APNS_KEY_ID,
+      teamId: !!process.env.APNS_TEAM_ID,
+    },
+    p8Files: seen,          // where a .p8 was found, by directory
+    topic: process.env.APNS_TOPIC || TOPIC_DEFAULT,
+  });
 });
 
 // The app re-registers on every launch — tokens can rotate, and an upsert
