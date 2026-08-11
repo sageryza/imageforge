@@ -753,6 +753,42 @@ lifted into a standalone tool later.
   `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
   it at init. A RUNNING session is different: it has network, and curl is the
   right tool for self-healing there (see the self-heal note below).
+- **THE "··· working details" FOLD IS STRUCTURAL — the signal is the turn's
+  TOOL CALLS (Aug 2026, v2, Sophie: "it's supposed to find when the message is
+  done coding … unless there's some internal signal, that would be the
+  best").** There is one, and this is it. The hook already walks the
+  transcript, where `text` and `tool_use` blocks are interleaved in order, so
+  every finished turn posts two character offsets into its text: **`head`** =
+  where the FIRST tool call fell, **`tail`** = where the LAST one did. The app
+  shows `text[0,head)` (what it said before starting), folds the middle (the
+  narration between tool calls), and shows `text[tail,…)` — the closing
+  rundown, which is the thing she opens the message for.
+  - **v1 was a VOCABULARY classifier and she called it a nuisance. Measured
+    2026-08-11 over the 132 real replies in six days of feed: it folded 4.5%
+    of reply text while putting a fold button on 46 of 112 long messages, and
+    what it hid included lines plainly meant for her** ("Now I have the truth,
+    and I owe you a correction."). It never once surfaced the closing rundown.
+    `isWork`/`splitBlocks` are deleted; **do not reintroduce a text-based
+    fallback.**
+  - **With no signal the message shows WHOLE** — the honest default, and what
+    she had before the feature existed. A chat on an older hook simply doesn't
+    fold: silence, not a wrong guess (the same rule the tint follows).
+  - **Coverage grows two ways, and the second costs nothing.** A v12 hook
+    sends `head`/`tail` exactly. For hooks v7–v11 the SERVER derives the same
+    pair from the live drafts for free — a draft posts at a tool call carrying
+    the turn's text so far, so **the first draft's length IS `head` and the
+    newest draft's length is `tail`**. Measured 2026-08-11: 33 of 132 replies
+    (23 of 77 chats) already post drafts, so a quarter of replies fold
+    correctly with no re-paste at all. The derived pair is approximate only in
+    erring toward folding LESS (the draft pass skips turns under 60 chars and
+    posts only when the prose grew).
+  - **The final post must never overwrite the drafts' boundaries** — its text
+    is the whole turn, so deriving from it would mark the entire reply as
+    pre-work and fold nothing. That guard is in `chatfeed.js` and pinned by a
+    test.
+  - Tests: `node scripts/test-chats-working-fold.js` — covers all three layers
+    (hook parser against a real JSONL, the server's contract, and `foldBody`
+    lifted out of chats.html and run for real). Needs no playwright.
 - **THE ROSE WORKING TINT: v3 — HONEST SIGNALS ONLY, LIVING WITH PARKING
   INSIDE THE HIDDEN PILE (Aug 2026, Sophie: "it could still be tinted even if
   it's in the hidden area — I could look in the hidden area and see which

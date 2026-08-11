@@ -35,6 +35,12 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v12 (Aug 2026) — THE WORKING FOLD'S BOUNDARIES. Each finished turn also
+# posts `head`/`tail`: character offsets marking where its FIRST and LAST tool
+# call fell. That is the internal signal for "when is the message done coding"
+# — the Chats app shows the prose either side and folds the narration between,
+# instead of guessing from wording (see foldBody in chats.html).
+#
 # v11 (Aug 2026) — HOOK VERSION TELEMETRY (Sophie's ask, 2026-08-10: stop
 # making her hunt for stale chats). The turn-start ping now carries the md5 of
 # THIS INSTALLED FILE; the server compares it to the repo copy it ships
@@ -318,6 +324,15 @@ def gooddesc(t):
 # the live-draft pass posts with, so the final post lands on the draft's doc.
 turns = []
 cur_parts = []; cur_mid = None; cur_turnkey = None
+# THE WORKING FOLD (Aug 2026, Sophie: "it's supposed to find when the message
+# is done coding … unless there's some internal signal, that would be the
+# best"). There is one: the turn's TOOL CALLS. cur_t0/cur_t1 count how many
+# text parts had been written when the FIRST and LAST tool call of the turn
+# fired, which flush() turns into character offsets (`head`/`tail`) into the
+# posted text. The app shows the prose before head and after tail — the plan
+# and the closing rundown — and folds the narration between them. A turn with
+# no tool calls sends neither, so nothing folds.
+cur_t0 = None; cur_t1 = None
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
 users = []      # Sophie's OWN messages, so the feed reads as a conversation
@@ -343,11 +358,21 @@ def her_words(rec, txt):
     return t
 
 def flush():
-    global cur_parts, cur_mid
-    txt = "\n\n".join(cur_parts).strip()
+    global cur_parts, cur_mid, cur_t0, cur_t1
+    raw = "\n\n".join(cur_parts)
+    txt = raw.strip()
     if txt and cur_mid:
-        turns.append({'text': txt, 'mid': cur_mid, 'turn': cur_turnkey})
-    cur_parts = []; cur_mid = None
+        tn = {'text': txt, 'mid': cur_mid, 'turn': cur_turnkey}
+        # Offsets are measured in the STRIPPED text the post carries, so a
+        # leading blank line can't shift them by two characters.
+        if cur_t0 is not None:
+            lead = len(raw) - len(raw.lstrip())
+            def at(n):
+                return max(0, len("\n\n".join(cur_parts[:n])) - lead)
+            tn['head'] = at(cur_t0)
+            tn['tail'] = at(cur_t1)
+        turns.append(tn)
+    cur_parts = []; cur_mid = None; cur_t0 = None; cur_t1 = None
 
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -390,6 +415,12 @@ with open(path, encoding='utf-8') as f:
             cur_parts.append(t)
             cur_mid = (r.get('message') or {}).get('id')
         for b in blocks(r):
+            if isinstance(b, dict) and b.get('type') == 'tool_use':
+                # text blocks of this record were appended above, so the count
+                # of parts right now IS "everything said before this tool call"
+                if cur_t0 is None:
+                    cur_t0 = len(cur_parts)
+                cur_t1 = len(cur_parts)
             if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'SendUserFile':
                 for p in ((b.get('input') or {}).get('files') or []):
                     if isinstance(p, str) and IMG.search(p):
@@ -559,6 +590,9 @@ for tn in turns:
     # the server lands this on the SAME message doc and clears the marker
     if tn.get('turn'):
         out["turn"] = tn['turn']
+    # where the working middle starts and ends (see the fold note above)
+    if 'head' in tn:
+        out["head"] = tn['head']; out["tail"] = tn['tail']
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
     if os.environ.get('SESSION_KEY'):
