@@ -131,10 +131,14 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   // hiding must NOT open the pile — that would undo what she just asked for
   if (await page.$('#grid .hidelist')) fail('hiding a chat opened the hidden pile');
 
-  // 4. the bar opens the pile in place, and closes it again
+  // 4. the bar opens the pile, and closes it again
   await page.click('.hidebar');
   await page.waitForSelector('#grid .hidelist .crow[data-chat="chat-b"]', { timeout: 4000 })
     .catch(() => fail('tapping the bar never showed the hidden chats'));
+  // …and the OPEN pile is the whole screen (Aug 2026, Sophie: "when I press
+  // the hidden one it shows hidden, but it also shows everything else — can
+  // you make it just show hidden until I get out of the hidden area")
+  if ((await listed(page)).length) fail('the live list is still under the open pile: ' + (await listed(page)).join(','));
   // the masthead names the place she is in, in the bar's red
   const openTitle = await page.$eval('#htitle', (n) => n.textContent.trim() + '|' + n.classList.contains('hid'));
   if (openTitle !== 'Hidden|true') fail('masthead did not say HIDDEN in red: ' + openTitle);
@@ -150,8 +154,10 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   await page.click('.hidebar');
   await page.waitForSelector('#grid .hidelist .crow[data-chat="chat-b"]');
   await page.click('#grid .hidelist .crow[data-chat="chat-b"] .hidebtn');
-  await page.waitForFunction(() => !!document.querySelector('#grid > .clist .crow[data-chat="chat-b"]'),
-    null, { timeout: 4000 }).catch(() => fail('putting a chat back did not return it to the list'));
+  // it leaves the PILE straight away; the list it rejoins is the one waiting
+  // when she gets out of the hidden area, since the pile owns the screen
+  await page.waitForFunction(() => !document.querySelector('#grid .hidelist .crow[data-chat="chat-b"]'),
+    null, { timeout: 4000 }).catch(() => fail('putting a chat back did not take it out of the pile'));
   if (!hidePosts.some((p) => p.chat === 'chat-b' && p.hidden === false)) fail('POST /hide {hidden:false} never fired');
   await page.click('#grid .hidelist .crow[data-chat="chat-parked"] .hidebtn');
   await page.waitForFunction(() => !document.querySelector('.hidebar'),

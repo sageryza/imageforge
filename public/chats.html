@@ -2231,6 +2231,17 @@ function renderHome(){
   // tab", so the message says which account it is talking about.
   if(!all.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+' — tap the other tab.</div>'; return; }
   renderHiddenBar(el,g,hid);
+  // THE OPEN PILE IS THE WHOLE SCREEN (Aug 2026, Sophie: "when I press the
+  // hidden one it shows hidden, but it also shows everything else — can you
+  // make it just show hidden until I get out of the hidden area"). Opening the
+  // pile is going somewhere, the way Archive is; the live list underneath it
+  // was the thing she had taken those chats OFF, and it buried the pile she
+  // was looking at. The masthead already says "Hidden" in red while it is
+  // open, and the ways out are unchanged — the bar again, or the title.
+  // Guarded on `hid.length`: if the last hidden chat pops out (a reply lands
+  // while she is in there) the bar is gone, so the list must come back or the
+  // screen would be blank with nothing to tap.
+  if(hideOpen && hid.length){ if(window.__jumpsRecheck) window.__jumpsRecheck(); return; }
   if(!names.length){
     // nothing left to show — say WHICH of the two reasons, or the screen just
     // reads as empty and looks like the chats are gone
