@@ -50,6 +50,28 @@ through gpt-image-2, not the WTR look.
 So: photo → watercolour portrait (style ref first, photo second) → that portrait
 rides as the character reference on every scene the person appears in.
 
+### The settled card prompt (Aug 2026) — every word of it is Sophie's call
+
+    Use the FIRST attached image as a style reference. Only use its style, not
+    its content — do not copy anything depicted in it. You do not have to copy
+    its colors.
+
+    The SECOND attached image is a photograph of the person to draw.
+
+    Draw: a head-and-shoulders portrait of that person, facing the viewer, on a
+    white background. No text or lettering anywhere.
+
+Two things I wrote into that scene line and did NOT flag, both of which she
+caught and removed — the lesson being to name every word that is mine when I
+hand the result over:
+
+- `calm and open-faced` — my aesthetic call, never asked for. Removing it
+  changed nothing about the expression (a smiling photo still draws a smiling
+  face), so it was only ever imposing a mood.
+- `against a plain pale background` — "pale" was a vaguer word doing no work.
+  Nothing post-processes these images, so it should always have said white.
+  Settled wording is **`on a white background`**.
+
 ### The likeness line is ONE sentence — do not grow it back
 
     The SECOND attached image is a photograph of the person to draw.
