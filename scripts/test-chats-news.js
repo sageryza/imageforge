@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// The NEW tab — the third tab on the Chats home (Aug 2026, Sophie: "right now
+// The UPDATE tab — the one that LEADS the tab row on the Chats home (Aug
+// 2026, Sophie: "right now
 // there's account one and account two, two tabs on my chat app screen. I wanna
 // make one more tab, and this is like a daily notifications thing … I can get
 // rid of them if I've already checked them. For the [oven] chat, they keep
@@ -9,10 +10,11 @@
 //
 // Drives the REAL public/chats.html in a headless browser against a stub API
 // and asserts:
-//   1. there are THREE tabs, all three are tappable at 375/390/430 (the row
-//      is full-width down there, but a third label must not push one under
-//      the autoscroll pill or off the edge), and the lit line moves to the
-//      third slot,
+//   1. there are THREE tabs with UPDATE LEADING (her ask, after using it:
+//      "I would put it on the left side of the accounts and call it
+//      update"), all three tappable at 375/390/430 (the row is full-width
+//      down there, but a third label must not push one under the autoscroll
+//      pill or off the edge), and the lit line lands on the FIRST slot,
 //   2. what makes a card: an unread reply, a new Compare page, or new
 //      pictures — and what does NOT: a chat she has already read, one she has
 //      already checked off (notifSeenAt), and an archived one,
@@ -145,10 +147,13 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-oven"]');
 
-  // 1. three tabs, the third one is NEW
+  // 1. three tabs, UPDATE leading
   const labels = await page.$$eval('#accrow .acctab', ns => ns.map(n => n.textContent.trim()));
   if (labels.length !== 3) fail('expected 3 tabs, got ' + labels.length + ': ' + labels.join(' | '));
-  if (!/^New/.test(labels[2] || '')) fail('third tab is not the New tab: ' + labels[2]);
+  if (!/^Update/.test(labels[0] || '')) fail('Update does not lead the tab row: ' + labels.join(' | '));
+  if (!/^Account 1/.test(labels[1] || '') || !/^Account 2/.test(labels[2] || '')) {
+    fail('the accounts are not the 2nd and 3rd tabs: ' + labels.join(' | '));
+  }
 
   // every tab has to be reachable at the widths she actually uses — the row
   // sits below the pill's band, but a third label must not push one off
@@ -172,15 +177,24 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '2'; },
     null, { timeout: 5000 }).catch(async () => {
       const b = await page.$eval('#accrow .acctab[data-acct="new"]', n => n.textContent).catch(() => '');
-      fail('New badge should be 2 (oven + pics) on the chat list, got "' + b + '"');
+      fail('Update badge should be 2 (oven + pics) on the chat list, got "' + b + '"');
     });
 
   // 2/3. open it: the title says New, the line slides to the third slot
   await page.click('#accrow .acctab[data-acct="new"]');
-  await page.waitForFunction(() => document.getElementById('htitle').textContent === 'New')
-    .catch(() => fail('tapping the third tab never opened the New view'));
+  await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Update')
+    .catch(() => fail('tapping the first tab never opened the Update view'));
   const on = await page.$eval('#accrow', n => n.getAttribute('data-on'));
-  if (on !== 'new') fail('the lit line did not move to the third tab (data-on=' + on + ')');
+  if (on !== 'new') fail('the lit line did not move to the Update tab (data-on=' + on + ')');
+  // …and the line itself settles on the FIRST slot (it SLIDES, so this waits
+  // out the .2s transition rather than reading a frame mid-flight)
+  await page.waitForFunction(() => {
+    const t = getComputedStyle(document.querySelector('#accrow'), '::after').transform;
+    return t === 'none' || Math.abs(parseFloat(t.split(',')[4] || '0')) < 1;
+  }, null, { timeout: 3000 }).catch(async () => {
+    const x = await page.evaluate(() => getComputedStyle(document.querySelector('#accrow'), '::after').transform);
+    fail('the lit line never settled on the FIRST slot: ' + x);
+  });
   await page.waitForSelector('.nwcard .nwimg img', { timeout: 4000 })
     .catch(() => fail('the pictures row never rendered'));
 
@@ -202,7 +216,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     .catch(() => fail('the ✓ did not take the card off the list'));
   await page.waitForFunction(
     () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '1'; },
-    null, { timeout: 4000 }).catch(() => fail('the New badge did not follow the ✓'));
+    null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow the ✓'));
   if (!notifPosts.some(p => p.chat === 'chat-pics' && p.seen !== false)) fail('POST /notif-seen never fired');
 
   // 5a. the artifact's title opens the full-screen viewer
@@ -216,7 +230,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // 5b. an account tab comes back to the chat list
   await page.click('#accrow .acctab[data-acct="1"]');
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats')
-    .catch(() => fail('an account tab did not leave the New view'));
+    .catch(() => fail('an account tab did not leave the Update view'));
 
   // 5c. a thumb opens its chat (its Assets tab)
   await page.click('#accrow .acctab[data-acct="new"]');
@@ -231,5 +245,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  console.log(process.exitCode ? 'DONE with failures' : 'OK: the New tab lists, shows the artifact and the pictures, and clears on ✓');
+  console.log(process.exitCode ? 'DONE with failures' : 'OK: Update leads the row, shows the artifact and the pictures, and clears on ✓');
 })().catch((e) => { console.error(e); process.exit(1); });
