@@ -27,9 +27,16 @@ VARIANTS = [("v3", "pale", "“plain <b>pale</b> background”, plus “calm and
 def build():
     rows = []
     for key, name in PEOPLE:
+        # width/height are LOAD-BEARING, not decoration. compare.css styles
+        # .imgrow img as width:100%/height:auto with no reserved height, so a
+        # lazy image is a ZERO-height box until it loads — the page then has no
+        # scrollable height, the autoscroll pill has nothing to scroll, and the
+        # lazy images never load because nothing scrolls. These attributes give
+        # the browser the 2:3 intrinsic ratio up front and break that deadlock.
         figs = "".join(
             f'<figure><img src="{IMG}/card-{key}-{v}.webp" alt="{name} — {label}" '
-            f'loading="lazy"><figcaption>{label}</figcaption></figure>'
+            f'width="1024" height="1536" loading="lazy">'
+            f'<figcaption>{label}</figcaption></figure>'
             for v, label, _ in VARIANTS)
         rows.append(f'<div class="card"><h3>{name}</h3>'
                     f'<div class="imgrow three">{figs}</div>'
@@ -71,10 +78,16 @@ def build():
   </div>
 </div>
 
-<div id="lb" hidden style="position:fixed;inset:0;background:rgba(20,18,15,.92);
-     z-index:9998;display:flex;align-items:center;justify-content:center;padding:12px">
-  <img id="lbimg" style="max-width:100%;max-height:100%;border-radius:6px" alt="">
-</div>
+<style>
+  /* Never put `display` inline on a [hidden] element — an inline declaration
+     is what [hidden] loses to (CLAUDE.md's Episode Editor gotcha). Keep the
+     display rule in a class so the hidden attribute always wins. */
+  #lb {{ position: fixed; inset: 0; background: rgba(20,18,15,.92); z-index: 9998;
+        align-items: center; justify-content: center; padding: 12px; display: flex; }}
+  #lb[hidden] {{ display: none !important; }}
+  #lb img {{ max-width: 100%; max-height: 100%; border-radius: 6px; }}
+</style>
+<div id="lb" hidden><img id="lbimg" alt=""></div>
 
 <script>
 (function () {{
