@@ -3242,6 +3242,24 @@ lifted into a standalone tool later.
   docs), name the exact current labels, and when a deep link needs an account/app
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
+- **THE SANS IS CAPS, AND AS LITTLE BOLD AS POSSIBLE (Aug 2026, Sophie's
+  standing guideline: "whenever this font is shown it should generally be
+  capitalized and not bold, and in general things should try not to be bold
+  if they don't have to").** `-apple-system` is the app's LABEL voice — chat
+  names, tabs, timestamps, Compare-row titles, chips — and it reads as caps
+  at a normal weight with a little tracking (`.03–.04em`; caps set solid read
+  as a block). The SERIF stays as it is: the masthead, a thread's own title,
+  and message prose are not covered by this.
+  - **Bold has to earn itself.** A lit state that already carries a tinted
+    background, a coloured outline or a sliding underline does NOT need
+    weight on top — the account tabs, the category chips and the Chat/Assets/
+    Compare toggle all had it and lost it. What kept bold: the tiny numbers
+    inside the red answered badges (9–10px in a dot, where weight is
+    legibility) and the hidden bar (it is the screen's one alarm).
+  - **Caps cost width** — roughly a line per long string. A Compare title
+    like "Cutting blocks v3 (s96) — punctuated, cut pile, maybe state" went
+    from two rendered lines to three. Worth saying to her when a set of
+    labels is long, rather than quietly shrinking the type.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's

@@ -46,7 +46,12 @@ const server=http.createServer((req,res)=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const base='http://127.0.0.1:'+server.address().port;
   const pw=require('playwright');
-  const b=await pw.chromium.launch({executablePath:process.env.CHROME_PATH||undefined,args:['--no-sandbox']});
+  // fall back to the sandbox's preinstalled Chromium, like every other
+  // test-chats-* script — without it this cannot launch here at all
+  const preinstalled=['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    '/opt/pw-browsers/chromium/chrome-linux/chrome']
+    .find(p=>{ try{ require('fs').accessSync(p); return true; }catch(_){ return false; } });
+  const b=await pw.chromium.launch({executablePath:process.env.CHROME_PATH||preinstalled||undefined,args:['--no-sandbox']});
   const page=await b.newPage({viewport:{width:390,height:800}});
   const errs=[];page.on('pageerror',e=>errs.push(String(e)));
   let fails=0; const ok=(c,m)=>{console.log((c?'PASS':'FAIL')+': '+m); if(!c) fails++;};
