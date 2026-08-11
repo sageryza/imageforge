@@ -98,12 +98,20 @@ def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smoot
     LAB = np.full(solid.shape, -1, np.int16)
     LAB[solid] = labs
     if smooth:
+        # The window sees -1 wherever a pixel is not a fill, so near any line the
+        # median comes back -1 — and a -1 that reaches the paint step becomes
+        # cluster 0. That is what put pink crescents inside the moon's craters
+        # and along the feather's spine: cluster 0 happened to be the pink.
+        # Keep only the smoothed labels that are real ones.
         sm = ndimage.median_filter(np.where(solid, LAB, -1).astype(np.int16), size=smooth)
-        LAB[solid] = sm[solid]
+        good = solid & (sm >= 0)
+        LAB[good] = sm[good]
 
     dF, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)  # see (3)
     dP = ndimage.distance_transform_edt(~paperm)
-    flat = cols[np.clip(LAB[iy, ix], 0, None)]
+    picked = LAB[iy, ix]
+    assert picked.min() >= 0, 'a pixel was left unlabelled — it would be painted cluster 0'
+    flat = cols[picked]
     flat[paperm | (~solid & ~inkm & (dP <= dF))] = 255
     flat[inkm] = 26
     return Image.fromarray(flat), [tuple(int(v) for v in c) for c in cols]
