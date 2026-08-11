@@ -1129,18 +1129,25 @@ function bookmarkKind(text) {
   return /```/.test(String(text || '')) ? 'code' : 'read';
 }
 
-// PAGES TOO (Aug 2026, Sophie: "I'd like to be able to bookmark or star
-// artifacts in the compare tab as well as messages, and they could show up in
-// the same place"). Bookmarks is already the one "things I kept, across every
-// chat" pile, so a kept Compare page belongs in it rather than in a second
-// pile — and it arrives carrying the same editable note every message
-// bookmark has. It is a THIRD KIND alongside code/read, never a message: the
-// row opens the artifact full-screen instead of jumping into a thread, so the
-// client has to be able to tell them apart. Hence `kind:'page'`.
-// A bookmark on a page lives on the PAGE DOC, which means deleting the page
-// takes its bookmark with it — no stale row pointing at a 404.
-// Two single-equality queries, sorted together in memory: still no composite
-// index, the same discipline as everything else here.
+// THREE KINDS IN ONE PILE (Aug 2026, Sophie: "I should be able to bookmark
+// chats, compare pages and messages and they should all live in the same
+// place"). Bookmarks is THE keep-pile, split three ways by the tab row in the
+// app — CHATS · ARTIFACTS · MESSAGES, her words for them.
+//   kind:'chat'    — a STARRED chat, read straight off the registry (no extra
+//                    query; it is already loaded for the display names). The
+//                    star and the bookmark are deliberately the SAME mark:
+//                    `starred` already meant "important, work I want to refer
+//                    back to", and a second per-chat keep-flag would mean
+//                    remembering which of two piles a chat went into.
+//   kind:'page'    — a kept Compare page. `bookmarked` lives on the PAGE DOC,
+//                    so deleting the page takes its bookmark with it and the
+//                    pile can never hold a row pointing at a 404.
+//   kind:'code' |
+//   kind:'read'    — a kept message, split the way it always was.
+// The client MUST branch on `kind`: a chat row and a message row open a
+// thread, a page row launches the artifact full-screen.
+// Two single-equality queries plus the cached registry, sorted together in
+// memory: still no composite index, the same discipline as everything here.
 router.get('/bookmarks', async (req, res) => {
   try {
     const [msgs, pages] = await Promise.all([
@@ -1175,6 +1182,23 @@ router.get('/bookmarks', async (req, res) => {
         note: p.bookmarkNote || '',
         kind: 'page',
         superseded: !!p.superseded,
+      };
+    })).concat(Object.keys(reg.chats).filter((slug) => {
+      const r = reg.chats[slug] || {};
+      return r.starred && !r.movedTo;          // never a tombstone
+    }).map((slug) => {
+      const r = reg.chats[slug] || {};
+      return {
+        id: slug,
+        chat: slug,
+        from: '',
+        created: r.lastSeen || '',
+        title: r.displayName || slug,
+        // its status line — what that chat is on — is the useful subtitle
+        // here; the chat's NAME is already the thing she is looking for.
+        snippet: r.statusNeed || r.statusDoing || '',
+        note: r.sophieNote || '',
+        kind: 'chat',
       };
     })).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });
