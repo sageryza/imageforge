@@ -175,7 +175,19 @@
       if (e.target === vlb || (e.target.className || '') === 'cmp-vlb-x') closeVideo();
     });
     document.body.appendChild(vlb);
+    ensureMediaCSS();
+    return vlb;
+  }
+  // This sheet styles the film ROW as well as the lightbox, and it used to be
+  // appended inside ensureVideoLB — which only runs when the video is first
+  // OPENED. So the row rendered as a bare inline-block button with its label
+  // and duration jammed together until you tapped it once (measured: display
+  // inline-block, gap normal, zero style tags matching .cmp-film). __filmRow
+  // asks for it up front now; the lightbox itself stays lazy.
+  function ensureMediaCSS() {
+    if (document.getElementById('cmp-media-css')) return;
     var css = document.createElement('style');
+    css.id = 'cmp-media-css';
     css.textContent =
       '.cmp-vlb{position:fixed; inset:0; z-index:61; background:rgba(20,18,15,.94);'
       + ' display:flex; align-items:center; justify-content:center; padding:14px;}'
@@ -184,8 +196,11 @@
       + '.cmp-vlb-x{position:absolute; top:max(10px,env(safe-area-inset-top)); right:12px;'
       + ' width:38px; height:38px; border-radius:50%; border:1.5px solid #fff; background:rgba(0,0,0,.35);'
       + ' color:#fff; font-size:17px; line-height:1; cursor:pointer;}'
+      // the film row belongs at the TOP of the page, which puts its right end
+      // inside the autoscroll pill's fixed corner (x 326-374, y 14-197 on an
+      // iPhone 13) — without the reserve the duration is drawn underneath it
       + '.cmp-film{display:flex; align-items:center; gap:10px; width:100%; text-align:left;'
-      + ' padding:10px 12px; margin:10px 0 4px; border:1.5px solid var(--ink,#2b2724);'
+      + ' padding:10px 56px 10px 12px; margin:10px 0 4px; border:1.5px solid var(--ink,#2b2724);'
       + ' border-radius:6px; background:var(--paper,#fff); color:var(--ink,#2b2724);'
       + ' font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;}'
       + '.cmp-film .g{flex:0 0 auto; width:30px; height:30px; border-radius:50%;'
@@ -193,7 +208,6 @@
       + '.cmp-film .t{flex:1 1 auto; font-size:15px;}'
       + '.cmp-film .m{flex:0 0 auto; font-size:12.5px; color:var(--ink2,#7a736c);}';
     document.head.appendChild(css);
-    return vlb;
   }
   function openVideo(src, poster) {
     var el = ensureVideoLB();
@@ -227,6 +241,7 @@
       if (after && after.parentNode === wrap) wrap.insertBefore(mount, after.nextSibling);
       else wrap.insertBefore(mount, wrap.firstChild);
     }
+    ensureMediaCSS();
     var b = document.createElement('button');
     b.className = 'cmp-film';
     b.type = 'button';
