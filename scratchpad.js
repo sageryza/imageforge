@@ -40,6 +40,11 @@
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
 //                          three-line text box; 5000 chars max)
+//   POST /episode        → { episodeId, remove? } — link/unlink an Episode
+//                          Editor episode to this story; GET / returns the
+//                          linked episodes' newest renders as `audios`, and
+//                          the story page shows a listen row for each (the
+//                          NDE montages on their NDE stories, Aug 2026)
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -53,6 +58,10 @@ const path = require('path');
 const COL = 'forge-scratchpad';
 const DOC = 'pad';
 const PROMPTLAB = 'forge-promptlab';
+// The Episode Editor's episodes (same Firestore project). A story doc may
+// carry `episodes: [episodeId, …]` — audio made FROM this story's material
+// (the NDE montages were cut there), listenable from the story page.
+const EDITOR = 'forge-editor';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
@@ -165,8 +174,31 @@ async function readPad(padId) {
     description: v.description || '',
     descriptionAudio: v.descriptionAudio || null,
     voiceover: v.voiceover || null,
+    episodes: Array.isArray(v.episodes) ? v.episodes : [],
     updatedAt: v.updatedAt || 0,
   };
+}
+
+// Resolve a story's linked episodes to playable audio, live — the URL is the
+// episode's NEWEST render (renders[0]; editor.js prepends), so a re-render in
+// the Episode Editor reaches the story page with no re-link. An episode with
+// no render yet (or a deleted one) simply doesn't show; the link is kept.
+async function episodeAudios(ids) {
+  if (!Array.isArray(ids) || !ids.length) return [];
+  const refs = ids.slice(0, 30).map((id) => db().collection(EDITOR).doc(String(id)));
+  const snaps = await db().getAll(...refs);
+  const out = [];
+  snaps.forEach((s) => {
+    if (!s.exists) return;
+    const v = s.data() || {};
+    const r = (Array.isArray(v.renders) && v.renders[0]) || null;
+    if (!r || !r.url) return;
+    out.push({
+      episodeId: s.id, title: v.title || 'Untitled episode',
+      url: r.url, seconds: r.seconds || null, at: r.at || null,
+    });
+  });
+  return out;
 }
 
 const router = express.Router();
@@ -188,7 +220,32 @@ router.get('/', async (req, res) => {
   try {
     const pid = padIdOf(req);
     res.set('Cache-Control', 'no-store');
-    res.json({ ...(await readPad(pid)), pad: pid });
+    const pad = await readPad(pid);
+    res.json({ ...pad, audios: await episodeAudios(pad.episodes), pad: pid });
+  } catch (e) { fail(res, e); }
+});
+
+// Link (or unlink) an Episode Editor episode to this story. Like /category,
+// deliberately NO updatedAt bump: connecting audio that already exists is not
+// a story edit, so it must not stale the film or reshuffle the shelf.
+router.post('/episode', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const epId = String(req.body.episodeId || '').trim();
+    if (!epId) return res.status(400).json({ error: 'episodeId required' });
+    if (!req.body.remove) {
+      const snap = await db().collection(EDITOR).doc(epId).get();
+      if (!snap.exists) return res.status(400).json({ error: 'no such episode' });
+    }
+    const episodes = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().episodes)) ? snap.data().episodes : [];
+      const next = cur.filter((x) => x !== epId);
+      if (!req.body.remove) next.push(epId);
+      tx.set(padRef(pid), { episodes: next }, { merge: true });
+      return next;
+    });
+    res.json({ ok: true, pad: pid, episodes });
   } catch (e) { fail(res, e); }
 });
 

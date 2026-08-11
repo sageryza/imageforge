@@ -4223,6 +4223,19 @@ route to bring it back. Film renders record per-unit audio receipts on
 `film.notes` ('her voice' / 'tts' / 'quiet') — read them before debugging
 any "it used the wrong voice" report. The title row is sticky; placement
 slots are short centered dashes.
+**LISTEN ROWS — Episode Editor episodes linked to a story (Aug 2026,
+Sophie: the NDE montages "should be connected to their stories so I can
+listen to them when I go to their story").** A story doc may carry
+`episodes: [episodeId, …]` (forge-editor ids); `GET /api/scratchpad/`
+resolves each to its NEWEST render live (`audios` on the response — a
+re-render in the editor reaches the story with no re-link) and the page
+shows a listen row per episode under the title (play · name · length,
+sharing the page's one player). Link with `POST /api/scratchpad/episode
+{pad, episodeId, remove?}` — like /category it does NOT bump updatedAt.
+All 12 NDE-category stories were linked to their montage episodes on
+2026-08-11 (`node scripts/link-episodes-to-stories.js`, idempotent;
+"NDE · all the supercuts" carries all 11). Tests:
+`node scripts/test-storyroom-listen.js`.
 
 ## Scratch Pad (stage ONE of a story — before the Story Room)
 - `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by
