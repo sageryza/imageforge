@@ -68,12 +68,16 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const reg = {
-      'chat-oven': { account: '1' },
+      // she checked this card off 5 hours ago — the ✓ IS the superseded mark,
+      // so anything from before it is old news whatever its title says
+      'chat-oven': { account: '1', notifSeenAt: iso(T0 - 300 * 60000) },
       'chat-pics': { account: '1' },
       'chat-quiet': { account: '2' },
       // checked off AFTER its last message arrived — the card is settled
       'chat-checked': { account: '1', notifSeenAt: iso(T0 - 1 * H) },
       'chat-arch': { account: '1', archived: true },
+      // delivers pages and never says a word — it still gets a card
+      'chat-deck': { account: '2' },
     };
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -96,13 +100,21 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/chatfeed/pages-recent') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    // ONLY THE NEWEST SHOWS. p3 is the card she photographed first (v3 sitting
-    // under v4); p2 is the one that beat the title-parsing rule the second
-    // time — the same artifact with NO version number in its title at all.
+    // Three cases in one chat, all from the real cards she photographed:
+    //   p1/p3 — v4 above v3, a version pair inside one unchecked stretch:
+    //           only v4 shows.
+    //   p2    — the page that beat the title rule (NO version number in its
+    //           title), but OLDER than her ✓ on this chat: gone as old news,
+    //           without anyone parsing its title.
+    // chat-deck delivers TWO genuinely different pages and says nothing at
+    // all — both must show ("if they give me a different page, why would I
+    // want it to not be shown?"), and a chat CAN deliver without a reply.
     return res.end(JSON.stringify({ pages: [
       { id: 'p1', title: 'Oven artifact v4 (s96) — tightest cut', chat: 'chat-oven', created: iso(T0 - 90 * 60000) },
       { id: 'p3', title: 'Oven artifact v3 (s96) — link mode in the strip', chat: 'chat-oven', created: iso(T0 - 100 * 60000) },
-      { id: 'p2', title: 'Oven artifact (s96) — moved from the Evan chat', chat: 'chat-oven', created: iso(T0 - 200 * 60000) },
+      { id: 'p2', title: 'Oven artifact (s96) — moved from the Evan chat', chat: 'chat-oven', created: iso(T0 - 400 * 60000) },
+      { id: 'p4', title: 'Monsters — full-size cards, quality ladder v1', chat: 'chat-deck', created: iso(T0 - 30 * 60000) },
+      { id: 'p5', title: 'Monsters — info backs, 3 samples v1', chat: 'chat-deck', created: iso(T0 - 40 * 60000) },
     ] }));
   }
   if (url.pathname === '/api/chatfeed/notif-seen' && req.method === 'POST') {
@@ -179,10 +191,10 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // tab: pictures arrive with no message, so the count is only honest once the
   // delivered cache has loaded, which the tab row kicks off once per load.
   await page.waitForFunction(
-    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '2'; },
+    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '3'; },
     null, { timeout: 5000 }).catch(async () => {
       const b = await page.$eval('#accrow .acctab[data-acct="new"]', n => n.textContent).catch(() => '');
-      fail('Update badge should be 2 (oven + pics) on the chat list, got "' + b + '"');
+      fail('Update badge should be 3 (oven + pics + deck) on the chat list, got "' + b + '"');
     });
 
   // 2/3. open it: the title says New, the line slides to the third slot
@@ -207,23 +219,52 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // is newer than the oven chat's page (90m) and its reply (2h), even though
   // its own last message is the older of the two
   const cards = await page.$$eval('.nwcard', ns => ns.map(n => n.dataset.chat));
-  if (JSON.stringify(cards) !== JSON.stringify(['chat-pics', 'chat-oven'])) {
+  if (JSON.stringify(cards) !== JSON.stringify(['chat-pics', 'chat-deck', 'chat-oven'])) {
     fail('wrong cards (newest arrival first expected): ' + cards.join(','));
   }
   const pgTitles = await page.$$eval('.nwcard[data-chat="chat-oven"] .pr-title', ns => ns.map(n => n.textContent));
   if (!pgTitles.some(t => t.indexOf('Oven artifact v4') >= 0)) fail('the newest Compare page is not on the oven card');
-  // ONLY THE NEWEST PAGE SHOWS (Sophie, Aug 2026, after this failed her twice:
-  // "same problem happening again — I think it tricked it cause there was no
-  // version number. Probably better is taking advantage of the superseded and
-  // current: if something moves to the superseded pile then it no longer shows
-  // in the Update tab if there's a new version"). Superseded is simply
-  // not-the-newest, so neither an older version NOR an older page whose title
-  // never says "version" can sit on the card.
-  if (pgTitles.length !== 1) fail('more than one page on the card: ' + pgTitles.join(' | '));
+  // 1. a version pair inside one unchecked stretch collapses to the newer
+  //    (Sophie: "if there's one version and then a new one comes out it should
+  //    just replace that one — it says v6 and then v5")
   if (pgTitles.some(t => t.indexOf('v3') >= 0)) fail('the superseded v3 is still on the card: ' + pgTitles.join(' | '));
+  // 2. …and a page older than her ✓ is gone as OLD NEWS, with nobody parsing
+  //    its title — this is the one that beat the title rule twice ("I think it
+  //    tricked it cause there was no version number")
   if (pgTitles.some(t => t.indexOf('moved from the Evan chat') >= 0)) {
-    fail('an older page with no version number in its title survived: ' + pgTitles.join(' | '));
+    fail('a page older than her check-off survived: ' + pgTitles.join(' | '));
   }
+  if (pgTitles.length !== 1) fail('the oven card should carry exactly its current artifact: ' + pgTitles.join(' | '));
+  // 3. but TWO genuinely different pages from one chat both show (Sophie,
+  //    correcting the one-page-only rule: "wait, if they give me a different
+  //    page, why would I want it to not be shown?"), and that chat never
+  //    posted a message — the pages alone earn it a card
+  const deck = await page.$$eval('.nwcard[data-chat="chat-deck"] .pr-title', ns => ns.map(n => n.textContent));
+  if (deck.length !== 2) fail('two different pages from one chat did not both show: ' + deck.join(' | '));
+
+  // the version-collapsing half, on real titles from her feed: WHERE the
+  // version sits decides what the family is, so re-cuts of one thing collapse
+  // while different pages under one project name do not
+  const fam = await page.evaluate(() => {
+    const f = window.__pageFamily;
+    return {
+      v6: f('Cutting blocks v6 (s96) — tap empty space to deselect'),
+      v5: f('Cutting blocks v5 (s96) — link mode in the strip, paragraph links'),
+      cut: f('Short 1 cut 3 — tightest'),
+      cut2: f('Short 1 cut 4'),
+      ev1: f('Evan — v11, the art from your notes'),
+      ev2: f('Evan — pick the pauses (v6)'),
+      ev3: f('Evan — the two floors, side by side'),
+      mon1: f('Monsters — full-size cards, quality ladder v1'),
+      mon2: f('Monsters — info backs, 3 samples v1'),
+      bare: f('v2'),
+    };
+  });
+  if (fam.v6 !== fam.v5) fail('v6 and v5 of the same page are not one family: ' + fam.v6 + ' / ' + fam.v5);
+  if (fam.cut !== fam.cut2) fail('cut 3 and cut 4 are not one family: ' + fam.cut + ' / ' + fam.cut2);
+  const proj = [fam.ev1, fam.ev2, fam.ev3, fam.mon1, fam.mon2];
+  if (new Set(proj).size !== proj.length) fail('different pages under one project collapsed: ' + proj.join(' | '));
+  if (!fam.bare) fail('a title that is only a version marker lost its identity');
   const thumbs = await page.$$('.nwcard[data-chat="chat-pics"] .nwimg');
   if (thumbs.length !== 3) fail('expected the last THREE pictures, got ' + thumbs.length);
 
@@ -232,7 +273,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => !document.querySelector('.nwcard[data-chat="chat-pics"]'), null, { timeout: 4000 })
     .catch(() => fail('the ✓ did not take the card off the list'));
   await page.waitForFunction(
-    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '1'; },
+    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '2'; },
     null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow the ✓'));
   if (!notifPosts.some(p => p.chat === 'chat-pics' && p.seen !== false)) fail('POST /notif-seen never fired');
 
