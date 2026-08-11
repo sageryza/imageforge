@@ -2251,13 +2251,21 @@ lifted into a standalone tool later.
   and on a **new Compare page**. Debounce: one push per chat per 10 min +
   60s global gap — the pushes are the Update tab's doorbell, not its
   replacement, so dropped ones are never lost news.
-- **Dormant until the APNs key exists**: `APNS_KEY` (the .p8 — raw PEM,
-  base64, or literal-\n all accepted), `APNS_KEY_ID`, `APNS_TEAM_ID`,
-  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`). Set in
-  Render env (or `config/pipeline` — they're MANAGED_KEYS). Read lazily at
-  send time, so a key landing needs no deploy. **Only Sophie can mint the
-  key** (Apple developer portal → Keys); never paste it into a chat — it
-  goes straight into Render env.
+- **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
+  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
+  key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all
+  accepted) **OR — the better home, her ask — as a RENDER SECRET FILE**: any
+  `*.p8` in `/etc/secrets`, the project root or cwd is picked up by
+  extension, so Apple's own `AuthKey_<KEYID>.p8` can be uploaded unchanged
+  with no name to get right (`APNS_KEY_FILE` overrides with a path). Env
+  wins; a file MISS is re-checked every 30s, so a key uploaded after the
+  deploy starts working on its own. Everything is read lazily at send time,
+  so a key landing needs no redeploy. **Only Sophie can mint the key** (Apple
+  developer portal → Keys, environment **Sandbox & Production** — TestFlight
+  rides production); never paste it into a chat.
+  **Her ids, for reference: Key ID `G8WMZDR4KK`, Team ID `5XR23N2CBH`** —
+  neither is a credential (the .p8 is), and having them here saves a
+  screenshot hunt next time.
 - **`POST /api/push/test {title?, body?}`** (gated) sends a real push to
   every registered device with per-device results — the end-to-end check.
   `GET /status` → `{configured, devices}`.
