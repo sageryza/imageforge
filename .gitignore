@@ -26,3 +26,7 @@ clips/
 # lines themselves stay local; shots.json keeps citations and timings.
 docs/cannon-language/lines.local.json
 docs/cannon-language/*.log
+
+# generated art output — the pictures are banked in Firebase Storage
+# (raw, cutout and on-sky), so this folder is disposable
+.artout/
