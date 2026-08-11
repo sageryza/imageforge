@@ -2271,6 +2271,26 @@ lifted into a standalone tool later.
   param, so checkBuild reloads can't drag her back). TestFlight rides the
   PRODUCTION APNs host. Apple-managed CI signing registers the push
   capability on the App ID automatically (same as the App Group did).
+- **THE HOME-SCREEN WIDGET (Aug 2026, Sophie: "I'd like the widget")** —
+  `ios/ForgeWidget/`, a WidgetKit extension: the Update count big, plus the
+  newest chats (names at small, name + line at medium), tap opens
+  `deckfactory://chats`. Flat paper palette, no gradients.
+  - It reads **`GET /api/chatfeed/widget?limit=`** — one small JSON — and
+    must NEVER pull the real feed (~500KB on a refresh timer). Cost is the
+    cached registry + one capped message read, nothing per-chat.
+  - **Its floor is `notifSeenAt` ALONE**, unlike the tab, which also uses the
+    per-device `seen` mark in the web view's localStorage — a widget process
+    can't read that. So the ✓ settles the widget; merely opening a chat does
+    not. Erring toward one row too many is the right way round for a glance.
+  - **The app hands it the server URL + studio token through the App GROUP**
+    (`ImageForgeApp.shareSettingsWithWidget`, on launch and on every
+    foreground). A widget extension has its own container and cannot see the
+    app's UserDefaults — without this it can only hit the default server
+    unauthenticated, which breaks the day STUDIO_TOKEN is switched on.
+  - A failed fetch says "can't reach the feed" rather than showing 0:
+    "nothing new" and "couldn't ask" must never look the same.
+  - Tests: `node scripts/test-widget-feed.js` (drives the real route against
+    a stubbed Firestore).
 - **A dead token self-heals**: 410/`Unregistered` deletes the device doc.
   Tests: `node scripts/test-push.js` (key-paste shapes, verifiable ES256
   JWT, wire format against a local h2c server; Apple itself is only
