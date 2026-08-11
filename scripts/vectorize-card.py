@@ -56,22 +56,100 @@ from scipy import ndimage
 import vtracer
 
 
-def kmeans(X, k, iters=40, seed=0):
-    """Plain Lloyd's on RGB. Seeded, so the same card always traces the same."""
-    rng = np.random.default_rng(seed)
-    C = X[rng.choice(len(X), k, replace=False)].astype(np.float64)
+def _lloyd(X, C, iters=40):
     for _ in range(iters):
         lab = ((X[:, None, :] - C[None]) ** 2).sum(-1).argmin(1)
         new = np.array([X[lab == j].mean(0) if (lab == j).any() else C[j]
-                        for j in range(k)])
+                        for j in range(len(C))])
         if np.allclose(new, C, atol=.4):
             return new
         C = new
     return C
 
 
+def kmeans(X, k, iters=40, seed=0, restarts=4):
+    """k-means++ on RGB, best of a few restarts. Seeded, so a card always
+    traces the same.
+
+    Plain Lloyd's from a random pick is NOT good enough here and it shipped
+    once: on the weight card at k=4 it split one pastel in half and left the
+    grey hammer head merged into the lilac, so the closest pair of centres came
+    out 8.6 apart when the four real colours are never nearer than 28. That
+    then fooled `pick_fills`, which reads exactly that number to decide how
+    many colours the drawing has. k-means++ spreads the seeds by distance, and
+    keeping the lowest-inertia restart makes the answer stable.
+    """
+    best, bestcost = None, np.inf
+    for r in range(restarts):
+        rng = np.random.default_rng(seed + r)
+        C = [X[rng.integers(len(X))].astype(np.float64)]
+        for _ in range(k - 1):                       # ++ seeding
+            d = np.min(((X[:, None, :] - np.array(C)[None]) ** 2).sum(-1), axis=1)
+            tot = d.sum()
+            C.append(X[rng.choice(len(X), p=d / tot) if tot > 0
+                       else rng.integers(len(X))].astype(np.float64))
+        C = _lloyd(X, np.array(C), iters)
+        cost = np.min(((X[:, None, :] - C[None]) ** 2).sum(-1), axis=1).sum()
+        if cost < bestcost:
+            best, bestcost = C, cost
+    return best
+
+
+def pick_fills(pix, lo=2, hi=7, apart=24.0, share=0.012, frompaper=25.0):
+    """How many colours does this drawing actually have?
+
+    Hand-picking it per card does not scale to a folder, and getting it wrong
+    is the difference between a grey hammer head and a lilac one. So: take the
+    LARGEST k whose clusters are all genuinely distinct — every pair of centres
+    at least `apart` in RGB, and every cluster holding at least `share` of the
+    fill pixels. One colour too many and the extra cluster splits a real colour
+    in half or latches onto noise; one too few and two colours merge.
+
+    `apart` is MEASURED, not picked. On the weight card, whose answer is known
+    to be 4 (pink handle, lilac moon, mint feather, grey hammer head), the
+    closest pair of centres runs 28.6 / 27.5 / 29.1 at k=2,3,4 and then falls
+    off a cliff to 19.5 at k=5 and 7.9 at k=6 — because from k=5 on, the only
+    way to make another cluster is to cut a real colour in half. 24 sits in
+    that gap. Re-measure it before changing it.
+
+    `share` has to be SMALL — an accent on one astronaut's backpack is a real
+    colour and only ~2-4% of the fill pixels. At 4% the mint pack vanished off
+    three cards. What a small cluster must NOT be is the paper's own soft edge,
+    which shows up as a near-white centre, so `frompaper` rejects those by
+    COLOUR instead: (241,241,241) sits 24 from white and is the edge; the mint
+    (153,217,204) and a pale pink (241,231,238) are 100+ and 33 away and are
+    real. Sizing alone could not tell those apart.
+    """
+    sub = pix[::max(1, len(pix) // 20000)]
+    best = None
+    for k in range(lo, hi + 1):
+        C = kmeans(sub, k)
+        lab = ((sub[:, None, :] - C[None]) ** 2).sum(-1).argmin(1)
+        counts = np.array([(lab == j).sum() for j in range(k)]) / len(sub)
+        # A near-white cluster is the paper's own soft edge. It is harmless —
+        # it paints white beside white — so it must NOT be judged and must NOT
+        # veto the count: on the co-orbital card the true k=5 was thrown out by
+        # one (241,241,241) centre, and the planet lost its mint and pink.
+        real = np.sqrt(((C - 255.0) ** 2).sum(-1)) >= frompaper
+        if real.sum() < 1:
+            continue
+        R = C[real]
+        d = np.sqrt(((R[:, None, :] - R[None]) ** 2).sum(-1))
+        d[np.diag_indices(len(R))] = 1e9
+        if d.min() >= apart and counts[real].min() >= share:
+            best = C
+    # RETURN THE CENTRES, not just the count. Deciding k on one clustering and
+    # then re-clustering to paint is deciding about colours you never used —
+    # a near-white centre rejected here reappeared in the output because the
+    # second run found a different set. One clustering, start to finish.
+    return best if best is not None else kmeans(sub, lo)
+
+
 def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smooth=9):
-    """The card as exactly `fills + 2` flat colours: the fills, ink, and paper."""
+    """The card as exactly `fills + 2` flat colours: the fills, ink, and paper.
+
+    `fills=0` asks pick_fills to work the count out from the picture.
+    """
     im = Image.open(src)
     if im.mode in ('RGBA', 'LA'):                    # a cut-out: put it on paper
         bg = Image.new('RGB', im.size, (255, 255, 255))
@@ -90,7 +168,9 @@ def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smoot
     solid = ~inkm & ~paperm & ~edge
 
     pix = a[solid]
-    C = kmeans(pix[::max(1, len(pix) // 40000)], fills)     # see (2)
+    C = (pick_fills(pix) if not fills                       # see (2)
+         else kmeans(pix[::max(1, len(pix) // 40000)], fills))
+    fills = len(C)
     labs = ((pix[:, None, :] - C[None]) ** 2).sum(-1).argmin(1)
     cols = np.array([np.median(pix[labs == j], 0).round() for j in range(fills)]
                     ).astype(np.uint8)
@@ -113,7 +193,11 @@ def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smoot
     assert picked.min() >= 0, 'a pixel was left unlabelled — it would be painted cluster 0'
     flat = cols[picked]
     flat[paperm | (~solid & ~inkm & (dP <= dF))] = 255
-    flat[inkm] = 26
+    # The ink's OWN colour, taken from its core (the <60 pixels, away from the
+    # anti-aliased edge) — a hard-coded 26 turned the Grand Tour card's black
+    # background into charcoal. Fall back when a card has no deep black.
+    core = a[lum < 60]
+    flat[inkm] = np.median(core, 0).round().astype(np.uint8) if len(core) > 200 else 26
     return Image.fromarray(flat), [tuple(int(v) for v in c) for c in cols]
 
 
@@ -139,14 +223,25 @@ def vectorize(src, out, fills=4, speckle=10, **kw):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
-    p.add_argument('src')
-    p.add_argument('out')
-    p.add_argument('--fills', type=int, default=4, help='colours besides ink and paper')
+    p.add_argument('src', help='a card PNG, or a FOLDER of them')
+    p.add_argument('out', help='the SVG, or a folder when src is one')
+    p.add_argument('--fills', type=int, default=0,
+                   help='colours besides ink and paper; 0 (default) works it out')
     p.add_argument('--ink', type=int, default=150, help='luminance below this is line')
     p.add_argument('--paper', type=int, default=243, help='luminance above this is paper')
     p.add_argument('--band', type=int, default=3, help='px of anti-aliased collar to exclude')
     p.add_argument('--flat', help='also write the flattened raster here, to eyeball it')
     a = p.parse_args()
+    if os.path.isdir(a.src):                       # a whole folder in one go
+        os.makedirs(a.out, exist_ok=True)
+        for name in sorted(os.listdir(a.src)):
+            if not name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                continue
+            dst = os.path.join(a.out, os.path.splitext(name)[0] + '.svg')
+            cols, kb, secs = vectorize(os.path.join(a.src, name), dst, fills=a.fills,
+                                       ink=a.ink, paper=a.paper, band=a.band)
+            print(f'{dst}  {len(cols)} fills {cols}  {kb:.0f}KB  {secs:.1f}s')
+        raise SystemExit
     if a.flat:
         f, _ = flatten(a.src, fills=a.fills, ink=a.ink, paper=a.paper, band=a.band)
         f.save(a.flat)
