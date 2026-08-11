@@ -185,14 +185,43 @@ button, .btn {
 .cmp-note-open svg { width: 13px; height: 13px; display: block; }
 .cmp-note-open:hover { color: var(--gold); border-color: var(--gold); }
 .cmp-note.open .cmp-note-open { transform: rotate(45deg); }
-/* her words, shown — tap them to write more */
-.cmp-note-text {
-  display: none; white-space: pre-wrap; cursor: text;
-  font: 14px/1.5 Georgia, 'Times New Roman', serif; color: var(--ink2);
-  border-left: 2px solid var(--line); padding: 1px 30px 1px 9px; margin-top: 9px;
-}
+/* The thread — hers and the chat's as SEPARATE blocks (Aug 2026, Sophie: "I
+   don't know why I'm responding inside of your message. That's strange").
+   Writing appends a new message; it never hands her the whole field to edit.
+   More than one message folds to the newest behind a small "N earlier" —
+   her ask, so a long back-and-forth can't bury the list. */
+.cmp-note-text { display: none; cursor: text; margin-top: 9px; }
 .cmp-note.has .cmp-note-text { display: block; }
 .cmp-note.open .cmp-note-text { display: none; }
+.cmp-msg {
+  border-left: 2px solid var(--line);
+  padding: 1px 30px 1px 9px; margin-bottom: 7px;
+}
+.cmp-msg:last-child { margin-bottom: 0; }
+.cmp-msg.me { border-left-color: var(--rose); }
+.cmp-msg.claude { border-left-color: var(--gold); }
+.cmp-msg-who {
+  display: block; font: 600 9px/1 -apple-system, sans-serif;
+  letter-spacing: .12em; text-transform: uppercase; padding-bottom: 3px;
+}
+.cmp-msg.me .cmp-msg-who { color: var(--rose); }
+.cmp-msg.claude .cmp-msg-who { color: var(--gold); }
+.cmp-msg-t {
+  white-space: pre-wrap;
+  font: 14px/1.5 Georgia, 'Times New Roman', serif; color: var(--ink2);
+}
+/* folded: only the newest message shows */
+.cmp-note.folded .cmp-msg { display: none; }
+.cmp-note.folded .cmp-msg.last { display: block; }
+.cmp-note-more {
+  display: none; border: 0; background: none; padding: 4px 0 0 9px;
+  font: 600 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink2); cursor: pointer;
+}
+.cmp-note.has.foldable .cmp-note-more { display: block; }
+.cmp-note.open .cmp-note-more { display: none; }
+.cmp-note-more::before { content: '▾ '; }
+.cmp-note.folded .cmp-note-more::before { content: '▸ '; }
 .cmp-note-box {
   display: none; width: 100%; margin-top: 8px;
   font: 14px/1.45 Georgia, 'Times New Roman', serif;

@@ -119,16 +119,20 @@ __PILL__
       box.dispatchEvent(new Event('blur'));           // blur flushes immediately
     }
     // a written note SHOWS as her words, folded out of the textarea (Sophie,
-    // Aug 2026: "if I left a note, make it show")
+    // Aug 2026: "if I left a note, make it show"), as a tagged message in the
+    // thread — never as raw text she would have to edit around
     var shown = note && note.querySelector('.cmp-note-text');
-    ok(!!shown && note.classList.contains('has') && !note.classList.contains('open') &&
-       shown.textContent === 'this one drifts' &&
+    var msg = shown && shown.querySelector('.cmp-msg.me .cmp-msg-t');
+    ok(!!msg && note.classList.contains('has') && !note.classList.contains('open') &&
+       msg.textContent === 'this one drifts' &&
        getComputedStyle(box).display === 'none',
        'a written note shows as her words, not as an open textarea');
     setTimeout(function () {
       var p = posts.filter(function (x) { return x.u.indexOf('/api/chatfeed/verdict') === 0; }).pop();
       var body = p ? JSON.parse(p.b) : null;
-      ok(!!body && body.text === 'this one drifts' && body.item === 'thing-1' && body.ok === undefined,
+      // saved as a tagged message, so hers and the chat's never merge into
+      // one paragraph she has to type inside of
+      ok(!!body && body.text === '— me: this one drifts' && body.item === 'thing-1' && body.ok === undefined,
          'a note saves to the verdict doc as text, leaving the vote alone');
 
       // 5. the FILM ROW — a line of text with a play button, never a <video>

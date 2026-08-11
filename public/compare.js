@@ -307,6 +307,8 @@
     btn.innerHTML = PLUS_SVG;
     var shown = document.createElement('div');
     shown.className = 'cmp-note-text';
+    var caret = document.createElement('button');
+    caret.type = 'button'; caret.className = 'cmp-note-more';
     var box = document.createElement('textarea');
     box.className = 'cmp-note-box';
     box.rows = 2;
@@ -314,29 +316,65 @@
     var flag = document.createElement('span');
     flag.className = 'cmp-note-saved';
     flag.textContent = 'saved';
-    wrap.appendChild(btn); wrap.appendChild(shown); wrap.appendChild(box); wrap.appendChild(flag);
+    wrap.appendChild(btn); wrap.appendChild(shown); wrap.appendChild(caret);
+    wrap.appendChild(box); wrap.appendChild(flag);
     host.appendChild(wrap);
 
     // A written note SHOWS as her words (Aug 2026, Sophie: "if I left a note,
     // make it show") — not as an open textarea, which is what made every item
     // cost a box whether or not she had written in it. An empty one is just
     // the + and costs nothing.
+    //
+    // And it shows as a THREAD, hers and mine in separate blocks (Sophie,
+    // Aug 2026: "I don't know why I'm responding inside of your message.
+    // That's strange" — v1 handed her the whole field in one textarea, so
+    // answering meant typing inside my paragraph). Writing now APPENDS a new
+    // message; only the last block is ever hers to extend.
+    var thread = [], current = '';   // `current` is the field; the box is only a draft
     function display() {
-      shown.textContent = box.value;
-      wrap.classList.toggle('has', !!box.value.trim());
+      thread = parseThread(current);
+      wrap.classList.toggle('has', !!thread.length);
+      renderThread(shown, thread);
+      // more than one message folds down to the newest (Sophie: "also
+      // collapse the messages anyway")
+      var many = thread.length > 1;
+      caret.hidden = !many;
+      wrap.classList.toggle('foldable', many);
+      if (many && !wrap.dataset.opened) wrap.classList.add('folded');
+      if (!many) wrap.classList.remove('folded');
+      caret.textContent = (thread.length - 1) + ' earlier';
     }
-    if (existing) { box.value = existing; box.dataset.touched = '1'; }
+    if (existing) { current = existing; box.dataset.touched = '1'; }
     display();
 
-    function open() { wrap.classList.add('open'); box.focus(); }
+    // the box is always EMPTY: it writes the NEXT message, never edits mine
+    function open() {
+      box.value = '';
+      wrap.classList.add('open');
+      wrap.classList.remove('folded'); wrap.dataset.opened = '1';
+      box.focus();
+    }
     btn.addEventListener('click', function () {
-      if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
+      if (wrap.classList.contains('open')) { box.blur(); return; }
       open();
     });
-    shown.addEventListener('click', open);   // tap her words to write more
+    caret.addEventListener('click', function () {
+      wrap.classList.toggle('folded');
+      wrap.dataset.opened = '1';
+    });
+    shown.addEventListener('click', open);   // tap the thread to write back
+    // saving writes the WHOLE thread back — her draft appended as one new
+    // message — so a debounced save mid-sentence can't lose the earlier ones
+    function fieldWith(draft) {
+      var msgs = thread.concat(draft.trim() ? [{ who: 'me', text: draft.trim() }] : []);
+      return msgs.map(function (m) { return '— ' + (m.who === 'claude' ? 'Claude' : 'me') + ': ' + m.text; })
+        .join('\n\n');
+    }
+    box._cmpField = fieldWith;      // the pagehide beacon needs the thread too
     function save() {
       flag.classList.remove('on');
-      postNote(item, box.value).then(function () {
+      postNote(item, fieldWith(box.value)).then(function () {   // draft included
+
         flag.classList.add('on');
         setTimeout(function () { flag.classList.remove('on'); }, 1200);
       });
@@ -347,15 +385,75 @@
     });
     box.addEventListener('blur', function () {
       clearTimeout(noteTimers[item]);
-      // an empty box that was never written is not a note — don't POST ''
-      if (box.value.trim() || box.dataset.touched) save();
-      if (box.value.trim()) box.dataset.touched = '1';
-      // always fold back — the textarea is for writing in, her words are
-      // what stays on the page
+      var draft = box.value.trim();
+      if (draft) {
+        // commit the draft INTO the field, then empty the box. The box must
+        // never hold the thread: a second blur (the synthetic one a test
+        // fires, or a re-focus) would then append the whole thread to itself.
+        current = fieldWith(draft);
+        box.dataset.touched = '1';
+        box.value = '';
+        flag.classList.remove('on');
+        postNote(item, current).then(function () {
+          flag.classList.add('on');
+          setTimeout(function () { flag.classList.remove('on'); }, 1200);
+        });
+      }
+      // always fold back — the textarea is for writing the next message,
+      // the thread is what stays on the page
       display();
       wrap.classList.remove('open');
     });
   }
+
+  /* A note is a CONVERSATION, so the one text field carries both voices,
+     each message on its own `— me:` / `— Claude:` line. Anything before the
+     first marker is hers (every note written before this existed). */
+  function parseThread(text) {
+    var out = [];
+    String(text || '').split(/\n(?=—\s*(?:me|Claude)\s*:)/).forEach(function (chunk) {
+      var s = chunk.trim();
+      if (!s) return;
+      var m = /^—\s*(me|Claude)\s*:\s*/i.exec(s);
+      out.push({
+        who: m && m[1].toLowerCase() === 'claude' ? 'claude' : 'me',
+        text: m ? s.slice(m[0].length).trim() : s,
+      });
+    });
+    return out.filter(function (m) { return m.text; });
+  }
+
+  function renderThread(host, msgs) {
+    host.textContent = '';
+    msgs.forEach(function (m, i) {
+      var d = document.createElement('div');
+      d.className = 'cmp-msg ' + m.who + (i === msgs.length - 1 ? ' last' : '');
+      var who = document.createElement('span');
+      who.className = 'cmp-msg-who';
+      who.textContent = m.who === 'claude' ? 'Claude' : 'me';
+      var p = document.createElement('div');
+      p.className = 'cmp-msg-t';
+      p.textContent = m.text;
+      d.appendChild(who); d.appendChild(p);
+      host.appendChild(d);
+    });
+  }
+  window.__compareShell.parseNoteThread = parseThread;
+  // judge.js builds its own card markup, so it paints its note through this
+  // rather than re-implementing the thread
+  window.__compareShell.paintNote = function (wrap, text) {
+    var host = wrap && wrap.querySelector('.cmp-note-text');
+    if (!host) return [];
+    var msgs = parseThread(text);
+    renderThread(host, msgs);
+    wrap.classList.toggle('has', !!msgs.length);
+    return msgs;
+  };
+  window.__compareShell.threadField = function (msgs, draft) {
+    return msgs.concat(draft && draft.trim() ? [{ who: 'me', text: draft.trim() }] : [])
+      .map(function (m) { return '— ' + (m.who === 'claude' ? 'Claude' : 'me') + ': ' + m.text; })
+      .join('\n\n');
+  };
 
   window.__compareNotes = function (opts) {
     noteCfg = { chat: (opts || {}).chat, sheet: (opts || {}).sheet };
@@ -383,9 +481,12 @@
       var item = box.closest('[data-item]');
       if (!item || !box.value.trim()) return;
       try {
+        // the box holds only the DRAFT, so the beacon has to send the whole
+        // thread with it or an interrupted message would eat the earlier ones
+        var full = box._cmpField ? box._cmpField(box.value) : box.value;
         navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
           chat: noteCfg.chat, sheet: noteCfg.sheet,
-          item: item.getAttribute('data-item'), text: box.value,
+          item: item.getAttribute('data-item'), text: full,
         })], { type: 'application/json' }));
       } catch (_) { /* nothing more we can do here */ }
     });
