@@ -170,7 +170,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // and it can be renamed WITHOUT opening the message
   const before2 = bmkPosts.length;
   await page.fill('#grid .bmkrow .sr-note-in', 'darius cage prompt');
-  await page.click('#grid .bmkfilter .tbtn');            // tap away to save
+  // tap away to save — onto the MESSAGES tab, the one already active, so the
+  // blur fires without swapping the view out from under the assertions
+  await page.click('#grid .acctabs.bmktabs .acctab:nth-child(3)');
   await page.waitForFunction(() => true, null, { timeout: 300 }).catch(() => {});
   const renamed = bmkPosts[bmkPosts.length - 1];
   if (!renamed || renamed.note !== 'darius cage prompt') fail('renaming on the row never POSTed: ' + JSON.stringify(bmkPosts.slice(before2)));

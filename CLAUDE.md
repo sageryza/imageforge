@@ -1560,6 +1560,10 @@ lifted into a standalone tool later.
     rather than narrowing it, and clears the category filter.
   - Setting it is the **star button in the thread header**, beside Archive and
     Hide — the only place the star is a control.
+  - **A starred chat IS a kept chat**: it fills the **CHATS tab of the
+    Bookmarks pile** (Aug 2026 — see "THE KEEP-PILE IS THREE TABS"). Star and
+    bookmark are one mark on purpose; do NOT add a second per-chat keep-flag,
+    or she has to remember which of two piles a chat went into.
 - **A BOOKMARK CARRIES A NOTE (Aug 2026, Sophie: "when I bookmark messages I
   want to leave a note or title the message so I remember what it was and why
   I bookmarked it").** `bookmarkNote` on the MESSAGE doc;
@@ -1578,44 +1582,65 @@ lifted into a standalone tool later.
     the snippet. A tap on the input is skipped so typing never opens the chat.
     The field is borderless until focused, so the list still reads as a list.
   - Tests: `node scripts/test-chats-star-bookmark.js`.
-- **A COMPARE PAGE CAN BE BOOKMARKED TOO, into the SAME pile (Aug 2026,
-  Sophie: "I'd like to be able to bookmark or star artifacts in the compare
-  tab as well as messages, and they could show up in the same place").**
-  Bookmarks was already the one "things I kept, across every chat" pile, so a
-  kept artifact joins it as a **third KIND** rather than starting a second
-  pile — and it inherits the editable note for free.
-  - **Deliberately NOT the ★ pile.** The star is a judgement about a whole
-    CHAT ("important, work I refer back to"); mixing single artifacts in
-    would make that list two kinds of row — one you open, one that launches
-    full-screen — and the star would stop meaning one thing. Same reason it
-    is not its own view: the masthead only fits its controls by overlapping
-    (see THE MASTHEAD OVERLAPS), and two keep-piles means remembering which
-    one a thing went into.
-  - **The mark is the BOOKMARK glyph, not a star** — one glyph for "kept",
-    wherever it appears. `BMK_SVG` in chats.html is the single copy; the
-    button is `.bmk.pr-bmk` on a page row, so it inherits `.bmk`/`.bmk.on`
-    and lights in exactly the red a kept message does. Written
-    `.bmk.pr-bmk`, never `.pr-bmk` — the generic `.bmk` rules sit LATER in
-    the file and would win at equal specificity (the `.bmk.hdrbmk` trap).
-  - **`bookmarked` + `bookmarkNote` live on the PAGE doc**
-    (`POST /api/chatfeed/page/:id/bookmark {bookmarked?, note?}`, the same
-    contract as the message route — a `note` sent alone never toggles the
-    bookmark). Living on the page doc means **deleting a page takes its
-    bookmark with it**, so the pile can never hold a row pointing at a 404.
-  - **`GET /bookmarks` merges both collections** — two single-equality
-    queries sorted together in memory, so still no composite index. A page
-    item carries `kind:'page'` plus its `title`, and the client MUST branch
-    on that: the row opens the artifact via `openPage`, where a message row
-    jumps into a thread. The row wears a small `page` badge for that reason
-    — it has to say which it is before she taps it.
-  - **A SUPERSEDED page can be kept**, on purpose: the old version is often
-    exactly the thing worth keeping, which is why superseded pages are never
-    deleted in the first place.
-  - The filter row gained a **Pages** chip (four chips now, so `.bmkfilter`
-    wraps — four uppercase labels with counts overflow a 375px screen).
-  - Tests: `node scripts/test-chats-bookmark-pages.js` (drives the real page
-    home → thread → Compare → Bookmarks, and hit-tests the four chips at
-    375px).
+- **THE KEEP-PILE IS THREE TABS: CHATS · ARTIFACTS · MESSAGES (Aug 2026,
+  Sophie: "I should be able to bookmark chats, compare pages and messages and
+  they should all live in the same place… the hairline underline pattern with
+  chats on the left, pages in the middle and messages on the right — except
+  rather than Pages I want it called artifacts, cause that's the name I used
+  for it myself").** Bookmarks is THE pile for anything she kept; the old
+  All / Code / To read chip row is gone and `.acctabs` (the witch shop tab
+  pattern, same as the account row) splits it three ways.
+  - **"ARTIFACTS" is her word and the SCREEN's word; the code still says
+    `page`** — the route, the collection and `kind:'page'` are unchanged.
+    That split is deliberate, not an oversight: don't rename the data, and
+    don't rename the tab back.
+  - **A tab is not a chip, so there is no "All"** — the same reason the
+    account tabs have none. **Landing tab is MESSAGES** (slot 2), where the
+    pile she already had lives.
+  - **The Code / To read FILTER went with the chips** — code/read are now one
+    Messages tab. The distinction survives as the `code` BADGE on the row,
+    which is why that badge stays while the chat/artifact ones went: it
+    splits things WITHIN a tab, where the tab overhead can't. Ask her before
+    reviving the filter as a sub-row.
+  - **A kept CHAT is a STARRED chat — the same mark, deliberately.**
+    `starred` already meant "important, work I want to refer back to", so a
+    second per-chat keep-flag would only make her remember which of two
+    piles a chat went into. The **star button in the thread header is still
+    the only setter**; the Chats tab reads it. The ★ chip on the category
+    row shows the same set, and that duplicate is fine ("it can be in two
+    places, silly").
+  - **Rows branch on `kind`:** a chat row and a message row open a thread
+    (a chat row at the top — there is no message to jump to), an artifact
+    row launches `openPage` full-screen.
+  - **Each kind's note goes to its OWN route, and never carries a keep-flag**
+    — `/bookmark {id,note}` for a message, `/page/:id/bookmark {note}` for an
+    artifact, `/chatnote {chat,note}` for a chat. A chat's note IS its
+    existing `sophieNote` (the home-row where-things-stand line), editable
+    here as well as in the thread — one note per chat, never a third field.
+  - **`bookmarked` + `bookmarkNote` live on the PAGE doc**, so **deleting a
+    page takes its bookmark with it** — the pile can never hold a row
+    pointing at a 404. A **SUPERSEDED page can be kept**, on purpose: the old
+    version is often the thing worth keeping.
+  - **The mark on an artifact is the BOOKMARK glyph, not a star** — one glyph
+    for "kept" wherever it appears. `BMK_SVG` in chats.html is the single
+    copy; the button is `.bmk.pr-bmk`, written that way and never `.pr-bmk`,
+    because the generic `.bmk` rules sit LATER in the file and would win at
+    equal specificity (the `.bmk.hdrbmk` trap).
+  - **`GET /bookmarks` merges two queries + the cached registry** — still
+    single-equality only, so no composite index. Starred chats cost NO extra
+    read: the registry is already loaded for the display names.
+  - **`.acctabs.bmktabs` adds the pill's 56px corner reserve, and that is
+    load-bearing** — unlike the account row (which sits low, above the hidden
+    bar) this row is near the TOP of the screen, inside the pill's
+    x 324–374 / y 14–192 band, so the right-hand tab's own centre would land
+    under the pill. The sliding line then needs
+    `width:calc((100% - 56px)/3)`: an abspos child's percentages resolve
+    against the PADDING box, so the inherited 33.33% sits wider than a tab
+    and drifts right. The translateX steps stay 100%/200% (relative to the
+    line's own width).
+  - Tests: `node scripts/test-chats-bookmark-pile.js` — drives the real page
+    home → thread → Compare → Bookmarks, checks all three tabs and their
+    routes, and hit-tests every tab plus the underline width at 375/390/430.
 - **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
   running to-do list").** `/chats` home view `todo`, entered by the word **To
   do** beside Archive; Firestore `forge-chat-todos`;
@@ -2048,9 +2073,9 @@ lifted into a standalone tool later.
   replaces** — that is what keeps eleven drafts of one tool out of her way
   WITHOUT deleting the history.
   **Every row (both tabs) also carries a BOOKMARK** that sends the page to
-  the Bookmarks view alongside her kept messages — see "A COMPARE PAGE CAN
-  BE BOOKMARKED TOO" above. One more reason never to delete a superseded
-  page: she may have kept it.
+  the Bookmarks view's **ARTIFACTS** tab, alongside her kept chats and
+  messages — see "THE KEEP-PILE IS THREE TABS" above. One more reason never
+  to delete a superseded page: she may have kept it.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME

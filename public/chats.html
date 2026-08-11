@@ -350,10 +350,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Bookmarks: the two kinds she keeps (code to copy vs. something to read),
    derived server-side. The chips filter; the tag marks a code one in "All". */
-/* WRAPS: the Pages chip made this row four chips wide (Aug 2026), and four
-   uppercase labels with their counts overflow a 375px screen. Wrapping costs
-   a few pixels only when it actually has to. */
-.bmkfilter{display:flex; flex-wrap:wrap; gap:8px; row-gap:6px; margin:0 0 1.1em;}
+/* The keep-pile's three tabs — CHATS · ARTIFACTS · MESSAGES (Aug 2026,
+   Sophie: "the hairline underline pattern"). It is `.acctabs` verbatim; this
+   class adds ONE thing, and it is load-bearing: unlike the account row (which
+   sits low, above the hidden bar) this row is near the TOP of the screen,
+   inside the autoscroll pill's band (x 324–374, y 14–192) — so the right-hand
+   tab's own centre would land under the pill and eat the tap.
+   The sliding line then has to measure the CONTENT width: an abspos child's
+   percentages resolve against the PADDING box, so the inherited 33.33% would
+   sit wider than a tab and drift right. translateX steps stay 100%/200% —
+   those are relative to the line's own width, which is now correct. */
+.acctabs.bmktabs{padding-right:56px;}
+.acctabs.bmktabs::after{width:calc((100% - 56px)/3);}
 .sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
@@ -1396,39 +1404,52 @@ document.querySelector('.hrow').addEventListener('click', function(e){
   if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom) return;
   titleBack();
 });
-// Every bookmarked message, newest first, whichever chat it is in. Tapping one
-// opens its chat and jumps to it — the same focus+flash the search results use.
-// The two things she actually bookmarks (her words): something with code /
-// copy-paste instructions to keep, and a long explanation to read later. The
-// server derives which from the message itself (a fenced code block = the
-// first kind), so she never has to categorise anything — these chips only
-// filter what's already sorted. Kept for the session, not persisted: the
-// default should always be everything.
-// 'page' is the THIRD kind (Aug 2026, Sophie: bookmark "artifacts in the
-// compare tab as well as messages… they could show up in the same place").
-// Unlike code/read it is not derived from the text — the server says so,
-// because a page row does something different when tapped: it opens the
-// artifact full-screen instead of jumping into a thread.
-var bmkFilter='all';   // 'all' | 'code' | 'read' | 'page'
+// THE KEEP-PILE: CHATS · ARTIFACTS · MESSAGES (Aug 2026, Sophie: "I should be
+// able to bookmark chats, compare pages and messages and they should all live
+// in the same place… the hairline underline pattern with chats on the left,
+// pages in the middle and messages on the right — except rather than Pages I
+// want it called artifacts, cause that's the name I used for it myself").
+// So the chip row is gone and this is `.acctabs`, the witch shop's tab
+// pattern, exactly as the account row uses it.
+//   ARTIFACTS is her word. Do not rename it back to Pages — the ROUTE and the
+//   data still say `page`, and that split is deliberate: her vocabulary on
+//   screen, the code's vocabulary underneath.
+// A tab is not a chip: it SPLITS the pile rather than narrowing it, so there
+// is no "All" — the same reason the account tabs have none.
+// The KIND BADGE went with the chips for chats and artifacts: the tab already
+// names them. `code` stays, because it distinguishes WITHIN Messages.
+// Session-only, never persisted — a sticky tab would show her one third of
+// what she kept some morning with no memory of having chosen.
+var bmkTab='msg';      // 'chat' | 'page' | 'msg' — see BMK_TABS
+var BMK_TABS=[['chat','Chats'],['page','Artifacts'],['msg','Messages']];
+// what the server's `kind` means for the tabs: code/read are both Messages
+function bmkTabOf(kind){ return kind==='chat' ? 'chat' : kind==='page' ? 'page' : 'msg'; }
 var bmkCache=null;
 function paintBookmarks(el){
-  var items=(bmkCache||[]).filter(function(m){ return bmkFilter==='all' || (m.kind||'read')===bmkFilter; });
-  var counts={all:(bmkCache||[]).length, code:0, read:0, page:0};
-  (bmkCache||[]).forEach(function(m){ counts[(m.kind||'read')]++; });
+  var all=(bmkCache||[]);
+  var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   el.innerHTML='';
-  var row=document.createElement('div'); row.className='bmkfilter';
-  [['all','All'],['code','Code'],['read','To read'],['page','Pages']].forEach(function(p){
+  // the hairline tab row — same markup and classes as the account tabs, so
+  // the two can never drift apart. `.bmktabs` only adds the pill's corner
+  // reserve (this row sits high, inside x 324–374 / y 14–192).
+  var tabs=document.createElement('div');
+  tabs.className='acctabs bmktabs';
+  tabs.dataset.on=String(BMK_TABS.map(function(t){return t[0];}).indexOf(bmkTab));
+  BMK_TABS.forEach(function(t){
     var b=document.createElement('button');
-    b.className='tbtn'+(bmkFilter===p[0]?' on':'');
-    b.textContent=p[1]+' '+counts[p[0]];
-    b.onclick=function(){ bmkFilter=p[0]; paintBookmarks(el); };
-    row.appendChild(b);
+    b.className='acctab'+(bmkTab===t[0]?' on':'');
+    b.textContent=t[1];
+    b.onclick=function(){ bmkTab=t[0]; paintBookmarks(el); };
+    tabs.appendChild(b);
   });
-  el.appendChild(row);
+  el.appendChild(tabs);
   if(!items.length){
     var s=document.createElement('div'); s.className='state';
-    s.textContent = counts.all ? 'Nothing in this one.'
-      : 'No bookmarks yet — tap the bookmark under a message, or beside a page in a chat’s Compare tab, to keep it here.';
+    s.textContent = bmkTab==='chat'
+      ? 'No chats kept yet — tap the star in a chat’s header to keep it here.'
+      : bmkTab==='page'
+      ? 'No artifacts kept yet — tap the bookmark beside a page in a chat’s Compare tab.'
+      : 'No messages kept yet — tap the bookmark under a message.';
     el.appendChild(s); return;
   }
   items.forEach(function(m){
@@ -1437,23 +1458,31 @@ function paintBookmarks(el){
     // opening each message was a round trip per bookmark). An <input> cannot
     // live inside a <button>, so the tappable part is its own button and the
     // note sits above it.
+    var kind=(m.kind||'read');
     var row=document.createElement('div'); row.className='bmkrow';
     var inp=document.createElement('input'); inp.type='text';
     inp.className='sr-note-in'; inp.value=m.note||'';
-    inp.placeholder='Name this one…';
+    // A CHAT's note is her existing where-things-stand line (`sophieNote`),
+    // the same one on its home row and in its thread — one note per chat,
+    // editable wherever she meets it, never a third note field.
+    inp.placeholder = kind==='chat' ? 'Note for this chat…' : 'Name this one…';
     inp.autocapitalize='sentences'; inp.setAttribute('autocomplete','off');
-    inp.setAttribute('aria-label','Why you kept this');
+    inp.setAttribute('aria-label', kind==='chat' ? 'Your note for this chat' : 'Why you kept this');
     function save(){
-      var v=(inp.value||'').trim().slice(0,300);
+      // the chat-note route stores 200; the other two store 300
+      var v=(inp.value||'').trim().slice(0, kind==='chat'?200:300);
       if(v===(m.note||'')) return;
       var prev=m.note||''; m.note=v;          // bmkCache holds this object
-      // A page's note lives on the PAGE doc, so it goes to the page's own
-      // route — same contract either way: a note sent alone never touches the
-      // bookmark itself.
-      var url = m.kind==='page'
-        ? '/api/chatfeed/page/'+encodeURIComponent(m.id)+'/bookmark'
-        : '/api/chatfeed/bookmark';
-      api(url,{method:'POST',body:JSON.stringify(m.kind==='page'?{note:v}:{id:m.id, note:v})})
+      // Each kind's note lives on its own doc, so each goes to its own route.
+      // Same contract in all three: a note sent alone never touches whether
+      // the thing is kept.
+      var url = kind==='page' ? '/api/chatfeed/page/'+encodeURIComponent(m.id)+'/bookmark'
+              : kind==='chat' ? '/api/chatfeed/chatnote'
+              : '/api/chatfeed/bookmark';
+      var body = kind==='page' ? {note:v}
+               : kind==='chat' ? {chat:m.chat, note:v}
+               : {id:m.id, note:v};
+      api(url,{method:'POST',body:JSON.stringify(body)})
         .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
         .catch(function(){ m.note=prev; inp.value=prev; toast('Couldn’t save that'); });
     }
@@ -1465,13 +1494,11 @@ function paintBookmarks(el){
     // an <input> can't live inside a button, and the note has to sit between
     // the chat line and the snippet.
     var head=document.createElement('div');
-    // The `page` badge is not decoration: this row opens an ARTIFACT
-    // full-screen while its neighbours jump into a thread, so the row has to
-    // say which it is before she taps it.
-    var kind=(m.kind||'read');
+    // Only `code` earns a badge now — it splits things WITHIN the Messages
+    // tab. A chat or an artifact needs none: the tab overhead already says
+    // which pile she is in.
     head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +(kind==='code'?'<span class="sr-kind">code</span>':'')
-      +(kind==='page'?'<span class="sr-kind">page</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>';
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
@@ -1479,9 +1506,11 @@ function paintBookmarks(el){
     row.setAttribute('role','button'); row.tabIndex=0;
     row.onclick=function(e){
       if(e.target===inp) return;          // typing a name must not open the chat
-      // A kept PAGE opens the artifact itself — that is the thing she saved.
-      // openPage wants {id, title}; the title is what fills the snippet slot.
+      // A kept ARTIFACT opens the artifact itself — that is the thing she
+      // saved. openPage wants {id, title}; the title fills the snippet slot.
       if(kind==='page'){ openPage({ id:m.id, title:m.title||m.snippet||'' }); return; }
+      // A kept CHAT opens the chat at the top — there is no message to jump to.
+      if(kind==='chat'){ openChat(m.chat); return; }
       openChat(m.chat, false, m.id);
     };
     el.appendChild(row);
