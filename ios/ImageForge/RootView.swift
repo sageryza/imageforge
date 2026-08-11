@@ -650,12 +650,24 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Side of a shortcut button. Sized when the row held SIX and they fit the
-    /// narrowest phone we care about (375pt wide: 6 x 48 = 288 inside 343 of
-    /// usable row), so the five it holds now have room to spare. The square is
-    /// a FIXED size centred in an equal-width flexible cell — never a share of
-    /// the row width, which is what stretched them into rectangles in v1.
-    private static let squareSide: CGFloat = 48
+    /// Side of a shortcut button — 64, which is the ORIGINAL WIDTH restored
+    /// (Aug 2026, Sophie: "put them back to their original sizing before they
+    /// got smaller", twice).
+    ///
+    /// Read off the history rather than guessed: v1 (PR #861, five buttons)
+    /// was `HStack(spacing: 10)` with each button `maxWidth: .infinity` and
+    /// height 46, so on her iPhone 13 they measured **63.6 x 46**. Fitting
+    /// SIX squares then forced 48, and the Dump square coming off left five
+    /// at 48 — a THIRD narrower than they began. 58 (an equal-AREA square)
+    /// was the wrong fix: in a row it's width that reads as size, and 58 is
+    /// still 9pt short.
+    ///
+    /// 64 restores that width exactly, and five of them still fit the row
+    /// they always fit: 5 x 64 = 320 inside 358 of usable width on a 390pt
+    /// phone, ~7.6pt between squares. The square is a FIXED size centred in
+    /// an equal-width flexible cell — never a share of the row width, which
+    /// is what stretched them into rectangles in v1.
+    private static let squareSide: CGFloat = 64
 
     /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
     /// opens a tool (Chats); the other four are filters on the cards below —
