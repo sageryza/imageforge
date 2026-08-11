@@ -96,3 +96,32 @@ splits. All medium, ~40s each.
   the prompt splits filed on each grid image in Assets (chat
   deck-factory-image-gen). Storage `deck-samples/monsters/` + `webp/`.
   Survey page: "Monsters of America — 54-card survey v1" (sheet monsters-v1).
+
+## Iteration 0.3 — the cut deck, and the BACK is the lore side (2026-08-10)
+
+- **Cut the grids into cards**: `scripts/deck/cut-grid.js` slices each 3x3 grid
+  into 9 cards (INSET=6px drops the shared frame line so a card never carries
+  half its neighbour's border). 54 cards at 329x500 — survey resolution;
+  print needs full-size re-draws per keeper.
+- **THE BACK IS THE INFORMATION SIDE (Sophie).** Not one shared decorative
+  back — each card's back carries that monster's lore, the reference-card
+  format her apothecary decks already sell. Four decorative back options were
+  drawn before this correction and are kept as history in Assets.
+- **Info backs are COMPOSED IN CODE, never prompted**
+  (`scripts/deck/monster-info-back.js`, SVG -> PNG via sharp): an image model
+  cannot spell a paragraph reliably, and code keeps the text crisp and
+  editable without re-rolling art. Cream + double border + mirrored corner
+  vine + name + where/when + lore + ✦ + MONSTERS OF AMERICA footer.
+  **`wrap()`'s per-char factor is MEASURED, not guessed** — 0.485 overran the
+  frame on the first render; 0.56 (plus letter-spacing) fits. Re-check by
+  rendering, never by reasoning.
+  These carry NO prompt split (no model call) and their caption says
+  `composed SVG · no model call` — never a fake model/quality caption.
+- **Compare-page lightbox gotcha, cost a page:** `/compare.js` binds only
+  `img.zoom`, `.imgrow img`, `.duo img`. A custom wrapper (`.gpanel img`)
+  matches NOTHING and taps do nothing — Sophie caught it. Any custom image
+  layout must add `class="zoom"`. Test:
+  `scripts/deck/test-lightbox.js <page.html>` drives the REAL compare.js in
+  headless Chromium (route storage.googleapis.com to a CARD-SIZED stub — a
+  1x1 stub collapses page height and the scroll-restore check fails falsely;
+  launch with executablePath /opt/pw-browsers/chromium-1194/chrome-linux/chrome).
