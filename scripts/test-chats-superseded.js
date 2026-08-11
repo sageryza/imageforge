@@ -74,9 +74,13 @@ const server=http.createServer((req,res)=>{
   ok(await page.$$eval('.pagerow',n=>n.length)===1,'and the superseded one is on the left tab');
   ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='1','the underline slid to the left');
   ok(Math.round(await page.$eval('.pagerow',n=>parseFloat(getComputedStyle(n).fontSize)))===13,'a row keeps the button font size');
-  ok(!/garamond|georgia|serif/i.test(await page.$eval('.pagerow',n=>getComputedStyle(n).fontFamily))
-     || /sans/i.test(await page.$eval('.pagerow',n=>getComputedStyle(n).fontFamily)),
-     'a row is set in the tabs\' sans, not the serif');
+  // THE SERIF, not the sans (Sophie's LATER word, Aug 2026: "I actually
+  // prefer the other font for the updates page and the compare pages"). These
+  // rows went sans for an evening to match the Current/Superseded labels
+  // above them; she looked at both and picked the serif back. The assertion
+  // is flipped rather than deleted so the next flip has to be deliberate.
+  ok(/garamond|georgia|serif/i.test(await page.$eval('.pagerow',n=>getComputedStyle(n).fontFamily)),
+     'a row is set in the serif she picked, not the sans');
   ok((await page.$eval('.pagerow .pr-title',n=>n.textContent)).indexOf('earlier')>=0,'the right page moved');
   // put it back
   await page.$$eval('.pagerow .pr-sup',ns=>ns[0].click());
