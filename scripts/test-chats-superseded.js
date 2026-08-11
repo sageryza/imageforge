@@ -69,6 +69,9 @@ const server=http.createServer((req,res)=>{
   ok(await page.$$eval('.pagerow',n=>n.length)===1,'and the superseded one is on the left tab');
   ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='1','the underline slid to the left');
   ok(Math.round(await page.$eval('.pagerow',n=>parseFloat(getComputedStyle(n).fontSize)))===13,'a row keeps the button font size');
+  ok(!/garamond|georgia|serif/i.test(await page.$eval('.pagerow',n=>getComputedStyle(n).fontFamily))
+     || /sans/i.test(await page.$eval('.pagerow',n=>getComputedStyle(n).fontFamily)),
+     'a row is set in the tabs\' sans, not the serif');
   ok((await page.$eval('.pagerow .pr-title',n=>n.textContent)).indexOf('earlier')>=0,'the right page moved');
   // put it back
   await page.$$eval('.pagerow .pr-sup',ns=>ns[0].click());

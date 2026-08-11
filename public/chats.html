@@ -345,7 +345,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .pr-sup{margin-left:8px; align-self:center; border:0; background:none; color:var(--ink2);
   font-size:13px; line-height:1; padding:4px 6px; cursor:pointer; flex:0 0 auto;
   -webkit-tap-highlight-color:transparent;}
-.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;
+.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
+  /* SANS, matching the Current/Superseded tab labels above it (Sophie, Aug
+     2026) — the serif belonged to the old list and reads as a different app
+     next to the tabs. */
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
   /* this row used to be a <button> and now has to be a <div> (a button cannot
      contain the retire button), so the UA button font-size no longer applies —
      without this the titles render noticeably larger than every other list */
