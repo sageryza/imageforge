@@ -350,7 +350,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sr-snip b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Bookmarks: the two kinds she keeps (code to copy vs. something to read),
    derived server-side. The chips filter; the tag marks a code one in "All". */
-.bmkfilter{display:flex; gap:8px; margin:0 0 1.1em;}
+/* WRAPS: the Pages chip made this row four chips wide (Aug 2026), and four
+   uppercase labels with their counts overflow a 375px screen. Wrapping costs
+   a few pixels only when it actually has to. */
+.bmkfilter{display:flex; flex-wrap:wrap; gap:8px; row-gap:6px; margin:0 0 1.1em;}
 .sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
@@ -360,6 +363,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .pr-sup{margin-left:8px; align-self:center; border:0; background:none; color:var(--ink2);
   font-size:13px; line-height:1; padding:4px 6px; cursor:pointer; flex:0 0 auto;
   -webkit-tap-highlight-color:transparent;}
+/* Keep this artifact — the same bookmark that saves a message, on a page row
+   (Aug 2026, Sophie: "bookmark or star artifacts in the compare tab as well
+   as messages"). Written `.bmk.pr-bmk`, never `.pr-bmk`: the generic `.bmk`
+   padding/colour rules sit LATER in this file, so at equal specificity they
+   would win — the same trap `.bmk.hdrbmk` is written around. Colour is
+   deliberately NOT set here, so a kept page lights up in exactly the red a
+   kept message does. */
+.bmk.pr-bmk{margin-left:4px; align-self:center; padding:4px 2px; flex:0 0 auto;}
+.bmk.pr-bmk svg{display:block;}
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
   /* THE SERIF, back again (Sophie, Aug 2026 — LATEST word: "I actually
      prefer the other font for the updates page and the compare pages"). It
@@ -1392,15 +1404,20 @@ document.querySelector('.hrow').addEventListener('click', function(e){
 // first kind), so she never has to categorise anything — these chips only
 // filter what's already sorted. Kept for the session, not persisted: the
 // default should always be everything.
-var bmkFilter='all';   // 'all' | 'code' | 'read'
+// 'page' is the THIRD kind (Aug 2026, Sophie: bookmark "artifacts in the
+// compare tab as well as messages… they could show up in the same place").
+// Unlike code/read it is not derived from the text — the server says so,
+// because a page row does something different when tapped: it opens the
+// artifact full-screen instead of jumping into a thread.
+var bmkFilter='all';   // 'all' | 'code' | 'read' | 'page'
 var bmkCache=null;
 function paintBookmarks(el){
   var items=(bmkCache||[]).filter(function(m){ return bmkFilter==='all' || (m.kind||'read')===bmkFilter; });
-  var counts={all:(bmkCache||[]).length, code:0, read:0};
+  var counts={all:(bmkCache||[]).length, code:0, read:0, page:0};
   (bmkCache||[]).forEach(function(m){ counts[(m.kind||'read')]++; });
   el.innerHTML='';
   var row=document.createElement('div'); row.className='bmkfilter';
-  [['all','All'],['code','Code'],['read','To read']].forEach(function(p){
+  [['all','All'],['code','Code'],['read','To read'],['page','Pages']].forEach(function(p){
     var b=document.createElement('button');
     b.className='tbtn'+(bmkFilter===p[0]?' on':'');
     b.textContent=p[1]+' '+counts[p[0]];
@@ -1411,7 +1428,7 @@ function paintBookmarks(el){
   if(!items.length){
     var s=document.createElement('div'); s.className='state';
     s.textContent = counts.all ? 'Nothing in this one.'
-      : 'No bookmarks yet — tap the bookmark under a message to keep it here.';
+      : 'No bookmarks yet — tap the bookmark under a message, or beside a page in a chat’s Compare tab, to keep it here.';
     el.appendChild(s); return;
   }
   items.forEach(function(m){
@@ -1430,7 +1447,13 @@ function paintBookmarks(el){
       var v=(inp.value||'').trim().slice(0,300);
       if(v===(m.note||'')) return;
       var prev=m.note||''; m.note=v;          // bmkCache holds this object
-      api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
+      // A page's note lives on the PAGE doc, so it goes to the page's own
+      // route — same contract either way: a note sent alone never touches the
+      // bookmark itself.
+      var url = m.kind==='page'
+        ? '/api/chatfeed/page/'+encodeURIComponent(m.id)+'/bookmark'
+        : '/api/chatfeed/bookmark';
+      api(url,{method:'POST',body:JSON.stringify(m.kind==='page'?{note:v}:{id:m.id, note:v})})
         .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
         .catch(function(){ m.note=prev; inp.value=prev; toast('Couldn’t save that'); });
     }
@@ -1442,8 +1465,13 @@ function paintBookmarks(el){
     // an <input> can't live inside a button, and the note has to sit between
     // the chat line and the snippet.
     var head=document.createElement('div');
+    // The `page` badge is not decoration: this row opens an ARTIFACT
+    // full-screen while its neighbours jump into a thread, so the row has to
+    // say which it is before she taps it.
+    var kind=(m.kind||'read');
     head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
-      +((m.kind||'read')==='code'?'<span class="sr-kind">code</span>':'')
+      +(kind==='code'?'<span class="sr-kind">code</span>':'')
+      +(kind==='page'?'<span class="sr-kind">page</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>';
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
@@ -1451,6 +1479,9 @@ function paintBookmarks(el){
     row.setAttribute('role','button'); row.tabIndex=0;
     row.onclick=function(e){
       if(e.target===inp) return;          // typing a name must not open the chat
+      // A kept PAGE opens the artifact itself — that is the thing she saved.
+      // openPage wants {id, title}; the title is what fills the snippet slot.
+      if(kind==='page'){ openPage({ id:m.id, title:m.title||m.snippet||'' }); return; }
       openChat(m.chat, false, m.id);
     };
     el.appendChild(row);
@@ -2773,8 +2804,11 @@ function mkBmkNote(m){
   box.appendChild(inp);
   return box;
 }
+// ONE bookmark glyph — a message row and a Compare page row both draw this,
+// so "kept" can never read as two different marks in two places.
+var BMK_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 function bookmarkBtn(m, row){
-  var BM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+  var BM=BMK_SVG;
   var b=document.createElement('button'); b.className='bmk'+(m.bookmarked?' on':'');
   b.setAttribute('aria-label','Bookmark this message'); b.innerHTML=BM;
   b.onclick=function(e){
@@ -3357,7 +3391,31 @@ function openChat(name, keepScroll, focusId, noFetch){
           set.forEach(function(p){
             var row=document.createElement('div'); row.className='pagerow';
             row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
-            row.onclick=function(e){ if(e.target.closest('.pr-sup')) return; openPage(p); };
+            row.onclick=function(e){ if(e.target.closest('.pr-sup')||e.target.closest('.pr-bmk')) return; openPage(p); };
+            // KEEP IT (Aug 2026, Sophie). The same bookmark as a message's,
+            // and it sends the page to the same Bookmarks view — so there is
+            // one pile of kept things, not two. Optimistic: the mark lights
+            // on the tap and reverts only if the write really failed.
+            var bm=document.createElement('button');
+            bm.className='bmk pr-bmk'+(p.bookmarked?' on':'');
+            bm.innerHTML=BMK_SVG;
+            bm.setAttribute('aria-label', p.bookmarked?'Remove from Bookmarks':'Keep in Bookmarks');
+            bm.title = p.bookmarked ? 'In Bookmarks' : 'Keep in Bookmarks';
+            bm.onclick=function(ev){
+              ev.stopPropagation();
+              var nv=!p.bookmarked; p.bookmarked=nv; bm.classList.toggle('on',nv);
+              bm.setAttribute('aria-label', nv?'Remove from Bookmarks':'Keep in Bookmarks');
+              bm.title = nv ? 'In Bookmarks' : 'Keep in Bookmarks';
+              api('/api/chatfeed/page/'+encodeURIComponent(p.id)+'/bookmark',{method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({bookmarked:nv})})
+                .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+                .catch(function(){
+                  p.bookmarked=!nv; bm.classList.toggle('on',!nv);
+                  toast('Couldn’t save that');
+                });
+            };
+            row.appendChild(bm);
             // her own way to move one across, so she is never stuck with my judgement
             var sup=document.createElement('button'); sup.className='pr-sup';
             sup.title = p.superseded ? 'Put back in Current' : 'Move to Superseded';

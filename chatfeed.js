@@ -1129,11 +1129,26 @@ function bookmarkKind(text) {
   return /```/.test(String(text || '')) ? 'code' : 'read';
 }
 
+// PAGES TOO (Aug 2026, Sophie: "I'd like to be able to bookmark or star
+// artifacts in the compare tab as well as messages, and they could show up in
+// the same place"). Bookmarks is already the one "things I kept, across every
+// chat" pile, so a kept Compare page belongs in it rather than in a second
+// pile — and it arrives carrying the same editable note every message
+// bookmark has. It is a THIRD KIND alongside code/read, never a message: the
+// row opens the artifact full-screen instead of jumping into a thread, so the
+// client has to be able to tell them apart. Hence `kind:'page'`.
+// A bookmark on a page lives on the PAGE DOC, which means deleting the page
+// takes its bookmark with it — no stale row pointing at a 404.
+// Two single-equality queries, sorted together in memory: still no composite
+// index, the same discipline as everything else here.
 router.get('/bookmarks', async (req, res) => {
   try {
-    const snap = await db().collection(MSGS).where('bookmarked', '==', true).limit(500).get();
+    const [msgs, pages] = await Promise.all([
+      db().collection(MSGS).where('bookmarked', '==', true).limit(500).get(),
+      db().collection(PAGES).where('bookmarked', '==', true).limit(500).get(),
+    ]);
     const reg = await registry();
-    const items = snap.docs.map((d) => {
+    const items = msgs.docs.map((d) => {
       const m = d.data() || {};
       const line = String(m.tldr || m.text || '').replace(/\s+/g, ' ').trim();
       return {
@@ -1145,7 +1160,23 @@ router.get('/bookmarks', async (req, res) => {
         note: m.bookmarkNote || '',
         kind: bookmarkKind(m.text),
       };
-    }).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
+    }).concat(pages.docs.map((d) => {
+      const p = d.data() || {};
+      // A page's TITLE is genuinely descriptive ("Cutting blocks v6 (s96) —
+      // …"), unlike a message's first line — so it fills the snippet slot and
+      // the row keeps ONE shape, note above and subtitle below.
+      return {
+        id: d.id,
+        chat: p.chat || '',
+        from: '',
+        created: p.created || '',
+        title: String(p.title || ''),
+        snippet: String(p.title || '').slice(0, 220),
+        note: p.bookmarkNote || '',
+        kind: 'page',
+        superseded: !!p.superseded,
+      };
+    })).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });
   } catch (err) { fail(res, err); }
 });
@@ -1260,6 +1291,8 @@ router.get('/pages', async (req, res) => {
       .map((d) => ({
         id: d.id, title: d.data().title, created: d.data().created,
         superseded: !!d.data().superseded,
+        bookmarked: !!d.data().bookmarked,
+        bookmarkNote: d.data().bookmarkNote || '',
       }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
     res.json({ pages });
@@ -1283,6 +1316,34 @@ router.post('/page/:id/supersede', async (req, res) => {
     const on = req.body && req.body.superseded === false ? false : true;
     await ref.set({ superseded: on }, { merge: true });
     res.json({ ok: true, id, superseded: on });
+  } catch (err) { fail(res, err); }
+});
+
+// Keep a Compare page (Aug 2026, Sophie). Deliberately the SAME contract as
+// the message bookmark route above, field for field: `bookmarked` toggles,
+// `note` sent on its own edits ONLY the note — so writing why she kept an
+// artifact can never quietly un-keep it. It lands in the same Bookmarks view
+// (see GET /bookmarks).
+// Bookmarking a SUPERSEDED page is allowed on purpose: the old version is
+// often exactly the thing worth keeping, which is the whole reason superseded
+// pages are never deleted.
+router.post('/page/:id/bookmark', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').slice(0, 60);
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { bookmarked, note } = req.body || {};
+    const patch = {};
+    if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
+    if (note !== undefined) {
+      const t = String(note).trim().slice(0, 300);
+      patch.bookmarkNote = t || admin.firestore.FieldValue.delete();
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    const ref = db().collection(PAGES).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'no such page' });
+    await ref.set(patch, { merge: true });
+    res.json({ ok: true, id, bookmarked: patch.bookmarked, note });
   } catch (err) { fail(res, err); }
 });
 

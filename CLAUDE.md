@@ -1578,6 +1578,44 @@ lifted into a standalone tool later.
     the snippet. A tap on the input is skipped so typing never opens the chat.
     The field is borderless until focused, so the list still reads as a list.
   - Tests: `node scripts/test-chats-star-bookmark.js`.
+- **A COMPARE PAGE CAN BE BOOKMARKED TOO, into the SAME pile (Aug 2026,
+  Sophie: "I'd like to be able to bookmark or star artifacts in the compare
+  tab as well as messages, and they could show up in the same place").**
+  Bookmarks was already the one "things I kept, across every chat" pile, so a
+  kept artifact joins it as a **third KIND** rather than starting a second
+  pile — and it inherits the editable note for free.
+  - **Deliberately NOT the ★ pile.** The star is a judgement about a whole
+    CHAT ("important, work I refer back to"); mixing single artifacts in
+    would make that list two kinds of row — one you open, one that launches
+    full-screen — and the star would stop meaning one thing. Same reason it
+    is not its own view: the masthead only fits its controls by overlapping
+    (see THE MASTHEAD OVERLAPS), and two keep-piles means remembering which
+    one a thing went into.
+  - **The mark is the BOOKMARK glyph, not a star** — one glyph for "kept",
+    wherever it appears. `BMK_SVG` in chats.html is the single copy; the
+    button is `.bmk.pr-bmk` on a page row, so it inherits `.bmk`/`.bmk.on`
+    and lights in exactly the red a kept message does. Written
+    `.bmk.pr-bmk`, never `.pr-bmk` — the generic `.bmk` rules sit LATER in
+    the file and would win at equal specificity (the `.bmk.hdrbmk` trap).
+  - **`bookmarked` + `bookmarkNote` live on the PAGE doc**
+    (`POST /api/chatfeed/page/:id/bookmark {bookmarked?, note?}`, the same
+    contract as the message route — a `note` sent alone never toggles the
+    bookmark). Living on the page doc means **deleting a page takes its
+    bookmark with it**, so the pile can never hold a row pointing at a 404.
+  - **`GET /bookmarks` merges both collections** — two single-equality
+    queries sorted together in memory, so still no composite index. A page
+    item carries `kind:'page'` plus its `title`, and the client MUST branch
+    on that: the row opens the artifact via `openPage`, where a message row
+    jumps into a thread. The row wears a small `page` badge for that reason
+    — it has to say which it is before she taps it.
+  - **A SUPERSEDED page can be kept**, on purpose: the old version is often
+    exactly the thing worth keeping, which is why superseded pages are never
+    deleted in the first place.
+  - The filter row gained a **Pages** chip (four chips now, so `.bmkfilter`
+    wraps — four uppercase labels with counts overflow a 375px screen).
+  - Tests: `node scripts/test-chats-bookmark-pages.js` (drives the real page
+    home → thread → Compare → Bookmarks, and hit-tests the four chips at
+    375px).
 - **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
   running to-do list").** `/chats` home view `todo`, entered by the word **To
   do** beside Archive; Firestore `forge-chat-todos`;
@@ -2009,6 +2047,10 @@ lifted into a standalone tool later.
   herself. **A chat posting a new version should supersede the one it
   replaces** — that is what keeps eleven drafts of one tool out of her way
   WITHOUT deleting the history.
+  **Every row (both tabs) also carries a BOOKMARK** that sends the page to
+  the Bookmarks view alongside her kept messages — see "A COMPARE PAGE CAN
+  BE BOOKMARKED TOO" above. One more reason never to delete a superseded
+  page: she may have kept it.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
