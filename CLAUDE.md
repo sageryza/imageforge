@@ -764,8 +764,17 @@ lifted into a standalone tool later.
     SNAPSHOT holds, forever — so every chat started before Sophie re-pasted
     the setup script can never tint, however long we wait. Measured
     2026-08-10: of **77 chats that posted replies in six days, 3 had ever
-    carried `workingAt`**, and her own messages first appear in the feed on
-    Aug 9 — the day of the re-paste. Imprint is one of the ~190 older ones.
+    carried `workingAt`**. Imprint is one of the ~190 older ones.
+    **CORRECTION (measured 2026-08-11, over all 6,166 feed docs): the claim
+    that "her own messages first appear in the feed on Aug 9" is WRONG.** Her
+    earliest lifted message is **2026-07-17**, 73 of them that first day, and
+    1,638 in all across 112 chats. What Aug 9 changed is the HIT RATE, and it
+    is the same container-snapshot story told properly — by the week a chat
+    STARTED: before 17 Jul **0%** of chats ever carried a message from her,
+    Jul 17-23 **17%**, Jul 24-30 **5%**, Jul 31-Aug 6 **76%**, Aug 7-11
+    **98%**. So the snapshot picked up a message-lifting hook around Jul 31
+    and the re-paste finished the job. Don't read a whole feature's absence
+    off one date again; count the docs.
   - **The false positive.** The fallback signal "her message is the newest
     thing in this chat" is really WAITING ON THE CHAT, not working. `skill`
     was pink for exactly that reason, correctly by the code and wrongly by
