@@ -125,3 +125,37 @@ splits. All medium, ~40s each.
   headless Chromium (route storage.googleapis.com to a CARD-SIZED stub — a
   1x1 stub collapses page height and the scroll-restore check fails falsely;
   launch with executablePath /opt/pw-browsers/chromium-1194/chrome-linux/chrome).
+
+## Iteration 0.4 — her notes applied (2026-08-11)
+
+Read from the verdict sheets + asset note threads, all five acted on:
+- **"the text should be on the bottom of the cards on the front also"** →
+  `scripts/deck/front-name-plate.js` composites a name plate onto every front.
+  v2 per her follow-up: **cream ROUNDED RECTANGLE, black outline, small
+  fleurons either side, floating ABOVE the bottom edge** (v1 was a full-width
+  band flush to the bottom; kept in Assets labelled superseded).
+  **Type size is MEASURED by rendering and trimming to the ink** (`inkWidth`) —
+  a character-width factor was tried and overflowed on "HONEY ISLAND SWAMP
+  MONSTER", because CAPS are far wider than the mixed-case body text the
+  factor was calibrated on. Long names auto-drop the fleurons for full width.
+- **"include that it's part of a panel like one out of nine"** → every cut
+  card's caption is now `gpt-image-2 · medium · 1 of 9 in a grid panel`.
+- **"change the Assets tab aspect ratio just for my chat?"** → NO: tiles are
+  uniform squares in the native app, not per-chat; that needs a TestFlight
+  build. Her fallback taken instead — the deck Compare page is FOUR to a row
+  (this overrides the house rows-of-two default, at her explicit ask).
+- **"a touch less realistic … run three on medium and one on high"** → full-size
+  SINGLE cards (one card per image, not a ninth of a grid): low x2, medium x3,
+  high x1, plus one medium with a FLATTER line added
+  ("Flatter and more graphic: simplified shapes, bolder looser linework, less
+  photographic detail and less texture") — **that sentence is Claude's, not
+  Sophie's, and is named as such in the reply and in the filed prompt split.**
+- **She was writing "maybe" in the idea notes** because the list only had
+  to-do/archive → the ideas page now has a **MAYBE** button; the three ideas
+  she noted "maybe" on with no verdict were seeded to maybe.
+- Info-back margins widened (pad 20 -> 30) and the footer lifted 23px, per
+  "too close to the edges / monsters of America is too close to the bottom".
+- **Test artifact worth knowing:** `locator.click()` AUTO-SCROLLS an offscreen
+  element into view, which resets scrollY before the lightbox captures it and
+  fails the scroll-restore assertion for a reason the page did not cause.
+  `test-lightbox.js` now taps an image already in the viewport.

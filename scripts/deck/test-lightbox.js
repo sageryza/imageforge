@@ -45,7 +45,16 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(100);
   const beforeY = await page.evaluate(() => window.scrollY);
 
-  await page.locator('img.zoom').nth(2).click();
+  // click an image ALREADY in view — locator.click() auto-scrolls an offscreen
+  // element into view, which would reset scrollY before the lightbox captures it
+  // and make the restore check fail for a reason the page is not responsible for.
+  const vis = await page.evaluate(() => {
+    const list = [...document.querySelectorAll('img.zoom')];
+    return list.findIndex(el => { const r = el.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight; });
+  });
+  if (vis < 0) fails.push('no zoomable image fully in view to tap');
+  await page.locator('img.zoom').nth(Math.max(vis, 0)).click();
   await page.waitForTimeout(250);
 
   const open = await page.evaluate(() => {

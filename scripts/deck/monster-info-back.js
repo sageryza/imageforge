@@ -34,7 +34,7 @@ const corner = (c) => `<path d="M8 26 C8 14 14 8 26 8 M13 26 C13 18 18 13 26 13
 
 function backSVG(m) {
   const accent = m.accent || '#4a5a6b';
-  const pad = 20, iw = W - pad * 2;
+  const pad = 30, iw = W - pad * 2;
   const nameLines = wrap(m.name.toUpperCase(), 19, iw - 14, 1.6);
   let y = 74;
   const nameSvg = nameLines.map(l => {
@@ -64,8 +64,8 @@ function backSVG(m) {
   <g transform="translate(0,${H}) scale(1,-1)">${corner(accent)}</g>
   <g transform="translate(${W},${H}) scale(-1,-1)">${corner(accent)}</g>
   ${nameSvg}${rule}${whereSvg}${loreSvg}
-  <text x="${W / 2}" y="${H - 30}" text-anchor="middle" font-family="DejaVu Serif" font-size="15" fill="${accent}">✦</text>
-  <text x="${W / 2}" y="${H - 15}" text-anchor="middle" font-family="DejaVu Serif" font-size="7.6" letter-spacing="2.4" fill="${FADE}">MONSTERS OF AMERICA</text>
+  <text x="${W / 2}" y="${H - 54}" text-anchor="middle" font-family="DejaVu Serif" font-size="15" fill="${accent}">✦</text>
+  <text x="${W / 2}" y="${H - 38}" text-anchor="middle" font-family="DejaVu Serif" font-size="7.6" letter-spacing="2.4" fill="${FADE}">MONSTERS OF AMERICA</text>
 </svg>`;
 }
 
