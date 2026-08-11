@@ -64,10 +64,21 @@ const SHEETS = {
   },
 };
 
+// A one-off card gets ONE call, not a sheet of four — the grid earns its keep
+// when several pictures are wanted together, and wastes three when they are not.
+const SINGLES = {
+  tour:
+    'A single illustration: a bright sun on the far left, and one long curving dotted flight path ' +
+    'sweeping out to the right past nine planets, each planet a little further from the sun than ' +
+    'the last and sitting right on the path, the nearest ones small and the outer ones larger with ' +
+    'one ringed planet among them, and a tiny astronaut travelling along the path near the middle.',
+};
+
 const argv = process.argv.slice(2);
 const flag = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 ? argv[i + 1] : d; };
 const QUALITY = flag('quality', 'medium');
 const WANT = (flag('sheet', 'a,b') || '').split(',').filter(Boolean);
+const SINGLE = (flag('single', '') || '').split(',').filter(Boolean);
 const DRY = argv.includes('--dry-run');
 
 let bucket = null;
@@ -164,6 +175,23 @@ async function trimSquare(png) {
     await bucket.file(sp).makePublic();
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     console.log('ok — 4 cells');
+  }
+
+  for (const id of SINGLE) {
+    const subj = SINGLES[id];
+    if (!subj) { console.log('no single named', id); continue; }
+    const prompt = `${PASTEL.prefix} ${subj} ${PASTEL.suffix}`;
+    process.stdout.write(`single ${id} … `);
+    const img = await editWithRefs(prompt, refs, QUALITY);
+    const cut = await trimSquare(await cutBackground(img));
+    fs.writeFileSync(path.join(OUT, `${id}.png`), cut);
+    const pth = `gravity-lock/cards/${id}.png`;
+    await bucket.file(pth).save(cut, { contentType: 'image/png', metadata: { cacheControl: 'public,max-age=31536000,immutable' } });
+    await bucket.file(pth).makePublic();
+    manifest.push({ id, sheet: null, cell: null, prompt, quality: QUALITY,
+      url: `https://storage.googleapis.com/${bucket.name}/${pth}`, madeAt: Date.now() });
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    console.log('ok');
   }
   console.log('manifest:', manifestPath);
 })();

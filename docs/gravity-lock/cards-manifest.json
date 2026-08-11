@@ -106,5 +106,14 @@
     "quality": "medium",
     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/cards/coorbit.png",
     "madeAt": 1786413511886
+  },
+  {
+    "id": "tour",
+    "sheet": null,
+    "cell": null,
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. A single illustration: a bright sun on the far left, and one long curving dotted flight path sweeping out to the right past nine planets, each planet a little further from the sun than the last and sitting right on the path, the nearest ones small and the outer ones larger with one ringed planet among them, and a tiny astronaut travelling along the path near the middle. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "quality": "medium",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/cards/tour.png",
+    "madeAt": 1786415557335
   }
 ]
