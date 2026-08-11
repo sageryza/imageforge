@@ -1294,6 +1294,25 @@ lifted into a standalone tool later.
   Firestore needs no composite index). Before that route existed the bookmark
   button wrote a flag NOTHING ever read — a bookmark could only be found by
   scrolling to that exact message in its own thread.
+  **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
+  Sophie: "when I message a chat that I archived, can it automatically come
+  out of the archive").** Archive means "away for good" — and going back to
+  talk to it is her saying it isn't, so she should not have to undo the
+  archive by hand first. `POST /reply` clears `archived` when the chat had
+  it, alongside the `workingAt`/`hiddenAt` stamps it already wrote, so the
+  chat comes out of the archive AND parks until it answers.
+  - **Server-side, in the route, for the same reason parking is**: that is
+    where her message ARRIVES, including the one the hook lifts out of the
+    Claude app with no page open anywhere.
+  - **Only HER message does it.** A chat's own reply must never drag itself
+    out of the archive she put it in — that is the whole difference between
+    Archive and the self-clearing `hiddenAt`. `/reply` is hers by definition
+    (`from:'sophie'`); the chat-reply route never touches `archived`, and a
+    test pins that.
+  - Tests: `node scripts/test-chats-unarchive-on-reply.js` — it drives the
+    REAL route against a stubbed Firestore (the question is what the route
+    WRITES, which source-shape assertions cannot answer) and was verified
+    failing without the change.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
   message first. The **App/Web account toggle is a plain on/off switch** on the

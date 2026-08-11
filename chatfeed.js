@@ -1478,8 +1478,24 @@ router.post('/reply', async (req, res) => {
     // The stamp is `postedAt`, never her message's `created` — `created` is her
     // real send time and a stamp older than the newest message reads as
     // not-hidden, i.e. it would park nothing.
-    await regRef(doc.chat).set({ workingAt: doc.postedAt, hiddenAt: doc.postedAt }, { merge: true });
-    res.json({ ok: true, id: ref.id });
+    //
+    // MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
+    // Sophie: "when I message a chat that I archived, can it automatically
+    // come out of the archive"). Archive means "away for good" — and going
+    // back to talk to it is her saying it isn't, so the app should not make
+    // her undo the archive by hand first. It is written HERE rather than in
+    // the page for the same reason parking is: this route is where her
+    // message ARRIVES, including the one the hook lifts out of the Claude app
+    // with no page open anywhere.
+    // Only HER message does it. A chat's own reply must never drag itself
+    // back out of the archive she put it in — that is the whole difference
+    // between Archive and the self-clearing `hiddenAt` stamp, and /reply is
+    // hers by definition (`from:'sophie'`).
+    const patch = { workingAt: doc.postedAt, hiddenAt: doc.postedAt };
+    const wasArch = (await regRef(doc.chat).get()).get('archived');
+    if (wasArch) patch.archived = false;
+    await regRef(doc.chat).set(patch, { merge: true });
+    res.json({ ok: true, id: ref.id, unarchived: !!wasArch });
   } catch (err) { fail(res, err); }
 });
 
