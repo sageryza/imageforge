@@ -51,6 +51,11 @@ halves and carries the rules as comments. Post with
   `data-item="<id>"` and call `window.__compareNotes({ chat, sheet })` once
   the items are in the DOM. Votes go to `POST /api/chatfeed/verdict` (`ok`
   field); never to `/api/chatfeed/reply`.
+  **The affordance is a SMALL + in the item's top-right corner and costs no
+  height** (Aug 2026, Sophie: a note section on its own line "takes up too
+  much space and makes it hard to see everything at once"). The box opens
+  only while she writes in it; an item that has a note wears a filled gold +.
+  Never hand-roll a bigger note box, and never leave a written note open.
 - Images in **rows of two** (`.imgrow`), never one full-width per row.
   Mobile first; image URLs from Firebase Storage.
 - **A VIDEO IS A LINE OF TEXT WITH A PLAY BUTTON, at the TOP — never an

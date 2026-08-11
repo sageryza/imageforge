@@ -253,7 +253,14 @@
 
        window.__compareNotes({ chat: 'my-chat', sheet: 'page-thing-v1' });
 
-     Every element carrying `data-item="<id>"` gets a note affordance. Notes
+     Every element carrying `data-item="<id>"` gets a note affordance: a
+     SMALL + PINNED IN THAT ITEM'S TOP-RIGHT CORNER, costing no height (Aug
+     2026, Sophie — v1 put a "+ note" button on its own line under every item
+     and left a written note open, which "takes up too much space and makes
+     it hard to see everything at once"). The box opens only while she writes
+     in it and folds away on blur; an item that has a note wears a filled
+     gold +. Do not put it back in flow and do not auto-open a written note.
+     Notes
      save to the SAME verdict doc as votes but a DIFFERENT field (`text` vs
      `ok`), so writing one never clears the other — read both back with
      GET /api/chatfeed/verdict?chat=&sheet= → { items, texts }.
@@ -273,14 +280,22 @@
     }).catch(function () { /* offline — the text stays in the box */ });
   }
 
+  var PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    + 'stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+
   function buildNote(host, item, existing) {
     if (host.querySelector(':scope > .cmp-note')) return;
+    // the + is pinned in the item's corner, so the host has to be the
+    // positioning context — set here rather than in compare.css, so a page's
+    // own layout for [data-item] is never overridden
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     var wrap = document.createElement('div');
     wrap.className = 'cmp-note';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cmp-note-open';
-    btn.textContent = '+ note';
+    btn.setAttribute('aria-label', 'a note about this one');
+    btn.innerHTML = PLUS_SVG;
     var box = document.createElement('textarea');
     box.className = 'cmp-note-box';
     box.rows = 2;
@@ -291,10 +306,15 @@
     wrap.appendChild(btn); wrap.appendChild(box); wrap.appendChild(flag);
     host.appendChild(wrap);
 
-    if (existing) { box.value = existing; wrap.classList.add('open'); btn.hidden = true; }
+    // A written note does NOT open on load (Aug 2026, Sophie: the note
+    // section "takes up too much space and makes it hard to see everything
+    // at once") — the + goes solid instead, so the page still says where
+    // her notes are without spending a row on each of them.
+    if (existing) { box.value = existing; box.dataset.touched = '1'; btn.classList.add('has'); }
 
     btn.addEventListener('click', function () {
-      wrap.classList.add('open'); btn.hidden = true; box.focus();
+      if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
+      wrap.classList.add('open'); box.focus();
     });
     function save() {
       flag.classList.remove('on');
@@ -312,7 +332,10 @@
       // an empty box that was never written is not a note — don't POST ''
       if (box.value.trim() || box.dataset.touched) save();
       if (box.value.trim()) box.dataset.touched = '1';
-      if (!box.value.trim() && !box.dataset.touched) { wrap.classList.remove('open'); btn.hidden = false; }
+      // always fold back to the corner + — the box is for writing in, not
+      // for parking open under every item
+      btn.classList.toggle('has', !!box.value.trim());
+      wrap.classList.remove('open');
     });
   }
 

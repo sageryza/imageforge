@@ -2100,10 +2100,22 @@ lifted into a standalone tool later.
   - **It is one line, because `/compare.js` owns it.** Mark each item
     `data-item="<id>"` and call
     `window.__compareNotes({ chat, sheet })` after the items are in the DOM.
-    That builds a quiet "+ note" affordance per item, prefills whatever she
+    That builds the note affordance per item, prefills whatever she
     wrote before, saves as she types (debounced), and flushes on blur and on
     `pagehide` so a half-typed note can't be lost by navigating away. Never
     hand-roll a note box per page.
+  - **THE AFFORDANCE IS A SMALL + IN THE ITEM'S TOP-RIGHT CORNER, AND IT
+    COSTS NO HEIGHT (Aug 2026, Sophie: it "takes up too much space and makes
+    it hard to see everything at once").** v1 was a "+ note" text button on
+    its own line under every item, and a written note then stayed OPEN — so a
+    page of twenty items paid twenty extra rows for notes she wasn't reading.
+    Now the + is a 22px square pinned in the corner (absolute, adds no row),
+    the box opens under the item only while she is writing in it and folds
+    away on blur, and an item that HAS a note wears a **filled gold +** so
+    the page still says at a glance where her notes are. Don't put it back in
+    flow, don't auto-open a written note, and don't hand-roll a bigger one on
+    a new page — it lives in `/compare.js` + `/compare.css`, so every page
+    (including ones posted before this) gets it at runtime.
   - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
     for the vote, `text` for the note — so writing one never clears the other
     (that is why the route has both). Read them back together with
