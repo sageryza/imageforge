@@ -84,13 +84,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    overhang the tab it underlines. translateX(100%) moves the line by its
    own width, i.e. exactly one tab.
 
-   THREE tabs since Aug 2026 — ACCOUNT 1 · ACCOUNT 2 · NEW (Sophie: "right now
-   there's account one and account two, two tabs on my chat app screen — I
-   wanna make one more tab, and this is like a daily notifications thing").
-   The third one is not an account, it is a VIEW (see renderNews), which is
-   why it lights up on its own and the two account words go quiet under it.
+   THREE tabs since Aug 2026 — UPDATE · ACCOUNT 1 · ACCOUNT 2 (Sophie: "I
+   wanna make one more tab, and this is like a daily notifications thing",
+   then, having used it: "I would put it on the left side of the accounts and
+   call it update"). UPDATE is not an account, it is a VIEW (see renderNews),
+   which is why it lights up on its own and the two account words go quiet
+   under it — and it leads the row because it is the screen she opens first.
    The sliding line is one tab wide, so its width and the translate steps are
-   the tab count — change one and change all three. */
+   the tab count, and the steps follow the MARKUP order below — move a tab and
+   move its step with it. */
 .acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
   margin:-5px 0 10px;}
 .acctab{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px;
@@ -101,8 +103,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
   width:33.3333%; background:var(--ink);
   transform:translateX(0); transition:transform .2s ease;}
-.acctabs[data-on="2"]::after{transform:translateX(100%);}
-.acctabs[data-on="new"]::after{transform:translateX(200%);}
+/* slot 0 is UPDATE (the row's default), then the two accounts */
+.acctabs[data-on="1"]::after{transform:translateX(100%);}
+.acctabs[data-on="2"]::after{transform:translateX(200%);}
 /* The red badge = chats in THAT account that answered her and she hasn't
    opened. Same shape and reason as the category chips' one: without it, the
    account she is not looking at would be completely silent. */
@@ -515,7 +518,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
-/* ---- The NEW tab's cards (Aug 2026, Sophie) -------------------------------
+/* ---- The UPDATE tab's cards (Aug 2026, Sophie) -------------------------------
    "A daily notifications thing, basically — so it includes a little more
    information, and I can get rid of them if I've already checked them. For
    the [oven] chat, they keep delivering different versions of this artifact,
@@ -814,9 +817,9 @@ body.ontop > .float{display:none !important;}
          she moved it down here), so it is the last thing before the list it
          governs. Labels + badges are painted by paintAcctTabs(). -->
     <div id="accrow" class="acctabs" data-on="1">
+      <button class="acctab" data-acct="new"></button>
       <button class="acctab" data-acct="1"></button>
       <button class="acctab" data-acct="2"></button>
-      <button class="acctab" data-acct="new"></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
@@ -1252,7 +1255,7 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'New' : 'Chats';
+    : homeView==='news' ? 'Update' : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
   // The words never change and never disappear (Aug 2026, Sophie: "when I
@@ -1269,7 +1272,7 @@ function paintHomeChrome(){
   // Categories + select file CHATS; bookmarks are messages and status is its
   // own layout, so both would be controls that do nothing there. Refresh is
   // useful everywhere, so it stays and the row keeps its place.
-  // NEW is in this set too: its cards are one per chat but they are
+  // UPDATE is in this set too: its cards are one per chat but they are
   // notifications, not the filing surface — a category chip or a select
   // checkbox there would be a control that does nothing to what is on screen.
   var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo'||homeView==='news');
@@ -1279,7 +1282,7 @@ function paintHomeChrome(){
   // and the archive and nowhere else — bookmarks and to-dos are not chats,
   // and Status is deliberately unfiltered (it is the everything-at-once
   // view, like it is for categories).
-  // The ROW itself always stays on the NEW view, though — it is what the
+  // The ROW itself always stays on the UPDATE view, though — it is what the
   // third tab lives in, and hiding it would leave that view with no way out
   // except the title.
   var acc=document.getElementById('accrow');
@@ -1535,8 +1538,8 @@ function paintTodo(el){
 // The chat sections are derived from data the page already holds (registry +
 // feed tail) so they paint instantly; only the delivered strip fetches, into
 // placeholders, cached for a minute.
-// SHARED with the NEW tab, which is why the limits are the routes' maximums
-// rather than what Status shows: NEW needs up to three pictures for EACH chat
+// SHARED with the UPDATE tab, which is why the limits are the routes' maximums
+// rather than what Status shows: UPDATE needs up to three pictures for EACH chat
 // that has been drawing, so a 24-image window would be one busy chat and
 // nothing else. The Status painters slice back down to what they show.
 var stCache={assets:null, pages:null, at:0};
@@ -1583,7 +1586,7 @@ function stRow(name, list, last, snip, live){
   return row;
 }
 function paintStAssets(box){
-  // the cache is filled for the NEW tab's per-chat rows; this strip shows the
+  // the cache is filled for the UPDATE tab's per-chat rows; this strip shows the
   // 24 it always did
   var a=(stCache.assets||[]).slice(0,24);
   box.innerHTML='';
@@ -1677,7 +1680,10 @@ function renderStatus(el){
     el.appendChild(dl);
   }
 }
-// ---- NEW — the third tab (Aug 2026, Sophie) --------------------------------
+// ---- UPDATE — the tab that LEADS the row (Aug 2026, Sophie) ---------------
+// She named it after using it for an evening ("I would put it on the left
+// side of the accounts and call it update"). The internal view key is still
+// `news`; only the word she reads changed.
 // "Right now there's account one and account two, two tabs on my chat app
 // screen. I wanna make one more tab, and this is like a daily notifications
 // thing — so it includes a little more information, and I can get rid of them
@@ -1904,7 +1910,7 @@ function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return (a==
 function acctMatch(name){ var a=acctOf(name); return !a || a===acctFilter(); }
 function paintAcctTabs(g){
   var row=document.getElementById('accrow'); if(!row) return;
-  // The NEW tab is a VIEW, not an account, so while she is in it neither
+  // The UPDATE tab is a VIEW, not an account, so while she is in it neither
   // account word is lit and the line sits under the third slot.
   var on=(homeView==='news') ? 'new' : acctFilter();
   row.setAttribute('data-on', on);
@@ -1922,7 +1928,10 @@ function paintAcctTabs(g){
       // (no recursion: stFetch stamps stCache.at before it calls back, so the
       // repaint below can never start a second fetch)
       if(!stCache.at) stFetch(function(){ paintAcctTabs(groups()); });
-      fresh=newsItems(g).length; label='New';
+      // UPDATE is her word for it (Aug 2026, after using it for an evening).
+      // The view key stays `news` — renaming it would re-key nothing and
+      // touch every function in this block for no gain.
+      fresh=newsItems(g).length; label='Update';
       hint = fresh ? fresh+' new' : 'nothing new';
     } else {
       // How many chats in THAT account have answered her and are unopened —
@@ -3663,7 +3672,7 @@ document.getElementById('back').onclick=goHome;
 document.getElementById('searchbtn').onclick=function(){ setSearchOpen(true); };
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
-// Refresh drops the delivered cache too (Aug 2026) \u2014 with the NEW tab reading
+// Refresh drops the delivered cache too (Aug 2026) \u2014 with the UPDATE tab reading
 // it, "refresh" has to mean the pictures and pages as well as the messages, or
 // the one-minute TTL quietly outlives the tap.
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };

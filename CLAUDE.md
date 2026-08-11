@@ -1572,13 +1572,18 @@ lifted into a standalone tool later.
   - Each tab carries the same red ANSWERED badge the category chips do, so
     the tab she is NOT on can still say there are three waiting over there.
   - Tests: `node scripts/test-chats-accounts.js`.
-- **THE THIRD TAB — "NEW", the daily notifications view (Aug 2026, Sophie:
-  "right now there's account one and account two, two tabs on my chat app
-  screen — I wanna make one more tab, and this is like a daily notifications
-  thing, so it includes a little more information and I can get rid of them if
-  I've already checked them").** `homeView='news'`, painted by `renderNews` in
-  chats.html; the tab lives in `.acctabs` beside the two account words and
-  lights up on its own (`data-on="new"`, the sliding line's third slot).
+- **"UPDATE" — the daily notifications tab, and it LEADS the tab row (Aug
+  2026, Sophie: "right now there's account one and account two, two tabs on my
+  chat app screen — I wanna make one more tab, and this is like a daily
+  notifications thing, so it includes a little more information and I can get
+  rid of them if I've already checked them", then, having used it: "I would
+  put it on the left side of the accounts and call it update").**
+  `homeView='news'` — **the view key is still `news`; only her word for it
+  changed** — painted by `renderNews` in chats.html. The tab is the FIRST of
+  the three in `.acctabs` and lights up on its own (`data-on="new"`, the
+  sliding line's slot 0, which is the row's default); the two account words go
+  quiet under it. **The `::after` translate steps follow the MARKUP order** —
+  move a tab and move its step with it.
   - **A card carries the THING, not a line about it** — that is the whole
     point of the tab. Her two examples ARE the two blocks: "for the [oven]
     chat, they keep delivering different versions of this artifact, so it
@@ -1614,8 +1619,8 @@ lifted into a standalone tool later.
     Firestore documents a call and the home screen polls. Refresh drops the
     cache (`stCache.at=0`) so the tap means the pictures too. The shared
     `stCache` now fetches the routes' maximums (60 images / 20 pages) because
-    NEW needs three pictures for EACH drawing chat; the Status painters slice
-    back to the 24/6 they always showed.
+    UPDATE needs three pictures for EACH drawing chat; the Status painters
+    slice back to the 24/6 they always showed.
   - Tests: `node scripts/test-chats-news.js`.
 - **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
   the search bar collapse into just a magnifying glass button unless I click

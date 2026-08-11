@@ -11,7 +11,8 @@
 //   5. THE REGRESSION GUARD: the title overlaps the buttons on purpose
 //      (`width:0` + z-index), so every control under a long title must still
 //      be the thing a tap at its own centre lands on. Hit-tested with
-//      elementFromPoint at 375/390/430 across all five titles, because
+//      elementFromPoint at 375/390/430 across every title (six since the
+//      UPDATE tab), because
 //      comparing numbers is what let the To do Add button ship buried.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-title-back.js
@@ -124,7 +125,7 @@ async function tapTitle(page) {
   const CTLS = [['#bmklink', 'bookmark'], ['#todolink', 'To do'], ['#archlink', 'Archive'], ['#acctog', 'account switch']];
   for (const w of [375, 390, 430]) {
     await page.setViewportSize({ width: w, height: 844 });
-    for (const view of ['live', 'archive', 'bookmarks', 'todo', 'status']) {
+    for (const view of ['live', 'archive', 'bookmarks', 'todo', 'status', 'news']) {
       // __setHomeView toggles, so drive it plainly: go home, then to the view
       await page.evaluate((v) => {
         if (document.getElementById('htxt').textContent !== 'Chats') window.__titleBack();

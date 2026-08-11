@@ -121,12 +121,13 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   // 1. the witch sheet's shape, in its place: two labels over a hairline,
   //    sitting directly above the hidden bar (Sophie, Aug 2026 — it shipped
   //    under the masthead and she moved it down to the list it governs)
-  // (the row grew a third tab in Aug 2026 — NEW, the notifications view; it
-  // is not an account, so everything below still asks about the first two)
+  // (the row grew a third tab in Aug 2026 — UPDATE, the notifications view,
+  // which LEADS the row at her ask; it is not an account, so everything below
+  // still asks about the two that are)
   const tabs = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.textContent.trim()));
-  if (tabs.length !== 3) fail('expected two account tabs + New, got ' + tabs.length);
-  if (!/^Account 1/.test(tabs[0]) || !/^Account 2/.test(tabs[1])) fail('tab labels wrong: ' + tabs.join(' | '));
-  if (!/^New/.test(tabs[2] || '')) fail('third tab is not New: ' + tabs[2]);
+  if (tabs.length !== 3) fail('expected Update + two account tabs, got ' + tabs.length);
+  if (!/^Update/.test(tabs[0] || '')) fail('Update does not lead the row: ' + tabs.join(' | '));
+  if (!/^Account 1/.test(tabs[1]) || !/^Account 2/.test(tabs[2])) fail('tab labels wrong: ' + tabs.join(' | '));
   if (await page.$eval('#accrow', (n) => getComputedStyle(n).borderBottomStyle === 'none')) {
     fail('the tab row has no hairline of its own');
   }
@@ -218,9 +219,11 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   //    tab she is not on is never silent. Nothing has been opened, so every
   //    non-archived chat counts: account 1 = one-a, one-b, one-hid, one-star,
   //    untagged (5); account 2 = two-a, two-b, two-hid, two-star, untagged (5).
+  //    (badges[0] is UPDATE's own count, which is not account-scoped — see
+  //    scripts/test-chats-news.js; the two account tabs follow it)
   const badges = await page.$$eval('#accrow .acctab',
     (ns) => ns.map((n) => (n.querySelector('.cc-new') || {}).textContent || ''));
-  if (badges[0] !== '5' || badges[1] !== '5') fail('tab badges wrong: ' + JSON.stringify(badges));
+  if (badges[1] !== '5' || badges[2] !== '5') fail('account tab badges wrong: ' + JSON.stringify(badges));
 
   // 7. gone where the list is not chats — and the masthead rule comes back
   for (const [btn, what] of [['#todolink', 'To do'], ['#bmklink', 'Bookmarks']]) {
