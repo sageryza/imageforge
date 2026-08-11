@@ -1579,19 +1579,23 @@ lifted into a standalone tool later.
   in — no serif", then "did you change the font size? put it back — and make
   it caps by default").** `-apple-system`, the same family as the account
   tabs and the timestamps; the serif stays for the masthead and the message
-  prose. Set in BOTH places a name appears — `.cr-name` on the row and
-  `.thread-head h1` — or tapping a chat would change its own name's typeface.
+  prose. **It applies to the chat NAMES ON THE LIST only — `.cr-name`.**
+  It shipped on `.thread-head h1` too, on the reasoning that one name should
+  not change typeface when you tap into it; Sophie put the thread header back
+  ("I noticed you also changed the titles inside the chats — I actually want
+  them back exactly how they were"). That rule is now the original,
+  declaration for declaration: serif, 1.5em, bold, mixed case, no tracking.
+  **Don't re-add font declarations there to "match" the row.**
   - **`text-transform`, never an uppercased STRING**, so her real
     capitalisation survives in the rename box (a separate `.nameed` input,
     unaffected), in search, and anywhere else the name is read.
-  - **Sizes: `.cr-name` 1.15em, `.thread-head h1` 1.25em — TWO POINTS at a
-    time off the originals, in real pixels, never a guessed em step** ("make
-    it two points smaller", then "make the title font a little smaller, two
-    points or so"). The row's base is 13.333px: 1.45em was 19.33px, 1.3em
-    17.33px, 1.15em is 15.33px. The header's base is 16px: 1.5em was 24px,
-    1.375em 22px, 1.25em is 20px. **Measure the base before changing
-    either** — the two bases differ, so an em figure alone says nothing
-    about points here.
+  - **Size: `.cr-name` 1.15em — TWO POINTS at a time off the original, in
+    real pixels, never a guessed em step** ("make it two points smaller",
+    then "make the title font a little smaller, two points or so"). The
+    row's base is 13.333px: 1.45em was 19.33px, 1.3em 17.33px, 1.15em is
+    15.33px. **Measure the base before changing it** — the thread header's
+    base is 16px, not 13.333px, so an em figure alone says nothing about
+    points across the two.
   - **`letter-spacing:.04em`** on both ("a little bit more space between the
     letters"). Caps set solid read as a block; this is enough air to tell
     the letters apart without turning a name into a label.

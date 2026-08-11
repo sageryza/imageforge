@@ -124,12 +124,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .thread-head{display:flex; align-items:center; gap:10px; margin-bottom:.5em; padding-right:56px;}
 .thread-head img,.thread-head .t-blank{width:38px; height:38px; border-radius:4px; border:1px solid var(--line); object-fit:cover; flex:none;}
 .thread-head .t-blank{display:flex; font-size:1.1em;}
-/* the same sans, caps and tracking as the row's name — see .cr-name. Its own
-   base is 16px, so 1.5em was 24px, 1.375em was 22px and 1.25em is 20px: the
-   same two points each time. */
-.thread-head h1{font-family:-apple-system,sans-serif; font-size:1.25em; font-weight:400;
-  text-transform:uppercase; letter-spacing:.04em;
-  margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* THE TITLE INSIDE A CHAT IS UNTOUCHED — the page's serif, 1.5em, bold, mixed
+   case (Sophie, Aug 2026: "I noticed you also changed the titles inside the
+   chats — I actually want them back exactly how they were"). The sans/caps
+   work was for the chat NAMES ON THE LIST (`.cr-name`); it followed her "the
+   title of every chat" here too, on the reasoning that one name should not
+   change typeface when you tap into it, and she wants the header left alone.
+   So this rule carries NO font declarations at all, exactly as it always
+   did — don't re-add family/weight/transform here to "match" the row. */
+.thread-head h1{font-size:1.5em; margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
