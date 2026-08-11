@@ -1257,8 +1257,22 @@ lifted into a standalone tool later.
   **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
   chat she wants to come back to but not look at right now gets hidden: it
   leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
-  · 1 new"). Tapping the bar opens the pile in place; tapping it again puts it
-  away. Details that are load-bearing:
+  · 1 new"). Tapping the bar opens the pile; tapping it again puts it away.
+  Details that are load-bearing:
+  - **THE OPEN PILE IS THE WHOLE SCREEN (Aug 2026, Sophie: "when I press the
+    hidden one it shows hidden, but it also shows everything else — can you
+    make it just show hidden until I get out of the hidden area").** v1
+    opened the pile IN PLACE, above the live list; the list underneath was
+    the thing she had taken those chats off, and it buried the pile she had
+    just opened. Opening the pile is going somewhere, the way Archive is —
+    so `renderHome` returns right after `renderHiddenBar` while it is open.
+    The masthead already says "Hidden" in red, and the ways out are
+    unchanged (the bar again, or the title). **Guarded on `hid.length`:** if
+    the last hidden chat pops out while she is in there (a reply lands, the
+    stamp self-clears) the bar is gone, so the list has to come back or the
+    screen would be blank with nothing to tap. One consequence to expect:
+    the ⊕ inside the pile takes a chat out of the PILE immediately, and the
+    list it rejoins is the one waiting when she leaves the hidden area.
   - **`hiddenAt` is a self-clearing STAMP on the registry doc**
     (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
     `answeredAt`: a chat stays hidden only while nothing newer has arrived,
