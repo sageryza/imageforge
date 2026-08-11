@@ -1775,6 +1775,19 @@ lifted into a standalone tool later.
   tightest cut"), pointing at NEW version-numbered media files; the old pages
   and files stay as history. DELETE+re-post is only for fixing a typo on the
   SAME version.
+  **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
+  earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
+  rebuilt page usually renumbers its items — so re-posting a page under the SAME
+  `sheet` silently re-points her answers at different content: `b05` in an
+  82-block split became a different sentence in the 96-block split, and four of
+  her cuts landed on lines she had never marked. Nothing errors; the page just
+  quietly shows her the wrong state. Put the item set's shape in the name
+  (`blocks-s96`, not `blocks-v8`), and when a rebuild changes the items,
+  MIGRATE rather than making her redo it — map old ids to new by TIME OVERLAP
+  or text, write the migrated state into the new sheet, and say what moved.
+  **And do not delete the superseded page.** A new version is a new page and the
+  old one is the history (see above); deleting it throws away the only record of
+  what she was looking at when she gave a note.
   **SHE MUST BE ABLE TO ADD A NOTE — everywhere it could apply (Aug 2026,
   Sophie's standing rule: "that should be a standing rule generally whenever
   applicable").** A vote answers yes/no; a note is where she says WHY, or what
