@@ -1,86 +1,213 @@
 # The image pipeline — voice recording → her own style → animation
 
-Sophie's plan for how a concept film gets MADE, recorded as a voice memo on
-2026-08-10 ("AI Image Pipeline Concept", memo `2026-08-10_2207`, 2:48) and
-extended in chat the next morning. It is the sequel to
-`sophies-movie-pipeline.md`, which settles the CONTENT formula (literal image →
-metaphorical image, animate between them) and the voiceover alignment. This
-file is about the STAGES the pictures pass through, and the money.
+How Sophie's concept films get made: what the pictures ARE, and the stages they
+pass through. Built from five of her own recordings (listed at the bottom, with
+verbatim transcripts) plus the prompt tests that have actually been run.
 
-**Status: being established.** The stage-1 prompt is still being tuned and the
-last stage (LoRA image-to-image) has no code yet — see "What doesn't exist" at
-the bottom. Check with Sophie before treating any number here as settled.
+She named the job herself, in the 2026-08-02 morning memo: *"Oh man, I can
+write this in a whole doc for AI to follow. Maybe. That would be really cool."*
+and *"maybe the reason is because I need to like spell everything out because
+otherwise they fuck it up, you know? So it's like make a formula for it."* This
+is that doc.
 
-## The stages, in order
+**Status: being established.** The stage-1 and stage-2 prompts are tested; the
+LoRA image-to-image pass has no route yet. Nothing here is settled beyond what
+says it was measured — check with Sophie before treating a number as final.
+
+---
+
+# Part one — what the images are
+
+The stages are the easy half. This half is the point, and it's the half a chat
+will get wrong if it just follows the steps.
+
+## The goal
+
+> The goal is to basically force the viewer to imagine the concept I'm
+> describing or sharing. So first think about how someone might model that
+> concept in their mind.
+
+Not to illustrate what she said. To build the picture that's already forming in
+the listener's head, so they think it themselves.
+
+## The formula: literal, then metaphorical, and animate between them
+
+Her best formula, "not an exact science because each one will be different":
+
+1. **What is literally happening**, realistic.
+2. **The emotional / metaphorical / dream-sequence take on the same moment** —
+   same people, same conversation, same poses. Only the context transforms.
+
+Her example: a car ride where she starts feeling like she and the passenger are
+in their own little world. Image one is a realistic car. Image two is the same
+car drifting into outer space, *with the people still talking inside it*.
+
+**The animation between the two panels is what makes it legal.** Her words:
+*"When we animate between the two panels, this will behave as though it is
+commonplace. It will seem normal that the two images are next to each other
+because we will animate between them."* And later, working out why the formula
+holds at all: *"you go back and forth and it works because you're animating
+everything."*
+
+So the pair is the unit of the film, not the single image. A metaphorical panel
+with no literal panel to leave from is a non-sequitur; the animated transit is
+what earns it.
+
+## Go back, too — the loop
+
+From the pizza example: you see the sky; someone takes a nice slice of pizza out
+of it; *"and then it turns back into the sky and maybe the pepperoni is like
+planets."* The metaphor isn't a destination. It opens, and it closes back onto
+the literal thing, changed.
+
+## Establish the noun before you modify it
+
+Her first-principles note, which is a composition rule in disguise:
+
+> the way that a verb and a noun, like English gets it wrong … it's not like
+> the wild horse. It should be like the horse that is wild because you need the
+> noun so you can modify it, right? So you need the planets, you need to know
+> the planets exist before you can like start modifying them, right? You start
+> with the thing.
+
+Draw the thing plainly first. The transformation lands only on something the
+viewer has already accepted as real. This is the same claim as "literal panel
+first", arrived at from a different direction — which is why it's load-bearing
+rather than decorative.
+
+## And simplify
+
+> this also goes into like the meta learning lesson, which is like that things
+> need to be simplified.
+
+## How she picks a metaphor — the metaphor machine
+
+Her own model of the thinking (2026-07-28). Raw material — things people say,
+books, art pieces, moments — goes in; the machine *"discards the physical
+aspect of them, and what's left is the abstraction that was inside. It has sort
+of the same relationship that a soul has to a body."*
+
+Two ways a run of metaphors can describe one thing, and they are different
+tools:
+
+- **The set** — every metaphor shares the SAME quality with the subject.
+  *"a cherry because it's red, and then a sun because it's hot"*; a tea set,
+  where each piece is different but they all carry the little flowers.
+- **The kit** — the pieces have nothing in common with each other, only a
+  common PURPOSE. A first-aid kit: band-aids and the little knee hammer share
+  nothing except healing you.
+
+And the **evolving metaphor critique**: rather than judging a thing good or
+bad, you say it's like this — no, it's like this — no, like this. Either the
+metaphors close in on the thing, or each one contributes the quality it shares
+with it.
+
+For image work this is a generator, not philosophy: to find panel two, name
+what the moment shares with something physical, and draw the something.
+
+## Two-panel before/after, and the cheap hook
+
+From 2026-08-07, and this is where the four-panels-at-low idea comes from:
+
+> I like the before and after two panel thing, I don't know if it actually
+> makes sense, but I like it. And I like trying everything out, maybe even like
+> four panels at low just to like have an output and like something sticky that
+> I can look at, like a hook, to see if I want to keep going.
+
+The cheap sheet is not only a cost trick. It's a **hook** — something sticky to
+look at that tells her whether the idea is worth continuing. Which means stage 1
+should be fast and disposable, and should never be presented as if it were the
+work.
+
+Also from that recording, both open: sorting concepts into *"things that people
+would understand normally"* and *"things that you might not understand"*, and a
+**wild card** — asking for five, one of them a wild card, five times, and
+keeping the wild cards, because otherwise the model *"comes up with like a
+little pattern, and then it falls as it never really gets at the heart of it."*
+Her rule of thumb for that: *"try to use the weights, not the reasoning, because
+it's not good at reasoning. It's good at weights."*
+
+---
+
+# Part two — the route
 
 **0 · Voice recording → beats.** She records the concept. An AI chat reads the
-recording and turns it into a set of image descriptions. Her note on the
-hand-off: **put the content prompt FIRST so she can read it** — the picture is
-below the words, not the other way round. From there, either the beats go into
-the story shape (hers or the chat's, then she fixes it), or she leaves comments
-on the pictures themselves, or she starts over and describes the pictures
-herself.
+recording and turns it into image descriptions. Her hand-off rule: **put the
+content prompt FIRST so she can read it** — words above the picture. From
+there, either the beats go into the story shape (hers or the chat's, then she
+fixes it), or she leaves comments on the pictures, or she starts over and
+describes them herself.
 
-**1 · Cheap draft sheets — FOUR PANELS IN ONE IMAGE, at low.** The first render
-is not one picture per beat. Four beats are drawn as a 2x2 sheet in a single
-image, **possibly at `low`**, and then each panel is **cut out** into its own
-picture. This is a cost decision: it is one API call instead of four.
+**1 · Cheap draft sheets — FOUR PANELS IN ONE IMAGE, at low.** Four beats drawn
+as a 2x2 sheet in a single call, then **cut** into four pictures. One API call
+instead of four, and a hook she can look at.
 
-  - A `1024x1536` sheet cut 2x2 gives four `512x768` panels — **each one
-    already 2:3 portrait**, the aspect the whole pipeline runs in. The cheap
-    sheet and the final format agree with no cropping.
-  - Resolution doesn't matter at this stage: every panel is re-rendered at
-    stage 3, so a stage-1 panel is a composition, not a picture.
-  - **The prompt is drafted and tested — see "Stage 1: the prompt" below.**
+  - A `1024x1536` sheet cut 2x2 gives four `512x768` panels — **each already
+    2:3 portrait**, the aspect the whole pipeline runs in. No cropping anywhere.
+  - Resolution doesn't matter here; every panel is re-rendered at stage 3. A
+    stage-1 panel is a composition, not a picture.
+  - **Put each literal→metaphorical pair side by side in the same ROW** (see
+    the finding under the prompt below).
 
-**2 · Characters — ONE view each, front, slightly smiling.** Before any styled
-art, the main characters are drawn. Sophie's rule:
+**2 · Characters and settings — ONE view each, made in her own style.** Before
+any scene art, the recurring things are drawn once and reused as references.
+Two rules, from two different recordings:
 
-> these characters should only ever have one view of them, like a front view
-> where they're slightly smiling
+  - **One view only, front, slightly smiling** (2026-08-11). Not a turnaround,
+    not a model sheet.
+  - **Make them in the Replicate watercolour LoRA, four at a time** (2026-08-02)
+    — *"make the characters in the replicate watercolor thing for my style …
+    make like four of them because they're so cheap and then look at them okay
+    I like this one describe it maybe change it once and then maybe change the
+    clothes and then okay now I use that as a character."* This is also where
+    the LoRA earns its keep: *"it means that there was some reason to use
+    replicate."*
+  - **Settings get the same treatment** — *"okay make the house like that"* —
+    and then the trick: *"you can even put them all in the same sheet, this is
+    the house, this is the person, blah blah blah, so it's just one image
+    reference."* One combined sheet per story instead of juggling several
+    attachments per call.
 
-One canonical image per character, and that image is attached as a reference to
-every later image that character appears in. This is the character-anchor
-technique the movies pipeline already uses (`refs/evan-character.png` is an
-existing example), tightened: **do not make a turnaround / model sheet with
-several angles** — one front view only.
-
-**3 · The watercolor ChatGPT version.** Each panel is redrawn through
-gpt-image-2's **edits** endpoint with `refs/sage-sandy-mirror.png` (her scanned
-ink-and-watercolour page, "sage sandy mirror") attached as the style reference,
-plus the character card(s) for whoever is in the shot.
+**3 · The watercolour pass.** Each panel is redrawn through gpt-image-2's
+**edits** endpoint with `refs/sage-sandy-mirror.png` (her scanned
+ink-and-watercolour page) as the style reference, plus the character/setting
+sheet for whatever is in the shot.
 
   - The recipe is the settled Evan one — **write NO style description**, just
     "use the attached image as a style reference, only its style, not its
     content; you do not have to copy its colors", then the scene. See
-    `docs/evan-film-style.md`; every written style block that was tested made
-    it worse.
-  - **Quality: her memo lands on `high` for the real pipeline** ("we could
-    possibly do it from quarter, or low, or medium, probably medium, maybe
-    high, anyway, we'll have to experiment with that, so we'll try it with
-    high, okay, fine, let's just say high"). Note this **disagrees with the
-    Evan finding**, which tested high against medium and chose medium (high
-    smooths the washes and reads more finished, less sketchbook). Worth a
-    side-by-side before the real run — it's the difference between ~6¢ and
-    ~25¢ an image.
+    `docs/evan-film-style.md`. Every written style block tested made it worse.
+  - **Quality: her memo lands on `high` for the real pipeline**, while the Evan
+    tests chose `medium` (high smooths the washes and reads more finished, less
+    sketchbook). ~6¢ vs ~25¢ an image. Unresolved — see the open questions.
 
-**4 · Back through her LoRA, image-to-image.** Each stage-3 image is run
-through her own trained LoRA — `sageryza/watercolordrawings`, trigger `wtr` —
-as an **image-to-image** pass, "so it gets to be my actual style". Her memo
-floats making about **four each** (different seeds, or four outputs) and
-picking.
+**4 · Back through her LoRA, image-to-image.** Each stage-3 image goes through
+`sageryza/watercolordrawings` (trigger `wtr`) as an image-to-image pass, *"so it
+gets to be my actual style"* — about **four each**, different seeds, and she
+picks. She had circled this before and talked herself out of it once
+(2026-08-07: *"trying image to image with the WTR … I sort of dismissed that for
+some reason. Maybe because it just sounded like a hassle"*), and WTR is the
+style she found already worked for the Sophie experiment.
 
-**5 · Animation.** Cheap **480p drafts** first, just to see how the action
-works, then better drafts with **Wan** (probably) or Kling. The pair-animation
-formula (literal panel → metaphorical panel, animate between them) is in
-`sophies-movie-pipeline.md`.
+**5 · Animation.** Cheap **480p drafts** first, *"just to like see how the
+action will work"*, then better drafts with **Wan** (probably) or Kling. The
+pair transit is the shot: `last_image` conditioning animates from the literal
+panel to the metaphorical one.
 
-## Stage 1: the prompt (tested 2026-08-11)
+**The voiceover half** runs alongside and is already settled — align the real
+words to their timestamps via `docs/nde-precise-cutting.md` and the
+`sophie-audio` skill, *"otherwise it'll get wonky."*
 
-Two wordings were run at `low`, `1024x1536`, gpt-image-2 generations endpoint,
-no reference images. Both produced four clean quadrants and no text. **The grid
-wording is the one to keep** — it says "quadrant", which is what the cut needs,
-and it doesn't use the word "numbered", which invites labels:
+---
+
+# Part three — the prompts that have been run
+
+## Stage 1 (tested 2026-08-11)
+
+Two wordings at `low`, `1024x1536`, gpt-image-2 generations, no reference
+images. Both gave four clean quadrants and no text. **Keep the grid wording** —
+it says "quadrant", which is what the cut needs, and avoids the word "numbered",
+which invites labels:
 
 ```
 A 2x2 grid of four separate illustrations on one sheet: four equal quadrants
@@ -98,29 +225,24 @@ in. Absolutely no text, no words, no letters, no numbers, no captions, no
 panel labels, no page numbers.
 ```
 
-What the test settled:
+- **The cut is blind-sliceable.** Measured on both sheets: dividers at x=510 and
+  x=512 against an exact half of 512, y=767 and y=768 against 768. A flat 50/50
+  `sharp.extract` gives the four panels, no detection. Trim ~6px off the inner
+  edges to lose the gutter sliver.
+- **A 4-up sheet makes the pair formula MORE exact.** Both panels of a pair are
+  drawn in one pass, so "same people, same conversation, background transformed"
+  comes out matched — same poses, same hands, same faces — instead of being
+  negotiated across two calls. This is a real argument for the sheet beyond
+  cost, and it's why pairs go side by side in a row.
+- **Stage-1 sheets render photoreal**, because nothing asks for a style. Correct
+  for a blocking pass, and it makes the panels good photographic references for
+  the style pass.
+- ~2¢ a sheet, **21-24 seconds** for four beats.
 
-- **The cut is blind-sliceable.** Measured on the two sheets, the dividers
-  landed at x=510 and x=512 against an exact half of 512, and y=767 and y=768
-  against 768 — so a flat 50/50 `sharp.extract` gives the four panels with no
-  detection needed. Trim ~6px off the inner edges to lose the gutter sliver.
-- **A 4-up sheet makes the pair formula MORE exact, not less.** Both panels of
-  a literal→metaphorical pair are drawn in the same pass, so "same people, same
-  conversation, only the background transformed" comes out matched — same
-  poses, same hands, same faces — instead of being negotiated across two
-  separate calls. Put each pair side by side in the same ROW.
-- **A stage-1 sheet renders photoreal, not illustrated**, because nothing in
-  the prompt asks for a style. That is correct for a blocking pass (stage 3
-  restyles everything), and it makes the panels good *photographic* references
-  to hand to the style pass.
-- Cost and time: one low sheet is ~2¢ and took **21-24 seconds** for four
-  beats, against roughly 4× that as separate images.
+## Stage 2, the character card (tested 2026-08-11)
 
-## Stage 2: the character card (tested 2026-08-11)
-
-Her rule works as written, and the card is best built FROM a stage-1 panel —
-the person already exists there, so the card is a re-pose, not an invention.
-gpt-image-2 **edits**, `1024x1536`, quality `medium`, the panel attached:
+Built FROM a stage-1 panel — the person already exists there, so the card is a
+re-pose, not an invention. gpt-image-2 **edits**, `1024x1536`, quality `medium`:
 
 ```
 Use the attached image only as a reference for WHO this person is — her face,
@@ -133,57 +255,77 @@ Absolutely no text, no words, no letters, no numbers, no labels.
 ```
 
 Saying **"one view only — no turnaround, no multiple angles"** out loud is the
-load-bearing part: "character reference card" on its own is exactly the phrase
-that makes an image model draw a model sheet with four angles, which is the
-thing she doesn't want.
+load-bearing part: "character reference card" alone is the exact phrase that
+makes a model draw four angles.
 
-Two versions of the card were made and are in the Assets tab — a plain one, and
-the same card run through `refs/sage-sandy-mirror.png` so the card is already
-in the target style. **Which one is the real card is Sophie's call** (see the
-open questions).
+**This is not yet the LoRA route she described.** Two versions are filed in the
+Assets tab (plain, and the same card through sage sandy mirror), both made with
+gpt-image-2. Her 2026-08-02 recording asks for the characters to be made in the
+**Replicate watercolour LoRA, four at a time**, which no test has run yet —
+`REPLICATE_API_TOKEN` isn't available to a chat session, only to the server.
 
-## What already exists
+---
 
-- Stage 3 is a solved recipe — `docs/evan-film-style.md`, gpt-image-2 edits,
-  `1024x1536`, style ref attached, no style prose.
-- The style and character reference files are in `refs/` (`sage-sandy-mirror.png`,
-  `sophie-book.png`, `evan-character.png`).
-- Stage 5's models are wired in `movies.js` (`VIDEO_MODELS`: `wan-2.2-i2v-fast`
-  at 480p for drafts, `kling-v2.1` for quality), including `last_image`
-  conditioning, which is what animates BETWEEN two panels of a pair.
-- The voiceover half is settled — `docs/nde-precise-cutting.md` and the
-  `sophie-audio` skill.
+# What exists, and what doesn't
 
-## What doesn't exist yet
+Exists:
 
-- **Stage 1 has no prompt on file.** Being established now.
-- **Stage 4 cannot be run by any current route.** `/api/generate/replicate` in
-  `server.js` is text-to-image only: it never passes an `image` input, and it
-  hard-codes `aspect_ratio: '1:1'`. (`prompt_strength: 0.8` is already in the
-  body, but it only does anything when an image is supplied.) Running the LoRA
-  image-to-image needs that route to accept an input image and a portrait
-  aspect ratio — a small change, not yet made.
-- **Nothing cuts a 4-panel sheet into panels yet.** `sharp` is already a
-  dependency, so the cut is a few lines; there is just no route for it.
-- No orchestration end to end — every stage above is a separate manual step
-  today.
+- Stage 3's recipe — `docs/evan-film-style.md`.
+- The reference files in `refs/` (`sage-sandy-mirror.png`, `sophie-book.png`,
+  `evan-character.png`).
+- Stage 5's models in `movies.js` (`VIDEO_MODELS`: `wan-2.2-i2v-fast` at 480p
+  for drafts, `kling-v2.1` for quality) including `last_image` conditioning.
+- The voiceover half.
 
-## Open questions for Sophie
+Doesn't:
 
-1. **Four panels, or four versions?** Her chat message says stage 1 is four
-   panels in one image to cut cost; the memo's "four each" is at the LoRA
-   stage, different seeds, pick the best. Reading both as true: cheap 4-up
-   sheets at the start, four LoRA versions at the end. Confirm.
-2. **Stage-3 quality: high (memo) or medium (the settled Evan finding)?**
-3. **Which character card is the real one** — the plain one, or the same card
-   already run through sage sandy mirror? A styled card agrees with the style
-   pass; a plain one keeps the character and the style as separate decisions.
-   Both are filed in the Assets tab as A and B.
-4. **The character card's crop** — full figure (what was tested), or
-   head-and-shoulders? "Front view, slightly smiling" fixes the pose and the
-   expression, not the crop.
+- **No route can run stage 4.** `/api/generate/replicate` in `server.js` is
+  text-to-image only: it never passes an `image` input and hard-codes
+  `aspect_ratio: '1:1'`. (`prompt_strength: 0.8` is already in the body but does
+  nothing without an image.) Needs an input-image passthrough and a portrait
+  aspect ratio — small, not yet made.
+- **Nothing cuts a sheet into panels.** `sharp` is already a dependency; there's
+  just no route.
+- **No combined character/setting reference sheet** (the "this is the house,
+  this is the person" one image).
+- No orchestration — every stage is a separate manual step today.
 
-## Verbatim transcript (memo `2026-08-10_2207`, "AI Image Pipeline Concept")
+# Open questions for Sophie
+
+1. **Where do characters get made** — the Replicate LoRA four-at-a-time route
+   from the 2026-08-02 memo, or the gpt-image-2 cards already filed? The memo
+   says LoRA; the cards were the fast thing to test.
+2. **Stage-3 quality: high (her memo) or medium (the Evan finding)?**
+   6¢ vs 25¢ an image.
+3. **Confirm the two "fours" are different things** — four panels in one image
+   at the start to cut cost, four versions with different seeds at the LoRA end.
+4. **The character card's crop** — full figure (tested), or head-and-shoulders?
+
+# The recordings this is built from
+
+- **2026-07-28_2146 · "The Metaphor Machine Concept"** (5:25) — how she thinks
+  about metaphor; set vs kit; the evolving metaphor critique.
+- **2026-08-01_1919 · "Pipeline Concept Development"** (5:11) — the two halves,
+  the literal→metaphorical formula, the car/outer-space example, animate
+  between. Also transcribed verbatim in `sophies-movie-pipeline.md`.
+- **2026-08-02_1244 · "Character Design Pipeline Concept"** (2:14) — characters
+  and settings made in the Replicate LoRA, four at a time, combined onto one
+  reference sheet.
+- **2026-08-02_1247 · "Morning Creative Ideas"** (6:30) — pizza slices and the
+  sky, going back and forth, establish the noun before modifying it, simplify,
+  and the idea of writing this document.
+- **2026-08-07_1614 · "Acupuncture Inspired Creative Concepts"** (3:45) — the
+  before/after two-panel thing, four panels at low as a hook, the wild card,
+  weights not reasoning, WTR image-to-image.
+- **2026-08-10_2207 · "AI Image Pipeline Concept"** (2:48) — the stage order end
+  to end. Verbatim below.
+
+Note on dates: these stamps are when each recording was SHARED, not when it was
+made — iOS rewrites an m4a's internal clock on every export, so a memo filed
+from the share sheet is dated at share time. `scripts/push-memos.mjs` heals them
+from the Voice Memos database on its next run (see `unstampedRecords`).
+
+## Verbatim — 2026-08-10_2207, "AI Image Pipeline Concept"
 
 > Theoretically, the pipeline would be like, take a voice recording, have an AI
 > chat, translate it into a bunch of images, and cut each one, and then just put
@@ -209,3 +351,20 @@ open questions).
 > animate.
 
 ("lawn" is Wan, "cling" is Kling, "sea ants" is the transcriber giving up.)
+
+## Verbatim — 2026-08-02_1244, "Character Design Pipeline Concept"
+
+> um now i'm thinking of a new pipeline and it would be kind of like make the
+> characters in the replicate watercolor thing for my style like each time
+> there's a new character okay make it in there make like four of them because
+> they're so cheap and then look at them okay i like this one describe it maybe
+> change it once and then maybe change the clothes and then okay now i use that
+> as a character okay make the house like that then you can even put them all in
+> the same sheet this is the house this is the person blah blah blah so it's just
+> one image reference um and i could even make the image references with that so
+> that changes a lot of stuff in a certain way and actually it means that there
+> was some reason to use replicate and i could use the hoonie style to make
+> references to make maybe to make the xi cards with chat gpt okay that's a good
+> idea okay i just like it because it extends the pipeline it makes it really
+> long i kind of want to draw it out now it's like one two three four five six
+> seven eight so
