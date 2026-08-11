@@ -70,7 +70,12 @@ hand the result over:
   face), so it was only ever imposing a mood.
 - `against a plain pale background` — "pale" was a vaguer word doing no work.
   Nothing post-processes these images, so it should always have said white.
-  Settled wording is **`on a white background`**.
+  Then Sophie asked the better question: is the line needed at all? **It is
+  not.** Rendered on Darius with and against, the corner pixels came back
+  254,254,252 without the line and 254,254,253 with it — the style reference
+  draws on white paper whether or not the prompt says so. So a portrait needs
+  NO background line; the nine live cards carry one and are none the worse for
+  it, but new prompts should leave it out.
 
 ### The likeness line is ONE sentence — do not grow it back
 
